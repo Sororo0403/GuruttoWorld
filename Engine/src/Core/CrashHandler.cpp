@@ -38,6 +38,36 @@ namespace
     void WriteReport() noexcept
     {
         const auto* record = state.exception->ExceptionRecord;
+        SYSTEMTIME time{};
+        GetLocalTime(&time);
+        char message[512]{};
+        const int length = sprintf_s(message,
+            "[%04u-%02u-%02u %02u:%02u:%02u] [CRASH] "
+            "code=0x%08lX address=%p thread=%lu\r\n",
+            static_cast<unsigned>(time.wYear), static_cast<unsigned>(time.wMonth),
+            static_cast<unsigned>(time.wDay), static_cast<unsigned>(time.wHour),
+            static_cast<unsigned>(time.wMinute), static_cast<unsigned>(time.wSecond),
+            record->ExceptionCode, record->ExceptionAddress, state.threadId);
+        OutputDebugStringA(message);
+
+        // ダンプ生成が停止しても例外情報が残るよう、先に書き込んでフラッシュします。
+        const HANDLE log = CreateFileW(state.logPath.c_str(), GENERIC_WRITE,
+            FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (log != INVALID_HANDLE_VALUE)
+        {
+            DWORD written = 0;
+            if (length > 0 && (!WriteFile(log, message, static_cast<DWORD>(length), &written, nullptr) ||
+                written != static_cast<DWORD>(length)))
+            {
+                OutputDebugStringW(L"[CrashHandler] Cannot write the crash information.\n");
+            }
+            FlushFileBuffers(log);
+        }
+        else
+        {
+            OutputDebugStringW(L"[CrashHandler] Cannot open the crash log.\n");
+        }
+
         const HANDLE dump = CreateFileW(state.dumpPath.c_str(), GENERIC_WRITE,
             FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
         DWORD dumpError = ERROR_SUCCESS;
@@ -60,35 +90,20 @@ namespace
             dumpError = GetLastError();
         }
 
-        SYSTEMTIME time{};
-        GetLocalTime(&time);
-        char message[512]{};
-        const int length = sprintf_s(message,
-            "[%04u-%02u-%02u %02u:%02u:%02u] [CRASH] "
-            "code=0x%08lX address=%p thread=%lu dump_error=0x%08lX\r\n",
-            static_cast<unsigned>(time.wYear), static_cast<unsigned>(time.wMonth),
-            static_cast<unsigned>(time.wDay), static_cast<unsigned>(time.wHour),
-            static_cast<unsigned>(time.wMinute), static_cast<unsigned>(time.wSecond),
-            record->ExceptionCode, record->ExceptionAddress, state.threadId, dumpError);
+        const int resultLength = sprintf_s(message, "[CRASH] dump_error=0x%08lX\r\n", dumpError);
         OutputDebugStringA(message);
         OutputDebugStringW(state.dumpPath.c_str());
         OutputDebugStringW(L"\n");
-
-        const HANDLE log = CreateFileW(state.logPath.c_str(), GENERIC_WRITE,
-            FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
         if (log != INVALID_HANDLE_VALUE)
         {
             DWORD written = 0;
-            if (length > 0)
+            if (resultLength > 0 && (!WriteFile(log, message, static_cast<DWORD>(resultLength), &written, nullptr) ||
+                written != static_cast<DWORD>(resultLength)))
             {
-                WriteFile(log, message, static_cast<DWORD>(length), &written, nullptr);
+                OutputDebugStringW(L"[CrashHandler] Cannot append the dump result.\n");
             }
             FlushFileBuffers(log);
             CloseHandle(log);
-        }
-        else
-        {
-            OutputDebugStringW(L"[CrashHandler] Cannot write the crash log.\n");
         }
     }
 

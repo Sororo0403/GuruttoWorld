@@ -63,7 +63,7 @@ namespace Engine
 
     private:
         /// <summary>
-        /// ウィンドウへのメッセージを処理し、破棄時に終了メッセージを送信します。
+        /// ウィンドウへのメッセージを処理し、閉じる操作を終了要求として記録します。
         /// </summary>
         /// <param name="handle">メッセージを受け取るウィンドウ。</param>
         /// <param name="message">メッセージの識別子。</param>
@@ -75,5 +75,6 @@ namespace Engine
         HINSTANCE instance_ = nullptr;
         HWND handle_ = nullptr;
         ATOM classAtom_ = 0;
+        bool closeRequested_ = false;
     };
 }

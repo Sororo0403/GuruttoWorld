@@ -9,6 +9,13 @@
 
 namespace Engine
 {
+    enum class RenderResult
+    {
+        Presented,
+        Paused,
+        Failed
+    };
+
     class DirectX12Renderer final
     {
     public:
@@ -44,8 +51,8 @@ namespace Engine
         /// 初期化したスレッドから呼び出してください。
         /// </summary>
         /// <param name="clearColor">赤、緑、青、不透明度の順で指定する 0.0 から 1.0 の色。</param>
-        /// <returns>描画または休止に成功した場合は true、失敗した場合は false。</returns>
-        bool Render(const std::array<float, 4>& clearColor);
+        /// <returns>表示、描画休止、失敗の状態。休止時の待機は呼び出し側で行ってください。</returns>
+        RenderResult Render(const std::array<float, 4>& clearColor);
 
     private:
         /// <summary>
@@ -58,6 +65,13 @@ namespace Engine
         /// </summary>
         /// <returns>待機に成功し、デバイスが有効な場合は true、失敗した場合は false。</returns>
         bool WaitForGpu();
+
+        /// <summary>
+        /// 指定したフェンス値まで GPU の処理が完了するのを待機します。
+        /// </summary>
+        /// <param name="target">再利用するフレームなどに対応する完了値。</param>
+        /// <returns>待機に成功し、デバイスが有効な場合は true、失敗した場合は false。</returns>
+        bool WaitForFence(UINT64 target);
 
         /// <summary>
         /// 描画先を検証し、初期サイズを取得します。
@@ -108,7 +122,7 @@ namespace Engine
         bool CreateRenderTargets();
 
         /// <summary>
-        /// 描画コマンドのアロケーターとリストを生成し、リストを閉じた状態にします。
+        /// フレームごとのアロケーターと描画リストを生成し、リストを閉じた状態にします。
         /// </summary>
         /// <returns>生成とリストのクローズに成功した場合は true、失敗した場合は false。</returns>
         bool CreateDrawingCommands();
@@ -136,7 +150,8 @@ namespace Engine
         Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> renderTargetHeap;
         std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, bufferCount> buffers;
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
+        std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, bufferCount> allocators;
+        std::array<UINT64, bufferCount> frameFenceValues{};
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commands;
         Microsoft::WRL::ComPtr<ID3D12Fence> fence;
     };

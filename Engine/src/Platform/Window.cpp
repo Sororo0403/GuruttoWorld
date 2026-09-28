@@ -69,6 +69,7 @@ namespace Engine
             }
         }
 
+        closeRequested_ = false;
         handle_ = CreateWindowExW(0, windowClassName, title, style,
             CW_USEDEFAULT, CW_USEDEFAULT, width + borderWidth, height + borderHeight,
             nullptr, nullptr, instance_, this);
@@ -109,7 +110,7 @@ namespace Engine
             TranslateMessage(&message);
             DispatchMessageW(&message);
         }
-        return handle_ != nullptr;
+        return handle_ != nullptr && !closeRequested_;
     }
 
     HWND Window::GetHandle() const noexcept
@@ -126,9 +127,13 @@ namespace Engine
             SetWindowLongPtrW(handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
             window->handle_ = handle;
         }
-        else if (message == WM_DESTROY)
+        else if (message == WM_CLOSE || message == WM_DESTROY)
         {
-            PostQuitMessage(0);
+            auto* window = reinterpret_cast<Window*>(GetWindowLongPtrW(handle, GWLP_USERDATA));
+            if (window != nullptr)
+            {
+                window->closeRequested_ = true;
+            }
             return 0;
         }
         else if (message == WM_NCDESTROY)

@@ -4,6 +4,8 @@
 #include <Engine/Graphics/DirectX12Renderer.h>
 #include <Engine/Platform/Window.h>
 
+#include <chrono>
+
 namespace Engine
 {
     Application::~Application()
@@ -11,22 +13,39 @@ namespace Engine
         Shutdown();
     }
 
-    int Application::Run()
+    int Application::Run(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks)
     {
+        if (!callbacks.draw || settings.inactiveWaitMilliseconds == 0)
+        {
+            return 1;
+        }
         int exitCode = 1;
         {
             // 描画機能を先に破棄し、その後にウィンドウを破棄します。
             Window window;
             DirectX12Renderer renderer;
-            if (Initialize(window, renderer))
+            if (Initialize(settings, window, renderer))
             {
-                constexpr std::array<float, 4> backgroundColor{ 0.08f, 0.20f, 0.40f, 1.0f };
+                auto previousTime = std::chrono::steady_clock::now();
                 while (window.ProcessMessages(exitCode))
                 {
-                    if (!renderer.Render(backgroundColor))
+                    const auto currentTime = std::chrono::steady_clock::now();
+                    const double deltaSeconds = std::chrono::duration<double>(currentTime - previousTime).count();
+                    previousTime = currentTime;
+                    if (callbacks.update)
+                    {
+                        callbacks.update(deltaSeconds);
+                    }
+                    const RenderResult result = callbacks.draw(renderer);
+                    if (result == RenderResult::Failed)
                     {
                         exitCode = 1;
                         break;
+                    }
+                    if (result == RenderResult::Paused)
+                    {
+                        MsgWaitForMultipleObjectsEx(0, nullptr, settings.inactiveWaitMilliseconds,
+                            QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                     }
                 }
             }
@@ -35,7 +54,7 @@ namespace Engine
         return exitCode;
     }
 
-    bool Application::Initialize(Window& window, DirectX12Renderer& renderer)
+    bool Application::Initialize(const ApplicationSettings& settings, Window& window, DirectX12Renderer& renderer)
     {
         if (!CrashHandler::Initialize())
         {
@@ -52,7 +71,7 @@ namespace Engine
         logInitialized_ = true;
         Log::Info("Engine started.");
 
-        if (!window.Create(L"WP1") || !renderer.Initialize(window.GetHandle()))
+        if (!window.Create(settings.title.c_str(), settings.width, settings.height) || !renderer.Initialize(window.GetHandle()))
         {
             return false;
         }

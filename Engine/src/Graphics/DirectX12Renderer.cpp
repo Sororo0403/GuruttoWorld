@@ -44,7 +44,11 @@ namespace Engine
             fenceEvent = nullptr;
         }
         commands.Reset();
-        allocator.Reset();
+        for (auto& allocator : allocators)
+        {
+            allocator.Reset();
+        }
+        frameFenceValues.fill(0);
         for (auto& buffer : buffers)
         {
             buffer.Reset();
@@ -71,6 +75,11 @@ namespace Engine
         {
             return false;
         }
+        return WaitForFence(target);
+    }
+
+    bool DirectX12Renderer::WaitForFence(UINT64 target)
+    {
         if (fence->GetCompletedValue() < target)
         {
             if (!Check(fence->SetEventOnCompletion(target, fenceEvent), "SetEventOnCompletion"))
@@ -223,10 +232,16 @@ namespace Engine
 
     bool DirectX12Renderer::CreateDrawingCommands()
     {
-        if (!Check(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-            IID_PPV_ARGS(&allocator)), "CreateCommandAllocator") ||
-            !Check(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
-                allocator.Get(), nullptr, IID_PPV_ARGS(&commands)), "CreateCommandList"))
+        for (auto& allocator : allocators)
+        {
+            if (!Check(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                IID_PPV_ARGS(&allocator)), "CreateCommandAllocator"))
+            {
+                return false;
+            }
+        }
+        if (!Check(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
+            allocators[0].Get(), nullptr, IID_PPV_ARGS(&commands)), "CreateCommandList"))
         {
             return false;
         }
@@ -276,34 +291,32 @@ namespace Engine
         return true;
     }
 
-    bool DirectX12Renderer::Render(const std::array<float, 4>& clearColor)
+    RenderResult DirectX12Renderer::Render(const std::array<float, 4>& clearColor)
     {
         if (!ready)
         {
-            return false;
+            return RenderResult::Failed;
         }
         RECT client{};
         if (!GetClientRect(window, &client))
         {
             Log::Error("Cannot get the render target size.");
-            return false;
+            return RenderResult::Failed;
         }
         if (IsIconic(window) || client.right <= 0 || client.bottom <= 0)
         {
-            Sleep(16);
-            return true;
+            return RenderResult::Paused;
         }
         if (occluded)
         {
             const HRESULT visibility = swapChain->Present(0, DXGI_PRESENT_TEST);
             if (visibility == DXGI_STATUS_OCCLUDED)
             {
-                Sleep(50);
-                return true;
+                return RenderResult::Paused;
             }
             if (!Check(visibility, "Test swap chain visibility"))
             {
-                return false;
+                return RenderResult::Failed;
             }
             occluded = false;
         }
@@ -313,7 +326,7 @@ namespace Engine
         {
             if (!WaitForGpu())
             {
-                return false;
+                return RenderResult::Failed;
             }
             for (auto& buffer : buffers)
             {
@@ -323,19 +336,20 @@ namespace Engine
                 bufferFormat, 0), "ResizeBuffers") || !CreateRenderTargets())
             {
                 ready = false;
-                return false;
+                return RenderResult::Failed;
             }
             width = newWidth;
             height = newHeight;
             Log::Info(std::format("DirectX 12 resized: {}x{}", width, height));
         }
 
-        if (!Check(allocator->Reset(), "Reset command allocator") ||
-            !Check(commands->Reset(allocator.Get(), nullptr), "Reset command list"))
-        {
-            return false;
-        }
         const UINT index = swapChain->GetCurrentBackBufferIndex();
+        if (!WaitForFence(frameFenceValues[index]) ||
+            !Check(allocators[index]->Reset(), "Reset command allocator") ||
+            !Check(commands->Reset(allocators[index].Get(), nullptr), "Reset command list"))
+        {
+            return RenderResult::Failed;
+        }
         D3D12_RESOURCE_BARRIER barrier{};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Transition.pResource = buffers[index].Get();
@@ -350,21 +364,27 @@ namespace Engine
         commands->ResourceBarrier(1, &barrier);
         if (!Check(commands->Close(), "Close command list"))
         {
-            return false;
+            return RenderResult::Failed;
         }
         ID3D12CommandList* lists[] = { commands.Get() };
         queue->ExecuteCommandLists(1, lists);
         const HRESULT present = swapChain->Present(1, 0);
-        // 次のフレームでアロケーターを再利用する前に GPU の完了を確認します。
-        if (!WaitForGpu() || !Check(present, "Present"))
+        // このフレームの完了値を記録し、同じバッファーを再利用するときだけ待機します。
+        const UINT64 submittedFence = ++fenceValue;
+        if (!Check(queue->Signal(fence.Get(), submittedFence), "Signal frame fence"))
         {
-            return false;
+            return RenderResult::Failed;
+        }
+        frameFenceValues[index] = submittedFence;
+        if (!Check(present, "Present"))
+        {
+            return RenderResult::Failed;
         }
         if (present == DXGI_STATUS_OCCLUDED)
         {
             occluded = true;
-            Sleep(50);
+            return RenderResult::Paused;
         }
-        return true;
+        return RenderResult::Presented;
     }
 }

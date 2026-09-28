@@ -1,9 +1,27 @@
 #pragma once
 
+#include <functional>
+#include <string>
+
 namespace Engine
 {
     class Window;
     class DirectX12Renderer;
+    enum class RenderResult;
+
+    struct ApplicationSettings
+    {
+        std::wstring title;
+        int width = 1280;
+        int height = 720;
+        unsigned int inactiveWaitMilliseconds = 16;
+    };
+
+    struct ApplicationCallbacks
+    {
+        std::function<void(double)> update;
+        std::function<RenderResult(DirectX12Renderer&)> draw;
+    };
 
     class Application final
     {
@@ -32,17 +50,20 @@ namespace Engine
         /// 初期化後、メッセージ処理と描画を繰り返し、終了時にリソースを解放します。
         /// メインスレッドから呼び出してください。
         /// </summary>
+        /// <param name="settings">アプリ層が指定するウィンドウ設定と非表示時の待機時間。</param>
+        /// <param name="callbacks">更新と描画の処理。更新には前フレームからの経過秒数を渡します。描画は必須です。</param>
         /// <returns>ウィンドウの終了コード。初期化や描画に失敗した場合は 1。</returns>
-        int Run();
+        int Run(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks);
 
     private:
         /// <summary>
         /// クラッシュ処理、ログ、ウィンドウ、描画機能を順番に初期化します。
         /// </summary>
+        /// <param name="settings">アプリ層が指定する初期化設定。</param>
         /// <param name="window">初期化するウィンドウ。</param>
         /// <param name="renderer">初期化する描画機能。</param>
         /// <returns>すべての初期化に成功した場合は true、失敗した場合は false。</returns>
-        bool Initialize(Window& window, DirectX12Renderer& renderer);
+        bool Initialize(const ApplicationSettings& settings, Window& window, DirectX12Renderer& renderer);
 
         /// <summary>
         /// 初期化済みのログとクラッシュ処理を終了します。描画機能とウィンドウの破棄後に呼び出します。
