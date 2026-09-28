@@ -1,6 +1,7 @@
 #include <Engine/Engine.h>
+#include <Windows.h>
 
-int main()
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
     return Engine::Run();
 }
