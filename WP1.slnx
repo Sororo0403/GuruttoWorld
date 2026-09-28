@@ -1,7 +1,6 @@
 <Solution>
   <Configurations>
     <Platform Name="x64" />
-    <Platform Name="x86" />
   </Configurations>
-  <Project Path="WP1.vcxproj" />
+  <Project Path="WP1.vcxproj" Id="da59faf5-f726-4558-9946-c19f7819fd94" />
 </Solution>
