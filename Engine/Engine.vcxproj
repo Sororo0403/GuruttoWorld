@@ -93,6 +93,7 @@
     <ClCompile Include="src\Graphics\SpriteRenderer.cpp" />
     <ClCompile Include="src\Graphics\SphereRenderer.cpp" />
     <ClCompile Include="src\Graphics\IndexedMeshBuffer.cpp" />
+    <ClCompile Include="src\Graphics\UVTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\Core\Application.h" />
@@ -107,6 +108,7 @@
     <ClInclude Include="include\Engine\Graphics\SpriteRenderer.h" />
     <ClInclude Include="include\Engine\Graphics\SphereRenderer.h" />
     <ClInclude Include="include\Engine\Graphics\IndexedMeshBuffer.h" />
+    <ClInclude Include="include\Engine\Graphics\UVTransform.h" />
     <ClInclude Include="include\Engine\Graphics\DirectionalLight.h" />
   </ItemGroup>
   <ItemGroup>

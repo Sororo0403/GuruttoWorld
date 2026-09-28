@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/Texture2D.h>
+#include <Engine/Graphics/UVTransform.h>
 #include <array>
 
 namespace Engine
@@ -15,6 +16,8 @@ namespace Engine
         std::array<float, 4> color{ 1.0f, 1.0f, 1.0f, 1.0f };
         // 画像を切り出す UV 範囲（左、上、右、下）です。
         std::array<float, 4> uvRect{ 0.0f, 0.0f, 1.0f, 1.0f };
+        // UV 範囲で切り出した座標に変換を適用します。
+        UVTransform uvTransform;
     };
 
     class SpriteRenderer final

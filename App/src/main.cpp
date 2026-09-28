@@ -6,6 +6,7 @@
 #if defined(_DEBUG)
 #include "DebugPanel.h"
 #include "LightingPanel.h"
+#include "UVTransformPanel.h"
 #endif
 
 #include <cmath>
@@ -43,6 +44,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     bool rotating = true;
     std::array<float, 4> backgroundColor{ 0.08f, 0.20f, 0.40f, 1.0f };
     Engine::DirectionalLight light;
+    Engine::UVTransform sphereUV;
+    Engine::UVTransform spriteUV;
     const std::array<float, 3> cameraPosition{ 0.0f, 0.0f, -3.5f };
     std::function<void()> debugUi;
 #if defined(_DEBUG)
@@ -50,6 +53,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     {
         App::DebugPanel::Draw(rotationY, speedDegrees, rotating, backgroundColor);
         App::LightingPanel::Draw(light);
+        App::UVTransformPanel::Draw(sphereUV, spriteUV);
     };
 #endif
     Engine::ApplicationCallbacks callbacks;
@@ -89,11 +93,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             XMFLOAT4X4 viewProjection;
             XMStoreFloat4x4(&world, XMMatrixRotationY(static_cast<float>(rotationY)));
             XMStoreFloat4x4(&viewProjection, view * projection);
-            sphere.Draw(commands, world, viewProjection, light, cameraPosition);
+            sphere.Draw(commands, world, viewProjection, light, cameraPosition, sphereUV);
             Engine::SpriteDrawParameters spriteParameters;
             spriteParameters.position = { static_cast<float>(renderer.GetWidth()) - 192.0f, 32.0f };
             spriteParameters.size = { 160.0f, 160.0f };
             spriteParameters.color = { 1.0f, 1.0f, 1.0f, 0.8f };
+            spriteParameters.uvTransform = spriteUV;
             sprite.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), spriteParameters);
         }, debugUi);
     };

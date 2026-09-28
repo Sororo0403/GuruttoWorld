@@ -105,6 +105,7 @@
     <None Include="Shaders\Triangle.hlsl" />
     <None Include="Shaders\Sprite.hlsl" />
     <None Include="Shaders\Sphere.hlsl" />
+    <None Include="Shaders\UVTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
   </ItemGroup>
   <ItemGroup>
@@ -113,14 +114,18 @@
     </ClCompile>
     <ClInclude Include="src\DebugPanel.h" />
     <ClInclude Include="src\LightingPanel.h" />
+    <ClInclude Include="src\UVTransformPanel.h" />
     <ClCompile Include="src\LightingPanel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\UVTransformPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Shaders" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl"
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\UVTransform.hlsli"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyTextures" AfterTargets="Build">

@@ -17,6 +17,7 @@
     <None Include="Shaders\Triangle.hlsl" />
     <None Include="Shaders\Sprite.hlsl" />
     <None Include="Shaders\Sphere.hlsl" />
+    <None Include="Shaders\UVTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
   </ItemGroup>
   <ItemGroup>
@@ -29,7 +30,13 @@
     <ClInclude Include="src\LightingPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\UVTransformPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClCompile Include="src\LightingPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UVTransformPanel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

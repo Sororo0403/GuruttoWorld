@@ -125,10 +125,16 @@
     <ClCompile Include="src\Graphics\IndexedMeshBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Graphics\UVTransform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClInclude Include="include\Engine\Graphics\SphereRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\Engine\Graphics\IndexedMeshBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\UVTransform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\Engine\Graphics\DirectionalLight.h">

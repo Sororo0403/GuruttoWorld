@@ -2,6 +2,7 @@
 
 #include <Engine/Platform/Window.h>
 #include <Engine/Graphics/Texture2D.h>
+#include <Engine/Graphics/UVTransform.h>
 #include <d3d12.h>
 #include <wrl/client.h>
 
@@ -61,9 +62,11 @@ namespace Engine
         /// <param name="rotationY">原点を通る Y 軸周りの回転角度（ラジアン）。</param>
         /// <param name="translation">回転後の平行移動量。Z が小さいほど手前になります。</param>
         /// <param name="tint">テクスチャと頂点色に乗算する RGBA 色。</param>
+        /// <param name="uvTransform">テクスチャ座標の拡縮・回転・移動。</param>
         void Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY = 0.0f,
             const std::array<float, 3>& translation = { 0.0f, 0.0f, 0.0f },
-            const std::array<float, 4>& tint = { 1.0f, 1.0f, 1.0f, 1.0f }) const;
+            const std::array<float, 4>& tint = { 1.0f, 1.0f, 1.0f, 1.0f },
+            const UVTransform& uvTransform = {}) const;
 
     private:
         /// <summary>

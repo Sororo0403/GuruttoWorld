@@ -56,7 +56,7 @@ namespace Engine
         textureRange.NumDescriptors = 1;
         textureRange.BaseShaderRegister = 0;
         textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        D3D12_ROOT_PARAMETER parameters[2]{};
+        D3D12_ROOT_PARAMETER parameters[3]{};
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
         parameters[0].Constants.Num32BitValues = 12;
@@ -65,6 +65,10 @@ namespace Engine
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
         parameters[1].DescriptorTable.pDescriptorRanges = &textureRange;
         parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        parameters[2].Constants.ShaderRegister = 2;
+        parameters[2].Constants.Num32BitValues = 8;
+        parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -76,7 +80,7 @@ namespace Engine
         sampler.ShaderRegister = 0;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_ROOT_SIGNATURE_DESC description{};
-        description.NumParameters = 2;
+        description.NumParameters = 3;
         description.pParameters = parameters;
         description.NumStaticSamplers = 1;
         description.pStaticSamplers = &sampler;
@@ -152,7 +156,7 @@ namespace Engine
     }
 
     void TriangleRenderer::Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY,
-        const std::array<float, 3>& translation, const std::array<float, 4>& tint) const
+        const std::array<float, 3>& translation, const std::array<float, 4>& tint, const UVTransform& uvTransform) const
     {
         if (!initialized_ || commands == nullptr || aspectRatio <= 0.0f)
         {
@@ -168,6 +172,8 @@ namespace Engine
         commands->SetPipelineState(pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
         commands->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(constants.size()), constants.data(), 0);
+        const auto uvConstants = uvTransform.GetConstants();
+        commands->SetGraphicsRoot32BitConstants(2, 8, uvConstants.data(), 0);
         ID3D12DescriptorHeap* heaps[] = { texture_.GetDescriptorHeap() };
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, texture_.GetGpuHandle());

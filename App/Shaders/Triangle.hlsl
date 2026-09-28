@@ -1,3 +1,5 @@
+#include "UVTransform.hlsli"
+
 cbuffer TriangleConstants : register(b0)
 {
     float2 aspectScale;
@@ -36,7 +38,7 @@ VertexOutput VSMain(VertexInput input)
     // 正射影として、回転後の Z 座標 [-1, 1] を深度範囲 [0, 1] に変換します。
     output.position = float4(rotatedPosition.xy * aspectScale, rotatedPosition.z * 0.5f + 0.5f, 1.0f);
     output.color = input.color * tint;
-    output.uv = input.uv;
+    output.uv = TransformUV(input.uv);
     return output;
 }
 

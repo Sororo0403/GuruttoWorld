@@ -1,8 +1,10 @@
+#include "UVTransform.hlsli"
+
 cbuffer SphereConstants : register(b0)
 {
     row_major float3x3 normalMatrix;
     row_major float4x4 worldViewProjection;
-    row_major float4x4 world;
+    row_major float3x4 worldRows;
 };
 
 cbuffer LightingConstants : register(b1)
@@ -15,7 +17,6 @@ cbuffer LightingConstants : register(b1)
     float shininess;
     float specularStrength;
     float lightingEnabled;
-    float2 padding;
 };
 
 Texture2D<float4> sphereTexture : register(t0);
@@ -41,8 +42,8 @@ VertexOutput VSMain(VertexInput input)
     VertexOutput output;
     output.position = mul(float4(input.position, 1.0f), worldViewProjection);
     output.normal = mul(input.normal, normalMatrix);
-    output.worldPosition = mul(float4(input.position, 1.0f), world).xyz;
-    output.uv = input.uv;
+    output.worldPosition = mul(worldRows, float4(input.position, 1.0f));
+    output.uv = TransformUV(input.uv);
     return output;
 }
 

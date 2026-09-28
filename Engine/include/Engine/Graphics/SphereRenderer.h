@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/Texture2D.h>
+#include <Engine/Graphics/UVTransform.h>
 #include <Engine/Graphics/DirectionalLight.h>
 #include <DirectXMath.h>
 #include <array>
@@ -51,9 +52,11 @@ namespace Engine
         /// <param name="viewProjection">ビュー行列と射影行列をこの順に乗算した行列。</param>
         /// <param name="light">平行光源、環境光、ハイライトの設定。</param>
         /// <param name="cameraPosition">ビュー行列と対応するワールド空間のカメラ位置。</param>
+        /// <param name="uvTransform">テクスチャ座標の拡縮・回転・移動。</param>
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
             const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
-            const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f }) const;
+            const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
+            const UVTransform& uvTransform = {}) const;
 
     private:
         struct Vertex
