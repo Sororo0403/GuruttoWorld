@@ -79,15 +79,6 @@ namespace Engine
         bool CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue);
 
         /// <summary>
-        /// メッシュのコピーと頂点・インデックス参照状態への遷移を実行し、フェンスで完了を待ちます。
-        /// </summary>
-        /// <param name="device">生成に使用するデバイス。</param>
-        /// <param name="queue">転送に使用するキュー。</param>
-        /// <param name="upload">コピー元バッファー。</param>
-        /// <returns>転送と待機に成功した場合は true。</returns>
-        bool UploadMesh(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Resource* upload);
-
-        /// <summary>
         /// 変換行列・テクスチャ・サンプラーを渡すルートシグネチャを生成します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>

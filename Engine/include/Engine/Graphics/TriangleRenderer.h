@@ -41,10 +41,10 @@ namespace Engine
         TriangleRenderer& operator=(const TriangleRenderer&) = delete;
 
         /// <summary>
-        /// ルートシグネチャ、パイプライン、頂点バッファー、テクスチャを生成します。
+        /// ルートシグネチャ、パイプライン、頂点・インデックスバッファー、テクスチャを生成します。
         /// </summary>
         /// <param name="device">生成に使用する DirectX 12 デバイス。</param>
-        /// <param name="queue">テクスチャの初期転送に使用する DIRECT 型の描画キュー。</param>
+        /// <param name="queue">メッシュとテクスチャの初期転送に使用する DIRECT 型の描画キュー。</param>
         /// <param name="texturePath">貼り付ける画像ファイル。</param>
         /// <param name="shaderPath">VSMain と PSMain を定義した HLSL ファイル。</param>
         /// <param name="vertices">描画する三角形の頂点位置、色、UV 座標。</param>
@@ -82,18 +82,20 @@ namespace Engine
         bool CreatePipelineState(ID3D12Device* device, const std::filesystem::path& shaderPath);
 
         /// <summary>
-        /// アップロードヒープ上の頂点バッファーを生成し、頂点を一度だけ書き込みます。
+        /// DEFAULT ヒープへ三頂点とインデックスを転送し、完了を待機します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
+        /// <param name="queue">転送に使用する DIRECT 型キュー。</param>
         /// <param name="vertices">転送する三頂点。</param>
         /// <returns>生成と書き込みに成功した場合は true。</returns>
-        bool CreateVertexBuffer(ID3D12Device* device, const std::array<TriangleVertex, 3>& vertices);
+        bool CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue, const std::array<TriangleVertex, 3>& vertices);
 
         bool initialized_ = false;
         Texture2D texture_;
         Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
-        Microsoft::WRL::ComPtr<ID3D12Resource> vertexBuffer_;
+        Microsoft::WRL::ComPtr<ID3D12Resource> meshBuffer_;
         D3D12_VERTEX_BUFFER_VIEW vertexBufferView_{};
+        D3D12_INDEX_BUFFER_VIEW indexBufferView_{};
     };
 }

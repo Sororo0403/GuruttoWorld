@@ -1,14 +1,13 @@
 #include <Engine/Graphics/SphereRenderer.h>
 #include <Engine/Graphics/ShaderCompiler.h>
 #include <Engine/Graphics/DepthBuffer.h>
+#include <Engine/Graphics/IndexedMeshBuffer.h>
 #include <Engine/Core/Log.h>
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <cstring>
 #include <format>
-#include <memory>
 #include <numbers>
 
 namespace
@@ -94,99 +93,13 @@ namespace Engine
         std::vector<Vertex> vertices;
         std::vector<std::uint32_t> indices;
         GenerateMesh(vertices, indices);
-        const UINT vertexBytes = static_cast<UINT>(vertices.size() * sizeof(Vertex));
-        const UINT indexBytes = static_cast<UINT>(indices.size() * sizeof(std::uint32_t));
-        const UINT totalBytes = vertexBytes + indexBytes;
-        D3D12_HEAP_PROPERTIES heap{};
-        heap.Type = D3D12_HEAP_TYPE_DEFAULT;
-        heap.CreationNodeMask = heap.VisibleNodeMask = 1;
-        D3D12_RESOURCE_DESC description{};
-        description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        description.Width = totalBytes;
-        description.Height = 1;
-        description.DepthOrArraySize = 1;
-        description.MipLevels = 1;
-        description.SampleDesc.Count = 1;
-        description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        if (!Check(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
-            D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&meshBuffer_)), "Create sphere mesh buffer"))
+        if (!CreateIndexedMeshBuffer(device, queue, std::as_bytes(std::span(vertices)), sizeof(Vertex),
+            indices, meshBuffer_, vertexView_, indexView_))
         {
             return false;
         }
-        heap.Type = D3D12_HEAP_TYPE_UPLOAD;
-        ComPtr<ID3D12Resource> upload;
-        if (!Check(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
-            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&upload)), "Create sphere upload buffer"))
-        {
-            return false;
-        }
-        void* mapped = nullptr;
-        const D3D12_RANGE readRange{ 0, 0 };
-        if (!Check(upload->Map(0, &readRange, &mapped), "Map sphere mesh"))
-        {
-            return false;
-        }
-        std::memcpy(mapped, vertices.data(), vertexBytes);
-        std::memcpy(static_cast<unsigned char*>(mapped) + vertexBytes, indices.data(), indexBytes);
-        const D3D12_RANGE writtenRange{ 0, totalBytes };
-        upload->Unmap(0, &writtenRange);
-        if (!UploadMesh(device, queue, upload.Get()))
-        {
-            return false;
-        }
-        vertexView_ = { meshBuffer_->GetGPUVirtualAddress(), vertexBytes, static_cast<UINT>(sizeof(Vertex)) };
-        indexView_ = { meshBuffer_->GetGPUVirtualAddress() + vertexBytes, indexBytes, DXGI_FORMAT_R32_UINT };
         indexCount_ = static_cast<UINT>(indices.size());
         return true;
-    }
-
-    bool SphereRenderer::UploadMesh(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Resource* upload)
-    {
-        ComPtr<ID3D12CommandAllocator> allocator;
-        ComPtr<ID3D12GraphicsCommandList> commands;
-        ComPtr<ID3D12Fence> fence;
-        std::unique_ptr<void, decltype(&CloseHandle)> event(CreateEventW(nullptr, FALSE, FALSE, nullptr), CloseHandle);
-        if (!event)
-        {
-            Log::Error("Create sphere upload event failed.");
-            return false;
-        }
-        if (!Check(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator)),
-                "Create sphere upload allocator") ||
-            !Check(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr,
-                IID_PPV_ARGS(&commands)), "Create sphere upload commands") ||
-            !Check(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)), "Create sphere upload fence") ||
-            !Check(fence->SetEventOnCompletion(1, event.get()), "Set sphere upload completion event"))
-        {
-            return false;
-        }
-        D3D12_RESOURCE_BARRIER barrier{};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource = meshBuffer_.Get();
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-        commands->ResourceBarrier(1, &barrier);
-        commands->CopyBufferRegion(meshBuffer_.Get(), 0, upload, 0, meshBuffer_->GetDesc().Width);
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_INDEX_BUFFER;
-        commands->ResourceBarrier(1, &barrier);
-        if (!Check(commands->Close(), "Close sphere upload commands"))
-        {
-            return false;
-        }
-        ID3D12CommandList* lists[] = { commands.Get() };
-        queue->ExecuteCommandLists(1, lists);
-        if (!Check(queue->Signal(fence.Get(), 1), "Signal sphere upload fence"))
-        {
-            return false;
-        }
-        if (WaitForSingleObject(event.get(), INFINITE) != WAIT_OBJECT_0)
-        {
-            Log::Error("Wait for sphere upload failed.");
-            return false;
-        }
-        return Check(device->GetDeviceRemovedReason(), "Sphere upload device status");
     }
 
     bool SphereRenderer::CreateRootSignature(ID3D12Device* device)

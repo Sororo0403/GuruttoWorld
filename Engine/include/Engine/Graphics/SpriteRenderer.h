@@ -41,10 +41,10 @@ namespace Engine
         SpriteRenderer& operator=(const SpriteRenderer&) = delete;
 
         /// <summary>
-        /// スプライトのパイプラインとテクスチャを生成し、初期転送の完了を待機します。
+        /// スプライトのパイプライン・メッシュ・テクスチャを生成し、初期転送の完了を待機します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
-        /// <param name="queue">テクスチャ転送に使用する DIRECT 型キュー。</param>
+        /// <param name="queue">メッシュとテクスチャの転送に使用する DIRECT 型キュー。</param>
         /// <param name="texturePath">通常のアルファ形式の画像ファイル。</param>
         /// <param name="shaderPath">スプライト用の VSMain・PSMain を定義した HLSL ファイル。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
@@ -77,8 +77,19 @@ namespace Engine
         /// <returns>生成に成功した場合は true。</returns>
         bool CreatePipelineState(ID3D12Device* device, const std::filesystem::path& shaderPath);
 
+        /// <summary>
+        /// 四頂点と六インデックスを DEFAULT ヒープへ転送し、完了を待機します。
+        /// </summary>
+        /// <param name="device">生成に使用するデバイス。</param>
+        /// <param name="queue">転送に使用する DIRECT 型キュー。</param>
+        /// <returns>生成と転送に成功した場合は true。</returns>
+        bool CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue);
+
         bool initialized_ = false;
         Texture2D texture_;
+        Microsoft::WRL::ComPtr<ID3D12Resource> meshBuffer_;
+        D3D12_VERTEX_BUFFER_VIEW vertexBufferView_{};
+        D3D12_INDEX_BUFFER_VIEW indexBufferView_{};
         Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
     };

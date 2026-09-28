@@ -3,6 +3,7 @@
 #include <Engine/Graphics/DepthBuffer.h>
 #include <Engine/Core/Log.h>
 
+#include <Engine/Graphics/IndexedMeshBuffer.h>
 #include <cmath>
 #include <format>
 
@@ -31,8 +32,11 @@ namespace Engine
             return false;
         }
         if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) ||
-            !texture_.Initialize(device, queue, texturePath))
+            !CreateMeshBuffer(device, queue) || !texture_.Initialize(device, queue, texturePath))
         {
+            meshBuffer_.Reset();
+            vertexBufferView_ = {};
+            indexBufferView_ = {};
             pipelineState_.Reset();
             rootSignature_.Reset();
             return false;
@@ -99,7 +103,12 @@ namespace Engine
         {
             return false;
         }
+        const D3D12_INPUT_ELEMENT_DESC elements[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        };
         D3D12_GRAPHICS_PIPELINE_STATE_DESC description{};
+        description.InputLayout = { elements, 1 };
         description.pRootSignature = rootSignature_.Get();
         description.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
         description.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
@@ -130,6 +139,17 @@ namespace Engine
             "Create sprite pipeline state");
     }
 
+    bool SpriteRenderer::CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue)
+    {
+        constexpr std::array<std::array<float, 2>, 4> vertices
+        {
+            std::array<float, 2>{ 0.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { 1.0f, 1.0f }
+        };
+        constexpr std::array<std::uint32_t, 6> indices{ 0, 1, 2, 2, 1, 3 };
+        return CreateIndexedMeshBuffer(device, queue, std::as_bytes(std::span(vertices)), sizeof(vertices[0]),
+            indices, meshBuffer_, vertexBufferView_, indexBufferView_);
+    }
+
     void SpriteRenderer::Draw(ID3D12GraphicsCommandList* commands, UINT viewportWidth, UINT viewportHeight,
         const SpriteDrawParameters& parameters) const
     {
@@ -153,7 +173,8 @@ namespace Engine
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, texture_.GetGpuHandle());
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        // 四角形を構成する六頂点の座標と UV は SV_VertexID から生成します。
-        commands->DrawInstanced(6, 1, 0, 0);
+        commands->IASetVertexBuffers(0, 1, &vertexBufferView_);
+        commands->IASetIndexBuffer(&indexBufferView_);
+        commands->DrawIndexedInstanced(6, 1, 0, 0, 0);
     }
 }

@@ -19,14 +19,8 @@ struct VertexOutput
     float4 color : COLOR;
 };
 
-VertexOutput VSMain(uint vertexId : SV_VertexID)
+VertexOutput VSMain(float2 corner : POSITION)
 {
-    const float2 corners[6] =
-    {
-        float2(0, 0), float2(1, 0), float2(0, 1),
-        float2(0, 1), float2(1, 0), float2(1, 1)
-    };
-    float2 corner = corners[vertexId];
     float2 local = (corner - 0.5f) * size;
     float2 rotated = float2(local.x * rotationCos - local.y * rotationSin,
         local.x * rotationSin + local.y * rotationCos);

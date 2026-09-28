@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <cstring>
+#include <Engine/Graphics/IndexedMeshBuffer.h>
 #include <format>
 
 namespace
@@ -35,9 +35,11 @@ namespace Engine
             return false;
         }
         if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) ||
-            !CreateVertexBuffer(device, vertices) || !texture_.Initialize(device, queue, texturePath))
+            !CreateMeshBuffer(device, queue, vertices) || !texture_.Initialize(device, queue, texturePath))
         {
-            vertexBuffer_.Reset();
+            meshBuffer_.Reset();
+            vertexBufferView_ = {};
+            indexBufferView_ = {};
             pipelineState_.Reset();
             rootSignature_.Reset();
             return false;
@@ -141,37 +143,12 @@ namespace Engine
             "Create triangle pipeline state");
     }
 
-    bool TriangleRenderer::CreateVertexBuffer(ID3D12Device* device, const std::array<TriangleVertex, 3>& vertices)
+    bool TriangleRenderer::CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue,
+        const std::array<TriangleVertex, 3>& vertices)
     {
-        constexpr UINT size = static_cast<UINT>(sizeof(TriangleVertex) * 3);
-        D3D12_HEAP_PROPERTIES heap{};
-        heap.Type = D3D12_HEAP_TYPE_UPLOAD;
-        heap.CreationNodeMask = 1;
-        heap.VisibleNodeMask = 1;
-        D3D12_RESOURCE_DESC description{};
-        description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        description.Width = size;
-        description.Height = 1;
-        description.DepthOrArraySize = 1;
-        description.MipLevels = 1;
-        description.SampleDesc.Count = 1;
-        description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        if (!Check(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
-            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertexBuffer_)), "Create triangle vertex buffer"))
-        {
-            return false;
-        }
-        void* mapped = nullptr;
-        const D3D12_RANGE readRange{ 0, 0 };
-        if (!Check(vertexBuffer_->Map(0, &readRange, &mapped), "Map triangle vertex buffer"))
-        {
-            return false;
-        }
-        std::memcpy(mapped, vertices.data(), size);
-        const D3D12_RANGE writtenRange{ 0, size };
-        vertexBuffer_->Unmap(0, &writtenRange);
-        vertexBufferView_ = { vertexBuffer_->GetGPUVirtualAddress(), size, static_cast<UINT>(sizeof(TriangleVertex)) };
-        return true;
+        constexpr std::array<std::uint32_t, 3> indices{ 0, 1, 2 };
+        return CreateIndexedMeshBuffer(device, queue, std::as_bytes(std::span(vertices)), sizeof(TriangleVertex),
+            indices, meshBuffer_, vertexBufferView_, indexBufferView_);
     }
 
     void TriangleRenderer::Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY,
@@ -196,6 +173,7 @@ namespace Engine
         commands->SetGraphicsRootDescriptorTable(1, texture_.GetGpuHandle());
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commands->IASetVertexBuffers(0, 1, &vertexBufferView_);
-        commands->DrawInstanced(3, 1, 0, 0);
+        commands->IASetIndexBuffer(&indexBufferView_);
+        commands->DrawIndexedInstanced(3, 1, 0, 0, 0);
     }
 }
