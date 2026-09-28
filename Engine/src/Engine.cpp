@@ -1,6 +1,7 @@
 #include <Engine/Engine.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
+#include <Engine/Platform/Window.h>
 
 namespace Engine
 {
@@ -20,9 +21,19 @@ namespace Engine
         }
 
         Log::Info("Engine started.");
+        int exitCode = 1;
+        {
+            Window window;
+            if (window.Create(L"WP1"))
+            {
+                window.Show();
+                Log::Info("Window opened.");
+                exitCode = window.RunMessageLoop();
+            }
+        }
         Log::Info("Engine stopped.");
         Log::Shutdown();
         CrashHandler::Shutdown();
-        return 0;
+        return exitCode;
     }
 }
