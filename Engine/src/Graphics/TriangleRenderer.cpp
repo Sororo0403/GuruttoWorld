@@ -1,5 +1,6 @@
 #include <Engine/Graphics/TriangleRenderer.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Graphics/DepthBuffer.h>
 
 #include <d3dcompiler.h>
 #include <algorithm>
@@ -77,7 +78,7 @@ namespace Engine
         D3D12_ROOT_PARAMETER parameters[2]{};
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
-        parameters[0].Constants.Num32BitValues = 4;
+        parameters[0].Constants.Num32BitValues = 12;
         parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
         parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
@@ -147,14 +148,15 @@ namespace Engine
         blend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
         blend.LogicOp = D3D12_LOGIC_OP_NOOP;
         blend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-        description.DepthStencilState.DepthEnable = FALSE;
-        description.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-        description.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        description.DepthStencilState.DepthEnable = TRUE;
+        description.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+        description.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
         description.DepthStencilState.StencilEnable = FALSE;
         description.SampleMask = UINT_MAX;
         description.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         description.NumRenderTargets = 1;
         description.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+        description.DSVFormat = DepthBuffer::format;
         description.SampleDesc.Count = 1;
         return Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),
             "Create triangle pipeline state");
@@ -193,16 +195,19 @@ namespace Engine
         return true;
     }
 
-    void TriangleRenderer::Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY) const
+    void TriangleRenderer::Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY,
+        const std::array<float, 3>& translation, const std::array<float, 4>& tint) const
     {
         if (!initialized_ || commands == nullptr || aspectRatio <= 0.0f)
         {
             return;
         }
-        const std::array<float, 4> constants
+        const std::array<float, 12> constants
         {
             std::min(1.0f, 1.0f / aspectRatio), std::min(1.0f, aspectRatio),
-            std::cos(rotationY), std::sin(rotationY)
+            std::cos(rotationY), std::sin(rotationY),
+            translation[0], translation[1], translation[2], 0.0f,
+            tint[0], tint[1], tint[2], tint[3]
         };
         commands->SetPipelineState(pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());

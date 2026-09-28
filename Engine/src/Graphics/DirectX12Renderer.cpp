@@ -56,6 +56,10 @@ namespace Engine
         {
             buffer.Reset();
         }
+        for (auto& depth : depthBuffers)
+        {
+            depth.Release();
+        }
         renderTargetHeap.Reset();
         swapChain.Reset();
         fence.Reset();
@@ -109,6 +113,18 @@ namespace Engine
             }
             device->CreateRenderTargetView(buffers[index].Get(), nullptr, descriptor);
             descriptor.ptr += descriptorSize;
+        }
+        return true;
+    }
+
+    bool DirectX12Renderer::CreateDepthBuffers()
+    {
+        for (auto& depth : depthBuffers)
+        {
+            if (!depth.Initialize(device.Get(), width, height))
+            {
+                return false;
+            }
         }
         return true;
     }
@@ -290,6 +306,7 @@ namespace Engine
             !CreateSwapChain() ||
             !CreateRenderTargetHeap() ||
             !CreateRenderTargets() ||
+            !CreateDepthBuffers() ||
             !CreateDrawingCommands() ||
             !CreateSynchronizationObjects())
         {
@@ -370,8 +387,17 @@ namespace Engine
                 ready = false;
                 return RenderResult::Failed;
             }
+            for (auto& depth : depthBuffers)
+            {
+                depth.Release();
+            }
             width = newWidth;
             height = newHeight;
+            if (!CreateDepthBuffers())
+            {
+                ready = false;
+                return RenderResult::Failed;
+            }
             Log::Info(std::format("DirectX 12 resized: {}x{}", width, height));
         }
 
@@ -399,7 +425,9 @@ namespace Engine
         auto descriptor = renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
         descriptor.ptr += static_cast<SIZE_T>(index) * descriptorSize;
         commands->ClearRenderTargetView(descriptor, clearColor.data(), 0, nullptr);
-        commands->OMSetRenderTargets(1, &descriptor, FALSE, nullptr);
+        const auto depthDescriptor = depthBuffers[index].GetHandle();
+        commands->ClearDepthStencilView(depthDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+        commands->OMSetRenderTargets(1, &descriptor, FALSE, &depthDescriptor);
         const D3D12_VIEWPORT viewport{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
         const D3D12_RECT scissor{ 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
         commands->RSSetViewports(1, &viewport);
@@ -409,6 +437,8 @@ namespace Engine
             draw(commands.Get(), static_cast<float>(width) / static_cast<float>(height));
         }
 #if defined(_DEBUG)
+        // UI はシーンの深度に影響されないよう、深度バッファーを外して描画します。
+        commands->OMSetRenderTargets(1, &descriptor, FALSE, nullptr);
         debugUi_.Render(commands.Get());
 #endif
         std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);

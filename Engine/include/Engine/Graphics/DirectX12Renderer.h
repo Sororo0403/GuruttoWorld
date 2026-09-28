@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Platform/Window.h>
+#include <Engine/Graphics/DepthBuffer.h>
 #if defined(_DEBUG)
 #include <Engine/Graphics/ImGuiLayer.h>
 #endif
@@ -154,6 +155,12 @@ namespace Engine
         /// <returns>生成に成功した場合は true、失敗した場合は false。</returns>
         bool CreateSynchronizationObjects();
 
+        /// <summary>
+        /// フレームごとに描画領域と同じサイズの深度バッファーを生成します。
+        /// </summary>
+        /// <returns>すべての生成に成功した場合は true。</returns>
+        bool CreateDepthBuffers();
+
         static constexpr UINT bufferCount = 2;
         static constexpr DXGI_FORMAT bufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
@@ -176,6 +183,7 @@ namespace Engine
         std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, bufferCount> buffers;
         std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, bufferCount> allocators;
         std::array<UINT64, bufferCount> frameFenceValues{};
+        std::array<DepthBuffer, bufferCount> depthBuffers;
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commands;
         Microsoft::WRL::ComPtr<ID3D12Fence> fence;
     };

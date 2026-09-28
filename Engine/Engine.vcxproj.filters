@@ -101,5 +101,11 @@
     <ClInclude Include="include\Engine\Graphics\Texture2D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClCompile Include="src\Graphics\DepthBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\DepthBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

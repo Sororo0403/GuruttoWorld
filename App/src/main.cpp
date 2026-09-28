@@ -70,7 +70,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
-            triangle.Draw(commands, aspectRatio, static_cast<float>(rotationY));
+            triangle.Draw(commands, aspectRatio, static_cast<float>(rotationY), { -0.15f, 0.05f, -0.15f });
+            // 奥の三角形を後から描いても、深度テストによって手前の面が残ります。
+            triangle.Draw(commands, aspectRatio, 0.0f, { 0.2f, -0.1f, 0.25f }, { 1.0f, 0.45f, 0.2f, 1.0f });
         }, debugUi);
     };
 

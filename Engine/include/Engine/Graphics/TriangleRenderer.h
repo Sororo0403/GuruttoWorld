@@ -56,10 +56,14 @@ namespace Engine
         /// <summary>
         /// 記録中のコマンドリストに三角形の描画命令を追加します。
         /// </summary>
-        /// <param name="commands">レンダーターゲットとビューポートが設定済みのコマンドリスト。</param>
+        /// <param name="commands">レンダーターゲット、D32_FLOAT の深度バッファー、ビューポートが設定済みのコマンドリスト。</param>
         /// <param name="aspectRatio">描画領域の幅÷高さ。三角形の縦横比を維持するために使用します。</param>
         /// <param name="rotationY">原点を通る Y 軸周りの回転角度（ラジアン）。</param>
-        void Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY = 0.0f) const;
+        /// <param name="translation">回転後の平行移動量。Z が小さいほど手前になります。</param>
+        /// <param name="tint">テクスチャと頂点色に乗算する RGBA 色。</param>
+        void Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY = 0.0f,
+            const std::array<float, 3>& translation = { 0.0f, 0.0f, 0.0f },
+            const std::array<float, 4>& tint = { 1.0f, 1.0f, 1.0f, 1.0f }) const;
 
     private:
         /// <summary>
