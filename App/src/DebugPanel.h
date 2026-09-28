@@ -9,7 +9,7 @@ namespace App
     {
     public:
         /// <summary>
-        /// FPS と三角形の回転・背景色を操作する Debug 専用パネルを構築します。
+        /// FPS と描画オブジェクトの回転・背景色を操作する Debug 専用パネルを構築します。
         /// </summary>
         /// <param name="rotationY">Y 軸の回転角度（ラジアン）。</param>
         /// <param name="speedDegrees">1 秒あたりの回転角度（度）。</param>

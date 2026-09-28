@@ -16,6 +16,7 @@
   <ItemGroup>
     <None Include="Shaders\Triangle.hlsl" />
     <None Include="Shaders\Sprite.hlsl" />
+    <None Include="Shaders\Sphere.hlsl" />
     <None Include="Assets\Textures\Checker.png" />
   </ItemGroup>
   <ItemGroup>

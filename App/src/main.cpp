@@ -1,6 +1,6 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Graphics/DirectX12Renderer.h>
-#include <Engine/Graphics/TriangleRenderer.h>
+#include <Engine/Graphics/SphereRenderer.h>
 #include <Engine/Graphics/SpriteRenderer.h>
 #include <Windows.h>
 #if defined(_DEBUG)
@@ -21,7 +21,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         return 1;
     }
     executable.resize(length);
-    const auto shaderPath = std::filesystem::path(executable).parent_path() / "Shaders" / "Triangle.hlsl";
+    const auto shaderPath = std::filesystem::path(executable).parent_path() / "Shaders" / "Sphere.hlsl";
 
     const auto texturePath = std::filesystem::path(executable).parent_path() / "Assets" / "Textures" / "Checker.png";
 
@@ -33,8 +33,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     settings.height = 720;
 
     // Run が GPU の完了を待ってから戻るため、描画リソースはその後で安全に破棄できます。
-    Engine::TriangleRenderer triangle;
-    bool triangleReady = false;
+    Engine::SphereRenderer sphere;
+    bool sphereReady = false;
     Engine::SpriteRenderer sprite;
     bool spriteReady = false;
     double rotationY = 0.0;
@@ -59,19 +59,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     };
     callbacks.draw = [&](Engine::DirectX12Renderer& renderer)
     {
-        if (!triangleReady)
+        if (!sphereReady)
         {
-            const std::array<Engine::TriangleVertex, 3> vertices =
-            {{
-                { { 0.0f, 0.65f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.5f, 0.0f } },
-                { { 0.65f, -0.55f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
-                { { -0.65f, -0.55f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
-            }};
-            if (!triangle.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texturePath, shaderPath, vertices))
+            if (!sphere.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texturePath, shaderPath))
             {
                 return Engine::RenderResult::Failed;
             }
-            triangleReady = true;
+            sphereReady = true;
         }
         if (!spriteReady)
         {
@@ -83,9 +77,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
-            triangle.Draw(commands, aspectRatio, static_cast<float>(rotationY), { -0.15f, 0.05f, -0.15f });
-            // 奥の三角形を後から描いても、深度テストによって手前の面が残ります。
-            triangle.Draw(commands, aspectRatio, 0.0f, { 0.2f, -0.1f, 0.25f }, { 1.0f, 0.45f, 0.2f, 1.0f });
+            using namespace DirectX;
+            const XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.5f, 1.0f),
+                XMVectorZero(), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+            const XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspectRatio, 0.1f, 100.0f);
+            XMFLOAT4X4 world;
+            XMFLOAT4X4 viewProjection;
+            XMStoreFloat4x4(&world, XMMatrixRotationY(static_cast<float>(rotationY)));
+            XMStoreFloat4x4(&viewProjection, view * projection);
+            sphere.Draw(commands, world, viewProjection);
             Engine::SpriteDrawParameters spriteParameters;
             spriteParameters.position = { static_cast<float>(renderer.GetWidth()) - 192.0f, 32.0f };
             spriteParameters.size = { 160.0f, 160.0f };

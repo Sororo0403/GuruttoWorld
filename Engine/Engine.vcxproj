@@ -91,6 +91,7 @@
     <ClCompile Include="src\Graphics\DepthBuffer.cpp" />
     <ClCompile Include="src\Graphics\ShaderCompiler.cpp" />
     <ClCompile Include="src\Graphics\SpriteRenderer.cpp" />
+    <ClCompile Include="src\Graphics\SphereRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\Core\Application.h" />
@@ -103,6 +104,7 @@
     <ClInclude Include="include\Engine\Graphics\DepthBuffer.h" />
     <ClInclude Include="include\Engine\Graphics\ShaderCompiler.h" />
     <ClInclude Include="include\Engine\Graphics\SpriteRenderer.h" />
+    <ClInclude Include="include\Engine\Graphics\SphereRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Graphics\ImGuiLayer.cpp">

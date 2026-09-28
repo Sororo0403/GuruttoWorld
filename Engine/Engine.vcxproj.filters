@@ -119,5 +119,11 @@
     <ClInclude Include="include\Engine\Graphics\ShaderCompiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClCompile Include="src\Graphics\SphereRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\SphereRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
