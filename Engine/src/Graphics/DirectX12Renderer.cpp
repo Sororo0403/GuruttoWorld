@@ -130,10 +130,17 @@ namespace Engine
     {
 #if defined(_DEBUG)
         ComPtr<ID3D12Debug> debug;
-        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug))))
+        const HRESULT result = D3D12GetDebugInterface(IID_PPV_ARGS(&debug));
+        if (SUCCEEDED(result))
         {
             debug->EnableDebugLayer();
             Log::Info("DirectX 12 debug layer enabled.");
+        }
+        else
+        {
+            Log::Warning(std::format(
+                "DirectX 12 debug layer unavailable: 0x{:08X}. Check Windows Graphics Tools installation.",
+                static_cast<unsigned long>(result)));
         }
 #endif
     }

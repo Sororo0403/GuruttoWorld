@@ -82,6 +82,7 @@ namespace Engine
 
         /// <summary>
         /// Debug 構成で利用可能な場合にデバッグレイヤーを有効化します。
+        /// 利用できない場合は警告を記録し、デバッグレイヤーなしで起動を続けます。
         /// </summary>
         void EnableDebugLayer();
 
