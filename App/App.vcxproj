@@ -46,9 +46,11 @@
   <PropertyGroup>
     <OutDir>$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(MSBuildThisFileDirectory)..\generated\intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <SDLCheck>true</SDLCheck>
@@ -84,6 +86,8 @@
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LinkTimeCodeGenerationObjectFile />
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -97,7 +101,15 @@
       <Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Triangle.hlsl" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyShaders" AfterTargets="Build">
+    <MakeDir Directories="$(OutDir)Shaders" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl"
+          DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

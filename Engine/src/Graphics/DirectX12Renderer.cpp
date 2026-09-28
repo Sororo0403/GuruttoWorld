@@ -298,7 +298,13 @@ namespace Engine
         return true;
     }
 
-    RenderResult DirectX12Renderer::Render(const std::array<float, 4>& clearColor)
+    ID3D12Device* DirectX12Renderer::GetDevice() const noexcept
+    {
+        return device.Get();
+    }
+
+    RenderResult DirectX12Renderer::Render(const std::array<float, 4>& clearColor,
+        const std::function<void(ID3D12GraphicsCommandList*, float)>& draw)
     {
         if (!ready)
         {
@@ -367,6 +373,15 @@ namespace Engine
         auto descriptor = renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
         descriptor.ptr += static_cast<SIZE_T>(index) * descriptorSize;
         commands->ClearRenderTargetView(descriptor, clearColor.data(), 0, nullptr);
+        commands->OMSetRenderTargets(1, &descriptor, FALSE, nullptr);
+        const D3D12_VIEWPORT viewport{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+        const D3D12_RECT scissor{ 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+        commands->RSSetViewports(1, &viewport);
+        commands->RSSetScissorRects(1, &scissor);
+        if (draw)
+        {
+            draw(commands.Get(), static_cast<float>(width) / static_cast<float>(height));
+        }
         std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
         commands->ResourceBarrier(1, &barrier);
         if (!Check(commands->Close(), "Close command list"))

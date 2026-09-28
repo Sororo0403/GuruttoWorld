@@ -3,6 +3,7 @@
 #include <Engine/Platform/Window.h>
 
 #include <array>
+#include <functional>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
@@ -47,12 +48,20 @@ namespace Engine
         bool Initialize(HWND handle);
 
         /// <summary>
-        /// 背景を指定色でクリアして表示します。サイズ変更を反映し、最小化中は描画を休止します。
+        /// 背景をクリアし、指定された描画処理を記録して表示します。サイズ変更を反映し、最小化中は描画を休止します。
         /// 初期化したスレッドから呼び出してください。
         /// </summary>
         /// <param name="clearColor">赤、緑、青、不透明度の順で指定する 0.0 から 1.0 の色。</param>
+        /// <param name="draw">クリア後に呼ぶ描画処理。記録中のコマンドリストと幅÷高さを渡します。ポインターを保持しないでください。</param>
         /// <returns>表示、描画休止、失敗の状態。休止時の待機は呼び出し側で行ってください。</returns>
-        RenderResult Render(const std::array<float, 4>& clearColor);
+        RenderResult Render(const std::array<float, 4>& clearColor,
+            const std::function<void(ID3D12GraphicsCommandList*, float)>& draw = {});
+
+        /// <summary>
+        /// 描画リソースの生成に使用するデバイスを取得します。所有権は移譲しません。
+        /// </summary>
+        /// <returns>初期化済みのデバイス。未初期化の場合は nullptr。</returns>
+        ID3D12Device* GetDevice() const noexcept;
 
     private:
         /// <summary>

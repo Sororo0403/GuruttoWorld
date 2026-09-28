@@ -39,5 +39,11 @@
     <ClInclude Include="include\Engine\Graphics\DirectX12Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClCompile Include="src\Graphics\TriangleRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\TriangleRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

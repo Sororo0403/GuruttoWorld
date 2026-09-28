@@ -13,4 +13,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Triangle.hlsl" />
+  </ItemGroup>
 </Project>
