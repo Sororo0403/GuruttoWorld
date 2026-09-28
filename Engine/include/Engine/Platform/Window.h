@@ -48,10 +48,12 @@ namespace Engine
         void Show();
 
         /// <summary>
-        /// 終了までウィンドウメッセージを処理します。作成したスレッドから呼び出してください。
+        /// 現在届いているウィンドウメッセージを処理し、待機せずに戻ります。
+        /// ウィンドウを作成したスレッドから、各フレームで呼び出してください。
         /// </summary>
-        /// <returns>終了メッセージの終了コード。ウィンドウが未作成、または処理に失敗した場合は 1。</returns>
-        int RunMessageLoop();
+        /// <param name="exitCode">通常は 0、終了要求時はその終了コード、ウィンドウが未作成の場合は 1 を受け取ります。</param>
+        /// <returns>処理を継続できる場合は true、終了要求または未作成の場合は false。</returns>
+        bool ProcessMessages(int& exitCode);
 
         /// <summary>
         /// 描画処理などに渡すためのウィンドウハンドルを取得します。

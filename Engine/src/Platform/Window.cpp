@@ -89,29 +89,27 @@ namespace Engine
         }
     }
 
-    int Window::RunMessageLoop()
+    bool Window::ProcessMessages(int& exitCode)
     {
+        exitCode = 0;
         if (handle_ == nullptr)
         {
-            return 1;
+            exitCode = 1;
+            return false;
         }
 
         MSG message{};
-        while (true)
+        while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE))
         {
-            const BOOL result = GetMessageW(&message, nullptr, 0, 0);
-            if (result == -1)
+            if (message.message == WM_QUIT)
             {
-                Log::Error(std::format("GetMessageW failed: {}", GetLastError()));
-                return 1;
-            }
-            if (result == 0)
-            {
-                return static_cast<int>(message.wParam);
+                exitCode = static_cast<int>(message.wParam);
+                return false;
             }
             TranslateMessage(&message);
             DispatchMessageW(&message);
         }
+        return handle_ != nullptr;
     }
 
     HWND Window::GetHandle() const noexcept

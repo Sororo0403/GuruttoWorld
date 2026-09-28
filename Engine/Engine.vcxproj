@@ -78,16 +78,18 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Engine.cpp" />
+    <ClCompile Include="src\Core\Application.cpp" />
     <ClCompile Include="src\Core\Log.cpp" />
     <ClCompile Include="src\Core\CrashHandler.cpp" />
     <ClCompile Include="src\Platform\Window.cpp" />
+    <ClCompile Include="src\Graphics\DirectX12Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Engine\Engine.h" />
+    <ClInclude Include="include\Engine\Core\Application.h" />
     <ClInclude Include="include\Engine\Core\Log.h" />
     <ClInclude Include="include\Engine\Core\CrashHandler.h" />
     <ClInclude Include="include\Engine\Platform\Window.h" />
+    <ClInclude Include="include\Engine\Graphics\DirectX12Renderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

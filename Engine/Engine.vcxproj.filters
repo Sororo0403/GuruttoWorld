@@ -9,10 +9,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Engine.cpp">
+    <ClCompile Include="src\Core\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClInclude Include="include\Engine\Engine.h">
+    <ClInclude Include="include\Engine\Core\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClCompile Include="src\Core\Log.cpp">
@@ -31,6 +31,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClInclude Include="include\Engine\Platform\Window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Graphics\DirectX12Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\DirectX12Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
