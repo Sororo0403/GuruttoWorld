@@ -80,10 +80,12 @@
   <ItemGroup>
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Core\Log.cpp" />
+    <ClCompile Include="src\Core\CrashHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\Engine.h" />
     <ClInclude Include="include\Engine\Core\Log.h" />
+    <ClInclude Include="include\Engine\Core\CrashHandler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
