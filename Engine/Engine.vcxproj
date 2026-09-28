@@ -79,9 +79,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine.cpp" />
+    <ClCompile Include="src\Core\Log.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\Engine.h" />
+    <ClInclude Include="include\Engine\Core\Log.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
