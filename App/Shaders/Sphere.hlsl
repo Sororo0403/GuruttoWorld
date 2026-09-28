@@ -1,7 +1,21 @@
 cbuffer SphereConstants : register(b0)
 {
-    row_major float4x4 normalMatrix;
+    row_major float3x3 normalMatrix;
     row_major float4x4 worldViewProjection;
+    row_major float4x4 world;
+};
+
+cbuffer LightingConstants : register(b1)
+{
+    float3 lightDirection;
+    float lightIntensity;
+    float3 lightColor;
+    float ambientIntensity;
+    float3 cameraPosition;
+    float shininess;
+    float specularStrength;
+    float lightingEnabled;
+    float2 padding;
 };
 
 Texture2D<float4> sphereTexture : register(t0);
@@ -19,22 +33,40 @@ struct VertexOutput
     float4 position : SV_POSITION;
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
+    float3 worldPosition : TEXCOORD1;
 };
 
 VertexOutput VSMain(VertexInput input)
 {
     VertexOutput output;
     output.position = mul(float4(input.position, 1.0f), worldViewProjection);
-    output.normal = mul(float4(input.normal, 0.0f), normalMatrix).xyz;
+    output.normal = mul(input.normal, normalMatrix);
+    output.worldPosition = mul(float4(input.position, 1.0f), world).xyz;
     output.uv = input.uv;
     return output;
 }
 
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
+    float4 albedo = sphereTexture.Sample(textureSampler, input.uv);
+    if (lightingEnabled < 0.5f)
+    {
+        return albedo;
+    }
     float3 normal = normalize(input.normal);
-    float3 toLight = normalize(float3(-0.4f, 0.7f, -1.0f));
-    float lighting = 0.2f + 0.8f * saturate(dot(normal, toLight));
-    float4 color = sphereTexture.Sample(textureSampler, input.uv);
-    return float4(color.rgb * lighting, color.a);
+    float directionLengthSquared = dot(lightDirection, lightDirection);
+    float3 toLight = -lightDirection * rsqrt(max(directionLengthSquared, 0.00000001f));
+    float diffuse = saturate(dot(normal, toLight));
+    float specular = 0.0f;
+    if (directionLengthSquared > 0.00000001f && diffuse > 0.0f)
+    {
+        float3 toCamera = cameraPosition - input.worldPosition;
+        toCamera *= rsqrt(max(dot(toCamera, toCamera), 0.00000001f));
+        float3 halfway = toLight + toCamera;
+        halfway *= rsqrt(max(dot(halfway, halfway), 0.00000001f));
+        specular = specularStrength * pow(saturate(dot(normal, halfway)), shininess);
+    }
+    float3 color = albedo.rgb * ambientIntensity;
+    color += (albedo.rgb * diffuse + specular) * lightColor * lightIntensity;
+    return float4(color, albedo.a);
 }

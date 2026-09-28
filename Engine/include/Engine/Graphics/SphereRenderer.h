@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/Texture2D.h>
+#include <Engine/Graphics/DirectionalLight.h>
 #include <DirectXMath.h>
 #include <array>
 #include <cstdint>
@@ -48,8 +49,11 @@ namespace Engine
         /// <param name="commands">描画先・D32_FLOAT 深度・ビューポートが設定済みのコマンドリスト。</param>
         /// <param name="world">球体のワールド行列。逆行列を持つアフィン変換を指定してください。</param>
         /// <param name="viewProjection">ビュー行列と射影行列をこの順に乗算した行列。</param>
+        /// <param name="light">平行光源、環境光、ハイライトの設定。</param>
+        /// <param name="cameraPosition">ビュー行列と対応するワールド空間のカメラ位置。</param>
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
-            const DirectX::XMFLOAT4X4& viewProjection) const;
+            const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
+            const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f }) const;
 
     private:
         struct Vertex

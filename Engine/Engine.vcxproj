@@ -105,6 +105,7 @@
     <ClInclude Include="include\Engine\Graphics\ShaderCompiler.h" />
     <ClInclude Include="include\Engine\Graphics\SpriteRenderer.h" />
     <ClInclude Include="include\Engine\Graphics\SphereRenderer.h" />
+    <ClInclude Include="include\Engine\Graphics\DirectionalLight.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Graphics\ImGuiLayer.cpp">

@@ -26,5 +26,11 @@
     <ClInclude Include="src\DebugPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\LightingPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClCompile Include="src\LightingPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

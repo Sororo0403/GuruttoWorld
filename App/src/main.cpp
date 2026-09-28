@@ -5,6 +5,7 @@
 #include <Windows.h>
 #if defined(_DEBUG)
 #include "DebugPanel.h"
+#include "LightingPanel.h"
 #endif
 
 #include <cmath>
@@ -41,11 +42,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     float speedDegrees = 90.0f;
     bool rotating = true;
     std::array<float, 4> backgroundColor{ 0.08f, 0.20f, 0.40f, 1.0f };
+    Engine::DirectionalLight light;
+    const std::array<float, 3> cameraPosition{ 0.0f, 0.0f, -3.5f };
     std::function<void()> debugUi;
 #if defined(_DEBUG)
     debugUi = [&]()
     {
         App::DebugPanel::Draw(rotationY, speedDegrees, rotating, backgroundColor);
+        App::LightingPanel::Draw(light);
     };
 #endif
     Engine::ApplicationCallbacks callbacks;
@@ -78,14 +82,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
             using namespace DirectX;
-            const XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.5f, 1.0f),
+            const XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(cameraPosition[0], cameraPosition[1], cameraPosition[2], 1.0f),
                 XMVectorZero(), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
             const XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspectRatio, 0.1f, 100.0f);
             XMFLOAT4X4 world;
             XMFLOAT4X4 viewProjection;
             XMStoreFloat4x4(&world, XMMatrixRotationY(static_cast<float>(rotationY)));
             XMStoreFloat4x4(&viewProjection, view * projection);
-            sphere.Draw(commands, world, viewProjection);
+            sphere.Draw(commands, world, viewProjection, light, cameraPosition);
             Engine::SpriteDrawParameters spriteParameters;
             spriteParameters.position = { static_cast<float>(renderer.GetWidth()) - 192.0f, 32.0f };
             spriteParameters.size = { 160.0f, 160.0f };

@@ -112,6 +112,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
     </ClCompile>
     <ClInclude Include="src\DebugPanel.h" />
+    <ClInclude Include="src\LightingPanel.h" />
+    <ClCompile Include="src\LightingPanel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">

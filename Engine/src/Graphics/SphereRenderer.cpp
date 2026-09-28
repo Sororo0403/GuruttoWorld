@@ -3,6 +3,7 @@
 #include <Engine/Graphics/DepthBuffer.h>
 #include <Engine/Core/Log.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -195,15 +196,19 @@ namespace Engine
         textureRange.NumDescriptors = 1;
         textureRange.BaseShaderRegister = 0;
         textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        D3D12_ROOT_PARAMETER parameters[2]{};
+        D3D12_ROOT_PARAMETER parameters[3]{};
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
-        parameters[0].Constants.Num32BitValues = 32;
+        parameters[0].Constants.Num32BitValues = 44;
         parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
         parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
         parameters[1].DescriptorTable.pDescriptorRanges = &textureRange;
         parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        parameters[2].Constants.ShaderRegister = 1;
+        parameters[2].Constants.Num32BitValues = 16;
+        parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -215,7 +220,7 @@ namespace Engine
         sampler.ShaderRegister = 0;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_ROOT_SIGNATURE_DESC description{};
-        description.NumParameters = 2;
+        description.NumParameters = 3;
         description.pParameters = parameters;
         description.NumStaticSamplers = 1;
         description.pStaticSamplers = &sampler;
@@ -283,7 +288,8 @@ namespace Engine
     }
 
     void SphereRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
-        const DirectX::XMFLOAT4X4& viewProjection) const
+        const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
+        const std::array<float, 3>& cameraPosition) const
     {
         if (!initialized_ || commands == nullptr)
         {
@@ -291,13 +297,33 @@ namespace Engine
         }
         using namespace DirectX;
         const XMMATRIX worldMatrix = XMLoadFloat4x4(&world);
-        std::array<XMFLOAT4X4, 2> constants;
-        XMStoreFloat4x4(&constants[0], XMMatrixTranspose(XMMatrixInverse(nullptr, worldMatrix)));
-        XMStoreFloat4x4(&constants[1], worldMatrix * XMLoadFloat4x4(&viewProjection));
-        static_assert(sizeof(constants) == sizeof(float) * 32);
+        // HLSL の row_major float3x3 は、各行が 16 バイト境界に配置されます。
+        struct TransformConstants
+        {
+            XMFLOAT4 normalRows[3];
+            XMFLOAT4X4 worldViewProjection;
+            XMFLOAT4X4 world;
+        } constants;
+        const XMMATRIX normalMatrix = XMMatrixTranspose(XMMatrixInverse(nullptr, worldMatrix));
+        for (size_t row = 0; row < 3; ++row)
+        {
+            XMStoreFloat4(&constants.normalRows[row], normalMatrix.r[row]);
+        }
+        XMStoreFloat4x4(&constants.worldViewProjection, worldMatrix * XMLoadFloat4x4(&viewProjection));
+        constants.world = world;
+        static_assert(sizeof(constants) == sizeof(float) * 44);
+        const std::array<float, 16> lightConstants
+        {
+            light.direction[0], light.direction[1], light.direction[2], std::max(0.0f, light.intensity),
+            light.color[0], light.color[1], light.color[2], std::max(0.0f, light.ambientIntensity),
+            cameraPosition[0], cameraPosition[1], cameraPosition[2], std::max(1.0f, light.shininess),
+            std::max(0.0f, light.specularStrength), light.enabled ? 1.0f : 0.0f, 0.0f, 0.0f
+        };
+        // 行列 44 + 光源 16 + SRV テーブル 1 = 61 DWORD（上限 64）。
         commands->SetPipelineState(pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
-        commands->SetGraphicsRoot32BitConstants(0, 32, constants.data(), 0);
+        commands->SetGraphicsRoot32BitConstants(0, 44, &constants, 0);
+        commands->SetGraphicsRoot32BitConstants(2, 16, lightConstants.data(), 0);
         ID3D12DescriptorHeap* heaps[] = { texture_.GetDescriptorHeap() };
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, texture_.GetGpuHandle());
