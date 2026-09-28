@@ -1,6 +1,9 @@
 #pragma once
 
 #include <Engine/Platform/Window.h>
+#if defined(_DEBUG)
+#include <Engine/Graphics/ImGuiLayer.h>
+#endif
 
 #include <array>
 #include <functional>
@@ -53,9 +56,11 @@ namespace Engine
         /// </summary>
         /// <param name="clearColor">赤、緑、青、不透明度の順で指定する 0.0 から 1.0 の色。</param>
         /// <param name="draw">クリア後に呼ぶ描画処理。記録中のコマンドリストと幅÷高さを渡します。ポインターを保持しないでください。</param>
+        /// <param name="debugUi">Debug 構成で UI フレーム開始後に呼ぶパネル構築処理。Release では使用しません。</param>
         /// <returns>表示、描画休止、失敗の状態。休止時の待機は呼び出し側で行ってください。</returns>
         RenderResult Render(const std::array<float, 4>& clearColor,
-            const std::function<void(ID3D12GraphicsCommandList*, float)>& draw = {});
+            const std::function<void(ID3D12GraphicsCommandList*, float)>& draw = {},
+            const std::function<void()>& debugUi = {});
 
         /// <summary>
         /// 描画リソースの生成に使用するデバイスを取得します。所有権は移譲しません。
@@ -146,6 +151,9 @@ namespace Engine
         static constexpr UINT bufferCount = 2;
         static constexpr DXGI_FORMAT bufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
+#if defined(_DEBUG)
+        ImGuiLayer debugUi_;
+#endif
         HWND window = nullptr;
         UINT width = 0;
         UINT height = 0;

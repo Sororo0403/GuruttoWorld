@@ -1,5 +1,8 @@
 #include <Engine/Platform/Window.h>
 #include <Engine/Core/Log.h>
+#if defined(_DEBUG)
+#include <Engine/Graphics/ImGuiLayer.h>
+#endif
 
 #include <format>
 #include <limits>
@@ -145,6 +148,12 @@ namespace Engine
             }
             SetWindowLongPtrW(handle, GWLP_USERDATA, 0);
         }
+#if defined(_DEBUG)
+        if (ImGuiLayer::ProcessMessage(handle, message, wParam, lParam))
+        {
+            return 1;
+        }
+#endif
         return DefWindowProcW(handle, message, wParam, lParam);
     }
 }

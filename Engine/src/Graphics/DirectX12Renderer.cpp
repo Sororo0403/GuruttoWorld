@@ -38,6 +38,9 @@ namespace Engine
         {
             WaitForGpu();
         }
+#if defined(_DEBUG)
+        debugUi_.Shutdown();
+#endif
         if (fenceEvent != nullptr)
         {
             CloseHandle(fenceEvent);
@@ -293,6 +296,13 @@ namespace Engine
             ReleaseResources();
             return false;
         }
+#if defined(_DEBUG)
+        if (!debugUi_.Initialize(window, device.Get(), queue.Get(), static_cast<int>(bufferCount), bufferFormat))
+        {
+            ReleaseResources();
+            return false;
+        }
+#endif
         ready = true;
         Log::Info("DirectX 12 renderer initialized.");
         return true;
@@ -304,8 +314,12 @@ namespace Engine
     }
 
     RenderResult DirectX12Renderer::Render(const std::array<float, 4>& clearColor,
-        const std::function<void(ID3D12GraphicsCommandList*, float)>& draw)
+        const std::function<void(ID3D12GraphicsCommandList*, float)>& draw,
+        const std::function<void()>& debugUi)
     {
+#if !defined(_DEBUG)
+        (void)debugUi;
+#endif
         if (!ready)
         {
             return RenderResult::Failed;
@@ -363,6 +377,13 @@ namespace Engine
         {
             return RenderResult::Failed;
         }
+#if defined(_DEBUG)
+        debugUi_.BeginFrame();
+        if (debugUi)
+        {
+            debugUi();
+        }
+#endif
         D3D12_RESOURCE_BARRIER barrier{};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Transition.pResource = buffers[index].Get();
@@ -382,6 +403,9 @@ namespace Engine
         {
             draw(commands.Get(), static_cast<float>(width) / static_cast<float>(height));
         }
+#if defined(_DEBUG)
+        debugUi_.Render(commands.Get());
+#endif
         std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
         commands->ResourceBarrier(1, &barrier);
         if (!Check(commands->Close(), "Close command list"))

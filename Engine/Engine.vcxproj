@@ -57,7 +57,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)externals\imgui;$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Lib>
       <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
@@ -95,6 +95,40 @@
     <ClInclude Include="include\Engine\Platform\Window.h" />
     <ClInclude Include="include\Engine\Graphics\DirectX12Renderer.h" />
     <ClInclude Include="include\Engine\Graphics\TriangleRenderer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\ImGuiLayer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_draw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_tables.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_widgets.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\backends\imgui_impl_win32.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\backends\imgui_impl_dx12.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\ImGuiLayer.h" />
+    <ClInclude Include="externals\imgui\imconfig.h" />
+    <ClInclude Include="externals\imgui\imgui.h" />
+    <ClInclude Include="externals\imgui\imgui_internal.h" />
+    <ClInclude Include="externals\imgui\imstb_rectpack.h" />
+    <ClInclude Include="externals\imgui\imstb_textedit.h" />
+    <ClInclude Include="externals\imgui\imstb_truetype.h" />
+    <ClInclude Include="externals\imgui\backends\imgui_impl_dx12.h" />
+    <ClInclude Include="externals\imgui\backends\imgui_impl_win32.h" />
+    <None Include="externals\imgui\LICENSE.txt" />
+    <None Include="externals\imgui\README.wp1.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

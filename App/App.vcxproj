@@ -58,7 +58,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\Engine\externals\imgui;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
@@ -103,6 +103,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Triangle.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\DebugPanel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="src\DebugPanel.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">

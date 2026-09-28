@@ -16,4 +16,12 @@
   <ItemGroup>
     <None Include="Shaders\Triangle.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\DebugPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="src\DebugPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

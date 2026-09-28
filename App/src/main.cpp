@@ -2,6 +2,9 @@
 #include <Engine/Graphics/DirectX12Renderer.h>
 #include <Engine/Graphics/TriangleRenderer.h>
 #include <Windows.h>
+#if defined(_DEBUG)
+#include "DebugPanel.h"
+#endif
 
 #include <cmath>
 #include <filesystem>
@@ -28,11 +31,24 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Engine::TriangleRenderer triangle;
     bool triangleReady = false;
     double rotationY = 0.0;
-    constexpr double angularSpeed = std::numbers::pi / 2.0;
+    float speedDegrees = 90.0f;
+    bool rotating = true;
+    std::array<float, 4> backgroundColor{ 0.08f, 0.20f, 0.40f, 1.0f };
+    std::function<void()> debugUi;
+#if defined(_DEBUG)
+    debugUi = [&]()
+    {
+        App::DebugPanel::Draw(rotationY, speedDegrees, rotating, backgroundColor);
+    };
+#endif
     Engine::ApplicationCallbacks callbacks;
     callbacks.update = [&](double deltaSeconds)
     {
-        rotationY = std::fmod(rotationY + angularSpeed * deltaSeconds, 2.0 * std::numbers::pi);
+        if (rotating)
+        {
+            const double angularSpeed = static_cast<double>(speedDegrees) * std::numbers::pi / 180.0;
+            rotationY = std::fmod(rotationY + angularSpeed * deltaSeconds, 2.0 * std::numbers::pi);
+        }
     };
     callbacks.draw = [&](Engine::DirectX12Renderer& renderer)
     {
@@ -50,11 +66,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             }
             triangleReady = true;
         }
-        constexpr std::array<float, 4> backgroundColor{ 0.08f, 0.20f, 0.40f, 1.0f };
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
             triangle.Draw(commands, aspectRatio, static_cast<float>(rotationY));
-        });
+        }, debugUi);
     };
 
     Engine::Application application;
