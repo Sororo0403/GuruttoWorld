@@ -141,4 +141,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\MeshRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\MeshRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Graphics\ModelLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\ModelLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Graphics\ModelRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\ModelRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\MeshData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

@@ -105,6 +105,9 @@
     <None Include="Shaders\Triangle.hlsl" />
     <None Include="Shaders\Sprite.hlsl" />
     <None Include="Shaders\Sphere.hlsl" />
+    <None Include="Shaders\Mesh.hlsl" />
+    <None Include="Assets\Models\Cube.obj" />
+    <None Include="Assets\Models\Cube.mtl" />
     <None Include="Shaders\UVTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
   </ItemGroup>
@@ -125,8 +128,16 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Shaders" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\UVTransform.hlsli"
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\UVTransform.hlsli;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyModels" AfterTargets="Build">
+    <ItemGroup>
+      <ModelAssets Include="$(MSBuildThisFileDirectory)Assets\Models\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ModelAssets)" DestinationFiles="@(ModelAssets->'$(OutDir)Assets\Models\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <MakeDir Directories="$(OutDir)Licenses" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\Engine\externals\assimp\LICENSE.txt;$(MSBuildThisFileDirectory)..\Engine\externals\assimp\zlib-LICENSE.txt" DestinationFolder="$(OutDir)Licenses" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyTextures" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Assets\Textures" />

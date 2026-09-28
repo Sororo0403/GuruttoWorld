@@ -48,7 +48,15 @@ namespace Engine
         ImageData image;
         ComPtr<ID3D12Resource> upload;
         D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
-        if (!LoadImage(path, image) || !CreateResource(device, image) ||
+        if (path.empty())
+        {
+            image = { 1, 1, { 255, 255, 255, 255 } };
+        }
+        else if (!LoadImage(path, image))
+        {
+            return false;
+        }
+        if (!CreateResource(device, image) ||
             !CreateUploadBuffer(device, image, upload, footprint) ||
             !CreateShaderResourceView(device) || !UploadAndWait(device, queue, upload.Get(), footprint))
         {

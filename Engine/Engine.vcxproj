@@ -145,7 +145,17 @@
     <None Include="externals\imgui\LICENSE.txt" />
     <None Include="externals\imgui\README.wp1.md" />
   </ItemGroup>
+  <Import Project="Assimp.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\MeshRenderer.cpp" />
+    <ClInclude Include="include\Engine\Graphics\MeshRenderer.h" />
+    <ClCompile Include="src\Graphics\ModelLoader.cpp" />
+    <ClInclude Include="include\Engine\Graphics\ModelLoader.h" />
+    <ClCompile Include="src\Graphics\ModelRenderer.cpp" />
+    <ClInclude Include="include\Engine\Graphics\ModelRenderer.h" />
+    <ClInclude Include="include\Engine\Graphics\MeshData.h" />
+  </ItemGroup>
 </Project>

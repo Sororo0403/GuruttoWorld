@@ -23,13 +23,13 @@ namespace
 
 namespace App
 {
-    void UVTransformPanel::Draw(Engine::UVTransform& sphere, Engine::UVTransform& sprite)
+    void UVTransformPanel::Draw(Engine::UVTransform& model, Engine::UVTransform& sprite)
     {
         ImGui::SetNextWindowPos(ImVec2(380.0f, 20.0f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(300.0f, 330.0f), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("UV Transform"))
         {
-            DrawTransform("Sphere", sphere);
+            DrawTransform("Model", model);
             DrawTransform("Sprite", sprite);
         }
         ImGui::End();

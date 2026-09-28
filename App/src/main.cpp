@@ -1,6 +1,6 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Graphics/DirectX12Renderer.h>
-#include <Engine/Graphics/SphereRenderer.h>
+#include <Engine/Graphics/ModelRenderer.h>
 #include <Engine/Graphics/SpriteRenderer.h>
 #include <Windows.h>
 #if defined(_DEBUG)
@@ -23,8 +23,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         return 1;
     }
     executable.resize(length);
-    const auto shaderPath = std::filesystem::path(executable).parent_path() / "Shaders" / "Sphere.hlsl";
+    const auto shaderPath = std::filesystem::path(executable).parent_path() / "Shaders" / "Mesh.hlsl";
 
+    const auto modelPath = std::filesystem::path(executable).parent_path() / "Assets" / "Models" / "Cube.obj";
     const auto texturePath = std::filesystem::path(executable).parent_path() / "Assets" / "Textures" / "Checker.png";
 
     const auto spriteShaderPath = std::filesystem::path(executable).parent_path() / "Shaders" / "Sprite.hlsl";
@@ -35,8 +36,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     settings.height = 720;
 
     // Run が GPU の完了を待ってから戻るため、描画リソースはその後で安全に破棄できます。
-    Engine::SphereRenderer sphere;
-    bool sphereReady = false;
+    Engine::ModelRenderer model;
+    bool modelReady = false;
     Engine::SpriteRenderer sprite;
     bool spriteReady = false;
     double rotationY = 0.0;
@@ -44,7 +45,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     bool rotating = true;
     std::array<float, 4> backgroundColor{ 0.08f, 0.20f, 0.40f, 1.0f };
     Engine::DirectionalLight light;
-    Engine::UVTransform sphereUV;
+    Engine::UVTransform modelUV;
     Engine::UVTransform spriteUV;
     const std::array<float, 3> cameraPosition{ 0.0f, 0.0f, -3.5f };
     std::function<void()> debugUi;
@@ -53,7 +54,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     {
         App::DebugPanel::Draw(rotationY, speedDegrees, rotating, backgroundColor);
         App::LightingPanel::Draw(light);
-        App::UVTransformPanel::Draw(sphereUV, spriteUV);
+        App::UVTransformPanel::Draw(modelUV, spriteUV);
     };
 #endif
     Engine::ApplicationCallbacks callbacks;
@@ -67,13 +68,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     };
     callbacks.draw = [&](Engine::DirectX12Renderer& renderer)
     {
-        if (!sphereReady)
+        if (!modelReady)
         {
-            if (!sphere.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texturePath, shaderPath))
+            if (!model.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), modelPath, shaderPath))
             {
                 return Engine::RenderResult::Failed;
             }
-            sphereReady = true;
+            modelReady = true;
         }
         if (!spriteReady)
         {
@@ -91,9 +92,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             const XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspectRatio, 0.1f, 100.0f);
             XMFLOAT4X4 world;
             XMFLOAT4X4 viewProjection;
-            XMStoreFloat4x4(&world, XMMatrixRotationY(static_cast<float>(rotationY)));
+            XMStoreFloat4x4(&world, XMMatrixRotationX(-0.3f) * XMMatrixRotationY(static_cast<float>(rotationY)));
             XMStoreFloat4x4(&viewProjection, view * projection);
-            sphere.Draw(commands, world, viewProjection, light, cameraPosition, sphereUV);
+            model.Draw(commands, world, viewProjection, light, cameraPosition, modelUV);
             Engine::SpriteDrawParameters spriteParameters;
             spriteParameters.position = { static_cast<float>(renderer.GetWidth()) - 192.0f, 32.0f };
             spriteParameters.size = { 160.0f, 160.0f };

@@ -37,7 +37,7 @@ namespace Engine
         /// </summary>
         /// <param name="device">リソースを生成するデバイス。</param>
         /// <param name="queue">デバイスと対応する DIRECT 型のコマンドキュー。</param>
-        /// <param name="path">PNG など WIC が対応する画像ファイル。</param>
+        /// <param name="path">PNG など WIC が対応する画像ファイル。空の場合は白の一画素を生成します。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& path);
 

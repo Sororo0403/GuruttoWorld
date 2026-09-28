@@ -402,3 +402,6 @@ FodyWeavers.xsd
 
 # Generated build outputs and intermediate files
 /generated/
+
+# OBJ model assets are source data, not compiler outputs.
+!App/Assets/Models/**/*.obj
