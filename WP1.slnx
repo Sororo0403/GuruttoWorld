@@ -2,5 +2,6 @@
   <Configurations>
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="WP1.vcxproj" Id="da59faf5-f726-4558-9946-c19f7819fd94" />
+  <Project Path="App/App.vcxproj" Id="da59faf5-f726-4558-9946-c19f7819fd94" />
+  <Project Path="Engine/Engine.vcxproj" Id="689a4162-50df-480e-93d1-6e6453148017" />
 </Solution>
