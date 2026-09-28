@@ -313,6 +313,11 @@ namespace Engine
         return device.Get();
     }
 
+    ID3D12CommandQueue* DirectX12Renderer::GetCommandQueue() const noexcept
+    {
+        return queue.Get();
+    }
+
     RenderResult DirectX12Renderer::Render(const std::array<float, 4>& clearColor,
         const std::function<void(ID3D12GraphicsCommandList*, float)>& draw,
         const std::function<void()>& debugUi)

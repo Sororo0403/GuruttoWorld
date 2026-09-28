@@ -22,6 +22,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     executable.resize(length);
     const auto shaderPath = std::filesystem::path(executable).parent_path() / "Shaders" / "Triangle.hlsl";
 
+    const auto texturePath = std::filesystem::path(executable).parent_path() / "Assets" / "Textures" / "Checker.png";
+
     Engine::ApplicationSettings settings;
     settings.title = L"WP1";
     settings.width = 1280;
@@ -56,11 +58,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         {
             const std::array<Engine::TriangleVertex, 3> vertices =
             {{
-                { { 0.0f, 0.65f, 0.0f }, { 1.0f, 0.15f, 0.15f, 1.0f } },
-                { { 0.65f, -0.55f, 0.0f }, { 0.15f, 1.0f, 0.15f, 1.0f } },
-                { { -0.65f, -0.55f, 0.0f }, { 0.15f, 0.3f, 1.0f, 1.0f } }
+                { { 0.0f, 0.65f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.5f, 0.0f } },
+                { { 0.65f, -0.55f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
+                { { -0.65f, -0.55f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
             }};
-            if (!triangle.Initialize(renderer.GetDevice(), shaderPath, vertices))
+            if (!triangle.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texturePath, shaderPath, vertices))
             {
                 return Engine::RenderResult::Failed;
             }

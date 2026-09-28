@@ -46,15 +46,16 @@ namespace
 
 namespace Engine
 {
-    bool TriangleRenderer::Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath,
+    bool TriangleRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& texturePath,
+        const std::filesystem::path& shaderPath,
         const std::array<TriangleVertex, 3>& vertices)
     {
-        if (device == nullptr || initialized_)
+        if (device == nullptr || queue == nullptr || initialized_)
         {
             return false;
         }
         if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) ||
-            !CreateVertexBuffer(device, vertices))
+            !CreateVertexBuffer(device, vertices) || !texture_.Initialize(device, queue, texturePath))
         {
             vertexBuffer_.Reset();
             pipelineState_.Reset();
@@ -68,14 +69,35 @@ namespace Engine
 
     bool TriangleRenderer::CreateRootSignature(ID3D12Device* device)
     {
-        D3D12_ROOT_PARAMETER parameter{};
-        parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        parameter.Constants.ShaderRegister = 0;
-        parameter.Constants.Num32BitValues = 4;
-        parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+        D3D12_DESCRIPTOR_RANGE textureRange{};
+        textureRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        textureRange.NumDescriptors = 1;
+        textureRange.BaseShaderRegister = 0;
+        textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+        D3D12_ROOT_PARAMETER parameters[2]{};
+        parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        parameters[0].Constants.ShaderRegister = 0;
+        parameters[0].Constants.Num32BitValues = 4;
+        parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+        parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        parameters[1].DescriptorTable.NumDescriptorRanges = 1;
+        parameters[1].DescriptorTable.pDescriptorRanges = &textureRange;
+        parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        D3D12_STATIC_SAMPLER_DESC sampler{};
+        sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler.MaxAnisotropy = 1;
+        sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        sampler.MaxLOD = D3D12_FLOAT32_MAX;
+        sampler.ShaderRegister = 0;
+        sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_ROOT_SIGNATURE_DESC description{};
-        description.NumParameters = 1;
-        description.pParameters = &parameter;
+        description.NumParameters = 2;
+        description.pParameters = parameters;
+        description.NumStaticSamplers = 1;
+        description.pStaticSamplers = &sampler;
         description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
         ComPtr<ID3DBlob> signature;
         ComPtr<ID3DBlob> errors;
@@ -105,13 +127,14 @@ namespace Engine
         const D3D12_INPUT_ELEMENT_DESC elements[] =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, position)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, color)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, color)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, uv)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
         };
         D3D12_GRAPHICS_PIPELINE_STATE_DESC description{};
         description.pRootSignature = rootSignature_.Get();
         description.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
         description.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
-        description.InputLayout = { elements, 2 };
+        description.InputLayout = { elements, 3 };
         description.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
         description.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
         description.RasterizerState.DepthClipEnable = TRUE;
@@ -184,6 +207,9 @@ namespace Engine
         commands->SetPipelineState(pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
         commands->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(constants.size()), constants.data(), 0);
+        ID3D12DescriptorHeap* heaps[] = { texture_.GetDescriptorHeap() };
+        commands->SetDescriptorHeaps(1, heaps);
+        commands->SetGraphicsRootDescriptorTable(1, texture_.GetGpuHandle());
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commands->IASetVertexBuffers(0, 1, &vertexBufferView_);
         commands->DrawInstanced(3, 1, 0, 0);

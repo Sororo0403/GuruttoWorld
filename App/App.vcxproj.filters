@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Triangle.hlsl" />
+    <None Include="Assets\Textures\Checker.png" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DebugPanel.cpp">

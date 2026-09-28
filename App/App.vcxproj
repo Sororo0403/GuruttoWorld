@@ -103,6 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Triangle.hlsl" />
+    <None Include="Assets\Textures\Checker.png" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DebugPanel.cpp">
@@ -115,6 +116,11 @@
     <MakeDir Directories="$(OutDir)Shaders" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyTextures" AfterTargets="Build">
+    <MakeDir Directories="$(OutDir)Assets\Textures" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Assets\Textures\Checker.png"
+          DestinationFolder="$(OutDir)Assets\Textures" SkipUnchangedFiles="true" />
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

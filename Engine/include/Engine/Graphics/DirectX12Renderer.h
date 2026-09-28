@@ -68,6 +68,12 @@ namespace Engine
         /// <returns>初期化済みのデバイス。未初期化の場合は nullptr。</returns>
         ID3D12Device* GetDevice() const noexcept;
 
+        /// <summary>
+        /// 初期リソース転送に使用する描画キューを取得します。所有権は移譲しません。
+        /// </summary>
+        /// <returns>初期化済みの DIRECT 型キュー。未初期化の場合は nullptr。</returns>
+        ID3D12CommandQueue* GetCommandQueue() const noexcept;
+
     private:
         /// <summary>
         /// GPU の処理完了を待ち、生成途中のリソースも含めて解放します。

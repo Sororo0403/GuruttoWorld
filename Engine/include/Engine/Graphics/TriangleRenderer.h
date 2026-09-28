@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Platform/Window.h>
+#include <Engine/Graphics/Texture2D.h>
 #include <d3d12.h>
 #include <wrl/client.h>
 
@@ -13,6 +14,7 @@ namespace Engine
     {
         std::array<float, 3> position;
         std::array<float, 4> color;
+        std::array<float, 2> uv;
     };
 
     class TriangleRenderer final
@@ -39,13 +41,16 @@ namespace Engine
         TriangleRenderer& operator=(const TriangleRenderer&) = delete;
 
         /// <summary>
-        /// ルートシグネチャ、シェーダー、パイプライン、頂点バッファーを生成します。
+        /// ルートシグネチャ、パイプライン、頂点バッファー、テクスチャを生成します。
         /// </summary>
         /// <param name="device">生成に使用する DirectX 12 デバイス。</param>
+        /// <param name="queue">テクスチャの初期転送に使用する DIRECT 型の描画キュー。</param>
+        /// <param name="texturePath">貼り付ける画像ファイル。</param>
         /// <param name="shaderPath">VSMain と PSMain を定義した HLSL ファイル。</param>
-        /// <param name="vertices">描画する三角形の頂点位置と色。</param>
+        /// <param name="vertices">描画する三角形の頂点位置、色、UV 座標。</param>
         /// <returns>初期化に成功した場合は true、失敗または初期化済みの場合は false。</returns>
-        bool Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath,
+        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& texturePath,
+            const std::filesystem::path& shaderPath,
             const std::array<TriangleVertex, 3>& vertices);
 
         /// <summary>
@@ -58,7 +63,7 @@ namespace Engine
 
     private:
         /// <summary>
-        /// 頂点シェーダーへ縦横比補正と Y 軸回転を渡すルートシグネチャを生成します。
+        /// 縦横比補正・Y 軸回転・テクスチャ SRV とサンプラーを定義するルートシグネチャを生成します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
         /// <returns>生成に成功した場合は true。</returns>
@@ -81,6 +86,7 @@ namespace Engine
         bool CreateVertexBuffer(ID3D12Device* device, const std::array<TriangleVertex, 3>& vertices);
 
         bool initialized_ = false;
+        Texture2D texture_;
         Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
         Microsoft::WRL::ComPtr<ID3D12Resource> vertexBuffer_;
