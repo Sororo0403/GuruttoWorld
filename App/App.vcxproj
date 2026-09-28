@@ -103,6 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Triangle.hlsl" />
+    <None Include="Shaders\Sprite.hlsl" />
     <None Include="Assets\Textures\Checker.png" />
   </ItemGroup>
   <ItemGroup>
@@ -114,7 +115,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Shaders" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl"
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyTextures" AfterTargets="Build">

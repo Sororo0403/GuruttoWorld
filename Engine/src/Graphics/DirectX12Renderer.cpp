@@ -335,6 +335,16 @@ namespace Engine
         return queue.Get();
     }
 
+    UINT DirectX12Renderer::GetWidth() const noexcept
+    {
+        return width;
+    }
+
+    UINT DirectX12Renderer::GetHeight() const noexcept
+    {
+        return height;
+    }
+
     RenderResult DirectX12Renderer::Render(const std::array<float, 4>& clearColor,
         const std::function<void(ID3D12GraphicsCommandList*, float)>& draw,
         const std::function<void()>& debugUi)

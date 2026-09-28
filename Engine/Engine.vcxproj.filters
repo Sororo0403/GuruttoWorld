@@ -107,5 +107,17 @@
     <ClInclude Include="include\Engine\Graphics\DepthBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClCompile Include="src\Graphics\SpriteRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\SpriteRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Graphics\ShaderCompiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\ShaderCompiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

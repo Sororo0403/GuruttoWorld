@@ -89,6 +89,8 @@
     <ClCompile Include="src\Graphics\TriangleRenderer.cpp" />
     <ClCompile Include="src\Graphics\Texture2D.cpp" />
     <ClCompile Include="src\Graphics\DepthBuffer.cpp" />
+    <ClCompile Include="src\Graphics\ShaderCompiler.cpp" />
+    <ClCompile Include="src\Graphics\SpriteRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\Core\Application.h" />
@@ -99,6 +101,8 @@
     <ClInclude Include="include\Engine\Graphics\TriangleRenderer.h" />
     <ClInclude Include="include\Engine\Graphics\Texture2D.h" />
     <ClInclude Include="include\Engine\Graphics\DepthBuffer.h" />
+    <ClInclude Include="include\Engine\Graphics\ShaderCompiler.h" />
+    <ClInclude Include="include\Engine\Graphics\SpriteRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Graphics\ImGuiLayer.cpp">

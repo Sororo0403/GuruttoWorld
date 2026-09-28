@@ -75,6 +75,18 @@ namespace Engine
         /// <returns>初期化済みの DIRECT 型キュー。未初期化の場合は nullptr。</returns>
         ID3D12CommandQueue* GetCommandQueue() const noexcept;
 
+        /// <summary>
+        /// 現在の描画領域の幅をピクセル単位で取得します。リサイズは Render 内で反映されます。
+        /// </summary>
+        /// <returns>描画領域の幅。</returns>
+        UINT GetWidth() const noexcept;
+
+        /// <summary>
+        /// 現在の描画領域の高さをピクセル単位で取得します。リサイズは Render 内で反映されます。
+        /// </summary>
+        /// <returns>描画領域の高さ。</returns>
+        UINT GetHeight() const noexcept;
+
     private:
         /// <summary>
         /// GPU の処理完了を待ち、生成途中のリソースも含めて解放します。

@@ -1,6 +1,7 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Graphics/DirectX12Renderer.h>
 #include <Engine/Graphics/TriangleRenderer.h>
+#include <Engine/Graphics/SpriteRenderer.h>
 #include <Windows.h>
 #if defined(_DEBUG)
 #include "DebugPanel.h"
@@ -24,14 +25,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
     const auto texturePath = std::filesystem::path(executable).parent_path() / "Assets" / "Textures" / "Checker.png";
 
+    const auto spriteShaderPath = std::filesystem::path(executable).parent_path() / "Shaders" / "Sprite.hlsl";
+
     Engine::ApplicationSettings settings;
     settings.title = L"WP1";
     settings.width = 1280;
     settings.height = 720;
 
-    // Run が GPU の完了を待ってから戻るため、三角形のリソースはその後で安全に破棄できます。
+    // Run が GPU の完了を待ってから戻るため、描画リソースはその後で安全に破棄できます。
     Engine::TriangleRenderer triangle;
     bool triangleReady = false;
+    Engine::SpriteRenderer sprite;
+    bool spriteReady = false;
     double rotationY = 0.0;
     float speedDegrees = 90.0f;
     bool rotating = true;
@@ -68,11 +73,24 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             }
             triangleReady = true;
         }
+        if (!spriteReady)
+        {
+            if (!sprite.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texturePath, spriteShaderPath))
+            {
+                return Engine::RenderResult::Failed;
+            }
+            spriteReady = true;
+        }
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
             triangle.Draw(commands, aspectRatio, static_cast<float>(rotationY), { -0.15f, 0.05f, -0.15f });
             // 奥の三角形を後から描いても、深度テストによって手前の面が残ります。
             triangle.Draw(commands, aspectRatio, 0.0f, { 0.2f, -0.1f, 0.25f }, { 1.0f, 0.45f, 0.2f, 1.0f });
+            Engine::SpriteDrawParameters spriteParameters;
+            spriteParameters.position = { static_cast<float>(renderer.GetWidth()) - 192.0f, 32.0f };
+            spriteParameters.size = { 160.0f, 160.0f };
+            spriteParameters.color = { 1.0f, 1.0f, 1.0f, 0.8f };
+            sprite.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), spriteParameters);
         }, debugUi);
     };
 
