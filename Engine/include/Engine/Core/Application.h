@@ -15,6 +15,10 @@ namespace Engine
         int width = 1280;
         int height = 720;
         unsigned int inactiveWaitMilliseconds = 16;
+        /// <summary>
+        /// 更新に渡す経過秒数の上限。有限の正数を指定し、超過した時間は持ち越しません。
+        /// </summary>
+        double maxDeltaSeconds = 0.1;
     };
 
     struct ApplicationCallbacks
@@ -50,8 +54,8 @@ namespace Engine
         /// 初期化後、メッセージ処理と描画を繰り返し、終了時にリソースを解放します。
         /// メインスレッドから呼び出してください。
         /// </summary>
-        /// <param name="settings">アプリ層が指定するウィンドウ設定と非表示時の待機時間。</param>
-        /// <param name="callbacks">更新と描画の処理。更新には前フレームからの経過秒数を渡します。描画は必須です。</param>
+        /// <param name="settings">アプリ層が指定するウィンドウ設定、非表示時の待機時間、更新時間の上限。</param>
+        /// <param name="callbacks">更新と描画の処理。更新には上限を適用した経過秒数を渡します。描画は必須です。</param>
         /// <returns>ウィンドウの終了コード。初期化や描画に失敗した場合は 1。</returns>
         int Run(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks);
 

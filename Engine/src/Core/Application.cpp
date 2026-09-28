@@ -4,7 +4,9 @@
 #include <Engine/Graphics/DirectX12Renderer.h>
 #include <Engine/Platform/Window.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 
 namespace Engine
 {
@@ -15,7 +17,8 @@ namespace Engine
 
     int Application::Run(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks)
     {
-        if (!callbacks.draw || settings.inactiveWaitMilliseconds == 0)
+        if (!callbacks.draw || settings.inactiveWaitMilliseconds == 0 ||
+            !std::isfinite(settings.maxDeltaSeconds) || settings.maxDeltaSeconds <= 0.0)
         {
             return 1;
         }
@@ -30,7 +33,8 @@ namespace Engine
                 while (window.ProcessMessages(exitCode))
                 {
                     const auto currentTime = std::chrono::steady_clock::now();
-                    const double deltaSeconds = std::chrono::duration<double>(currentTime - previousTime).count();
+                    const double elapsedSeconds = std::chrono::duration<double>(currentTime - previousTime).count();
+                    const double deltaSeconds = std::min(elapsedSeconds, settings.maxDeltaSeconds);
                     previousTime = currentTime;
                     if (callbacks.update)
                     {
