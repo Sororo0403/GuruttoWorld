@@ -53,11 +53,12 @@ namespace Engine
         /// </summary>
         /// <param name="commands">レンダーターゲットとビューポートが設定済みのコマンドリスト。</param>
         /// <param name="aspectRatio">描画領域の幅÷高さ。三角形の縦横比を維持するために使用します。</param>
-        void Draw(ID3D12GraphicsCommandList* commands, float aspectRatio) const;
+        /// <param name="rotationY">原点を通る Y 軸周りの回転角度（ラジアン）。</param>
+        void Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY = 0.0f) const;
 
     private:
         /// <summary>
-        /// 頂点シェーダーへ縦横比補正を渡すルートシグネチャを生成します。
+        /// 頂点シェーダーへ縦横比補正と Y 軸回転を渡すルートシグネチャを生成します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
         /// <returns>生成に成功した場合は true。</returns>

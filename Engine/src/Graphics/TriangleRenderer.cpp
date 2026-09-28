@@ -3,6 +3,7 @@
 
 #include <d3dcompiler.h>
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <format>
@@ -70,7 +71,7 @@ namespace Engine
         D3D12_ROOT_PARAMETER parameter{};
         parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameter.Constants.ShaderRegister = 0;
-        parameter.Constants.Num32BitValues = 2;
+        parameter.Constants.Num32BitValues = 4;
         parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
         D3D12_ROOT_SIGNATURE_DESC description{};
         description.NumParameters = 1;
@@ -169,16 +170,20 @@ namespace Engine
         return true;
     }
 
-    void TriangleRenderer::Draw(ID3D12GraphicsCommandList* commands, float aspectRatio) const
+    void TriangleRenderer::Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY) const
     {
         if (!initialized_ || commands == nullptr || aspectRatio <= 0.0f)
         {
             return;
         }
-        const float scale[] = { std::min(1.0f, 1.0f / aspectRatio), std::min(1.0f, aspectRatio) };
+        const std::array<float, 4> constants
+        {
+            std::min(1.0f, 1.0f / aspectRatio), std::min(1.0f, aspectRatio),
+            std::cos(rotationY), std::sin(rotationY)
+        };
         commands->SetPipelineState(pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
-        commands->SetGraphicsRoot32BitConstants(0, 2, scale, 0);
+        commands->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(constants.size()), constants.data(), 0);
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commands->IASetVertexBuffers(0, 1, &vertexBufferView_);
         commands->DrawInstanced(3, 1, 0, 0);

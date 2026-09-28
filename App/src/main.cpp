@@ -3,7 +3,9 @@
 #include <Engine/Graphics/TriangleRenderer.h>
 #include <Windows.h>
 
+#include <cmath>
 #include <filesystem>
+#include <numbers>
 #include <string>
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
@@ -25,7 +27,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     // Run が GPU の完了を待ってから戻るため、三角形のリソースはその後で安全に破棄できます。
     Engine::TriangleRenderer triangle;
     bool triangleReady = false;
+    double rotationY = 0.0;
+    constexpr double angularSpeed = std::numbers::pi / 2.0;
     Engine::ApplicationCallbacks callbacks;
+    callbacks.update = [&](double deltaSeconds)
+    {
+        rotationY = std::fmod(rotationY + angularSpeed * deltaSeconds, 2.0 * std::numbers::pi);
+    };
     callbacks.draw = [&](Engine::DirectX12Renderer& renderer)
     {
         if (!triangleReady)
@@ -45,7 +53,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         constexpr std::array<float, 4> backgroundColor{ 0.08f, 0.20f, 0.40f, 1.0f };
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
-            triangle.Draw(commands, aspectRatio);
+            triangle.Draw(commands, aspectRatio, static_cast<float>(rotationY));
         });
     };
 
