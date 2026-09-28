@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Graphics/Texture2D.h>
+#include <Engine/Graphics/MeshResources.h>
 #include <Engine/Graphics/UVTransform.h>
 #include <Engine/Graphics/DirectionalLight.h>
 #include <DirectXMath.h>
@@ -46,6 +46,17 @@ namespace Engine
             const MeshData& mesh, const std::filesystem::path& shaderPath);
 
         /// <summary>
+        /// 既存のパイプラインとテクスチャキャッシュを共有し、固有のメッシュだけを生成します。
+        /// </summary>
+        /// <param name="device">共有リソースと同じデバイス。</param>
+        /// <param name="queue">転送に使用する DIRECT 型キュー。</param>
+        /// <param name="mesh">描画するメッシュ。</param>
+        /// <param name="resources">初期化済みの共有リソース。</param>
+        /// <returns>初期化に成功した場合は true。</returns>
+        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
+            const MeshData& mesh, const std::shared_ptr<MeshResources>& resources);
+
+        /// <summary>
         /// 深度テスト・裏面除去・陰影を使ってメッシュを描画します。
         /// </summary>
         /// <param name="commands">描画先・D32_FLOAT 深度・ビューポートが設定済みのコマンドリスト。</param>
@@ -60,26 +71,10 @@ namespace Engine
             const UVTransform& uvTransform = {}) const;
 
     private:
-        /// <summary>
-        /// 変換行列・テクスチャ・サンプラーを渡すルートシグネチャを生成します。
-        /// </summary>
-        /// <param name="device">生成に使用するデバイス。</param>
-        /// <returns>生成に成功した場合は true。</returns>
-        bool CreateRootSignature(ID3D12Device* device);
-
-        /// <summary>
-        /// メッシュ用のシェーダーと深度・裏面除去を有効にしたパイプラインを生成します。
-        /// </summary>
-        /// <param name="device">生成に使用するデバイス。</param>
-        /// <param name="shaderPath">コンパイルする HLSL ファイル。</param>
-        /// <returns>生成に成功した場合は true。</returns>
-        bool CreatePipelineState(ID3D12Device* device, const std::filesystem::path& shaderPath);
-
         bool initialized_ = false;
         UINT indexCount_ = 0;
-        Texture2D texture_;
-        Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
-        Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
+        std::shared_ptr<MeshResources> resources_;
+        std::shared_ptr<Texture2D> texture_;
         Microsoft::WRL::ComPtr<ID3D12Resource> meshBuffer_;
         D3D12_VERTEX_BUFFER_VIEW vertexView_{};
         D3D12_INDEX_BUFFER_VIEW indexView_{};

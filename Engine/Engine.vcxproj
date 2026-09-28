@@ -158,4 +158,10 @@
     <ClInclude Include="include\Engine\Graphics\ModelRenderer.h" />
     <ClInclude Include="include\Engine\Graphics\MeshData.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\GpuSynchronization.cpp" />
+    <ClInclude Include="include\Engine\Graphics\GpuSynchronization.h" />
+    <ClCompile Include="src\Graphics\MeshResources.cpp" />
+    <ClInclude Include="include\Engine\Graphics\MeshResources.h" />
+  </ItemGroup>
 </Project>

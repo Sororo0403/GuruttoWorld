@@ -1,5 +1,6 @@
 #include <Engine/Graphics/IndexedMeshBuffer.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Graphics/GpuSynchronization.h>
 
 #include <algorithm>
 #include <cstring>
@@ -36,8 +37,7 @@ namespace
                 "Create indexed mesh upload allocator") ||
             !Check(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr,
                 IID_PPV_ARGS(&commands)), "Create indexed mesh upload commands") ||
-            !Check(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)), "Create indexed mesh upload fence") ||
-            !Check(fence->SetEventOnCompletion(1, event.get()), "Set indexed mesh upload completion event"))
+            !Check(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)), "Create indexed mesh upload fence"))
         {
             return false;
         }
@@ -58,16 +58,8 @@ namespace
         }
         ID3D12CommandList* lists[] = { commands.Get() };
         queue->ExecuteCommandLists(1, lists);
-        if (!Check(queue->Signal(fence.Get(), 1), "Signal indexed mesh upload fence"))
-        {
-            return false;
-        }
-        if (WaitForSingleObject(event.get(), INFINITE) != WAIT_OBJECT_0)
-        {
-            Engine::Log::Error("Wait for indexed mesh upload failed.");
-            return false;
-        }
-        return Check(device->GetDeviceRemovedReason(), "Indexed mesh upload device status");
+        return Engine::SignalGpuFence(device, queue, fence.Get(), 1) &&
+            Engine::WaitForGpuFence(device, fence.Get(), 1, event.get());
     }
 }
 

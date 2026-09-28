@@ -1,5 +1,6 @@
 #include <Engine/Graphics/Texture2D.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Graphics/GpuSynchronization.h>
 
 #include <wincodec.h>
 #include <cstring>
@@ -187,8 +188,7 @@ namespace Engine
                 "Create texture upload allocator") ||
             !Check(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr,
                 IID_PPV_ARGS(&commands)), "Create texture upload commands") ||
-            !Check(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)), "Create texture upload fence") ||
-            !Check(fence->SetEventOnCompletion(1, event.get()), "Set texture upload completion event"))
+            !Check(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)), "Create texture upload fence"))
         {
             return false;
         }
@@ -213,16 +213,8 @@ namespace Engine
         }
         ID3D12CommandList* lists[] = { commands.Get() };
         queue->ExecuteCommandLists(1, lists);
-        if (!Check(queue->Signal(fence.Get(), 1), "Signal texture upload fence"))
-        {
-            return false;
-        }
-        if (WaitForSingleObject(event.get(), INFINITE) != WAIT_OBJECT_0)
-        {
-            Log::Error("Wait for texture upload failed.");
-            return false;
-        }
-        return Check(device->GetDeviceRemovedReason(), "Texture upload device status");
+        return SignalGpuFence(device, queue, fence.Get(), 1) &&
+            WaitForGpuFence(device, fence.Get(), 1, event.get());
     }
 
     bool Texture2D::CreateShaderResourceView(ID3D12Device* device)

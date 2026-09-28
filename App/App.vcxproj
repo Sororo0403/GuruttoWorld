@@ -141,8 +141,10 @@
   </Target>
   <Target Name="CopyTextures" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Assets\Textures" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Assets\Textures\Checker.png"
-          DestinationFolder="$(OutDir)Assets\Textures" SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <TextureAssets Include="$(MSBuildThisFileDirectory)Assets\Textures\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(TextureAssets)" DestinationFiles="@(TextureAssets->'$(OutDir)Assets\Textures\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

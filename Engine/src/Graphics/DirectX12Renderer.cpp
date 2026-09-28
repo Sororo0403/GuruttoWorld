@@ -1,5 +1,6 @@
 #include <Engine/Graphics/DirectX12Renderer.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Graphics/GpuSynchronization.h>
 
 #include <format>
 #include <utility>
@@ -36,7 +37,10 @@ namespace Engine
     {
         if (queue && fence && fenceEvent != nullptr)
         {
-            WaitForGpu();
+            if (!WaitForGpu())
+            {
+                Log::Warning("Releasing rendering resources after confirmed device loss.");
+            }
         }
 #if defined(_DEBUG)
         debugUi_.Shutdown();
@@ -78,28 +82,12 @@ namespace Engine
     bool DirectX12Renderer::WaitForGpu()
     {
         const UINT64 target = ++fenceValue;
-        if (!Check(queue->Signal(fence.Get(), target), "Signal"))
-        {
-            return false;
-        }
-        return WaitForFence(target);
+        return SignalGpuFence(device.Get(), queue.Get(), fence.Get(), target) && WaitForFence(target);
     }
 
     bool DirectX12Renderer::WaitForFence(UINT64 target)
     {
-        if (fence->GetCompletedValue() < target)
-        {
-            if (!Check(fence->SetEventOnCompletion(target, fenceEvent), "SetEventOnCompletion"))
-            {
-                return false;
-            }
-            if (WaitForSingleObject(fenceEvent, INFINITE) != WAIT_OBJECT_0)
-            {
-                Log::Error("GPU fence wait failed.");
-                return false;
-            }
-        }
-        return Check(device->GetDeviceRemovedReason(), "GPU device status");
+        return WaitForGpuFence(device.Get(), fence.Get(), target, fenceEvent);
     }
 
     bool DirectX12Renderer::CreateRenderTargets()
@@ -462,7 +450,7 @@ namespace Engine
         const HRESULT present = swapChain->Present(1, 0);
         // このフレームの完了値を記録し、同じバッファーを再利用するときだけ待機します。
         const UINT64 submittedFence = ++fenceValue;
-        if (!Check(queue->Signal(fence.Get(), submittedFence), "Signal frame fence"))
+        if (!SignalGpuFence(device.Get(), queue.Get(), fence.Get(), submittedFence))
         {
             return RenderResult::Failed;
         }

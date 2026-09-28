@@ -15,11 +15,16 @@ namespace Engine
         {
             return false;
         }
+        auto resources = std::make_shared<MeshResources>();
+        if (!resources->Initialize(device, shaderPath))
+        {
+            return false;
+        }
         std::vector<std::unique_ptr<MeshRenderer>> loaded;
         for (const auto& mesh : data)
         {
             auto renderer = std::make_unique<MeshRenderer>();
-            if (!renderer->Initialize(device, queue, mesh, shaderPath))
+            if (!renderer->Initialize(device, queue, mesh, resources))
             {
                 return false;
             }
