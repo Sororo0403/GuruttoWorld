@@ -170,4 +170,10 @@
     <ClCompile Include="src\Audio\AudioSystem.cpp" />
     <ClInclude Include="include\Engine\Audio\AudioSystem.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Input\Keyboard.cpp" />
+    <ClInclude Include="include\Engine\Input\Keyboard.h" />
+    <ClCompile Include="src\Input\Gamepad.cpp" />
+    <ClInclude Include="include\Engine\Input\Gamepad.h" />
+  </ItemGroup>
 </Project>

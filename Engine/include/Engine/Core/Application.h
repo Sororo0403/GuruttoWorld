@@ -6,6 +6,7 @@
 namespace Engine
 {
     class Window;
+    class Keyboard;
     class DirectX12Renderer;
     enum class RenderResult;
 
@@ -23,7 +24,7 @@ namespace Engine
 
     struct ApplicationCallbacks
     {
-        std::function<void(double)> update;
+        std::function<void(double, const Keyboard&)> update;
         std::function<RenderResult(DirectX12Renderer&)> draw;
     };
 
@@ -55,7 +56,7 @@ namespace Engine
         /// メインスレッドから呼び出してください。
         /// </summary>
         /// <param name="settings">アプリ層が指定するウィンドウ設定、非表示時の待機時間、更新時間の上限。</param>
-        /// <param name="callbacks">更新と描画の処理。更新には上限を適用した経過秒数を渡します。描画は必須です。</param>
+        /// <param name="callbacks">更新と描画の処理。更新には上限を適用した経過秒数と更新済みキーボードを渡します。描画は必須です。</param>
         /// <returns>ウィンドウの終了コード。初期化や描画に失敗した場合は 1。</returns>
         int Run(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks);
 

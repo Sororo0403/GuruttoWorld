@@ -1,5 +1,7 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Audio/AudioSystem.h>
+#include <Engine/Input/Keyboard.h>
+#include <Engine/Input/Gamepad.h>
 #include <Engine/Graphics/DirectX12Renderer.h>
 #include <Engine/Graphics/ModelRenderer.h>
 #include <Engine/Graphics/SpriteRenderer.h>
@@ -7,6 +9,7 @@
 #if defined(_DEBUG)
 #include "DebugPanel.h"
 #include "AudioPanel.h"
+#include "InputPanel.h"
 #include <imgui.h>
 #include "LightingPanel.h"
 #include "UVTransformPanel.h"
@@ -41,7 +44,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Engine::AudioSystem audio;
     Engine::SoundHandle sound = 0;
     bool audioAttempted = false;
-    bool spaceWasDown = false;
+    Engine::Gamepad gamepad;
     // Run が GPU の完了を待ってから戻るため、描画リソースはその後で安全に破棄できます。
     Engine::ModelRenderer model;
     bool modelReady = false;
@@ -60,13 +63,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     debugUi = [&]()
     {
         App::AudioPanel::Draw(audio, sound);
+        App::InputPanel::Draw(gamepad);
         App::DebugPanel::Draw(rotationY, speedDegrees, rotating, backgroundColor);
         App::LightingPanel::Draw(light);
         App::UVTransformPanel::Draw(modelUV, spriteUV);
     };
 #endif
     Engine::ApplicationCallbacks callbacks;
-    callbacks.update = [&](double deltaSeconds)
+    callbacks.update = [&](double deltaSeconds, const Engine::Keyboard& keyboard)
     {
         if (!audioAttempted)
         {
@@ -77,17 +81,24 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 audio.SetVolume(sound, 0.25f);
             }
         }
-        // Release でもスペースキーで再生できます。
-        const bool spaceDown = GetActiveWindow() != nullptr && (GetAsyncKeyState(VK_SPACE) & 0x8000) != 0;
+        gamepad.Update(keyboard.IsActive());
+        // スペースキーまたはコントローラーの A ボタンで再生します。
         bool captureKeyboard = false;
 #if defined(_DEBUG)
         captureKeyboard = ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureKeyboard;
 #endif
-        if (spaceDown && !spaceWasDown && !captureKeyboard)
+        if ((keyboard.IsPressed(DIK_SPACE) || gamepad.IsPressed(XINPUT_GAMEPAD_A)) && !captureKeyboard)
         {
             audio.Play(sound);
         }
-        spaceWasDown = spaceDown;
+        if (gamepad.IsPressed(XINPUT_GAMEPAD_A) && !captureKeyboard)
+        {
+            gamepad.Vibrate(0.3f, 0.3f, 0.25f);
+        }
+        if (gamepad.IsPressed(XINPUT_GAMEPAD_B))
+        {
+            gamepad.StopVibration();
+        }
         if (rotating)
         {
             const double angularSpeed = static_cast<double>(speedDegrees) * std::numbers::pi / 180.0;
@@ -133,5 +144,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     };
 
     Engine::Application application;
-    return application.Run(settings, callbacks);
+    const int exitCode = application.Run(settings, callbacks);
+    gamepad.StopVibration();
+    return exitCode;
 }

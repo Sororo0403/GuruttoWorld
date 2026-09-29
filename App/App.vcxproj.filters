@@ -52,4 +52,12 @@
     </ClInclude>
     <None Include="Assets\Audio\Sample.wav" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\InputPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="src\InputPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

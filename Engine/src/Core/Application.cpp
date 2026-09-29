@@ -3,6 +3,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Graphics/DirectX12Renderer.h>
 #include <Engine/Platform/Window.h>
+#include <Engine/Input/Keyboard.h>
 
 #include <algorithm>
 #include <chrono>
@@ -27,7 +28,8 @@ namespace Engine
             // 描画機能を先に破棄し、その後にウィンドウを破棄します。
             Window window;
             DirectX12Renderer renderer;
-            if (Initialize(settings, window, renderer))
+            Keyboard keyboard;
+            if (Initialize(settings, window, renderer) && keyboard.Initialize(window.GetHandle()))
             {
                 auto previousTime = std::chrono::steady_clock::now();
                 while (window.ProcessMessages(exitCode))
@@ -36,9 +38,10 @@ namespace Engine
                     const double elapsedSeconds = std::chrono::duration<double>(currentTime - previousTime).count();
                     const double deltaSeconds = std::min(elapsedSeconds, settings.maxDeltaSeconds);
                     previousTime = currentTime;
+                    keyboard.Update();
                     if (callbacks.update)
                     {
-                        callbacks.update(deltaSeconds);
+                        callbacks.update(deltaSeconds, keyboard);
                     }
                     const RenderResult result = callbacks.draw(renderer);
                     if (result == RenderResult::Failed)

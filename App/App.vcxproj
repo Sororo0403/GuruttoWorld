@@ -161,4 +161,10 @@
     </ItemGroup>
     <Copy SourceFiles="@(AudioAssets)" DestinationFiles="@(AudioAssets->'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
+  <ItemGroup>
+    <ClCompile Include="src\InputPanel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="src\InputPanel.h" />
+  </ItemGroup>
 </Project>
