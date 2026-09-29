@@ -1,6 +1,6 @@
 #include <Engine/Platform/Window.h>
 #include <Engine/Core/Log.h>
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 #include <Engine/Graphics/ImGuiLayer.h>
 #endif
 
@@ -148,7 +148,7 @@ namespace Engine
             }
             SetWindowLongPtrW(handle, GWLP_USERDATA, 0);
         }
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         if (ImGuiLayer::ProcessMessage(handle, message, wParam, lParam))
         {
             return 1;

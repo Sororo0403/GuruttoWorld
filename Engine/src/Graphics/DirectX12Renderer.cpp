@@ -42,7 +42,7 @@ namespace Engine
                 Log::Warning("Releasing rendering resources after confirmed device loss.");
             }
         }
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         debugUi_.Shutdown();
 #endif
         if (fenceEvent != nullptr)
@@ -135,7 +135,7 @@ namespace Engine
 
     void DirectX12Renderer::EnableDebugLayer()
     {
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         ComPtr<ID3D12Debug> debug;
         const HRESULT result = D3D12GetDebugInterface(IID_PPV_ARGS(&debug));
         if (SUCCEEDED(result))
@@ -301,7 +301,7 @@ namespace Engine
             ReleaseResources();
             return false;
         }
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         if (!debugUi_.Initialize(window, device.Get(), queue.Get(), static_cast<int>(bufferCount), bufferFormat))
         {
             ReleaseResources();
@@ -337,7 +337,7 @@ namespace Engine
         const std::function<void(ID3D12GraphicsCommandList*, float)>& draw,
         const std::function<void()>& debugUi)
     {
-#if !defined(_DEBUG)
+#if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
         (void)debugUi;
 #endif
         if (!ready)
@@ -406,7 +406,7 @@ namespace Engine
         {
             return RenderResult::Failed;
         }
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         debugUi_.BeginFrame();
         if (debugUi)
         {
@@ -434,7 +434,7 @@ namespace Engine
         {
             draw(commands.Get(), static_cast<float>(width) / static_cast<float>(height));
         }
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         // UI はシーンの深度に影響されないよう、深度バッファーを外して描画します。
         commands->OMSetRenderTargets(1, &descriptor, FALSE, nullptr);
         debugUi_.Render(commands.Get());

@@ -1,5 +1,8 @@
 <Solution>
   <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Development" />
+    <BuildType Name="Release" />
     <Platform Name="x64" />
   </Configurations>
   <Project Path="App/App.vcxproj" Id="da59faf5-f726-4558-9946-c19f7819fd94" />

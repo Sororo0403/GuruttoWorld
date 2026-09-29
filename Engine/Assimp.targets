@@ -1,25 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <AssimpConfiguration Condition="'$(Configuration)'=='Debug'">Debug</AssimpConfiguration>
+    <AssimpConfiguration Condition="'$(Configuration)'!='Debug'">Release</AssimpConfiguration>
     <AssimpRoot>$(MSBuildThisFileDirectory)..\generated\</AssimpRoot>
-    <AssimpZlibName Condition="'$(Configuration)'=='Debug'">zlibstaticd.lib</AssimpZlibName>
-    <AssimpZlibName Condition="'$(Configuration)'!='Debug'">zlibstatic.lib</AssimpZlibName>
+    <AssimpZlibName Condition="'$(AssimpConfiguration)'=='Debug'">zlibstaticd.lib</AssimpZlibName>
+    <AssimpZlibName Condition="'$(AssimpConfiguration)'!='Debug'">zlibstatic.lib</AssimpZlibName>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>$(AssimpRoot)dependencies\assimp-src\include;$(AssimpRoot)intermediate\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Lib>
-      <AdditionalDependencies>$(AssimpRoot)outputs\assimp\$(Configuration)\assimp.lib;$(AssimpRoot)outputs\assimp\$(Configuration)\$(AssimpZlibName);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(AssimpRoot)outputs\assimp\$(AssimpConfiguration)\assimp.lib;$(AssimpRoot)outputs\assimp\$(AssimpConfiguration)\$(AssimpZlibName);%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Target Name="CheckAssimpFiles" BeforeTargets="BuildAssimp"
-          Condition="!Exists('$(AssimpRoot)outputs\assimp\$(Configuration)\assimp.lib') Or !Exists('$(AssimpRoot)outputs\assimp\$(Configuration)\$(AssimpZlibName)') Or !Exists('$(AssimpRoot)dependencies\assimp-src\include\assimp\Importer.hpp') Or !Exists('$(AssimpRoot)intermediate\assimp\include\assimp\config.h')">
-    <Delete Files="$(AssimpRoot)intermediate\assimp\$(Configuration).ready" />
+          Condition="!Exists('$(AssimpRoot)outputs\assimp\$(AssimpConfiguration)\assimp.lib') Or !Exists('$(AssimpRoot)outputs\assimp\$(AssimpConfiguration)\$(AssimpZlibName)') Or !Exists('$(AssimpRoot)dependencies\assimp-src\include\assimp\Importer.hpp') Or !Exists('$(AssimpRoot)intermediate\assimp\include\assimp\config.h')">
+    <Delete Files="$(AssimpRoot)intermediate\assimp\$(AssimpConfiguration).ready" />
   </Target>
   <Target Name="BuildAssimp" BeforeTargets="ClCompile"
           Inputs="$(MSBuildThisFileDirectory)..\scripts\BuildAssimp.ps1;$(MSBuildThisFileFullPath)"
-          Outputs="$(AssimpRoot)intermediate\assimp\$(Configuration).ready">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\BuildAssimp.ps1&quot; -Configuration $(Configuration)" />
+          Outputs="$(AssimpRoot)intermediate\assimp\$(AssimpConfiguration).ready">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\BuildAssimp.ps1&quot; -Configuration $(AssimpConfiguration)" />
   </Target>
 </Project>

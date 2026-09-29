@@ -2,7 +2,7 @@
 
 #include <Engine/Platform/Window.h>
 #include <Engine/Graphics/DepthBuffer.h>
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 #include <Engine/Graphics/ImGuiLayer.h>
 #endif
 
@@ -176,7 +176,7 @@ namespace Engine
         static constexpr UINT bufferCount = 2;
         static constexpr DXGI_FORMAT bufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         ImGuiLayer debugUi_;
 #endif
         HWND window = nullptr;

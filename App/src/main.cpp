@@ -6,7 +6,7 @@
 #include <Engine/Graphics/ModelRenderer.h>
 #include <Engine/Graphics/SpriteRenderer.h>
 #include <Windows.h>
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 #include "DebugPanel.h"
 #include "AudioPanel.h"
 #include "InputPanel.h"
@@ -58,11 +58,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Engine::DirectionalLight light;
     Engine::UVTransform modelUV;
     Engine::UVTransform spriteUV;
-#if !defined(_DEBUG)
+#if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
     const std::array<float, 3> cameraPosition{ 0.0f, 0.0f, -3.5f };
 #endif
     std::function<void()> debugUi;
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
     Engine::DebugCamera debugCamera;
     App::CameraPanel cameraPanel;
     const Engine::Keyboard* frameKeyboard = nullptr;
@@ -90,14 +90,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             }
         }
         gamepad.Update(keyboard.IsActive());
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         frameKeyboard = &keyboard;
         cameraDeltaSeconds = deltaSeconds;
         if (!keyboard.IsActive()) cameraPanel.CancelDrag();
 #endif
         // スペースキーまたはコントローラーの A ボタンで再生します。
         bool captureKeyboard = false;
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         captureKeyboard = ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureKeyboard;
 #endif
         if ((keyboard.IsPressed(DIK_SPACE) || gamepad.IsPressed(XINPUT_GAMEPAD_A)) && !captureKeyboard)
@@ -139,7 +139,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
             using namespace DirectX;
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
             const auto& cameraPosition = debugCamera.GetPosition();
             const XMMATRIX view = debugCamera.GetViewMatrix();
 #else

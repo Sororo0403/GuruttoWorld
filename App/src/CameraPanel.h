@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 #include <Engine/Graphics/DebugCamera.h>
 #include <Engine/Input/Keyboard.h>
 

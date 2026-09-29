@@ -78,7 +78,7 @@ namespace Engine
             Shutdown();
             return false;
         }
-        Log::Info("Dear ImGui initialized (Debug only).");
+        Log::Info("Dear ImGui initialized (Debug/Development).");
         return true;
     }
 

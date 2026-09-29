@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 #include <Engine/Platform/Window.h>
 #include <d3d12.h>
 #include <wrl/client.h>
