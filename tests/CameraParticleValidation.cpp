@@ -7,6 +7,7 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <cstring>
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 
@@ -35,6 +36,15 @@ int main()
         DirectX::XMStoreFloat4x4(&projection, camera.GetProjectionMatrix());
         Check(std::abs(projection._22 / projection._11 - 2) < 0.001f, "aspect ratio");
         Check(!camera.SetAspectRatio(0) && !camera.SetPerspective(1, 1, 2, 1), "invalid projection");
+        Check(!camera.SetAspectRatio(0.000001f), "near-zero aspect rejected without assertion");
+        Check(!camera.SetAspectRatio(0.00001f), "aspect tolerance boundary rejected");
+        Check(!camera.SetPerspective(1, 1, 0.1f, 0.100001f), "near-equal clips rejected without assertion");
+        DirectX::XMFLOAT4X4 preserved;
+        DirectX::XMStoreFloat4x4(&preserved, camera.GetProjectionMatrix());
+        Check(std::memcmp(&projection, &preserved, sizeof(projection)) == 0, "rejected projection preserves matrix");
+        Check(camera.SetAspectRatio(std::nextafter(0.00001f, 1.0f)), "aspect just above tolerance accepted");
+        Check(camera.SetPerspective(1, 1, 0.1f, 0.10002f), "clip difference above tolerance accepted");
+        Check(camera.SetPerspective(DirectX::XM_PIDIV4, 2, 0.1f, 100), "normal projection after boundary inputs");
         Engine::Object3D first, second;
         first.Draw(nullptr, camera);
         second.Draw(nullptr, camera);

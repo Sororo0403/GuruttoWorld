@@ -25,6 +25,10 @@ namespace Engine
     {
         if (!std::isfinite(verticalFov) || !std::isfinite(aspectRatio) || !std::isfinite(nearClip) || !std::isfinite(farClip) ||
             verticalFov <= 0.001f || verticalFov >= DirectX::XM_PI - 0.001f || aspectRatio <= 0.0f || nearClip <= 0.0f || farClip <= nearClip) return false;
+        // DirectXMath のアサート条件を、Debug / Release 共通の入力検証として扱います。
+        constexpr float ProjectionTolerance = 0.00001f;
+        if (DirectX::XMScalarNearEqual(aspectRatio, 0.0f, ProjectionTolerance) ||
+            DirectX::XMScalarNearEqual(farClip, nearClip, ProjectionTolerance)) return false;
         const auto matrix = DirectX::XMMatrixPerspectiveFovLH(verticalFov, aspectRatio, nearClip, farClip);
         if (DirectX::XMMatrixIsNaN(matrix) || DirectX::XMMatrixIsInfinite(matrix)) return false;
         fov_ = verticalFov;

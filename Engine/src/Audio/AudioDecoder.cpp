@@ -40,6 +40,29 @@ namespace
         const std::unique_ptr<WAVEFORMATEX, decltype(&CoTaskMemFree)> owner(allocated, CoTaskMemFree);
         if (!Check(result, "Convert PCM format") || allocated == nullptr || size < sizeof(WAVEFORMATEX)) return false;
         format = *allocated;
+        if (format.wFormatTag == WAVE_FORMAT_EXTENSIBLE)
+        {
+            if (size < sizeof(WAVEFORMATEXTENSIBLE) ||
+                format.cbSize < sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX) ||
+                size < sizeof(WAVEFORMATEX) + format.cbSize)
+            {
+                Engine::Log::Error("Incomplete decoded extensible PCM format.");
+                return false;
+            }
+            const auto& extended = *reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(allocated);
+            const DWORD defaultMask = format.nChannels == 1 ? SPEAKER_FRONT_CENTER : SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+            if (!IsEqualGUID(extended.SubFormat, MFAudioFormat_PCM) ||
+                extended.Samples.wValidBitsPerSample == 0 || extended.Samples.wValidBitsPerSample > format.wBitsPerSample ||
+                (extended.dwChannelMask != 0 && extended.dwChannelMask != defaultMask))
+            {
+                Engine::Log::Error("Unsupported decoded PCM subtype, valid bits or channel layout.");
+                return false;
+            }
+            // PCM の有効ビットは左詰めなので、格納幅の PCM として同じ波形を再生できます。
+            // 通常のモノラル／ステレオ配置だけを受理し、拡張情報を安全に正規化します。
+            format.wFormatTag = WAVE_FORMAT_PCM;
+            format.cbSize = 0;
+        }
         if (format.wFormatTag != WAVE_FORMAT_PCM || format.cbSize != 0 ||
             (format.nChannels != 1 && format.nChannels != 2) || format.nSamplesPerSec < 8000 || format.nSamplesPerSec > 192000 ||
             (format.wBitsPerSample != 8 && format.wBitsPerSample != 16 && format.wBitsPerSample != 24 && format.wBitsPerSample != 32) ||

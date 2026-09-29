@@ -21,6 +21,74 @@ namespace
     {
         if (FAILED(result)) throw std::runtime_error("Media Foundation test encoder failed: " + std::to_string(result));
     }
+    std::vector<unsigned char> WritePcmWave(const std::filesystem::path& path, WORD bits, WORD channels,
+        bool extensible, WORD validBits, DWORD channelMask)
+    {
+        constexpr DWORD Frames = 4800;
+        const WORD block = static_cast<WORD>(channels * bits / 8);
+        const DWORD bytes = Frames * block;
+        const DWORD formatSize = extensible ? 40 : 16;
+        std::vector<unsigned char> samples(bytes, 0);
+        for (DWORD frame = 0; frame < Frames; ++frame)
+        {
+            for (WORD channel = 0; channel < channels; ++channel)
+                samples[frame * block + (channel + 1) * (bits / 8) - 1] = (frame + channel) % 2 == 0 ? 0x20 : 0xE0;
+        }
+        std::ofstream file(path, std::ios::binary);
+        auto put = [&](auto value) { file.write(reinterpret_cast<const char*>(&value), sizeof(value)); };
+        file.write("RIFF", 4); put(DWORD(20 + formatSize + bytes)); file.write("WAVEfmt ", 8); put(formatSize);
+        put(WORD(extensible ? WAVE_FORMAT_EXTENSIBLE : WAVE_FORMAT_PCM)); put(channels);
+        put(DWORD(48000)); put(DWORD(48000 * block)); put(block); put(bits);
+        if (extensible)
+        {
+            put(WORD(22)); put(validBits); put(channelMask); put(MFAudioFormat_PCM);
+        }
+        file.write("data", 4); put(bytes);
+        file.write(reinterpret_cast<const char*>(samples.data()), samples.size());
+        file.close();
+        Check(bool(file), "write PCM fixture");
+        return samples;
+    }
+
+    void ValidatePcmFormats(Engine::AudioSystem& audio, const std::filesystem::path& folder)
+    {
+        for (WORD channels : {WORD(1), WORD(2)})
+        {
+            for (WORD bits : {WORD(8), WORD(16), WORD(24), WORD(32)})
+            {
+                for (bool extensible : {false, true})
+                {
+                    const auto path = folder / (std::to_string(channels) + "ch-" + std::to_string(bits) +
+                        (extensible ? "-ext.wav" : "-pcm.wav"));
+                    const DWORD mask = channels == 1 ? SPEAKER_FRONT_CENTER : SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+                    const auto expected = WritePcmWave(path, bits, channels, extensible, bits, mask);
+                    Engine::WaveData decoded;
+                    Check(Engine::DecodeAudioFile(path, decoded), "decode mono/stereo PCM and extensible WAV");
+                    Check(decoded.format.wFormatTag == WAVE_FORMAT_PCM && decoded.format.cbSize == 0 &&
+                        decoded.format.nChannels == channels && decoded.format.wBitsPerSample == bits &&
+                        decoded.samples == expected, "normalized PCM preserves format and sample bytes");
+                    const auto handle = audio.Load(path);
+                    Check(handle != 0 && audio.SetVolume(handle, 0) && audio.Play(handle), "play normalized PCM silently");
+                    audio.Unload(handle);
+                }
+            }
+        }
+        for (DWORD mask : {DWORD(0), DWORD(SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT)})
+        {
+            const auto path = folder / ("24-in-32-" + std::to_string(mask) + ".wav");
+            const auto expected = WritePcmWave(path, 32, 2, true, 24, mask);
+            Engine::WaveData decoded;
+            Check(Engine::DecodeAudioFile(path, decoded) && decoded.format.wBitsPerSample == 32 &&
+                decoded.samples == expected, "left-aligned valid bits preserve samples");
+        }
+        const auto unsupported = folder / "nonstandard-layout.wav";
+        WritePcmWave(unsupported, 24, 2, true, 24, SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
+        Engine::WaveData preserved;
+        preserved.samples = {1, 2, 3};
+        Check(!Engine::DecodeAudioFile(unsupported, preserved) && preserved.samples == std::vector<unsigned char>({1, 2, 3}),
+            "unsupported channel layout rejected without losing output");
+    }
+
     void EncodeAac(const std::filesystem::path& path)
     {
         Engine::WaveData wave;
@@ -67,6 +135,7 @@ int main()
         Check(!audio.Initialize(), "double initialize");
         const auto folder = std::filesystem::path("generated/tests/audio") / std::to_string(GetTickCount64());
         std::filesystem::create_directories(folder);
+        ValidatePcmFormats(audio, folder);
         const auto compressed = folder / "sample.m4a";
         EncodeAac(compressed);
         Engine::WaveData decoded;
@@ -108,7 +177,7 @@ int main()
         Check(reloaded != 0, "decode after reinitialize");
         Check(audio.SetVolume(reloaded, 0.25f) && audio.GetVolume(reloaded) == 0.25f,
             "recreated sound exposes fresh scene volume rather than previous mute");
-        std::cout << "PASS: WAV/AAC decode, invalid input, output preservation, playback, cached replay, loop, stop, unload and reinitialize\n";
+        std::cout << "PASS: PCM/extensible WAV 8/16/24/32-bit, valid bits, channel layouts, AAC, playback and lifecycle\n";
         return 0;
     }
     catch (const std::exception& error)

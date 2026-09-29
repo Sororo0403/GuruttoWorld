@@ -21,6 +21,7 @@ namespace Engine
         bool SetRotation(float yaw, float pitch);
         /// <summary>
         /// 画角・縦横比・近遠クリップを設定します。不正値は変更しません。
+        /// 縦横比と近遠クリップの差は DirectXMath の許容誤差 0.00001 より大きくしてください。
         /// </summary>
         bool SetPerspective(float verticalFov, float aspectRatio, float nearClip, float farClip);
         /// <summary>
