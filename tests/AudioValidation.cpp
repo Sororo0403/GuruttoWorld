@@ -80,10 +80,14 @@ int main()
         const auto wav = audio.Load("App/Assets/Audio/Sample.wav");
         const auto aac = audio.Load(compressed);
         Check(wav != 0 && aac != 0 && wav != aac, "load WAV and AAC");
+        Check(audio.GetVolume(wav) == 1.0f && audio.GetVolume(0) == 0.0f, "initial and invalid volume");
+        Check(audio.SetVolume(wav, 0.25f) && audio.GetVolume(wav) == 0.25f, "volume readback");
+        Check(!audio.SetVolume(wav, -1.0f) && audio.GetVolume(wav) == 0.25f, "invalid volume preserves state");
         std::filesystem::rename(compressed, folder / "moved.m4a");
         for (const auto handle : { wav, aac })
         {
             Check(audio.SetVolume(handle, 0), "mute test playback");
+            Check(audio.GetVolume(handle) == 0, "UI reads muted volume from audio");
             Check(audio.Play(handle), "play cached audio");
             Check(audio.IsPlaying(handle), "playing state");
             std::this_thread::sleep_for(std::chrono::milliseconds(900));
@@ -94,12 +98,16 @@ int main()
             audio.Stop(handle);
             Check(!audio.IsPlaying(handle), "stop");
             audio.Unload(handle);
+            Check(audio.GetVolume(handle) == 0, "unloaded volume is unavailable");
             Check(!audio.Play(handle), "unloaded handle rejected");
         }
         audio.Shutdown();
         audio.Shutdown();
         Check(audio.Initialize(), "reinitialize Media Foundation and audio");
-        Check(audio.Load(folder / "moved.m4a") != 0, "decode after reinitialize");
+        const auto reloaded = audio.Load(folder / "moved.m4a");
+        Check(reloaded != 0, "decode after reinitialize");
+        Check(audio.SetVolume(reloaded, 0.25f) && audio.GetVolume(reloaded) == 0.25f,
+            "recreated sound exposes fresh scene volume rather than previous mute");
         std::cout << "PASS: WAV/AAC decode, invalid input, output preservation, playback, cached replay, loop, stop, unload and reinitialize\n";
         return 0;
     }

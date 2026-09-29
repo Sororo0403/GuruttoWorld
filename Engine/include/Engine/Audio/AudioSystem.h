@@ -73,6 +73,11 @@ namespace Engine
         bool SetVolume(SoundHandle handle, float volume);
 
         /// <summary>
+        /// 指定した音の現在の音量を取得します。無効なハンドルは 0 を返します。
+        /// </summary>
+        float GetVolume(SoundHandle handle) const;
+
+        /// <summary>
         /// 指定した音に再生待ちまたは再生中のバッファーがあるか取得します。
         /// </summary>
         bool IsPlaying(SoundHandle handle) const;

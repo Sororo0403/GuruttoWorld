@@ -358,4 +358,12 @@
       <Filter>src\Scenes</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Core\DiagnosticPaths.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Core\DiagnosticPaths.h">
+      <Filter>include\Engine\Core</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

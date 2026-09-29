@@ -140,6 +140,12 @@ namespace Engine
         return true;
     }
 
+    float AudioSystem::GetVolume(SoundHandle handle) const
+    {
+        const auto found = sounds_.find(handle);
+        return found == sounds_.end() ? 0.0f : found->second.volume;
+    }
+
     bool AudioSystem::IsPlaying(SoundHandle handle) const
     {
         const auto found = sounds_.find(handle);

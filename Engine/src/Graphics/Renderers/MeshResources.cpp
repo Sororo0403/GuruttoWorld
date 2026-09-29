@@ -34,6 +34,7 @@ namespace Engine
         if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath))
         {
             pipelineState_.Reset();
+            mirroredPipelineState_.Reset();
             rootSignature_.Reset();
             return false;
         }
@@ -73,9 +74,9 @@ namespace Engine
         return rootSignature_.Get();
     }
 
-    ID3D12PipelineState* MeshResources::GetPipelineState() const noexcept
+    ID3D12PipelineState* MeshResources::GetPipelineState(bool mirrored) const noexcept
     {
-        return pipelineState_.Get();
+        return mirrored ? mirroredPipelineState_.Get() : pipelineState_.Get();
     }
 
     bool MeshResources::PathLess::operator()(const std::filesystem::path& left, const std::filesystem::path& right) const
@@ -182,8 +183,11 @@ namespace Engine
         description.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         description.DSVFormat = DepthBuffer::Format;
         description.SampleDesc.Count = 1;
-        return Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),
-            "Create mesh pipeline state");
+        if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),
+            "Create mesh pipeline state")) return false;
+        description.RasterizerState.FrontCounterClockwise = TRUE;
+        return Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&mirroredPipelineState_)),
+            "Create mirrored mesh pipeline state");
     }
 
 }

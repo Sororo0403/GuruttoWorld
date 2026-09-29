@@ -150,6 +150,7 @@
     <None Include="Assets\Models\Cube.mtl" />
     <None Include="Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
+    <None Include="Assets\Textures\Title.png" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DevTools\DebugPanel.cpp">

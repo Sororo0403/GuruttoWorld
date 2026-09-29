@@ -1,4 +1,5 @@
 #include <Engine/Core/CrashHandler.h>
+#include <Engine/Core/DiagnosticPaths.h>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -186,15 +187,12 @@ namespace Engine
         auto path = directory;
         if (path.empty())
         {
-            std::wstring executable(32768, L'\0');
-            const DWORD length = GetModuleFileNameW(nullptr, executable.data(),
-                static_cast<DWORD>(executable.size()));
-            if (length == 0 || length >= executable.size())
+            const auto root = GetDiagnosticsRoot();
+            if (root.empty())
             {
                 return false;
             }
-            executable.resize(length);
-            path = std::filesystem::path(executable).parent_path() / "crashes";
+            path = root / "crashes";
         }
         std::error_code error;
         path = std::filesystem::absolute(path, error);

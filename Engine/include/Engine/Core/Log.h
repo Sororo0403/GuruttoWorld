@@ -24,7 +24,7 @@ namespace Engine
         /// <summary>
         /// ログファイルを追記モードで開きます。失敗してもデバッグ出力は利用できます。
         /// </summary>
-        /// <param name="filePath">出力先のパス。空の場合は実行ファイル横の logs/App.log を使用します。</param>
+        /// <param name="filePath">出力先のパス。空の場合は LocalAppData/WP1/logs/App.log を使用します。</param>
         /// <returns>ログファイルを開けた場合は true、失敗した場合は false。</returns>
         static bool Initialize(const std::filesystem::path& filePath = {});
 

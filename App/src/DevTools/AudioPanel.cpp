@@ -10,12 +10,12 @@ namespace App
         if (ImGui::Begin("Audio"))
         {
             static bool loop = false;
-            static float volume = 0.25f;
+            float volume = audio.GetVolume(sound);
             ImGui::TextUnformatted(sound == 0 ? "Audio unavailable" : "Sample.wav");
             ImGui::BeginDisabled(sound == 0);
             ImGui::Checkbox("Loop (next play)", &loop);
             if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f)) audio.SetVolume(sound, volume);
-            if (ImGui::Button("Play")) { audio.SetVolume(sound, volume); audio.Play(sound, loop); }
+            if (ImGui::Button("Play")) audio.Play(sound, loop);
             ImGui::SameLine();
             if (ImGui::Button("Stop")) audio.Stop(sound);
             ImGui::TextUnformatted(audio.IsPlaying(sound) ? "Playing" : "Stopped");

@@ -58,7 +58,9 @@ namespace Engine
             XMFLOAT4X4 worldViewProjection;
             XMFLOAT4 worldRows[3];
         } constants;
-        const XMMATRIX normalMatrix = XMMatrixTranspose(XMMatrixInverse(nullptr, worldMatrix));
+        XMVECTOR determinant;
+        const XMMATRIX normalMatrix = XMMatrixTranspose(XMMatrixInverse(&determinant, worldMatrix));
+        const bool mirrored = XMVectorGetX(determinant) < 0.0f;
         for (size_t row = 0; row < 3; ++row)
         {
             XMStoreFloat4(&constants.normalRows[row], normalMatrix.r[row]);
@@ -78,7 +80,7 @@ namespace Engine
             std::max(0.0f, light.specularStrength), light.enabled ? 1.0f : 0.0f
         };
         // 行列 40 + 光源 14 + UV 8 + SRV テーブル 1 = 63 DWORD（上限 64）。
-        commands->SetPipelineState(resources_->GetPipelineState());
+        commands->SetPipelineState(resources_->GetPipelineState(mirrored));
         commands->SetGraphicsRootSignature(resources_->GetRootSignature());
         commands->SetGraphicsRoot32BitConstants(0, 40, &constants, 0);
         commands->SetGraphicsRoot32BitConstants(2, 14, lightConstants.data(), 0);

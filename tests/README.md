@@ -27,3 +27,16 @@ generated/tests/outputs/x64/Debug/SceneValidation/SceneValidation.exe
 
 非表示ウィンドウと DirectX 12 デバイスを生成し、遷移予約・更新中に破棄されないこと・生成失敗時の旧シーン保持・終了時の破棄を検証します。Release でも実行できます。
 アプリはタイトルから起動し、Enter でゲーム、ゲーム中の Escape でタイトルへ戻ります。
+
+## コードレビュー修正の回帰検証
+
+```powershell
+MSBuild tests/ReviewRegressionValidation.vcxproj /p:Configuration=Debug /p:Platform=x64
+generated/tests/outputs/x64/Debug/ReviewRegressionValidation/ReviewRegressionValidation.exe
+```
+
+Release でも実行してください。診断保存先が LocalAppData/WP1 になること、明示したログ・クラッシュ保存先が引き続き使えること、非表示ウィンドウでのタイトルの初期化・描画を検証します。診断ファイルの書き込み試験には generated/tests/diagnostics を使用します。
+
+WARP 上のオクルージョンクエリで、通常の三角形と X／XY 鏡映した三角形が同じサンプル数を描画すること、裏向きの面は引き続き除去されることを確認します。Debug では利用可能な D3D12 InfoQueue のエラーも確認します。音量の取得・ミュート・再初期化後の状態は AudioValidation で検証します。
+
+タイトルは全構成で App/Assets/Textures/Title.png を描画します。画像を作り直す場合のみ scripts/GenerateTitleTexture.ps1 を実行してください。通常のビルドでは生成済み画像をコピーします。
