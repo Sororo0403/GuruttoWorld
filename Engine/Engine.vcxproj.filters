@@ -1,217 +1,295 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+    <Filter Include="build">
+      <UniqueIdentifier>{2292C95E-B86B-5E6C-9F2F-ECCE3CC1A155}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+    <Filter Include="externals">
+      <UniqueIdentifier>{FD275D23-704F-5FAF-BE0F-AD423594E749}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="externals\imgui">
+      <UniqueIdentifier>{9E0B6E3F-DFE6-5594-BC0C-13044854429B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="externals\imgui\backends">
+      <UniqueIdentifier>{CE5BF39F-7B63-5231-B9B4-9600CFF11221}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{CD31EA01-6E33-56CB-854E-572B20F9FDA6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine">
+      <UniqueIdentifier>{74EC03EE-11D0-58D0-9FF3-3F58A20893BF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Audio">
+      <UniqueIdentifier>{2EF40603-60BF-5A36-B99C-E88CA81099FD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Core">
+      <UniqueIdentifier>{5EDE6CAD-D81B-5BEE-B8A2-7FF0DE8F76D9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\DevTools">
+      <UniqueIdentifier>{F25D0CF6-F189-5DB3-96C1-AD9A6B9B52FF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Graphics">
+      <UniqueIdentifier>{BA96B0CD-D6D9-5067-A96E-5D410759DB61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Graphics\DirectX12">
+      <UniqueIdentifier>{59744223-44BE-569B-A42E-79F1160AD7A8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Graphics\Materials">
+      <UniqueIdentifier>{B1F7565B-5AF2-5B4F-B68A-4D2AD0F15F07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Graphics\Models">
+      <UniqueIdentifier>{9A77F5A9-8C76-5E20-A62E-E16389290AE6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Graphics\Renderers">
+      <UniqueIdentifier>{31025B9A-E378-52C7-8005-C9E12BAB708B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Graphics\Resources">
+      <UniqueIdentifier>{F8A1136A-6725-5CF2-BA9C-40C490068245}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Input">
+      <UniqueIdentifier>{836CAE9F-516B-528B-8F3B-E4C783677C02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Engine\Platform">
+      <UniqueIdentifier>{9489EF0E-1C42-573C-9F3B-B869BE860DFD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{1DD7BF7E-F674-5911-8C24-3E36A809B7D5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Audio">
+      <UniqueIdentifier>{CB95DCDE-9760-5CD1-8069-A0EFC3F22B2D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Core">
+      <UniqueIdentifier>{1A7C8632-31EF-5BE3-A693-A53968959A35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\DevTools">
+      <UniqueIdentifier>{9FCF7F3F-A1D2-5337-BE9B-31FD4D8D4F7C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Graphics">
+      <UniqueIdentifier>{FEDEC40B-1E49-5896-9519-AA9025C3441C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Graphics\DirectX12">
+      <UniqueIdentifier>{CEC8C403-2B42-5B95-A732-FA0978B4BE67}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Graphics\Materials">
+      <UniqueIdentifier>{88869C44-0496-56E2-BC5F-976E9AD8C6C2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Graphics\Models">
+      <UniqueIdentifier>{D1D967E9-976C-56C8-AFF0-A38CF4E76E59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Graphics\Renderers">
+      <UniqueIdentifier>{2B10EF6F-D225-51A7-9073-C1D6DBAC10F9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Graphics\Resources">
+      <UniqueIdentifier>{45A909DA-820D-5B80-AE97-9671FD3551BD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Input">
+      <UniqueIdentifier>{42E39742-173A-5F44-81F8-7D7B8404F094}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Platform">
+      <UniqueIdentifier>{1FA5F6F7-D920-5F21-8414-900448813F3C}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Log.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\CrashHandler.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Window.cpp">
+      <Filter>src\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\DirectX12\DirectX12Renderer.cpp">
+      <Filter>src\Graphics\DirectX12</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Renderers\TriangleRenderer.cpp">
+      <Filter>src\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\Texture2D.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\DepthBuffer.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\ShaderCompiler.cpp">
+      <Filter>src\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Renderers\SpriteRenderer.cpp">
+      <Filter>src\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Renderers\SphereRenderer.cpp">
+      <Filter>src\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\IndexedMeshBuffer.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Materials\UvTransform.cpp">
+      <Filter>src\Graphics\Materials</Filter>
     </ClCompile>
     <ClInclude Include="include\Engine\Core\Application.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\Engine\Core</Filter>
     </ClInclude>
-    <ClCompile Include="src\Core\Log.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClInclude Include="include\Engine\Core\Log.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\Engine\Core</Filter>
     </ClInclude>
-    <ClCompile Include="src\Core\CrashHandler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClInclude Include="include\Engine\Core\CrashHandler.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\Engine\Core</Filter>
     </ClInclude>
-    <ClCompile Include="src\Platform\Window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClInclude Include="include\Engine\Platform\Window.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\Engine\Platform</Filter>
     </ClInclude>
-    <ClCompile Include="src\Graphics\DirectX12Renderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\DirectX12Renderer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\DirectX12\DirectX12Renderer.h">
+      <Filter>include\Engine\Graphics\DirectX12</Filter>
     </ClInclude>
-    <ClCompile Include="src\Graphics\TriangleRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\TriangleRenderer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\Renderers\TriangleRenderer.h">
+      <Filter>include\Engine\Graphics\Renderers</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Graphics\ImGuiLayer.cpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\Resources\Texture2D.h">
+      <Filter>include\Engine\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Resources\DepthBuffer.h">
+      <Filter>include\Engine\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\ShaderCompiler.h">
+      <Filter>include\Engine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Renderers\SpriteRenderer.h">
+      <Filter>include\Engine\Graphics\Renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Renderers\SphereRenderer.h">
+      <Filter>include\Engine\Graphics\Renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Resources\IndexedMeshBuffer.h">
+      <Filter>include\Engine\Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Materials\UvTransform.h">
+      <Filter>include\Engine\Graphics\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Materials\DirectionalLight.h">
+      <Filter>include\Engine\Graphics\Materials</Filter>
+    </ClInclude>
+    <ClCompile Include="src\DevTools\ImGuiLayer.cpp">
+      <Filter>src\DevTools</Filter>
     </ClCompile>
     <ClCompile Include="externals\imgui\imgui.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClCompile>
     <ClCompile Include="externals\imgui\imgui_draw.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClCompile>
     <ClCompile Include="externals\imgui\imgui_tables.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClCompile>
     <ClCompile Include="externals\imgui\imgui_widgets.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClCompile>
     <ClCompile Include="externals\imgui\backends\imgui_impl_win32.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>externals\imgui\backends</Filter>
     </ClCompile>
     <ClCompile Include="externals\imgui\backends\imgui_impl_dx12.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>externals\imgui\backends</Filter>
     </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\ImGuiLayer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\DevTools\ImGuiLayer.h">
+      <Filter>include\Engine\DevTools</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\imconfig.h">
-      <Filter>Header Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\imgui.h">
-      <Filter>Header Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\imgui_internal.h">
-      <Filter>Header Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\imstb_rectpack.h">
-      <Filter>Header Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\imstb_textedit.h">
-      <Filter>Header Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\imstb_truetype.h">
-      <Filter>Header Files</Filter>
+      <Filter>externals\imgui</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\backends\imgui_impl_dx12.h">
-      <Filter>Header Files</Filter>
+      <Filter>externals\imgui\backends</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\backends\imgui_impl_win32.h">
-      <Filter>Header Files</Filter>
+      <Filter>externals\imgui\backends</Filter>
     </ClInclude>
-    <ClCompile Include="src\Graphics\Texture2D.cpp">
-      <Filter>Source Files</Filter>
+    <None Include="externals\imgui\LICENSE.txt">
+      <Filter>externals\imgui</Filter>
+    </None>
+    <None Include="externals\imgui\README.wp1.md">
+      <Filter>externals\imgui</Filter>
+    </None>
+    <ClCompile Include="src\Graphics\Renderers\MeshRenderer.cpp">
+      <Filter>src\Graphics\Renderers</Filter>
     </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\Texture2D.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\Renderers\MeshRenderer.h">
+      <Filter>include\Engine\Graphics\Renderers</Filter>
     </ClInclude>
-    <ClCompile Include="src\Graphics\DepthBuffer.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Graphics\Models\ModelLoader.cpp">
+      <Filter>src\Graphics\Models</Filter>
     </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\DepthBuffer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\Models\ModelLoader.h">
+      <Filter>include\Engine\Graphics\Models</Filter>
     </ClInclude>
-    <ClCompile Include="src\Graphics\SpriteRenderer.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Graphics\Renderers\ModelRenderer.cpp">
+      <Filter>src\Graphics\Renderers</Filter>
     </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\SpriteRenderer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\Renderers\ModelRenderer.h">
+      <Filter>include\Engine\Graphics\Renderers</Filter>
     </ClInclude>
-    <ClCompile Include="src\Graphics\ShaderCompiler.cpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\Models\MeshData.h">
+      <Filter>include\Engine\Graphics\Models</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Graphics\DirectX12\GpuSynchronization.cpp">
+      <Filter>src\Graphics\DirectX12</Filter>
     </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\ShaderCompiler.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\DirectX12\GpuSynchronization.h">
+      <Filter>include\Engine\Graphics\DirectX12</Filter>
     </ClInclude>
-    <ClCompile Include="src\Graphics\SphereRenderer.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Graphics\Renderers\MeshResources.cpp">
+      <Filter>src\Graphics\Renderers</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\IndexedMeshBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\UVTransform.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\SphereRenderer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\Graphics\Renderers\MeshResources.h">
+      <Filter>include\Engine\Graphics\Renderers</Filter>
     </ClInclude>
-    <ClInclude Include="include\Engine\Graphics\IndexedMeshBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Engine\Graphics\UVTransform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Engine\Graphics\DirectionalLight.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Graphics\MeshRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\MeshRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClCompile Include="src\Graphics\ModelLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\ModelLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClCompile Include="src\Graphics\ModelRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\ModelRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Engine\Graphics\MeshData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Graphics\GpuSynchronization.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\GpuSynchronization.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClCompile Include="src\Graphics\MeshResources.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\MeshResources.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="src\Audio\WaveData.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src\Audio</Filter>
     </ClCompile>
     <ClInclude Include="include\Engine\Audio\WaveData.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\Engine\Audio</Filter>
     </ClInclude>
     <ClCompile Include="src\Audio\AudioSystem.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src\Audio</Filter>
     </ClCompile>
     <ClInclude Include="include\Engine\Audio\AudioSystem.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\Engine\Audio</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="src\Input\Keyboard.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src\Input</Filter>
     </ClCompile>
     <ClInclude Include="include\Engine\Input\Keyboard.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\Engine\Input</Filter>
     </ClInclude>
     <ClCompile Include="src\Input\Gamepad.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src\Input</Filter>
     </ClCompile>
     <ClInclude Include="include\Engine\Input\Gamepad.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\Engine\Input</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Graphics\DebugCamera.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\DevTools\DebugCamera.cpp">
+      <Filter>src\DevTools</Filter>
     </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\DebugCamera.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\Engine\DevTools\DebugCamera.h">
+      <Filter>include\Engine\DevTools</Filter>
     </ClInclude>
+    <None Include="build\Assimp.targets">
+      <Filter>build</Filter>
+    </None>
   </ItemGroup>
 </Project>

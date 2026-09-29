@@ -14,8 +14,8 @@
 
 namespace
 {
-    constexpr DWORD terminateCode = 0xE0000001;
-    constexpr DWORD crashTimeout = 15000;
+    constexpr DWORD TerminateCode = 0xE0000001;
+    constexpr DWORD CrashTimeout = 15000;
 
     struct CrashState
     {
@@ -126,7 +126,7 @@ namespace
             state.threadId = GetCurrentThreadId();
             SetEvent(state.request);
         }
-        if (WaitForSingleObject(state.complete, crashTimeout) != WAIT_OBJECT_0)
+        if (WaitForSingleObject(state.complete, CrashTimeout) != WAIT_OBJECT_0)
         {
             OutputDebugStringW(L"[CrashHandler] Crash report timed out or failed.\n");
         }
@@ -143,12 +143,12 @@ namespace
         CONTEXT context{};
         RtlCaptureContext(&context);
         EXCEPTION_RECORD record{};
-        record.ExceptionCode = terminateCode;
+        record.ExceptionCode = TerminateCode;
         record.ExceptionFlags = EXCEPTION_NONCONTINUABLE;
         record.ExceptionAddress = reinterpret_cast<void*>(context.Rip);
         EXCEPTION_POINTERS exception{ &record, &context };
         RecordCrash(&exception);
-        TerminateProcess(GetCurrentProcess(), terminateCode);
+        TerminateProcess(GetCurrentProcess(), TerminateCode);
     }
 
     void CloseResources() noexcept

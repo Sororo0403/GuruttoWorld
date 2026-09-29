@@ -1,7 +1,7 @@
 #include <Engine/Platform/Window.h>
 #include <Engine/Core/Log.h>
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
-#include <Engine/Graphics/ImGuiLayer.h>
+#include <Engine/DevTools/ImGuiLayer.h>
 #endif
 
 #include <format>
@@ -12,7 +12,7 @@
 
 namespace
 {
-    constexpr wchar_t windowClassName[] = L"WP1.Engine.Window";
+    constexpr wchar_t WindowClassName[] = L"WP1.Engine.Window";
 }
 
 namespace Engine
@@ -25,7 +25,7 @@ namespace Engine
         }
         if (classAtom_ != 0)
         {
-            UnregisterClassW(windowClassName, instance_);
+            UnregisterClassW(WindowClassName, instance_);
         }
     }
 
@@ -37,9 +37,9 @@ namespace Engine
             return false;
         }
 
-        constexpr DWORD style = WS_OVERLAPPEDWINDOW;
+        constexpr DWORD Style = WS_OVERLAPPEDWINDOW;
         RECT rectangle{ 0, 0, 0, 0 };
-        if (!AdjustWindowRectEx(&rectangle, style, FALSE, 0))
+        if (!AdjustWindowRectEx(&rectangle, Style, FALSE, 0))
         {
             Log::Error(std::format("AdjustWindowRectEx failed: {}", GetLastError()));
             return false;
@@ -63,7 +63,7 @@ namespace Engine
             windowClass.hInstance = instance_;
             windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
             windowClass.hbrBackground = static_cast<HBRUSH>(GetStockObject(DKGRAY_BRUSH));
-            windowClass.lpszClassName = windowClassName;
+            windowClass.lpszClassName = WindowClassName;
             classAtom_ = RegisterClassExW(&windowClass);
             if (classAtom_ == 0)
             {
@@ -73,7 +73,7 @@ namespace Engine
         }
 
         closeRequested_ = false;
-        handle_ = CreateWindowExW(0, windowClassName, title, style,
+        handle_ = CreateWindowExW(0, WindowClassName, title, Style,
             CW_USEDEFAULT, CW_USEDEFAULT, width + borderWidth, height + borderHeight,
             nullptr, nullptr, instance_, this);
         if (handle_ == nullptr)

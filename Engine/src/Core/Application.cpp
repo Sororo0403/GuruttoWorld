@@ -1,7 +1,7 @@
 #include <Engine/Core/Application.h>
 #include <Engine/Core/CrashHandler.h>
 #include <Engine/Core/Log.h>
-#include <Engine/Graphics/DirectX12Renderer.h>
+#include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Platform/Window.h>
 #include <Engine/Input/Keyboard.h>
 

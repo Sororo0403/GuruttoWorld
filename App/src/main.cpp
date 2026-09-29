@@ -2,18 +2,18 @@
 #include <Engine/Audio/AudioSystem.h>
 #include <Engine/Input/Keyboard.h>
 #include <Engine/Input/Gamepad.h>
-#include <Engine/Graphics/DirectX12Renderer.h>
-#include <Engine/Graphics/ModelRenderer.h>
-#include <Engine/Graphics/SpriteRenderer.h>
+#include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
+#include <Engine/Graphics/Renderers/ModelRenderer.h>
+#include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <Windows.h>
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
-#include "DebugPanel.h"
-#include "AudioPanel.h"
-#include "InputPanel.h"
-#include "CameraPanel.h"
+#include "DevTools/DebugPanel.h"
+#include "DevTools/AudioPanel.h"
+#include "DevTools/InputPanel.h"
+#include "DevTools/CameraPanel.h"
 #include <imgui.h>
-#include "LightingPanel.h"
-#include "UVTransformPanel.h"
+#include "DevTools/LightingPanel.h"
+#include "DevTools/UvTransformPanel.h"
 #endif
 
 #include <cmath>
@@ -56,8 +56,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     bool rotating = true;
     std::array<float, 4> backgroundColor{ 0.08f, 0.20f, 0.40f, 1.0f };
     Engine::DirectionalLight light;
-    Engine::UVTransform modelUV;
-    Engine::UVTransform spriteUV;
+    Engine::UvTransform modelUv;
+    Engine::UvTransform spriteUv;
 #if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
     const std::array<float, 3> cameraPosition{ 0.0f, 0.0f, -3.5f };
 #endif
@@ -74,7 +74,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         App::InputPanel::Draw(gamepad);
         App::DebugPanel::Draw(rotationY, speedDegrees, rotating, backgroundColor);
         App::LightingPanel::Draw(light);
-        App::UVTransformPanel::Draw(modelUV, spriteUV);
+        App::UvTransformPanel::Draw(modelUv, spriteUv);
     };
 #endif
     Engine::ApplicationCallbacks callbacks;
@@ -151,12 +151,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             XMFLOAT4X4 viewProjection;
             XMStoreFloat4x4(&world, XMMatrixRotationX(-0.3f) * XMMatrixRotationY(static_cast<float>(rotationY)));
             XMStoreFloat4x4(&viewProjection, view * projection);
-            model.Draw(commands, world, viewProjection, light, cameraPosition, modelUV);
+            model.Draw(commands, world, viewProjection, light, cameraPosition, modelUv);
             Engine::SpriteDrawParameters spriteParameters;
             spriteParameters.position = { static_cast<float>(renderer.GetWidth()) - 192.0f, 32.0f };
             spriteParameters.size = { 160.0f, 160.0f };
             spriteParameters.color = { 1.0f, 1.0f, 1.0f, 0.8f };
-            spriteParameters.uvTransform = spriteUV;
+            spriteParameters.uvTransform = spriteUv;
             sprite.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), spriteParameters);
         }, debugUi);
     };

@@ -147,27 +147,29 @@
     <None Include="Shaders\Mesh.hlsl" />
     <None Include="Assets\Models\Cube.obj" />
     <None Include="Assets\Models\Cube.mtl" />
-    <None Include="Shaders\UVTransform.hlsli" />
+    <None Include="Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\DebugPanel.cpp">
+    <ClCompile Include="src\DevTools\DebugPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="src\DebugPanel.h" />
-    <ClInclude Include="src\LightingPanel.h" />
-    <ClInclude Include="src\UVTransformPanel.h" />
-    <ClCompile Include="src\LightingPanel.cpp">
+    <ClInclude Include="src\DevTools\DebugPanel.h" />
+    <ClInclude Include="src\DevTools\LightingPanel.h" />
+    <ClInclude Include="src\DevTools\UvTransformPanel.h" />
+    <ClCompile Include="src\DevTools\LightingPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="src\UVTransformPanel.cpp">
+    <ClCompile Include="src\DevTools\UvTransformPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">
-    <MakeDir Directories="$(OutDir)Shaders" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\UVTransform.hlsli;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl"
+    <MakeDir Directories="$(OutDir)Shaders;$(OutDir)Shaders\Common" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Common\UvTransform.hlsli"
+          DestinationFolder="$(OutDir)Shaders\Common" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyModels" AfterTargets="Build">
@@ -188,10 +190,10 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="src\AudioPanel.cpp">
+    <ClCompile Include="src\DevTools\AudioPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="src\AudioPanel.h" />
+    <ClInclude Include="src\DevTools\AudioPanel.h" />
     <None Include="Assets\Audio\Sample.wav" />
   </ItemGroup>
   <Target Name="CopyAudio" AfterTargets="Build">
@@ -201,15 +203,15 @@
     <Copy SourceFiles="@(AudioAssets)" DestinationFiles="@(AudioAssets->'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
-    <ClCompile Include="src\InputPanel.cpp">
+    <ClCompile Include="src\DevTools\InputPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="src\InputPanel.h" />
+    <ClInclude Include="src\DevTools\InputPanel.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\CameraPanel.cpp">
+    <ClCompile Include="src\DevTools\CameraPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="src\CameraPanel.h" />
+    <ClInclude Include="src\DevTools\CameraPanel.h" />
   </ItemGroup>
 </Project>

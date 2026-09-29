@@ -119,34 +119,34 @@
     <ClCompile Include="src\Core\Log.cpp" />
     <ClCompile Include="src\Core\CrashHandler.cpp" />
     <ClCompile Include="src\Platform\Window.cpp" />
-    <ClCompile Include="src\Graphics\DirectX12Renderer.cpp" />
-    <ClCompile Include="src\Graphics\TriangleRenderer.cpp" />
-    <ClCompile Include="src\Graphics\Texture2D.cpp" />
-    <ClCompile Include="src\Graphics\DepthBuffer.cpp" />
+    <ClCompile Include="src\Graphics\DirectX12\DirectX12Renderer.cpp" />
+    <ClCompile Include="src\Graphics\Renderers\TriangleRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Resources\Texture2D.cpp" />
+    <ClCompile Include="src\Graphics\Resources\DepthBuffer.cpp" />
     <ClCompile Include="src\Graphics\ShaderCompiler.cpp" />
-    <ClCompile Include="src\Graphics\SpriteRenderer.cpp" />
-    <ClCompile Include="src\Graphics\SphereRenderer.cpp" />
-    <ClCompile Include="src\Graphics\IndexedMeshBuffer.cpp" />
-    <ClCompile Include="src\Graphics\UVTransform.cpp" />
+    <ClCompile Include="src\Graphics\Renderers\SpriteRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Renderers\SphereRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Resources\IndexedMeshBuffer.cpp" />
+    <ClCompile Include="src\Graphics\Materials\UvTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\Core\Application.h" />
     <ClInclude Include="include\Engine\Core\Log.h" />
     <ClInclude Include="include\Engine\Core\CrashHandler.h" />
     <ClInclude Include="include\Engine\Platform\Window.h" />
-    <ClInclude Include="include\Engine\Graphics\DirectX12Renderer.h" />
-    <ClInclude Include="include\Engine\Graphics\TriangleRenderer.h" />
-    <ClInclude Include="include\Engine\Graphics\Texture2D.h" />
-    <ClInclude Include="include\Engine\Graphics\DepthBuffer.h" />
+    <ClInclude Include="include\Engine\Graphics\DirectX12\DirectX12Renderer.h" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\TriangleRenderer.h" />
+    <ClInclude Include="include\Engine\Graphics\Resources\Texture2D.h" />
+    <ClInclude Include="include\Engine\Graphics\Resources\DepthBuffer.h" />
     <ClInclude Include="include\Engine\Graphics\ShaderCompiler.h" />
-    <ClInclude Include="include\Engine\Graphics\SpriteRenderer.h" />
-    <ClInclude Include="include\Engine\Graphics\SphereRenderer.h" />
-    <ClInclude Include="include\Engine\Graphics\IndexedMeshBuffer.h" />
-    <ClInclude Include="include\Engine\Graphics\UVTransform.h" />
-    <ClInclude Include="include\Engine\Graphics\DirectionalLight.h" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\SpriteRenderer.h" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\SphereRenderer.h" />
+    <ClInclude Include="include\Engine\Graphics\Resources\IndexedMeshBuffer.h" />
+    <ClInclude Include="include\Engine\Graphics\Materials\UvTransform.h" />
+    <ClInclude Include="include\Engine\Graphics\Materials\DirectionalLight.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Graphics\ImGuiLayer.cpp">
+    <ClCompile Include="src\DevTools\ImGuiLayer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -169,7 +169,7 @@
       <DisableSpecificWarnings Condition="'$(Configuration)'=='Development'">4189;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\ImGuiLayer.h" />
+    <ClInclude Include="include\Engine\DevTools\ImGuiLayer.h" />
     <ClInclude Include="externals\imgui\imconfig.h" />
     <ClInclude Include="externals\imgui\imgui.h" />
     <ClInclude Include="externals\imgui\imgui_internal.h" />
@@ -181,24 +181,24 @@
     <None Include="externals\imgui\LICENSE.txt" />
     <None Include="externals\imgui\README.wp1.md" />
   </ItemGroup>
-  <Import Project="Assimp.targets" />
+  <Import Project="build\Assimp.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="src\Graphics\MeshRenderer.cpp" />
-    <ClInclude Include="include\Engine\Graphics\MeshRenderer.h" />
-    <ClCompile Include="src\Graphics\ModelLoader.cpp" />
-    <ClInclude Include="include\Engine\Graphics\ModelLoader.h" />
-    <ClCompile Include="src\Graphics\ModelRenderer.cpp" />
-    <ClInclude Include="include\Engine\Graphics\ModelRenderer.h" />
-    <ClInclude Include="include\Engine\Graphics\MeshData.h" />
+    <ClCompile Include="src\Graphics\Renderers\MeshRenderer.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\MeshRenderer.h" />
+    <ClCompile Include="src\Graphics\Models\ModelLoader.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Models\ModelLoader.h" />
+    <ClCompile Include="src\Graphics\Renderers\ModelRenderer.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\ModelRenderer.h" />
+    <ClInclude Include="include\Engine\Graphics\Models\MeshData.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Graphics\GpuSynchronization.cpp" />
-    <ClInclude Include="include\Engine\Graphics\GpuSynchronization.h" />
-    <ClCompile Include="src\Graphics\MeshResources.cpp" />
-    <ClInclude Include="include\Engine\Graphics\MeshResources.h" />
+    <ClCompile Include="src\Graphics\DirectX12\GpuSynchronization.cpp" />
+    <ClInclude Include="include\Engine\Graphics\DirectX12\GpuSynchronization.h" />
+    <ClCompile Include="src\Graphics\Renderers\MeshResources.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\MeshResources.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Audio\WaveData.cpp" />
@@ -213,9 +213,12 @@
     <ClInclude Include="include\Engine\Input\Gamepad.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Graphics\DebugCamera.cpp">
+    <ClCompile Include="src\DevTools\DebugCamera.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="include\Engine\Graphics\DebugCamera.h" />
+    <ClInclude Include="include\Engine\DevTools\DebugCamera.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="build\Assimp.targets" />
   </ItemGroup>
 </Project>

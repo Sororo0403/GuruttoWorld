@@ -1,71 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+    <Filter Include="Shaders\Common">
+      <UniqueIdentifier>{B37DFA4D-BB16-48B3-AB2F-E811B2E66E18}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{45BE7113-8709-50A1-B762-DE5D88DE22B8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Audio">
+      <UniqueIdentifier>{8D7E6AB5-2435-5763-A1D1-7E4132AA6251}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Models">
+      <UniqueIdentifier>{B4A90EE5-EF65-51F5-8D18-8895E8343A71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Textures">
+      <UniqueIdentifier>{F1368692-7892-5735-8CDC-B389B317AE0B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{B285221A-69AE-5BEC-9DF5-64EF03A8920E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{CE68F4CA-E6D9-5CA5-BE83-5E72DF4A425D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\DevTools">
+      <UniqueIdentifier>{59E524DA-740A-51BA-B278-DB253FD7D384}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>src</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\Triangle.hlsl" />
-    <None Include="Shaders\Sprite.hlsl" />
-    <None Include="Shaders\Sphere.hlsl" />
-    <None Include="Shaders\Mesh.hlsl" />
-    <None Include="Assets\Models\Cube.obj" />
-    <None Include="Assets\Models\Cube.mtl" />
-    <None Include="Shaders\UVTransform.hlsli" />
-    <None Include="Assets\Textures\Checker.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\DebugPanel.cpp">
-      <Filter>Source Files</Filter>
+    <None Include="Shaders\Triangle.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Sprite.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Sphere.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Mesh.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Models\Cube.obj">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\Cube.mtl">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Shaders\Common\UvTransform.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="Assets\Textures\Checker.png">
+      <Filter>Assets\Textures</Filter>
+    </None>
+    <ClCompile Include="src\DevTools\DebugPanel.cpp">
+      <Filter>src\DevTools</Filter>
     </ClCompile>
-    <ClInclude Include="src\DebugPanel.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\DevTools\DebugPanel.h">
+      <Filter>src\DevTools</Filter>
     </ClInclude>
-    <ClInclude Include="src\LightingPanel.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\DevTools\LightingPanel.h">
+      <Filter>src\DevTools</Filter>
     </ClInclude>
-    <ClInclude Include="src\UVTransformPanel.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\DevTools\UvTransformPanel.h">
+      <Filter>src\DevTools</Filter>
     </ClInclude>
-    <ClCompile Include="src\LightingPanel.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\DevTools\LightingPanel.cpp">
+      <Filter>src\DevTools</Filter>
     </ClCompile>
-    <ClCompile Include="src\UVTransformPanel.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\DevTools\UvTransformPanel.cpp">
+      <Filter>src\DevTools</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\AudioPanel.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\DevTools\AudioPanel.cpp">
+      <Filter>src\DevTools</Filter>
     </ClCompile>
-    <ClInclude Include="src\AudioPanel.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\DevTools\AudioPanel.h">
+      <Filter>src\DevTools</Filter>
     </ClInclude>
-    <None Include="Assets\Audio\Sample.wav" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\InputPanel.cpp">
-      <Filter>Source Files</Filter>
+    <None Include="Assets\Audio\Sample.wav">
+      <Filter>Assets\Audio</Filter>
+    </None>
+    <ClCompile Include="src\DevTools\InputPanel.cpp">
+      <Filter>src\DevTools</Filter>
     </ClCompile>
-    <ClInclude Include="src\InputPanel.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\DevTools\InputPanel.h">
+      <Filter>src\DevTools</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\CameraPanel.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\DevTools\CameraPanel.cpp">
+      <Filter>src\DevTools</Filter>
     </ClCompile>
-    <ClInclude Include="src\CameraPanel.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\DevTools\CameraPanel.h">
+      <Filter>src\DevTools</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-#include "UVTransform.hlsli"
+#include "Common/UvTransform.hlsli"
 
 cbuffer SphereConstants : register(b0)
 {
@@ -46,7 +46,7 @@ VertexOutput VSMain(VertexInput input)
     output.normal = mul(input.normal, normalMatrix);
     output.worldPosition = mul(worldRows, float4(input.position, 1.0f));
     output.color = input.color;
-    output.uv = TransformUV(input.uv);
+    output.uv = TransformUv(input.uv);
     return output;
 }
 

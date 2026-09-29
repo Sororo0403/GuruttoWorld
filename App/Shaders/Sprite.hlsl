@@ -1,4 +1,4 @@
-#include "UVTransform.hlsli"
+#include "Common/UvTransform.hlsli"
 
 cbuffer SpriteConstants : register(b0)
 {
@@ -30,7 +30,7 @@ VertexOutput VSMain(float2 corner : POSITION)
     VertexOutput output;
     output.position = float4(pixelPosition.x / viewportSize.x * 2.0f - 1.0f,
         1.0f - pixelPosition.y / viewportSize.y * 2.0f, 0.0f, 1.0f);
-    output.uv = TransformUV(lerp(uvRect.xy, uvRect.zw, corner));
+    output.uv = TransformUv(lerp(uvRect.xy, uvRect.zw, corner));
     output.color = tint;
     return output;
 }
