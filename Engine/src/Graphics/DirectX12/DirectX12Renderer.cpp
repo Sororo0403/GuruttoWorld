@@ -3,7 +3,6 @@
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
 
 #include <format>
-#include <utility>
 
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "DXGI.lib")
@@ -337,9 +336,6 @@ namespace Engine
         const std::function<void(ID3D12GraphicsCommandList*, float)>& draw,
         const std::function<void()>& debugUi)
     {
-#if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
-        (void)debugUi;
-#endif
         if (!ready_)
         {
             return RenderResult::Failed;
@@ -369,42 +365,64 @@ namespace Engine
         }
         const UINT newWidth = static_cast<UINT>(client.right);
         const UINT newHeight = static_cast<UINT>(client.bottom);
-        if (newWidth != width_ || newHeight != height_)
+        if ((newWidth != width_ || newHeight != height_) && !Resize(newWidth, newHeight))
         {
-            if (!WaitForGpu())
-            {
-                return RenderResult::Failed;
-            }
-            for (auto& buffer : buffers_)
-            {
-                buffer.Reset();
-            }
-            if (!Check(swapChain_->ResizeBuffers(BufferCount, newWidth, newHeight,
-                BufferFormat, 0), "ResizeBuffers") || !CreateRenderTargets())
-            {
-                ready_ = false;
-                return RenderResult::Failed;
-            }
-            for (auto& depth : depthBuffers_)
-            {
-                depth.Release();
-            }
-            width_ = newWidth;
-            height_ = newHeight;
-            if (!CreateDepthBuffers())
-            {
-                ready_ = false;
-                return RenderResult::Failed;
-            }
-            Log::Info(std::format("DirectX 12 resized: {}x{}", width_, height_));
+            return RenderResult::Failed;
         }
-
         const UINT index = swapChain_->GetCurrentBackBufferIndex();
+        if (!BeginFrame(index, clearColor, debugUi))
+        {
+            return RenderResult::Failed;
+        }
+        if (draw)
+        {
+            draw(commands_.Get(), static_cast<float>(width_) / static_cast<float>(height_));
+        }
+        return EndFrame(index);
+    }
+
+    bool DirectX12Renderer::Resize(UINT newWidth, UINT newHeight)
+    {
+        if (!WaitForGpu())
+        {
+            return false;
+        }
+        for (auto& buffer : buffers_)
+        {
+            buffer.Reset();
+        }
+        if (!Check(swapChain_->ResizeBuffers(BufferCount, newWidth, newHeight,
+            BufferFormat, 0), "ResizeBuffers") || !CreateRenderTargets())
+        {
+            ready_ = false;
+            return false;
+        }
+        for (auto& depth : depthBuffers_)
+        {
+            depth.Release();
+        }
+        width_ = newWidth;
+        height_ = newHeight;
+        if (!CreateDepthBuffers())
+        {
+            ready_ = false;
+            return false;
+        }
+        Log::Info(std::format("DirectX 12 resized: {}x{}", width_, height_));
+        return true;
+    }
+
+    bool DirectX12Renderer::BeginFrame(UINT index, const std::array<float, 4>& clearColor,
+        const std::function<void()>& debugUi)
+    {
+#if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
+        (void)debugUi;
+#endif
         if (!WaitForFence(frameFenceValues_[index]) ||
             !Check(allocators_[index]->Reset(), "Reset command allocator") ||
             !Check(commands_->Reset(allocators_[index].Get(), nullptr), "Reset command list"))
         {
-            return RenderResult::Failed;
+            return false;
         }
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         debugUi_.BeginFrame();
@@ -430,16 +448,24 @@ namespace Engine
         const D3D12_RECT scissor{ 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
         commands_->RSSetViewports(1, &viewport);
         commands_->RSSetScissorRects(1, &scissor);
-        if (draw)
-        {
-            draw(commands_.Get(), static_cast<float>(width_) / static_cast<float>(height_));
-        }
+        return true;
+    }
+
+    RenderResult DirectX12Renderer::EndFrame(UINT index)
+    {
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         // UI はシーンの深度に影響されないよう、深度バッファーを外して描画します。
+        auto descriptor = renderTargetHeap_->GetCPUDescriptorHandleForHeapStart();
+        descriptor.ptr += static_cast<SIZE_T>(index) * descriptorSize_;
         commands_->OMSetRenderTargets(1, &descriptor, FALSE, nullptr);
         debugUi_.Render(commands_.Get());
 #endif
-        std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = buffers_[index].Get();
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
         commands_->ResourceBarrier(1, &barrier);
         if (!Check(commands_->Close(), "Close command list"))
         {

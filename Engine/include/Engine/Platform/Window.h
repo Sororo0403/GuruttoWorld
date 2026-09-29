@@ -14,6 +14,16 @@ namespace Engine
     {
     public:
         /// <summary>
+        /// 既定のクライアント領域の幅（ピクセル）。
+        /// </summary>
+        static constexpr int DefaultWidth = 1280;
+
+        /// <summary>
+        /// 既定のクライアント領域の高さ（ピクセル）。
+        /// </summary>
+        static constexpr int DefaultHeight = 720;
+
+        /// <summary>
         /// メインウィンドウを管理するオブジェクトを初期化します。
         /// </summary>
         Window() = default;
@@ -40,7 +50,7 @@ namespace Engine
         /// <param name="width">クライアント領域の幅。正のピクセル数を指定します。</param>
         /// <param name="height">クライアント領域の高さ。正のピクセル数を指定します。</param>
         /// <returns>作成に成功した場合は true、失敗した場合は false。</returns>
-        bool Create(const wchar_t* title, int width = 1280, int height = 720);
+        bool Create(const wchar_t* title, int width = DefaultWidth, int height = DefaultHeight);
 
         /// <summary>
         /// 作成済みのウィンドウを表示します。作成したスレッドから呼び出してください。

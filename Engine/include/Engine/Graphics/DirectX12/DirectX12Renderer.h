@@ -89,6 +89,31 @@ namespace Engine
 
     private:
         /// <summary>
+        /// GPU の完了を待ち、バックバッファーと深度バッファーを新しい描画サイズで作り直します。
+        /// </summary>
+        /// <param name="newWidth">新しい描画領域の幅。正のピクセル数。</param>
+        /// <param name="newHeight">新しい描画領域の高さ。正のピクセル数。</param>
+        /// <returns>リサイズに成功した場合は true。</returns>
+        bool Resize(UINT newWidth, UINT newHeight);
+
+        /// <summary>
+        /// フレームの再利用を待ち、コマンドをリセットして UI 更新、描画用バリア、クリア、描画領域設定を行います。
+        /// </summary>
+        /// <param name="index">このフレームで使用するバックバッファー番号。</param>
+        /// <param name="clearColor">背景の RGBA 色。</param>
+        /// <param name="debugUi">Debug / Development 構成で UI を構築する処理。</param>
+        /// <returns>描画の準備に成功した場合は true。</returns>
+        bool BeginFrame(UINT index, const std::array<float, 4>& clearColor, const std::function<void()>& debugUi);
+
+        /// <summary>
+        /// UI を描画し、表示用バリア、コマンド実行、Present、フレームのフェンス値の記録を行います。
+        /// BeginFrame に成功し、シーン描画を記録した後に呼び出します。
+        /// </summary>
+        /// <param name="index">BeginFrame と同じバックバッファー番号。</param>
+        /// <returns>表示・描画休止・失敗の状態。</returns>
+        RenderResult EndFrame(UINT index);
+
+        /// <summary>
         /// GPU の処理完了を待ち、生成途中のリソースも含めて解放します。
         /// </summary>
         void ReleaseResources();

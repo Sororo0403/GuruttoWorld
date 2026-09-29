@@ -39,8 +39,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
     Engine::ApplicationSettings settings;
     settings.title = L"WP1";
-    settings.width = 1280;
-    settings.height = 720;
 
     Engine::AudioSystem audio;
     Engine::SoundHandle sound = 0;

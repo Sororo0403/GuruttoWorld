@@ -1,11 +1,11 @@
 #pragma once
 
+#include <Engine/Platform/Window.h>
 #include <functional>
 #include <string>
 
 namespace Engine
 {
-    class Window;
     class Keyboard;
     class DirectX12Renderer;
     enum class RenderResult;
@@ -13,8 +13,8 @@ namespace Engine
     struct ApplicationSettings
     {
         std::wstring title;
-        int width = 1280;
-        int height = 720;
+        int width = Window::DefaultWidth;
+        int height = Window::DefaultHeight;
         unsigned int inactiveWaitMilliseconds = 16;
         /// <summary>
         /// 更新に渡す経過秒数の上限。有限の正数を指定し、超過した時間は持ち越しません。
