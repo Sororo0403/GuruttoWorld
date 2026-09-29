@@ -97,4 +97,9 @@
       <Filter>src\DevTools</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Particle.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
 </Project>

@@ -231,4 +231,12 @@
     <ClCompile Include="src\Graphics\Models\Object3D.cpp" />
     <ClInclude Include="include\Engine\Graphics\Models\Object3D.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\Camera.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Camera.h" />
+    <ClCompile Include="src\Graphics\Models\ParticleSystem.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Models\ParticleSystem.h" />
+    <ClCompile Include="src\Graphics\Renderers\ParticleRenderer.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\ParticleRenderer.h" />
+  </ItemGroup>
 </Project>

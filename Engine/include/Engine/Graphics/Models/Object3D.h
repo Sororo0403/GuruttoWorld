@@ -11,6 +11,7 @@ struct ID3D12GraphicsCommandList;
 namespace Engine
 {
     class ModelRenderer;
+    class Camera;
 
     class Object3D final
     {
@@ -62,9 +63,8 @@ namespace Engine
         /// 保持するワールド行列と共有モデルで描画します。モデル未設定時は何もしません。
         /// 描画リソースを解放する前に、利用中の GPU 処理を完了させてください。
         /// </summary>
-        void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& viewProjection,
+        void Draw(ID3D12GraphicsCommandList* commands, const Camera& camera,
             const DirectionalLight& light = {},
-            const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
             const UvTransform& uvTransform = {}) const;
 
     private:

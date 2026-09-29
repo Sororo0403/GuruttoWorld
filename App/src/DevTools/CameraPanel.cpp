@@ -37,8 +37,8 @@ namespace App
             ImGui::TextUnformatted("Hold RMB on scene: mouse look");
             ImGui::TextUnformatted("RMB + WASD: move / Q,E: down,up");
             ImGui::TextUnformatted("Shift: boost / R: reset");
-            const auto& position = camera.GetPosition();
-            ImGui::Text("Position: %.2f, %.2f, %.2f", position[0], position[1], position[2]);
+            auto position = camera.GetPosition();
+            if (ImGui::DragFloat3("Position", position.data(), 0.05f)) camera.GetCamera().SetPosition(position);
             float speed = camera.GetMoveSpeed();
             if (ImGui::SliderFloat("Move speed", &speed, 0.1f, 20.0f)) camera.SetMoveSpeed(speed);
             if (ImGui::Button("Reset camera"))

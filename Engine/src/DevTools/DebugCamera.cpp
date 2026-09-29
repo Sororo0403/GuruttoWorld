@@ -6,7 +6,8 @@ namespace Engine
 {
     void DebugCamera::Reset() noexcept
     {
-        position_ = { 0.0f, 0.0f, -3.5f };
+        camera_.SetPosition({ 0.0f, 0.0f, -3.5f });
+        camera_.SetRotation(0.0f, 0.0f);
         yaw_ = 0.0f;
         pitch_ = 0.0f;
     }
@@ -17,6 +18,7 @@ namespace Engine
         constexpr float Sensitivity = 0.003f;
         yaw_ = std::remainder(yaw_ + deltaX * Sensitivity, DirectX::XM_2PI);
         pitch_ = std::clamp(pitch_ - deltaY * Sensitivity, -DirectX::XM_PIDIV2 + 0.01f, DirectX::XM_PIDIV2 - 0.01f);
+        camera_.SetRotation(yaw_, pitch_);
     }
 
     DirectX::XMVECTOR DebugCamera::GetForward() const noexcept
@@ -39,22 +41,22 @@ namespace Engine
         if (!std::isfinite(distance)) return;
         XMFLOAT3 offset;
         XMStoreFloat3(&offset, direction * distance);
-        position_[0] += offset.x;
-        position_[1] += offset.y;
-        position_[2] += offset.z;
+        const auto& position = camera_.GetPosition();
+        camera_.SetPosition({ position[0] + offset.x, position[1] + offset.y, position[2] + offset.z });
     }
 
     const std::array<float, 3>& DebugCamera::GetPosition() const noexcept
     {
-        return position_;
+        return camera_.GetPosition();
     }
 
     DirectX::XMMATRIX DebugCamera::GetViewMatrix() const noexcept
     {
-        using namespace DirectX;
-        return XMMatrixLookToLH(XMVectorSet(position_[0], position_[1], position_[2], 1.0f),
-            GetForward(), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+        return camera_.GetViewMatrix();
     }
+
+    Camera& DebugCamera::GetCamera() noexcept { return camera_; }
+    const Camera& DebugCamera::GetCamera() const noexcept { return camera_; }
 
     void DebugCamera::SetMoveSpeed(float speed) noexcept
     {

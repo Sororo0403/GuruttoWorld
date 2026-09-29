@@ -314,4 +314,24 @@
       <Filter>include\Engine\Graphics\Models</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\Camera.cpp">
+      <Filter>src\Graphics</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\Camera.h">
+      <Filter>include\Engine\Graphics</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Graphics\Models\ParticleSystem.cpp">
+      <Filter>src\Graphics\Models</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\Models\ParticleSystem.h">
+      <Filter>include\Engine\Graphics\Models</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Graphics\Renderers\ParticleRenderer.cpp">
+      <Filter>src\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\Renderers\ParticleRenderer.h">
+      <Filter>include\Engine\Graphics\Renderers</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

@@ -5,6 +5,7 @@
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
+#include <Engine/Graphics/Models/ParticleSystem.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <Engine/Graphics/Resources/TextureManager.h>
 #include <Windows.h>
@@ -57,6 +58,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Engine::SpriteRenderer sprite;
     Engine::SpriteRenderer croppedSprite;
     bool spriteReady = false;
+    Engine::ParticleSystem particles;
+    double emissionSeconds = 0.0;
     double rotationY = 0.0;
     float speedDegrees = 90.0f;
     bool rotating = true;
@@ -65,11 +68,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Engine::UvTransform modelUv;
     Engine::UvTransform spriteUv;
 #if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
-    const std::array<float, 3> cameraPosition{ 0.0f, 0.0f, -3.5f };
+    Engine::Camera camera;
 #endif
     std::function<void()> debugUi;
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
     Engine::DebugCamera debugCamera;
+    Engine::Camera& camera = debugCamera.GetCamera();
     App::CameraPanel cameraPanel;
     const Engine::Keyboard* frameKeyboard = nullptr;
     double cameraDeltaSeconds = 0.0;
@@ -123,6 +127,24 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             if (keyboard.IsPressed(DIK_1)) selectedModel = 0;
             if (keyboard.IsPressed(DIK_2)) selectedModel = 1;
         }
+        particles.Update(deltaSeconds);
+        if (spriteReady)
+        {
+            emissionSeconds += deltaSeconds;
+            while (emissionSeconds >= 0.08)
+            {
+                emissionSeconds -= 0.08;
+                Engine::Particle particle;
+                particle.position = { -1.1f, -0.6f, 0.0f };
+                particle.velocity = { static_cast<float>(std::sin(rotationY)) * 0.3f, 0.65f, 0.0f };
+                particle.lifetime = 1.5f;
+                particle.color = { 0.3f, 0.7f, 1.0f, 0.8f };
+                particles.Emit("Checker", particle);
+                particle.position = { 0.7f, -0.5f, -0.8f };
+                particle.color = { 1.0f, 0.4f, 0.1f, 0.65f };
+                particles.Emit("Glow", particle);
+            }
+        }
         if (rotating)
         {
             const double angularSpeed = static_cast<double>(speedDegrees) * std::numbers::pi / 180.0;
@@ -152,26 +174,21 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             {
                 return Engine::RenderResult::Failed;
             }
+            const auto particleShader = shaderPath.parent_path() / "Particle.hlsl";
+            if (!particles.CreateGroup("Checker", renderer.GetDevice(), renderer.GetCommandQueue(), textureManager.Load(texturePath), particleShader) ||
+                !particles.CreateGroup("Glow", renderer.GetDevice(), renderer.GetCommandQueue(), textureManager.Load({}), particleShader))
+                return Engine::RenderResult::Failed;
             spriteReady = true;
         }
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
-            using namespace DirectX;
-#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
-            const auto& cameraPosition = debugCamera.GetPosition();
-            const XMMATRIX view = debugCamera.GetViewMatrix();
-#else
-            const XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(cameraPosition[0], cameraPosition[1], cameraPosition[2], 1.0f),
-                XMVectorZero(), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-#endif
-            const XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspectRatio, 0.1f, 100.0f);
-            XMFLOAT4X4 viewProjection;
-            XMStoreFloat4x4(&viewProjection, view * projection);
+            camera.SetAspectRatio(aspectRatio);
             model.SetModel(models[selectedModel]);
             model.SetTransform({ 0.0f, 0.0f, 0.0f }, { -0.3f, static_cast<float>(rotationY), 0.0f }, { 0.75f, 0.75f, 0.75f });
             secondModel.SetTransform({ 1.25f, -0.65f, 0.4f }, { 0.0f, -static_cast<float>(rotationY), 0.0f }, { 0.35f, 0.35f, 0.35f });
-            model.Draw(commands, viewProjection, light, cameraPosition, modelUv);
-            secondModel.Draw(commands, viewProjection, light, cameraPosition, modelUv);
+            model.Draw(commands, camera, light, modelUv);
+            secondModel.Draw(commands, camera, light, modelUv);
+            particles.Draw(commands, camera);
             Engine::SpriteDrawParameters spriteParameters;
             spriteParameters.position = { static_cast<float>(renderer.GetWidth()) - 192.0f, 32.0f };
             spriteParameters.size = { 160.0f, 160.0f };

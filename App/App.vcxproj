@@ -170,7 +170,7 @@
     <MakeDir Directories="$(OutDir)Shaders;$(OutDir)Shaders\Common" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Common\UvTransform.hlsli"
           DestinationFolder="$(OutDir)Shaders\Common" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl"
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyModels" AfterTargets="Build">
@@ -214,5 +214,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
     <ClInclude Include="src\DevTools\CameraPanel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Particle.hlsl" />
   </ItemGroup>
 </Project>

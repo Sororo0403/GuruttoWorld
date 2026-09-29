@@ -1,6 +1,6 @@
 #pragma once
 
-#include <DirectXMath.h>
+#include <Engine/Graphics/Camera.h>
 #include <array>
 
 namespace Engine
@@ -49,13 +49,22 @@ namespace Engine
         /// </summary>
         float GetMoveSpeed() const noexcept;
 
+        /// <summary>
+        /// 共通カメラを取得します。座標・射影設定と描画に使用します。
+        /// </summary>
+        Camera& GetCamera() noexcept;
+        /// <summary>
+        /// 共通カメラを読み取り専用で取得します。
+        /// </summary>
+        const Camera& GetCamera() const noexcept;
+
     private:
         /// <summary>
         /// ヨー角とピッチ角から単位前方ベクトルを計算します。
         /// </summary>
         DirectX::XMVECTOR GetForward() const noexcept;
 
-        std::array<float, 3> position_{ 0.0f, 0.0f, -3.5f };
+        Camera camera_;
         float yaw_ = 0.0f;
         float pitch_ = 0.0f;
         float moveSpeed_ = 3.0f;

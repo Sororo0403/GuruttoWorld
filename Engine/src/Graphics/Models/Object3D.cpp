@@ -1,5 +1,6 @@
 #include <Engine/Graphics/Models/Object3D.h>
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
+#include <Engine/Graphics/Camera.h>
 #include <cmath>
 #include <utility>
 
@@ -64,9 +65,9 @@ namespace Engine
         return world_;
     }
 
-    void Object3D::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& viewProjection,
-        const DirectionalLight& light, const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform) const
+    void Object3D::Draw(ID3D12GraphicsCommandList* commands, const Camera& camera,
+        const DirectionalLight& light, const UvTransform& uvTransform) const
     {
-        if (model_) model_->Draw(commands, world_, viewProjection, light, cameraPosition, uvTransform);
+        if (model_) model_->Draw(commands, world_, camera.GetViewProjectionMatrix(), light, camera.GetPosition(), uvTransform);
     }
 }
