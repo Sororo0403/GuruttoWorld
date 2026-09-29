@@ -20,7 +20,7 @@ namespace Engine
         AudioSystem() = default;
 
         /// <summary>
-        /// 再生を停止し、音声・XAudio2・COM を順に解放します。
+        /// 再生を停止し、音声・XAudio2・Media Foundation・COM を順に解放します。
         /// </summary>
         ~AudioSystem();
 
@@ -35,7 +35,7 @@ namespace Engine
         AudioSystem& operator=(const AudioSystem&) = delete;
 
         /// <summary>
-        /// COM と XAudio2、既定の出力デバイスを初期化します。失敗後も再試行できます。
+        /// COM・Media Foundation と XAudio2、既定の出力デバイスを初期化します。失敗後も再試行できます。
         /// </summary>
         bool Initialize();
 
@@ -45,7 +45,8 @@ namespace Engine
         void Shutdown();
 
         /// <summary>
-        /// PCM WAV を読み込みます。失敗時は無効ハンドル 0 を返します。
+        /// WAV・MP3・AAC などを Media Foundation で PCM に展開して保持します。
+        /// 対応形式は OS のデコーダーに依存します。展開後 64 MiB まで。失敗時は無効ハンドル 0 を返します。
         /// </summary>
         SoundHandle Load(const std::filesystem::path& path);
 
@@ -90,5 +91,6 @@ namespace Engine
         std::map<SoundHandle, Sound> sounds_;
         SoundHandle nextHandle_ = 1;
         bool ownsCom_ = false;
+        bool ownsMediaFoundation_ = false;
     };
 }

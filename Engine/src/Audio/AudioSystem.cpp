@@ -1,5 +1,7 @@
 #include <Engine/Audio/AudioSystem.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Audio/AudioDecoder.h>
+#include <mfapi.h>
 
 #include <cmath>
 #include <format>
@@ -34,6 +36,12 @@ namespace Engine
         const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
         if (com != RPC_E_CHANGED_MODE && !Check(com, "Initialize audio COM")) return false;
         ownsCom_ = SUCCEEDED(com);
+        if (!Check(MFStartup(MF_VERSION), "Initialize Media Foundation"))
+        {
+            Shutdown();
+            return false;
+        }
+        ownsMediaFoundation_ = true;
         if (!Check(XAudio2Create(&engine_), "Create XAudio2") ||
             !Check(engine_->CreateMasteringVoice(&masteringVoice_), "Create mastering voice"))
         {
@@ -62,6 +70,11 @@ namespace Engine
             masteringVoice_ = nullptr;
         }
         engine_.Reset();
+        if (ownsMediaFoundation_)
+        {
+            Check(MFShutdown(), "Shutdown Media Foundation");
+            ownsMediaFoundation_ = false;
+        }
         if (ownsCom_)
         {
             CoUninitialize();
@@ -73,7 +86,7 @@ namespace Engine
     {
         if (!engine_ || nextHandle_ == 0) return 0;
         Sound sound;
-        if (!LoadWaveFile(path, sound.wave)) return 0;
+        if (!DecodeAudioFile(path, sound.wave)) return 0;
         const SoundHandle handle = nextHandle_++;
         sounds_.emplace(handle, std::move(sound));
         return handle;

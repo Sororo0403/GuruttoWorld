@@ -334,4 +334,12 @@
       <Filter>include\Engine\Graphics\Renderers</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Audio\AudioDecoder.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Audio\AudioDecoder.h">
+      <Filter>include\Engine\Audio</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
