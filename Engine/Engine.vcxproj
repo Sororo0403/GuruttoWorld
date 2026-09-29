@@ -164,4 +164,10 @@
     <ClCompile Include="src\Graphics\MeshResources.cpp" />
     <ClInclude Include="include\Engine\Graphics\MeshResources.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Audio\WaveData.cpp" />
+    <ClInclude Include="include\Engine\Audio\WaveData.h" />
+    <ClCompile Include="src\Audio\AudioSystem.cpp" />
+    <ClInclude Include="include\Engine\Audio\AudioSystem.h" />
+  </ItemGroup>
 </Project>

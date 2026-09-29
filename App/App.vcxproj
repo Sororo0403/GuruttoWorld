@@ -148,4 +148,17 @@
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ClCompile Include="src\AudioPanel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="src\AudioPanel.h" />
+    <None Include="Assets\Audio\Sample.wav" />
+  </ItemGroup>
+  <Target Name="CopyAudio" AfterTargets="Build">
+    <ItemGroup>
+      <AudioAssets Include="$(MSBuildThisFileDirectory)Assets\Audio\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(AudioAssets)" DestinationFiles="@(AudioAssets->'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

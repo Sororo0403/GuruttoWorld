@@ -43,4 +43,13 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\AudioPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="src\AudioPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <None Include="Assets\Audio\Sample.wav" />
+  </ItemGroup>
 </Project>
