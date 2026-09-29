@@ -342,4 +342,20 @@
       <Filter>include\Engine\Audio</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="include\Engine\Scenes"><UniqueIdentifier>{51EBC894-ED8E-4109-8EF8-D1FBEE4D58C5}</UniqueIdentifier></Filter>
+    <Filter Include="src\Scenes"><UniqueIdentifier>{5FA59EB8-3F00-4CE9-A13B-A2FA12CC8805}</UniqueIdentifier></Filter>
+    <ClInclude Include="include\Engine\Scenes\IScene.h">
+      <Filter>include\Engine\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Scenes\ISceneFactory.h">
+      <Filter>include\Engine\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Scenes\SceneManager.h">
+      <Filter>include\Engine\Scenes</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Scenes\SceneManager.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+  </ItemGroup>
 </Project>

@@ -102,4 +102,31 @@
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src\Scenes"><UniqueIdentifier>{E4DB53F6-17CE-435F-9845-90A45587B0AB}</UniqueIdentifier></Filter>
+    <ClInclude Include="src\Game.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Game.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Scenes\GameScene.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Scenes\GameScene.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Scenes\TitleScene.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Scenes\TitleScene.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Scenes\SceneFactory.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Scenes\SceneFactory.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+  </ItemGroup>
 </Project>

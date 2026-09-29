@@ -87,6 +87,11 @@ namespace Engine
         /// <returns>描画領域の高さ。</returns>
         UINT GetHeight() const noexcept;
 
+        /// <summary>
+        /// 描画呼び出しの外で GPU 完了を待機します。シーンのリソースを解放する前に使用します。
+        /// </summary>
+        bool WaitForIdle();
+
     private:
         /// <summary>
         /// GPU の完了を待ち、バックバッファーと深度バッファーを新しい描画サイズで作り直します。

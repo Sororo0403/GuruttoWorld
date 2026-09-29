@@ -243,4 +243,10 @@
     <ClCompile Include="src\Audio\AudioDecoder.cpp" />
     <ClInclude Include="include\Engine\Audio\AudioDecoder.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Scenes\IScene.h" />
+    <ClInclude Include="include\Engine\Scenes\ISceneFactory.h" />
+    <ClInclude Include="include\Engine\Scenes\SceneManager.h" />
+    <ClCompile Include="src\Scenes\SceneManager.cpp" />
+  </ItemGroup>
 </Project>

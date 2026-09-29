@@ -78,6 +78,11 @@ namespace Engine
         occluded_ = false;
     }
 
+    bool DirectX12Renderer::WaitForIdle()
+    {
+        return ready_ && WaitForGpu();
+    }
+
     bool DirectX12Renderer::WaitForGpu()
     {
         const UINT64 target = ++fenceValue_;

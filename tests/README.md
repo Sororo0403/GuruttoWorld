@@ -17,3 +17,13 @@ generated/tests/outputs/x64/Debug/AudioValidation/AudioValidation.exe
 ```
 
 Release でも実行できます。Media Foundation で既存サンプル WAV を AAC（M4A）に変換し、デコード・無音再生・再生完了・ループ・停止・再初期化を確認します。読み込み後に元ファイルを改名しても再生できることを検証します。生成ファイルは `generated/tests/audio` に保存します。
+
+## シーン管理の検証
+
+```powershell
+MSBuild tests/SceneValidation.vcxproj /p:Configuration=Debug /p:Platform=x64
+generated/tests/outputs/x64/Debug/SceneValidation/SceneValidation.exe
+```
+
+非表示ウィンドウと DirectX 12 デバイスを生成し、遷移予約・更新中に破棄されないこと・生成失敗時の旧シーン保持・終了時の破棄を検証します。Release でも実行できます。
+アプリはタイトルから起動し、Enter でゲーム、ゲーム中の Escape でタイトルへ戻ります。

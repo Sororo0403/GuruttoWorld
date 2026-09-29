@@ -218,4 +218,14 @@
   <ItemGroup>
     <None Include="Shaders\Particle.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Game.h" />
+    <ClCompile Include="src\Game.cpp" />
+    <ClInclude Include="src\Scenes\GameScene.h" />
+    <ClCompile Include="src\Scenes\GameScene.cpp" />
+    <ClInclude Include="src\Scenes\TitleScene.h" />
+    <ClCompile Include="src\Scenes\TitleScene.cpp" />
+    <ClInclude Include="src\Scenes\SceneFactory.h" />
+    <ClCompile Include="src\Scenes\SceneFactory.cpp" />
+  </ItemGroup>
 </Project>
