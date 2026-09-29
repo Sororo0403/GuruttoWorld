@@ -25,6 +25,7 @@ namespace App
                 rotationY = 0.0;
             }
             ImGui::ColorEdit3("Background", backgroundColor.data());
+            ImGui::TextUnformatted("Model: 1 = Cube, 2 = Pyramid");
         }
         ImGui::End();
     }

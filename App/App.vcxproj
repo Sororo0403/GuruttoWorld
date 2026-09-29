@@ -146,6 +146,7 @@
     <None Include="Shaders\Sphere.hlsl" />
     <None Include="Shaders\Mesh.hlsl" />
     <None Include="Assets\Models\Cube.obj" />
+    <None Include="Assets\Models\Pyramid.obj" />
     <None Include="Assets\Models\Cube.mtl" />
     <None Include="Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />

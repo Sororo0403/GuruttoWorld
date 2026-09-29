@@ -225,4 +225,10 @@
     <ClCompile Include="src\Graphics\Resources\TextureManager.cpp"></ClCompile>
     <ClInclude Include="include\Engine\Graphics\Resources\TextureManager.h"></ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\Models\ModelManager.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Models\ModelManager.h" />
+    <ClCompile Include="src\Graphics\Models\Object3D.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Models\Object3D.h" />
+  </ItemGroup>
 </Project>

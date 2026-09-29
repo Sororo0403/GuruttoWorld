@@ -300,4 +300,18 @@
       <Filter>include\Engine\Graphics\Resources</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\Models\ModelManager.cpp">
+      <Filter>src\Graphics\Models</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\Models\ModelManager.h">
+      <Filter>include\Engine\Graphics\Models</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Graphics\Models\Object3D.cpp">
+      <Filter>src\Graphics\Models</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\Models\Object3D.h">
+      <Filter>include\Engine\Graphics\Models</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

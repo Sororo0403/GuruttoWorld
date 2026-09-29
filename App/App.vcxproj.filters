@@ -45,6 +45,9 @@
     <None Include="Assets\Models\Cube.obj">
       <Filter>Assets\Models</Filter>
     </None>
+    <None Include="Assets\Models\Pyramid.obj">
+      <Filter>Assets\Models</Filter>
+    </None>
     <None Include="Assets\Models\Cube.mtl">
       <Filter>Assets\Models</Filter>
     </None>

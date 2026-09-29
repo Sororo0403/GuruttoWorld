@@ -3,7 +3,8 @@
 #include <Engine/Input/Keyboard.h>
 #include <Engine/Input/Gamepad.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
-#include <Engine/Graphics/Renderers/ModelRenderer.h>
+#include <Engine/Graphics/Models/ModelManager.h>
+#include <Engine/Graphics/Models/Object3D.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <Engine/Graphics/Resources/TextureManager.h>
 #include <Windows.h>
@@ -46,7 +47,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     bool audioAttempted = false;
     Engine::Gamepad gamepad;
     // Run が GPU の完了を待ってから戻るため、描画リソースはその後で安全に破棄できます。
-    Engine::ModelRenderer model;
+    Engine::ModelManager modelManager;
+    Engine::Object3D model;
+    Engine::Object3D secondModel;
+    std::array<std::shared_ptr<const Engine::ModelRenderer>, 2> models;
+    size_t selectedModel = 0;
     bool modelReady = false;
     Engine::TextureManager textureManager;
     Engine::SpriteRenderer sprite;
@@ -113,6 +118,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         {
             gamepad.StopVibration();
         }
+        if (!captureKeyboard)
+        {
+            if (keyboard.IsPressed(DIK_1)) selectedModel = 0;
+            if (keyboard.IsPressed(DIK_2)) selectedModel = 1;
+        }
         if (rotating)
         {
             const double angularSpeed = static_cast<double>(speedDegrees) * std::numbers::pi / 180.0;
@@ -123,10 +133,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     {
         if (!modelReady)
         {
-            if (!model.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), modelPath, shaderPath))
+            if (!modelManager.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath))
             {
                 return Engine::RenderResult::Failed;
             }
+            models[0] = modelManager.Load(modelPath);
+            models[1] = modelManager.Load(modelPath.parent_path() / "Pyramid.obj");
+            if (!models[0] || !models[1]) return Engine::RenderResult::Failed;
+            // 同じパスを再要求しても、GPU リソースを含む既存モデルが返ります。
+            secondModel.SetModel(modelManager.Load(modelPath));
             modelReady = true;
         }
         if (!spriteReady)
@@ -150,11 +165,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 XMVectorZero(), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 #endif
             const XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspectRatio, 0.1f, 100.0f);
-            XMFLOAT4X4 world;
             XMFLOAT4X4 viewProjection;
-            XMStoreFloat4x4(&world, XMMatrixRotationX(-0.3f) * XMMatrixRotationY(static_cast<float>(rotationY)));
             XMStoreFloat4x4(&viewProjection, view * projection);
-            model.Draw(commands, world, viewProjection, light, cameraPosition, modelUv);
+            model.SetModel(models[selectedModel]);
+            model.SetTransform({ 0.0f, 0.0f, 0.0f }, { -0.3f, static_cast<float>(rotationY), 0.0f }, { 0.75f, 0.75f, 0.75f });
+            secondModel.SetTransform({ 1.25f, -0.65f, 0.4f }, { 0.0f, -static_cast<float>(rotationY), 0.0f }, { 0.35f, 0.35f, 0.35f });
+            model.Draw(commands, viewProjection, light, cameraPosition, modelUv);
+            secondModel.Draw(commands, viewProjection, light, cameraPosition, modelUv);
             Engine::SpriteDrawParameters spriteParameters;
             spriteParameters.position = { static_cast<float>(renderer.GetWidth()) - 192.0f, 32.0f };
             spriteParameters.size = { 160.0f, 160.0f };
