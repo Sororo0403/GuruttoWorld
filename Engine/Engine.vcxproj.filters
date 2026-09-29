@@ -206,4 +206,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\DebugCamera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\DebugCamera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

@@ -10,6 +10,7 @@
 #include "DebugPanel.h"
 #include "AudioPanel.h"
 #include "InputPanel.h"
+#include "CameraPanel.h"
 #include <imgui.h>
 #include "LightingPanel.h"
 #include "UVTransformPanel.h"
@@ -57,11 +58,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Engine::DirectionalLight light;
     Engine::UVTransform modelUV;
     Engine::UVTransform spriteUV;
+#if !defined(_DEBUG)
     const std::array<float, 3> cameraPosition{ 0.0f, 0.0f, -3.5f };
+#endif
     std::function<void()> debugUi;
 #if defined(_DEBUG)
+    Engine::DebugCamera debugCamera;
+    App::CameraPanel cameraPanel;
+    const Engine::Keyboard* frameKeyboard = nullptr;
+    double cameraDeltaSeconds = 0.0;
     debugUi = [&]()
     {
+        if (frameKeyboard != nullptr) cameraPanel.Draw(debugCamera, *frameKeyboard, cameraDeltaSeconds);
         App::AudioPanel::Draw(audio, sound);
         App::InputPanel::Draw(gamepad);
         App::DebugPanel::Draw(rotationY, speedDegrees, rotating, backgroundColor);
@@ -82,6 +90,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             }
         }
         gamepad.Update(keyboard.IsActive());
+#if defined(_DEBUG)
+        frameKeyboard = &keyboard;
+        cameraDeltaSeconds = deltaSeconds;
+        if (!keyboard.IsActive()) cameraPanel.CancelDrag();
+#endif
         // スペースキーまたはコントローラーの A ボタンで再生します。
         bool captureKeyboard = false;
 #if defined(_DEBUG)
@@ -126,8 +139,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         return renderer.Render(backgroundColor, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
         {
             using namespace DirectX;
+#if defined(_DEBUG)
+            const auto& cameraPosition = debugCamera.GetPosition();
+            const XMMATRIX view = debugCamera.GetViewMatrix();
+#else
             const XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(cameraPosition[0], cameraPosition[1], cameraPosition[2], 1.0f),
                 XMVectorZero(), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+#endif
             const XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspectRatio, 0.1f, 100.0f);
             XMFLOAT4X4 world;
             XMFLOAT4X4 viewProjection;

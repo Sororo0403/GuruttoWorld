@@ -176,4 +176,10 @@
     <ClCompile Include="src\Input\Gamepad.cpp" />
     <ClInclude Include="include\Engine\Input\Gamepad.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\DebugCamera.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\DebugCamera.h" />
+  </ItemGroup>
 </Project>

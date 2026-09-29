@@ -60,4 +60,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\CameraPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClInclude Include="src\CameraPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

@@ -167,4 +167,10 @@
     </ClCompile>
     <ClInclude Include="src\InputPanel.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\CameraPanel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="src\CameraPanel.h" />
+  </ItemGroup>
 </Project>
