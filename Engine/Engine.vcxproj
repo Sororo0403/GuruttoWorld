@@ -221,4 +221,8 @@
   <ItemGroup>
     <None Include="build\Assimp.targets" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\Resources\TextureManager.cpp"></ClCompile>
+    <ClInclude Include="include\Engine\Graphics\Resources\TextureManager.h"></ClInclude>
+  </ItemGroup>
 </Project>

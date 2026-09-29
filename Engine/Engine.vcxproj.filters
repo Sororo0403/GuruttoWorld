@@ -292,4 +292,12 @@
       <Filter>build</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\Resources\TextureManager.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClInclude Include="include\Engine\Graphics\Resources\TextureManager.h">
+      <Filter>include\Engine\Graphics\Resources</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

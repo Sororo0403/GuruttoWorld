@@ -6,6 +6,7 @@
 #include <Engine/Graphics/Resources/IndexedMeshBuffer.h>
 #include <cmath>
 #include <format>
+#include <utility>
 
 namespace
 {
@@ -25,14 +26,22 @@ namespace
 namespace Engine
 {
     bool SpriteRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-        const std::filesystem::path& texturePath, const std::filesystem::path& shaderPath)
+        std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath)
     {
-        if (device == nullptr || queue == nullptr || initialized_)
+        if (device == nullptr || queue == nullptr || initialized_ || !texture || texture->GetDescriptorHeap() == nullptr)
+        {
+            return false;
+        }
+        ComPtr<ID3D12Device> textureDevice;
+        ComPtr<ID3D12Device> queueDevice;
+        if (queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT ||
+            FAILED(texture->GetDescriptorHeap()->GetDevice(IID_PPV_ARGS(&textureDevice))) || textureDevice.Get() != device ||
+            FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) || queueDevice.Get() != device)
         {
             return false;
         }
         if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) ||
-            !CreateMeshBuffer(device, queue) || !texture_.Initialize(device, queue, texturePath))
+            !CreateMeshBuffer(device, queue))
         {
             meshBuffer_.Reset();
             vertexBufferView_ = {};
@@ -41,6 +50,7 @@ namespace Engine
             rootSignature_.Reset();
             return false;
         }
+        texture_ = std::move(texture);
         initialized_ = true;
         Log::Info("Sprite renderer initialized.");
         return true;
@@ -175,9 +185,9 @@ namespace Engine
         commands->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(constants.size()), constants.data(), 0);
         const auto uvConstants = parameters.uvTransform.GetConstants();
         commands->SetGraphicsRoot32BitConstants(2, 8, uvConstants.data(), 0);
-        ID3D12DescriptorHeap* heaps[] = { texture_.GetDescriptorHeap() };
+        ID3D12DescriptorHeap* heaps[] = { texture_->GetDescriptorHeap() };
         commands->SetDescriptorHeaps(1, heaps);
-        commands->SetGraphicsRootDescriptorTable(1, texture_.GetGpuHandle());
+        commands->SetGraphicsRootDescriptorTable(1, texture_->GetGpuHandle());
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commands->IASetVertexBuffers(0, 1, &vertexBufferView_);
         commands->IASetIndexBuffer(&indexBufferView_);

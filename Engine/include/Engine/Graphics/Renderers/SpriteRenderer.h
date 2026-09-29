@@ -3,6 +3,7 @@
 #include <Engine/Graphics/Resources/Texture2D.h>
 #include <Engine/Graphics/Materials/UvTransform.h>
 #include <array>
+#include <memory>
 
 namespace Engine
 {
@@ -44,15 +45,15 @@ namespace Engine
         SpriteRenderer& operator=(const SpriteRenderer&) = delete;
 
         /// <summary>
-        /// スプライトのパイプライン・メッシュ・テクスチャを生成し、初期転送の完了を待機します。
+        /// パイプラインとメッシュを生成し、TextureManager から取得したテクスチャの所有権を共有します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
-        /// <param name="queue">メッシュとテクスチャの転送に使用する DIRECT 型キュー。</param>
-        /// <param name="texturePath">通常のアルファ形式の画像ファイル。</param>
+        /// <param name="queue">メッシュの転送に使用する DIRECT 型キュー。</param>
+        /// <param name="texture">同一デバイスで読み込み済みの共有テクスチャ。画像の再読み込みは行いません。</param>
         /// <param name="shaderPath">スプライト用の VSMain・PSMain を定義した HLSL ファイル。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-            const std::filesystem::path& texturePath, const std::filesystem::path& shaderPath);
+            std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath);
 
         /// <summary>
         /// 深度判定・深度書き込みなしで、アルファ合成した四角形を描画します。後の描画ほど手前になります。
@@ -89,7 +90,7 @@ namespace Engine
         bool CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue);
 
         bool initialized_ = false;
-        Texture2D texture_;
+        std::shared_ptr<const Texture2D> texture_;
         Microsoft::WRL::ComPtr<ID3D12Resource> meshBuffer_;
         D3D12_VERTEX_BUFFER_VIEW vertexBufferView_{};
         D3D12_INDEX_BUFFER_VIEW indexBufferView_{};

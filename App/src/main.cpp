@@ -5,6 +5,7 @@
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
+#include <Engine/Graphics/Resources/TextureManager.h>
 #include <Windows.h>
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 #include "DevTools/DebugPanel.h"
@@ -47,7 +48,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     // Run が GPU の完了を待ってから戻るため、描画リソースはその後で安全に破棄できます。
     Engine::ModelRenderer model;
     bool modelReady = false;
+    Engine::TextureManager textureManager;
     Engine::SpriteRenderer sprite;
+    Engine::SpriteRenderer croppedSprite;
     bool spriteReady = false;
     double rotationY = 0.0;
     float speedDegrees = 90.0f;
@@ -128,7 +131,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }
         if (!spriteReady)
         {
-            if (!sprite.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texturePath, spriteShaderPath))
+            if (!textureManager.Initialize(renderer.GetDevice(), renderer.GetCommandQueue()) ||
+                !sprite.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), textureManager.Load(texturePath), spriteShaderPath) ||
+                !croppedSprite.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), textureManager.Load(texturePath), spriteShaderPath))
             {
                 return Engine::RenderResult::Failed;
             }
@@ -156,6 +161,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             spriteParameters.color = { 1.0f, 1.0f, 1.0f, 0.8f };
             spriteParameters.uvTransform = spriteUv;
             sprite.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), spriteParameters);
+            // 同じ画像を共有し、別の位置・UV 範囲で描画します。
+            spriteParameters.position[0] -= 144.0f;
+            spriteParameters.size = { 128.0f, 128.0f };
+            spriteParameters.uvRect = { 0.0f, 0.0f, 0.5f, 0.5f };
+            croppedSprite.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), spriteParameters);
         }, debugUi);
     };
 
