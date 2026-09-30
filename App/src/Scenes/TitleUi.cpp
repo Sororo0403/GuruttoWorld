@@ -11,7 +11,8 @@ namespace App
             atlas_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture, root / "Shaders/Sprite.hlsl");
     }
 
-    void TitleUi::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height) const
+    void TitleUi::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height,
+        TitleMenuItem selected, bool gamepad) const
     {
         if (width == 0 || height == 0) return;
         const float viewportWidth = static_cast<float>(width);
@@ -39,16 +40,26 @@ namespace App
         drawPart({ 0, 0, 1024, 480 }, { 28, 36, 550, 258 }, White, -0.055f);
         drawPart(Band, { 50, 302, 450, 48 }, Ink, -0.055f);
         drawPart({ 0, 768, 940, 64 }, { 91, 308, 470, 32 }, White, -0.055f);
-        // 開始だけが操作可能な段階。設定・終了は次のコミットで接続します。
-        drawPart(Band, { 40, 399, 402, 88 }, Cream, -0.035f);
-        drawPart(Band, { 48, 407, 386, 72 }, Pink, -0.035f);
-        drawPart({ 1024, 224, 128, 160 }, { 61, 420, 28, 35 }, Ink);
-        drawPart({ 0, 512, 800, 96 }, { 105, 417, 400, 48 }, Ink);
-        drawPart(Band, { 48, 504, 220, 58 }, Ink, -0.035f);
-        drawPart({ 0, 608, 800, 80 }, { 83, 512, 400, 40 }, { 1, 1, 1, 0.45f });
-        drawPart(Band, { 48, 574, 220, 58 }, Ink, -0.035f);
-        drawPart({ 0, 688, 800, 80 }, { 83, 582, 400, 40 }, { 1, 1, 1, 0.45f });
-        drawPart(Band, { 34, 649, 264, 46 }, Ink);
-        drawPart({ 0, 832, 480, 64 }, { 54, 655, 240, 32 }, White);
+        constexpr std::array<float, 3> RowTop{ 399, 481, 563 };
+        constexpr std::array<float, 3> LabelTop{ 512, 608, 688 };
+        for (int row = 0; row < 3; ++row)
+        {
+            const float y = RowTop[row];
+            const bool active = row == static_cast<int>(selected);
+            if (active)
+            {
+                drawPart(Band, { 40, y, 402, 76 }, Cream, -0.035f);
+                drawPart(Band, { 48, y + 8, 386, 60 }, Pink, -0.035f);
+                drawPart({ 1024, 224, 128, 160 }, { 61, y + 20, 28, 35 }, Ink);
+            }
+            else drawPart(Band, { 48, y + 8, row == 0 ? 300.0f : 220.0f, 58 }, Ink, -0.035f);
+            const auto color = row == 1 ? std::array<float, 4>{ 1, 1, 1, 0.45f } : active ? Ink : White;
+            const float labelHeight = row == 0 ? 96.0f : 80.0f;
+            drawPart({ 0, LabelTop[row], 800, labelHeight },
+                { active ? 105.0f : 83.0f, y + 16, 400, labelHeight * 0.5f }, color);
+        }
+        drawPart(Band, { 34, 649, gamepad ? 730.0f : 500.0f, 46 }, Ink);
+        drawPart({ 0, gamepad ? 912.0f : 832.0f, gamepad ? 1400.0f : 940.0f, 64 },
+            { 54, 655, gamepad ? 700.0f : 470.0f, 32 }, White);
     }
 }

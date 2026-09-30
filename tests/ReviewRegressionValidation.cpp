@@ -6,6 +6,7 @@
 #include <Engine/Graphics/Renderers/MeshRenderer.h>
 #include <Engine/Graphics/Resources/DepthBuffer.h>
 #include "../App/src/Scenes/TitleScene.h"
+#include "../App/src/Scenes/TitleMenu.h"
 #include <ShlObj.h>
 #include <d3d12sdklayers.h>
 #include <fstream>
@@ -52,6 +53,69 @@ namespace
         Check(Engine::CrashHandler::Initialize(folder / "crashes"), "custom crash path");
         Engine::CrashHandler::Shutdown();
         Check(std::filesystem::is_directory(folder / "crashes"), "crash directory created");
+    }
+
+    void ValidateTitleMenu()
+    {
+        using namespace App;
+        TitleMenu menu;
+        TitleMenuInput input;
+        input.active = true;
+        input.keyboardButtons = MenuConfirm;
+        Check(menu.Update(input) == TitleMenuAction::None, "suppress confirm held on entry");
+        input.keyboardButtons = 0;
+        menu.Update(input);
+        input.keyboardButtons = MenuDown;
+        Check(menu.Update(input) == TitleMenuAction::None && menu.GetSelected() == TitleMenuItem::Exit, "skip disabled settings");
+        menu.Update(input);
+        Check(menu.GetSelected() == TitleMenuItem::Exit, "held navigation does not repeat");
+        input.active = false;
+        input.keyboardButtons = MenuConfirm;
+        Check(menu.Update(input) == TitleMenuAction::None, "inactive confirm ignored");
+        input.active = true;
+        Check(menu.Update(input) == TitleMenuAction::None, "suppress confirm held on refocus");
+        input.keyboardButtons = 0;
+        menu.Update(input);
+        input.keyboardButtons = MenuConfirm;
+        Check(menu.Update(input) == TitleMenuAction::Exit, "exit selected");
+        Check(menu.Update(input) == TitleMenuAction::None, "exit emitted only once");
+
+        TitleMenu padMenu;
+        input = {};
+        input.active = true;
+        padMenu.Update(input);
+        input.gamepadConnected = true;
+        input.gamepadButtons = MenuConfirm;
+        input.stickY = -1.0f;
+        Check(padMenu.Update(input) == TitleMenuAction::None && padMenu.GetSelected() == TitleMenuItem::Start, "suppress held input on connection");
+        input.gamepadButtons = 0;
+        input.stickY = 0;
+        padMenu.Update(input);
+        input.stickY = -0.8f;
+        padMenu.Update(input);
+        Check(padMenu.GetSelected() == TitleMenuItem::Exit && padMenu.UsesGamepad(), "stick selection and device hint");
+        input.stickY = -0.4f;
+        padMenu.Update(input);
+        input.stickY = -0.6f;
+        padMenu.Update(input);
+        Check(padMenu.GetSelected() == TitleMenuItem::Exit, "stick hysteresis avoids repeated navigation");
+        input.stickY = 0;
+        padMenu.Update(input);
+        input.keyboardButtons = MenuUp | MenuConfirm;
+        Check(padMenu.Update(input) == TitleMenuAction::None && padMenu.GetSelected() == TitleMenuItem::Start, "move and confirm cannot start or exit together");
+        Check(!padMenu.UsesGamepad(), "keyboard hint follows keyboard activity");
+        input.keyboardButtons = 0;
+        padMenu.Update(input);
+        input.gamepadButtons = MenuConfirm;
+        Check(padMenu.Update(input) == TitleMenuAction::Start, "gamepad start");
+
+        TitleMenu directions;
+        input = {};
+        input.active = true;
+        directions.Update(input);
+        input.keyboardButtons = MenuUp | MenuDown;
+        directions.Update(input);
+        Check(directions.GetSelected() == TitleMenuItem::Start, "opposing directions cancel");
     }
 
     void ValidateTitle()
@@ -189,6 +253,7 @@ int main()
     try
     {
         ValidateDiagnostics();
+        ValidateTitleMenu();
         ValidateTitle();
         ValidateMirroredMesh();
         std::cout << "PASS: diagnostics location/overrides, title rendering, mirrored mesh visibility and backface culling\n";

@@ -201,6 +201,8 @@
     </ClInclude>
     <ClCompile Include="src\Scenes\TitleEnvironment.cpp"><Filter>src\Scenes</Filter></ClCompile>
     <ClInclude Include="src\Scenes\TitleEnvironment.h"><Filter>src\Scenes</Filter></ClInclude>
+    <ClCompile Include="src\Scenes\TitleMenu.cpp"><Filter>src\Scenes</Filter></ClCompile>
+    <ClInclude Include="src\Scenes\TitleMenu.h"><Filter>src\Scenes</Filter></ClInclude>
     <ClCompile Include="src\Scenes\TitleUi.cpp"><Filter>src\Scenes</Filter></ClCompile>
     <ClInclude Include="src\Scenes\TitleUi.h"><Filter>src\Scenes</Filter></ClInclude>
     <ClCompile Include="src\Scenes\TitleScene.cpp">

@@ -1,6 +1,8 @@
 #pragma once
 #include <Engine/Scenes/IScene.h>
 #include "TitleUi.h"
+#include "TitleMenu.h"
+#include <Engine/Input/Gamepad.h>
 #include "TitleEnvironment.h"
 
 namespace App
@@ -17,7 +19,7 @@ namespace App
         /// </summary>
         bool Initialize(Engine::DirectX12Renderer& renderer) override;
         /// <summary>
-        /// Enter キーでゲームへの遷移を要求します。
+        /// キーボード・ゲームパッドでメニューを操作し、開始または通常終了を要求します。
         /// </summary>
         std::string Update(double deltaSeconds, const Engine::Keyboard& keyboard) override;
         /// <summary>
@@ -27,6 +29,8 @@ namespace App
     private:
         std::filesystem::path root_;
         TitleUi ui_;
+        TitleMenu menu_;
+        Engine::Gamepad gamepad_;
         TitleEnvironment environment_;
     };
 }

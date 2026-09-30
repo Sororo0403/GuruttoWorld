@@ -271,6 +271,8 @@
     <ClInclude Include="src\Scenes\TitleScene.h" />
     <ClCompile Include="src\Scenes\TitleScene.cpp" />
     <ClCompile Include="src\Scenes\TitleUi.cpp" />
+    <ClCompile Include="src\Scenes\TitleMenu.cpp" />
+    <ClInclude Include="src\Scenes\TitleMenu.h" />
     <ClInclude Include="src\Scenes\TitleUi.h" />
     <ClCompile Include="src\Scenes\TitleEnvironment.cpp" />
     <ClInclude Include="src\Scenes\TitleEnvironment.h" />

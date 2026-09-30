@@ -14,14 +14,29 @@ namespace App
     }
     std::string TitleScene::Update(double, const Engine::Keyboard& keyboard)
     {
-        return keyboard.IsPressed(DIK_RETURN) ? "Game" : "";
+        gamepad_.Update(keyboard.IsActive());
+        TitleMenuInput input;
+        input.active = keyboard.IsActive();
+        input.gamepadConnected = gamepad_.IsConnected();
+        if (keyboard.IsDown(DIK_UP) || keyboard.IsDown(DIK_W)) input.keyboardButtons |= MenuUp;
+        if (keyboard.IsDown(DIK_DOWN) || keyboard.IsDown(DIK_S)) input.keyboardButtons |= MenuDown;
+        if (keyboard.IsDown(DIK_RETURN)) input.keyboardButtons |= MenuConfirm;
+        if (gamepad_.IsDown(XINPUT_GAMEPAD_DPAD_UP)) input.gamepadButtons |= MenuUp;
+        if (gamepad_.IsDown(XINPUT_GAMEPAD_DPAD_DOWN)) input.gamepadButtons |= MenuDown;
+        if (gamepad_.IsDown(XINPUT_GAMEPAD_A)) input.gamepadButtons |= MenuConfirm;
+        input.stickY = gamepad_.GetLeftStick()[1];
+        const auto action = menu_.Update(input);
+        if (action == TitleMenuAction::Start) return "Game";
+        // WM_QUIT を既存のメッセージループへ送り、GPU 完了待ちと通常の破棄を通します。
+        if (action == TitleMenuAction::Exit) PostQuitMessage(0);
+        return {};
     }
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)
     {
         return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float)
         {
             environment_.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
-            ui_.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
+            ui_.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), menu_.GetSelected(), menu_.UsesGamepad());
         });
     }
 }

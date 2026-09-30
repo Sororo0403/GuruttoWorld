@@ -64,7 +64,8 @@ try {
     Draw-TitleText '設定' 12 620 780 62 $titleWhite
     Draw-TitleText '終了' 12 700 780 62 $titleWhite
     Draw-TitleText 'まだ見ぬ世界へ' 12 780 920 42 $titleWhite
-    Draw-TitleText 'Enter  決定' 12 844 920 42 $titleWhite
+    Draw-TitleText '↑↓ 選択   Enter 決定' 12 844 920 42 $titleWhite
+    Draw-TitleText '十字キー / 左スティック 選択   A 決定' 12 924 1380 42 $titleWhite
     $titleOutput = Join-Path $titleRoot 'App/Assets/Textures/Title/UiAtlas.png'
     $titleBitmap.Save($titleOutput, [System.Drawing.Imaging.ImageFormat]::Png)
 }
