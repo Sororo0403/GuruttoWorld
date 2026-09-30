@@ -32,24 +32,11 @@ namespace App
                 return false;
             for (float side : { -1.0f, 1.0f })
             {
-                // 右の歩道を切り、横道の入口を車止めのような段差で塞がないようにします。
-                if (side > 0.0f && (tile == 1 || tile == 2)) continue;
                 if (!AddObject(roads / "tile-low.obj", { side * 2.8f, RoadTop, z }, 0.0f, { 1.6f, 4.0f, TileSize }))
                     return false;
             }
         }
-        // 横道は既存の無地タイルで舗装し、幹線の白線を路地へ引き込まない構成にします。
-        for (int tile = 0; tile < 5; ++tile)
-        {
-            if (!AddObject(roads / "tile-low.obj", { 4.0f + tile * TileSize, 0.0f, 6.0f },
-                0.0f, { TileSize, TileSize, TileSize })) return false;
-        }
-        for (float z : { 3.0f, 9.0f })
-        {
-            if (!AddObject(roads / "tile-low.obj", { 2.8f, RoadTop, z }, 0.0f,
-                { 1.6f, TileSize, 2.0f })) return false;
-        }
-        // 右手前を低く短い建物に置き換え、次の建物との間に街角を作ります。
+        // 正面を通りへ向け、高さと間口の違う建物を左右交互に配置します。
         struct BuildingPlacement
         {
             const char* model;
@@ -57,8 +44,8 @@ namespace App
             float z;
         };
         constexpr BuildingPlacement Buildings[] = {
-            { "building-c.obj", 4.8f, -0.2f }, { "building-h.obj", -4.8f, 5.0f },
-            { "building-e.obj", 4.8f, 14.0f }, { "building-k.obj", -4.8f, 12.0f },
+            { "building-k.obj", 4.8f, 4.0f }, { "building-h.obj", -4.8f, 5.0f },
+            { "building-e.obj", 4.8f, 12.0f }, { "building-k.obj", -4.8f, 12.0f },
             { "building-h.obj", 4.8f, 19.0f }, { "building-c.obj", -4.8f, 20.0f },
             { "building-k.obj", 4.8f, 26.0f }, { "building-e.obj", -4.8f, 27.0f },
             { "building-c.obj", 4.8f, 34.0f }, { "building-h.obj", -4.8f, 35.0f }
@@ -69,15 +56,6 @@ namespace App
             if (!AddObject(commercial / building.model, { building.x, RoadTop, building.z }, yaw,
                 { TileSize, TileSize, TileSize })) return false;
         }
-        // 横道の両側。大通りとは正面の向きを変えて、曲がった先の街区を示します。
-        for (float x : { 11.0f, 16.0f, 21.0f })
-        {
-            if (!AddObject(commercial / "building-h.obj", { x, RoadTop, 1.8f }, 0.0f,
-                { TileSize, TileSize, TileSize }) ||
-                !AddObject(commercial / "building-e.obj", { x, RoadTop, x == 11.0f ? 14.8f : 10.2f }, DirectX::XM_PI,
-                { TileSize, TileSize, TileSize })) return false;
-        }
-        if (!AddAlley(root)) return false;
         // 奥の橋を横方向へ3枚接続。脚を地面に接地させ、橋面は約4単位の高さに置きます。
         for (int tile = -1; tile <= 1; ++tile)
         {
@@ -98,64 +76,17 @@ namespace App
                 !AddObject(commercial / "building-skyscraper-a.obj", { direction * 40.0f, RoadTop, 116.0f },
                 direction * 0.35f, { 6.0f, 8.0f, 6.0f })) return false;
         }
-        // ロゴの右に輪郭が残る位置へ主塔を寄せ、段状の屋上で一般の高層と区別します。
-        // 派生モデルの形状は既存CC0素材のまま。専用材質は他の建物へ波及させません。
-        const auto landmark = root / "Assets/Models/Title/Landmark";
-        constexpr float TowerX = 10.0f;
-        constexpr float TowerZ = 76.0f;
-        constexpr float TowerTop = RoadTop + 4.08f * 8.5f;
-        if (!AddObject(landmark / "tower.obj", { TowerX, RoadTop, TowerZ }, 0.0f,
-                { 7.5f, 8.5f, 7.5f }) ||
-            !AddObject(landmark / "crown.obj", { TowerX, TowerTop, TowerZ }, 0.0f,
-                { 12.8f, 35.0f, 11.8f }) ||
-            !AddObject(landmark / "crown.obj", { TowerX, TowerTop + 0.7f, TowerZ }, 0.0f,
-                { 10.0f, 25.0f, 9.0f }) ||
-            !AddObject(landmark / "crown.obj", { TowerX, TowerTop + 1.2f, TowerZ }, 0.0f,
-                { 0.65f, 180.0f, 0.65f })) return false;
+        if (!AddObject(commercial / "building-skyscraper-e.obj", { 2.0f, RoadTop, 94.0f },
+            0.1f, { 5.0f, 10.0f, 5.0f })) return false;
         if (!AddGreeneryAndSigns(root)) return false;
-        camera_.SetPosition(motion_.CameraPosition());
-        camera_.SetRotation(0.06f, 0.08f);
+        camera_.SetPosition({ -0.8f, 1.8f, -7.0f });
+        camera_.SetRotation(0.03f, 0.13f);
         light_.direction = { -0.5f, -0.8f, 0.6f };
         light_.color = { 1.0f, 0.96f, 0.86f };
         light_.ambientIntensity = 0.48f;
         light_.intensity = 0.72f;
         light_.specularStrength = 0.03f;
         return true;
-    }
-
-    bool TitleEnvironment::AddAlley(const std::filesystem::path& root)
-    {
-        const auto roads = root / "Assets/Models/Title/Roads";
-        const auto nature = root / "Assets/Models/Title/Nature";
-        const auto alley = root / "Assets/Models/Title/Alley";
-        // 横道の一部を奥へ広げる。外周の建物で先を隠し、入口は開けておきます。
-        for (float x : { 8.0f, 12.0f })
-        {
-            if (!AddObject(roads / "tile-low.obj", { x, 0.0f, 10.0f }, 0.0f,
-                { 4.0f, 4.0f, 4.0f })) return false;
-        }
-        // 既存タイルの材質だけを変えた舗装。大通りから植栽の脇へ続きます。
-        // 下地上面0.08より上へ出し、同一平面のちらつきを避けます。
-        constexpr std::array<float, 3> Paving[] = {
-            { 2.9f, 0.08f, 6.0f }, { 4.9f, 0.08f, 6.0f },
-            { 6.9f, 0.08f, 6.0f }, { 8.9f, 0.08f, 6.0f },
-            { 8.9f, 0.08f, 8.0f }, { 8.9f, 0.08f, 10.0f }
-        };
-        for (const auto& position : Paving)
-        {
-            if (!AddObject(alley / "paving.obj", position, 0.0f,
-                { 1.8f, 0.5f, 1.8f })) return false;
-        }
-        // 舗装の曲がった先に小さな植栽をまとめ、入口から一部だけ見せます。
-        constexpr float PlanterTop = 0.40f;
-        return AddObject(roads / "tile-low.obj", { 11.2f, 0.08f, 10.5f }, 0.0f,
-                { 2.4f, 16.0f, 2.0f }) &&
-            AddObject(nature / "tree_small.obj", { 11.2f, PlanterTop, 10.6f }, 0.5f,
-                { 3.2f, 3.2f, 3.2f }) &&
-            AddObject(nature / "plant_bush.obj", { 10.7f, PlanterTop, 10.0f }, 0.2f,
-                { 2.4f, 2.0f, 2.4f }) &&
-            AddObject(nature / "flower_yellowA.obj", { 10.4f, PlanterTop, 10.7f }, 0.0f,
-                { 1.6f, 1.6f, 1.6f });
     }
 
     bool TitleEnvironment::AddGreeneryAndSigns(const std::filesystem::path& root)
@@ -171,7 +102,6 @@ namespace App
             {
                 const float index = static_cast<float>(patch);
                 const float z = -1.5f + index * 2.8f + (side < 0 ? 0.7f : 0.0f);
-                if (side > 0 && z >= 3.0f && z <= 10.0f) continue;
                 const float yaw = index * 0.73f;
                 const float grassScale = 1.5f + static_cast<float>(patch % 3) * 0.25f;
                 if (!AddObject(nature / "grass_large.obj", { direction * 2.35f, SidewalkTop, z }, yaw,
@@ -183,7 +113,6 @@ namespace App
             }
             for (float z : { 9.0f, 23.0f, 40.0f })
             {
-                if (side > 0 && z == 9.0f) continue;
                 if (!AddObject(nature / "tree_small.obj", { direction * 7.0f, 0.08f, z },
                     direction * 0.4f, { 4.0f, 4.0f, 4.0f })) return false;
             }
@@ -192,7 +121,9 @@ namespace App
         for (int patch = 0; patch < 5; ++patch)
         {
             const float offset = static_cast<float>(patch) * 1.0f;
-            if (!AddObject(nature / "plant_bush.obj", { -3.4f, 5.1f, 3.5f + offset * 0.6f }, offset,
+            if (!AddObject(nature / "plant_bush.obj", { 3.4f, 5.8f, 1.7f + offset }, offset,
+                { 3.5f, 3.0f, 3.0f }) ||
+                !AddObject(nature / "plant_bush.obj", { -3.4f, 5.1f, 3.5f + offset * 0.6f }, offset,
                 { 3.0f, 2.5f, 2.5f })) return false;
         }
         for (int patch = -4; patch <= 4; ++patch)

@@ -23,8 +23,6 @@ namespace App
         /// <summary>空・街並み・奥行きのある光の粒を描画します。</summary>
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height);
     private:
-        /// <summary>路地の舗装と、部分的に見える植栽のある奥を配置します。</summary>
-        bool AddAlley(const std::filesystem::path& root);
         /// <summary>
         /// 歩道・屋上・橋の植生と街路の看板を CC0 モデルで配置します。
         /// </summary>

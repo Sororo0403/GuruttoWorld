@@ -19,8 +19,8 @@ namespace App
         /// <summary>構図の基準位置から小さく動くカメラ座標を返します。</summary>
         std::array<float, 3> CameraPosition() const
         {
-            return { -2.6f + 0.10f * static_cast<float>(std::sin(seconds_ * std::numbers::pi / 12.0)),
-                2.1f + 0.04f * static_cast<float>(std::sin(seconds_ * std::numbers::pi / 20.0)), -8.0f };
+            return { -0.8f + 0.10f * static_cast<float>(std::sin(seconds_ * std::numbers::pi / 12.0)),
+                1.8f + 0.04f * static_cast<float>(std::sin(seconds_ * std::numbers::pi / 20.0)), -7.0f };
         }
         /// <summary>光の粒を描画するか返します。</summary>
         bool IsEnabled() const { return enabled_; }
