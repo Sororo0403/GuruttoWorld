@@ -147,6 +147,7 @@
     <None Include="Shaders\Mesh.hlsl" />
     <None Include="Shaders\TitleMesh.hlsl" />
     <None Include="Shaders\TitleSky.hlsl" />
+    <None Include="Shaders\TitleMote.hlsl" />
     <None Include="Shaders\Common\TitleAtmosphere.hlsli" />
     <None Include="Assets\Models\Title\Commercial\building-c.obj" />
     <None Include="Assets\Models\Title\Commercial\building-c.mtl" />
@@ -212,7 +213,7 @@
     <MakeDir Directories="$(OutDir)Shaders;$(OutDir)Shaders\Common" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Common\UvTransform.hlsli;$(MSBuildThisFileDirectory)Shaders\Common\TitleAtmosphere.hlsli"
           DestinationFolder="$(OutDir)Shaders\Common" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSky.hlsl"
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSky.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMote.hlsl"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyModels" AfterTargets="Build">
@@ -274,6 +275,7 @@
     <ClCompile Include="src\Scenes\TitleMenu.cpp" />
     <ClCompile Include="src\Scenes\GameSettings.cpp" />
     <ClInclude Include="src\Scenes\TitleMenu.h" />
+    <ClInclude Include="src\Scenes\TitleAmbientMotion.h" />
     <ClInclude Include="src\Scenes\GameSettings.h" />
     <ClInclude Include="src\Scenes\TitleUi.h" />
     <ClCompile Include="src\Scenes\TitleEnvironment.cpp" />

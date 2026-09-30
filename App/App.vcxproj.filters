@@ -204,6 +204,7 @@
     <ClCompile Include="src\Scenes\TitleMenu.cpp"><Filter>src\Scenes</Filter></ClCompile>
     <ClCompile Include="src\Scenes\GameSettings.cpp"><Filter>src\Scenes</Filter></ClCompile>
     <ClInclude Include="src\Scenes\TitleMenu.h"><Filter>src\Scenes</Filter></ClInclude>
+    <ClInclude Include="src\Scenes\TitleAmbientMotion.h"><Filter>src\Scenes</Filter></ClInclude>
     <ClInclude Include="src\Scenes\GameSettings.h"><Filter>src\Scenes</Filter></ClInclude>
     <ClCompile Include="src\Scenes\TitleUi.cpp"><Filter>src\Scenes</Filter></ClCompile>
     <ClInclude Include="src\Scenes\TitleUi.h"><Filter>src\Scenes</Filter></ClInclude>
@@ -227,5 +228,8 @@
     <None Include="Assets\Textures\Title.png">
       <Filter>Assets\Textures</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\TitleMote.hlsl"><Filter>Shaders</Filter></None>
   </ItemGroup>
 </Project>

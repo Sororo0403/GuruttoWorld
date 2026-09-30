@@ -73,7 +73,7 @@ try {
     Draw-TitleText 'OFF' 412 1276 360 50 $titleWhite
     Draw-TitleText '↑↓ 選択  ←→ 変更  Enter 決定  Esc 取消' 12 1756 1900 42 $titleWhite
     Draw-TitleText '十字キー / 左スティック 変更  A 決定  B 取消' 12 1820 1900 42 $titleWhite
-    Draw-TitleText '背景演出は今後追加する動きに適用されます' 12 1884 1900 42 $titleWhite
+    Draw-TitleText '背景演出：カメラの動きと光の粒' 12 1884 1900 42 $titleWhite
     Draw-TitleText '保存できませんでした。もう一度お試しください' 12 1948 1900 42 $titleWhite
     for ($titleLevel = 0; $titleLevel -le 10; $titleLevel++) {
         Draw-TitleText (($titleLevel * 10).ToString() + ' %') 1036 (1036 + $titleLevel * 64) 360 44 $titleWhite

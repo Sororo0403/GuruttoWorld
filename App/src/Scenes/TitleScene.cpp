@@ -11,6 +11,7 @@ namespace App
     {
         menu_.LoadSettings(GameSettings::Load(GameSettings::UserPath()));
         if (!environment_.Initialize(renderer, root_)) return false;
+        environment_.Update(0.0, menu_.GetSettings().backgroundMotion, false);
         return ui_.Initialize(renderer, root_);
     }
     std::string TitleScene::Update(double deltaSeconds, const Engine::Keyboard& keyboard)
@@ -36,6 +37,8 @@ namespace App
         const auto action = menu_.Update(input, deltaSeconds);
         if (action == TitleMenuAction::SaveSettings)
             menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
+        environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
+            keyboard.IsActive() && menu_.TransitionProgress() == 0.0f);
         if (action == TitleMenuAction::Start) return "Game";
         // WM_QUIT を既存のメッセージループへ送り、GPU 完了待ちと通常の破棄を通します。
         if (action == TitleMenuAction::Exit) PostQuitMessage(0);

@@ -14,6 +14,8 @@ namespace App
         if (!skyTexture->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), {}) ||
             !sky_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), skyTexture, root / "Shaders/TitleSky.hlsl"))
             return false;
+        if (!motes_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), skyTexture,
+            root / "Shaders/TitleMote.hlsl")) return false;
         if (!models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), root / "Shaders/TitleMesh.hlsl"))
             return false;
         const auto commercial = root / "Assets/Models/Title/Commercial";
@@ -150,6 +152,12 @@ namespace App
         return true;
     }
 
+    void TitleEnvironment::Update(double deltaSeconds, bool enabled, bool active)
+    {
+        motion_.Update(deltaSeconds, enabled, active);
+        camera_.SetPosition(motion_.CameraPosition());
+    }
+
     void TitleEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height)
     {
         if (width == 0 || height == 0) return;
@@ -167,5 +175,20 @@ namespace App
             std::max(1.0f, (16.0f / 9.0f) / aspectRatio));
         camera_.SetPerspective(verticalFov, aspectRatio, 0.1f, 220.0f);
         for (const auto& object : objects_) object.Draw(commands, camera_, light_);
+        if (motion_.IsEnabled())
+        {
+            using namespace DirectX;
+            auto billboard = XMMatrixInverse(nullptr, camera_.GetViewMatrix());
+            billboard.r[3] = XMVectorSet(0, 0, 0, 1);
+            const auto viewProjection = camera_.GetViewMatrix() * camera_.GetProjectionMatrix();
+            for (unsigned int index = 0; index < 24; ++index)
+            {
+                const auto mote = motion_.Mote(index);
+                XMFLOAT4X4 matrix;
+                XMStoreFloat4x4(&matrix, XMMatrixScaling(0.075f, 0.075f, 0.075f) * billboard *
+                    XMMatrixTranslation(mote[0], mote[1], mote[2]) * viewProjection);
+                motes_.Draw(commands, matrix, { 1.0f, 0.92f, 0.65f, mote[3] });
+            }
+        }
     }
 }

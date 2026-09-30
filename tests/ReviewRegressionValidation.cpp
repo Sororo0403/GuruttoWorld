@@ -12,6 +12,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 
 namespace
@@ -237,6 +238,36 @@ namespace
         Check(!menu.IsSettingsOpen(), "gamepad back");
     }
 
+    void ValidateAmbientMotion()
+    {
+        App::TitleAmbientMotion motion;
+        const auto original = motion.CameraPosition();
+        motion.Update(0.1, true, true);
+        Check(motion.CameraPosition() != original, "ambient camera advances");
+        const auto paused = motion.CameraPosition();
+        const auto mote = motion.Mote(5);
+        motion.Update(100.0, false, true);
+        Check(!motion.IsEnabled() && motion.CameraPosition() == paused && motion.Mote(5) == mote, "OFF freezes phase and hides motes");
+        motion.Update(100.0, true, false);
+        Check(motion.CameraPosition() == paused && motion.Mote(5) == mote, "inactive background paused");
+        motion.Update(-1.0, true, true);
+        motion.Update(std::numeric_limits<double>::quiet_NaN(), true, true);
+        Check(motion.CameraPosition() == paused, "invalid ambient time ignored");
+        for (int frame = 0; frame < 2500; ++frame)
+        {
+            motion.Update(0.1, true, true);
+            const auto position = motion.CameraPosition();
+            Check(position[0] >= -0.901f && position[0] <= -0.699f &&
+                position[1] >= 1.759f && position[1] <= 1.841f && position[2] == -7.0f, "camera stays within composition bounds");
+            for (unsigned int index = 0; index < 24; ++index)
+            {
+                const auto value = motion.Mote(index);
+                Check(std::isfinite(value[0]) && std::isfinite(value[1]) && std::isfinite(value[2]) &&
+                    value[3] >= 0 && value[3] <= 0.321f, "bounded ambient particle opacity");
+            }
+        }
+    }
+
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
@@ -252,6 +283,17 @@ namespace
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
                 Check(renderer.WaitForIdle(), "title GPU completion");
+                App::TitleEnvironment environment;
+                Check(environment.Initialize(renderer, std::filesystem::absolute("App")), "ambient environment assets");
+                for (int state = 0; state < 3; ++state)
+                {
+                    for (int frame = 0; frame < 30; ++frame) environment.Update(0.1, state != 1, true);
+                    Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
+                    {
+                        environment.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
+                    }) != Engine::RenderResult::Failed, "ambient ON OFF resume rendering");
+                    Check(renderer.WaitForIdle(), "ambient GPU completion");
+                }
                 App::TitleUi ui;
                 Check(ui.Initialize(renderer, std::filesystem::absolute("App")), "settings UI assets");
                 App::TitleMenu animated(true);
@@ -411,6 +453,7 @@ int main()
         ValidateTitleMenu();
         ValidateTitleAnimation();
         ValidateSettings();
+        ValidateAmbientMotion();
         ValidateTitle();
         ValidateMirroredMesh();
         std::cout << "PASS: diagnostics location/overrides, title menu/settings/rendering, mirrored mesh visibility and backface culling\n";
