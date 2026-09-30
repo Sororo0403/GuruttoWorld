@@ -6,6 +6,7 @@ namespace App
 {
     TitleMenuAction TitleMenu::Update(const TitleMenuInput& input, double deltaSeconds)
     {
+        cue_ = TitleMenuCue::None;
         if (!input.active)
         {
             ready_ = false;
@@ -59,6 +60,7 @@ namespace App
         }
         if (settingsOpen_ && (pressed & MenuBack))
         {
+            cue_ = TitleMenuCue::Back;
             draft_ = saved_;
             settingsOpen_ = false;
             saveFailed_ = false;
@@ -69,6 +71,7 @@ namespace App
         {
             if (direction != (MenuUp | MenuDown))
             {
+                cue_ = TitleMenuCue::Select;
                 selectionSeconds_ = 0.16f;
                 const int step = direction == MenuDown ? 1 : 2;
                 if (settingsOpen_) settingsRow_ = (settingsRow_ + step) % 3;
@@ -84,20 +87,24 @@ namespace App
             {
                 if (horizontal != (MenuLeft | MenuRight))
                 {
+                    const auto previous = draft_;
                     if (settingsRow_ == 0) draft_.volume = std::clamp(draft_.volume + (horizontal == MenuRight ? 1 : -1), 0, 10);
                     if (settingsRow_ == 1) draft_.backgroundMotion = horizontal == MenuRight;
+                    if (previous.volume != draft_.volume || previous.backgroundMotion != draft_.backgroundMotion)
+                        cue_ = TitleMenuCue::Select;
                 }
                 return TitleMenuAction::None;
             }
             if (pressed & MenuConfirm)
             {
-                if (settingsRow_ == 1) draft_.backgroundMotion = !draft_.backgroundMotion;
+                if (settingsRow_ == 1) { draft_.backgroundMotion = !draft_.backgroundMotion; cue_ = TitleMenuCue::Confirm; }
                 if (settingsRow_ == 2) return TitleMenuAction::SaveSettings;
             }
             return TitleMenuAction::None;
         }
         if ((pressed & MenuConfirm) != 0)
         {
+            cue_ = TitleMenuCue::Confirm;
             if (selected_ == TitleMenuItem::Settings)
             {
                 settingsOpen_ = true;

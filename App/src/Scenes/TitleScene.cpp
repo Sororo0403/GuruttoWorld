@@ -37,6 +37,7 @@ namespace App
         const auto action = menu_.Update(input, deltaSeconds);
         if (action == TitleMenuAction::SaveSettings)
             menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
+        audio_.Update(root_, menu_, keyboard.IsActive(), deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
             keyboard.IsActive() && menu_.TransitionProgress() == 0.0f);
         if (action == TitleMenuAction::Start) return "Game";

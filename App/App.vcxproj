@@ -273,8 +273,10 @@
     <ClCompile Include="src\Scenes\TitleScene.cpp" />
     <ClCompile Include="src\Scenes\TitleUi.cpp" />
     <ClCompile Include="src\Scenes\TitleMenu.cpp" />
+    <ClCompile Include="src\Scenes\TitleAudio.cpp" />
     <ClCompile Include="src\Scenes\GameSettings.cpp" />
     <ClInclude Include="src\Scenes\TitleMenu.h" />
+    <ClInclude Include="src\Scenes\TitleAudio.h" />
     <ClInclude Include="src\Scenes\TitleAmbientMotion.h" />
     <ClInclude Include="src\Scenes\GameSettings.h" />
     <ClInclude Include="src\Scenes\TitleUi.h" />

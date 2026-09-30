@@ -4,6 +4,7 @@
 #include "TitleMenu.h"
 #include <Engine/Input/Gamepad.h>
 #include "TitleEnvironment.h"
+#include "TitleAudio.h"
 
 namespace App
 {
@@ -32,5 +33,6 @@ namespace App
         TitleMenu menu_;
         Engine::Gamepad gamepad_;
         TitleEnvironment environment_;
+        TitleAudio audio_;
     };
 }

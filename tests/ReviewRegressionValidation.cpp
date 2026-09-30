@@ -268,6 +268,50 @@ namespace
         }
     }
 
+    void ValidateTitleAudio()
+    {
+        using namespace App;
+        TitleMenu menu;
+        TitleMenuInput input;
+        input.active = true;
+        menu.Update(input);
+        input.keyboardButtons = MenuDown;
+        menu.Update(input);
+        Check(menu.GetCue() == TitleMenuCue::Select, "selection cue");
+        menu.Update(input);
+        Check(menu.GetCue() == TitleMenuCue::None, "held input does not repeat cue");
+        input.keyboardButtons = MenuConfirm;
+        menu.Update(input);
+        Check(menu.GetCue() == TitleMenuCue::Confirm, "settings open cue");
+        menu.CompleteSave(false);
+        Check(menu.GetCue() == TitleMenuCue::Error, "failed save error cue");
+        input.keyboardButtons = MenuBack;
+        menu.Update(input);
+        Check(menu.GetCue() == TitleMenuCue::Back, "cancel cue");
+        input.active = false;
+        menu.Update(input);
+        Check(menu.GetCue() == TitleMenuCue::None, "inactive silence");
+        TitleMenu intro(true);
+        input.active = true;
+        input.keyboardButtons = 0;
+        intro.Update(input);
+        input.keyboardButtons = MenuConfirm;
+        intro.Update(input);
+        Check(intro.GetCue() == TitleMenuCue::None, "intro skip does not play confirmation");
+        Engine::AudioSystem audio;
+        Check(audio.Initialize(), "title audio device");
+        for (const auto* file : { "Bgm.wav", "Select.wav", "Confirm.wav", "Back.wav", "Error.wav" })
+        {
+            const auto sound = audio.Load(std::filesystem::path("App/Assets/Audio/Title") / file);
+            Check(sound != 0, "title sound decoding");
+            Check(audio.SetVolume(sound, 0.0f) && audio.GetVolume(sound) == 0.0f, "title sound mute");
+            Check(audio.Play(sound, true) && audio.IsPlaying(sound), "title sound loop playback silently");
+            audio.Stop(sound);
+            Check(!audio.IsPlaying(sound), "title sound stop");
+            audio.Unload(sound);
+        }
+    }
+
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
@@ -454,6 +498,7 @@ int main()
         ValidateTitleAnimation();
         ValidateSettings();
         ValidateAmbientMotion();
+        ValidateTitleAudio();
         ValidateTitle();
         ValidateMirroredMesh();
         std::cout << "PASS: diagnostics location/overrides, title menu/settings/rendering, mirrored mesh visibility and backface culling\n";

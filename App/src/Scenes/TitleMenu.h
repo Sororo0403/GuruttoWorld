@@ -3,6 +3,7 @@
 
 namespace App
 {
+    enum class TitleMenuCue { None, Select, Confirm, Back, Error };
     enum class TitleMenuItem { Start, Settings, Exit };
     enum class TitleMenuAction { None, Start, Exit, SaveSettings };
     enum TitleMenuButton : unsigned int { MenuUp = 1, MenuDown = 2, MenuConfirm = 4, MenuLeft = 8, MenuRight = 16, MenuBack = 32 };
@@ -46,13 +47,16 @@ namespace App
         int GetSettingsRow() const { return settingsRow_; }
         /// <summary>編集中の設定を返します。</summary>
         const GameSettings& GetSettings() const { return draft_; }
+        /// <summary>この更新で発生した操作音を返します。</summary>
+        TitleMenuCue GetCue() const { return cue_; }
         /// <summary>保存済み設定を読み込みます。</summary>
         void LoadSettings(const GameSettings& settings) { saved_ = draft_ = settings; }
         /// <summary>保存成功時だけ設定画面を閉じます。</summary>
-        void CompleteSave(bool success) { saveFailed_ = !success; if (success) { saved_ = draft_; settingsOpen_ = false; } }
+        void CompleteSave(bool success) { cue_ = success ? TitleMenuCue::Confirm : TitleMenuCue::Error; saveFailed_ = !success; if (success) { saved_ = draft_; settingsOpen_ = false; } }
         /// <summary>保存に失敗したか返します。</summary>
         bool SaveFailed() const { return saveFailed_; }
     private:
+        TitleMenuCue cue_ = TitleMenuCue::None;
         float introSeconds_ = 0.65f;
         float selectionSeconds_ = 0.0f;
         float transitionSeconds_ = 0.0f;
