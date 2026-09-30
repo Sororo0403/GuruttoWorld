@@ -11,6 +11,7 @@
       <UniqueIdentifier>{8D7E6AB5-2435-5763-A1D1-7E4132AA6251}</UniqueIdentifier>
     </Filter>
     <Filter Include="Assets\Models\Title" />
+    <Filter Include="Assets\Models\Title\Nature" />
     <Filter Include="Assets\Models\Title\Roads" />
     <Filter Include="Assets\Models\Title\Roads\Textures" />
     <Filter Include="Assets\Models\Title\Commercial" />
@@ -101,6 +102,19 @@
     <None Include="Assets\Models\Title\Roads\License.txt">
       <Filter>Assets\Models\Title\Roads</Filter>
     </None>
+    <None Include="Assets\Models\Title\Nature\grass_large.obj"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Nature\grass_large.mtl"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Nature\flower_yellowA.obj"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Nature\flower_yellowA.mtl"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Nature\tree_small.obj"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Nature\tree_small.mtl"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Nature\plant_bush.obj"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Nature\plant_bush.mtl"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Nature\License.txt"><Filter>Assets\Models\Title\Nature</Filter></None>
+    <None Include="Assets\Models\Title\Roads\road-sign-street.obj"><Filter>Assets\Models\Title\Roads</Filter></None>
+    <None Include="Assets\Models\Title\Roads\road-sign-street.mtl"><Filter>Assets\Models\Title\Roads</Filter></None>
+    <None Include="Assets\Models\Title\Roads\road-sign-empty.obj"><Filter>Assets\Models\Title\Roads</Filter></None>
+    <None Include="Assets\Models\Title\Roads\road-sign-empty.mtl"><Filter>Assets\Models\Title\Roads</Filter></None>
     <None Include="Assets\Models\Cube.obj">
       <Filter>Assets\Models</Filter>
     </None>

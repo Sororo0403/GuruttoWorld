@@ -1,5 +1,33 @@
 # タイトル画面の採用素材
 
+## 植物・看板（段階5、2026-09-30）
+
+### 植物：Kenney Nature Kit
+
+- 作者・配布元：Kenney
+- 配布ページ・CC0 表記確認先：https://kenney.nl/assets/nature-kit
+- 取得元：https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip
+- 取得日：2026-09-30
+- ZIP の SHA-256：FA7974A0D342BFE63C38664BA9F8EC1A4AAB8EA25F099BDC56870E33588C4D9D
+- 配布ページと同梱 License.txt の両方で CC0 を確認。同梱文書のバージョン表記は Nature Kit (2.1)。
+- 保存先：App/Assets/Models/Title/Nature
+- 同梱ライセンス：[License.txt](../App/Assets/Models/Title/Nature/License.txt)
+
+Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_small.obj/.mtl、plant_bush.obj/.mtl を無編集でコピーし、ZIP 直下の License.txt を添えた。MTL は Kd の材質色を指定し、画像を参照しない。透明画像を使わず、草・葉・花はメッシュとして描画する。透過テクスチャ対応を追加したわけではない。
+
+元モデルの高さは草0.254、花0.1925、木1.110037、低木0.2444436。歩道上面 Y=0.16、建物の屋上、橋面に合わせて倍率を変えた。AddGreeneryAndSigns に草32、花12、木6、低木35の計85個を配置。同じモデルは ModelManager で共有し、配置は乱数に依存しない。
+
+### 看板：取得済み City Kit (Roads) 2.1
+
+既存の Roads 取得 ZIP から Models/OBJ format/road-sign-street.obj/.mtl と road-sign-empty.obj/.mtl を無編集で追加。App/Assets/Models/Title/Roads に置き、同梱の colormap.png と License.txt を共有する。出典と取得記録は下記の道路素材の節を参照。
+
+看板は手前右と左奥に1本ずつ配置。独自の文字・ロゴは追加していない。
+
+### 検証状況
+
+- Debug・Development・Release ビルド成功。
+- Release を起動したが、ユーザーの Escape キーで Computer Use が停止したため、配置後の目視と操作確認は未完了。屋上・橋の低木の接地と、看板の向きは実機の目視確認が残る。
+
 ## 制作方針の変更（2026-09-30）
 
 ユーザー指定により、AI 遠景画像を不採用とし、景色は近景から遠景まで CC0 モデルで制作する。未コミットの DistantWorld.png、生成プロンプト文書、画像の読み込み・合成処理、プロジェクト登録を削除した。検討用の TitleScreenReference.png は構図資料としてのみ残し、ゲーム内では使用しない。

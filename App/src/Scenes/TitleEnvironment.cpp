@@ -72,6 +72,7 @@ namespace App
         }
         if (!AddObject(commercial / "building-skyscraper-e.obj", { 2.0f, RoadTop, 94.0f },
             0.1f, { 5.0f, 10.0f, 5.0f })) return false;
+        if (!AddGreeneryAndSigns(root)) return false;
         camera_.SetPosition({ -0.8f, 1.8f, -7.0f });
         camera_.SetRotation(0.03f, 0.13f);
         light_.direction = { -0.5f, -0.8f, 0.6f };
@@ -79,6 +80,53 @@ namespace App
         light_.intensity = 0.65f;
         light_.specularStrength = 0.05f;
         return true;
+    }
+
+    bool TitleEnvironment::AddGreeneryAndSigns(const std::filesystem::path& root)
+    {
+        const auto nature = root / "Assets/Models/Title/Nature";
+        const auto roads = root / "Assets/Models/Title/Roads";
+        constexpr float SidewalkTop = 0.16f;
+        // 透過画像を使わず、草・花・葉の立体形状と材質色を描画します。
+        for (int side : { -1, 1 })
+        {
+            const float direction = static_cast<float>(side);
+            for (int patch = 0; patch < 16; ++patch)
+            {
+                const float index = static_cast<float>(patch);
+                const float z = -1.5f + index * 2.8f + (side < 0 ? 0.7f : 0.0f);
+                const float yaw = index * 0.73f;
+                const float grassScale = 1.5f + static_cast<float>(patch % 3) * 0.25f;
+                if (!AddObject(nature / "grass_large.obj", { direction * 2.35f, SidewalkTop, z }, yaw,
+                    { grassScale, grassScale, grassScale })) return false;
+                if (patch % 2 == 0 && !AddObject(nature / "plant_bush.obj",
+                    { direction * 3.0f, SidewalkTop, z + 0.5f }, yaw, { 3.0f, 2.8f, 2.6f })) return false;
+                if (patch < 6 && !AddObject(nature / "flower_yellowA.obj",
+                    { direction * 2.15f, SidewalkTop, z + 0.35f }, yaw, { 2.0f, 2.0f, 2.0f })) return false;
+            }
+            for (float z : { 9.0f, 23.0f, 40.0f })
+            {
+                if (!AddObject(nature / "tree_small.obj", { direction * 7.0f, 0.08f, z },
+                    direction * 0.4f, { 4.0f, 4.0f, 4.0f })) return false;
+            }
+        }
+        // 実測した建物の高さに合わせて、近景の屋上に低木を置きます。
+        for (int patch = 0; patch < 5; ++patch)
+        {
+            const float offset = static_cast<float>(patch) * 1.0f;
+            if (!AddObject(nature / "plant_bush.obj", { 3.4f, 5.8f, 1.7f + offset }, offset,
+                { 3.5f, 3.0f, 3.0f }) ||
+                !AddObject(nature / "plant_bush.obj", { -3.4f, 5.1f, 3.5f + offset * 0.6f }, offset,
+                { 3.0f, 2.5f, 2.5f })) return false;
+        }
+        for (int patch = -4; patch <= 4; ++patch)
+        {
+            // 橋面の手前側の縁。脚や通路の中央を覆いません。
+            if (!AddObject(nature / "plant_bush.obj", { static_cast<float>(patch) * 1.1f, 4.16f, 16.4f },
+                static_cast<float>(patch) * 0.5f, { 2.8f, 1.8f, 2.0f })) return false;
+        }
+        return AddObject(roads / "road-sign-street.obj", { 2.85f, SidewalkTop, -0.5f }, -0.25f, { 4.0f, 4.0f, 4.0f }) &&
+            AddObject(roads / "road-sign-empty.obj", { -2.85f, SidewalkTop, 10.0f }, 0.3f, { 4.0f, 4.0f, 4.0f });
     }
 
     bool TitleEnvironment::AddObject(const std::filesystem::path& path, const std::array<float, 3>& position,

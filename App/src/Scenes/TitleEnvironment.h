@@ -21,6 +21,10 @@ namespace App
         void Draw(ID3D12GraphicsCommandList* commands, float aspectRatio);
     private:
         /// <summary>
+        /// 歩道・屋上・橋の植生と街路の看板を CC0 モデルで配置します。
+        /// </summary>
+        bool AddGreeneryAndSigns(const std::filesystem::path& root);
+        /// <summary>
         /// 共有モデルに個別の変換を設定して街の配置へ追加します。
         /// </summary>
         bool AddObject(const std::filesystem::path& path, const std::array<float, 3>& position,
