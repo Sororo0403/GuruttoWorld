@@ -57,8 +57,8 @@ namespace App
             float z;
         };
         constexpr BuildingPlacement Buildings[] = {
-            { "building-c.obj", 4.8f, 1.2f }, { "building-h.obj", -4.8f, 5.0f },
-            { "building-e.obj", 4.8f, 12.0f }, { "building-k.obj", -4.8f, 12.0f },
+            { "building-c.obj", 4.8f, -0.2f }, { "building-h.obj", -4.8f, 5.0f },
+            { "building-e.obj", 4.8f, 14.0f }, { "building-k.obj", -4.8f, 12.0f },
             { "building-h.obj", 4.8f, 19.0f }, { "building-c.obj", -4.8f, 20.0f },
             { "building-k.obj", 4.8f, 26.0f }, { "building-e.obj", -4.8f, 27.0f },
             { "building-c.obj", 4.8f, 34.0f }, { "building-h.obj", -4.8f, 35.0f }
@@ -74,9 +74,10 @@ namespace App
         {
             if (!AddObject(commercial / "building-h.obj", { x, RoadTop, 1.8f }, 0.0f,
                 { TileSize, TileSize, TileSize }) ||
-                !AddObject(commercial / "building-e.obj", { x, RoadTop, 10.2f }, DirectX::XM_PI,
+                !AddObject(commercial / "building-e.obj", { x, RoadTop, x == 11.0f ? 14.8f : 10.2f }, DirectX::XM_PI,
                 { TileSize, TileSize, TileSize })) return false;
         }
+        if (!AddAlley(root)) return false;
         // 奥の橋を横方向へ3枚接続。脚を地面に接地させ、橋面は約4単位の高さに置きます。
         for (int tile = -1; tile <= 1; ++tile)
         {
@@ -120,6 +121,41 @@ namespace App
         light_.intensity = 0.72f;
         light_.specularStrength = 0.03f;
         return true;
+    }
+
+    bool TitleEnvironment::AddAlley(const std::filesystem::path& root)
+    {
+        const auto roads = root / "Assets/Models/Title/Roads";
+        const auto nature = root / "Assets/Models/Title/Nature";
+        const auto alley = root / "Assets/Models/Title/Alley";
+        // 横道の一部を奥へ広げる。外周の建物で先を隠し、入口は開けておきます。
+        for (float x : { 8.0f, 12.0f })
+        {
+            if (!AddObject(roads / "tile-low.obj", { x, 0.0f, 10.0f }, 0.0f,
+                { 4.0f, 4.0f, 4.0f })) return false;
+        }
+        // 既存タイルの材質だけを変えた舗装。大通りから植栽の脇へ続きます。
+        // 下地上面0.08より上へ出し、同一平面のちらつきを避けます。
+        constexpr std::array<float, 3> Paving[] = {
+            { 2.9f, 0.08f, 6.0f }, { 4.9f, 0.08f, 6.0f },
+            { 6.9f, 0.08f, 6.0f }, { 8.9f, 0.08f, 6.0f },
+            { 8.9f, 0.08f, 8.0f }, { 8.9f, 0.08f, 10.0f }
+        };
+        for (const auto& position : Paving)
+        {
+            if (!AddObject(alley / "paving.obj", position, 0.0f,
+                { 1.8f, 0.5f, 1.8f })) return false;
+        }
+        // 舗装の曲がった先に小さな植栽をまとめ、入口から一部だけ見せます。
+        constexpr float PlanterTop = 0.40f;
+        return AddObject(roads / "tile-low.obj", { 11.2f, 0.08f, 10.5f }, 0.0f,
+                { 2.4f, 16.0f, 2.0f }) &&
+            AddObject(nature / "tree_small.obj", { 11.2f, PlanterTop, 10.6f }, 0.5f,
+                { 3.2f, 3.2f, 3.2f }) &&
+            AddObject(nature / "plant_bush.obj", { 10.7f, PlanterTop, 10.0f }, 0.2f,
+                { 2.4f, 2.0f, 2.4f }) &&
+            AddObject(nature / "flower_yellowA.obj", { 10.4f, PlanterTop, 10.7f }, 0.0f,
+                { 1.6f, 1.6f, 1.6f });
     }
 
     bool TitleEnvironment::AddGreeneryAndSigns(const std::filesystem::path& root)
