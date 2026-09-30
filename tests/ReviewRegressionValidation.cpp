@@ -77,7 +77,9 @@ namespace
         input.keyboardButtons = 0;
         menu.Update(input);
         input.keyboardButtons = MenuConfirm;
-        Check(menu.Update(input) == TitleMenuAction::Exit, "exit selected");
+        Check(menu.Update(input) == TitleMenuAction::None, "exit begins transition");
+        for (int i = 0; i < 4; ++i) Check(menu.Update(input, 0.1) == TitleMenuAction::None, "exit waits for cover");
+        Check(menu.Update(input, 0.1) == TitleMenuAction::Exit, "exit selected");
         Check(menu.Update(input) == TitleMenuAction::None, "exit emitted only once");
 
         TitleMenu padMenu;
@@ -107,7 +109,9 @@ namespace
         input.keyboardButtons = 0;
         padMenu.Update(input);
         input.gamepadButtons = MenuConfirm;
-        Check(padMenu.Update(input) == TitleMenuAction::Start, "gamepad start");
+        Check(padMenu.Update(input) == TitleMenuAction::None, "gamepad begins transition");
+        for (int i = 0; i < 4; ++i) padMenu.Update(input, 0.1);
+        Check(padMenu.Update(input, 0.1) == TitleMenuAction::Start, "gamepad start");
 
         TitleMenu directions;
         input = {};
@@ -116,6 +120,48 @@ namespace
         input.keyboardButtons = MenuUp | MenuDown;
         directions.Update(input);
         Check(directions.GetSelected() == TitleMenuItem::Start, "opposing directions cancel");
+    }
+
+    void ValidateTitleAnimation()
+    {
+        using namespace App;
+        TitleMenu menu(true);
+        TitleMenuInput input;
+        input.active = true;
+        menu.Update(input, 0.1);
+        input.keyboardButtons = MenuConfirm;
+        Check(menu.Update(input, 0.1) == TitleMenuAction::None && menu.IntroProgress() == 1.0f,
+            "confirm skips intro without starting");
+        Check(menu.Update(input, 0.1) == TitleMenuAction::None && menu.TransitionProgress() == 0,
+            "held skip cannot start game");
+        input.keyboardButtons = 0;
+        menu.Update(input, 0.1);
+        input.keyboardButtons = MenuConfirm;
+        menu.Update(input, 0.1);
+        input.active = false;
+        menu.Update(input, 10.0);
+        Check(menu.TransitionProgress() == 0, "inactive transition paused");
+        input.active = true;
+        for (int i = 0; i < 4; ++i)
+            Check(menu.Update(input, 0.1) == TitleMenuAction::None, "transition holds scene until fully covered");
+        Check(menu.TransitionProgress() == 1.0f, "transition fully covers screen");
+        Check(menu.Update(input, 0.1) == TitleMenuAction::Start, "transition emits start after covered frame");
+        Check(menu.Update(input, 0.1) == TitleMenuAction::None, "transition emitted once");
+        TitleMenu returning(false);
+        Check(returning.IntroProgress() == 1.0f, "revisit skips intro");
+        input.keyboardButtons = 0;
+        returning.Update(input);
+        input.keyboardButtons = MenuDown;
+        returning.Update(input);
+        Check(returning.SelectionPulse() == 1.0f, "selection feedback starts immediately");
+        returning.Update(input, 0.1);
+        returning.Update(input, 0.1);
+        Check(returning.SelectionPulse() == 0, "selection feedback settles");
+        TitleMenu timed(true);
+        timed.Update(input, -1.0);
+        Check(timed.IntroProgress() == 0, "negative time ignored");
+        for (int i = 0; i < 7; ++i) timed.Update(input, 0.1);
+        Check(timed.IntroProgress() == 1.0f && timed.GetSelected() == TitleMenuItem::Start, "intro completes without accidental held navigation");
     }
 
     void ValidateSettings()
@@ -208,6 +254,19 @@ namespace
                 Check(renderer.WaitForIdle(), "title GPU completion");
                 App::TitleUi ui;
                 Check(ui.Initialize(renderer, std::filesystem::absolute("App")), "settings UI assets");
+                App::TitleMenu animated(true);
+                App::TitleMenuInput animationInput;
+                animationInput.active = true;
+                for (int frame = 0; frame < 14; ++frame)
+                {
+                    animationInput.keyboardButtons = frame >= 8 ? App::MenuConfirm : 0;
+                    animated.Update(animationInput, 0.1);
+                    Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
+                    {
+                        ui.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), animated);
+                    }) != Engine::RenderResult::Failed, "animated title rendering");
+                    Check(renderer.WaitForIdle(), "animation GPU completion");
+                }
                 App::TitleMenu menu;
                 App::TitleMenuInput input;
                 input.active = true;
@@ -350,6 +409,7 @@ int main()
     {
         ValidateDiagnostics();
         ValidateTitleMenu();
+        ValidateTitleAnimation();
         ValidateSettings();
         ValidateTitle();
         ValidateMirroredMesh();

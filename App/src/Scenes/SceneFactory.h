@@ -17,5 +17,6 @@ namespace App
         std::unique_ptr<Engine::IScene> Create(std::string_view name) override;
     private:
         std::filesystem::path root_;
+        bool titleVisited_ = false;
     };
 }

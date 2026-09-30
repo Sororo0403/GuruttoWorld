@@ -20,10 +20,18 @@ namespace App
     class TitleMenu final
     {
     public:
+        /// <summary>初回だけ登場演出を有効にします。</summary>
+        explicit TitleMenu(bool playIntro = false) : introSeconds_(playIntro ? 0.0f : 0.65f) {}
+        /// <summary>登場演出の進行率を返します。</summary>
+        float IntroProgress() const { return introSeconds_ / 0.65f; }
+        /// <summary>選択時の強調量を返します。</summary>
+        float SelectionPulse() const { return selectionSeconds_ / 0.16f; }
+        /// <summary>画面遷移の進行率を返します。</summary>
+        float TransitionProgress() const { return transitionSeconds_ / 0.32f; }
         /// <summary>
         /// 入力の立ち上がりで選択・決定します。初回・復帰・接続直後の押下は抑止します。
         /// </summary>
-        TitleMenuAction Update(const TitleMenuInput& input);
+        TitleMenuAction Update(const TitleMenuInput& input, double deltaSeconds = 0.0);
         /// <summary>
         /// 現在の選択項目を返します。
         /// </summary>
@@ -45,6 +53,11 @@ namespace App
         /// <summary>保存に失敗したか返します。</summary>
         bool SaveFailed() const { return saveFailed_; }
     private:
+        float introSeconds_ = 0.65f;
+        float selectionSeconds_ = 0.0f;
+        float transitionSeconds_ = 0.0f;
+        TitleMenuAction pending_ = TitleMenuAction::None;
+        bool transitionEmitted_ = false;
         GameSettings saved_;
         GameSettings draft_;
         int settingsRow_ = 0;

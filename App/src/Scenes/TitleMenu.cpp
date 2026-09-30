@@ -4,11 +4,26 @@
 
 namespace App
 {
-    TitleMenuAction TitleMenu::Update(const TitleMenuInput& input)
+    TitleMenuAction TitleMenu::Update(const TitleMenuInput& input, double deltaSeconds)
     {
         if (!input.active)
         {
             ready_ = false;
+            return TitleMenuAction::None;
+        }
+        const bool entering = introSeconds_ < 0.65f;
+        const float elapsed = std::isfinite(deltaSeconds) ? static_cast<float>(std::clamp(deltaSeconds, 0.0, 0.1)) : 0.0f;
+        introSeconds_ = std::min(0.65f, introSeconds_ + elapsed);
+        selectionSeconds_ = std::max(0.0f, selectionSeconds_ - elapsed);
+        // 覆い切ったフレームを描いてから次の更新で遷移を通知します。
+        if (finished_)
+        {
+            if (transitionSeconds_ >= 0.32f && !transitionEmitted_)
+            {
+                transitionEmitted_ = true;
+                return pending_;
+            }
+            transitionSeconds_ = std::min(0.32f, transitionSeconds_ + elapsed);
             return TitleMenuAction::None;
         }
         unsigned int stick = stickPrevious_;
@@ -36,8 +51,12 @@ namespace App
         ready_ = true;
         if (!input.gamepadConnected || keyboardPressed != 0) usesGamepad_ = false;
         else if (padPressed != 0) usesGamepad_ = true;
-        if (finished_) return TitleMenuAction::None;
         const unsigned int pressed = keyboardPressed | padPressed;
+        if (entering)
+        {
+            if (pressed != 0) introSeconds_ = 0.65f;
+            return TitleMenuAction::None;
+        }
         if (settingsOpen_ && (pressed & MenuBack))
         {
             draft_ = saved_;
@@ -50,6 +69,7 @@ namespace App
         {
             if (direction != (MenuUp | MenuDown))
             {
+                selectionSeconds_ = 0.16f;
                 const int step = direction == MenuDown ? 1 : 2;
                 if (settingsOpen_) settingsRow_ = (settingsRow_ + step) % 3;
                 else selected_ = static_cast<TitleMenuItem>((static_cast<int>(selected_) + step) % 3);
@@ -87,7 +107,9 @@ namespace App
                 return TitleMenuAction::None;
             }
             finished_ = true;
-            return selected_ == TitleMenuItem::Start ? TitleMenuAction::Start : TitleMenuAction::Exit;
+            pending_ = selected_ == TitleMenuItem::Start ? TitleMenuAction::Start : TitleMenuAction::Exit;
+            selectionSeconds_ = 0.16f;
+            return TitleMenuAction::None;
         }
         return TitleMenuAction::None;
     }

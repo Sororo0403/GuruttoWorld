@@ -20,5 +20,6 @@ namespace App
             const TitleMenu& menu) const;
     private:
         Engine::SpriteRenderer atlas_;
+        Engine::SpriteRenderer cover_;
     };
 }

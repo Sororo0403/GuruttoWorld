@@ -13,7 +13,7 @@ namespace App
         /// <summary>
         /// タイトル画像とシェーダーの基準フォルダーを受け取ります。
         /// </summary>
-        explicit TitleScene(std::filesystem::path root);
+        explicit TitleScene(std::filesystem::path root, bool playIntro = true);
         /// <summary>
         /// タイトル画像と CC0 モデルの街並みを初期化します。
         /// </summary>

@@ -5,7 +5,7 @@
 
 namespace App
 {
-    TitleScene::TitleScene(std::filesystem::path root) : root_(std::move(root)) {}
+    TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro) {}
 
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)
     {
@@ -13,7 +13,7 @@ namespace App
         if (!environment_.Initialize(renderer, root_)) return false;
         return ui_.Initialize(renderer, root_);
     }
-    std::string TitleScene::Update(double, const Engine::Keyboard& keyboard)
+    std::string TitleScene::Update(double deltaSeconds, const Engine::Keyboard& keyboard)
     {
         gamepad_.Update(keyboard.IsActive());
         TitleMenuInput input;
@@ -33,7 +33,7 @@ namespace App
         if (gamepad_.IsDown(XINPUT_GAMEPAD_B)) input.gamepadButtons |= MenuBack;
         input.stickX = gamepad_.GetLeftStick()[0];
         input.stickY = gamepad_.GetLeftStick()[1];
-        const auto action = menu_.Update(input);
+        const auto action = menu_.Update(input, deltaSeconds);
         if (action == TitleMenuAction::SaveSettings)
             menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
         if (action == TitleMenuAction::Start) return "Game";
