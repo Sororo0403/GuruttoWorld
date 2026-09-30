@@ -189,6 +189,9 @@
     <None Include="Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
     <None Include="Assets\Textures\Title.png" />
+    <None Include="Assets\Textures\Title\UiAtlas.png" />
+    <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf" />
+    <None Include="Assets\Fonts\MPlus1p\OFL.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\DevTools\DebugPanel.cpp">
@@ -219,6 +222,9 @@
     <Copy SourceFiles="@(ModelAssets)" DestinationFiles="@(ModelAssets->'$(OutDir)Assets\Models\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(OutDir)Licenses" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\Engine\externals\assimp\LICENSE.txt;$(MSBuildThisFileDirectory)..\Engine\externals\assimp\zlib-LICENSE.txt" DestinationFolder="$(OutDir)Licenses" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyTitleFontLicense" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Assets\Fonts\MPlus1p\OFL.txt" DestinationFolder="$(OutDir)Licenses\MPlus1p" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyTextures" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Assets\Textures" />
@@ -264,6 +270,8 @@
     <ClCompile Include="src\Scenes\GameScene.cpp" />
     <ClInclude Include="src\Scenes\TitleScene.h" />
     <ClCompile Include="src\Scenes\TitleScene.cpp" />
+    <ClCompile Include="src\Scenes\TitleUi.cpp" />
+    <ClInclude Include="src\Scenes\TitleUi.h" />
     <ClCompile Include="src\Scenes\TitleEnvironment.cpp" />
     <ClInclude Include="src\Scenes\TitleEnvironment.h" />
     <ClInclude Include="src\Scenes\SceneFactory.h" />

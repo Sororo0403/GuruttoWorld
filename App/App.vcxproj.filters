@@ -201,6 +201,8 @@
     </ClInclude>
     <ClCompile Include="src\Scenes\TitleEnvironment.cpp"><Filter>src\Scenes</Filter></ClCompile>
     <ClInclude Include="src\Scenes\TitleEnvironment.h"><Filter>src\Scenes</Filter></ClInclude>
+    <ClCompile Include="src\Scenes\TitleUi.cpp"><Filter>src\Scenes</Filter></ClCompile>
+    <ClInclude Include="src\Scenes\TitleUi.h"><Filter>src\Scenes</Filter></ClInclude>
     <ClCompile Include="src\Scenes\TitleScene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
@@ -212,6 +214,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="Assets\Textures\Title" />
+    <Filter Include="Assets\Fonts" />
+    <Filter Include="Assets\Fonts\MPlus1p" />
+    <None Include="Assets\Textures\Title\UiAtlas.png"><Filter>Assets\Textures\Title</Filter></None>
+    <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf"><Filter>Assets\Fonts\MPlus1p</Filter></None>
+    <None Include="Assets\Fonts\MPlus1p\OFL.txt"><Filter>Assets\Fonts\MPlus1p</Filter></None>
     <None Include="Assets\Textures\Title.png">
       <Filter>Assets\Textures</Filter>
     </None>

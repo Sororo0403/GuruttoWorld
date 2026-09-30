@@ -41,6 +41,8 @@ Release でも実行してください。診断保存先が LocalAppData/WP1 に
 
 WARP 上のオクルージョンクエリで、通常の三角形と X／XY 鏡映した三角形が同じサンプル数を描画すること、裏向きの面は引き続き除去されることを確認します。Debug では利用可能な D3D12 InfoQueue のエラーも確認します。音量の取得・ミュート・再初期化後の状態は AudioValidation で検証します。
 
-タイトルは全構成で App/Assets/Textures/Title.png を描画します。画像を作り直す場合のみ scripts/GenerateTitleTexture.ps1 を実行してください。通常のビルドでは生成済み画像をコピーします。
+タイトルUIは全構成で App/Assets/Textures/Title/UiAtlas.png を使用します。再生成する場合のみ PowerShell 7で scripts/GenerateTitleUi.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。以前の Title.png は現在のタイトルでは使用しません。
+
+タイトルの回帰検証では1280×720、1024×768、720×1280の非表示ウィンドウで初期化と描画を確認します。
 
 タイトル背景は CC0 の街並み・植生と、TitleSky/TitleMesh の専用シェーダーを描画します。ReviewRegressionValidation のタイトル検証ログは generated/tests/title-rendering.log に保存します。シェーダーは実行時にコンパイルするため、ビルド成功だけでなく Debug・Release の検証実行も確認してください。

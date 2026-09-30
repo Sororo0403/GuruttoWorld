@@ -57,17 +57,21 @@ namespace
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
-        Engine::Window window;
-        Engine::DirectX12Renderer renderer;
-        Check(window.Create(L"Hidden title validation", 640, 360), "title window");
-        Check(renderer.Initialize(window.GetHandle()), "title renderer");
+        constexpr std::array<std::array<int, 2>, 3> TitleSizes{{ {1280, 720}, {1024, 768}, {720, 1280} }};
+        for (const auto& size : TitleSizes)
         {
-            App::TitleScene title(std::filesystem::absolute("App"));
-            Check(title.Initialize(renderer), "title assets and sprite pipeline");
-            Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
-            Check(renderer.WaitForIdle(), "title GPU completion");
+            Engine::Window window;
+            Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden title validation", size[0], size[1]), "title window");
+            Check(renderer.Initialize(window.GetHandle()), "title renderer");
+            {
+                App::TitleScene title(std::filesystem::absolute("App"));
+                Check(title.Initialize(renderer), "title assets and sprite pipeline");
+                Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
+                Check(renderer.WaitForIdle(), "title GPU completion");
+            }
+            CheckGpuMessages(renderer.GetDevice());
         }
-        CheckGpuMessages(renderer.GetDevice());
         Engine::Log::Shutdown();
     }
 

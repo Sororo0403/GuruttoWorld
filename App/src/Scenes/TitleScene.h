@@ -1,6 +1,6 @@
 #pragma once
 #include <Engine/Scenes/IScene.h>
-#include <Engine/Graphics/Renderers/SpriteRenderer.h>
+#include "TitleUi.h"
 #include "TitleEnvironment.h"
 
 namespace App
@@ -26,7 +26,7 @@ namespace App
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer) override;
     private:
         std::filesystem::path root_;
-        Engine::SpriteRenderer title_;
+        TitleUi ui_;
         TitleEnvironment environment_;
     };
 }

@@ -1,5 +1,29 @@
 # タイトル画面の採用素材
 
+## ロゴ・メニュー（段階7、2026-09-30）
+
+- TitleUi がロゴ、サブタイトル、帯、矢印、日本語ラベル、Enter案内を別々に配置する。1280×720を基準に縦横比を維持して拡縮し、余白を中央へ配分する。
+- 仮タイトルは NEW WORLD、サブタイトルは「まだ見ぬ世界へ」。AI画像は使わず、フォントの輪郭と自作の幾何図形で制作した。
+- 素材：App/Assets/Textures/Title/UiAtlas.png（2048×1024、透明PNG）。全UI部品を1枚にまとめ、UV範囲を切り出して描画する。
+- 再生成：PowerShell 7で `pwsh -NoProfile -File scripts/GenerateTitleUi.ps1`。System.Drawing と同梱フォントを使用する。OSへのフォントインストールやネット接続は不要。通常ビルドは生成済みPNGをコピーする。
+- 元の Title.png と GenerateTitleTexture.ps1 は以前のサンプルとして残るが、現在の TitleScene は読み込まない。
+- この段階は見た目の実装。Enterで開始する既存操作を維持し、設定・終了は無効表示。上下選択・ゲームパッド・終了処理は段階8、設定画面は段階9で接続する。
+
+### 使用フォント
+
+- M PLUS 1p Black、Copyright 2016 The M+ Project Authors.
+- 配布元：https://github.com/google/fonts/tree/main/ofl/mplus1p
+- 取得元：https://raw.githubusercontent.com/google/fonts/main/ofl/mplus1p/MPLUS1p-Black.ttf
+- ライセンス取得元：https://raw.githubusercontent.com/google/fonts/main/ofl/mplus1p/OFL.txt
+- 取得日：2026-09-30。SIL Open Font License 1.1（同梱 OFL.txt で確認）。CC0モデルとは別のフォント素材として記録する。
+- 保存先：App/Assets/Fonts/MPlus1p/MPLUS1p-Black.ttf と OFL.txt。フォントは無編集。
+- TTFのSHA-256：815821A62CE085E453AF318CA004768E336329D5A7D6F7BED272E97E7862D43E
+- ビルド時は OFL.txt を出力先の Licenses/MPlus1p にコピーする。実行時にフォントファイルは読み込まず、生成済み文字画像を使う。
+
+### 段階7の確認
+
+Release実機でロゴ・各ラベル・帯・矢印・操作案内と、背後の街並みを確認した。サイズ別の自動描画検証は1280×720、1024×768、720×1280を対象とする。自動検証は文字の視認性の目視評価を代替しない。
+
 ## 色調と奥行き（段階6、2026-09-30）
 
 - TitleSky.hlsl で地平線から上空へ青くなるグラデーションを描く。画像素材は使わず、既存スプライト機能の白1ピクセルテクスチャを描画用に初期化する。
