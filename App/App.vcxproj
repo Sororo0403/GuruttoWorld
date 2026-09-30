@@ -145,6 +145,10 @@
     <None Include="Shaders\Sprite.hlsl" />
     <None Include="Shaders\Sphere.hlsl" />
     <None Include="Shaders\Mesh.hlsl" />
+    <None Include="Assets\Models\Title\Commercial\building-c.obj" />
+    <None Include="Assets\Models\Title\Commercial\building-c.mtl" />
+    <None Include="Assets\Models\Title\Commercial\Textures\colormap.png" />
+    <None Include="Assets\Models\Title\Commercial\License.txt" />
     <None Include="Assets\Models\Cube.obj" />
     <None Include="Assets\Models\Pyramid.obj" />
     <None Include="Assets\Models\Cube.mtl" />

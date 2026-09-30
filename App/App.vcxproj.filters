@@ -10,6 +10,9 @@
     <Filter Include="Assets\Audio">
       <UniqueIdentifier>{8D7E6AB5-2435-5763-A1D1-7E4132AA6251}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Assets\Models\Title" />
+    <Filter Include="Assets\Models\Title\Commercial" />
+    <Filter Include="Assets\Models\Title\Commercial\Textures" />
     <Filter Include="Assets\Models">
       <UniqueIdentifier>{B4A90EE5-EF65-51F5-8D18-8895E8343A71}</UniqueIdentifier>
     </Filter>
@@ -41,6 +44,18 @@
     </None>
     <None Include="Shaders\Mesh.hlsl">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\building-c.obj">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\building-c.mtl">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\Textures\colormap.png">
+      <Filter>Assets\Models\Title\Commercial\Textures</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\License.txt">
+      <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
     <None Include="Assets\Models\Cube.obj">
       <Filter>Assets\Models</Filter>
