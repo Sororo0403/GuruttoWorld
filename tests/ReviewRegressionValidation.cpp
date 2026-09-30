@@ -56,6 +56,7 @@ namespace
 
     void ValidateTitle()
     {
+        Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
         Engine::Window window;
         Engine::DirectX12Renderer renderer;
         Check(window.Create(L"Hidden title validation", 640, 360), "title window");
@@ -67,6 +68,7 @@ namespace
             Check(renderer.WaitForIdle(), "title GPU completion");
         }
         CheckGpuMessages(renderer.GetDevice());
+        Engine::Log::Shutdown();
     }
 
     void ValidateMirroredMesh()

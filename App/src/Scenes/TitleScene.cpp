@@ -21,9 +21,9 @@ namespace App
     }
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)
     {
-        return renderer.Render({ 0.38f, 0.68f, 0.86f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspectRatio)
+        return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float)
         {
-            environment_.Draw(commands, aspectRatio);
+            environment_.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
             const float width = static_cast<float>(renderer.GetWidth());
             const float height = static_cast<float>(renderer.GetHeight());
             const float scale = std::min({ 1.0f, width * 0.46f / 960.0f, height * 0.8f / 320.0f });

@@ -45,6 +45,9 @@
     <None Include="Shaders\Sphere.hlsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\TitleMesh.hlsl"><Filter>Shaders</Filter></None>
+    <None Include="Shaders\TitleSky.hlsl"><Filter>Shaders</Filter></None>
+    <None Include="Shaders\Common\TitleAtmosphere.hlsli"><Filter>Shaders\Common</Filter></None>
     <None Include="Shaders\Mesh.hlsl">
       <Filter>Shaders</Filter>
     </None>

@@ -2,6 +2,7 @@
 #include <Engine/Graphics/Camera.h>
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
+#include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <vector>
 
 namespace Engine { class DirectX12Renderer; }
@@ -16,9 +17,9 @@ namespace App
         /// </summary>
         bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root);
         /// <summary>
-        /// 画面の縦横比を反映し、道路・橋・建物を深度付きで描画します。
+        /// 画面サイズを反映し、空のグラデーションと霞のある街並みを描画します。
         /// </summary>
-        void Draw(ID3D12GraphicsCommandList* commands, float aspectRatio);
+        void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height);
     private:
         /// <summary>
         /// 歩道・屋上・橋の植生と街路の看板を CC0 モデルで配置します。
@@ -30,6 +31,7 @@ namespace App
         bool AddObject(const std::filesystem::path& path, const std::array<float, 3>& position,
             float yaw, const std::array<float, 3>& scale);
         Engine::ModelManager models_;
+        Engine::SpriteRenderer sky_;
         std::vector<Engine::Object3D> objects_;
         Engine::Camera camera_;
         Engine::DirectionalLight light_;

@@ -10,7 +10,11 @@ namespace App
 {
     bool TitleEnvironment::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
-        if (!models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), root / "Shaders/Mesh.hlsl"))
+        auto skyTexture = std::make_shared<Engine::Texture2D>();
+        if (!skyTexture->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), {}) ||
+            !sky_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), skyTexture, root / "Shaders/TitleSky.hlsl"))
+            return false;
+        if (!models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), root / "Shaders/TitleMesh.hlsl"))
             return false;
         const auto commercial = root / "Assets/Models/Title/Commercial";
         const auto roads = root / "Assets/Models/Title/Roads";
@@ -76,9 +80,10 @@ namespace App
         camera_.SetPosition({ -0.8f, 1.8f, -7.0f });
         camera_.SetRotation(0.03f, 0.13f);
         light_.direction = { -0.5f, -0.8f, 0.6f };
-        light_.ambientIntensity = 0.55f;
-        light_.intensity = 0.65f;
-        light_.specularStrength = 0.05f;
+        light_.color = { 1.0f, 0.96f, 0.86f };
+        light_.ambientIntensity = 0.48f;
+        light_.intensity = 0.72f;
+        light_.specularStrength = 0.03f;
         return true;
     }
 
@@ -145,8 +150,18 @@ namespace App
         return true;
     }
 
-    void TitleEnvironment::Draw(ID3D12GraphicsCommandList* commands, float aspectRatio)
+    void TitleEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height)
     {
+        if (width == 0 || height == 0) return;
+        const float viewportWidth = static_cast<float>(width);
+        const float viewportHeight = static_cast<float>(height);
+        const float aspectRatio = viewportWidth / viewportHeight;
+        Engine::SpriteDrawParameters skyParameters;
+        skyParameters.size = { viewportWidth, viewportHeight };
+        // 縦長時はカメラと同じ倍率で空の基準位置を保ちます。
+        const float verticalSpan = std::max(1.0f, (16.0f / 9.0f) / aspectRatio);
+        skyParameters.uvRect = { 0.0f, 0.5f - verticalSpan * 0.5f, 1.0f, 0.5f + verticalSpan * 0.5f };
+        sky_.Draw(commands, width, height, skyParameters);
         // 狭いウィンドウでも16:9時の横方向の構図を保ちます。
         const float verticalFov = 2.0f * std::atan(std::tan(DirectX::XM_PIDIV4 * 0.5f) *
             std::max(1.0f, (16.0f / 9.0f) / aspectRatio));

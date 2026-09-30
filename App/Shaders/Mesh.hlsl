@@ -72,5 +72,11 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     }
     float3 color = albedo.rgb * ambientIntensity;
     color += (albedo.rgb * diffuse + specular) * lightColor * lightIntensity;
+#if defined(TITLE_DISTANCE_HAZE)
+    // TitleMesh.hlsl 経由でのみ有効。ゲーム本編の通常描画には適用しません。
+    float distanceToCamera = length(input.worldPosition - cameraPosition);
+    float haze = smoothstep(24.0f, 155.0f, distanceToCamera) * 0.72f;
+    color = lerp(color, TitleHorizonColor, haze);
+#endif
     return float4(color, albedo.a);
 }
