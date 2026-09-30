@@ -2,6 +2,18 @@
 #include <cmath>
 #include <algorithm>
 
+namespace
+{
+    unsigned int ReadStick(bool connected, float value, unsigned int previous,
+        unsigned int positive, unsigned int negative)
+    {
+        if (!connected || !std::isfinite(value) || std::abs(value) <= 0.3f) return 0;
+        if (value >= 0.55f) return positive;
+        if (value <= -0.55f) return negative;
+        return previous;
+    }
+}
+
 namespace App
 {
     TitleMenuAction TitleMenu::Update(const TitleMenuInput& input, double deltaSeconds)
@@ -27,32 +39,7 @@ namespace App
             transitionSeconds_ = std::min(0.32f, transitionSeconds_ + elapsed);
             return TitleMenuAction::None;
         }
-        unsigned int stick = stickPrevious_;
-        if (!input.gamepadConnected || !std::isfinite(input.stickY) || std::abs(input.stickY) <= 0.3f) stick = 0;
-        else if (input.stickY >= 0.55f) stick = MenuUp;
-        else if (input.stickY <= -0.55f) stick = MenuDown;
-        unsigned int stickX = stickXPrevious_;
-        if (!input.gamepadConnected || !std::isfinite(input.stickX) || std::abs(input.stickX) <= 0.3f) stickX = 0;
-        else if (input.stickX >= 0.55f) stickX = MenuRight;
-        else if (input.stickX <= -0.55f) stickX = MenuLeft;
-        const unsigned int pad = input.gamepadConnected ? input.gamepadButtons : 0;
-        const unsigned int keyboardPressed = ready_ ? input.keyboardButtons & ~keyboardPrevious_ : 0;
-        unsigned int padPressed = 0;
-        if (ready_ && input.gamepadConnected && connectedPrevious_)
-        {
-            padPressed = pad & ~gamepadPrevious_;
-            if (stick != stickPrevious_) padPressed |= stick;
-            if (stickX != stickXPrevious_) padPressed |= stickX;
-        }
-        keyboardPrevious_ = input.keyboardButtons;
-        gamepadPrevious_ = pad;
-        stickPrevious_ = stick;
-        stickXPrevious_ = stickX;
-        connectedPrevious_ = input.gamepadConnected;
-        ready_ = true;
-        if (!input.gamepadConnected || keyboardPressed != 0) usesGamepad_ = false;
-        else if (padPressed != 0) usesGamepad_ = true;
-        const unsigned int pressed = keyboardPressed | padPressed;
+        const unsigned int pressed = ReadPressedButtons(input);
         if (entering)
         {
             if (pressed != 0) introSeconds_ = 0.65f;
@@ -80,28 +67,59 @@ namespace App
             // 選択移動と同じフレームの決定は無視し、意図せぬ終了を防ぎます。
             return TitleMenuAction::None;
         }
-        if (settingsOpen_)
+        if (settingsOpen_) return UpdateSettings(pressed);
+        return UpdateMainMenu(pressed);
+    }
+
+    unsigned int TitleMenu::ReadPressedButtons(const TitleMenuInput& input)
+    {
+        const unsigned int stick = ReadStick(input.gamepadConnected, input.stickY, stickPrevious_, MenuUp, MenuDown);
+        const unsigned int stickX = ReadStick(input.gamepadConnected, input.stickX, stickXPrevious_, MenuRight, MenuLeft);
+        const unsigned int pad = input.gamepadConnected ? input.gamepadButtons : 0;
+        const unsigned int keyboardPressed = ready_ ? input.keyboardButtons & ~keyboardPrevious_ : 0;
+        unsigned int padPressed = 0;
+        if (ready_ && input.gamepadConnected && connectedPrevious_)
         {
-            const unsigned int horizontal = pressed & (MenuLeft | MenuRight);
-            if (horizontal != 0)
+            padPressed = pad & ~gamepadPrevious_;
+            if (stick != stickPrevious_) padPressed |= stick;
+            if (stickX != stickXPrevious_) padPressed |= stickX;
+        }
+        keyboardPrevious_ = input.keyboardButtons;
+        gamepadPrevious_ = pad;
+        stickPrevious_ = stick;
+        stickXPrevious_ = stickX;
+        connectedPrevious_ = input.gamepadConnected;
+        ready_ = true;
+        if (!input.gamepadConnected || keyboardPressed != 0) usesGamepad_ = false;
+        else if (padPressed != 0) usesGamepad_ = true;
+        return keyboardPressed | padPressed;
+    }
+
+    TitleMenuAction TitleMenu::UpdateSettings(unsigned int pressed)
+    {
+        const unsigned int horizontal = pressed & (MenuLeft | MenuRight);
+        if (horizontal != 0)
+        {
+            if (horizontal != (MenuLeft | MenuRight))
             {
-                if (horizontal != (MenuLeft | MenuRight))
-                {
-                    const auto previous = draft_;
-                    if (settingsRow_ == 0) draft_.volume = std::clamp(draft_.volume + (horizontal == MenuRight ? 1 : -1), 0, 10);
-                    if (settingsRow_ == 1) draft_.backgroundMotion = horizontal == MenuRight;
-                    if (previous.volume != draft_.volume || previous.backgroundMotion != draft_.backgroundMotion)
-                        cue_ = TitleMenuCue::Select;
-                }
-                return TitleMenuAction::None;
-            }
-            if (pressed & MenuConfirm)
-            {
-                if (settingsRow_ == 1) { draft_.backgroundMotion = !draft_.backgroundMotion; cue_ = TitleMenuCue::Confirm; }
-                if (settingsRow_ == 2) return TitleMenuAction::SaveSettings;
+                const auto previous = draft_;
+                if (settingsRow_ == 0) draft_.volume = std::clamp(draft_.volume + (horizontal == MenuRight ? 1 : -1), 0, 10);
+                if (settingsRow_ == 1) draft_.backgroundMotion = horizontal == MenuRight;
+                if (previous.volume != draft_.volume || previous.backgroundMotion != draft_.backgroundMotion)
+                    cue_ = TitleMenuCue::Select;
             }
             return TitleMenuAction::None;
         }
+        if (pressed & MenuConfirm)
+        {
+            if (settingsRow_ == 1) { draft_.backgroundMotion = !draft_.backgroundMotion; cue_ = TitleMenuCue::Confirm; }
+            if (settingsRow_ == 2) return TitleMenuAction::SaveSettings;
+        }
+        return TitleMenuAction::None;
+    }
+
+    TitleMenuAction TitleMenu::UpdateMainMenu(unsigned int pressed)
+    {
         if ((pressed & MenuConfirm) != 0)
         {
             cue_ = TitleMenuCue::Confirm;

@@ -28,6 +28,7 @@ namespace App
         /// </summary>
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer) override;
     private:
+        TitleMenuInput ReadMenuInput(const Engine::Keyboard& keyboard) const;
         std::filesystem::path root_;
         TitleUi ui_;
         TitleMenu menu_;

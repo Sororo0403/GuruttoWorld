@@ -53,15 +53,7 @@ namespace App
     }
     std::string GameScene::Update(double deltaSeconds, const Engine::Keyboard& keyboard)
     {
-        if (!audioAttempted_)
-        {
-            audioAttempted_ = true;
-            if (audio_.Initialize())
-            {
-                sound_ = audio_.Load(root_ / "Assets" / "Audio" / "Sample.wav");
-                audio_.SetVolume(sound_, GameSettings::Load(GameSettings::UserPath()).SampleVolume());
-            }
-        }
+        InitializeAudio();
         gamepad_.Update(keyboard.IsActive());
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         frameKeyboard_ = &keyboard;
@@ -73,28 +65,13 @@ namespace App
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         captureKeyboard = ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureKeyboard;
 #endif
-        bool editingUi = false;
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
-        editingUi = ImGui::GetCurrentContext() != nullptr && (ImGui::IsAnyItemActive() || ImGui::GetIO().WantTextInput);
-#endif
+        const bool editingUi = ImGui::GetCurrentContext() != nullptr && (ImGui::IsAnyItemActive() || ImGui::GetIO().WantTextInput);
         if (!editingUi && keyboard.IsPressed(DIK_ESCAPE)) return "Title";
-        if ((keyboard.IsPressed(DIK_SPACE) || gamepad_.IsPressed(XINPUT_GAMEPAD_A)) && !captureKeyboard)
-        {
-            audio_.Play(sound_);
-        }
-        if (gamepad_.IsPressed(XINPUT_GAMEPAD_A) && !captureKeyboard)
-        {
-            gamepad_.Vibrate(0.3f, 0.3f, 0.25f);
-        }
-        if (gamepad_.IsPressed(XINPUT_GAMEPAD_B))
-        {
-            gamepad_.StopVibration();
-        }
-        if (!captureKeyboard)
-        {
-            if (keyboard.IsPressed(DIK_1)) selectedModel_ = 0;
-            if (keyboard.IsPressed(DIK_2)) selectedModel_ = 1;
-        }
+#else
+        if (keyboard.IsPressed(DIK_ESCAPE)) return "Title";
+#endif
+        UpdateControls(keyboard, captureKeyboard);
         particles_.Update(deltaSeconds);
         if (spriteReady_)
         {
@@ -154,5 +131,39 @@ namespace App
         App::LightingPanel::Draw(light_);
         App::UvTransformPanel::Draw(modelUv_, spriteUv_);
 #endif
+    }
+
+    void GameScene::UpdateControls(const Engine::Keyboard& keyboard, bool captureKeyboard)
+    {
+        if ((keyboard.IsPressed(DIK_SPACE) || gamepad_.IsPressed(XINPUT_GAMEPAD_A)) && !captureKeyboard)
+        {
+            audio_.Play(sound_);
+        }
+        if (gamepad_.IsPressed(XINPUT_GAMEPAD_A) && !captureKeyboard)
+        {
+            gamepad_.Vibrate(0.3f, 0.3f, 0.25f);
+        }
+        if (gamepad_.IsPressed(XINPUT_GAMEPAD_B))
+        {
+            gamepad_.StopVibration();
+        }
+        if (!captureKeyboard)
+        {
+            if (keyboard.IsPressed(DIK_1)) selectedModel_ = 0;
+            if (keyboard.IsPressed(DIK_2)) selectedModel_ = 1;
+        }
+    }
+
+    void GameScene::InitializeAudio()
+    {
+        if (!audioAttempted_)
+        {
+            audioAttempted_ = true;
+            if (audio_.Initialize())
+            {
+                sound_ = audio_.Load(root_ / "Assets" / "Audio" / "Sample.wav");
+                audio_.SetVolume(sound_, GameSettings::Load(GameSettings::UserPath()).SampleVolume());
+            }
+        }
     }
 }

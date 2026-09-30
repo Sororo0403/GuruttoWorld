@@ -56,6 +56,9 @@ namespace App
         /// <summary>保存に失敗したか返します。</summary>
         bool SaveFailed() const { return saveFailed_; }
     private:
+        unsigned int ReadPressedButtons(const TitleMenuInput& input);
+        TitleMenuAction UpdateSettings(unsigned int pressed);
+        TitleMenuAction UpdateMainMenu(unsigned int pressed);
         TitleMenuCue cue_ = TitleMenuCue::None;
         float introSeconds_ = 0.65f;
         float selectionSeconds_ = 0.0f;

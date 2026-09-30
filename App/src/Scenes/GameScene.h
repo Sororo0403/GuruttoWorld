@@ -40,6 +40,8 @@ namespace App
         /// </summary>
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer) override;
     private:
+        void InitializeAudio();
+        void UpdateControls(const Engine::Keyboard& keyboard, bool captureKeyboard);
         /// <summary>
         /// Debug / Development の操作パネルを構築します。
         /// </summary>

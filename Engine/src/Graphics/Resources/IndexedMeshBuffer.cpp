@@ -61,16 +61,11 @@ namespace
         return Engine::SignalGpuFence(device, queue, fence.Get(), 1) &&
             Engine::WaitForGpuFence(device, fence.Get(), 1, event.get());
     }
-}
 
-namespace Engine
-{
-    bool CreateIndexedMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue,
-        std::span<const std::byte> vertices, UINT vertexStride, std::span<const std::uint32_t> indices,
-        Microsoft::WRL::ComPtr<ID3D12Resource>& resource,
-        D3D12_VERTEX_BUFFER_VIEW& vertexView, D3D12_INDEX_BUFFER_VIEW& indexView)
+    bool ValidateMeshInput(const ID3D12Device* device, ID3D12CommandQueue* queue,
+        std::span<const std::byte> vertices, UINT vertexStride, std::span<const std::uint32_t> indices)
     {
-        if (device == nullptr || queue == nullptr || resource ||
+        if (device == nullptr || queue == nullptr ||
             queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT ||
             vertexStride == 0 || vertexStride % 4 != 0 || vertices.empty() || indices.empty() ||
             vertices.size() % vertexStride != 0 || vertices.size() > UINT_MAX ||
@@ -83,6 +78,19 @@ namespace Engine
         {
             return false;
         }
+        return true;
+    }
+
+}
+
+namespace Engine
+{
+    bool CreateIndexedMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue,
+        std::span<const std::byte> vertices, UINT vertexStride, std::span<const std::uint32_t> indices,
+        Microsoft::WRL::ComPtr<ID3D12Resource>& resource,
+        D3D12_VERTEX_BUFFER_VIEW& vertexView, D3D12_INDEX_BUFFER_VIEW& indexView)
+    {
+        if (resource || !ValidateMeshInput(device, queue, vertices, vertexStride, indices)) return false;
         ComPtr<ID3D12Resource> buffer;
         const UINT vertexBytes = static_cast<UINT>(vertices.size());
         const UINT indexBytes = static_cast<UINT>(indices.size() * sizeof(std::uint32_t));

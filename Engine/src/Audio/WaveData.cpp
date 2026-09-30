@@ -23,6 +23,59 @@ namespace
         Engine::Log::Error("Invalid or unsupported WAV file (PCM mono/stereo, 8/16/24/32 bit required).");
         return false;
     }
+
+    bool ReadPcmFormat(const unsigned char* data, WAVEFORMATEX& f)
+    {
+        f.wFormatTag = Read16(data);
+        f.nChannels = Read16(data + 2);
+        f.nSamplesPerSec = Read32(data + 4);
+        f.nAvgBytesPerSec = Read32(data + 8);
+        f.nBlockAlign = Read16(data + 12);
+        f.wBitsPerSample = Read16(data + 14);
+        if (f.wFormatTag != WAVE_FORMAT_PCM || (f.nChannels != 1 && f.nChannels != 2) ||
+            (f.wBitsPerSample != 8 && f.wBitsPerSample != 16 && f.wBitsPerSample != 24 && f.wBitsPerSample != 32) ||
+            f.nSamplesPerSec < 8000 || f.nSamplesPerSec > 192000 ||
+            f.nBlockAlign != f.nChannels * (f.wBitsPerSample / 8) ||
+            f.nAvgBytesPerSec != f.nSamplesPerSec * f.nBlockAlign)
+        {
+            return Reject();
+        }
+        return true;
+    }
+
+    bool ReadChunks(const std::vector<unsigned char>& bytes, std::uint64_t end, Engine::WaveData& wave)
+    {
+        Engine::WaveData loaded;
+        bool hasFormat = false, hasData = false;
+        for (std::uint64_t offset = 12; offset < end;)
+        {
+            if (end - offset < 8) return Reject();
+            const auto* chunk = bytes.data() + static_cast<size_t>(offset);
+            const std::uint32_t size = Read32(chunk + 4);
+            const std::uint64_t next = offset + 8 + size + (size & 1);
+            if (next > end) return Reject();
+            const auto* data = chunk + 8;
+            if (std::memcmp(chunk, "fmt ", 4) == 0)
+            {
+                if (hasFormat || size < 16) return Reject();
+                if (!ReadPcmFormat(data, loaded.format)) return false;
+                hasFormat = true;
+            }
+            else if (std::memcmp(chunk, "data", 4) == 0)
+            {
+                if (hasData || size == 0) return Reject();
+                loaded.samples.assign(data, data + size);
+                hasData = true;
+            }
+            offset = next;
+        }
+        if (!hasFormat || !hasData || loaded.samples.size() % loaded.format.nBlockAlign != 0)
+        {
+            return Reject();
+        }
+        wave = std::move(loaded);
+        return true;
+    }
 }
 
 namespace Engine
@@ -52,49 +105,6 @@ namespace Engine
         {
             return Reject();
         }
-        WaveData loaded;
-        bool hasFormat = false, hasData = false;
-        for (std::uint64_t offset = 12; offset < end;)
-        {
-            if (end - offset < 8) return Reject();
-            const auto* chunk = bytes.data() + static_cast<size_t>(offset);
-            const std::uint32_t size = Read32(chunk + 4);
-            const std::uint64_t next = offset + 8 + size + (size & 1);
-            if (next > end) return Reject();
-            const auto* data = chunk + 8;
-            if (std::memcmp(chunk, "fmt ", 4) == 0)
-            {
-                if (hasFormat || size < 16) return Reject();
-                auto& f = loaded.format;
-                f.wFormatTag = Read16(data);
-                f.nChannels = Read16(data + 2);
-                f.nSamplesPerSec = Read32(data + 4);
-                f.nAvgBytesPerSec = Read32(data + 8);
-                f.nBlockAlign = Read16(data + 12);
-                f.wBitsPerSample = Read16(data + 14);
-                if (f.wFormatTag != WAVE_FORMAT_PCM || (f.nChannels != 1 && f.nChannels != 2) ||
-                    (f.wBitsPerSample != 8 && f.wBitsPerSample != 16 && f.wBitsPerSample != 24 && f.wBitsPerSample != 32) ||
-                    f.nSamplesPerSec < 8000 || f.nSamplesPerSec > 192000 ||
-                    f.nBlockAlign != f.nChannels * (f.wBitsPerSample / 8) ||
-                    f.nAvgBytesPerSec != f.nSamplesPerSec * f.nBlockAlign)
-                {
-                    return Reject();
-                }
-                hasFormat = true;
-            }
-            else if (std::memcmp(chunk, "data", 4) == 0)
-            {
-                if (hasData || size == 0) return Reject();
-                loaded.samples.assign(data, data + size);
-                hasData = true;
-            }
-            offset = next;
-        }
-        if (!hasFormat || !hasData || loaded.samples.size() % loaded.format.nBlockAlign != 0)
-        {
-            return Reject();
-        }
-        wave = std::move(loaded);
-        return true;
+        return ReadChunks(bytes, end, wave);
     }
 }

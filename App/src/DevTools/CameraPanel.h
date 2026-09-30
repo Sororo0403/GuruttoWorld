@@ -25,6 +25,8 @@ namespace App
         void CancelDrag() noexcept;
 
     private:
+        void ResetFromKeyboard(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard);
+        void UpdateInput(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds);
         bool dragging_ = false;
     };
 }

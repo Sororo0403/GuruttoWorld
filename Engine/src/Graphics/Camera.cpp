@@ -10,7 +10,7 @@ namespace Engine
     }
     bool Camera::SetPosition(const std::array<float, 3>& position)
     {
-        for (float value : position) if (!std::isfinite(value)) return false;
+        if (!std::all_of(position.begin(), position.end(), [](float value) { return std::isfinite(value); })) return false;
         position_ = position;
         return true;
     }

@@ -3,6 +3,21 @@
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <utility>
 
+namespace
+{
+    unsigned int ReadKeyboardButtons(const Engine::Keyboard& keyboard)
+    {
+        unsigned int buttons = 0;
+        if (keyboard.IsDown(DIK_UP) || keyboard.IsDown(DIK_W)) buttons |= App::MenuUp;
+        if (keyboard.IsDown(DIK_DOWN) || keyboard.IsDown(DIK_S)) buttons |= App::MenuDown;
+        if (keyboard.IsDown(DIK_LEFT) || keyboard.IsDown(DIK_A)) buttons |= App::MenuLeft;
+        if (keyboard.IsDown(DIK_RIGHT) || keyboard.IsDown(DIK_D)) buttons |= App::MenuRight;
+        if (keyboard.IsDown(DIK_ESCAPE)) buttons |= App::MenuBack;
+        if (keyboard.IsDown(DIK_RETURN)) buttons |= App::MenuConfirm;
+        return buttons;
+    }
+}
+
 namespace App
 {
     TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro) {}
@@ -14,18 +29,12 @@ namespace App
         environment_.Update(0.0, menu_.GetSettings().backgroundMotion, false);
         return ui_.Initialize(renderer, root_);
     }
-    std::string TitleScene::Update(double deltaSeconds, const Engine::Keyboard& keyboard)
+    TitleMenuInput TitleScene::ReadMenuInput(const Engine::Keyboard& keyboard) const
     {
-        gamepad_.Update(keyboard.IsActive());
         TitleMenuInput input;
         input.active = keyboard.IsActive();
         input.gamepadConnected = gamepad_.IsConnected();
-        if (keyboard.IsDown(DIK_UP) || keyboard.IsDown(DIK_W)) input.keyboardButtons |= MenuUp;
-        if (keyboard.IsDown(DIK_DOWN) || keyboard.IsDown(DIK_S)) input.keyboardButtons |= MenuDown;
-        if (keyboard.IsDown(DIK_LEFT) || keyboard.IsDown(DIK_A)) input.keyboardButtons |= MenuLeft;
-        if (keyboard.IsDown(DIK_RIGHT) || keyboard.IsDown(DIK_D)) input.keyboardButtons |= MenuRight;
-        if (keyboard.IsDown(DIK_ESCAPE)) input.keyboardButtons |= MenuBack;
-        if (keyboard.IsDown(DIK_RETURN)) input.keyboardButtons |= MenuConfirm;
+        input.keyboardButtons = ReadKeyboardButtons(keyboard);
         if (gamepad_.IsDown(XINPUT_GAMEPAD_DPAD_UP)) input.gamepadButtons |= MenuUp;
         if (gamepad_.IsDown(XINPUT_GAMEPAD_DPAD_DOWN)) input.gamepadButtons |= MenuDown;
         if (gamepad_.IsDown(XINPUT_GAMEPAD_A)) input.gamepadButtons |= MenuConfirm;
@@ -34,6 +43,12 @@ namespace App
         if (gamepad_.IsDown(XINPUT_GAMEPAD_B)) input.gamepadButtons |= MenuBack;
         input.stickX = gamepad_.GetLeftStick()[0];
         input.stickY = gamepad_.GetLeftStick()[1];
+        return input;
+    }
+    std::string TitleScene::Update(double deltaSeconds, const Engine::Keyboard& keyboard)
+    {
+        gamepad_.Update(keyboard.IsActive());
+        const auto input = ReadMenuInput(keyboard);
         const auto action = menu_.Update(input, deltaSeconds);
         if (action == TitleMenuAction::SaveSettings)
             menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));

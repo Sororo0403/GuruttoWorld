@@ -23,23 +23,17 @@ namespace
         return false;
     }
 
-    bool ConfigureReader(IMFSourceReader* reader, WAVEFORMATEX& format)
+    bool IsSupportedPcmFormat(const WAVEFORMATEX& format)
     {
-        ComPtr<IMFMediaType> requested;
-        ComPtr<IMFMediaType> actual;
-        if (!Check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_ALL_STREAMS), FALSE), "Deselect media streams") ||
-            !Check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), TRUE), "Select audio stream") ||
-            !Check(MFCreateMediaType(&requested), "Create PCM type") ||
-            !Check(requested->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio), "Set audio type") ||
-            !Check(requested->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM), "Set PCM subtype") ||
-            !Check(reader->SetCurrentMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), nullptr, requested.Get()), "Configure audio decoder") ||
-            !Check(reader->GetCurrentMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), &actual), "Get PCM type")) return false;
-        WAVEFORMATEX* allocated = nullptr;
-        UINT32 size = 0;
-        const HRESULT result = MFCreateWaveFormatExFromMFMediaType(actual.Get(), &allocated, &size);
-        const std::unique_ptr<WAVEFORMATEX, decltype(&CoTaskMemFree)> owner(allocated, CoTaskMemFree);
-        if (!Check(result, "Convert PCM format") || allocated == nullptr || size < sizeof(WAVEFORMATEX)) return false;
-        format = *allocated;
+        return !(format.wFormatTag != WAVE_FORMAT_PCM || format.cbSize != 0 ||
+            (format.nChannels != 1 && format.nChannels != 2) || format.nSamplesPerSec < 8000 || format.nSamplesPerSec > 192000 ||
+            (format.wBitsPerSample != 8 && format.wBitsPerSample != 16 && format.wBitsPerSample != 24 && format.wBitsPerSample != 32) ||
+            format.nBlockAlign != format.nChannels * (format.wBitsPerSample / 8) ||
+            format.nAvgBytesPerSec != format.nSamplesPerSec * format.nBlockAlign);
+    }
+
+    bool NormalizePcmFormat(const WAVEFORMATEX* allocated, UINT32 size, WAVEFORMATEX& format)
+    {
         if (format.wFormatTag == WAVE_FORMAT_EXTENSIBLE)
         {
             if (size < sizeof(WAVEFORMATEXTENSIBLE) ||
@@ -63,16 +57,32 @@ namespace
             format.wFormatTag = WAVE_FORMAT_PCM;
             format.cbSize = 0;
         }
-        if (format.wFormatTag != WAVE_FORMAT_PCM || format.cbSize != 0 ||
-            (format.nChannels != 1 && format.nChannels != 2) || format.nSamplesPerSec < 8000 || format.nSamplesPerSec > 192000 ||
-            (format.wBitsPerSample != 8 && format.wBitsPerSample != 16 && format.wBitsPerSample != 24 && format.wBitsPerSample != 32) ||
-            format.nBlockAlign != format.nChannels * (format.wBitsPerSample / 8) ||
-            format.nAvgBytesPerSec != format.nSamplesPerSec * format.nBlockAlign)
+        if (!IsSupportedPcmFormat(format))
         {
             Engine::Log::Error("Unsupported decoded PCM format (mono/stereo required).");
             return false;
         }
         return true;
+    }
+
+    bool ConfigureReader(IMFSourceReader* reader, WAVEFORMATEX& format)
+    {
+        ComPtr<IMFMediaType> requested;
+        ComPtr<IMFMediaType> actual;
+        if (!Check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_ALL_STREAMS), FALSE), "Deselect media streams") ||
+            !Check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), TRUE), "Select audio stream") ||
+            !Check(MFCreateMediaType(&requested), "Create PCM type") ||
+            !Check(requested->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio), "Set audio type") ||
+            !Check(requested->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM), "Set PCM subtype") ||
+            !Check(reader->SetCurrentMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), nullptr, requested.Get()), "Configure audio decoder") ||
+            !Check(reader->GetCurrentMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), &actual), "Get PCM type")) return false;
+        WAVEFORMATEX* allocated = nullptr;
+        UINT32 size = 0;
+        const HRESULT result = MFCreateWaveFormatExFromMFMediaType(actual.Get(), &allocated, &size);
+        const std::unique_ptr<WAVEFORMATEX, decltype(&CoTaskMemFree)> owner(allocated, CoTaskMemFree);
+        if (!Check(result, "Convert PCM format") || allocated == nullptr || size < sizeof(WAVEFORMATEX)) return false;
+        format = *allocated;
+        return NormalizePcmFormat(allocated, size, format);
     }
 
     bool AppendSample(IMFSample* sample, std::vector<unsigned char>& samples)

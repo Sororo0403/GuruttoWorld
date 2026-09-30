@@ -8,6 +8,30 @@
 #include <format>
 #include <utility>
 
+namespace
+{
+    bool ReadMaterial(const aiScene& scene, const aiMesh& source, const std::filesystem::path& path,
+        Engine::MeshData& mesh, aiColor3D& diffuse)
+    {
+        if (source.mMaterialIndex < scene.mNumMaterials)
+        {
+            const aiMaterial& material = *scene.mMaterials[source.mMaterialIndex];
+            material.Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
+            aiString texture;
+            if (material.GetTexture(aiTextureType_DIFFUSE, 0, &texture) == AI_SUCCESS)
+            {
+                if (texture.length > 0 && texture.C_Str()[0] == '*')
+                {
+                    Engine::Log::Error("Embedded model textures are not supported.");
+                    return false;
+                }
+                mesh.texturePath = (path.parent_path() / std::filesystem::path(std::u8string(reinterpret_cast<const char8_t*>(texture.C_Str())))).lexically_normal();
+            }
+        }
+        return true;
+    }
+}
+
 namespace Engine
 {
     bool ModelLoader::Load(const std::filesystem::path& path, std::vector<MeshData>& meshes)
@@ -20,7 +44,7 @@ namespace Engine
             aiProcess_ValidateDataStructure);
         if (scene == nullptr || scene->mRootNode == nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0)
         {
-            Log::Error(std::format("Model import failed: {}", importer.GetErrorString()));
+            Engine::Log::Error(std::format("Model import failed: {}", importer.GetErrorString()));
             return false;
         }
         std::vector<MeshData> loaded;
@@ -33,21 +57,7 @@ namespace Engine
             }
             MeshData mesh;
             aiColor3D diffuse(1.0f, 1.0f, 1.0f);
-            if (source.mMaterialIndex < scene->mNumMaterials)
-            {
-                const aiMaterial& material = *scene->mMaterials[source.mMaterialIndex];
-                material.Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-                aiString texture;
-                if (material.GetTexture(aiTextureType_DIFFUSE, 0, &texture) == AI_SUCCESS)
-                {
-                    if (texture.length > 0 && texture.C_Str()[0] == '*')
-                    {
-                        Log::Error("Embedded model textures are not supported.");
-                        return false;
-                    }
-                    mesh.texturePath = (path.parent_path() / std::filesystem::path(std::u8string(reinterpret_cast<const char8_t*>(texture.C_Str())))).lexically_normal();
-                }
-            }
+            if (!ReadMaterial(*scene, source, path, mesh, diffuse)) return false;
             mesh.vertices.reserve(source.mNumVertices);
             for (unsigned int i = 0; i < source.mNumVertices; ++i)
             {
@@ -63,7 +73,7 @@ namespace Engine
                 const aiFace& face = source.mFaces[i];
                 if (face.mNumIndices != 3)
                 {
-                    Log::Error("Model contains a non-triangle face after triangulation.");
+                    Engine::Log::Error("Model contains a non-triangle face after triangulation.");
                     return false;
                 }
                 mesh.indices.insert(mesh.indices.end(), face.mIndices, face.mIndices + 3);
@@ -75,7 +85,7 @@ namespace Engine
         }
         if (loaded.empty())
         {
-            Log::Error("Model contains no drawable triangles.");
+            Engine::Log::Error("Model contains no drawable triangles.");
             return false;
         }
         Log::Info(std::format("OBJ loaded: {} meshes.", loaded.size()));

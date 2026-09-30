@@ -18,9 +18,12 @@ namespace Engine
     {
         const auto found = groups_.find(group);
         if (found == groups_.end() || found->second->particles.size() >= MaxParticlesPerGroup) return false;
-        for (float value : particle.position) if (!std::isfinite(value)) return false;
-        for (float value : particle.velocity) if (!std::isfinite(value)) return false;
-        for (float value : particle.color) if (!std::isfinite(value) || value < 0.0f || value > 1.0f) return false;
+        if (!std::all_of(particle.position.begin(), particle.position.end(),
+            [](float value) { return std::isfinite(value); })) return false;
+        if (!std::all_of(particle.velocity.begin(), particle.velocity.end(),
+            [](float value) { return std::isfinite(value); })) return false;
+        if (!std::all_of(particle.color.begin(), particle.color.end(),
+            [](float value) { return std::isfinite(value) && value >= 0.0f && value <= 1.0f; })) return false;
         if (!std::isfinite(particle.size) || particle.size <= 0 || !std::isfinite(particle.lifetime) || particle.lifetime <= 0) return false;
         Particle spawned = particle;
         spawned.age = 0.0f;

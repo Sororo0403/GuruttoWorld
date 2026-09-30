@@ -164,7 +164,7 @@ namespace Engine
         const std::array<float, 4>& color) const
     {
         if (!initialized_ || commands == nullptr) return;
-        struct Constants { DirectX::XMFLOAT4X4 matrix; std::array<float, 4> color; };
+        struct Constants { DirectX::XMFLOAT4X4 matrix{}; std::array<float, 4> color{}; };
         const Constants constants{ worldViewProjection, color };
         commands->SetPipelineState(pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());

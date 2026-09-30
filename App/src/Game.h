@@ -7,6 +7,6 @@ namespace App
         /// <summary>
         /// Factory とシーン管理を構成し、アプリケーションを実行します。
         /// </summary>
-        int Run();
+        static int Run();
     };
 }
