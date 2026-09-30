@@ -50,6 +50,24 @@ namespace
         return samples;
     }
 
+    void ValidateExtensiblePcmFormats(const std::filesystem::path& folder)
+    {
+        for (DWORD mask : {DWORD(0), DWORD(SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT)})
+        {
+            const auto path = folder / ("24-in-32-" + std::to_string(mask) + ".wav");
+            const auto expected = WritePcmWave(path, 32, 2, true, 24, mask);
+            Engine::WaveData decoded;
+            Check(Engine::DecodeAudioFile(path, decoded) && decoded.format.wBitsPerSample == 32 &&
+                decoded.samples == expected, "left-aligned valid bits preserve samples");
+        }
+        const auto unsupported = folder / "nonstandard-layout.wav";
+        WritePcmWave(unsupported, 24, 2, true, 24, SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
+        Engine::WaveData preserved;
+        preserved.samples = {1, 2, 3};
+        Check(!Engine::DecodeAudioFile(unsupported, preserved) && preserved.samples == std::vector<unsigned char>({1, 2, 3}),
+            "unsupported channel layout rejected without losing output");
+    }
+
     void ValidatePcmFormats(Engine::AudioSystem& audio, const std::filesystem::path& folder)
     {
         for (WORD channels : {WORD(1), WORD(2)})
@@ -73,20 +91,7 @@ namespace
                 }
             }
         }
-        for (DWORD mask : {DWORD(0), DWORD(SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT)})
-        {
-            const auto path = folder / ("24-in-32-" + std::to_string(mask) + ".wav");
-            const auto expected = WritePcmWave(path, 32, 2, true, 24, mask);
-            Engine::WaveData decoded;
-            Check(Engine::DecodeAudioFile(path, decoded) && decoded.format.wBitsPerSample == 32 &&
-                decoded.samples == expected, "left-aligned valid bits preserve samples");
-        }
-        const auto unsupported = folder / "nonstandard-layout.wav";
-        WritePcmWave(unsupported, 24, 2, true, 24, SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
-        Engine::WaveData preserved;
-        preserved.samples = {1, 2, 3};
-        Check(!Engine::DecodeAudioFile(unsupported, preserved) && preserved.samples == std::vector<unsigned char>({1, 2, 3}),
-            "unsupported channel layout rejected without losing output");
+        ValidateExtensiblePcmFormats(folder);
     }
 
     void EncodeAac(const std::filesystem::path& path)

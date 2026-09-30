@@ -164,11 +164,11 @@ namespace Engine
         const std::array<float, 4>& color) const
     {
         if (!initialized_ || commands == nullptr) return;
-        struct Constants { DirectX::XMFLOAT4X4 matrix{}; std::array<float, 4> color{}; };
-        const Constants constants{ worldViewProjection, color };
         commands->SetPipelineState(pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
-        commands->SetGraphicsRoot32BitConstants(0, 20, &constants, 0);
+        // HLSL の行列16要素と色4要素を、それぞれのオフセットへ設定します。
+        commands->SetGraphicsRoot32BitConstants(0, 16, &worldViewProjection, 0);
+        commands->SetGraphicsRoot32BitConstants(0, 4, color.data(), 16);
         ID3D12DescriptorHeap* heaps[] = { texture_->GetDescriptorHeap() };
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, texture_->GetGpuHandle());

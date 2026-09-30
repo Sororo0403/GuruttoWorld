@@ -380,6 +380,19 @@ namespace
         Engine::Log::Shutdown();
     }
 
+    void ValidateOcclusionSamples(ID3D12Resource* readback)
+    {
+        const D3D12_RANGE range{0, sizeof(UINT64) * 4};
+        void* mapped = nullptr;
+        Hr(readback->Map(0, &range, &mapped));
+        const auto* samples = static_cast<const UINT64*>(mapped);
+        const bool visible = samples[0] > 0 && samples[1] == samples[0] && samples[2] == samples[0] && samples[3] == 0;
+        std::cout << "Occlusion samples: " << samples[0] << ", " << samples[1] << ", " << samples[2] << ", " << samples[3] << '\n';
+        const D3D12_RANGE written{0, 0};
+        readback->Unmap(0, &written);
+        Check(visible, "mirrored fronts visible and backface culled");
+    }
+
     void ValidateMirroredMesh()
     {
         ComPtr<IDXGIFactory4> factory;
@@ -476,15 +489,7 @@ namespace
         queue->ExecuteCommandLists(1, lists);
         Check(Engine::SignalGpuFence(device.Get(), queue.Get(), fence.Get(), 1) &&
             Engine::WaitForGpuFence(device.Get(), fence.Get(), 1, nullptr), "mirror GPU completion");
-        const D3D12_RANGE range{0, sizeof(UINT64) * CaseCount};
-        void* mapped = nullptr;
-        Hr(readback->Map(0, &range, &mapped));
-        const auto* samples = static_cast<const UINT64*>(mapped);
-        const bool visible = samples[0] > 0 && samples[1] == samples[0] && samples[2] == samples[0] && samples[3] == 0;
-        std::cout << "Occlusion samples: " << samples[0] << ", " << samples[1] << ", " << samples[2] << ", " << samples[3] << '\n';
-        const D3D12_RANGE written{0, 0};
-        readback->Unmap(0, &written);
-        Check(visible, "mirrored fronts visible and backface culled");
+        ValidateOcclusionSamples(readback.Get());
         CheckGpuMessages(device.Get());
     }
 }
