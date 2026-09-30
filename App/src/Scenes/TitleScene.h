@@ -1,9 +1,7 @@
 #pragma once
 #include <Engine/Scenes/IScene.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
-#include <Engine/Graphics/Models/ModelManager.h>
-#include <Engine/Graphics/Models/Object3D.h>
-#include <Engine/Graphics/Camera.h>
+#include "TitleEnvironment.h"
 
 namespace App
 {
@@ -15,7 +13,7 @@ namespace App
         /// </summary>
         explicit TitleScene(std::filesystem::path root);
         /// <summary>
-        /// タイトル画像と CC0 建物モデルを初期化します。
+        /// タイトル画像と CC0 モデルの街並みを初期化します。
         /// </summary>
         bool Initialize(Engine::DirectX12Renderer& renderer) override;
         /// <summary>
@@ -29,9 +27,6 @@ namespace App
     private:
         std::filesystem::path root_;
         Engine::SpriteRenderer title_;
-        Engine::ModelManager modelManager_;
-        Engine::Object3D building_;
-        Engine::Camera camera_;
-        Engine::DirectionalLight light_;
+        TitleEnvironment environment_;
     };
 }

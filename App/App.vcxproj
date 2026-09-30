@@ -149,6 +149,20 @@
     <None Include="Assets\Models\Title\Commercial\building-c.mtl" />
     <None Include="Assets\Models\Title\Commercial\Textures\colormap.png" />
     <None Include="Assets\Models\Title\Commercial\License.txt" />
+    <None Include="Assets\Models\Title\Commercial\building-e.obj" />
+    <None Include="Assets\Models\Title\Commercial\building-e.mtl" />
+    <None Include="Assets\Models\Title\Commercial\building-h.obj" />
+    <None Include="Assets\Models\Title\Commercial\building-h.mtl" />
+    <None Include="Assets\Models\Title\Commercial\building-k.obj" />
+    <None Include="Assets\Models\Title\Commercial\building-k.mtl" />
+    <None Include="Assets\Models\Title\Roads\road-straight.obj" />
+    <None Include="Assets\Models\Title\Roads\road-straight.mtl" />
+    <None Include="Assets\Models\Title\Roads\road-bridge.obj" />
+    <None Include="Assets\Models\Title\Roads\road-bridge.mtl" />
+    <None Include="Assets\Models\Title\Roads\tile-low.obj" />
+    <None Include="Assets\Models\Title\Roads\tile-low.mtl" />
+    <None Include="Assets\Models\Title\Roads\Textures\colormap.png" />
+    <None Include="Assets\Models\Title\Roads\License.txt" />
     <None Include="Assets\Models\Cube.obj" />
     <None Include="Assets\Models\Pyramid.obj" />
     <None Include="Assets\Models\Cube.mtl" />
@@ -230,6 +244,8 @@
     <ClCompile Include="src\Scenes\GameScene.cpp" />
     <ClInclude Include="src\Scenes\TitleScene.h" />
     <ClCompile Include="src\Scenes\TitleScene.cpp" />
+    <ClCompile Include="src\Scenes\TitleEnvironment.cpp" />
+    <ClInclude Include="src\Scenes\TitleEnvironment.h" />
     <ClInclude Include="src\Scenes\SceneFactory.h" />
     <ClCompile Include="src\Scenes\SceneFactory.cpp" />
   </ItemGroup>

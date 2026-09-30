@@ -19,11 +19,43 @@
 
 採用した4ファイルは元データをそのままコピーしており、変換・編集はしていない。OBJ の mtllib と MTL の Textures/colormap.png という相対参照を維持する。OBJ の元座標範囲は X=-0.441794～0.441794、Y=0～0.893、Z=-0.545～0.545。Y=0 が底面。読み込み時には既存 Assimp 設定で左手系へ変換する。
 
-初期表示はモデルを2倍に拡大し、Y軸に0.55ラジアン回転させる。元モデルの単位を実寸メートルとは仮定しない。後続の街並み配置で統一する。
+段階2の初期表示ではモデルを2倍に拡大し、Y軸に0.55ラジアン回転させた。段階3では建物と道路の基本倍率を4倍に統一した。元モデルの単位を実寸メートルとは仮定しない。
 
 このモデルは不透明の色テクスチャを使う。植物の透過、PBR、法線マップの対応確認まで完了したことは意味しない。色・構図・装飾は後続段階で制作仕様に近づける。
 
 AI のランタイム素材・タイトル専用音源・新規フォントは、この段階では未採用。
+
+### 街並み用に追加した建物（2026-09-30）
+
+同じ取得 ZIP から building-e.obj/.mtl、building-h.obj/.mtl、building-k.obj/.mtl を Commercial フォルダーへ追加した。全6ファイルを無編集で採用し、既存の Textures/colormap.png と License.txt を共有する。
+
+## 道路・橋：Kenney City Kit (Roads) 2.1
+
+- 作者・配布元：Kenney
+- 配布ページ・CC0 表記確認先：https://kenney.nl/assets/city-kit-roads
+- 取得元：https://kenney.nl/media/pages/assets/city-kit-roads/74288c9459-1787042796/kenney_city-kit-roads.zip
+- 取得日：2026-09-30
+- ZIP の SHA-256：22058AF3D68173A7CF9BDA9F0E243A8CEF6BD68168C302EBC76327063849674E
+- 配布ページと同梱 License.txt で CC0 を確認した。
+- 保存先：App/Assets/Models/Title/Roads
+- 同梱ライセンス：[License.txt](../App/Assets/Models/Title/Roads/License.txt)
+
+Models/OBJ format 内の road-straight.obj/.mtl、road-bridge.obj/.mtl、tile-low.obj/.mtl、Textures/colormap.png、および ZIP 直下の License.txt を無編集で採用した。MTL とテクスチャの相対参照を維持している。
+
+road-straight と tile-low は X/Z が -0.5～0.5、Y が 0～0.02。通常倍率4でタイル幅4、上面高さ0.08となる。road-bridge は Y が0～0.52で、Y方向倍率8により上部を約4単位の高さに置く。道路は90度回転して通りに沿わせ、橋は横断方向に3枚接続する。tile-low は歩道と周囲の地面にも使用する。
+
+## 街並みの配置
+
+TitleEnvironment に建物10棟、道路14枚、歩道28枚、橋3枚、地面1枚を配置した。同じモデルは ModelManager を通して共有する。道路に面して建物を左右交互に置き、近景の建物から橋と通りの奥へ視線が抜ける構図とした。
+
+カメラは (-0.8, 1.8, -7.0)、ヨー0.03、ピッチ0.13ラジアンの固定視点。16:9より狭い画面では縦方向の画角を広げ、横方向の構図を維持する。遠景・植物・正式なロゴとメニューは後続段階で追加する。
+
+### 段階3の検証
+
+- 最終の道路・橋の向き修正後に Debug・Development・Release ビルド成功。
+- 向き修正前の Debug 回帰検証でタイトル初期化・描画・GPU処理完了に成功。
+- Release 実機で建物・道路・橋と既存のタイトル案内の表示を目視した。道路の向きの問題を確認し、修正した。
+- その後ユーザーの Escape キーで Computer Use が停止したため、向き修正後の目視、サイズ変更、Enter／Escape の往復操作は未確認。
 
 ## 再取得
 

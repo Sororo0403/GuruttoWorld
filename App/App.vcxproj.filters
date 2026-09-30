@@ -11,6 +11,8 @@
       <UniqueIdentifier>{8D7E6AB5-2435-5763-A1D1-7E4132AA6251}</UniqueIdentifier>
     </Filter>
     <Filter Include="Assets\Models\Title" />
+    <Filter Include="Assets\Models\Title\Roads" />
+    <Filter Include="Assets\Models\Title\Roads\Textures" />
     <Filter Include="Assets\Models\Title\Commercial" />
     <Filter Include="Assets\Models\Title\Commercial\Textures" />
     <Filter Include="Assets\Models">
@@ -56,6 +58,48 @@
     </None>
     <None Include="Assets\Models\Title\Commercial\License.txt">
       <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\building-e.obj">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\building-e.mtl">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\building-h.obj">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\building-h.mtl">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\building-k.obj">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Commercial\building-k.mtl">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Roads\road-straight.obj">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Roads\road-straight.mtl">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Roads\road-bridge.obj">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Roads\road-bridge.mtl">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Roads\tile-low.obj">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Roads\tile-low.mtl">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Roads\Textures\colormap.png">
+      <Filter>Assets\Models\Title\Roads\Textures</Filter>
+    </None>
+    <None Include="Assets\Models\Title\Roads\License.txt">
+      <Filter>Assets\Models\Title\Roads</Filter>
     </None>
     <None Include="Assets\Models\Cube.obj">
       <Filter>Assets\Models</Filter>
@@ -134,6 +178,8 @@
     <ClInclude Include="src\Scenes\TitleScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
+    <ClCompile Include="src\Scenes\TitleEnvironment.cpp"><Filter>src\Scenes</Filter></ClCompile>
+    <ClInclude Include="src\Scenes\TitleEnvironment.h"><Filter>src\Scenes</Filter></ClInclude>
     <ClCompile Include="src\Scenes\TitleScene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
