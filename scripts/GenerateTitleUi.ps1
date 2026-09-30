@@ -5,7 +5,7 @@ Add-Type -AssemblyName System.Drawing
 $titleRoot = Split-Path $PSScriptRoot -Parent
 $titleFonts = [System.Drawing.Text.PrivateFontCollection]::new()
 $titleFonts.AddFontFile((Join-Path $titleRoot 'App/Assets/Fonts/MPlus1p/MPLUS1p-Black.ttf'))
-$titleBitmap = [System.Drawing.Bitmap]::new(2048, 1024)
+$titleBitmap = [System.Drawing.Bitmap]::new(2048, 2048)
 $titleGraphics = [System.Drawing.Graphics]::FromImage($titleBitmap)
 $titleWhite = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::White)
 $titleInk = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(10, 16, 24))
@@ -66,6 +66,18 @@ try {
     Draw-TitleText 'まだ見ぬ世界へ' 12 780 920 42 $titleWhite
     Draw-TitleText '↑↓ 選択   Enter 決定' 12 844 920 42 $titleWhite
     Draw-TitleText '十字キー / 左スティック 選択   A 決定' 12 924 1380 42 $titleWhite
+    Draw-TitleText '音量' 12 1036 780 60 $titleWhite
+    Draw-TitleText '背景演出' 12 1116 780 60 $titleWhite
+    Draw-TitleText '保存して戻る' 12 1196 780 60 $titleWhite
+    Draw-TitleText 'ON' 12 1276 360 50 $titleWhite
+    Draw-TitleText 'OFF' 412 1276 360 50 $titleWhite
+    Draw-TitleText '↑↓ 選択  ←→ 変更  Enter 決定  Esc 取消' 12 1756 1900 42 $titleWhite
+    Draw-TitleText '十字キー / 左スティック 変更  A 決定  B 取消' 12 1820 1900 42 $titleWhite
+    Draw-TitleText '背景演出は今後追加する動きに適用されます' 12 1884 1900 42 $titleWhite
+    Draw-TitleText '保存できませんでした。もう一度お試しください' 12 1948 1900 42 $titleWhite
+    for ($titleLevel = 0; $titleLevel -le 10; $titleLevel++) {
+        Draw-TitleText (($titleLevel * 10).ToString() + ' %') 1036 (1036 + $titleLevel * 64) 360 44 $titleWhite
+    }
     $titleOutput = Join-Path $titleRoot 'App/Assets/Textures/Title/UiAtlas.png'
     $titleBitmap.Save($titleOutput, [System.Drawing.Imaging.ImageFormat]::Png)
 }

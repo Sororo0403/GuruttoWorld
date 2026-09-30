@@ -1,4 +1,5 @@
 #include "GameScene.h"
+#include "GameSettings.h"
 #include <cmath>
 #include <numbers>
 #include <utility>
@@ -58,7 +59,7 @@ namespace App
             if (audio_.Initialize())
             {
                 sound_ = audio_.Load(root_ / "Assets" / "Audio" / "Sample.wav");
-                audio_.SetVolume(sound_, 0.25f);
+                audio_.SetVolume(sound_, GameSettings::Load(GameSettings::UserPath()).SampleVolume());
             }
         }
         gamepad_.Update(keyboard.IsActive());

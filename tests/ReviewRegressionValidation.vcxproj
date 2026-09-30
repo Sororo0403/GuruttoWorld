@@ -94,6 +94,7 @@
     <ClCompile Include="..\App\src\Scenes\TitleScene.cpp" />
     <ClCompile Include="..\App\src\Scenes\TitleUi.cpp" />
     <ClCompile Include="..\App\src\Scenes\TitleMenu.cpp" />
+    <ClCompile Include="..\App\src\Scenes\GameSettings.cpp" />
     <ClCompile Include="..\App\src\Scenes\TitleEnvironment.cpp" />
   </ItemGroup>
   <ItemGroup>

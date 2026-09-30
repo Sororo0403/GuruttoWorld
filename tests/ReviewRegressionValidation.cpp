@@ -65,8 +65,8 @@ namespace
         Check(menu.Update(input) == TitleMenuAction::None, "suppress confirm held on entry");
         input.keyboardButtons = 0;
         menu.Update(input);
-        input.keyboardButtons = MenuDown;
-        Check(menu.Update(input) == TitleMenuAction::None && menu.GetSelected() == TitleMenuItem::Exit, "skip disabled settings");
+        input.keyboardButtons = MenuUp;
+        Check(menu.Update(input) == TitleMenuAction::None && menu.GetSelected() == TitleMenuItem::Exit, "wrap to exit");
         menu.Update(input);
         Check(menu.GetSelected() == TitleMenuItem::Exit, "held navigation does not repeat");
         input.active = false;
@@ -93,12 +93,12 @@ namespace
         padMenu.Update(input);
         input.stickY = -0.8f;
         padMenu.Update(input);
-        Check(padMenu.GetSelected() == TitleMenuItem::Exit && padMenu.UsesGamepad(), "stick selection and device hint");
+        Check(padMenu.GetSelected() == TitleMenuItem::Settings && padMenu.UsesGamepad(), "stick selection and device hint");
         input.stickY = -0.4f;
         padMenu.Update(input);
         input.stickY = -0.6f;
         padMenu.Update(input);
-        Check(padMenu.GetSelected() == TitleMenuItem::Exit, "stick hysteresis avoids repeated navigation");
+        Check(padMenu.GetSelected() == TitleMenuItem::Settings, "stick hysteresis avoids repeated navigation");
         input.stickY = 0;
         padMenu.Update(input);
         input.keyboardButtons = MenuUp | MenuConfirm;
@@ -118,6 +118,79 @@ namespace
         Check(directions.GetSelected() == TitleMenuItem::Start, "opposing directions cancel");
     }
 
+    void ValidateSettings()
+    {
+        using namespace App;
+        const auto folder = std::filesystem::path("generated/tests/settings") / std::to_string(GetTickCount64());
+        const auto path = folder / "settings.txt";
+        Check(GameSettings::UserPath() == Engine::GetDiagnosticsRoot() / "settings.txt", "user settings location");
+        Check(GameSettings::Load(path).volume == 10, "missing settings defaults");
+        GameSettings settings{ 3, false };
+        Check(settings.Save(path), "save settings");
+        const auto restored = GameSettings::Load(path);
+        Check(restored.volume == 3 && !restored.backgroundMotion, "settings survive reload");
+        Check(restored.SampleVolume() > 0.074f && restored.SampleVolume() < 0.076f, "sample audio multiplier");
+        Check(GameSettings{ 0, true }.SampleVolume() == 0.0f, "mute sample audio");
+        Check(GameSettings{ 7, true }.Save(path) && GameSettings::Load(path).volume == 7, "replace existing settings");
+        Check(!settings.Save(path / "blocked.txt") && GameSettings::Load(path).volume == 7, "failed save preserves settings");
+        for (const auto* invalid : { "", "WP1_SETTINGS 2 5 1", "WP1_SETTINGS 1 -1 1", "WP1_SETTINGS 1 11 1",
+            "WP1_SETTINGS 1 3 2", "WP1_SETTINGS 1 nan 1", "WP1_SETTINGS 1 3", "WP1_SETTINGS 1 3 1 trailing" })
+        {
+            { std::ofstream stream(path); stream << invalid; }
+            const auto fallback = GameSettings::Load(path);
+            Check(fallback.volume == 10 && fallback.backgroundMotion, "invalid settings default safely");
+        }
+        TitleMenu menu;
+        menu.LoadSettings(settings);
+        TitleMenuInput input;
+        input.active = true;
+        menu.Update(input);
+        const auto press = [&](unsigned int buttons)
+        {
+            input.keyboardButtons = 0;
+            menu.Update(input);
+            input.keyboardButtons = buttons;
+            return menu.Update(input);
+        };
+        press(MenuDown);
+        press(MenuConfirm);
+        Check(menu.IsSettingsOpen(), "settings opens");
+        Check(menu.Update(input) == TitleMenuAction::None && menu.GetSettingsRow() == 0, "held confirm cannot modify settings");
+        for (int i = 0; i < 20; ++i) press(MenuLeft);
+        Check(menu.GetSettings().volume == 0, "volume lower bound");
+        for (int i = 0; i < 20; ++i) press(MenuRight);
+        Check(menu.GetSettings().volume == 10, "volume upper bound");
+        press(MenuBack);
+        Check(!menu.IsSettingsOpen() && menu.GetSettings().volume == 3, "cancel restores saved settings");
+        press(MenuConfirm);
+        press(MenuLeft);
+        press(MenuDown);
+        press(MenuConfirm);
+        Check(menu.GetSettings().backgroundMotion, "toggle background motion");
+        press(MenuDown);
+        Check(press(MenuConfirm) == TitleMenuAction::SaveSettings, "save requested");
+        menu.CompleteSave(false);
+        Check(menu.IsSettingsOpen() && menu.SaveFailed(), "save error remains visible");
+        Check(press(MenuConfirm) == TitleMenuAction::SaveSettings, "retry save");
+        menu.CompleteSave(true);
+        Check(!menu.IsSettingsOpen() && !menu.SaveFailed(), "successful save closes settings");
+        press(MenuConfirm);
+        Check(menu.GetSettings().volume == 2 && menu.GetSettings().backgroundMotion, "reopening preserves saved values");
+        input.keyboardButtons = 0;
+        input.gamepadConnected = true;
+        input.stickX = 1.0f;
+        menu.Update(input);
+        Check(menu.GetSettings().volume == 2, "suppress horizontal stick held on connection");
+        input.stickX = 0;
+        menu.Update(input);
+        input.stickX = -1;
+        menu.Update(input);
+        Check(menu.GetSettings().volume == 1 && menu.UsesGamepad(), "gamepad adjusts volume");
+        input.gamepadButtons = MenuBack;
+        menu.Update(input);
+        Check(!menu.IsSettingsOpen(), "gamepad back");
+    }
+
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
@@ -133,6 +206,29 @@ namespace
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
                 Check(renderer.WaitForIdle(), "title GPU completion");
+                App::TitleUi ui;
+                Check(ui.Initialize(renderer, std::filesystem::absolute("App")), "settings UI assets");
+                App::TitleMenu menu;
+                App::TitleMenuInput input;
+                input.active = true;
+                menu.Update(input);
+                input.keyboardButtons = App::MenuDown;
+                menu.Update(input);
+                input.keyboardButtons = App::MenuConfirm;
+                menu.Update(input);
+                for (int row = 0; row < 3; ++row)
+                {
+                    menu.CompleteSave(false);
+                    Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
+                    {
+                        ui.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), menu);
+                    }) != Engine::RenderResult::Failed, "settings UI rendering");
+                    Check(renderer.WaitForIdle(), "settings GPU completion");
+                    input.keyboardButtons = 0;
+                    menu.Update(input);
+                    input.keyboardButtons = App::MenuDown;
+                    menu.Update(input);
+                }
             }
             CheckGpuMessages(renderer.GetDevice());
         }
@@ -254,9 +350,10 @@ int main()
     {
         ValidateDiagnostics();
         ValidateTitleMenu();
+        ValidateSettings();
         ValidateTitle();
         ValidateMirroredMesh();
-        std::cout << "PASS: diagnostics location/overrides, title rendering, mirrored mesh visibility and backface culling\n";
+        std::cout << "PASS: diagnostics location/overrides, title menu/settings/rendering, mirrored mesh visibility and backface culling\n";
         return 0;
     }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }

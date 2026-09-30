@@ -12,7 +12,7 @@ namespace App
     }
 
     void TitleUi::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height,
-        TitleMenuItem selected, bool gamepad) const
+        const TitleMenu& menu) const
     {
         if (width == 0 || height == 0) return;
         const float viewportWidth = static_cast<float>(width);
@@ -24,8 +24,8 @@ namespace App
             const std::array<float, 4>& color, float rotation = 0.0f)
         {
             Engine::SpriteDrawParameters part;
-            part.uvRect = { source[0] / 2048.0f, source[1] / 1024.0f,
-                (source[0] + source[2]) / 2048.0f, (source[1] + source[3]) / 1024.0f };
+            part.uvRect = { source[0] / 2048.0f, source[1] / 2048.0f,
+                (source[0] + source[2]) / 2048.0f, (source[1] + source[3]) / 2048.0f };
             part.position = { left + destination[0] * scale, top + destination[1] * scale };
             part.size = { destination[2] * scale, destination[3] * scale };
             part.color = color;
@@ -37,6 +37,31 @@ namespace App
         constexpr std::array<float, 4> Cream{ 1.0f, 0.973f, 0.882f, 1.0f };
         constexpr std::array<float, 4> Pink{ 1.0f, 0.208f, 0.545f, 1.0f };
         constexpr std::array<float, 4> Band{ 1024.0f, 0.0f, 1000.0f, 200.0f };
+        const bool gamepad = menu.UsesGamepad();
+        const auto selected = menu.GetSelected();
+        if (menu.IsSettingsOpen())
+        {
+            drawPart(Band, { 100, 90, 1080, 540 }, Ink);
+            drawPart({ 0, 608, 800, 80 }, { 200, 120, 500, 50 }, Cream);
+            for (int row = 0; row < 3; ++row)
+            {
+                const float y = 225.0f + row * 95.0f;
+                const bool active = menu.GetSettingsRow() == row;
+                drawPart(Band, { 165, y - 8, 930, 80 }, active ? Pink : Ink);
+                drawPart({ 0, 1024.0f + row * 80, 800, 80 }, { 210, y, 440, 44 }, active ? Ink : White);
+                if (row == 0)
+                    drawPart({ 1024, 1024.0f + menu.GetSettings().volume * 64, 400, 64 },
+                        { 855, y + 3, 200, 32 }, active ? Ink : White);
+                if (row == 1)
+                    drawPart({ menu.GetSettings().backgroundMotion ? 0.0f : 400.0f, 1264, 400, 64 },
+                        { 855, y + 3, 200, 32 }, active ? Ink : White);
+            }
+            drawPart({ 0, 1872, 1920, 64 }, { 185, 510, 900, 30 }, Cream);
+            if (menu.SaveFailed()) drawPart({ 0, 1936, 1920, 64 }, { 185, 555, 900, 30 }, Pink);
+            drawPart(Band, { 100, 649, 1080, 46 }, Ink);
+            drawPart({ 0, gamepad ? 1808.0f : 1744.0f, 1920, 64 }, { 150, 655, 960, 32 }, White);
+            return;
+        }
         drawPart({ 0, 0, 1024, 480 }, { 28, 36, 550, 258 }, White, -0.055f);
         drawPart(Band, { 50, 302, 450, 48 }, Ink, -0.055f);
         drawPart({ 0, 768, 940, 64 }, { 91, 308, 470, 32 }, White, -0.055f);
@@ -53,7 +78,7 @@ namespace App
                 drawPart({ 1024, 224, 128, 160 }, { 61, y + 20, 28, 35 }, Ink);
             }
             else drawPart(Band, { 48, y + 8, row == 0 ? 300.0f : 220.0f, 58 }, Ink, -0.035f);
-            const auto color = row == 1 ? std::array<float, 4>{ 1, 1, 1, 0.45f } : active ? Ink : White;
+            const auto color = active ? Ink : White;
             const float labelHeight = row == 0 ? 96.0f : 80.0f;
             drawPart({ 0, LabelTop[row], 800, labelHeight },
                 { active ? 105.0f : 83.0f, y + 16, 400, labelHeight * 0.5f }, color);
