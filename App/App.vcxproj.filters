@@ -104,6 +104,10 @@
     <None Include="Assets\Models\Cube.obj">
       <Filter>Assets\Models</Filter>
     </None>
+    <None Include="Assets\Models\Title\Commercial\building-skyscraper-a.obj"><Filter>Assets\Models\Title\Commercial</Filter></None>
+    <None Include="Assets\Models\Title\Commercial\building-skyscraper-a.mtl"><Filter>Assets\Models\Title\Commercial</Filter></None>
+    <None Include="Assets\Models\Title\Commercial\building-skyscraper-e.obj"><Filter>Assets\Models\Title\Commercial</Filter></None>
+    <None Include="Assets\Models\Title\Commercial\building-skyscraper-e.mtl"><Filter>Assets\Models\Title\Commercial</Filter></None>
     <None Include="Assets\Models\Pyramid.obj">
       <Filter>Assets\Models</Filter>
     </None>

@@ -1,5 +1,19 @@
 # タイトル画面の採用素材
 
+## 制作方針の変更（2026-09-30）
+
+ユーザー指定により、AI 遠景画像を不採用とし、景色は近景から遠景まで CC0 モデルで制作する。未コミットの DistantWorld.png、生成プロンプト文書、画像の読み込み・合成処理、プロジェクト登録を削除した。検討用の TitleScreenReference.png は構図資料としてのみ残し、ゲーム内では使用しない。
+
+## CC0 の遠景（段階4）
+
+既存の Kenney City Kit (Commercial) 2.1 の取得 ZIP から、Models/OBJ format/building-skyscraper-a.obj/.mtl と building-skyscraper-e.obj/.mtl の計4ファイルを無編集で追加した。保存先は App/Assets/Models/Title/Commercial。既存の Textures/colormap.png、License.txt、下記配布元・取得記録を共有する。
+
+- 高層モデル a：元座標の高さ 2.88。左右の遠景に4棟を配置。
+- 高層モデル e：元座標の高さ 4.08。通りの奥 (2, 0.08, 94) に、拡縮 (5, 10, 5) で1棟を配置。環状の塔の再現ではなく、既存CC0高層ビルを目印にしている。
+- 既存建物 e/k を遠景に4棟追加。近景10棟と合わせて計19棟。
+- 道路を24枚、歩道を48枚へ延長。地面は幅160・奥行180に拡大し、遠景も接地させる。橋3枚は維持する。
+- 遠クリップを220に拡大。背景は青色のクリア色とし、AI画像・スカイボックス画像は使わない。雲・植生は後続段階。
+
 ## 建物モデル：Kenney City Kit (Commercial) 2.1
 
 - 作者・配布元：Kenney

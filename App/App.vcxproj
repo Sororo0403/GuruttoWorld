@@ -164,6 +164,10 @@
     <None Include="Assets\Models\Title\Roads\Textures\colormap.png" />
     <None Include="Assets\Models\Title\Roads\License.txt" />
     <None Include="Assets\Models\Cube.obj" />
+    <None Include="Assets\Models\Title\Commercial\building-skyscraper-a.obj" />
+    <None Include="Assets\Models\Title\Commercial\building-skyscraper-a.mtl" />
+    <None Include="Assets\Models\Title\Commercial\building-skyscraper-e.obj" />
+    <None Include="Assets\Models\Title\Commercial\building-skyscraper-e.mtl" />
     <None Include="Assets\Models\Pyramid.obj" />
     <None Include="Assets\Models\Cube.mtl" />
     <None Include="Shaders\Common\UvTransform.hlsli" />
