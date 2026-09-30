@@ -33,7 +33,6 @@ namespace App
         bool AddObject(const std::filesystem::path& path, const std::array<float, 3>& position,
             float yaw, const std::array<float, 3>& scale);
         Engine::ModelManager models_;
-        Engine::ModelManager surfaceModels_;
         Engine::SpriteRenderer sky_;
         Engine::ParticleRenderer motes_;
         TitleAmbientMotion motion_;

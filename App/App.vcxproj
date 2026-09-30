@@ -145,8 +145,6 @@
     <None Include="Shaders\Sprite.hlsl" />
     <None Include="Shaders\Sphere.hlsl" />
     <None Include="Shaders\Mesh.hlsl" />
-    <None Include="Shaders\TitleSurfaceMesh.hlsl" />
-    <None Include="Shaders\Common\TitleSurface.hlsli" />
     <None Include="Shaders\TitleMesh.hlsl" />
     <None Include="Shaders\TitleSky.hlsl" />
     <None Include="Shaders\TitleMote.hlsl" />
@@ -213,9 +211,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Shaders;$(OutDir)Shaders\Common" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Common\UvTransform.hlsli;$(MSBuildThisFileDirectory)Shaders\Common\TitleAtmosphere.hlsli;$(MSBuildThisFileDirectory)Shaders\Common\TitleSurface.hlsli"
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Common\UvTransform.hlsli;$(MSBuildThisFileDirectory)Shaders\Common\TitleAtmosphere.hlsli"
           DestinationFolder="$(OutDir)Shaders\Common" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSurfaceMesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSky.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMote.hlsl"
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSky.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMote.hlsl"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyModels" AfterTargets="Build">

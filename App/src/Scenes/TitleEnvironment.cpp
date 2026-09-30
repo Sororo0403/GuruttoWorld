@@ -18,23 +18,22 @@ namespace App
             root / "Shaders/TitleMote.hlsl")) return false;
         if (!models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), root / "Shaders/TitleMesh.hlsl"))
             return false;
-        if (!surfaceModels_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(),
-            root / "Shaders/TitleSurfaceMesh.hlsl")) return false;
-        const auto commercial = root / "Assets/Models/Title/Commercial";
+        const auto commercial = root / "Assets/Models/Title/Surface/Commercial";
         const auto roads = root / "Assets/Models/Title/Roads";
+        const auto surfaceRoads = root / "Assets/Models/Title/Surface/Roads";
         // 1 タイルを4ワールド単位に統一。道路上面は Y=0.08。
         constexpr float TileSize = 4.0f;
         constexpr float RoadTop = 0.08f;
-        if (!AddObject(roads / "tile-low.obj", { 0.0f, -0.12f, 60.0f }, 0.0f, { 160.0f, 4.0f, 180.0f }))
+        if (!AddObject(surfaceRoads / "ground.obj", { 0.0f, -0.12f, 60.0f }, 0.0f, { 160.0f, 4.0f, 180.0f }))
             return false;
         for (int tile = -2; tile < 22; ++tile)
         {
             const float z = static_cast<float>(tile) * TileSize;
-            if (!AddObject(roads / "road-straight.obj", { 0.0f, 0.0f, z }, DirectX::XM_PIDIV2, { TileSize, TileSize, TileSize }))
+            if (!AddObject(surfaceRoads / "road-straight.obj", { 0.0f, 0.0f, z }, DirectX::XM_PIDIV2, { TileSize, TileSize, TileSize }))
                 return false;
             for (float side : { -1.0f, 1.0f })
             {
-                if (!AddObject(roads / "tile-low.obj", { side * 2.8f, RoadTop, z }, 0.0f, { 1.6f, 4.0f, TileSize }))
+                if (!AddObject(surfaceRoads / "sidewalk.obj", { side * 2.8f, RoadTop, z }, 0.0f, { 1.6f, 4.0f, TileSize }))
                     return false;
             }
         }
@@ -141,11 +140,7 @@ namespace App
     bool TitleEnvironment::AddObject(const std::filesystem::path& path, const std::array<float, 3>& position,
         float yaw, const std::array<float, 3>& scale)
     {
-        // 建物と舗装だけに表面の質感を適用。植物・案内標識の色は保ちます。
-        const auto category = path.parent_path().filename();
-        const bool surface = category == "Commercial" ||
-            (category == "Roads" && !path.filename().string().starts_with("road-sign"));
-        const auto model = (surface ? surfaceModels_ : models_).Load(path);
+        const auto model = models_.Load(path);
         if (!model)
         {
             Engine::Log::Error(std::format("Title environment model could not be loaded: {}", path.filename().string()));

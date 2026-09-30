@@ -1,0 +1,12 @@
+# Kenney CC0 geometry; project-generated surface textures.
+newmtl asphalt
+Kd 1 1 1
+map_Kd ../Textures/asphalt.png
+
+newmtl asphalt_edge
+Kd 0.794118 0.794393 0.796875
+map_Kd ../Textures/asphalt.png
+
+newmtl palette
+Kd 1 1 1
+map_Kd ../../Roads/Textures/colormap.png

@@ -1,0 +1,4 @@
+# Kenney CC0 geometry; project-generated surface textures.
+newmtl concrete
+Kd 1 1 1
+map_Kd ../Textures/concrete.png

@@ -58,9 +58,6 @@ float4 PSMain(VertexOutput input) : SV_TARGET
         return albedo;
     }
     float3 normal = normalize(input.normal);
-#if defined(TITLE_SURFACE_DETAIL)
-    albedo.rgb = TitleSurfaceAlbedo(albedo.rgb, input.worldPosition, normal);
-#endif
     float directionLengthSquared = dot(lightDirection, lightDirection);
     float3 toLight = -lightDirection * rsqrt(max(directionLengthSquared, 0.00000001f));
     float diffuse = saturate(dot(normal, toLight));
