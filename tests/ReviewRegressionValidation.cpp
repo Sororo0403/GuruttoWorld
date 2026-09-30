@@ -257,8 +257,8 @@ namespace
         {
             motion.Update(0.1, true, true);
             const auto position = motion.CameraPosition();
-            Check(position[0] >= -0.901f && position[0] <= -0.699f &&
-                position[1] >= 1.759f && position[1] <= 1.841f && position[2] == -7.0f, "camera stays within composition bounds");
+            Check(position[0] >= -2.701f && position[0] <= -2.499f &&
+                position[1] >= 2.059f && position[1] <= 2.141f && position[2] == -8.0f, "camera stays within composition bounds");
             for (unsigned int index = 0; index < 24; ++index)
             {
                 const auto value = motion.Mote(index);

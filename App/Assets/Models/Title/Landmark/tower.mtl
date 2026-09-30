@@ -1,0 +1,4 @@
+# Derived from Kenney City Kit (Commercial), CC0.
+newmtl colormap
+Kd 0.48 0.78 0.72
+map_Kd ../Commercial/Textures/colormap.png
