@@ -1,6 +1,7 @@
 #include "CameraPanel.h"
 #include "ObjectPanel.h"
 #include "SceneSelection.h"
+#include "TransformGizmo.h"
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
@@ -40,6 +41,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     camera.SetMoveSpeed(8.0f);
     Editor::CameraPanel cameraPanel;
     Editor::ObjectPanel objectPanel;
+    Editor::TransformGizmo gizmo;
     objectPanel.ScanModels(root);
     std::optional<Editor::ObjectRequest> pendingObject;
     Engine::DirectionalLight light;
@@ -134,7 +136,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             world.Draw(commands, camera.GetCamera(), light);
         }, [&]()
         {
-            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds);
+            Editor::TransformGizmo::BeginFrame();
+            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, !gizmo.IsDragging());
             const auto display = ImGui::GetIO().DisplaySize;
             if (display.x > 0 && display.y > 0)
             {
@@ -143,14 +146,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                     (std::max)(1.0f, (16.0f / 9.0f) / aspect));
                 camera.GetCamera().SetPerspective(fov, aspect, 0.1f, 220.0f);
             }
-            Editor::SceneSelection::Update(world, camera.GetCamera(), objectPanel,
+            gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel,
                 sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject);
+            Editor::SceneSelection::Update(world, camera.GetCamera(), objectPanel,
+                sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject && !gizmo.ConsumesMouse());
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
             const std::array<float, 3> suggested{ eye[0] + viewInverse._31 * 8.0f, 0.08f,
                 eye[2] + viewInverse._33 * 8.0f };
-            objectPanel.Draw(world, suggested, sceneLoaded && !reloadRequested);
+            objectPanel.Draw(world, suggested, sceneLoaded && !reloadRequested && !gizmo.IsDragging());
             if (auto request = objectPanel.TakeRequest()) pendingObject = std::move(request);
             ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(340, 200), ImGuiCond_FirstUseEver);
@@ -160,11 +165,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 ImGui::TextUnformatted("Select objects and edit transforms in Inspector.");
                 ImGui::TextWrapped("Content: %s", root.string().c_str());
                 ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
-                ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value());
+                ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value() || gizmo.IsDragging());
                 if (ImGui::Button("Save")) save();
                 ImGui::EndDisabled();
                 ImGui::SameLine();
-                ImGui::BeginDisabled(pendingObject.has_value());
+                ImGui::BeginDisabled(pendingObject.has_value() || gizmo.IsDragging());
                 if (ImGui::Button("Reload"))
                 {
                     if (objectPanel.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");

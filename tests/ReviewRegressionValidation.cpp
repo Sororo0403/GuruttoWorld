@@ -1,3 +1,4 @@
+#include "../Editor/src/TransformMatrix.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
 #endif
@@ -785,10 +786,40 @@ void ValidateSceneFiles()
         "minimum editable scale can be saved and loaded");
 }
 
+void ValidateTransformMatrix()
+{
+    SceneRuntime::ScenePlacement placement;
+    placement.position={8,-2,12};
+    for (const auto& scale : {std::array<float,3>{2,3,4}, std::array<float,3>{-2,3,4}, std::array<float,3>{-2,-3,4}})
+    for (float y : {0.3f, 2.1f, DirectX::XM_PIDIV2, -DirectX::XM_PIDIV2})
+    {
+        placement.scale=scale;
+        placement.rotation={0.7f,y,-0.4f};
+        const auto matrix=Editor::TransformMatrix::Compose(placement);
+        auto result=placement;
+        Check(Editor::TransformMatrix::Read(matrix,placement,result), "gizmo matrix round trip including mirrored and gimbal poses");
+        for (int i=0;i<3;++i)
+            Check(std::abs(result.scale[i]-scale[i])<0.001f && std::abs(result.rotation[i]-placement.rotation[i])<0.001f,
+                "gizmo conversion preserves mirror signs and continuous Euler angles");
+    }
+    placement.rotation={0,0,0};
+    placement.scale={1,1,1};
+    auto invalid=Editor::TransformMatrix::Compose(placement);
+    invalid._12=0.5f;
+    auto output=placement;
+    Check(!Editor::TransformMatrix::Read(invalid,placement,output) && output.rotation==placement.rotation,
+        "sheared gizmo matrix is rejected without changing placement");
+    invalid=Editor::TransformMatrix::Compose(placement);
+    invalid._11=0;
+    Check(!Editor::TransformMatrix::Read(invalid,placement,output), "zero scale is rejected");
+    invalid._11=NAN;
+    Check(!Editor::TransformMatrix::Read(invalid,placement,output), "nonfinite transform is rejected");
+}
 int main()
 {
     try
     {
+        ValidateTransformMatrix();
         ValidateEditorCamera();
         ValidateSceneLayout();
         ValidateSceneFiles();

@@ -8,9 +8,10 @@ namespace Editor
         dragging_ = false;
     }
 
-    void CameraPanel::Draw(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds)
+    void CameraPanel::Draw(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds, bool allowMovement)
     {
-        UpdateInput(camera, keyboard, deltaSeconds);
+        if (allowMovement) UpdateInput(camera, keyboard, deltaSeconds);
+        else CancelDrag();
         ImGui::SetNextWindowPos(ImVec2(380.0f, 370.0f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(340.0f, 190.0f), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Debug Camera"))

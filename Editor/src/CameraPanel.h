@@ -17,7 +17,7 @@ namespace Editor
         /// <summary>
         /// ImGui のフレーム開始後、シーン描画前に呼び出し、入力に応じたカメラ更新と設定画面の表示を行います。
         /// </summary>
-        void Draw(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds);
+        void Draw(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds, bool allowMovement = true);
 
         /// <summary>
         /// フォーカス喪失などで中断したドラッグ状態を解除します。
