@@ -1,4 +1,8 @@
-#include "../App/src/Scenes/SceneLayout.h"
+#if defined(_DEBUG)
+#include <Engine/DevTools/DebugCamera.h>
+#endif
+#include <SceneRuntime/SceneLayout.h>
+#include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -371,6 +375,15 @@ namespace
         }
     }
 
+    std::filesystem::path TestContentRoot()
+    {
+        std::wstring executable(32768, L'\0');
+        const auto length = GetModuleFileNameW(nullptr, executable.data(), static_cast<DWORD>(executable.size()));
+        Check(length > 0 && length < executable.size(), "test executable path");
+        executable.resize(length);
+        return std::filesystem::path(executable).parent_path();
+    }
+
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
@@ -382,12 +395,25 @@ namespace
             Check(window.Create(L"Hidden title validation", size[0], size[1]), "title window");
             Check(renderer.Initialize(window.GetHandle()), "title renderer");
             {
-                App::TitleScene title(std::filesystem::absolute("App"));
+                SceneRuntime::SceneWorld editorWorld;
+                const auto content = std::filesystem::absolute("Content");
+                Check(editorWorld.Initialize(renderer, content, content / "Assets/Scenes/TitleStreet.json",
+                    content / "Shaders/TitleMesh.hlsl"), "shared scene loads without App content");
+                Engine::Camera editorView;
+                editorView.SetPosition({ -0.8f, 2.8f, -7.0f });
+                editorView.SetRotation(0.03f, 0.09f);
+                editorView.SetPerspective(DirectX::XM_PIDIV4, float(size[0]) / float(size[1]), 0.1f, 220.0f);
+                Check(renderer.Render({ 0.66f, 0.79f, 0.83f, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
+                {
+                    editorWorld.Draw(commands, editorView, {});
+                }) != Engine::RenderResult::Failed, "independent editor scene rendering");
+                Check(renderer.WaitForIdle(), "editor scene GPU completion");
+                App::TitleScene title(TestContentRoot());
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
                 Check(renderer.WaitForIdle(), "title GPU completion");
                 App::TitleEnvironment environment;
-                Check(environment.Initialize(renderer, std::filesystem::absolute("App")), "ambient environment assets");
+                Check(environment.Initialize(renderer, TestContentRoot()), "ambient environment assets");
                 for (int state = 0; state < 3; ++state)
                 {
                     for (int frame = 0; frame < 30; ++frame) environment.Update(0.1, state != 1, true);
@@ -398,7 +424,7 @@ namespace
                     Check(renderer.WaitForIdle(), "ambient GPU completion");
                 }
                 App::TitleUi ui;
-                Check(ui.Initialize(renderer, std::filesystem::absolute("App")), "settings UI assets");
+                Check(ui.Initialize(renderer, TestContentRoot()), "settings UI assets");
                 App::TitleMenu animated(true);
                 App::TitleMenuInput animationInput;
                 animationInput.active = true;
@@ -472,7 +498,7 @@ namespace
         };
         data.indices = {0, 1, 2};
         Engine::MeshRenderer mesh;
-        Check(mesh.Initialize(device.Get(), queue.Get(), data, "App/Shaders/Mesh.hlsl"), "mesh initialization");
+        Check(mesh.Initialize(device.Get(), queue.Get(), data, "Content/Shaders/Mesh.hlsl"), "mesh initialization");
 
         ComPtr<ID3D12Resource> target;
         D3D12_HEAP_PROPERTIES heap{};
@@ -553,20 +579,40 @@ namespace
     }
 }
 
+void ValidateEditorCamera()
+{
+#if defined(_DEBUG)
+    Engine::DebugCamera camera;
+    const std::array<float, 3> home{ -0.8f, 2.8f, -7.0f };
+    Check(camera.SetResetPose(home, DirectX::XM_PIDIV2, 0.0f), "editor initial pose accepted");
+    camera.Move(0, 0, 1, 1.0, false);
+    Check(camera.GetPosition()[0] > home[0] && std::abs(camera.GetPosition()[2] - home[2]) < 0.001f,
+        "free camera movement follows initial title orientation");
+    camera.Rotate(200, 100);
+    camera.Reset();
+    Check(camera.GetPosition() == home, "editor reset restores title position");
+    camera.Move(0, 0, 1, 1.0, false);
+    Check(std::abs(camera.GetPosition()[2] - home[2]) < 0.001f, "reset restores orientation too");
+    Check(!camera.SetResetPose(home, NAN, 0), "invalid reset pose rejected");
+    camera.Reset();
+    Check(camera.GetPosition() == home, "invalid reset does not overwrite saved pose");
+#endif
+}
+
 void ValidateSceneLayout()
 {
-    const auto layout = App::SceneLayout::Load("App/Assets/Scenes/TitleStreet.json");
+    const auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
     Check(layout.objects.size() == 123, "all existing street placements migrated");
     Check(layout.objects.front().id == "ground" && layout.objects.front().position[2] == 60.0f,
         "ground placement preserved");
     const std::string entry = R"({"id":"test","name":"Test","model":"Assets/Models/Title/Roads/ground.obj","position":[1,2,3],"rotation":[0,1,0],"scale":[4,4,4]})";
     const auto parse = [](const std::string& objects) {
-        return App::SceneLayout::Parse("{\"version\":1,\"objects\":[" + objects + "]}");
+        return SceneRuntime::SceneLayout::Parse("{\"version\":1,\"objects\":[" + objects + "]}");
     };
     Check(parse(entry).objects[0].rotation[1] == 1.0f, "full transform read from JSON");
     const auto reject = [](const std::string& json) {
         bool rejected = false;
-        try { static_cast<void>(App::SceneLayout::Parse(json)); }
+        try { static_cast<void>(SceneRuntime::SceneLayout::Parse(json)); }
         catch (const std::exception&) { rejected = true; }
         Check(rejected, "invalid layout rejected");
     };
@@ -585,6 +631,7 @@ int main()
 {
     try
     {
+        ValidateEditorCamera();
         ValidateSceneLayout();
         ValidateDiagnostics();
         ValidateTitleMenu();

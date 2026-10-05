@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version='1.0' encoding='utf-8'?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -72,7 +72,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\Engine\externals\imgui;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
@@ -97,7 +97,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\Engine\externals\imgui;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
@@ -119,7 +119,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
@@ -144,50 +144,50 @@
     <None Include="Shaders\Triangle.hlsl" />
     <None Include="Shaders\Sprite.hlsl" />
     <None Include="Shaders\Sphere.hlsl" />
-    <None Include="Shaders\Mesh.hlsl" />
-    <None Include="Shaders\TitleMesh.hlsl" />
+    <None Include="..\Content\Shaders\Mesh.hlsl" />
+    <None Include="..\Content\Shaders\TitleMesh.hlsl" />
     <None Include="Shaders\TitleSky.hlsl" />
     <None Include="Shaders\TitleMote.hlsl" />
-    <None Include="Shaders\Common\TitleAtmosphere.hlsli" />
-    <None Include="Assets\Models\Title\Commercial\building-c.obj" />
-    <None Include="Assets\Models\Title\Commercial\building-c.mtl" />
-    <None Include="Assets\Models\Title\Commercial\Textures\colormap.png" />
-    <None Include="Assets\Models\Title\Commercial\License.txt" />
-    <None Include="Assets\Models\Title\Commercial\building-e.obj" />
-    <None Include="Assets\Models\Title\Commercial\building-e.mtl" />
-    <None Include="Assets\Models\Title\Commercial\building-h.obj" />
-    <None Include="Assets\Models\Title\Commercial\building-h.mtl" />
-    <None Include="Assets\Models\Title\Commercial\building-k.obj" />
-    <None Include="Assets\Models\Title\Commercial\building-k.mtl" />
-    <None Include="Assets\Models\Title\Roads\road-straight.obj" />
-    <None Include="Assets\Models\Title\Roads\road-straight.mtl" />
-    <None Include="Assets\Models\Title\Roads\road-bridge.obj" />
-    <None Include="Assets\Models\Title\Roads\road-bridge.mtl" />
-    <None Include="Assets\Models\Title\Roads\tile-low.obj" />
-    <None Include="Assets\Models\Title\Roads\tile-low.mtl" />
-    <None Include="Assets\Models\Title\Roads\Textures\colormap.png" />
-    <None Include="Assets\Models\Title\Roads\License.txt" />
-    <None Include="Assets\Models\Title\Nature\grass_large.obj" />
-    <None Include="Assets\Models\Title\Nature\grass_large.mtl" />
-    <None Include="Assets\Models\Title\Nature\flower_yellowA.obj" />
-    <None Include="Assets\Models\Title\Nature\flower_yellowA.mtl" />
-    <None Include="Assets\Models\Title\Nature\tree_small.obj" />
-    <None Include="Assets\Models\Title\Nature\tree_small.mtl" />
-    <None Include="Assets\Models\Title\Nature\plant_bush.obj" />
-    <None Include="Assets\Models\Title\Nature\plant_bush.mtl" />
-    <None Include="Assets\Models\Title\Nature\License.txt" />
-    <None Include="Assets\Models\Title\Roads\road-sign-street.obj" />
-    <None Include="Assets\Models\Title\Roads\road-sign-street.mtl" />
-    <None Include="Assets\Models\Title\Roads\road-sign-empty.obj" />
-    <None Include="Assets\Models\Title\Roads\road-sign-empty.mtl" />
+    <None Include="..\Content\Shaders\Common\TitleAtmosphere.hlsli" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-c.obj" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-c.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\Textures\colormap.png" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\License.txt" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-e.obj" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-e.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-h.obj" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-h.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-k.obj" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-k.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Roads\road-straight.obj" />
+    <None Include="..\Content\Assets\Models\Title\Roads\road-straight.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Roads\road-bridge.obj" />
+    <None Include="..\Content\Assets\Models\Title\Roads\road-bridge.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Roads\tile-low.obj" />
+    <None Include="..\Content\Assets\Models\Title\Roads\tile-low.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Roads\Textures\colormap.png" />
+    <None Include="..\Content\Assets\Models\Title\Roads\License.txt" />
+    <None Include="..\Content\Assets\Models\Title\Nature\grass_large.obj" />
+    <None Include="..\Content\Assets\Models\Title\Nature\grass_large.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Nature\flower_yellowA.obj" />
+    <None Include="..\Content\Assets\Models\Title\Nature\flower_yellowA.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Nature\tree_small.obj" />
+    <None Include="..\Content\Assets\Models\Title\Nature\tree_small.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Nature\plant_bush.obj" />
+    <None Include="..\Content\Assets\Models\Title\Nature\plant_bush.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Nature\License.txt" />
+    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.obj" />
+    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-empty.obj" />
+    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-empty.mtl" />
     <None Include="Assets\Models\Cube.obj" />
-    <None Include="Assets\Models\Title\Commercial\building-skyscraper-a.obj" />
-    <None Include="Assets\Models\Title\Commercial\building-skyscraper-a.mtl" />
-    <None Include="Assets\Models\Title\Commercial\building-skyscraper-e.obj" />
-    <None Include="Assets\Models\Title\Commercial\building-skyscraper-e.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-a.obj" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-a.mtl" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-e.obj" />
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-e.mtl" />
     <None Include="Assets\Models\Pyramid.obj" />
     <None Include="Assets\Models\Cube.mtl" />
-    <None Include="Shaders\Common\UvTransform.hlsli" />
+    <None Include="..\Content\Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
     <None Include="Assets\Textures\Title.png" />
     <None Include="Assets\Textures\Title\UiAtlas.png" />
@@ -211,22 +211,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Shaders;$(OutDir)Shaders\Common" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Common\UvTransform.hlsli;$(MSBuildThisFileDirectory)Shaders\Common\TitleAtmosphere.hlsli"
-          DestinationFolder="$(OutDir)Shaders\Common" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSky.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMote.hlsl"
-          DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="CopyScenes" AfterTargets="Build">
-    <ItemGroup>
-      <SceneAssets Include="$(MSBuildThisFileDirectory)Assets\Scenes\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(SceneAssets)" DestinationFiles="@(SceneAssets->'$(OutDir)Assets\Scenes\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSky.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMote.hlsl" DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyModels" AfterTargets="Build">
     <ItemGroup>
       <ModelAssets Include="$(MSBuildThisFileDirectory)Assets\Models\**\*" />
     </ItemGroup>
-    <Copy SourceFiles="@(ModelAssets)" DestinationFiles="@(ModelAssets->'$(OutDir)Assets\Models\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ModelAssets)" DestinationFiles="@(ModelAssets-&gt;'$(OutDir)Assets\Models\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(OutDir)Licenses" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\Engine\externals\assimp\LICENSE.txt;$(MSBuildThisFileDirectory)..\Engine\externals\assimp\zlib-LICENSE.txt" DestinationFolder="$(OutDir)Licenses" SkipUnchangedFiles="true" />
   </Target>
@@ -238,7 +229,7 @@
     <ItemGroup>
       <TextureAssets Include="$(MSBuildThisFileDirectory)Assets\Textures\**\*" />
     </ItemGroup>
-    <Copy SourceFiles="@(TextureAssets)" DestinationFiles="@(TextureAssets->'$(OutDir)Assets\Textures\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(TextureAssets)" DestinationFiles="@(TextureAssets-&gt;'$(OutDir)Assets\Textures\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
@@ -253,7 +244,7 @@
     <ItemGroup>
       <AudioAssets Include="$(MSBuildThisFileDirectory)Assets\Audio\**\*" />
     </ItemGroup>
-    <Copy SourceFiles="@(AudioAssets)" DestinationFiles="@(AudioAssets->'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(AudioAssets)" DestinationFiles="@(AudioAssets-&gt;'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
     <ClCompile Include="src\DevTools\InputPanel.cpp">
@@ -286,12 +277,16 @@
     <ClInclude Include="src\Scenes\TitleAmbientMotion.h" />
     <ClInclude Include="src\Scenes\GameSettings.h" />
     <ClInclude Include="src\Scenes\TitleUi.h" />
-    <ClCompile Include="src\Scenes\SceneLayout.cpp" />
     <ClCompile Include="src\Scenes\TitleEnvironment.cpp" />
     <ClInclude Include="src\Scenes\TitleEnvironment.h" />
-    <ClInclude Include="src\Scenes\SceneLayout.h" />
-    <None Include="Assets\Scenes\TitleStreet.json" />
+    <None Include="..\Content\Assets\Scenes\TitleStreet.json" />
     <ClInclude Include="src\Scenes\SceneFactory.h" />
     <ClCompile Include="src\Scenes\SceneFactory.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj">
+      <Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="..\Content\Content.targets" />
 </Project>

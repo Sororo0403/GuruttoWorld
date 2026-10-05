@@ -6,10 +6,21 @@ namespace Engine
 {
     void DebugCamera::Reset() noexcept
     {
-        camera_.SetPosition({ 0.0f, 0.0f, -3.5f });
-        camera_.SetRotation(0.0f, 0.0f);
-        yaw_ = 0.0f;
-        pitch_ = 0.0f;
+        camera_.SetPosition(resetPosition_);
+        camera_.SetRotation(resetYaw_, resetPitch_);
+        yaw_ = resetYaw_;
+        pitch_ = resetPitch_;
+    }
+
+    bool DebugCamera::SetResetPose(const std::array<float, 3>& position, float yaw, float pitch) noexcept
+    {
+        if (!std::all_of(position.begin(), position.end(), [](float v) { return std::isfinite(v); }) ||
+            !std::isfinite(yaw) || !std::isfinite(pitch)) return false;
+        resetPosition_ = position;
+        resetYaw_ = std::remainder(yaw, DirectX::XM_2PI);
+        resetPitch_ = std::clamp(pitch, -DirectX::XM_PIDIV2 + 0.01f, DirectX::XM_PIDIV2 - 0.01f);
+        Reset();
+        return true;
     }
 
     void DebugCamera::Rotate(float deltaX, float deltaY) noexcept

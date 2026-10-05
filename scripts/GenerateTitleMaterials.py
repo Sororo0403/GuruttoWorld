@@ -11,7 +11,7 @@ import random
 
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parents[1] / "App/Assets/Models/Title"
+ROOT = Path(__file__).resolve().parents[1] / "Content/Assets/Models/Title"
 OUTPUT = ROOT / "Surface"
 
 

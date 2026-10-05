@@ -1,11 +1,7 @@
 #include "TitleEnvironment.h"
-#include "SceneLayout.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
-#include <Engine/Core/Log.h>
 #include <algorithm>
 #include <cmath>
-#include <format>
-#include <utility>
 
 namespace App
 {
@@ -17,9 +13,8 @@ namespace App
             return false;
         if (!motes_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), skyTexture,
             root / "Shaders/TitleMote.hlsl")) return false;
-        if (!models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), root / "Shaders/TitleMesh.hlsl"))
-            return false;
-        if (!BuildStreet(root)) return false;
+        if (!world_.Initialize(renderer, root, root / "Assets/Scenes/TitleStreet.json",
+            root / "Shaders/TitleMesh.hlsl")) return false;
         camera_.SetPosition({ -0.8f, 1.8f, -7.0f });
         camera_.SetRotation(0.03f, 0.13f);
         light_.direction = { -0.5f, -0.8f, 0.6f };
@@ -40,6 +35,7 @@ namespace App
 
     void TitleEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height)
     {
+        auto& camera = camera_;
         if (width == 0 || height == 0) return;
         const float viewportWidth = static_cast<float>(width);
         const float viewportHeight = static_cast<float>(height);
@@ -53,14 +49,14 @@ namespace App
         // 狭いウィンドウでも16:9時の横方向の構図を保ちます。
         const float verticalFov = 2.0f * std::atan(std::tan(DirectX::XM_PIDIV4 * 0.5f) *
             std::max(1.0f, (16.0f / 9.0f) / aspectRatio));
-        camera_.SetPerspective(verticalFov, aspectRatio, 0.1f, 220.0f);
-        for (const auto& object : objects_) object.Draw(commands, camera_, light_);
+        camera.SetPerspective(verticalFov, aspectRatio, 0.1f, 220.0f);
+        world_.Draw(commands, camera, light_);
         if (motion_.IsEnabled())
         {
             using namespace DirectX;
-            auto billboard = XMMatrixInverse(nullptr, camera_.GetViewMatrix());
+            auto billboard = XMMatrixInverse(nullptr, camera.GetViewMatrix());
             billboard.r[3] = XMVectorSet(0, 0, 0, 1);
-            const auto viewProjection = camera_.GetViewMatrix() * camera_.GetProjectionMatrix();
+            const auto viewProjection = camera.GetViewMatrix() * camera.GetProjectionMatrix();
             for (unsigned int index = 0; index < 24; ++index)
             {
                 const auto mote = motion_.Mote(index);
@@ -72,31 +68,4 @@ namespace App
         }
     }
 
-    bool TitleEnvironment::BuildStreet(const std::filesystem::path& root)
-    {
-        try
-        {
-            auto layout = SceneLayout::Load(root / "Assets/Scenes/TitleStreet.json");
-            std::vector<Engine::Object3D> objects;
-            objects.reserve(layout.objects.size());
-            for (const auto& placement : layout.objects)
-            {
-                Engine::Object3D object;
-                const auto model = models_.Load(root / placement.model);
-                if (!model) throw std::runtime_error("Model could not be loaded: " + placement.id);
-                object.SetModel(model);
-                if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
-                    throw std::runtime_error("Invalid transform: " + placement.id);
-                objects.push_back(std::move(object));
-            }
-            layout_ = std::move(layout);
-            objects_ = std::move(objects);
-            return true;
-        }
-        catch (const std::exception& error)
-        {
-            Engine::Log::Error(std::format("Title street could not be loaded: {}", error.what()));
-            return false;
-        }
-    }
 }

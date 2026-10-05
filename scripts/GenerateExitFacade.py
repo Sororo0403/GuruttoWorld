@@ -1,6 +1,6 @@
 """Generate only the farewell sign; gate geometry is Kenney Castle Kit CC0."""
 from pathlib import Path
-root = Path(__file__).resolve().parents[1] / 'App/Assets/Models/Title/Exit'
+root = Path(__file__).resolve().parents[1] / 'Content/Assets/Models/Title/Exit'
 root.mkdir(parents=True, exist_ok=True)
 # Assimp flips Z and UVs. The sign faces the same direction as the CC0 gate.
 lines = ['mtllib ExitFacade.mtl', 'usemtl farewell']

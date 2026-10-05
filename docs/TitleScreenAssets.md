@@ -41,7 +41,7 @@
 
 ## 終了ゲート（2026-10-05）
 
-- Kenney Castle Kit 2.0 の `wall-narrow-gate.obj` を採用。門本体のOBJ・MTL・Textures/colormap.pngは無編集で `App/Assets/Models/Title/Exit/Castle` に保存。
+- Kenney Castle Kit 2.0 の `wall-narrow-gate.obj` を採用。門本体のOBJ・MTL・Textures/colormap.pngは無編集で `Content/Assets/Models/Title/Exit/Castle` に保存。
 - 配布ページ: https://kenney.nl/assets/castle-kit 。CC0表記と同梱License.txtを確認し、同じフォルダーに保存した。
 - 取得元: https://kenney.nl/media/pages/assets/castle-kit/a395102d20-1711543616/kenney_castle-kit.zip
 - 横道は撤去。門は高架の先の右側一棟分を置き換え、建物と同じ列の(4.8, 0.08, 26)に配置し、正面を通りへ向ける。手前のZ=12の区画には元の建物を復元。高架本体は保持し、両端に重なる右Z=19・左Z=20の建物を撤去。終了の視点は(-0.8, 1.8, 20)、ヨー0.56。門の倍率は4。
@@ -148,8 +148,8 @@ Release実機でロゴ・各ラベル・帯・矢印・操作案内と、背後�
 - 取得日：2026-09-30
 - ZIP の SHA-256：FA7974A0D342BFE63C38664BA9F8EC1A4AAB8EA25F099BDC56870E33588C4D9D
 - 配布ページと同梱 License.txt の両方で CC0 を確認。同梱文書のバージョン表記は Nature Kit (2.1)。
-- 保存先：App/Assets/Models/Title/Nature
-- 同梱ライセンス：[License.txt](../App/Assets/Models/Title/Nature/License.txt)
+- 保存先：Content/Assets/Models/Title/Nature
+- 同梱ライセンス：[License.txt](../Content/Assets/Models/Title/Nature/License.txt)
 
 Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_small.obj/.mtl、plant_bush.obj/.mtl を無編集でコピーし、ZIP 直下の License.txt を添えた。MTL は Kd の材質色を指定し、画像を参照しない。透明画像を使わず、草・葉・花はメッシュとして描画する。透過テクスチャ対応を追加したわけではない。
 
@@ -157,7 +157,7 @@ Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_s
 
 ### 看板：取得済み City Kit (Roads) 2.1
 
-既存の Roads 取得 ZIP から Models/OBJ format/road-sign-street.obj/.mtl と road-sign-empty.obj/.mtl を無編集で追加。App/Assets/Models/Title/Roads に置き、同梱の colormap.png と License.txt を共有する。出典と取得記録は下記の道路素材の節を参照。
+既存の Roads 取得 ZIP から Models/OBJ format/road-sign-street.obj/.mtl と road-sign-empty.obj/.mtl を無編集で追加。Content/Assets/Models/Title/Roads に置き、同梱の colormap.png と License.txt を共有する。出典と取得記録は下記の道路素材の節を参照。
 
 看板は手前右と左奥に1本ずつ配置。独自の文字・ロゴは追加していない。
 
@@ -172,7 +172,7 @@ Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_s
 
 ## CC0 の遠景（段階4）
 
-既存の Kenney City Kit (Commercial) 2.1 の取得 ZIP から、Models/OBJ format/building-skyscraper-a.obj/.mtl と building-skyscraper-e.obj/.mtl の計4ファイルを無編集で追加した。保存先は App/Assets/Models/Title/Commercial。既存の Textures/colormap.png、License.txt、下記配布元・取得記録を共有する。
+既存の Kenney City Kit (Commercial) 2.1 の取得 ZIP から、Models/OBJ format/building-skyscraper-a.obj/.mtl と building-skyscraper-e.obj/.mtl の計4ファイルを無編集で追加した。保存先は Content/Assets/Models/Title/Commercial。既存の Textures/colormap.png、License.txt、下記配布元・取得記録を共有する。
 
 - 高層モデル a：元座標の高さ 2.88。左右の遠景に4棟を配置。
 - 高層モデル e：元座標の高さ 4.08。通りの奥 (2, 0.08, 94) に、拡縮 (5, 10, 5) で1棟を配置。環状の塔の再現ではなく、既存CC0高層ビルを目印にしている。
@@ -188,14 +188,14 @@ Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_s
 - 取得日：2026-09-29
 - 取得 ZIP の SHA-256：F8B09B081C2BB88BCC126E2DEC1CB40FD0DAD7E7E591B6C26AAEFE96FB35276B
 - 配布ページと同梱 License.txt の両方で Creative Commons Zero（CC0）を確認した。
-- 同梱ライセンス：[License.txt](../App/Assets/Models/Title/Commercial/License.txt)
+- 同梱ライセンス：[License.txt](../Content/Assets/Models/Title/Commercial/License.txt)
 
 | 採用ファイル | ZIP 内の元ファイル | 用途 |
 |---|---|---|
-| App/Assets/Models/Title/Commercial/building-c.obj | Models/OBJ format/building-c.obj | タイトル用の最初の建物1棟 |
-| App/Assets/Models/Title/Commercial/building-c.mtl | Models/OBJ format/building-c.mtl | 材質と画像の相対参照 |
-| App/Assets/Models/Title/Commercial/Textures/colormap.png | Models/OBJ format/Textures/colormap.png | 同梱の色テクスチャ |
-| App/Assets/Models/Title/Commercial/License.txt | License.txt | 配布時のライセンス記録 |
+| Content/Assets/Models/Title/Commercial/building-c.obj | Models/OBJ format/building-c.obj | タイトル用の最初の建物1棟 |
+| Content/Assets/Models/Title/Commercial/building-c.mtl | Models/OBJ format/building-c.mtl | 材質と画像の相対参照 |
+| Content/Assets/Models/Title/Commercial/Textures/colormap.png | Models/OBJ format/Textures/colormap.png | 同梱の色テクスチャ |
+| Content/Assets/Models/Title/Commercial/License.txt | License.txt | 配布時のライセンス記録 |
 
 採用した4ファイルは元データをそのままコピーしており、変換・編集はしていない。OBJ の mtllib と MTL の Textures/colormap.png という相対参照を維持する。OBJ の元座標範囲は X=-0.441794～0.441794、Y=0～0.893、Z=-0.545～0.545。Y=0 が底面。読み込み時には既存 Assimp 設定で左手系へ変換する。
 
@@ -217,8 +217,8 @@ AI のランタイム素材・タイトル専用音源・新規フォントは�
 - 取得日：2026-09-30
 - ZIP の SHA-256：22058AF3D68173A7CF9BDA9F0E243A8CEF6BD68168C302EBC76327063849674E
 - 配布ページと同梱 License.txt で CC0 を確認した。
-- 保存先：App/Assets/Models/Title/Roads
-- 同梱ライセンス：[License.txt](../App/Assets/Models/Title/Roads/License.txt)
+- 保存先：Content/Assets/Models/Title/Roads
+- 同梱ライセンス：[License.txt](../Content/Assets/Models/Title/Roads/License.txt)
 
 Models/OBJ format 内の road-straight.obj/.mtl、road-bridge.obj/.mtl、tile-low.obj/.mtl、Textures/colormap.png、および ZIP 直下の License.txt を無編集で採用した。MTL とテクスチャの相対参照を維持している。
 

@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="CopySharedContent" AfterTargets="Build">
+    <ItemGroup>
+      <SharedAssets Include="$(MSBuildThisFileDirectory)Assets\**\*" />
+      <SharedShaders Include="$(MSBuildThisFileDirectory)Shaders\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SharedAssets)" DestinationFiles="@(SharedAssets->'$(OutDir)Assets\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SharedShaders)" DestinationFiles="@(SharedShaders->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

@@ -2,7 +2,7 @@
 from pathlib import Path
 import math
 
-root = Path(__file__).resolve().parents[1] / 'App/Assets/Models/Title/Settings'
+root = Path(__file__).resolve().parents[1] / 'Content/Assets/Models/Title/Settings'
 root.mkdir(parents=True, exist_ok=True)
 lines = ['# Original WP1 settings facade', 'mtllib ControlFacade.mtl']
 count = 0

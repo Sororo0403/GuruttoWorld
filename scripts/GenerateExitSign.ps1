@@ -17,7 +17,7 @@ try {
     $gateGraphics.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
     $gateGraphics.DrawString('また来てください', $gateFont, $gateBrush, [System.Drawing.RectangleF]::new(30, 30, 1988, 180), $gateFormat)
     $gateGraphics.DrawString('THANK YOU FOR VISITING  /  SEE YOU AGAIN', $gateSubFont, $gateBrush, [System.Drawing.RectangleF]::new(30, 225, 1988, 80), $gateFormat)
-    $gateBitmap.Save((Join-Path $gateRoot 'App/Assets/Models/Title/Exit/Farewell.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+    $gateBitmap.Save((Join-Path $gateRoot 'Content/Assets/Models/Title/Exit/Farewell.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 } finally {
     foreach ($gateResource in @($gateSubFont, $gateFont, $gateFormat, $gateBrush, $gateGraphics, $gateBitmap, $gateFonts)) { $gateResource.Dispose() }
 }

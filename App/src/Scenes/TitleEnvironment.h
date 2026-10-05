@@ -6,7 +6,7 @@
 #include <vector>
 #include <Engine/Graphics/Renderers/ParticleRenderer.h>
 #include "TitleAmbientMotion.h"
-#include "SceneLayout.h"
+#include <SceneRuntime/SceneWorld.h>
 
 namespace Engine { class DirectX12Renderer; }
 
@@ -24,13 +24,10 @@ namespace App
         /// <summary>空・街並み・奥行きのある光の粒を描画します。</summary>
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height);
     private:
-        bool BuildStreet(const std::filesystem::path& root);
-        SceneLayout layout_;
-        Engine::ModelManager models_;
+        SceneRuntime::SceneWorld world_;
         Engine::SpriteRenderer sky_;
         Engine::ParticleRenderer motes_;
         TitleAmbientMotion motion_;
-        std::vector<Engine::Object3D> objects_;
         Engine::Camera camera_;
         Engine::DirectionalLight light_;
     };

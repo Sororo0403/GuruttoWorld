@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version='1.0' encoding='utf-8'?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
     <Filter Include="Shaders\Common">
       <UniqueIdentifier>{B37DFA4D-BB16-48B3-AB2F-E811B2E66E18}</UniqueIdentifier>
@@ -45,93 +45,133 @@
     <None Include="Shaders\Sphere.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\TitleMesh.hlsl"><Filter>Shaders</Filter></None>
-    <None Include="Shaders\TitleSky.hlsl"><Filter>Shaders</Filter></None>
-    <None Include="Shaders\Common\TitleAtmosphere.hlsli"><Filter>Shaders\Common</Filter></None>
-    <None Include="Shaders\Mesh.hlsl">
+    <None Include="..\Content\Shaders\TitleMesh.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-c.obj">
+    <None Include="Shaders\TitleSky.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\Content\Shaders\Common\TitleAtmosphere.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="..\Content\Shaders\Mesh.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-c.obj">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-c.mtl">
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-c.mtl">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\Textures\colormap.png">
+    <None Include="..\Content\Assets\Models\Title\Commercial\Textures\colormap.png">
       <Filter>Assets\Models\Title\Commercial\Textures</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\License.txt">
+    <None Include="..\Content\Assets\Models\Title\Commercial\License.txt">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-e.obj">
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-e.obj">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-e.mtl">
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-e.mtl">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-h.obj">
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-h.obj">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-h.mtl">
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-h.mtl">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-k.obj">
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-k.obj">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-k.mtl">
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-k.mtl">
       <Filter>Assets\Models\Title\Commercial</Filter>
     </None>
-    <None Include="Assets\Models\Title\Roads\road-straight.obj">
+    <None Include="..\Content\Assets\Models\Title\Roads\road-straight.obj">
       <Filter>Assets\Models\Title\Roads</Filter>
     </None>
-    <None Include="Assets\Models\Title\Roads\road-straight.mtl">
+    <None Include="..\Content\Assets\Models\Title\Roads\road-straight.mtl">
       <Filter>Assets\Models\Title\Roads</Filter>
     </None>
-    <None Include="Assets\Models\Title\Roads\road-bridge.obj">
+    <None Include="..\Content\Assets\Models\Title\Roads\road-bridge.obj">
       <Filter>Assets\Models\Title\Roads</Filter>
     </None>
-    <None Include="Assets\Models\Title\Roads\road-bridge.mtl">
+    <None Include="..\Content\Assets\Models\Title\Roads\road-bridge.mtl">
       <Filter>Assets\Models\Title\Roads</Filter>
     </None>
-    <None Include="Assets\Models\Title\Roads\tile-low.obj">
+    <None Include="..\Content\Assets\Models\Title\Roads\tile-low.obj">
       <Filter>Assets\Models\Title\Roads</Filter>
     </None>
-    <None Include="Assets\Models\Title\Roads\tile-low.mtl">
+    <None Include="..\Content\Assets\Models\Title\Roads\tile-low.mtl">
       <Filter>Assets\Models\Title\Roads</Filter>
     </None>
-    <None Include="Assets\Models\Title\Roads\Textures\colormap.png">
+    <None Include="..\Content\Assets\Models\Title\Roads\Textures\colormap.png">
       <Filter>Assets\Models\Title\Roads\Textures</Filter>
     </None>
-    <None Include="Assets\Models\Title\Roads\License.txt">
+    <None Include="..\Content\Assets\Models\Title\Roads\License.txt">
       <Filter>Assets\Models\Title\Roads</Filter>
     </None>
-    <None Include="Assets\Models\Title\Nature\grass_large.obj"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Nature\grass_large.mtl"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Nature\flower_yellowA.obj"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Nature\flower_yellowA.mtl"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Nature\tree_small.obj"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Nature\tree_small.mtl"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Nature\plant_bush.obj"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Nature\plant_bush.mtl"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Nature\License.txt"><Filter>Assets\Models\Title\Nature</Filter></None>
-    <None Include="Assets\Models\Title\Roads\road-sign-street.obj"><Filter>Assets\Models\Title\Roads</Filter></None>
-    <None Include="Assets\Models\Title\Roads\road-sign-street.mtl"><Filter>Assets\Models\Title\Roads</Filter></None>
-    <None Include="Assets\Models\Title\Roads\road-sign-empty.obj"><Filter>Assets\Models\Title\Roads</Filter></None>
-    <None Include="Assets\Models\Title\Roads\road-sign-empty.mtl"><Filter>Assets\Models\Title\Roads</Filter></None>
+    <None Include="..\Content\Assets\Models\Title\Nature\grass_large.obj">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Nature\grass_large.mtl">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Nature\flower_yellowA.obj">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Nature\flower_yellowA.mtl">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Nature\tree_small.obj">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Nature\tree_small.mtl">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Nature\plant_bush.obj">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Nature\plant_bush.mtl">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Nature\License.txt">
+      <Filter>Assets\Models\Title\Nature</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.obj">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.mtl">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-empty.obj">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-empty.mtl">
+      <Filter>Assets\Models\Title\Roads</Filter>
+    </None>
     <None Include="Assets\Models\Cube.obj">
       <Filter>Assets\Models</Filter>
     </None>
-    <None Include="Assets\Models\Title\Commercial\building-skyscraper-a.obj"><Filter>Assets\Models\Title\Commercial</Filter></None>
-    <None Include="Assets\Models\Title\Commercial\building-skyscraper-a.mtl"><Filter>Assets\Models\Title\Commercial</Filter></None>
-    <None Include="Assets\Models\Title\Commercial\building-skyscraper-e.obj"><Filter>Assets\Models\Title\Commercial</Filter></None>
-    <None Include="Assets\Models\Title\Commercial\building-skyscraper-e.mtl"><Filter>Assets\Models\Title\Commercial</Filter></None>
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-a.obj">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-a.mtl">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-e.obj">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
+    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-e.mtl">
+      <Filter>Assets\Models\Title\Commercial</Filter>
+    </None>
     <None Include="Assets\Models\Pyramid.obj">
       <Filter>Assets\Models</Filter>
     </None>
     <None Include="Assets\Models\Cube.mtl">
       <Filter>Assets\Models</Filter>
     </None>
-    <None Include="Shaders\Common\UvTransform.hlsli">
+    <None Include="..\Content\Shaders\Common\UvTransform.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
     <None Include="Assets\Textures\Checker.png">
@@ -183,7 +223,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="src\Scenes"><UniqueIdentifier>{E4DB53F6-17CE-435F-9845-90A45587B0AB}</UniqueIdentifier></Filter>
+    <Filter Include="src\Scenes">
+      <UniqueIdentifier>{E4DB53F6-17CE-435F-9845-90A45587B0AB}</UniqueIdentifier>
+    </Filter>
     <ClInclude Include="src\Game.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -199,17 +241,39 @@
     <ClInclude Include="src\Scenes\TitleScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
-    <ClCompile Include="src\Scenes\TitleEnvironment.cpp"><Filter>src\Scenes</Filter></ClCompile>
-    <ClInclude Include="src\Scenes\TitleEnvironment.h"><Filter>src\Scenes</Filter></ClInclude>
-    <ClCompile Include="src\Scenes\TitleMenu.cpp"><Filter>src\Scenes</Filter></ClCompile>
-    <ClCompile Include="src\Scenes\TitleAudio.cpp"><Filter>src\Scenes</Filter></ClCompile>
-    <ClCompile Include="src\Scenes\GameSettings.cpp"><Filter>src\Scenes</Filter></ClCompile>
-    <ClInclude Include="src\Scenes\TitleMenu.h"><Filter>src\Scenes</Filter></ClInclude>
-    <ClInclude Include="src\Scenes\TitleAudio.h"><Filter>src\Scenes</Filter></ClInclude>
-    <ClInclude Include="src\Scenes\TitleAmbientMotion.h"><Filter>src\Scenes</Filter></ClInclude>
-    <ClInclude Include="src\Scenes\GameSettings.h"><Filter>src\Scenes</Filter></ClInclude>
-    <ClCompile Include="src\Scenes\TitleUi.cpp"><Filter>src\Scenes</Filter></ClCompile>
-    <ClInclude Include="src\Scenes\TitleUi.h"><Filter>src\Scenes</Filter></ClInclude>
+    <ClCompile Include="src\Scenes\TitleEnvironment.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Scenes\TitleEnvironment.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Scenes\TitleMenu.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scenes\TitleAudio.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scenes\GameSettings.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Scenes\TitleMenu.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\TitleAudio.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\TitleAmbientMotion.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\GameSettings.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Scenes\TitleUi.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Scenes\TitleUi.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
     <ClCompile Include="src\Scenes\TitleScene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
@@ -224,14 +288,22 @@
     <Filter Include="Assets\Textures\Title" />
     <Filter Include="Assets\Fonts" />
     <Filter Include="Assets\Fonts\MPlus1p" />
-    <None Include="Assets\Textures\Title\UiAtlas.png"><Filter>Assets\Textures\Title</Filter></None>
-    <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf"><Filter>Assets\Fonts\MPlus1p</Filter></None>
-    <None Include="Assets\Fonts\MPlus1p\OFL.txt"><Filter>Assets\Fonts\MPlus1p</Filter></None>
+    <None Include="Assets\Textures\Title\UiAtlas.png">
+      <Filter>Assets\Textures\Title</Filter>
+    </None>
+    <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf">
+      <Filter>Assets\Fonts\MPlus1p</Filter>
+    </None>
+    <None Include="Assets\Fonts\MPlus1p\OFL.txt">
+      <Filter>Assets\Fonts\MPlus1p</Filter>
+    </None>
     <None Include="Assets\Textures\Title.png">
       <Filter>Assets\Textures</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\TitleMote.hlsl"><Filter>Shaders</Filter></None>
+    <None Include="Shaders\TitleMote.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

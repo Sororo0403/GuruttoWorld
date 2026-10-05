@@ -17,6 +17,8 @@ namespace Engine
         /// 位置と角度を初期状態へ戻します。
         /// </summary>
         void Reset() noexcept;
+        /// <summary>復帰する視点を設定し、その位置へ移動します。不正値は拒否します。</summary>
+        bool SetResetPose(const std::array<float, 3>& position, float yaw, float pitch) noexcept;
 
         /// <summary>
         /// マウスの移動量をピクセル単位で受け取り、視点を回転します。上下角は反転を防ぐ範囲に制限します。
@@ -64,6 +66,9 @@ namespace Engine
         /// </summary>
         DirectX::XMVECTOR GetForward() const noexcept;
 
+        std::array<float, 3> resetPosition_{ 0.0f, 0.0f, -3.5f };
+        float resetYaw_ = 0.0f;
+        float resetPitch_ = 0.0f;
         Camera camera_;
         float yaw_ = 0.0f;
         float pitch_ = 0.0f;

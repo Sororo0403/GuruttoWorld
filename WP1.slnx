@@ -7,4 +7,9 @@
   </Configurations>
   <Project Path="App/App.vcxproj" Id="da59faf5-f726-4558-9946-c19f7819fd94" />
   <Project Path="Engine/Engine.vcxproj" Id="689a4162-50df-480e-93d1-6e6453148017" />
+  <Project Path="SceneRuntime/SceneRuntime.vcxproj" Id="d402069a-f7e5-4d62-a98d-6f5436d7513d" />
+  <Project Path="Editor/Editor.vcxproj" Id="69a15d37-8a13-4d48-93a0-bd431711911e">
+    <BuildType Solution="Release|*" Project="Development" />
+    <Build Solution="Release|*" Project="false" />
+  </Project>
 </Solution>
