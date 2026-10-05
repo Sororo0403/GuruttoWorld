@@ -9,7 +9,7 @@ namespace Editor
     void TransformGizmo::BeginFrame() { ImGuizmo::BeginFrame(); }
 
     void TransformGizmo::UpdateAndDraw(SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-        EditState& state, bool active)
+        EditState& state, const SceneViewport& viewport, bool active)
     {
         DrawControls();
         hovered_=false;
@@ -17,7 +17,8 @@ namespace Editor
         const auto found=std::find_if(objects.begin(), objects.end(),
             [&](const auto& object) { return object.id==state.SelectedId(); });
         const auto& io=ImGui::GetIO();
-        if (!active || found==objects.end() || io.DisplaySize.x<=0 || io.DisplaySize.y<=0 ||
+        if (!active || found==objects.end() || !viewport.Valid() ||
+            (!dragging_ && !viewport.Contains(io.MousePos.x, io.MousePos.y)) ||
             (dragging_ && draggingId_!=state.SelectedId()))
         {
             ImGuizmo::Enable(false);
@@ -26,20 +27,19 @@ namespace Editor
         }
         const auto current=*found;
         auto matrix=TransformMatrix::Compose(current);
-        if (!Manipulate(current, camera, matrix)) return;
+        if (!Manipulate(current, camera, viewport, matrix)) return;
         ApplyTransform(world, state, current, matrix);
     }
 
     bool TransformGizmo::Manipulate(const SceneRuntime::ScenePlacement& current,
-        const Engine::Camera& camera, DirectX::XMFLOAT4X4& matrix)
+        const Engine::Camera& camera, const SceneViewport& viewport, DirectX::XMFLOAT4X4& matrix)
     {
-        const auto& io = ImGui::GetIO();
         DirectX::XMFLOAT4X4 view, projection;
         DirectX::XMStoreFloat4x4(&view,camera.GetViewMatrix());
         DirectX::XMStoreFloat4x4(&projection,camera.GetProjectionMatrix());
         ImGuizmo::Enable(!ImGui::IsMouseDown(ImGuiMouseButton_Right));
         ImGuizmo::SetOrthographic(false);
-        ImGuizmo::SetRect(0,0,io.DisplaySize.x,io.DisplaySize.y);
+        ImGuizmo::SetRect(viewport.x,viewport.y,viewport.width,viewport.height);
         ImGuizmo::PushID(current.id.c_str());
         const auto operation=mode_==Mode::Move ? ImGuizmo::TRANSLATE : mode_==Mode::Rotate ? ImGuizmo::ROTATE : ImGuizmo::SCALE;
         const auto coordinateMode=local_ || mode_==Mode::Scale ? ImGuizmo::LOCAL : ImGuizmo::WORLD;

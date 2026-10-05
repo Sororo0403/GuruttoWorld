@@ -60,6 +60,7 @@ Undo／Redo→保存→削除→Undo→再読み込みの順に検証します�
 保存先はgenerated/tests/layout-ioで、元のTitleStreet.jsonは書き換えません。
 この検証はUIのマウス操作を自動化したものではなく、編集処理と描画の回帰検証です。
 共有のEditStateを通した選択・編集要求の一度だけの取得・変形の適用と不正値の拒否・Undo／Redo時の選択復元・保存済み表示も確認します。
+SceneViewportは原点のずれ・縦長へのリサイズ・領域境界・無効サイズについて、クリック座標と選択枠の座標変換を確認します。
 
 タイトル背景は CC0 の街並み・植生と、TitleSky/TitleMesh の専用シェーダーを描画します。ReviewRegressionValidation のタイトル検証ログは generated/tests/title-rendering.log に保存します。シェーダーは実行時にコンパイルするため、ビルド成功だけでなく Debug・Release の検証実行も確認してください。
 

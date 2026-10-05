@@ -107,6 +107,7 @@
     <ClInclude Include="src\TransformMatrix.h" />
     <ClInclude Include="src\EditHistory.h" />
     <ClInclude Include="src\EditState.h" />
+    <ClInclude Include="src\SceneViewport.h" />
     <ClInclude Include="src\FocusSelection.h" />
     <ClInclude Include="src\PanelLayout.h" />
     <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">

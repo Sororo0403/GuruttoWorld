@@ -67,7 +67,7 @@ namespace
             return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspect)
             {
                 auto& view = preview ? previewCamera : camera.GetCamera();
-                SceneRuntime::TitleView::SetProjection(view, aspect);
+                SceneRuntime::TitleView::SetProjection(view, preview || !sceneViewport.Valid() ? aspect : sceneViewport.Aspect());
                 world.Draw(commands, view, light);
             }, [&]() { DrawUi(); });
         }
@@ -175,6 +175,8 @@ namespace
 
         void DrawUi()
         {
+            const auto display = ImGui::GetIO().DisplaySize;
+            sceneViewport = {0, 0, display.x, display.y};
             Editor::TransformGizmo::BeginFrame();
             Editor::PanelLayout::BeginFrame();
             if (closeRequested) { DrawClosePopup(); return; }
@@ -187,7 +189,7 @@ namespace
             const bool historyEnabled = HistoryEnabled();
             UpdateShortcuts(historyEnabled);
             DrawCommands(canFocus, historyEnabled);
-            if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), editState);
+            if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), editState, sceneViewport);
         }
 
         void DrawClosePopup()
@@ -200,7 +202,7 @@ namespace
             }
             history.Observe({world.Layout().Serialize(), editState.SelectedId()}, false);
             // 編集中のギズモを止め、確認中は配置を変更しません。
-            gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, false);
+            gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport, false);
             if (!ImGui::IsPopupOpen("Exit with unsaved changes?")) ImGui::OpenPopup("Exit with unsaved changes?");
             if (ImGui::BeginPopupModal("Exit with unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
@@ -242,18 +244,14 @@ namespace
 
         void UpdateCamera()
         {
-            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, !gizmo.IsDragging());
-            const auto display = ImGui::GetIO().DisplaySize;
-            if (display.x > 0 && display.y > 0)
-            {
-                const float aspect = display.x / display.y;
-                SceneRuntime::TitleView::SetProjection(camera.GetCamera(), aspect);
-            }
+            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, !gizmo.IsDragging());
+            if (sceneViewport.Valid())
+                SceneRuntime::TitleView::SetProjection(camera.GetCamera(), sceneViewport.Aspect());
         }
 
         bool CanFocus() const
         {
-            return sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
+            return sceneViewport.Valid() && sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
                 !pendingObject && !pendingHistory && !reloadRequested &&
                 !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
@@ -295,9 +293,9 @@ namespace
 
         void UpdateObjects()
         {
-            gizmo.UpdateAndDraw(world, camera.GetCamera(), editState,
+            gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
                 sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject);
-            Editor::SceneSelection::Update(world, camera.GetCamera(), editState,
+            Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
                 sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject && !gizmo.ConsumesMouse());
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
@@ -431,6 +429,7 @@ namespace
         SceneRuntime::SceneWorld world;
         Engine::DebugCamera camera;
         Editor::CameraPanel cameraPanel;
+        Editor::SceneViewport sceneViewport;
         Editor::EditState editState;
         Editor::ObjectPanel objectPanel;
         Editor::TransformGizmo gizmo;

@@ -79,3 +79,10 @@ Appへの配置は `Content/Content.targets` が行います。
 `EditState`で共有します。ObjectPanelは表示と入力、SceneSelectionはクリック選択、
 TransformGizmoはハンドル操作を担当し、同じ編集状態を参照します。
 GPUの待機が必要な操作とUndo／Redo・保存はStreetEditorが実行します。
+
+## Scene表示領域
+
+`SceneViewport`で表示領域の位置・サイズ・縦横比と画面座標変換を共有します。
+カメラ投影、クリック選択、選択枠、ギズモ、右ドラッグ開始はこの領域を使います。
+現在の描画先は従来どおりウィンドウ全体です。Sceneパネルへのテクスチャ表示は後続の段階で導入します。
+サイズが無効な間は選択・ギズモ・カメラ移動を止め、最後の有効な投影を維持します。

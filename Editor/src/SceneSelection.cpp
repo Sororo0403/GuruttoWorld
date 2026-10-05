@@ -38,16 +38,15 @@ namespace
 namespace Editor
 {
     void SceneSelection::Update(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-        EditState& state, bool active)
+        EditState& state, const SceneViewport& viewport, bool active)
     {
         const auto& io = ImGui::GetIO();
         if (!active || io.WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) ||
             !ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
-            io.DisplaySize.x <= 0 || io.DisplaySize.y <= 0 || io.MousePos.x < 0 || io.MousePos.y < 0 ||
-            io.MousePos.x >= io.DisplaySize.x || io.MousePos.y >= io.DisplaySize.y) return;
+            !viewport.Contains(io.MousePos.x, io.MousePos.y)) return;
         using namespace DirectX;
-        const float x = io.MousePos.x / io.DisplaySize.x * 2.0f - 1.0f;
-        const float y = 1.0f - io.MousePos.y / io.DisplaySize.y * 2.0f;
+        const auto ndc = *viewport.ToNdc(io.MousePos.x, io.MousePos.y);
+        const float x = ndc[0], y = ndc[1];
         const auto inverse = XMMatrixInverse(nullptr, camera.GetViewMatrix() * camera.GetProjectionMatrix());
         const auto nearPoint = XMVector3TransformCoord(XMVectorSet(x, y, 0, 1), inverse);
         const auto farPoint = XMVector3TransformCoord(XMVectorSet(x, y, 1, 1), inverse);
@@ -61,12 +60,11 @@ namespace Editor
     }
 
     void SceneSelection::Draw(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-        const EditState& state)
+        const EditState& state, const SceneViewport& viewport)
     {
         std::array<std::array<float, 3>, 8> corners;
         if (!world.WorldBounds(state.SelectedId(), corners)) return;
-        const auto& io = ImGui::GetIO();
-        if (io.DisplaySize.x <= 0 || io.DisplaySize.y <= 0) return;
+        if (!viewport.Valid()) return;
         std::array<DirectX::XMFLOAT4, 8> clip;
         const auto viewProjection = camera.GetViewMatrix() * camera.GetProjectionMatrix();
         for (size_t index = 0; index < corners.size(); ++index)
@@ -78,16 +76,19 @@ namespace Editor
         constexpr int Edges[12][2]{ {0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},
             {0,4},{1,5},{2,6},{3,7} };
         auto* draw = ImGui::GetBackgroundDrawList();
+        draw->PushClipRect(ImVec2(viewport.x, viewport.y),
+            ImVec2(viewport.x + viewport.width, viewport.y + viewport.height), true);
         for (const auto* edge : Edges)
         {
             auto a = clip[edge[0]], b = clip[edge[1]];
             if (!ClipEdge(a, b)) continue;
             const auto screen = [&](const DirectX::XMFLOAT4& p)
             {
-                return ImVec2((p.x / p.w + 1) * 0.5f * io.DisplaySize.x,
-                    (1 - p.y / p.w) * 0.5f * io.DisplaySize.y);
+                const auto point = viewport.ToScreen(p.x / p.w, p.y / p.w);
+                return ImVec2(point[0], point[1]);
             };
             draw->AddLine(screen(a), screen(b), IM_COL32(255, 210, 50, 255), 2.0f);
         }
+        draw->PopClipRect();
     }
 }

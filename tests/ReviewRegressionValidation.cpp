@@ -1,6 +1,7 @@
 #include "../Editor/src/TransformMatrix.h"
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
+#include "../Editor/src/SceneViewport.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
@@ -891,6 +892,24 @@ void ValidateTransformMatrix()
     Check(!Editor::TransformMatrix::Read(invalid,placement,output), "nonfinite transform is rejected");
 }
 
+void ValidateSceneViewport()
+{
+    const Editor::SceneViewport viewport{120, 80, 800, 400};
+    Check(viewport.Valid() && viewport.Aspect()==2, "offset scene viewport aspect");
+    Check(viewport.ToNdc(520,280)==std::array<float,2>{0,0}, "scene center maps to NDC origin");
+    Check(viewport.ToNdc(120,80)==std::array<float,2>{-1,1}, "scene top left maps to NDC corner");
+    Check(!viewport.ToNdc(119,280) && !viewport.ToNdc(520,79) &&
+        !viewport.ToNdc(920,280) && !viewport.ToNdc(520,480), "scene excludes outside and right/bottom boundary");
+    Check(viewport.ToScreen(0,0)==std::array<float,2>{520,280} &&
+        viewport.ToScreen(1,-1)==std::array<float,2>{920,480}, "selection overlay includes viewport offset");
+    for (const auto& invalid : std::array<Editor::SceneViewport,5>{
+        Editor::SceneViewport{}, {0,0,800,0}, {0,0,-1,400}, {NAN,0,800,400}, {0,0,INFINITY,400}})
+        Check(!invalid.Valid() && !invalid.ToNdc(0,0), "invalid viewport disables picking");
+    const Editor::SceneViewport resized{32,64,400,800};
+    Check(resized.Aspect()==0.5f && resized.ToNdc(232,464)==std::array<float,2>{0,0},
+        "resized portrait scene keeps its center and aspect");
+}
+
 void ValidateEditHistory()
 {
     Editor::EditHistory history;
@@ -963,6 +982,7 @@ int main()
     try
     {
         ValidateTransformMatrix();
+        ValidateSceneViewport();
         ValidateEditHistory();
         ValidateFocusSelection();
         ValidateDeferredClose();
