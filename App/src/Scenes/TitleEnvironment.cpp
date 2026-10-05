@@ -22,9 +22,9 @@ namespace App
         camera_.SetPosition({ -0.8f, 1.8f, -7.0f });
         camera_.SetRotation(0.03f, 0.13f);
         light_.direction = { -0.5f, -0.8f, 0.6f };
-        light_.color = { 1.0f, 0.96f, 0.86f };
-        light_.ambientIntensity = 0.48f;
-        light_.intensity = 0.72f;
+        light_.color = { 1.0f, 0.95f, 0.84f };
+        light_.ambientIntensity = 0.52f;
+        light_.intensity = 0.76f;
         light_.specularStrength = 0.03f;
         return true;
     }
