@@ -80,3 +80,6 @@ Debugでは利用可能なD3D12 InfoQueueのエラーを確認します。
 DebugのRenderTexture検証ではScene用SRVの枠がリサイズ後も同じであること、ドッキング後の画像領域、
 レイアウトの保存内容も確認します。初回配置の測定フレームの次から画像領域を検証します。
 保存先はgenerated/tests/editor-layoutで、実際のEditorのレイアウト設定は変更しません。
+
+Inspectorの名前変更（日本語を含む）・不正な名前の拒否・Transformリセットを実際のSceneWorldで検証し、
+Undo／Redoの順序と選択ID、保存と再読み込み後の配置全体を比較します。

@@ -73,6 +73,16 @@ namespace SceneRuntime
         for (const auto& object : objects_) object.Draw(commands, camera, light);
     }
 
+    bool SceneWorld::RenameObject(std::string_view id, std::string name)
+    {
+        if (name.find_first_not_of(" \t\r\n")==std::string::npos || name.find('\0')!=std::string::npos) return false;
+        const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),
+            [id](const ScenePlacement& object) { return object.id==id; });
+        if (found==layout_.objects.end()) return false;
+        found->name=std::move(name);
+        return true;
+    }
+
     bool SceneWorld::SetTransform(std::string_view id, const std::array<float, 3>& position,
         const std::array<float, 3>& rotation, const std::array<float, 3>& scale)
     {

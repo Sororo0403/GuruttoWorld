@@ -22,6 +22,8 @@ namespace SceneRuntime
         // 配置と描画用の変換を同時に更新します。失敗した場合は直前の状態を維持します。
         bool SetTransform(std::string_view id, const std::array<float, 3>& position,
             const std::array<float, 3>& rotation, const std::array<float, 3>& scale);
+        // 表示名だけを変更します。ID・描画リソースは維持します。
+        bool RenameObject(std::string_view id, std::string name);
         // GPU完了を待った後、描画の外で呼びます。
         bool AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,
             std::string& createdId, std::string& error);

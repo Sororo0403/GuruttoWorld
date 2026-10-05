@@ -727,6 +727,42 @@ namespace
                     "undo deletion restores selected object and saved state");
                 Check(editorWorld.Reload(content,editedPath,operationError) &&
                     editorWorld.Layout().Serialize()==transformedJson,"workflow save and reload preserves final transforms");
+                Editor::EditHistory inspectorHistory;
+                inspectorHistory.Reset({transformedJson,workflowId});
+                const std::string renamedName="新しい建物##display";
+                Check(editState.Rename(editorWorld,workflowId,renamedName), "Inspector rename accepted");
+                const auto renamedJson=editorWorld.Layout().Serialize();
+                inspectorHistory.Observe({renamedJson,workflowId},false);
+                Check(editorWorld.Layout().objects.back().id==workflowId &&
+                    editorWorld.Layout().objects.back().name==renamedName, "rename preserves object ID and Unicode name");
+                Check(!editState.Rename(editorWorld,workflowId," \t") && !editState.Rename(editorWorld,"missing-id","name") &&
+                    editorWorld.Layout().Serialize()==renamedJson, "invalid rename preserves scene");
+                Check(editState.ResetTransform(editorWorld,workflowId), "Inspector transform reset accepted");
+                const auto& reset=editorWorld.Layout().objects.back();
+                Check(reset.position==std::array<float,3>{0,0,0} && reset.rotation==std::array<float,3>{0,0,0} &&
+                    reset.scale==std::array<float,3>{1,1,1} && reset.name==renamedName, "reset restores identity and keeps name");
+                const auto resetJson=editorWorld.Layout().Serialize();
+                inspectorHistory.Observe({resetJson,workflowId},false);
+                const auto restoreInspector=[&](bool redo)
+                {
+                    const auto target=inspectorHistory.Target(redo);
+                    Check(editorWorld.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json),content,operationError),
+                        "Inspector history restoration");
+                    inspectorHistory.Applied(redo);
+                    editState.Select(target.selection);
+                };
+                restoreInspector(false);
+                Check(editorWorld.Layout().Serialize()==renamedJson, "one undo restores pre-reset mirrored transform");
+                restoreInspector(false);
+                Check(editorWorld.Layout().Serialize()==transformedJson, "next undo restores original name");
+                restoreInspector(true);
+                restoreInspector(true);
+                Check(editorWorld.Layout().Serialize()==resetJson && editState.SelectedId()==workflowId,
+                    "redo restores rename and reset with selection");
+                editorWorld.Layout().Save(editedPath);
+                Check(editorWorld.Reload(content,editedPath,operationError) && editorWorld.Layout().Serialize()==resetJson,
+                    "Inspector name and reset survive save and reload");
+
                 App::TitleScene title(TestContentRoot());
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");

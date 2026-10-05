@@ -54,7 +54,7 @@ namespace Editor::PanelLayout
         ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.28f, &bottom, &center);
         ImGui::DockBuilderSplitNode(left, ImGuiDir_Up, 0.25f, &commands, &left);
         ImGui::DockBuilderDockWindow("Street Editor", commands);
-        ImGui::DockBuilderDockWindow("Objects", left);
+        ImGui::DockBuilderDockWindow("Hierarchy###Objects", left);
         ImGui::DockBuilderDockWindow("Inspector", right);
         ImGui::DockBuilderDockWindow("Scene", center);
         ImGui::DockBuilderDockWindow("Models", bottom);

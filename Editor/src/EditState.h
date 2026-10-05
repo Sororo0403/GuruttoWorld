@@ -34,6 +34,16 @@ namespace Editor
             if (!invalidTransform_) changed_ = true;
             return !invalidTransform_;
         }
+        bool Rename(SceneRuntime::SceneWorld& world, const std::string& id, std::string name)
+        {
+            if (!world.RenameObject(id, std::move(name))) return false;
+            changed_ = true;
+            return true;
+        }
+        bool ResetTransform(SceneRuntime::SceneWorld& world, const std::string& id)
+        {
+            return SetTransform(world, id, {0,0,0}, {0,0,0}, {1,1,1});
+        }
         bool InvalidTransform() const { return invalidTransform_; }
         void Request(ObjectRequest request) { request_ = std::move(request); }
         std::optional<ObjectRequest> TakeRequest()
