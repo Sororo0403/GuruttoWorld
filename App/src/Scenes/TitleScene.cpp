@@ -20,7 +20,7 @@ namespace
 
 namespace App
 {
-    TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro) {}
+    TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro, true) {}
 
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)
     {
@@ -35,6 +35,15 @@ namespace App
         input.active = keyboard.IsActive();
         input.gamepadConnected = gamepad_.IsConnected();
         input.keyboardButtons = ReadKeyboardButtons(keyboard);
+        for (unsigned int key = 0; key < 256; ++key)
+            input.anyButtonPressed |= keyboard.IsPressed(key);
+        constexpr unsigned int PadButtons = XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_DOWN |
+            XINPUT_GAMEPAD_DPAD_LEFT | XINPUT_GAMEPAD_DPAD_RIGHT | XINPUT_GAMEPAD_START |
+            XINPUT_GAMEPAD_BACK | XINPUT_GAMEPAD_LEFT_THUMB | XINPUT_GAMEPAD_RIGHT_THUMB |
+            XINPUT_GAMEPAD_LEFT_SHOULDER | XINPUT_GAMEPAD_RIGHT_SHOULDER | XINPUT_GAMEPAD_A |
+            XINPUT_GAMEPAD_B | XINPUT_GAMEPAD_X | XINPUT_GAMEPAD_Y;
+        for (unsigned int bit = 1; bit <= XINPUT_GAMEPAD_Y; bit <<= 1)
+            if ((PadButtons & bit) != 0) input.anyButtonPressed |= gamepad_.IsPressed(static_cast<WORD>(bit));
         if (gamepad_.IsDown(XINPUT_GAMEPAD_DPAD_UP)) input.gamepadButtons |= MenuUp;
         if (gamepad_.IsDown(XINPUT_GAMEPAD_DPAD_DOWN)) input.gamepadButtons |= MenuDown;
         if (gamepad_.IsDown(XINPUT_GAMEPAD_A)) input.gamepadButtons |= MenuConfirm;
@@ -50,16 +59,10 @@ namespace App
         gamepad_.Update(keyboard.IsActive());
         const auto input = ReadMenuInput(keyboard);
         const auto action = menu_.Update(input, deltaSeconds);
-        if (action == TitleMenuAction::SaveSettings)
-            menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
         audio_.Update(root_, menu_, keyboard.IsActive(), deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
-            keyboard.IsActive() && menu_.TransitionProgress() == 0.0f,
-            menu_.IsSettingsOpen() || menu_.GetSelected() == TitleMenuItem::Settings,
-            !menu_.IsSettingsOpen() && menu_.GetSelected() == TitleMenuItem::Exit);
+            keyboard.IsActive() && menu_.TransitionProgress() == 0.0f);
         if (action == TitleMenuAction::Start) return "Game";
-        // WM_QUIT を既存のメッセージループへ送り、GPU 完了待ちと通常の破棄を通します。
-        if (action == TitleMenuAction::Exit) PostQuitMessage(0);
         return {};
     }
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)

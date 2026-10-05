@@ -106,6 +106,14 @@ namespace
             DrawPart({ 0, gamepad ? 912.0f : 832.0f, gamepad ? 1400.0f : 940.0f, 64 },
             { 54, 655, gamepad ? 700.0f : 470.0f, 32 }, White);
         }
+        void DrawStartPrompt()
+        {
+            SetIntroStage(0.0f);
+            DrawPart({ 0, 0, 1024, 480 }, { 48, 54, 420, 197 }, White);
+            SetIntroStage(0.2f);
+            DrawPart(Band, { 390, 598, 500, 64 }, { 0.13f, 0.18f, 0.21f, 0.82f });
+            DrawPart({ 0, 1600, 1000, 80 }, { 430, 615, 420, 34 }, Cream);
+        }
     };
 }
 
@@ -128,12 +136,13 @@ namespace App
         const float viewportWidth = static_cast<float>(width);
         const float viewportHeight = static_cast<float>(height);
         TitleUiFrame frame{ atlas_, commands, width, height, menu };
-        if (menu.IsSettingsOpen())
+        if (menu.UsesPressAnyButton()) frame.DrawStartPrompt();
+        else if (menu.IsSettingsOpen())
         {
             frame.DrawSettings();
             return;
         }
-        frame.DrawMenu();
+        else frame.DrawMenu();
         const float transition = menu.TransitionProgress();
         if (transition > 0.0f)
         {

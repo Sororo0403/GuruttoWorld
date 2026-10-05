@@ -16,13 +16,16 @@ namespace App
         unsigned int gamepadButtons = 0;
         float stickY = 0.0f;
         float stickX = 0.0f;
+        bool anyButtonPressed = false;
     };
 
     class TitleMenu final
     {
     public:
         /// <summary>初回だけ登場演出を有効にします。</summary>
-        explicit TitleMenu(bool playIntro = false) : introSeconds_(playIntro ? 0.0f : 0.65f) {}
+        explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false)
+            : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton) {}
+        bool UsesPressAnyButton() const { return pressAnyButton_; }
         /// <summary>登場演出の進行率を返します。</summary>
         float IntroProgress() const { return introSeconds_ / 0.65f; }
         /// <summary>選択時の強調量を返します。</summary>
@@ -79,5 +82,6 @@ namespace App
         bool connectedPrevious_ = false;
         bool usesGamepad_ = false;
         bool finished_ = false;
+        bool pressAnyButton_ = false;
     };
 }

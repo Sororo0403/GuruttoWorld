@@ -39,7 +39,19 @@ namespace App
             transitionSeconds_ = std::min(0.32f, transitionSeconds_ + elapsed);
             return TitleMenuAction::None;
         }
+        const bool wasReady = ready_;
         const unsigned int pressed = ReadPressedButtons(input);
+        if (pressAnyButton_)
+        {
+            if (wasReady && input.anyButtonPressed)
+            {
+                introSeconds_ = 0.65f;
+                cue_ = TitleMenuCue::Confirm;
+                finished_ = true;
+                pending_ = TitleMenuAction::Start;
+            }
+            return TitleMenuAction::None;
+        }
         if (entering)
         {
             if (pressed != 0) introSeconds_ = 0.65f;

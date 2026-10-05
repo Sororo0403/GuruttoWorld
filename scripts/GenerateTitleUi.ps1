@@ -78,6 +78,7 @@ try {
     for ($titleLevel = 0; $titleLevel -le 10; $titleLevel++) {
         Draw-TitleText (($titleLevel * 10).ToString() + ' %') 1036 (1036 + $titleLevel * 64) 360 44 $titleWhite
     }
+    Draw-TitleText 'PRESS ANY BUTTON' 12 1612 976 50 $titleWhite
     $titleOutput = Join-Path $titleRoot 'App/Assets/Textures/Title/UiAtlas.png'
     $titleBitmap.Save($titleOutput, [System.Drawing.Imaging.ImageFormat]::Png)
 }

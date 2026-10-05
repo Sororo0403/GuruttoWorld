@@ -240,6 +240,23 @@ namespace
 
     void ValidateAmbientMotion()
     {
+        App::TitleMenu pressAny(true, true);
+        App::TitleMenuInput startInput;
+        startInput.active = true;
+        startInput.anyButtonPressed = true;
+        pressAny.Update(startInput, 0.1);
+        Check(pressAny.TransitionProgress() == 0.0f, "first activation cannot start press-any title");
+        startInput.anyButtonPressed = false;
+        pressAny.Update(startInput, 0.1);
+        startInput.anyButtonPressed = true;
+        pressAny.Update(startInput, 0.1);
+        Check(pressAny.GetCue() == App::TitleMenuCue::Confirm && !pressAny.IsSettingsOpen(),
+            "any button starts directly even during intro");
+        startInput.anyButtonPressed = false;
+        for (int frame = 0; frame < 4; ++frame)
+            Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::None, "press-any transition draws before start");
+        Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::Start, "press-any emits game start");
+        Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::None, "press-any emits start once");
         App::TitleAmbientMotion motion;
         App::TitleAmbientMotion exitCamera;
         const auto home = exitCamera.CameraPosition();
