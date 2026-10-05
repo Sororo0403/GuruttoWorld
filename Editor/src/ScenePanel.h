@@ -3,6 +3,7 @@
 #include "PanelLayout.h"
 #include <imgui.h>
 #include <algorithm>
+#include <cstdint>
 
 namespace Editor
 {
@@ -10,7 +11,7 @@ namespace Editor
     {
     public:
         // Keep the Scene window current while constructing its overlays; always pair with End.
-        bool Begin(UINT64 texture)
+        bool Begin(std::uint64_t texture)
         {
             viewport_ = {};
             hovered_ = false;
@@ -27,11 +28,11 @@ namespace Editor
         static void End() { ImGui::End(); }
         const SceneViewport& Viewport() const { return viewport_; }
         bool Hovered() const { return hovered_; }
-        std::array<UINT, 2> RequestedSize() const
+        std::array<unsigned int, 2> RequestedSize() const
         {
             if (!viewport_.Valid()) return {};
-            return {static_cast<UINT>(std::clamp(viewport_.width, 1.0f, 16384.0f)),
-                static_cast<UINT>(std::clamp(viewport_.height, 1.0f, 16384.0f))};
+            return {static_cast<unsigned int>(std::clamp(viewport_.width, 1.0f, 16384.0f)),
+                static_cast<unsigned int>(std::clamp(viewport_.height, 1.0f, 16384.0f))};
         }
     private:
         SceneViewport viewport_;

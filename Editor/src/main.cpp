@@ -11,6 +11,7 @@
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <imgui.h>
 #include <Windows.h>
@@ -48,7 +49,11 @@ namespace
             objectPanel.ScanModels(root);
             Engine::ApplicationCallbacks callbacks;
             callbacks.closeRequested = [&]() { closeRequested = true; };
-            callbacks.shouldClose = [&]() { return closeConfirmed; };
+            callbacks.shouldClose = [&]()
+            {
+                if (closeConfirmed) Editor::PanelLayout::Save();
+                return closeConfirmed;
+            };
             callbacks.update = [&](double dt, const Engine::Keyboard& input)
             {
                 keyboard = &input;
@@ -175,6 +180,8 @@ namespace
         {
             if (!initialized)
             {
+                const auto settingsRoot = Engine::GetDiagnosticsRoot();
+                Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{} : settingsRoot / "Editor/layout.ini");
                 sceneLoaded = world.Initialize(renderer, root, layoutPath,
                     root / "Shaders/TitleMesh.hlsl", &fileStatus);
                 initialized = true;
@@ -204,9 +211,14 @@ namespace
         void DrawUi()
         {
             Editor::TransformGizmo::BeginFrame();
-            Editor::PanelLayout::BeginFrame();
+            Editor::PanelLayout::BeginFrame(preview);
             sceneViewport = {};
-            if (preview && !closeRequested) { DrawPreview(); return; }
+            if (preview)
+            {
+                if (closeRequested) DrawClosePopup();
+                else DrawPreview();
+                return;
+            }
             scenePanel.Begin(sceneTextureId);
             sceneViewport = scenePanel.Viewport();
             requestedSceneSize = scenePanel.RequestedSize();
@@ -394,6 +406,7 @@ namespace
                     ImGui::TextWrapped("Content: %s",root.string().c_str());
                 }
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
+                if (!Editor::PanelLayout::error.empty()) ImGui::TextWrapped("Layout: %s", Editor::PanelLayout::error.c_str());
                 DrawReloadPopup();
             }
             ImGui::End();

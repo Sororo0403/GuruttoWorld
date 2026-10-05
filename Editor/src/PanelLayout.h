@@ -1,36 +1,79 @@
 #pragma once
 #include <imgui.h>
-#include <algorithm>
+#include <imgui_internal.h>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <string>
 
 namespace Editor::PanelLayout
 {
     enum class Panel { Commands, Objects, Inspector, Gizmo, Models, Camera, Scene };
-    inline bool requested=true, apply=false;
-    inline void Reset() { requested=true; }
-    inline void BeginFrame() { apply=requested; requested=false; }
-    inline void Place(Panel panel)
+    inline bool requested = false;
+    inline std::filesystem::path settingsPath;
+    inline std::string error;
+    inline void Reset() { requested = true; }
+    inline void Initialize(const std::filesystem::path& path)
     {
-        const auto screen=ImGui::GetIO().DisplaySize;
-        const float width=std::clamp(screen.x*0.24f,200.0f,320.0f);
-        const float height=std::max(200.0f,screen.y-16.0f);
-        const float commands=std::min(270.0f,height*0.46f);
-        const float inspector=height*0.54f;
-        const float centerWidth=std::clamp(screen.x-2*width-32,200.0f,440.0f);
-        ImVec2 position(8,8), size(width,commands);
-        bool collapsed=false;
-        switch (panel)
+        settingsPath = path;
+        error.clear();
+        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        std::ifstream input(path, std::ios::binary);
+        if (input)
         {
-        case Panel::Scene: position={width+16,8}; size={std::max(200.0f,screen.x-2*width-32),height}; break;
-        case Panel::Objects: position.y+=commands+8; size.y=height-commands-8; break;
-        case Panel::Inspector: position.x=screen.x-width-8; size.y=inspector; break;
-        case Panel::Gizmo: position={screen.x-width-8,16+inspector}; size.y=height-inspector-8; break;
-        case Panel::Models: position={width+16,40}; size={centerWidth,std::min(520.0f,height)}; collapsed=true; break;
-        case Panel::Camera: position={width+16,72}; size={centerWidth,210}; collapsed=true; break;
-        default: break;
+            const std::string contents((std::istreambuf_iterator<char>(input)), {});
+            ImGui::LoadIniSettingsFromMemory(contents.c_str(), contents.size());
         }
-        const auto condition=apply ? ImGuiCond_Always : ImGuiCond_FirstUseEver;
-        ImGui::SetNextWindowPos(position,condition);
-        ImGui::SetNextWindowSize(size,condition);
-        ImGui::SetNextWindowCollapsed(collapsed,condition);
     }
+    inline bool Save()
+    {
+        if (settingsPath.empty()) return false;
+        try
+        {
+            std::filesystem::create_directories(settingsPath.parent_path());
+            size_t size = 0;
+            const char* contents = ImGui::SaveIniSettingsToMemory(&size);
+            std::ofstream output(settingsPath, std::ios::binary | std::ios::trunc);
+            output.write(contents, static_cast<std::streamsize>(size));
+            output.close();
+            if (!output) throw std::runtime_error("Could not save Editor layout.");
+            ImGui::GetIO().WantSaveIniSettings = false;
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& failure) { error = failure.what(); return false; }
+    }
+    inline void BuildDefault(ImGuiID root)
+    {
+        ImGui::DockBuilderRemoveNode(root);
+        ImGui::DockBuilderAddNode(root, ImGuiDockNodeFlags_DockSpace);
+        ImGui::DockBuilderSetNodeSize(root, ImGui::GetMainViewport()->WorkSize);
+        ImGuiID center = root, left = 0, right = 0, bottom = 0, commands = 0, inspector = 0;
+        ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.23f, &left, &center);
+        ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.30f, &right, &center);
+        ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.28f, &bottom, &center);
+        ImGui::DockBuilderSplitNode(left, ImGuiDir_Up, 0.38f, &commands, &left);
+        ImGui::DockBuilderSplitNode(right, ImGuiDir_Up, 0.58f, &inspector, &right);
+        ImGui::DockBuilderDockWindow("Street Editor", commands);
+        ImGui::DockBuilderDockWindow("Objects", left);
+        ImGui::DockBuilderDockWindow("Inspector", inspector);
+        ImGui::DockBuilderDockWindow("Transform Gizmo", right);
+        ImGui::DockBuilderDockWindow("Scene", center);
+        ImGui::DockBuilderDockWindow("Models", bottom);
+        ImGui::DockBuilderDockWindow("Debug Camera", bottom);
+        ImGui::DockBuilderFinish(root);
+    }
+    inline void BeginFrame(bool preview = false)
+    {
+        const auto flags = preview ? ImGuiDockNodeFlags_KeepAliveOnly : ImGuiDockNodeFlags_None;
+        const auto root = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), flags);
+        const auto* node = ImGui::DockBuilderGetNode(root);
+        if (!preview && (requested || !node || (!node->ChildNodes[0] && node->Windows.empty())))
+        {
+            BuildDefault(root);
+            requested = false;
+        }
+        if (ImGui::GetIO().WantSaveIniSettings) Save();
+    }
+    inline void Place(Panel) {} // Window placement now belongs to the dockspace/settings.
 }

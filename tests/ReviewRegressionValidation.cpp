@@ -5,6 +5,7 @@
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
+#include "../Editor/src/ScenePanel.h"
 #endif
 #include <SceneRuntime/SceneLayout.h>
 #include <SceneRuntime/SceneWorld.h>
@@ -398,6 +399,11 @@ namespace
         Check(window.Create(L"Hidden render texture validation", 320, 240), "render texture window");
         Check(renderer.Initialize(window.GetHandle()), "render texture renderer");
         Engine::RenderTexture target;
+#if defined(_DEBUG)
+        Editor::PanelLayout::Initialize(std::filesystem::absolute("generated/tests/editor-layout/layout.ini"));
+        Editor::PanelLayout::Reset();
+        UINT64 stableTextureId = 0;
+#endif
         Check(!target.Begin(nullptr,{0,0,0,1}) && !target.End(nullptr), "uninitialized target rejects recording");
         for (const auto size : std::array<std::array<UINT,2>,3>{{{64,32},{32,64},{64,32}}})
         {
@@ -409,6 +415,11 @@ namespace
                 target.GetResource()==resource && target.GetWidth()==size[0] && target.GetHeight()==size[1],
                 "hidden or invalid size preserves last valid target");
             Check(target.GetShaderResourceView().ptr!=0, "render texture exposes copyable SRV");
+#if defined(_DEBUG)
+            const auto textureId = renderer.SetSceneTexture(target.GetShaderResourceView()).ptr;
+            Check(textureId && (!stableTextureId || textureId==stableTextureId), "Scene UI descriptor remains stable after resize");
+            stableTextureId = textureId;
+#endif
             auto* device = renderer.GetDevice();
             D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
             UINT64 bytes=0;
@@ -449,7 +460,19 @@ namespace
                     commands->CopyTextureRegion(&destination,0,0,0,&source,nullptr);
                     std::swap(barrier.Transition.StateBefore,barrier.Transition.StateAfter);
                     commands->ResourceBarrier(1,&barrier);
-                })!=Engine::RenderResult::Failed, "offscreen frame submitted");
+                }
+#if defined(_DEBUG)
+                , [&]()
+                {
+                    Editor::PanelLayout::BeginFrame();
+                    Editor::ScenePanel panel;
+                    panel.Begin(textureId);
+                    Check(panel.Viewport().Valid() && panel.RequestedSize()[0]>0, "docked Scene image has usable content rectangle");
+                    Check(ImGui::GetWindowDockID()!=0, "Scene belongs to the standard dockspace");
+                    Editor::ScenePanel::End();
+                }
+#endif
+                )!=Engine::RenderResult::Failed, "offscreen frame submitted");
                 Check(renderer.WaitForIdle(), "offscreen copy GPU completion");
                 void* mapped=nullptr;
                 const D3D12_RANGE range{0,static_cast<SIZE_T>(bytes)};
@@ -463,6 +486,14 @@ namespace
                 Check(expected, "resized offscreen target contains current clear color at both corners");
             }
         }
+#if defined(_DEBUG)
+        Check(Editor::PanelLayout::Save(), "Editor layout saved to test directory");
+        std::ifstream layoutFile("generated/tests/editor-layout/layout.ini");
+        const std::string savedLayout((std::istreambuf_iterator<char>(layoutFile)), {});
+        Check(savedLayout.find("[Docking][Data]")!=std::string::npos && savedLayout.find("[Window][Scene]")!=std::string::npos,
+            "layout stores docking and Scene settings");
+        Editor::PanelLayout::Initialize(std::filesystem::absolute("generated/tests/editor-layout/layout.ini"));
+#endif
         Check(renderer.WaitForIdle(), "render texture destruction GPU completion");
         CheckGpuMessages(renderer.GetDevice());
     }
