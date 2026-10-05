@@ -5,6 +5,8 @@
 #include "EditHistory.h"
 #include "FocusSelection.h"
 #include "PanelLayout.h"
+#include "ScenePanel.h"
+#include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
@@ -63,13 +65,39 @@ namespace
     private:
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
         {
-            if (!ApplyPendingChanges(renderer)) return Engine::RenderResult::Failed;
-            return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspect)
+            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer)) return Engine::RenderResult::Failed;
+            bool rendered = true;
+            const auto result = renderer.Render({0.10f, 0.11f, 0.13f, 1},
+                [&](ID3D12GraphicsCommandList* commands, float aspect)
+                {
+                    if (preview)
+                    {
+                        SceneRuntime::TitleView::SetProjection(previewCamera, aspect);
+                        world.Draw(commands, previewCamera, light);
+                    }
+                    else if (sceneViewport.Valid()) rendered = DrawSceneTexture(commands);
+                }, [&]() { DrawUi(); });
+            return rendered ? result : Engine::RenderResult::Failed;
+        }
+
+        bool PrepareSceneTexture(Engine::DirectX12Renderer& renderer)
+        {
+            if (!requestedSceneSize[0] || !requestedSceneSize[1]) return true;
+            if (sceneTexture.GetWidth() == requestedSceneSize[0] && sceneTexture.GetHeight() == requestedSceneSize[1]) return true;
+            if (!sceneTexture.Resize(renderer, requestedSceneSize[0], requestedSceneSize[1]))
             {
-                auto& view = preview ? previewCamera : camera.GetCamera();
-                SceneRuntime::TitleView::SetProjection(view, preview || !sceneViewport.Valid() ? aspect : sceneViewport.Aspect());
-                world.Draw(commands, view, light);
-            }, [&]() { DrawUi(); });
+                fileStatus = "Could not resize the Scene render texture.";
+                return sceneTexture.GetResource() != nullptr;
+            }
+            sceneTextureId = renderer.SetSceneTexture(sceneTexture.GetShaderResourceView()).ptr;
+            return sceneTextureId != 0;
+        }
+
+        bool DrawSceneTexture(ID3D12GraphicsCommandList* commands)
+        {
+            if (!sceneTexture.Begin(commands, {0.66f, 0.79f, 0.83f, 1})) return false;
+            world.Draw(commands, camera.GetCamera(), light);
+            return sceneTexture.End(commands);
         }
 
         bool ApplyReload(Engine::DirectX12Renderer& renderer)
@@ -175,12 +203,14 @@ namespace
 
         void DrawUi()
         {
-            const auto display = ImGui::GetIO().DisplaySize;
-            sceneViewport = {0, 0, display.x, display.y};
             Editor::TransformGizmo::BeginFrame();
             Editor::PanelLayout::BeginFrame();
-            if (closeRequested) { DrawClosePopup(); return; }
-            if (preview) { DrawPreview(); return; }
+            sceneViewport = {};
+            if (preview && !closeRequested) { DrawPreview(); return; }
+            scenePanel.Begin(sceneTextureId);
+            sceneViewport = scenePanel.Viewport();
+            requestedSceneSize = scenePanel.RequestedSize();
+            if (closeRequested) { DrawClosePopup(); Editor::ScenePanel::End(); return; }
             UpdateCamera();
             const bool canFocus = CanFocus();
             UpdateGizmoShortcuts(canFocus);
@@ -190,6 +220,7 @@ namespace
             UpdateShortcuts(historyEnabled);
             DrawCommands(canFocus, historyEnabled);
             if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), editState, sceneViewport);
+            Editor::ScenePanel::End();
         }
 
         void DrawClosePopup()
@@ -244,7 +275,7 @@ namespace
 
         void UpdateCamera()
         {
-            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, !gizmo.IsDragging());
+            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, scenePanel.Hovered(), !gizmo.IsDragging());
             if (sceneViewport.Valid())
                 SceneRuntime::TitleView::SetProjection(camera.GetCamera(), sceneViewport.Aspect());
         }
@@ -294,9 +325,10 @@ namespace
         void UpdateObjects()
         {
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
-                sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject);
+                sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject &&
+                (scenePanel.Hovered() || gizmo.IsDragging()));
             Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
-                sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject && !gizmo.ConsumesMouse());
+                sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject && !gizmo.ConsumesMouse() && scenePanel.Hovered());
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
@@ -429,6 +461,10 @@ namespace
         SceneRuntime::SceneWorld world;
         Engine::DebugCamera camera;
         Editor::CameraPanel cameraPanel;
+        Engine::RenderTexture sceneTexture;
+        UINT64 sceneTextureId = 0;
+        std::array<UINT, 2> requestedSceneSize{640, 480};
+        Editor::ScenePanel scenePanel;
         Editor::SceneViewport sceneViewport;
         Editor::EditState editState;
         Editor::ObjectPanel objectPanel;

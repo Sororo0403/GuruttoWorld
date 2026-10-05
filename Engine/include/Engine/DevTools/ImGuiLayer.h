@@ -72,6 +72,9 @@ namespace Engine
         /// <returns>バックエンドが処理した場合は true。</returns>
         static bool ProcessMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
 
+        // Copies one Scene SRV into a persistent UI slot. Wait for GPU idle before replacing it.
+        D3D12_GPU_DESCRIPTOR_HANDLE SetSceneTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE source);
+
     private:
         /// <summary>
         /// UI テクスチャ用の空きディスクリプターを割り当てます。枯渇時は例外を送出します。
@@ -90,6 +93,8 @@ namespace Engine
         ImGuiContext* context_ = nullptr;
         bool platformInitialized_ = false;
         bool rendererInitialized_ = false;
+        D3D12_CPU_DESCRIPTOR_HANDLE sceneCpu_{};
+        D3D12_GPU_DESCRIPTOR_HANDLE sceneGpu_{};
         UINT descriptorSize_ = 0;
         std::array<bool, DescriptorCount> allocated_{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap_;

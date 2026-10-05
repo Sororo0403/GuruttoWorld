@@ -9,9 +9,9 @@ namespace Editor
         dragging_ = false;
     }
 
-    void CameraPanel::Draw(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds, const SceneViewport& viewport, bool allowMovement)
+    void CameraPanel::Draw(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds, const SceneViewport& viewport, bool sceneHovered, bool allowMovement)
     {
-        if (allowMovement && viewport.Valid()) UpdateInput(camera, keyboard, deltaSeconds, viewport);
+        if (allowMovement && viewport.Valid()) UpdateInput(camera, keyboard, deltaSeconds, viewport, sceneHovered);
         else CancelDrag();
         PanelLayout::Place(PanelLayout::Panel::Camera);
         if (ImGui::Begin("Debug Camera"))
@@ -34,12 +34,12 @@ namespace Editor
         ImGui::End();
     }
 
-    void CameraPanel::UpdateInput(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds, const SceneViewport& viewport)
+    void CameraPanel::UpdateInput(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds, const SceneViewport& viewport, bool sceneHovered)
     {
         const auto& io = ImGui::GetIO();
-        const bool started = keyboard.IsActive() && !io.WantCaptureMouse && viewport.Contains(io.MousePos.x, io.MousePos.y) && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+        const bool started = keyboard.IsActive() && sceneHovered && viewport.Contains(io.MousePos.x, io.MousePos.y) && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
         if (started) ImGui::SetWindowFocus(nullptr);
-        const bool allowInput = keyboard.IsActive() && !io.WantCaptureMouse && (!io.WantCaptureKeyboard || started);
+        const bool allowInput = keyboard.IsActive() && sceneHovered && (!io.WantCaptureKeyboard || started || dragging_);
         if (!allowInput || !ImGui::IsMouseDown(ImGuiMouseButton_Right)) dragging_ = false;
         if (started) dragging_ = true;
         if (dragging_)

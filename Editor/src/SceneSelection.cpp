@@ -41,7 +41,7 @@ namespace Editor
         EditState& state, const SceneViewport& viewport, bool active)
     {
         const auto& io = ImGui::GetIO();
-        if (!active || io.WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) ||
+        if (!active ||
             !ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
             !viewport.Contains(io.MousePos.x, io.MousePos.y)) return;
         using namespace DirectX;
@@ -75,7 +75,7 @@ namespace Editor
         }
         constexpr int Edges[12][2]{ {0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},
             {0,4},{1,5},{2,6},{3,7} };
-        auto* draw = ImGui::GetBackgroundDrawList();
+        auto* draw = ImGui::GetWindowDrawList();
         draw->PushClipRect(ImVec2(viewport.x, viewport.y),
             ImVec2(viewport.x + viewport.width, viewport.y + viewport.height), true);
         for (const auto* edge : Edges)

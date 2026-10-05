@@ -92,6 +92,11 @@ namespace Engine
         /// </summary>
         bool WaitForIdle();
 
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
+        // Call outside Render after GPU idle; the returned handle stays stable across Scene resizes.
+        D3D12_GPU_DESCRIPTOR_HANDLE SetSceneTexture(D3D12_CPU_DESCRIPTOR_HANDLE source);
+#endif
+
     private:
         /// <summary>
         /// GPU の完了を待ち、バックバッファーと深度バッファーを新しい描画サイズで作り直します。

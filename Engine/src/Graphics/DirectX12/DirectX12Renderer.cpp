@@ -78,6 +78,13 @@ namespace Engine
         occluded_ = false;
     }
 
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
+    D3D12_GPU_DESCRIPTOR_HANDLE DirectX12Renderer::SetSceneTexture(D3D12_CPU_DESCRIPTOR_HANDLE source)
+    {
+        return debugUi_.SetSceneTexture(device_.Get(), source);
+    }
+#endif
+
     bool DirectX12Renderer::WaitForIdle()
     {
         return ready_ && WaitForGpu();

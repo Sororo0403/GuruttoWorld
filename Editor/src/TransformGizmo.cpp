@@ -38,6 +38,7 @@ namespace Editor
         DirectX::XMStoreFloat4x4(&view,camera.GetViewMatrix());
         DirectX::XMStoreFloat4x4(&projection,camera.GetProjectionMatrix());
         ImGuizmo::Enable(!ImGui::IsMouseDown(ImGuiMouseButton_Right));
+        ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetRect(viewport.x,viewport.y,viewport.width,viewport.height);
         ImGuizmo::PushID(current.id.c_str());

@@ -4,7 +4,7 @@
 
 namespace Editor::PanelLayout
 {
-    enum class Panel { Commands, Objects, Inspector, Gizmo, Models, Camera };
+    enum class Panel { Commands, Objects, Inspector, Gizmo, Models, Camera, Scene };
     inline bool requested=true, apply=false;
     inline void Reset() { requested=true; }
     inline void BeginFrame() { apply=requested; requested=false; }
@@ -20,11 +20,12 @@ namespace Editor::PanelLayout
         bool collapsed=false;
         switch (panel)
         {
+        case Panel::Scene: position={width+16,8}; size={std::max(200.0f,screen.x-2*width-32),height}; break;
         case Panel::Objects: position.y+=commands+8; size.y=height-commands-8; break;
         case Panel::Inspector: position.x=screen.x-width-8; size.y=inspector; break;
         case Panel::Gizmo: position={screen.x-width-8,16+inspector}; size.y=height-inspector-8; break;
-        case Panel::Models: position={width+16,8}; size={centerWidth,std::min(520.0f,height)}; collapsed=true; break;
-        case Panel::Camera: position={width+16,40}; size={centerWidth,210}; collapsed=true; break;
+        case Panel::Models: position={width+16,40}; size={centerWidth,std::min(520.0f,height)}; collapsed=true; break;
+        case Panel::Camera: position={width+16,72}; size={centerWidth,210}; collapsed=true; break;
         default: break;
         }
         const auto condition=apply ? ImGuiCond_Always : ImGuiCond_FirstUseEver;

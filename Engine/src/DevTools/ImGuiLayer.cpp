@@ -101,6 +101,8 @@ namespace Engine
             context_ = nullptr;
         }
         descriptorHeap_.Reset();
+        sceneCpu_ = {};
+        sceneGpu_ = {};
         descriptorSize_ = 0;
         allocated_.fill(false);
     }
@@ -119,6 +121,14 @@ namespace Engine
         ID3D12DescriptorHeap* heaps[] = { descriptorHeap_.Get() };
         commands->SetDescriptorHeaps(1, heaps);
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commands);
+    }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE ImGuiLayer::SetSceneTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE source)
+    {
+        if (!rendererInitialized_ || !device || !source.ptr) return {};
+        if (!sceneCpu_.ptr) AllocateDescriptor(sceneCpu_, sceneGpu_);
+        device->CopyDescriptorsSimple(1, sceneCpu_, source, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        return sceneGpu_;
     }
 
     bool ImGuiLayer::ProcessMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
