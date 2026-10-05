@@ -1,5 +1,5 @@
 #pragma once
-#include "ObjectPanel.h"
+#include "EditState.h"
 #include <Engine/Graphics/Camera.h>
 
 namespace Editor
@@ -8,8 +8,8 @@ namespace Editor
     {
     public:
         static void Update(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-            ObjectPanel& panel, bool active);
+            EditState& state, bool active);
         static void Draw(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-            const ObjectPanel& panel);
+            const EditState& state);
     };
 }

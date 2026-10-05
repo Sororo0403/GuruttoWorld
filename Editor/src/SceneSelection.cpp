@@ -1,4 +1,5 @@
 #include "SceneSelection.h"
+#include <imgui.h>
 #include <cmath>
 
 namespace
@@ -37,7 +38,7 @@ namespace
 namespace Editor
 {
     void SceneSelection::Update(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-        ObjectPanel& panel, bool active)
+        EditState& state, bool active)
     {
         const auto& io = ImGui::GetIO();
         if (!active || io.WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) ||
@@ -54,16 +55,16 @@ namespace Editor
         XMStoreFloat3(&origin, nearPoint);
         XMStoreFloat3(&direction, farPoint - nearPoint);
         const float distance = XMVectorGetX(XMVector3Length(farPoint - nearPoint));
-        panel.Select(world.PickRay({ origin.x, origin.y, origin.z },
+        state.Select(world.PickRay({ origin.x, origin.y, origin.z },
             { direction.x, direction.y, direction.z }, distance).value_or(""));
         ImGui::SetWindowFocus(nullptr);
     }
 
     void SceneSelection::Draw(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-        const ObjectPanel& panel)
+        const EditState& state)
     {
         std::array<std::array<float, 3>, 8> corners;
-        if (!world.WorldBounds(panel.SelectedId(), corners)) return;
+        if (!world.WorldBounds(state.SelectedId(), corners)) return;
         const auto& io = ImGui::GetIO();
         if (io.DisplaySize.x <= 0 || io.DisplaySize.y <= 0) return;
         std::array<DirectX::XMFLOAT4, 8> clip;

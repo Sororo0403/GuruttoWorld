@@ -5,14 +5,14 @@
 
 namespace Editor
 {
-    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, const std::array<float, 3>& suggestedPosition, bool enabled)
+    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, const std::array<float, 3>& suggestedPosition, bool enabled)
     {
-        DrawObjects(world, enabled);
-        DrawInspector(world, enabled);
-        DrawModels(suggestedPosition, enabled);
+        DrawObjects(world, state, enabled);
+        DrawInspector(world, state, enabled);
+        DrawModels(state, suggestedPosition, enabled);
     }
 
-    void ObjectPanel::DrawObjects(const SceneRuntime::SceneWorld& world, bool enabled)
+    void ObjectPanel::DrawObjects(const SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
         const auto& objects = world.Layout().objects;
         PanelLayout::Place(PanelLayout::Panel::Objects);
@@ -28,10 +28,9 @@ namespace Editor
                     const auto searchable = object.name + " " + object.id + " " + object.model.generic_string();
                     if (!filter_.PassFilter(searchable.c_str())) continue;
                     ImGui::PushID(object.id.c_str());
-                    if (ImGui::Selectable(object.name.c_str(), selectedId_ == object.id))
+                    if (ImGui::Selectable(object.name.c_str(), state.SelectedId() == object.id))
                     {
-                        selectedId_ = object.id;
-                        invalidTransform_ = false;
+                        state.Select(object.id);
                     }
                     ImGui::PopID();
                 }
@@ -42,14 +41,14 @@ namespace Editor
         ImGui::End();
     }
 
-    void ObjectPanel::DrawInspector(SceneRuntime::SceneWorld& world, bool enabled)
+    void ObjectPanel::DrawInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
         const auto& objects = world.Layout().objects;
         PanelLayout::Place(PanelLayout::Panel::Inspector);
         if (ImGui::Begin("Inspector"))
         {
             const auto found = std::find_if(objects.begin(), objects.end(),
-                [&](const auto& object) { return object.id == selectedId_; });
+                [&](const auto& object) { return object.id == state.SelectedId(); });
             if (found == objects.end()) ImGui::TextUnformatted("Select an object from the list.");
             else
             {
@@ -74,18 +73,17 @@ namespace Editor
                 edited |= ImGui::DragFloat3("Scale", scale.data(), 0.05f, 0, 0, "%.3f");
                 if (edited && (position != found->position || rotation != found->rotation || scale != found->scale))
                 {
-                    invalidTransform_ = !world.SetTransform(selectedId_, position, rotation, scale);
-                    if (!invalidTransform_) changed_ = true;
+                    state.SetTransform(world, state.SelectedId(), position, rotation, scale);
                 }
-                if (ImGui::Button("Duplicate")) request_ = ObjectRequest{ ObjectAction::Duplicate, selectedId_, {}, {} };
+                if (ImGui::Button("Duplicate")) state.Request(ObjectRequest{ ObjectAction::Duplicate, state.SelectedId(), {}, {} });
                 ImGui::SameLine();
-                if (ImGui::Button("Delete")) request_ = ObjectRequest{ ObjectAction::Delete, selectedId_, {}, {} };
+                if (ImGui::Button("Delete")) state.Request(ObjectRequest{ ObjectAction::Delete, state.SelectedId(), {}, {} });
                 ImGui::EndDisabled();
-                if (invalidTransform_)
+                if (state.InvalidTransform())
                     ImGui::TextWrapped("Invalid transform. Use finite numbers and nonzero scale.");
             }
             ImGui::Separator();
-            ImGui::TextWrapped(changed_ ? "Unsaved changes." :
+            ImGui::TextWrapped(state.HasChanges() ? "Unsaved changes." :
                 "No unsaved changes.");
         }
         ImGui::End();
@@ -105,14 +103,7 @@ namespace Editor
         catch (const std::exception& error) { catalogError_ = error.what(); }
     }
 
-    std::optional<ObjectRequest> ObjectPanel::TakeRequest()
-    {
-        auto request = std::move(request_);
-        request_.reset();
-        return request;
-    }
-
-    void ObjectPanel::DrawModels(const std::array<float, 3>& suggestedPosition, bool enabled)
+    void ObjectPanel::DrawModels(EditState& state, const std::array<float, 3>& suggestedPosition, bool enabled)
     {
         if (!positionInitialized_) { addPosition_ = suggestedPosition; positionInitialized_ = true; }
         PanelLayout::Place(PanelLayout::Panel::Models);
@@ -136,7 +127,7 @@ namespace Editor
             if (ImGui::Button("Use camera front")) addPosition_ = suggestedPosition;
             ImGui::BeginDisabled(!enabled || selectedModel_.empty());
             if (ImGui::Button("Add selected model"))
-                request_ = ObjectRequest{ ObjectAction::Add, {}, selectedModel_, addPosition_ };
+                state.Request(ObjectRequest{ ObjectAction::Add, {}, selectedModel_, addPosition_ });
             ImGui::EndDisabled();
             ImGui::TextWrapped("New objects use scale 4. Adjust them in Inspector.");
         }

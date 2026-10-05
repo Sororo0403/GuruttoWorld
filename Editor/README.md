@@ -72,3 +72,10 @@ Appへの配置は `Content/Content.targets` が行います。
 元のContentが見つからない配布環境では、実行ファイルに同梱されたデータを読みます。
 このため開発時に扱うJSONは、ビルド出力にあるコピーではなく
 `Content/Assets/Scenes/TitleStreet.json` です。
+
+## 編集状態
+
+選択ID・未保存表示・変形の検証と適用・追加／複製／削除の要求は、ImGuiに依存しない
+`EditState`で共有します。ObjectPanelは表示と入力、SceneSelectionはクリック選択、
+TransformGizmoはハンドル操作を担当し、同じ編集状態を参照します。
+GPUの待機が必要な操作とUndo／Redo・保存はStreetEditorが実行します。

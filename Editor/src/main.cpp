@@ -81,8 +81,8 @@ namespace
                 if (world.Reload(root, layoutPath, fileStatus))
                 {
                     sceneLoaded = true;
-                    objectPanel.Reloaded();
-                    history.Reset({world.Layout().Serialize(), objectPanel.SelectedId()});
+                    editState.Reloaded();
+                    history.Reset({world.Layout().Serialize(), editState.SelectedId()});
                     fileStatus = "Reloaded.";
                 }
             }
@@ -100,8 +100,8 @@ namespace
                 if (world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), root, fileStatus))
                 {
                     history.Applied(redo);
-                    objectPanel.Select(target.selection);
-                    objectPanel.SetChanged(history.Dirty(target.json));
+                    editState.Select(target.selection);
+                    editState.SetChanged(history.Dirty(target.json));
                     fileStatus=redo ? "Redone." : "Undone.";
                 }
             }
@@ -134,10 +134,10 @@ namespace
                 }
                 if (success)
                 {
-                    objectPanel.ObjectChanged(createdId);
+                    editState.ObjectChanged(createdId);
                     fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
                         request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
-                    history.Observe({world.Layout().Serialize(), objectPanel.SelectedId()}, false);
+                    history.Observe({world.Layout().Serialize(), editState.SelectedId()}, false);
                 }
             }
             return true;
@@ -150,7 +150,7 @@ namespace
                 sceneLoaded = world.Initialize(renderer, root, layoutPath,
                     root / "Shaders/TitleMesh.hlsl", &fileStatus);
                 initialized = true;
-                if (sceneLoaded) history.Reset({world.Layout().Serialize(), objectPanel.SelectedId()});
+                if (sceneLoaded) history.Reset({world.Layout().Serialize(), editState.SelectedId()});
             }
             return ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer);
         }
@@ -162,7 +162,7 @@ namespace
             {
                 world.Layout().Save(layoutPath);
                 history.Saved(world.Layout().Serialize());
-                objectPanel.MarkSaved();
+                editState.MarkSaved();
                 fileStatus = "Saved.";
                 return true;
             }
@@ -187,7 +187,7 @@ namespace
             const bool historyEnabled = HistoryEnabled();
             UpdateShortcuts(historyEnabled);
             DrawCommands(canFocus, historyEnabled);
-            if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), objectPanel);
+            if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), editState);
         }
 
         void DrawClosePopup()
@@ -198,9 +198,9 @@ namespace
                 closeConfirmed = true;
                 return;
             }
-            history.Observe({world.Layout().Serialize(), objectPanel.SelectedId()}, false);
+            history.Observe({world.Layout().Serialize(), editState.SelectedId()}, false);
             // 編集中のギズモを止め、確認中は配置を変更しません。
-            gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel, false);
+            gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, false);
             if (!ImGui::IsPopupOpen("Exit with unsaved changes?")) ImGui::OpenPopup("Exit with unsaved changes?");
             if (ImGui::BeginPopupModal("Exit with unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
@@ -279,7 +279,7 @@ namespace
                 if (canFocus)
                 {
                     std::array<std::array<float,3>,8> corners;
-                    if (world.WorldBounds(objectPanel.SelectedId(),corners))
+                    if (world.WorldBounds(editState.SelectedId(),corners))
                     {
                         const auto position=Editor::FocusPosition(corners,camera.GetCamera());
                         if (position)
@@ -295,22 +295,22 @@ namespace
 
         void UpdateObjects()
         {
-            gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel,
+            gizmo.UpdateAndDraw(world, camera.GetCamera(), editState,
                 sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject);
-            Editor::SceneSelection::Update(world, camera.GetCamera(), objectPanel,
+            Editor::SceneSelection::Update(world, camera.GetCamera(), editState,
                 sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject && !gizmo.ConsumesMouse());
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
             const std::array<float, 3> suggested{ eye[0] + viewInverse._31 * 8.0f, 0.08f,
                 eye[2] + viewInverse._33 * 8.0f };
-            objectPanel.Draw(world, suggested, sceneLoaded && !reloadRequested && !gizmo.IsDragging());
-            if (auto request = objectPanel.TakeRequest()) pendingObject = std::move(request);
+            objectPanel.Draw(world, editState, suggested, sceneLoaded && !reloadRequested && !gizmo.IsDragging());
+            if (auto request = editState.TakeRequest()) pendingObject = std::move(request);
             if (sceneLoaded)
             {
                 const auto json=world.Layout().Serialize();
-                history.Observe({json, objectPanel.SelectedId()}, gizmo.IsDragging() || ImGui::IsAnyItemActive());
-                objectPanel.SetChanged(history.Dirty(json));
+                history.Observe({json, editState.SelectedId()}, gizmo.IsDragging() || ImGui::IsAnyItemActive());
+                editState.SetChanged(history.Dirty(json));
             }
         }
 
@@ -324,8 +324,8 @@ namespace
         {
             if (!CanUseShortcuts(historyEnabled)) return;
             if (ImGui::GetIO().KeyCtrl) UpdateControlShortcuts();
-            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && !objectPanel.SelectedId().empty())
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,objectPanel.SelectedId(),{}, {}};
+            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && !editState.SelectedId().empty())
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,editState.SelectedId(),{}, {}};
         }
 
         bool CanUseShortcuts(bool historyEnabled) const
@@ -344,8 +344,8 @@ namespace
             }
             else if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && history.CanRedo()) pendingHistory=true;
             else if (ImGui::IsKeyPressed(ImGuiKey_S,false)) Save();
-            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !objectPanel.SelectedId().empty())
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,objectPanel.SelectedId(),{}, {}};
+            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !editState.SelectedId().empty())
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
         }
 
         void DrawCommands(bool canFocus, bool historyEnabled)
@@ -354,7 +354,7 @@ namespace
             if (ImGui::Begin("Street Editor"))
             {
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
-                ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
+                ImGui::TextUnformatted(editState.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
                 DrawEditCommands(canFocus, historyEnabled);
                 DrawFileCommands();
                 if (ImGui::Button("Reset panel layout")) Editor::PanelLayout::Reset();
@@ -371,7 +371,7 @@ namespace
 
         void DrawEditCommands(bool canFocus, bool historyEnabled)
         {
-            ImGui::BeginDisabled(!canFocus || objectPanel.SelectedId().empty());
+            ImGui::BeginDisabled(!canFocus || editState.SelectedId().empty());
             if (ImGui::Button("Focus selected (F)")) focusRequested=true;
             ImGui::EndDisabled();
             ImGui::BeginDisabled(!historyEnabled);
@@ -399,7 +399,7 @@ namespace
             ImGui::BeginDisabled(pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
             if (ImGui::Button("Reload"))
             {
-                if (objectPanel.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");
+                if (editState.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");
                 else reloadRequested = true;
             }
             ImGui::EndDisabled();
@@ -431,6 +431,7 @@ namespace
         SceneRuntime::SceneWorld world;
         Engine::DebugCamera camera;
         Editor::CameraPanel cameraPanel;
+        Editor::EditState editState;
         Editor::ObjectPanel objectPanel;
         Editor::TransformGizmo gizmo;
         Editor::EditHistory history;

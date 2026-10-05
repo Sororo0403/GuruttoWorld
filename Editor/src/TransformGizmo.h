@@ -1,5 +1,5 @@
 #pragma once
-#include "ObjectPanel.h"
+#include "EditState.h"
 #include <Engine/Graphics/Camera.h>
 
 namespace Editor
@@ -9,7 +9,7 @@ namespace Editor
     public:
         static void BeginFrame();
         void UpdateAndDraw(SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-            ObjectPanel& panel, bool active);
+            EditState& state, bool active);
         bool IsDragging() const { return dragging_; }
         bool ConsumesMouse() const { return dragging_ || hovered_; }
         enum class Mode { Move, Rotate, Scale };
@@ -18,7 +18,7 @@ namespace Editor
         void DrawControls();
         bool Manipulate(const SceneRuntime::ScenePlacement& current,
             const Engine::Camera& camera, DirectX::XMFLOAT4X4& matrix);
-        void ApplyTransform(SceneRuntime::SceneWorld& world, ObjectPanel& panel,
+        void ApplyTransform(SceneRuntime::SceneWorld& world, EditState& state,
             const SceneRuntime::ScenePlacement& current, const DirectX::XMFLOAT4X4& matrix);
         Mode mode_ = Mode::Move;
         bool local_ = false, snap_ = false;

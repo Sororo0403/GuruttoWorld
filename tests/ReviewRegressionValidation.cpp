@@ -1,5 +1,6 @@
 #include "../Editor/src/TransformMatrix.h"
 #include "../Editor/src/EditHistory.h"
+#include "../Editor/src/EditState.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
@@ -542,11 +543,18 @@ namespace
                 Check(editorWorld.Reload(content, editedPath, operationError) &&
                     editorWorld.Layout().objects.size() == count + 1 &&
                     editorWorld.Layout().objects.back().id == duplicateId, "object changes survive save and reload");
+                Editor::EditState editState;
+                editState.Select(duplicateId);
+                editState.Request({Editor::ObjectAction::Duplicate, editState.SelectedId(), {}, {}});
+                const auto request = editState.TakeRequest();
+                Check(request && request->id == duplicateId && !editState.TakeRequest(),
+                    "shared edit request consumed exactly once");
                 Editor::EditHistory workflow;
                 const auto initialJson=editorWorld.Layout().Serialize();
-                workflow.Reset({initialJson,duplicateId});
+                workflow.Reset({initialJson,editState.SelectedId()});
                 std::string workflowId;
                 Check(editorWorld.DuplicateObject(duplicateId,{4,0,0},workflowId,operationError), "workflow duplicate");
+                editState.ObjectChanged(workflowId);
                 const auto duplicatedJson=editorWorld.Layout().Serialize();
                 workflow.Observe({duplicatedJson,workflowId},false);
                 auto edited=editorWorld.Layout().objects.back();
@@ -555,10 +563,16 @@ namespace
                     edited.position[0]+=1;
                     edited.rotation[1]+=0.1f;
                     edited.scale[0]=-4;
-                    Check(editorWorld.SetTransform(workflowId,edited.position,edited.rotation,edited.scale), "workflow transform");
-                    workflow.Observe({editorWorld.Layout().Serialize(),workflowId},true);
+                    Check(editState.SetTransform(editorWorld,workflowId,edited.position,edited.rotation,edited.scale), "workflow transform");
+                    workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},true);
                 }
                 const auto transformedJson=editorWorld.Layout().Serialize();
+                Check(!editState.SetTransform(editorWorld,workflowId,edited.position,edited.rotation,{0,1,1}) &&
+                    editState.InvalidTransform() && editorWorld.Layout().Serialize()==transformedJson,
+                    "shared edit rejects invalid transform without changing scene");
+                editState.Select(workflowId);
+                Check(!editState.InvalidTransform() && editState.HasChanges(),
+                    "selection clears transform error and preserves unsaved state");
                 workflow.Observe({transformedJson,workflowId},false);
                 const auto applyHistory=[&](bool redo)
                 {
@@ -568,7 +582,9 @@ namespace
                         "workflow history restore succeeds");
                     workflow.Applied(redo);
                     Check(editorWorld.Layout().Serialize()==target.json,"workflow restores complete scene exactly");
-                    return target.selection;
+                    editState.Select(target.selection);
+                    editState.SetChanged(workflow.Dirty(target.json));
+                    return editState.SelectedId();
                 };
                 Check(applyHistory(false)==workflowId && editorWorld.Layout().Serialize()==duplicatedJson,
                     "one undo reverses the whole continuous transform");
@@ -579,8 +595,11 @@ namespace
                 Check(editorWorld.Layout().Serialize()==transformedJson,"redo restores mirrored transformed duplicate");
                 editorWorld.Layout().Save(editedPath);
                 workflow.Saved(transformedJson);
+                editState.MarkSaved();
+                Check(!editState.HasChanges(), "shared edit state marked saved");
                 Check(editorWorld.RemoveObject(workflowId),"workflow delete");
-                workflow.Observe({editorWorld.Layout().Serialize(),""},false);
+                editState.ObjectChanged("");
+                workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},false);
                 Check(workflow.Dirty(editorWorld.Layout().Serialize()),"deleting saved object marks scene dirty");
                 Check(applyHistory(false)==workflowId && !workflow.Dirty(editorWorld.Layout().Serialize()),
                     "undo deletion restores selected object and saved state");

@@ -9,16 +9,16 @@ namespace Editor
     void TransformGizmo::BeginFrame() { ImGuizmo::BeginFrame(); }
 
     void TransformGizmo::UpdateAndDraw(SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-        ObjectPanel& panel, bool active)
+        EditState& state, bool active)
     {
         DrawControls();
         hovered_=false;
         const auto& objects=world.Layout().objects;
         const auto found=std::find_if(objects.begin(), objects.end(),
-            [&](const auto& object) { return object.id==panel.SelectedId(); });
+            [&](const auto& object) { return object.id==state.SelectedId(); });
         const auto& io=ImGui::GetIO();
         if (!active || found==objects.end() || io.DisplaySize.x<=0 || io.DisplaySize.y<=0 ||
-            (dragging_ && draggingId_!=panel.SelectedId()))
+            (dragging_ && draggingId_!=state.SelectedId()))
         {
             ImGuizmo::Enable(false);
             dragging_=false;
@@ -27,7 +27,7 @@ namespace Editor
         const auto current=*found;
         auto matrix=TransformMatrix::Compose(current);
         if (!Manipulate(current, camera, matrix)) return;
-        ApplyTransform(world, panel, current, matrix);
+        ApplyTransform(world, state, current, matrix);
     }
 
     bool TransformGizmo::Manipulate(const SceneRuntime::ScenePlacement& current,
@@ -81,7 +81,7 @@ namespace Editor
         ImGui::End();
     }
 
-    void TransformGizmo::ApplyTransform(SceneRuntime::SceneWorld& world, ObjectPanel& panel,
+    void TransformGizmo::ApplyTransform(SceneRuntime::SceneWorld& world, EditState& state,
         const SceneRuntime::ScenePlacement& current, const DirectX::XMFLOAT4X4& matrix)
     {
         auto transformed=current;
@@ -91,8 +91,8 @@ namespace Editor
         if (mode_==Mode::Rotate) { transformed.position=current.position; transformed.scale=current.scale; }
         if (mode_==Mode::Scale) { transformed.position=current.position; transformed.rotation=current.rotation; }
         if (transformed.position==current.position && transformed.rotation==current.rotation && transformed.scale==current.scale) return;
-        invalidTransform_=!world.SetTransform(current.id,transformed.position,transformed.rotation,transformed.scale);
-        if (!invalidTransform_) panel.ObjectChanged(current.id);
+        invalidTransform_=!state.SetTransform(world,current.id,transformed.position,transformed.rotation,transformed.scale);
+        if (!invalidTransform_) state.ObjectChanged(current.id);
     }
 
 }
