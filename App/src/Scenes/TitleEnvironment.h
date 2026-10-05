@@ -25,11 +25,10 @@ namespace App
     private:
         bool BuildStreet(const std::filesystem::path& root);
         bool AddDistantBuildings(const std::filesystem::path& commercial);
-        bool AddSidewalkGreenery(const std::filesystem::path& nature);
         /// <summary>
-        /// 歩道・屋上・橋の植生と街路の看板を CC0 モデルで配置します。
+        /// 街路の看板を CC0 モデルで配置します。
         /// </summary>
-        bool AddGreeneryAndSigns(const std::filesystem::path& root);
+        bool AddStreetSigns(const std::filesystem::path& root);
         /// <summary>
         /// 共有モデルに個別の変換を設定して街の配置へ追加します。
         /// </summary>
