@@ -5,8 +5,8 @@
 - Kenney Castle Kit 2.0 の `wall-narrow-gate.obj` を採用。門本体のOBJ・MTL・Textures/colormap.pngは無編集で `App/Assets/Models/Title/Exit/Castle` に保存。
 - 配布ページ: https://kenney.nl/assets/castle-kit 。CC0表記と同梱License.txtを確認し、同じフォルダーに保存した。
 - 取得元: https://kenney.nl/media/pages/assets/castle-kit/a395102d20-1711543616/kenney_castle-kit.zip
-- 横道は撤去。門は右側の三軒目を置き換え、建物と同じ列の(4.8, 0.08, 19)に配置し、正面を通りへ向ける。終了へのホバーで通りを進み、少し右へ向いて門を見せる。門の倍率は4。
-- 「また来てください」の看板は独自の平面と同梱M PLUS 1pフォントから生成した画像。CC0門の形状とは別のプロジェクト素材。GenerateExitFacade.pyとGenerateExitSign.ps1で再生成可能。
+- 横道は撤去。門は右側の二軒目を置き換え、建物と同じ列の(4.8, 0.08, 12)に配置し、正面を通りへ向ける。高架(Z=18)との重なりを避けて手前へ移し、元の二軒目の建物はZ=19へ移動。終了の視点は(-0.8, 1.8, 7)、ヨー0.65。門の倍率は4。
+- 「また来てください」の追加看板は撤去し、CC0の門本体だけを表示する。
 
 ## モデル側で管理する表面材質（2026-09-30）
 

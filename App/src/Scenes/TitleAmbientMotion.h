@@ -22,7 +22,7 @@ namespace App
                     start_ = pose_;
                     destination_ = destination;
                     target_ = destination == 1 ? Pose{ 0.6f, 2.3f, 7.0f, -0.82f, 0.18f } :
-                        destination == 2 ? Pose{ -0.8f, 1.8f, 7.0f, 0.15f, 0.13f } : Home;
+                        destination == 2 ? Pose{ -0.8f, 1.8f, 7.0f, 0.65f, 0.13f } : Home;
                     progress_ = 0.0f;
                 }
                 const float duration = destination_ == 1 ? 1.4f : 0.65f;
