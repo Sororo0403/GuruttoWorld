@@ -251,13 +251,17 @@ namespace App
                 0.0f, { 5.0f, 5.0f, 5.0f }) &&
                 AddObject(commercial / "building-k.obj", { direction * 24.0f, RoadTop, 68.0f },
                 0.0f, { 5.0f, 6.0f, 5.0f }) &&
-                AddObject(commercial / "building-skyscraper-a.obj", { direction * 20.0f, RoadTop, 98.0f },
-                direction * 0.2f, { 5.0f, 6.0f, 5.0f }) &&
-                AddObject(commercial / "building-skyscraper-a.obj", { direction * 40.0f, RoadTop, 116.0f },
-                direction * 0.35f, { 6.0f, 8.0f, 6.0f });
+                AddObject(commercial / "building-skyscraper-a.obj", { direction * 36.0f, RoadTop, 116.0f },
+                direction * 0.25f, { 5.0f, side < 0 ? 5.5f : 7.0f, 5.0f });
         })) return false;
-        if (!AddObject(commercial / "building-skyscraper-e.obj", { 2.0f, RoadTop, 94.0f },
-            0.1f, { 5.0f, 10.0f, 5.0f })) return false;
+        // 高層建築を左右非対称にし、形と高さの違う輪郭を広場の背後へ重ねます。
+        const auto originalCommercial = commercial.parent_path().parent_path() / "Commercial";
+        if (!AddObject(originalCommercial / "building-skyscraper-b.obj", { -20.0f, RoadTop, 88.0f },
+            0.15f, { 5.0f, 6.0f, 5.0f }) ||
+            !AddObject(originalCommercial / "building-skyscraper-d.obj", { 23.0f, RoadTop, 96.0f },
+            -0.2f, { 5.0f, 7.0f, 5.0f }) ||
+            !AddObject(commercial / "building-skyscraper-e.obj", { -4.0f, RoadTop, 108.0f },
+            0.1f, { 5.0f, 6.5f, 5.0f })) return false;
         return true;
     }
 
