@@ -463,6 +463,10 @@ namespace Engine
         auto descriptor = renderTargetHeap_->GetCPUDescriptorHandleForHeapStart();
         descriptor.ptr += static_cast<SIZE_T>(index) * descriptorSize_;
         commands_->OMSetRenderTargets(1, &descriptor, FALSE, nullptr);
+        const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
+        const D3D12_RECT scissor{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
+        commands_->RSSetViewports(1, &viewport);
+        commands_->RSSetScissorRects(1, &scissor);
         debugUi_.Render(commands_.Get());
 #endif
         D3D12_RESOURCE_BARRIER barrier{};

@@ -8,6 +8,7 @@
 #endif
 #include <SceneRuntime/SceneLayout.h>
 #include <SceneRuntime/SceneWorld.h>
+#include <SceneRuntime/TitleView.h>
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -15,6 +16,7 @@
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
 #include <Engine/Graphics/Renderers/MeshRenderer.h>
 #include <Engine/Graphics/Resources/DepthBuffer.h>
+#include <Engine/Graphics/Resources/RenderTexture.h>
 #include "../App/src/Scenes/TitleScene.h"
 #include "../App/src/Scenes/TitleMenu.h"
 #include <ShlObj.h>
@@ -389,6 +391,82 @@ namespace
         return std::filesystem::path(executable).parent_path();
     }
 
+    void ValidateRenderTexture()
+    {
+        Engine::Window window;
+        Engine::DirectX12Renderer renderer;
+        Check(window.Create(L"Hidden render texture validation", 320, 240), "render texture window");
+        Check(renderer.Initialize(window.GetHandle()), "render texture renderer");
+        Engine::RenderTexture target;
+        Check(!target.Begin(nullptr,{0,0,0,1}) && !target.End(nullptr), "uninitialized target rejects recording");
+        for (const auto size : std::array<std::array<UINT,2>,3>{{{64,32},{32,64},{64,32}}})
+        {
+            Check(target.Resize(renderer,size[0],size[1]), "render texture creates and resizes");
+            auto* resource = target.GetResource();
+            Check(target.Resize(renderer,size[0],size[1]) && target.GetResource()==resource,
+                "same size keeps render texture and descriptors");
+            Check(!target.Resize(renderer,0,0) && !target.Resize(renderer,16385,32) &&
+                target.GetResource()==resource && target.GetWidth()==size[0] && target.GetHeight()==size[1],
+                "hidden or invalid size preserves last valid target");
+            Check(target.GetShaderResourceView().ptr!=0, "render texture exposes copyable SRV");
+            auto* device = renderer.GetDevice();
+            D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+            UINT64 bytes=0;
+            const auto description=resource->GetDesc();
+            device->GetCopyableFootprints(&description,0,1,0,&footprint,nullptr,nullptr,&bytes);
+            D3D12_HEAP_PROPERTIES heap{};
+            heap.Type=D3D12_HEAP_TYPE_READBACK;
+            D3D12_RESOURCE_DESC buffer{};
+            buffer.Dimension=D3D12_RESOURCE_DIMENSION_BUFFER;
+            buffer.Width=bytes;
+            buffer.Height=buffer.DepthOrArraySize=buffer.MipLevels=1;
+            buffer.SampleDesc.Count=1;
+            buffer.Layout=D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+            ComPtr<ID3D12Resource> readback;
+            Hr(device->CreateCommittedResource(&heap,D3D12_HEAP_FLAG_NONE,&buffer,D3D12_RESOURCE_STATE_COPY_DEST,
+                nullptr,IID_PPV_ARGS(&readback)));
+            for (int frame=0;frame<2;++frame)
+            {
+                const std::array<float,4> color{float(frame==0),float(frame==1),0,1};
+                Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float)
+                {
+                    Check(target.Begin(commands,color) && !target.Begin(commands,color), "render texture binds color and depth once");
+                    Check(!target.Resize(renderer,16,16), "resize rejected during target recording");
+                    Check(target.End(commands) && !target.End(commands), "render texture ends once for shader sampling");
+                    D3D12_RESOURCE_BARRIER barrier{};
+                    barrier.Type=D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier.Transition.pResource=resource;
+                    barrier.Transition.Subresource=D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier.Transition.StateBefore=D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+                    barrier.Transition.StateAfter=D3D12_RESOURCE_STATE_COPY_SOURCE;
+                    commands->ResourceBarrier(1,&barrier);
+                    D3D12_TEXTURE_COPY_LOCATION source{},destination{};
+                    source.pResource=resource;
+                    source.Type=D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                    destination.pResource=readback.Get();
+                    destination.Type=D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+                    destination.PlacedFootprint=footprint;
+                    commands->CopyTextureRegion(&destination,0,0,0,&source,nullptr);
+                    std::swap(barrier.Transition.StateBefore,barrier.Transition.StateAfter);
+                    commands->ResourceBarrier(1,&barrier);
+                })!=Engine::RenderResult::Failed, "offscreen frame submitted");
+                Check(renderer.WaitForIdle(), "offscreen copy GPU completion");
+                void* mapped=nullptr;
+                const D3D12_RANGE range{0,static_cast<SIZE_T>(bytes)};
+                Hr(readback->Map(0,&range,&mapped));
+                const auto* pixels=static_cast<const unsigned char*>(mapped);
+                const size_t last=static_cast<size_t>(size[1]-1)*footprint.Footprint.RowPitch+(size[0]-1)*4;
+                const bool expected=pixels[frame]==255 && pixels[1-frame]==0 && pixels[3]==255 &&
+                    pixels[last+frame]==255 && pixels[last+1-frame]==0 && pixels[last+3]==255;
+                const D3D12_RANGE written{0,0};
+                readback->Unmap(0,&written);
+                Check(expected, "resized offscreen target contains current clear color at both corners");
+            }
+        }
+        Check(renderer.WaitForIdle(), "render texture destruction GPU completion");
+        CheckGpuMessages(renderer.GetDevice());
+    }
+
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
@@ -404,6 +482,18 @@ namespace
                 const auto content = std::filesystem::absolute("Content");
                 Check(editorWorld.Initialize(renderer, content, content / "Assets/Scenes/TitleStreet.json",
                     content / "Shaders/TitleMesh.hlsl"), "shared scene loads without App content");
+                Engine::RenderTexture sceneTarget;
+                Check(sceneTarget.Resize(renderer,96,48), "offscreen scene target");
+                Engine::Camera sceneCamera;
+                SceneRuntime::TitleView::SetHome(sceneCamera);
+                SceneRuntime::TitleView::SetProjection(sceneCamera,2.0f);
+                Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float)
+                {
+                    Check(sceneTarget.Begin(commands,{0,0,0,1}), "offscreen scene begin");
+                    editorWorld.Draw(commands,sceneCamera,SceneRuntime::TitleView::Light());
+                    Check(sceneTarget.End(commands), "offscreen scene end");
+                })!=Engine::RenderResult::Failed, "shared scene renders to texture");
+                Check(renderer.WaitForIdle(), "offscreen scene GPU completion");
                 const auto pickRoot = std::filesystem::absolute("generated/tests/picking");
                 std::filesystem::create_directories(pickRoot / "Assets/Models/Title");
                 {
@@ -995,6 +1085,7 @@ int main()
         ValidateSettings();
         ValidateAmbientMotion();
         ValidateTitleAudio();
+        ValidateRenderTexture();
         ValidateTitle();
         ValidateMirroredMesh();
         std::cout << "PASS: diagnostics location/overrides, title menu/settings/rendering, mirrored mesh visibility and backface culling\n";
