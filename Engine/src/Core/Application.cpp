@@ -31,40 +31,48 @@ namespace Engine
             Keyboard keyboard;
             if (Initialize(settings, window, renderer) && keyboard.Initialize(window.GetHandle()))
             {
-                auto previousTime = std::chrono::steady_clock::now();
-                const bool deferClose = callbacks.closeRequested && callbacks.shouldClose;
-                while (window.ProcessMessages(exitCode, deferClose))
-                {
-                    if (deferClose && window.TakeCloseRequest())
-                    {
-                        if (IsIconic(window.GetHandle())) ShowWindow(window.GetHandle(), SW_RESTORE);
-                        callbacks.closeRequested();
-                    }
-                    if (deferClose && callbacks.shouldClose()) break;
-                    const auto currentTime = std::chrono::steady_clock::now();
-                    const double elapsedSeconds = std::chrono::duration<double>(currentTime - previousTime).count();
-                    const double deltaSeconds = std::min(elapsedSeconds, settings.maxDeltaSeconds);
-                    previousTime = currentTime;
-                    keyboard.Update();
-                    if (callbacks.update)
-                    {
-                        callbacks.update(deltaSeconds, keyboard);
-                    }
-                    const RenderResult result = callbacks.draw(renderer);
-                    if (result == RenderResult::Failed)
-                    {
-                        exitCode = 1;
-                        break;
-                    }
-                    if (result == RenderResult::Paused)
-                    {
-                        MsgWaitForMultipleObjectsEx(0, nullptr, settings.inactiveWaitMilliseconds,
-                            QS_ALLINPUT, MWMO_INPUTAVAILABLE);
-                    }
-                }
+                exitCode = RunLoop(settings, callbacks, window, renderer, keyboard);
             }
         }
         Shutdown();
+        return exitCode;
+    }
+
+    int Application::RunLoop(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks,
+        Window& window, DirectX12Renderer& renderer, Keyboard& keyboard)
+    {
+        int exitCode = 1;
+        auto previousTime = std::chrono::steady_clock::now();
+        const bool deferClose = callbacks.closeRequested && callbacks.shouldClose;
+        while (window.ProcessMessages(exitCode, deferClose))
+        {
+            if (deferClose && window.TakeCloseRequest())
+            {
+                if (IsIconic(window.GetHandle())) ShowWindow(window.GetHandle(), SW_RESTORE);
+                callbacks.closeRequested();
+            }
+            if (deferClose && callbacks.shouldClose()) break;
+            const auto currentTime = std::chrono::steady_clock::now();
+            const double elapsedSeconds = std::chrono::duration<double>(currentTime - previousTime).count();
+            const double deltaSeconds = std::min(elapsedSeconds, settings.maxDeltaSeconds);
+            previousTime = currentTime;
+            keyboard.Update();
+            if (callbacks.update)
+            {
+                callbacks.update(deltaSeconds, keyboard);
+            }
+            const RenderResult result = callbacks.draw(renderer);
+            if (result == RenderResult::Failed)
+            {
+                exitCode = 1;
+                break;
+            }
+            if (result == RenderResult::Paused)
+            {
+                MsgWaitForMultipleObjectsEx(0, nullptr, settings.inactiveWaitMilliseconds,
+                    QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            }
+        }
         return exitCode;
     }
 

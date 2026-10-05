@@ -64,7 +64,7 @@ namespace Engine
         /// </summary>
         /// <param name="vertices">頂点の出力先。</param>
         /// <param name="indices">インデックスの出力先。</param>
-        void GenerateMesh(std::vector<MeshVertex>& vertices, std::vector<std::uint32_t>& indices);
+        static void GenerateMesh(std::vector<MeshVertex>& vertices, std::vector<std::uint32_t>& indices);
 
         MeshRenderer renderer_;
     };

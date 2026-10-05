@@ -3,6 +3,7 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <roapi.h>
 #include <cmath>
+#include <algorithm>
 #include <fstream>
 #include <limits>
 #include <stdexcept>
@@ -70,8 +71,9 @@ namespace SceneRuntime
                     if (placement.model.is_absolute() || placement.model.has_root_name() ||
                         !model.starts_with("Assets/Models/Title/") || placement.model.extension() != L".obj")
                         throw std::runtime_error("Model must be an OBJ relative to Assets/Models/Title");
-                    for (const auto& part : placement.model)
-                        if (part == L"..") throw std::runtime_error("Model path cannot contain parent traversal");
+                    if (std::any_of(placement.model.begin(), placement.model.end(),
+                        [](const auto& part) { return part == L".."; }))
+                        throw std::runtime_error("Model path cannot contain parent traversal");
                     placement.position = ReadVector(object, L"position");
                     placement.rotation = ReadVector(object, L"rotation");
                     placement.scale = ReadVector(object, L"scale", true);

@@ -12,7 +12,7 @@ namespace App
         /// <summary>
         /// ロゴ・文字・帯・矢印をまとめた透明アトラスを読み込みます。
         /// </summary>
-        bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root);
+        bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root);
         /// <summary>
         /// 1280×720 の基準配置を画面内に収め、各 UI 部品を独立して描画します。
         /// </summary>

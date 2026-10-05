@@ -59,6 +59,8 @@ namespace App
         /// <summary>保存に失敗したか返します。</summary>
         bool SaveFailed() const { return saveFailed_; }
     private:
+        TitleMenuAction UpdateTransition(float elapsed);
+        void MoveSelection(unsigned int direction);
         unsigned int ReadPressedButtons(const TitleMenuInput& input);
         TitleMenuAction UpdateSettings(unsigned int pressed);
         TitleMenuAction UpdateMainMenu(unsigned int pressed);

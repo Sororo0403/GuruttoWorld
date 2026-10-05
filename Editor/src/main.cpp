@@ -33,187 +33,215 @@ namespace
         }
         return directory; // 配布時はEditorに同梱されたContentを読みます。
     }
-}
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
-{
-    const auto root = ContentRoot();
-    if (root.empty()) return 1;
-    SceneRuntime::SceneWorld world;
-    Engine::DebugCamera camera;
-    camera.SetResetPose({ -0.8f, 2.8f, -7.0f }, 0.03f, 0.09f);
-    camera.SetMoveSpeed(8.0f);
-    Editor::CameraPanel cameraPanel;
-    Editor::ObjectPanel objectPanel;
-    Editor::TransformGizmo gizmo;
-    Editor::EditHistory history;
-    Engine::Camera previewCamera;
-    SceneRuntime::TitleView::SetHome(previewCamera);
-    bool preview = false;
-    bool focusRequested = false;
-    std::optional<bool> pendingHistory;
-    objectPanel.ScanModels(root);
-    std::optional<Editor::ObjectRequest> pendingObject;
-    const auto light = SceneRuntime::TitleView::Light();
-    const Engine::Keyboard* keyboard = nullptr;
-    double seconds = 0.0;
-    bool initialized = false;
-    bool sceneLoaded = false;
-    bool reloadRequested = false;
-    bool closeRequested = false;
-    bool closeConfirmed = false;
-    std::string fileStatus;
-    const auto layoutPath = root / "Assets/Scenes/TitleStreet.json";
-    const auto save = [&]()
+    class StreetEditor final
     {
-        if (!sceneLoaded) { fileStatus = "No scene is loaded to save."; return false; }
-        try
+    public:
+        int Run()
         {
-            world.Layout().Save(layoutPath);
-            history.Saved(world.Layout().Serialize());
-            objectPanel.MarkSaved();
-            fileStatus = "Saved.";
+            if (root.empty()) return 1;
+            camera.SetResetPose({ -0.8f, 2.8f, -7.0f }, 0.03f, 0.09f);
+            camera.SetMoveSpeed(8.0f);
+            SceneRuntime::TitleView::SetHome(previewCamera);
+            objectPanel.ScanModels(root);
+            Engine::ApplicationCallbacks callbacks;
+            callbacks.closeRequested = [&]() { closeRequested = true; };
+            callbacks.shouldClose = [&]() { return closeConfirmed; };
+            callbacks.update = [&](double dt, const Engine::Keyboard& input)
+            {
+                keyboard = &input;
+                seconds = dt;
+                if (!input.IsActive()) cameraPanel.CancelDrag();
+            };
+            callbacks.draw = [&](Engine::DirectX12Renderer& renderer) { return Draw(renderer); };
+            Engine::ApplicationSettings settings;
+            settings.title = L"WP1 Street Editor";
+            Engine::Application application;
+            return application.Run(settings, callbacks);
+        }
+
+    private:
+        Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
+        {
+            if (!ApplyPendingChanges(renderer)) return Engine::RenderResult::Failed;
+            return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspect)
+            {
+                auto& view = preview ? previewCamera : camera.GetCamera();
+                SceneRuntime::TitleView::SetProjection(view, aspect);
+                world.Draw(commands, view, light);
+            }, [&]() { DrawUi(); });
+        }
+
+        bool ApplyReload(Engine::DirectX12Renderer& renderer)
+        {
+            if (reloadRequested)
+            {
+                reloadRequested = false;
+                if (!renderer.WaitForIdle()) return false;
+                if (world.Reload(root, layoutPath, fileStatus))
+                {
+                    sceneLoaded = true;
+                    objectPanel.Reloaded();
+                    history.Reset({world.Layout().Serialize(), objectPanel.SelectedId()});
+                    fileStatus = "Reloaded.";
+                }
+            }
             return true;
         }
-        catch (const std::exception& error)
+
+        bool ApplyHistory(Engine::DirectX12Renderer& renderer)
         {
-            fileStatus = std::string("Save failed: ") + error.what();
-            return false;
-        }
-    };
-    Engine::ApplicationCallbacks callbacks;
-    callbacks.closeRequested = [&]() { closeRequested = true; };
-    callbacks.shouldClose = [&]() { return closeConfirmed; };
-    callbacks.update = [&](double dt, const Engine::Keyboard& input)
-    {
-        keyboard = &input;
-        seconds = dt;
-        if (!input.IsActive()) cameraPanel.CancelDrag();
-    };
-    callbacks.draw = [&](Engine::DirectX12Renderer& renderer)
-    {
-        if (!initialized)
-        {
-            sceneLoaded = world.Initialize(renderer, root, layoutPath,
-                root / "Shaders/TitleMesh.hlsl", &fileStatus);
-            initialized = true;
-            if (sceneLoaded) history.Reset({world.Layout().Serialize(), objectPanel.SelectedId()});
-        }
-        if (reloadRequested)
-        {
-            reloadRequested = false;
-            if (!renderer.WaitForIdle()) return Engine::RenderResult::Failed;
-            if (world.Reload(root, layoutPath, fileStatus))
+            if (pendingHistory)
             {
-                sceneLoaded = true;
-                objectPanel.Reloaded();
-                history.Reset({world.Layout().Serialize(), objectPanel.SelectedId()});
-                fileStatus = "Reloaded.";
+                if (!renderer.WaitForIdle()) return false;
+                const bool redo=*pendingHistory;
+                pendingHistory.reset();
+                const auto target=history.Target(redo);
+                if (world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), root, fileStatus))
+                {
+                    history.Applied(redo);
+                    objectPanel.Select(target.selection);
+                    objectPanel.SetChanged(history.Dirty(target.json));
+                    fileStatus=redo ? "Redone." : "Undone.";
+                }
+            }
+            return true;
+        }
+
+        bool ApplyObject(Engine::DirectX12Renderer& renderer)
+        {
+            if (pendingObject)
+            {
+                if (!renderer.WaitForIdle()) return false;
+                auto request = std::move(*pendingObject);
+                pendingObject.reset();
+                std::string createdId;
+                bool success = false;
+                if (request.action == Editor::ObjectAction::Add)
+                {
+                    SceneRuntime::ScenePlacement placement;
+                    placement.model = request.model;
+                    placement.position = request.position;
+                    placement.scale = { 4, 4, 4 };
+                    success = world.AddObject(std::move(placement), root, createdId, fileStatus);
+                }
+                else if (request.action == Editor::ObjectAction::Duplicate)
+                    success = world.DuplicateObject(request.id, { 4, 0, 0 }, createdId, fileStatus);
+                else
+                {
+                    success = world.RemoveObject(request.id);
+                    fileStatus = success ? "" : "Object no longer exists.";
+                }
+                if (success)
+                {
+                    objectPanel.ObjectChanged(createdId);
+                    fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
+                        request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
+                    history.Observe({world.Layout().Serialize(), objectPanel.SelectedId()}, false);
+                }
+            }
+            return true;
+        }
+
+        bool ApplyPendingChanges(Engine::DirectX12Renderer& renderer)
+        {
+            if (!initialized)
+            {
+                sceneLoaded = world.Initialize(renderer, root, layoutPath,
+                    root / "Shaders/TitleMesh.hlsl", &fileStatus);
+                initialized = true;
+                if (sceneLoaded) history.Reset({world.Layout().Serialize(), objectPanel.SelectedId()});
+            }
+            return ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer);
+        }
+
+        bool Save()
+        {
+            if (!sceneLoaded) { fileStatus = "No scene is loaded to save."; return false; }
+            try
+            {
+                world.Layout().Save(layoutPath);
+                history.Saved(world.Layout().Serialize());
+                objectPanel.MarkSaved();
+                fileStatus = "Saved.";
+                return true;
+            }
+            catch (const std::exception& error)
+            {
+                fileStatus = std::string("Save failed: ") + error.what();
+                return false;
             }
         }
-        if (pendingHistory)
-        {
-            if (!renderer.WaitForIdle()) return Engine::RenderResult::Failed;
-            const bool redo=*pendingHistory;
-            pendingHistory.reset();
-            const auto target=history.Target(redo);
-            if (world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), root, fileStatus))
-            {
-                history.Applied(redo);
-                objectPanel.Select(target.selection);
-                objectPanel.SetChanged(history.Dirty(target.json));
-                fileStatus=redo ? "Redone." : "Undone.";
-            }
-        }
-        if (pendingObject)
-        {
-            if (!renderer.WaitForIdle()) return Engine::RenderResult::Failed;
-            auto request = std::move(*pendingObject);
-            pendingObject.reset();
-            std::string createdId;
-            bool success = false;
-            if (request.action == Editor::ObjectAction::Add)
-            {
-                SceneRuntime::ScenePlacement placement;
-                placement.model = request.model;
-                placement.position = request.position;
-                placement.scale = { 4, 4, 4 };
-                success = world.AddObject(std::move(placement), root, createdId, fileStatus);
-            }
-            else if (request.action == Editor::ObjectAction::Duplicate)
-                success = world.DuplicateObject(request.id, { 4, 0, 0 }, createdId, fileStatus);
-            else
-            {
-                success = world.RemoveObject(request.id);
-                fileStatus = success ? "" : "Object no longer exists.";
-            }
-            if (success)
-            {
-                objectPanel.ObjectChanged(createdId);
-                fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
-                    request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
-                history.Observe({world.Layout().Serialize(), objectPanel.SelectedId()}, false);
-            }
-        }
-        return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspect)
-        {
-            auto& view = preview ? previewCamera : camera.GetCamera();
-            SceneRuntime::TitleView::SetProjection(view, aspect);
-            world.Draw(commands, view, light);
-        }, [&]()
+
+        void DrawUi()
         {
             Editor::TransformGizmo::BeginFrame();
             Editor::PanelLayout::BeginFrame();
-            if (closeRequested)
+            if (closeRequested) { DrawClosePopup(); return; }
+            if (preview) { DrawPreview(); return; }
+            UpdateCamera();
+            const bool canFocus = CanFocus();
+            UpdateGizmoShortcuts(canFocus);
+            FocusSelection(canFocus);
+            UpdateObjects();
+            const bool historyEnabled = HistoryEnabled();
+            UpdateShortcuts(historyEnabled);
+            DrawCommands(canFocus, historyEnabled);
+            if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), objectPanel);
+        }
+
+        void DrawClosePopup()
+        {
+            cameraPanel.CancelDrag();
+            if (!sceneLoaded || !history.Dirty(world.Layout().Serialize()))
             {
-                cameraPanel.CancelDrag();
-                if (!sceneLoaded || !history.Dirty(world.Layout().Serialize()))
+                closeConfirmed = true;
+                return;
+            }
+            history.Observe({world.Layout().Serialize(), objectPanel.SelectedId()}, false);
+            // 編集中のギズモを止め、確認中は配置を変更しません。
+            gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel, false);
+            if (!ImGui::IsPopupOpen("Exit with unsaved changes?")) ImGui::OpenPopup("Exit with unsaved changes?");
+            if (ImGui::BeginPopupModal("Exit with unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::TextUnformatted("The current scene has unsaved changes.");
+                if (ImGui::Button("Save and exit"))
+                {
+                    if (Save()) { closeConfirmed = true; ImGui::CloseCurrentPopup(); }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Exit without saving"))
                 {
                     closeConfirmed = true;
-                    return;
+                    ImGui::CloseCurrentPopup();
                 }
-                history.Observe({world.Layout().Serialize(), objectPanel.SelectedId()}, false);
-                // 編集中のギズモを止め、確認中は配置を変更しません。
-                gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel, false);
-                if (!ImGui::IsPopupOpen("Exit with unsaved changes?")) ImGui::OpenPopup("Exit with unsaved changes?");
-                if (ImGui::BeginPopupModal("Exit with unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel"))
                 {
-                    ImGui::TextUnformatted("The current scene has unsaved changes.");
-                    if (ImGui::Button("Save and exit"))
-                    {
-                        if (save()) { closeConfirmed = true; ImGui::CloseCurrentPopup(); }
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Exit without saving"))
-                    {
-                        closeConfirmed = true;
-                        ImGui::CloseCurrentPopup();
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Cancel"))
-                    {
-                        closeRequested = false;
-                        ImGui::CloseCurrentPopup();
-                    }
-                    if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
-                    ImGui::EndPopup();
+                    closeRequested = false;
+                    ImGui::CloseCurrentPopup();
                 }
-                return;
+                if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
+                ImGui::EndPopup();
             }
-            if (preview)
+        }
+
+        void DrawPreview()
+        {
+            if (keyboard && keyboard->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape,false)) preview=false;
+            ImGui::SetNextWindowPos(ImVec2(20,20),ImGuiCond_Always);
+            ImGui::SetNextWindowBgAlpha(0.8f);
+            if (ImGui::Begin("Title composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
-                if (keyboard && keyboard->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape,false)) preview=false;
-                ImGui::SetNextWindowPos(ImVec2(20,20),ImGuiCond_Always);
-                ImGui::SetNextWindowBgAlpha(0.8f);
-                if (ImGui::Begin("Title composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-                {
-                    ImGui::TextUnformatted("Title camera / lighting - current layout (including unsaved edits)");
-                    ImGui::TextUnformatted("Fixed view; sky, particles and title UI are excluded.");
-                    if (ImGui::Button("Back to editing (Escape)")) preview=false;
-                }
-                ImGui::End();
-                return;
+                ImGui::TextUnformatted("Title camera / lighting - current layout (including unsaved edits)");
+                ImGui::TextUnformatted("Fixed view; sky, particles and title UI are excluded.");
+                if (ImGui::Button("Back to editing (Escape)")) preview=false;
             }
+            ImGui::End();
+        }
+
+        void UpdateCamera()
+        {
             if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, !gizmo.IsDragging());
             const auto display = ImGui::GetIO().DisplaySize;
             if (display.x > 0 && display.y > 0)
@@ -221,10 +249,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 const float aspect = display.x / display.y;
                 SceneRuntime::TitleView::SetProjection(camera.GetCamera(), aspect);
             }
-            const bool canFocus=sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
+        }
+
+        bool CanFocus() const
+        {
+            return sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
                 !pendingObject && !pendingHistory && !reloadRequested &&
                 !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
+        }
+
+        void UpdateGizmoShortcuts(bool canFocus)
+        {
             if (canFocus && !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput &&
                 !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt)
             {
@@ -232,6 +268,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 if (ImGui::IsKeyPressed(ImGuiKey_2,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Rotate);
                 if (ImGui::IsKeyPressed(ImGuiKey_3,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Scale);
             }
+        }
+
+        void FocusSelection(bool canFocus)
+        {
             if (focusRequested || (canFocus && !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput &&
                 !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_F,false)))
             {
@@ -251,6 +291,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                     }
                 }
             }
+        }
+
+        void UpdateObjects()
+        {
             gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel,
                 sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject);
             Editor::SceneSelection::Update(world, camera.GetCamera(), objectPanel,
@@ -268,58 +312,51 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 history.Observe({json, objectPanel.SelectedId()}, gizmo.IsDragging() || ImGui::IsAnyItemActive());
                 objectPanel.SetChanged(history.Dirty(json));
             }
-            const bool historyEnabled=sceneLoaded && !pendingObject && !pendingHistory && !reloadRequested &&
+        }
+
+        bool HistoryEnabled() const
+        {
+            return sceneLoaded && !pendingObject && !pendingHistory && !reloadRequested &&
                 !gizmo.IsDragging() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
-            const bool shortcutsEnabled=historyEnabled && keyboard && keyboard->IsActive() &&
+        }
+
+        void UpdateShortcuts(bool historyEnabled)
+        {
+            if (!CanUseShortcuts(historyEnabled)) return;
+            if (ImGui::GetIO().KeyCtrl) UpdateControlShortcuts();
+            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && !objectPanel.SelectedId().empty())
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,objectPanel.SelectedId(),{}, {}};
+        }
+
+        bool CanUseShortcuts(bool historyEnabled) const
+        {
+            return historyEnabled && keyboard && keyboard->IsActive() &&
                 !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput && !ImGui::GetIO().KeyAlt &&
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
-            if (shortcutsEnabled && ImGui::GetIO().KeyCtrl)
+        }
+
+        void UpdateControlShortcuts()
+        {
+            if (ImGui::IsKeyPressed(ImGuiKey_Z, false))
             {
-                if (ImGui::IsKeyPressed(ImGuiKey_Z, false))
-                {
-                    const bool redo=ImGui::GetIO().KeyShift;
-                    if (redo ? history.CanRedo() : history.CanUndo()) pendingHistory=redo;
-                }
-                else if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && history.CanRedo()) pendingHistory=true;
-                else if (ImGui::IsKeyPressed(ImGuiKey_S,false)) save();
-                else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !objectPanel.SelectedId().empty())
-                    pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,objectPanel.SelectedId(),{}, {}};
+                const bool redo=ImGui::GetIO().KeyShift;
+                if (redo ? history.CanRedo() : history.CanUndo()) pendingHistory=redo;
             }
-            else if (shortcutsEnabled && ImGui::IsKeyPressed(ImGuiKey_Delete,false) && !objectPanel.SelectedId().empty())
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,objectPanel.SelectedId(),{}, {}};
+            else if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && history.CanRedo()) pendingHistory=true;
+            else if (ImGui::IsKeyPressed(ImGuiKey_S,false)) Save();
+            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !objectPanel.SelectedId().empty())
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,objectPanel.SelectedId(),{}, {}};
+        }
+
+        void DrawCommands(bool canFocus, bool historyEnabled)
+        {
             Editor::PanelLayout::Place(Editor::PanelLayout::Panel::Commands);
             if (ImGui::Begin("Street Editor"))
             {
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
                 ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
-                ImGui::BeginDisabled(!canFocus || objectPanel.SelectedId().empty());
-                if (ImGui::Button("Focus selected (F)")) focusRequested=true;
-                ImGui::EndDisabled();
-                ImGui::BeginDisabled(!historyEnabled);
-                if (ImGui::Button("Preview title composition"))
-                {
-                    preview=true;
-                    cameraPanel.CancelDrag();
-                }
-                ImGui::EndDisabled();
-                ImGui::BeginDisabled(!historyEnabled || !history.CanUndo());
-                if (ImGui::Button("Undo (Ctrl+Z)")) pendingHistory=false;
-                ImGui::EndDisabled();
-                ImGui::SameLine();
-                ImGui::BeginDisabled(!historyEnabled || !history.CanRedo());
-                if (ImGui::Button("Redo (Ctrl+Y)")) pendingHistory=true;
-                ImGui::EndDisabled();
-                ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
-                if (ImGui::Button("Save")) save();
-                ImGui::EndDisabled();
-                ImGui::SameLine();
-                ImGui::BeginDisabled(pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
-                if (ImGui::Button("Reload"))
-                {
-                    if (objectPanel.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");
-                    else reloadRequested = true;
-                }
-                ImGui::EndDisabled();
+                DrawEditCommands(canFocus, historyEnabled);
+                DrawFileCommands();
                 if (ImGui::Button("Reset panel layout")) Editor::PanelLayout::Reset();
                 if (ImGui::CollapsingHeader("Help / Content"))
                 {
@@ -327,31 +364,96 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                     ImGui::TextWrapped("Content: %s",root.string().c_str());
                 }
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
-                if (ImGui::BeginPopupModal("Reload unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-                {
-                    ImGui::TextUnformatted("The current scene has unsaved changes.");
-                    if (ImGui::Button("Save and reload"))
-                    {
-                        if (save()) { reloadRequested = true; ImGui::CloseCurrentPopup(); }
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Discard and reload"))
-                    {
-                        reloadRequested = true;
-                        ImGui::CloseCurrentPopup();
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
-                    if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
-                    ImGui::EndPopup();
-                }
+                DrawReloadPopup();
             }
             ImGui::End();
-            if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), objectPanel);
-        });
+        }
+
+        void DrawEditCommands(bool canFocus, bool historyEnabled)
+        {
+            ImGui::BeginDisabled(!canFocus || objectPanel.SelectedId().empty());
+            if (ImGui::Button("Focus selected (F)")) focusRequested=true;
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(!historyEnabled);
+            if (ImGui::Button("Preview title composition"))
+            {
+                preview=true;
+                cameraPanel.CancelDrag();
+            }
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(!historyEnabled || !history.CanUndo());
+            if (ImGui::Button("Undo (Ctrl+Z)")) pendingHistory=false;
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!historyEnabled || !history.CanRedo());
+            if (ImGui::Button("Redo (Ctrl+Y)")) pendingHistory=true;
+            ImGui::EndDisabled();
+        }
+
+        void DrawFileCommands()
+        {
+            ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
+            if (ImGui::Button("Save")) Save();
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
+            if (ImGui::Button("Reload"))
+            {
+                if (objectPanel.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");
+                else reloadRequested = true;
+            }
+            ImGui::EndDisabled();
+        }
+
+        void DrawReloadPopup()
+        {
+            if (ImGui::BeginPopupModal("Reload unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::TextUnformatted("The current scene has unsaved changes.");
+                if (ImGui::Button("Save and reload"))
+                {
+                    if (Save()) { reloadRequested = true; ImGui::CloseCurrentPopup(); }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Discard and reload"))
+                {
+                    reloadRequested = true;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+                if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
+                ImGui::EndPopup();
+            }
+        }
+
+        const std::filesystem::path root = ContentRoot();
+        SceneRuntime::SceneWorld world;
+        Engine::DebugCamera camera;
+        Editor::CameraPanel cameraPanel;
+        Editor::ObjectPanel objectPanel;
+        Editor::TransformGizmo gizmo;
+        Editor::EditHistory history;
+        Engine::Camera previewCamera;
+        bool preview = false;
+        bool focusRequested = false;
+        std::optional<bool> pendingHistory;
+        std::optional<Editor::ObjectRequest> pendingObject;
+        const Engine::DirectionalLight light = SceneRuntime::TitleView::Light();
+        const Engine::Keyboard* keyboard = nullptr;
+        double seconds = 0.0;
+        bool initialized = false;
+        bool sceneLoaded = false;
+        bool reloadRequested = false;
+        bool closeRequested = false;
+        bool closeConfirmed = false;
+        std::string fileStatus;
+        const std::filesystem::path layoutPath = root / "Assets/Scenes/TitleStreet.json";
     };
-    Engine::ApplicationSettings settings;
-    settings.title = L"WP1 Street Editor";
-    Engine::Application application;
-    return application.Run(settings, callbacks);
+}
+
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+{
+    StreetEditor editor;
+    return editor.Run();
 }

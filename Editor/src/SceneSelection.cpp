@@ -77,7 +77,7 @@ namespace Editor
         constexpr int Edges[12][2]{ {0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},
             {0,4},{1,5},{2,6},{3,7} };
         auto* draw = ImGui::GetBackgroundDrawList();
-        for (const auto& edge : Edges)
+        for (const auto* edge : Edges)
         {
             auto a = clip[edge[0]], b = clip[edge[1]];
             if (!ClipEdge(a, b)) continue;

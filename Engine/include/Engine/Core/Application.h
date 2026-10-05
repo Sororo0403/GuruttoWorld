@@ -64,6 +64,9 @@ namespace Engine
         int Run(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks);
 
     private:
+        static int RunLoop(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks,
+            Window& window, DirectX12Renderer& renderer, Keyboard& keyboard);
+
         /// <summary>
         /// クラッシュ処理、ログ、ウィンドウ、描画機能を順番に初期化します。
         /// </summary>

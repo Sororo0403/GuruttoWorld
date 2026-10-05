@@ -10,7 +10,7 @@
 
 namespace SceneRuntime
 {
-    bool SceneWorld::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
+    bool SceneWorld::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
         const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath, std::string* diagnostic)
     {
         modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath);

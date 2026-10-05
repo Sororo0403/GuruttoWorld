@@ -15,6 +15,11 @@ namespace Editor
         enum class Mode { Move, Rotate, Scale };
         void SetMode(Mode mode) { if (!dragging_) mode_=mode; }
     private:
+        void DrawControls();
+        bool Manipulate(const SceneRuntime::ScenePlacement& current,
+            const Engine::Camera& camera, DirectX::XMFLOAT4X4& matrix);
+        void ApplyTransform(SceneRuntime::SceneWorld& world, ObjectPanel& panel,
+            const SceneRuntime::ScenePlacement& current, const DirectX::XMFLOAT4X4& matrix);
         Mode mode_ = Mode::Move;
         bool local_ = false, snap_ = false;
         float moveStep_ = 4.0f, angleStep_ = 15.0f, scaleStep_ = 0.25f;

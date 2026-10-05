@@ -9,7 +9,7 @@ namespace Editor
     enum class ObjectAction { Add, Duplicate, Delete };
     struct ObjectRequest
     {
-        ObjectAction action;
+        ObjectAction action = ObjectAction::Add;
         std::string id;
         std::filesystem::path model;
         std::array<float, 3> position{};
@@ -29,6 +29,8 @@ namespace Editor
         void MarkSaved() { changed_ = false; }
         void Reloaded() { changed_ = false; invalidTransform_ = false; }
     private:
+        void DrawObjects(const SceneRuntime::SceneWorld& world, bool enabled);
+        void DrawInspector(SceneRuntime::SceneWorld& world, bool enabled);
         void DrawModels(const std::array<float, 3>& suggestedPosition, bool enabled);
         std::vector<std::filesystem::path> models_;
         std::filesystem::path selectedModel_;

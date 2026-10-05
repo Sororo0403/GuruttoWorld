@@ -7,6 +7,13 @@ namespace Editor
 {
     void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, const std::array<float, 3>& suggestedPosition, bool enabled)
     {
+        DrawObjects(world, enabled);
+        DrawInspector(world, enabled);
+        DrawModels(suggestedPosition, enabled);
+    }
+
+    void ObjectPanel::DrawObjects(const SceneRuntime::SceneWorld& world, bool enabled)
+    {
         const auto& objects = world.Layout().objects;
         PanelLayout::Place(PanelLayout::Panel::Objects);
         if (ImGui::Begin("Objects"))
@@ -33,7 +40,11 @@ namespace Editor
             ImGui::EndChild();
         }
         ImGui::End();
+    }
 
+    void ObjectPanel::DrawInspector(SceneRuntime::SceneWorld& world, bool enabled)
+    {
+        const auto& objects = world.Layout().objects;
         PanelLayout::Place(PanelLayout::Panel::Inspector);
         if (ImGui::Begin("Inspector"))
         {
@@ -51,7 +62,8 @@ namespace Editor
                 auto scale = found->scale;
                 constexpr float ToDegrees = 180.0f / std::numbers::pi_v<float>;
                 auto degrees = rotation;
-                for (auto& value : degrees) value *= ToDegrees;
+                std::transform(degrees.begin(), degrees.end(), degrees.begin(),
+                    [](float value) { return value * ToDegrees; });
                 ImGui::BeginDisabled(!enabled);
                 bool edited = ImGui::DragFloat3("Position", position.data(), 0.05f, 0, 0, "%.3f");
                 if (ImGui::DragFloat3("Rotation (deg)", degrees.data(), 0.5f, 0, 0, "%.2f"))
@@ -77,8 +89,8 @@ namespace Editor
                 "No unsaved changes.");
         }
         ImGui::End();
-        DrawModels(suggestedPosition, enabled);
     }
+
     void ObjectPanel::ScanModels(const std::filesystem::path& root)
     {
         models_.clear();

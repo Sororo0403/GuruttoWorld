@@ -119,7 +119,7 @@ namespace
 
 namespace App
 {
-    bool TitleUi::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
+    bool TitleUi::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
         auto texture = std::make_shared<Engine::Texture2D>();
         auto white = std::make_shared<Engine::Texture2D>();

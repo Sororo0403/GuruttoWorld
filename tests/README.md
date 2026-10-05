@@ -1,5 +1,15 @@
 # カメラ・パーティクルの検証
 
+## 静的解析と複雑度
+
+リポジトリのルートで `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/AnalyzeCode.ps1 -Label latest` を実行します。
+cppcheck と lizard が必要です。PATH にない場合は `-Cppcheck` と `-Lizard` で実行ファイルを指定します。
+Engine／App／Editor／SceneRuntime の自作コードを対象とし、外部ライブラリの診断は除外します。
+cppcheck は C++20／win64 の warning・style・performance・portability を確認し、
+lizard は CCN 15 超・100 行超・引数 8 個超を検出します。どちらかに指摘があればスクリプトは失敗します。
+解析結果は `generated/analysis` に保存します。Windows SDK の完全なコンパイル検証の代替にはならないため、
+変更後はビルドと以下の回帰検証も実行します。
+
 リポジトリのルートを作業ディレクトリにして実行します。
 
 ```powershell

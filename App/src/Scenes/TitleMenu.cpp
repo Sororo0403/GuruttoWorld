@@ -31,13 +31,7 @@ namespace App
         // 覆い切ったフレームを描いてから次の更新で遷移を通知します。
         if (finished_)
         {
-            if (transitionSeconds_ >= 0.32f && !transitionEmitted_)
-            {
-                transitionEmitted_ = true;
-                return pending_;
-            }
-            transitionSeconds_ = std::min(0.32f, transitionSeconds_ + elapsed);
-            return TitleMenuAction::None;
+            return UpdateTransition(elapsed);
         }
         const bool wasReady = ready_;
         const unsigned int pressed = ReadPressedButtons(input);
@@ -68,19 +62,35 @@ namespace App
         const unsigned int direction = pressed & (MenuUp | MenuDown);
         if (direction != 0)
         {
-            if (direction != (MenuUp | MenuDown))
-            {
-                cue_ = TitleMenuCue::Select;
-                selectionSeconds_ = 0.16f;
-                const int step = direction == MenuDown ? 1 : 2;
-                if (settingsOpen_) settingsRow_ = (settingsRow_ + step) % 3;
-                else selected_ = static_cast<TitleMenuItem>((static_cast<int>(selected_) + step) % 3);
-            }
+            MoveSelection(direction);
             // 選択移動と同じフレームの決定は無視し、意図せぬ終了を防ぎます。
             return TitleMenuAction::None;
         }
         if (settingsOpen_) return UpdateSettings(pressed);
         return UpdateMainMenu(pressed);
+    }
+
+    TitleMenuAction TitleMenu::UpdateTransition(float elapsed)
+    {
+        if (transitionSeconds_ >= 0.32f && !transitionEmitted_)
+        {
+            transitionEmitted_ = true;
+            return pending_;
+        }
+        transitionSeconds_ = std::min(0.32f, transitionSeconds_ + elapsed);
+        return TitleMenuAction::None;
+    }
+
+    void TitleMenu::MoveSelection(unsigned int direction)
+    {
+        if (direction != (MenuUp | MenuDown))
+        {
+            cue_ = TitleMenuCue::Select;
+            selectionSeconds_ = 0.16f;
+            const int step = direction == MenuDown ? 1 : 2;
+            if (settingsOpen_) settingsRow_ = (settingsRow_ + step) % 3;
+            else selected_ = static_cast<TitleMenuItem>((static_cast<int>(selected_) + step) % 3);
+        }
     }
 
     unsigned int TitleMenu::ReadPressedButtons(const TitleMenuInput& input)

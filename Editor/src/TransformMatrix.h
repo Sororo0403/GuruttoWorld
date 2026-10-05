@@ -3,6 +3,7 @@
 #include <DirectXMath.h>
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 
 namespace Editor::TransformMatrix
 {
@@ -17,11 +18,28 @@ namespace Editor::TransformMatrix
         return result;
     }
 
+    inline bool IsFinite(const DirectX::XMFLOAT4X4& matrix)
+    {
+        return std::all_of(std::begin(matrix.m), std::end(matrix.m), [](const auto& row)
+        {
+            return std::all_of(std::begin(row), std::end(row), [](float value) { return std::isfinite(value); });
+        });
+    }
+
+    inline bool Matches(const DirectX::XMFLOAT4X4& rebuilt, const DirectX::XMFLOAT4X4& matrix)
+    {
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j)
+                if (std::abs(rebuilt.m[i][j] - matrix.m[i][j]) >
+                    0.001f * std::max(1.0f, std::abs(matrix.m[i][j]))) return false;
+        return true;
+    }
+
     // Keep the existing mirror signs and choose the equivalent Euler angles nearest the inspector values.
     inline bool Read(const DirectX::XMFLOAT4X4& matrix, const SceneRuntime::ScenePlacement& reference,
         SceneRuntime::ScenePlacement& output)
     {
-        for (const auto& row : matrix.m) for (float element : row) if (!std::isfinite(element)) return false;
+        if (!IsFinite(matrix)) return false;
         auto result = reference;
         float r[3][3]{};
         for (int i=0; i<3; ++i)
@@ -61,8 +79,7 @@ namespace Editor::TransformMatrix
         result.rotation=distance(primary)<=distance(alternate) ? primary : alternate;
         result.position={matrix._41,matrix._42,matrix._43};
         const auto rebuilt=Compose(result);
-        for (int i=0;i<4;++i) for (int j=0;j<4;++j)
-            if (std::abs(rebuilt.m[i][j]-matrix.m[i][j]) > 0.001f*std::max(1.0f,std::abs(matrix.m[i][j]))) return false;
+        if (!Matches(rebuilt, matrix)) return false;
         output=result;
         return true;
     }
