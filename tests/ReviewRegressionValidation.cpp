@@ -2,6 +2,7 @@
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
 #include "../Editor/src/SceneViewport.h"
+#include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
@@ -1067,6 +1068,42 @@ void ValidateSceneViewport()
         "resized portrait scene keeps its center and aspect");
 }
 
+void ValidateProjectCatalog()
+{
+    const auto root=std::filesystem::absolute("generated/tests/project-catalog");
+    for (const auto* path : {"Assets/Models/Title/building.obj","Assets/Models/Mesh.OBJ",
+        "Assets/Scenes/title.json","Assets/Scenes/Nested/Second.JSON","Assets/Settings/settings.json",
+        "Assets/Models/Title/building.mtl","Assets/Models/Title/texture.png"})
+    {
+        const auto destination=root/path;
+        std::filesystem::create_directories(destination.parent_path());
+        std::ofstream fixture(destination);
+        fixture << "fixture";
+    }
+    Editor::ProjectCatalog catalog;
+    Check(catalog.Scan(root) && catalog.Assets().size()==4, "Project lists models and scene JSON only, case-insensitive extensions");
+    size_t models=0,scenes=0;
+    for (const auto& asset : catalog.Assets())
+    {
+        if (asset.kind==Editor::AssetKind::Model) ++models; else ++scenes;
+        Check(!asset.path.is_absolute() && Editor::ProjectCatalog::Text(asset.path).starts_with("Assets/"),
+            "Project keeps Content-relative asset paths");
+    }
+    Check(models==2 && scenes==2, "Project distinguishes models and scenes");
+    const Editor::ProjectAsset nested{"Assets/Models/Title/building.obj",Editor::AssetKind::Model};
+    Check(Editor::ProjectCatalog::Matches(nested,"Assets/Models/Title","") &&
+        !Editor::ProjectCatalog::Matches(nested,"Assets/Models","") &&
+        Editor::ProjectCatalog::Matches(nested,"Assets/Scenes","BUILDING") &&
+        !Editor::ProjectCatalog::Matches(nested,"Assets","missing"), "Project folder browsing and global path search");
+    Check(std::find(catalog.Folders().begin(),catalog.Folders().end(),"Assets/Models/Title")!=catalog.Folders().end() &&
+        std::find(catalog.Folders().begin(),catalog.Folders().end(),"Assets/Settings")==catalog.Folders().end(),
+        "Project tree contains the supported asset ancestors");
+    const auto oldPath=catalog.Assets().front().path;
+    Check(!catalog.Scan(root/"missing-root") && !catalog.Error().empty() && catalog.Assets().size()==4 &&
+        catalog.Assets().front().path==oldPath, "failed refresh preserves previous Project catalog");
+    Check(catalog.Scan(root) && catalog.Error().empty(), "successful refresh clears Project error");
+}
+
 void ValidateEditHistory()
 {
     Editor::EditHistory history;
@@ -1140,6 +1177,7 @@ int main()
     {
         ValidateTransformMatrix();
         ValidateSceneViewport();
+        ValidateProjectCatalog();
         ValidateEditHistory();
         ValidateFocusSelection();
         ValidateDeferredClose();

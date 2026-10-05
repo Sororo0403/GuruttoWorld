@@ -83,3 +83,6 @@ DebugのRenderTexture検証ではScene用SRVの枠がリサイズ後も同じで
 
 Inspectorの名前変更（日本語を含む）・不正な名前の拒否・Transformリセットを実際のSceneWorldで検証し、
 Undo／Redoの順序と選択ID、保存と再読み込み後の配置全体を比較します。
+
+ProjectCatalogの検証はgenerated/tests/project-catalogに小さなファイルを作り、対応形式の抽出、
+フォルダー構造、全フォルダー検索、大文字拡張子、種類の識別、再走査失敗時の一覧保持と復帰を確認します。

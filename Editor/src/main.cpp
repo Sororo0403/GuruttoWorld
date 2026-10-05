@@ -1,5 +1,6 @@
 #include "CameraPanel.h"
 #include "ObjectPanel.h"
+#include "ProjectPanel.h"
 #include "SceneSelection.h"
 #include "TransformGizmo.h"
 #include "EditHistory.h"
@@ -46,7 +47,7 @@ namespace
             camera.SetResetPose({ -0.8f, 2.8f, -7.0f }, 0.03f, 0.09f);
             camera.SetMoveSpeed(8.0f);
             SceneRuntime::TitleView::SetHome(previewCamera);
-            objectPanel.ScanModels(root);
+            projectPanel.Scan(root);
             Engine::ApplicationCallbacks callbacks;
             callbacks.closeRequested = [&]() { closeRequested = true; };
             callbacks.shouldClose = [&]()
@@ -356,7 +357,8 @@ namespace
             const auto& eye = camera.GetPosition();
             const std::array<float, 3> suggested{ eye[0] + viewInverse._31 * 8.0f, 0.08f,
                 eye[2] + viewInverse._33 * 8.0f };
-            objectPanel.Draw(world, editState, suggested, sceneLoaded && !reloadRequested && !gizmo.IsDragging());
+            objectPanel.Draw(world, editState, sceneLoaded && !reloadRequested && !gizmo.IsDragging());
+            projectPanel.Draw(editState, suggested, sceneLoaded && !reloadRequested && !pendingObject && !pendingHistory && !gizmo.IsDragging());
             if (auto request = editState.TakeRequest()) pendingObject = std::move(request);
             if (sceneLoaded)
             {
@@ -550,6 +552,7 @@ namespace
         Editor::SceneViewport sceneViewport;
         Editor::EditState editState;
         Editor::ObjectPanel objectPanel;
+        Editor::ProjectPanel projectPanel;
         Editor::TransformGizmo gizmo;
         Editor::EditHistory history;
         Engine::Camera previewCamera;

@@ -57,7 +57,7 @@ namespace Editor::PanelLayout
         ImGui::DockBuilderDockWindow("Hierarchy###Objects", left);
         ImGui::DockBuilderDockWindow("Inspector", right);
         ImGui::DockBuilderDockWindow("Scene", center);
-        ImGui::DockBuilderDockWindow("Models", bottom);
+        ImGui::DockBuilderDockWindow("Project###Models", bottom);
         ImGui::DockBuilderDockWindow("Debug Camera", bottom);
         ImGui::DockBuilderFinish(root);
     }

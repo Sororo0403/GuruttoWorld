@@ -12,7 +12,7 @@ Release のソリューションビルドはゲームを対象とし、Editor �
 - 1／2／3：ギズモを移動／回転／拡縮に切替
 
 起動時は上部にFile／Edit／Viewメニューとツールバー、左に状態表示とHierarchy、中央にScene、右にInspectorを配置します。
-下部のModels／Debug Cameraはタブで切り替えます。パネルはドッキング・分割・移動・サイズ変更できます。
+下部のProject／Debug Cameraはタブで切り替えます。パネルはドッキング・分割・移動・サイズ変更できます。
 View → Reset panel layoutで標準配置へ戻します。配置はLocalAppData/WP1/Editor/layout.iniへ保存し、再起動時に復元します。
 ツールバーにはSave・Undo・Redo・Move／Rotate／Scale・World／Local・Snapを表示します。
 Snap settingsで刻みを変更できます。Scaleは常にLocalで、座標系ボタンは無効です。
@@ -39,7 +39,11 @@ Preview title compositionで編集パネル・ギズモ・選択枠を隠し、�
 Back to editingまたはEscapeで元の編集視点へ戻ります。プレビュー中は配置を編集しません。
 これは街の構図確認用で、ゲームの空・光の粒・カメラの揺れ・タイトルUIは含みません。
 
-Modelsでモデル名やカテゴリを検索し、Add selected modelで追加できます。
+Projectの左側でフォルダーを選ぶと、そのフォルダー直下のモデル（.obj）とシーン（Assets/Scenes内の.json）を表示します。
+Search assetsは全フォルダーの相対パスを検索し、TypeでAll／Models／Scenesを切り替えます。
+Refreshでファイルを再走査します。失敗時は以前の一覧と選択を維持し、エラーを表示します。
+モデルを選び、Add selected modelで追加できます。Projectのアセット選択はHierarchyのオブジェクト選択とは独立しています。
+シーンはこの段階では選択とパス表示に対応し、現在の編集シーンは切り替えません。
 追加位置は数値入力、またはUse camera frontでカメラの約8単位先の地面へ合わせます。
 新しいモデルの拡縮は4です。追加後は自動選択され、Inspectorで調整できます。
 InspectorのDuplicateはX方向へ4単位ずらして複製し、Deleteは選択対象を削除します。

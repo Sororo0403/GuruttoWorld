@@ -5,11 +5,10 @@
 
 namespace Editor
 {
-    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, const std::array<float, 3>& suggestedPosition, bool enabled)
+    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
         DrawObjects(world, state, enabled);
         DrawInspector(world, state, enabled);
-        DrawModels(state, suggestedPosition, enabled);
     }
 
     void ObjectPanel::DrawObjects(const SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
@@ -119,48 +118,4 @@ namespace Editor
         if (ImGui::Button("Reset Transform")) state.ResetTransform(world,placement.id);
     }
 
-    void ObjectPanel::ScanModels(const std::filesystem::path& root)
-    {
-        models_.clear();
-        catalogError_.clear();
-        try
-        {
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(root / "Assets/Models/Title"))
-                if (entry.is_regular_file() && entry.path().extension() == ".obj")
-                    models_.push_back(entry.path().lexically_relative(root));
-            std::sort(models_.begin(), models_.end());
-        }
-        catch (const std::exception& error) { catalogError_ = error.what(); }
-    }
-
-    void ObjectPanel::DrawModels(EditState& state, const std::array<float, 3>& suggestedPosition, bool enabled)
-    {
-        if (!positionInitialized_) { addPosition_ = suggestedPosition; positionInitialized_ = true; }
-        PanelLayout::Place(PanelLayout::Panel::Models);
-        if (ImGui::Begin("Models"))
-        {
-            modelFilter_.Draw("Search models", -1);
-            if (!catalogError_.empty()) ImGui::TextWrapped("%s", catalogError_.c_str());
-            ImGui::Text("%zu models", models_.size());
-            if (ImGui::BeginChild("Model list", ImVec2(0, 280), true))
-            {
-                for (const auto& model : models_)
-                {
-                    const auto path = model.generic_string();
-                    if (!modelFilter_.PassFilter(path.c_str())) continue;
-                    if (ImGui::Selectable(path.substr(std::string("Assets/Models/Title/").size()).c_str(),
-                        model == selectedModel_)) selectedModel_ = model;
-                }
-            }
-            ImGui::EndChild();
-            ImGui::DragFloat3("Add position", addPosition_.data(), 0.1f);
-            if (ImGui::Button("Use camera front")) addPosition_ = suggestedPosition;
-            ImGui::BeginDisabled(!enabled || selectedModel_.empty());
-            if (ImGui::Button("Add selected model"))
-                state.Request(ObjectRequest{ ObjectAction::Add, {}, selectedModel_, addPosition_ });
-            ImGui::EndDisabled();
-            ImGui::TextWrapped("New objects use scale 4. Adjust them in Inspector.");
-        }
-        ImGui::End();
-    }
 }
