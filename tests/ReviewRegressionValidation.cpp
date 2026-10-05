@@ -449,6 +449,43 @@ namespace
                 Check(editorWorld.Reload(content, content / "Assets/Scenes/TitleStreet.json", reloadError) &&
                     reloadError.empty() && editorWorld.Layout().objects.front().position == original.position,
                     "successful reload restores saved scene");
+                SceneRuntime::ScenePlacement added;
+                added.name = "Test awning";
+                added.model = "Assets/Models/Title/Commercial/detail-awning.obj";
+                added.position = { 9, 0.16f, 10 };
+                added.rotation = { 0, 0.25f, 0 };
+                added.scale = { 4, 4, 4 };
+                const auto count = editorWorld.Layout().objects.size();
+                std::string addedId, duplicateId, operationError;
+                Check(editorWorld.AddObject(added, content, addedId, operationError) && !addedId.empty(),
+                    "new model can be added with a generated ID");
+                Check(editorWorld.DuplicateObject(addedId, { 4, 0, 0 }, duplicateId, operationError) &&
+                    duplicateId != addedId && editorWorld.Layout().objects.back().position[0] == 13 &&
+                    editorWorld.Layout().objects.back().rotation == added.rotation &&
+                    editorWorld.Layout().objects.back().scale == added.scale,
+                    "duplicate preserves model transform and has a distinct ID");
+                added.id = addedId;
+                std::string rejectedId;
+                Check(!editorWorld.AddObject(added, content, rejectedId, operationError), "duplicate ID rejected");
+                added.id.clear();
+                added.model = "Assets/Models/Title/Roads/missing.obj";
+                Check(!editorWorld.AddObject(added, content, rejectedId, operationError) &&
+                    editorWorld.Layout().objects.size() == count + 2, "failed addition keeps all current objects");
+                Check(!editorWorld.DuplicateObject(addedId, { NAN, 0, 0 }, rejectedId, operationError) &&
+                    editorWorld.Layout().objects.size() == count + 2, "invalid duplicate keeps current scene");
+                Check(!editorWorld.RemoveObject("missing-id"), "unknown delete does not change scene");
+                Check(editorWorld.RemoveObject(addedId) && editorWorld.Layout().objects.size() == count + 1 &&
+                    editorWorld.Layout().objects.back().id == duplicateId, "delete removes only selected object");
+                const auto editedPath = std::filesystem::absolute("generated/tests/layout-io/object-edits.json");
+                editorWorld.Layout().Save(editedPath);
+                Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
+                {
+                    editorWorld.Draw(commands, editorView, {});
+                }) != Engine::RenderResult::Failed, "added and duplicated objects render after deletion");
+                Check(renderer.WaitForIdle(), "object editing GPU completion");
+                Check(editorWorld.Reload(content, editedPath, operationError) &&
+                    editorWorld.Layout().objects.size() == count + 1 &&
+                    editorWorld.Layout().objects.back().id == duplicateId, "object changes survive save and reload");
                 App::TitleScene title(TestContentRoot());
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");

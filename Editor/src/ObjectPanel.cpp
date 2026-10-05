@@ -4,7 +4,7 @@
 
 namespace Editor
 {
-    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world)
+    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, const std::array<float, 3>& suggestedPosition, bool enabled)
     {
         const auto& objects = world.Layout().objects;
         ImGui::SetNextWindowPos(ImVec2(20, 230), ImGuiCond_FirstUseEver);
@@ -63,12 +63,70 @@ namespace Editor
                     invalidTransform_ = !world.SetTransform(selectedId_, position, rotation, scale);
                     if (!invalidTransform_) changed_ = true;
                 }
+                ImGui::BeginDisabled(!enabled);
+                if (ImGui::Button("Duplicate")) request_ = ObjectRequest{ ObjectAction::Duplicate, selectedId_, {}, {} };
+                ImGui::SameLine();
+                if (ImGui::Button("Delete")) request_ = ObjectRequest{ ObjectAction::Delete, selectedId_, {}, {} };
+                ImGui::EndDisabled();
                 if (invalidTransform_)
                     ImGui::TextWrapped("Invalid transform. Use finite numbers and nonzero scale.");
             }
             ImGui::Separator();
             ImGui::TextWrapped(changed_ ? "Unsaved changes." :
                 "No unsaved changes.");
+        }
+        ImGui::End();
+        DrawModels(suggestedPosition, enabled);
+    }
+    void ObjectPanel::ScanModels(const std::filesystem::path& root)
+    {
+        models_.clear();
+        catalogError_.clear();
+        try
+        {
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(root / "Assets/Models/Title"))
+                if (entry.is_regular_file() && entry.path().extension() == ".obj")
+                    models_.push_back(entry.path().lexically_relative(root));
+            std::sort(models_.begin(), models_.end());
+        }
+        catch (const std::exception& error) { catalogError_ = error.what(); }
+    }
+
+    std::optional<ObjectRequest> ObjectPanel::TakeRequest()
+    {
+        auto request = std::move(request_);
+        request_.reset();
+        return request;
+    }
+
+    void ObjectPanel::DrawModels(const std::array<float, 3>& suggestedPosition, bool enabled)
+    {
+        if (!positionInitialized_) { addPosition_ = suggestedPosition; positionInitialized_ = true; }
+        ImGui::SetNextWindowPos(ImVec2(780, 20), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("Models"))
+        {
+            modelFilter_.Draw("Search models", -1);
+            if (!catalogError_.empty()) ImGui::TextWrapped("%s", catalogError_.c_str());
+            ImGui::Text("%zu models", models_.size());
+            if (ImGui::BeginChild("Model list", ImVec2(0, 280), true))
+            {
+                for (const auto& model : models_)
+                {
+                    const auto path = model.generic_string();
+                    if (!modelFilter_.PassFilter(path.c_str())) continue;
+                    if (ImGui::Selectable(path.substr(std::string("Assets/Models/Title/").size()).c_str(),
+                        model == selectedModel_)) selectedModel_ = model;
+                }
+            }
+            ImGui::EndChild();
+            ImGui::DragFloat3("Add position", addPosition_.data(), 0.1f);
+            if (ImGui::Button("Use camera front")) addPosition_ = suggestedPosition;
+            ImGui::BeginDisabled(!enabled || selectedModel_.empty());
+            if (ImGui::Button("Add selected model"))
+                request_ = ObjectRequest{ ObjectAction::Add, {}, selectedModel_, addPosition_ };
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("New objects use scale 4. Adjust them in Inspector.");
         }
         ImGui::End();
     }

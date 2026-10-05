@@ -81,4 +81,90 @@ namespace SceneRuntime
         found->scale = scale;
         return true;
     }
+    std::string SceneWorld::NewId()
+    {
+        for (;;)
+        {
+            const auto id = "object-" + std::to_string(nextObjectId_++);
+            if (std::none_of(layout_.objects.begin(), layout_.objects.end(),
+                [&](const auto& placement) { return placement.id == id; })) return id;
+        }
+    }
+
+    void SceneWorld::Append(ScenePlacement placement, Engine::Object3D object)
+    {
+        layout_.objects.reserve(layout_.objects.size() + 1);
+        objects_.reserve(objects_.size() + 1);
+        layout_.objects.push_back(std::move(placement));
+        objects_.push_back(std::move(object));
+    }
+
+    bool SceneWorld::AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,
+        std::string& createdId, std::string& error)
+    {
+        createdId.clear();
+        try
+        {
+            if (!modelsReady_) throw std::runtime_error("Scene renderer is unavailable");
+            if (placement.id.empty()) placement.id = NewId();
+            if (std::any_of(layout_.objects.begin(), layout_.objects.end(),
+                [&](const auto& existing) { return existing.id == placement.id; }))
+                throw std::runtime_error("Object ID already exists");
+            if (placement.name.empty()) placement.name = placement.model.stem().string();
+            SceneLayout validation;
+            validation.objects.push_back(placement);
+            static_cast<void>(validation.Serialize());
+            Engine::Object3D object;
+            if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
+                throw std::runtime_error("Invalid transform");
+            const auto model = models_.Load(assetsRoot / placement.model);
+            if (!model) throw std::runtime_error("Model could not be loaded");
+            object.SetModel(model);
+            const auto id = placement.id;
+            Append(std::move(placement), std::move(object));
+            createdId = id;
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& exception)
+        {
+            error = exception.what();
+            return false;
+        }
+    }
+
+    bool SceneWorld::DuplicateObject(std::string_view id, const std::array<float, 3>& offset,
+        std::string& createdId, std::string& error)
+    {
+        createdId.clear();
+        const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
+            [id](const auto& placement) { return placement.id == id; });
+        if (found == layout_.objects.end()) { error = "Object no longer exists"; return false; }
+        auto placement = *found;
+        auto object = objects_[static_cast<size_t>(found - layout_.objects.begin())];
+        placement.id = NewId();
+        placement.name += " copy";
+        for (size_t i = 0; i < 3; ++i) placement.position[i] += offset[i];
+        if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
+        {
+            error = "Invalid duplicate offset";
+            return false;
+        }
+        const auto newId = placement.id;
+        Append(std::move(placement), std::move(object));
+        createdId = newId;
+        error.clear();
+        return true;
+    }
+
+    bool SceneWorld::RemoveObject(std::string_view id)
+    {
+        const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
+            [id](const auto& placement) { return placement.id == id; });
+        if (found == layout_.objects.end()) return false;
+        const auto index = static_cast<size_t>(found - layout_.objects.begin());
+        layout_.objects.erase(found);
+        objects_.erase(objects_.begin() + static_cast<std::ptrdiff_t>(index));
+        return true;
+    }
 }

@@ -39,6 +39,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     camera.SetMoveSpeed(8.0f);
     Editor::CameraPanel cameraPanel;
     Editor::ObjectPanel objectPanel;
+    objectPanel.ScanModels(root);
+    std::optional<Editor::ObjectRequest> pendingObject;
     Engine::DirectionalLight light;
     light.direction = { -0.5f, -0.8f, 0.6f };
     light.color = { 1.0f, 0.95f, 0.84f };
@@ -94,6 +96,35 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 fileStatus = "Reloaded.";
             }
         }
+        if (pendingObject)
+        {
+            if (!renderer.WaitForIdle()) return Engine::RenderResult::Failed;
+            auto request = std::move(*pendingObject);
+            pendingObject.reset();
+            std::string createdId;
+            bool success = false;
+            if (request.action == Editor::ObjectAction::Add)
+            {
+                SceneRuntime::ScenePlacement placement;
+                placement.model = request.model;
+                placement.position = request.position;
+                placement.scale = { 4, 4, 4 };
+                success = world.AddObject(std::move(placement), root, createdId, fileStatus);
+            }
+            else if (request.action == Editor::ObjectAction::Duplicate)
+                success = world.DuplicateObject(request.id, { 4, 0, 0 }, createdId, fileStatus);
+            else
+            {
+                success = world.RemoveObject(request.id);
+                fileStatus = success ? "" : "Object no longer exists.";
+            }
+            if (success)
+            {
+                objectPanel.ObjectChanged(createdId);
+                fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
+                    request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
+            }
+        }
         return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspect)
         {
             const float fov = 2.0f * std::atan(std::tan(DirectX::XM_PIDIV4 * 0.5f) *
@@ -102,7 +133,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             world.Draw(commands, camera.GetCamera(), light);
         }, [&]()
         {
-            objectPanel.Draw(world);
+            DirectX::XMFLOAT4X4 viewInverse;
+            DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
+            const auto& eye = camera.GetPosition();
+            const std::array<float, 3> suggested{ eye[0] + viewInverse._31 * 8.0f, 0.08f,
+                eye[2] + viewInverse._33 * 8.0f };
+            objectPanel.Draw(world, suggested, sceneLoaded && !reloadRequested);
+            if (auto request = objectPanel.TakeRequest()) pendingObject = std::move(request);
             ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(340, 200), ImGuiCond_FirstUseEver);
             if (ImGui::Begin("Street Editor"))
@@ -111,15 +148,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 ImGui::TextUnformatted("Select objects and edit transforms in Inspector.");
                 ImGui::TextWrapped("Content: %s", root.string().c_str());
                 ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
-                ImGui::BeginDisabled(!sceneLoaded);
+                ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value());
                 if (ImGui::Button("Save")) save();
                 ImGui::EndDisabled();
                 ImGui::SameLine();
+                ImGui::BeginDisabled(pendingObject.has_value());
                 if (ImGui::Button("Reload"))
                 {
                     if (objectPanel.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");
                     else reloadRequested = true;
                 }
+                ImGui::EndDisabled();
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 if (ImGui::BeginPopupModal("Reload unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
                 {

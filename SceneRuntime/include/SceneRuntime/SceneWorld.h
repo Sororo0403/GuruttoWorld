@@ -20,7 +20,16 @@ namespace SceneRuntime
         // 配置と描画用の変換を同時に更新します。失敗した場合は直前の状態を維持します。
         bool SetTransform(std::string_view id, const std::array<float, 3>& position,
             const std::array<float, 3>& rotation, const std::array<float, 3>& scale);
+        // GPU完了を待った後、描画の外で呼びます。
+        bool AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,
+            std::string& createdId, std::string& error);
+        bool DuplicateObject(std::string_view id, const std::array<float, 3>& offset,
+            std::string& createdId, std::string& error);
+        bool RemoveObject(std::string_view id);
     private:
+        std::string NewId();
+        size_t nextObjectId_ = 1;
+        void Append(ScenePlacement placement, Engine::Object3D object);
         bool modelsReady_ = false;
         SceneLayout layout_;
         Engine::ModelManager models_;
