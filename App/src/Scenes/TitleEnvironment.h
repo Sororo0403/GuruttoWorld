@@ -24,6 +24,7 @@ namespace App
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height);
     private:
         bool BuildStreet(const std::filesystem::path& root);
+        bool AddCentralPlaza(const std::filesystem::path& root);
         bool AddDistantBuildings(const std::filesystem::path& commercial);
         /// <summary>
         /// 街路の看板を CC0 モデルで配置します。

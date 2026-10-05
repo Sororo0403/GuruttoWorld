@@ -124,12 +124,13 @@ namespace App
         };
         constexpr BuildingPlacement Buildings[] = {
             // 左右の建物配置を通常の街並みに戻します。
-            { "building-k.obj", 4.8f, 4.0f }, { "building-h.obj", -4.8f, 5.0f },
+            { "building-k.obj", 10.0f, 3.0f }, { "building-h.obj", -4.8f, 5.0f },
             // ゲートを奥へ移した区画は元の建物へ戻します。
-            { "building-e.obj", 4.8f, 12.0f }, { "building-k.obj", -4.8f, 12.0f },
+            // 右側の中景は建物の列を開き、中央広場を見せます。
+            { "building-k.obj", -4.8f, 12.0f },
             // 高架の両端に重なる右Z=19・左Z=20の建物は配置しません。
             // 建物の列を通常の配置へ戻します。
-            { "building-k.obj", 4.8f, 26.0f }, { "building-e.obj", -4.8f, 27.0f },
+            { "building-e.obj", -4.8f, 27.0f },
             { "building-c.obj", 4.8f, 34.0f }, { "building-h.obj", -4.8f, 35.0f }
         };
         for (const auto& building : Buildings)
@@ -138,15 +139,47 @@ namespace App
             if (!AddObject(commercial / building.model, { building.x, RoadTop, building.z }, yaw,
                 { TileSize, TileSize, TileSize })) return false;
         }
-        // 高架道路は元の位置へ復元し、両端の建物を空けます。
+        // 高架は広場の奥へ移し、主役の建物の前を横切らないようにします。
         for (int tile = -1; tile <= 1; ++tile)
         {
-            if (!AddObject(roads / "road-bridge.obj", { static_cast<float>(tile) * TileSize, RoadTop, 18.0f },
+            if (!AddObject(roads / "road-bridge.obj", { static_cast<float>(tile) * TileSize, RoadTop, 42.0f },
                 0.0f, { TileSize, 8.0f, TileSize })) return false;
         }
         if (!AddDistantBuildings(commercial)) return false;
         if (!AddStreetSigns(root)) return false;
+        if (!AddCentralPlaza(root)) return false;
         return true;
+    }
+
+    bool TitleEnvironment::AddCentralPlaza(const std::filesystem::path& root)
+    {
+        const auto surfaceRoads = root / "Assets/Models/Title/Surface/Roads";
+        const auto roads = root / "Assets/Models/Title/Roads";
+        const auto commercial = root / "Assets/Models/Title/Surface/Commercial";
+        // 車道の右側に12×16の歩行者広場。舗装の目地で空間に密度を付けます。
+        for (int column = 0; column < 3; ++column)
+        {
+            for (int row = 0; row < 4; ++row)
+            {
+                if (!AddObject(surfaceRoads / "sidewalk.obj",
+                    { 4.8f + column * 4.0f, 0.08f, 6.0f + row * 4.0f }, 0.0f,
+                    { 4.0f, 4.0f, 4.0f })) return false;
+            }
+        }
+        // 既存CC0の低いタイルで、主役の建物へ上がる三段の階段と基壇を作ります。
+        for (int step = 0; step < 3; ++step)
+        {
+            if (!AddObject(roads / "tile-low.obj", { 9.0f, 0.16f + step * 0.16f, 17.5f + step * 0.5f },
+                0.0f, { 7.5f, 8.0f, 1.0f })) return false;
+        }
+        if (!AddObject(roads / "tile-low.obj", { 9.0f, 0.08f, 22.0f }, 0.0f,
+            { 8.5f, 28.0f, 7.0f })) return false;
+        // 間口を広く取った市庁舎風の一棟を広場の奥に置き、正面をタイトル視点へ向けます。
+        if (!AddObject(commercial / "building-h.obj", { 9.0f, 0.64f, 22.0f }, 0.0f,
+            { 8.0f, 7.0f, 6.0f })) return false;
+        // 低層の棟で右側の輪郭をつなぎ、主役の入口と階段を塞がないようにします。
+        return AddObject(commercial / "building-c.obj", { 15.0f, 0.08f, 24.0f }, -0.18f,
+            { 4.0f, 4.0f, 4.0f });
     }
 
     bool TitleEnvironment::AddDistantBuildings(const std::filesystem::path& commercial)
