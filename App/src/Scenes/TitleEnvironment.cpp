@@ -125,10 +125,11 @@ namespace App
         constexpr BuildingPlacement Buildings[] = {
             // 左右の建物配置を通常の街並みに戻します。
             { "building-k.obj", 4.8f, 4.0f }, { "building-h.obj", -4.8f, 5.0f },
-            // 右側の二軒目は出口ゲート。
-            { "building-k.obj", -4.8f, 12.0f },
+            // ゲートを奥へ移した区画は元の建物へ戻します。
+            { "building-e.obj", 4.8f, 12.0f }, { "building-k.obj", -4.8f, 12.0f },
             // 高架の両端に重なる右Z=19・左Z=20の建物は配置しません。
-            { "building-k.obj", 4.8f, 26.0f }, { "building-e.obj", -4.8f, 27.0f },
+            // 高架の先の右側一棟分を出口ゲートに置き換えます。
+            { "building-e.obj", -4.8f, 27.0f },
             { "building-c.obj", 4.8f, 34.0f }, { "building-h.obj", -4.8f, 35.0f }
         };
         for (const auto& building : Buildings)
@@ -148,8 +149,8 @@ namespace App
         // 左側の二軒目を調整施設に。通りへ向く歯車看板・スライダー・操作端末。
         if (!AddObject(root / "Assets/Models/Title/Settings/ControlFacade.obj",
             { -4.8f, RoadTop, 12.0f }, 0.0f, { 1.0f, 1.0f, 1.0f })) return false;
-        // 建物の列の二軒目に門を配置します。追加看板は置きません。
-        const std::array<float, 3> exitPosition{ 4.8f, RoadTop, 12.0f };
+        // 建物一棟分の区画として、高架の先の列へ門を配置します。
+        const std::array<float, 3> exitPosition{ 4.8f, RoadTop, 26.0f };
         const float exitYaw = -DirectX::XM_PIDIV2;
         if (!AddObject(root / "Assets/Models/Title/Exit/Castle/wall-narrow-gate.obj",
             exitPosition, exitYaw + DirectX::XM_PIDIV2, { 4.0f, 4.0f, 4.0f })) return false;
