@@ -15,13 +15,8 @@ namespace App
             root / "Shaders/TitleMote.hlsl")) return false;
         if (!world_.Initialize(renderer, root, root / "Assets/Scenes/TitleStreet.json",
             root / "Shaders/TitleMesh.hlsl")) return false;
-        camera_.SetPosition({ -0.8f, 1.8f, -7.0f });
-        camera_.SetRotation(0.03f, 0.13f);
-        light_.direction = { -0.5f, -0.8f, 0.6f };
-        light_.color = { 1.0f, 0.95f, 0.84f };
-        light_.ambientIntensity = 0.52f;
-        light_.intensity = 0.76f;
-        light_.specularStrength = 0.03f;
+        SceneRuntime::TitleView::SetHome(camera_);
+        light_ = SceneRuntime::TitleView::Light();
         return true;
     }
 
@@ -47,9 +42,7 @@ namespace App
         skyParameters.uvRect = { 0.0f, 0.5f - verticalSpan * 0.5f, 1.0f, 0.5f + verticalSpan * 0.5f };
         sky_.Draw(commands, width, height, skyParameters);
         // 狭いウィンドウでも16:9時の横方向の構図を保ちます。
-        const float verticalFov = 2.0f * std::atan(std::tan(DirectX::XM_PIDIV4 * 0.5f) *
-            std::max(1.0f, (16.0f / 9.0f) / aspectRatio));
-        camera.SetPerspective(verticalFov, aspectRatio, 0.1f, 220.0f);
+        SceneRuntime::TitleView::SetProjection(camera, aspectRatio);
         world_.Draw(commands, camera, light_);
         if (motion_.IsEnabled())
         {

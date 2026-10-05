@@ -140,6 +140,7 @@
     <ClCompile Include="src\SceneWorld.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneLayout.h" />
     <ClInclude Include="include\SceneRuntime\SceneWorld.h" />
+    <ClInclude Include="include\SceneRuntime\TitleView.h" />
     <ProjectReference Include="..\Engine\Engine.vcxproj">
       <Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project>
     </ProjectReference>

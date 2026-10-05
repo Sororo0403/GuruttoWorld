@@ -3,6 +3,7 @@
 #include "SceneSelection.h"
 #include "TransformGizmo.h"
 #include "EditHistory.h"
+#include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
@@ -44,15 +45,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Editor::ObjectPanel objectPanel;
     Editor::TransformGizmo gizmo;
     Editor::EditHistory history;
+    Engine::Camera previewCamera;
+    SceneRuntime::TitleView::SetHome(previewCamera);
+    bool preview = false;
     std::optional<bool> pendingHistory;
     objectPanel.ScanModels(root);
     std::optional<Editor::ObjectRequest> pendingObject;
-    Engine::DirectionalLight light;
-    light.direction = { -0.5f, -0.8f, 0.6f };
-    light.color = { 1.0f, 0.95f, 0.84f };
-    light.ambientIntensity = 0.52f;
-    light.intensity = 0.76f;
-    light.specularStrength = 0.03f;
+    const auto light = SceneRuntime::TitleView::Light();
     const Engine::Keyboard* keyboard = nullptr;
     double seconds = 0.0;
     bool initialized = false;
@@ -151,21 +150,32 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }
         return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspect)
         {
-            const float fov = 2.0f * std::atan(std::tan(DirectX::XM_PIDIV4 * 0.5f) *
-                (std::max)(1.0f, (16.0f / 9.0f) / aspect));
-            camera.GetCamera().SetPerspective(fov, aspect, 0.1f, 220.0f);
-            world.Draw(commands, camera.GetCamera(), light);
+            auto& view = preview ? previewCamera : camera.GetCamera();
+            SceneRuntime::TitleView::SetProjection(view, aspect);
+            world.Draw(commands, view, light);
         }, [&]()
         {
             Editor::TransformGizmo::BeginFrame();
+            if (preview)
+            {
+                ImGui::SetNextWindowPos(ImVec2(20,20),ImGuiCond_Always);
+                ImGui::SetNextWindowBgAlpha(0.8f);
+                if (ImGui::Begin("Title composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::TextUnformatted("Title camera / lighting - current layout (including unsaved edits)");
+                    ImGui::TextUnformatted("Fixed view; sky, particles and title UI are excluded.");
+                    if (ImGui::Button("Back to editing (Escape)") ||
+                        (keyboard && keyboard->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape,false))) preview=false;
+                }
+                ImGui::End();
+                return;
+            }
             if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, !gizmo.IsDragging());
             const auto display = ImGui::GetIO().DisplaySize;
             if (display.x > 0 && display.y > 0)
             {
                 const float aspect = display.x / display.y;
-                const float fov = 2.0f * std::atan(std::tan(DirectX::XM_PIDIV4 * 0.5f) *
-                    (std::max)(1.0f, (16.0f / 9.0f) / aspect));
-                camera.GetCamera().SetPerspective(fov, aspect, 0.1f, 220.0f);
+                SceneRuntime::TitleView::SetProjection(camera.GetCamera(), aspect);
             }
             gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel,
                 sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject);
@@ -203,6 +213,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 ImGui::TextUnformatted("Select objects and edit transforms in Inspector.");
                 ImGui::TextWrapped("Content: %s", root.string().c_str());
                 ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
+                ImGui::BeginDisabled(!historyEnabled);
+                if (ImGui::Button("Preview title composition"))
+                {
+                    preview=true;
+                    cameraPanel.CancelDrag();
+                }
+                ImGui::EndDisabled();
                 ImGui::BeginDisabled(!historyEnabled || !history.CanUndo());
                 if (ImGui::Button("Undo (Ctrl+Z)")) pendingHistory=false;
                 ImGui::EndDisabled();
@@ -242,7 +259,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 }
             }
             ImGui::End();
-            Editor::SceneSelection::Draw(world, camera.GetCamera(), objectPanel);
+            if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), objectPanel);
         });
     };
     Engine::ApplicationSettings settings;
