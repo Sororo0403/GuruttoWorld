@@ -149,6 +149,7 @@ namespace App
         if (!AddStreetSigns(root)) return false;
         if (!AddCentralPlaza(root)) return false;
         if (!AddPlazaDetails(root)) return false;
+        if (!AddStorefrontDetails(root)) return false;
         return true;
     }
 
@@ -202,12 +203,39 @@ namespace App
         // テーブル付きパラソルは広場の右端へ。中央の階段への動線は塞ぎません。
         for (float z : { 8.0f, 13.0f })
         {
-            if (!AddObject(commercial / "detail-parasol-a.obj", { 12.0f, PavementTop, z }, 0.2f,
+            const auto model = z == 8.0f ? "detail-parasol-a.obj" : "detail-parasol-b.obj";
+            if (!AddObject(commercial / model, { 12.0f, PavementTop, z }, z == 8.0f ? 0.2f : -0.3f,
                 { 5.0f, 5.0f, 5.0f })) return false;
         }
         // 主役の入口に実際のCC0ひさしを付け、建物の用途と入口を読み取りやすくします。
         return AddObject(commercial / "detail-awning-wide.obj", { 9.0f, 0.64f, 19.8f }, 0.0f,
             { 8.0f, 8.0f, 8.0f });
+    }
+
+    bool TitleEnvironment::AddStorefrontDetails(const std::filesystem::path& root)
+    {
+        const auto commercial = root / "Assets/Models/Title/Commercial";
+        struct Storefront
+        {
+            const char* model;
+            std::array<float, 3> position;
+            float yaw;
+            float scale;
+        };
+        // 元モデルのひさしはローカル+Z側へ張り出します。建物正面と同じ向きで取り付けます。
+        // 左の商店、右手前の店、広場奥のカフェに大小のひさしを使い分けます。
+        const Storefront storefronts[] = {
+            { "detail-awning-wide.obj", { -3.3f, 0.16f, 5.0f }, -DirectX::XM_PIDIV2, 4.5f },
+            { "detail-awning.obj", { -3.4f, 0.16f, 12.0f }, -DirectX::XM_PIDIV2, 6.0f },
+            { "detail-awning-wide.obj", { 8.5f, 0.16f, 3.0f }, DirectX::XM_PIDIV2, 5.0f },
+            { "detail-awning-wide.obj", { 15.4f, 0.16f, 22.6f }, -0.18f, 5.0f }
+        };
+        for (const auto& storefront : storefronts)
+        {
+            if (!AddObject(commercial / storefront.model, storefront.position, storefront.yaw,
+                { storefront.scale, storefront.scale, storefront.scale })) return false;
+        }
+        return true;
     }
 
     bool TitleEnvironment::AddDistantBuildings(const std::filesystem::path& commercial)

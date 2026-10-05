@@ -1,5 +1,12 @@
 # タイトル画面の採用素材
 
+## 商店の入口・広場のカフェ
+
+- 通りの左側二棟、右手前の建物、広場の低層棟に、Kenney City Kit Commercialの大小のひさしを配置。入口に店舗らしい奥行きと色を加える。
+- 広場のパラソルの一基をdetail-parasol-bへ変更し、同じ休憩スペース内でも形と向きに差を付ける。
+- detail-awning・detail-parasol-bのOBJとMTLは取得済みパックから無編集でコピー。既存のCommercial/Textures/colormap.pngとCC0ライセンスを使用。
+- UI・カメラ・主役の建物・高架の位置は変更しない。ひさしの取り付けと見栄えは実画面確認の対象。
+
 ## 広場の街灯・休憩スペース
 
 - 取得済みKenney City Kit Roadsのlight-square-doubleを5基配置。広場の外周と左歩道に置き、階段へ続く中央の通路を空ける。
