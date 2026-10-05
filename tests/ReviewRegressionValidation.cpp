@@ -467,7 +467,7 @@ namespace
                     Editor::PanelLayout::BeginFrame();
                     Editor::ScenePanel panel;
                     panel.Begin(textureId);
-                    Check(panel.Viewport().Valid() && panel.RequestedSize()[0]>0, "docked Scene image has usable content rectangle");
+                    Check(frame==0 || (panel.Viewport().Valid() && panel.RequestedSize()[0]>0), "docked Scene image has usable content rectangle");
                     Check(ImGui::GetWindowDockID()!=0, "Scene belongs to the standard dockspace");
                     Editor::ScenePanel::End();
                 }

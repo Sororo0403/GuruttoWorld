@@ -11,9 +11,13 @@ Release のソリューションビルドはゲームを対象とし、Editor �
 - Ctrl+S：保存、Ctrl+D：選択対象を複製、Delete：選択対象を削除
 - 1／2／3：ギズモを移動／回転／拡縮に切替
 
-起動時は左に操作とObjects、右にInspectorとギズモを配置します。
-ModelsとDebug Cameraは折りたたんで表示し、タイトルバーから展開できます。
-パネルは自由に移動・サイズ変更でき、Reset panel layoutで現在の画面サイズに合わせて整列します。
+起動時は上部にFile／Edit／Viewメニューとツールバー、左に状態表示とObjects、中央にScene、右にInspectorを配置します。
+下部のModels／Debug Cameraはタブで切り替えます。パネルはドッキング・分割・移動・サイズ変更できます。
+View → Reset panel layoutで標準配置へ戻します。配置はLocalAppData/WP1/Editor/layout.iniへ保存し、再起動時に復元します。
+ツールバーにはSave・Undo・Redo・Move／Rotate／Scale・World／Local・Snapを表示します。
+Snap settingsで刻みを変更できます。Scaleは常にLocalで、座標系ボタンは無効です。
+FileにはSave・Reload・Exit、EditにはUndo・Redo・Duplicate・Delete、ViewにはFocusと構図プレビューがあります。
+状態表示パネルには未保存状態・保存結果・レイアウト保存エラーを表示します。
 ショートカットは文字・数値入力中、右ドラッグ、ギズモ操作、確認ダイアログ中は無効です。
 
 Objectsで遠くのモデルを選んでFを押すと、そのモデルへカメラを寄せられます。
@@ -49,9 +53,9 @@ Inspectorとギズモの連続ドラッグは一操作にまとめます。追�
 選択対象には黄色の立体枠を表示し、ObjectsとInspectorも同じ対象を表示します。
 選択枠は確認用の重ね表示のため、他のモデルに隠れた部分も表示します。
 
-Transform GizmoでMove／Rotate／Scaleを選び、選択対象の色付きハンドルを左ドラッグします。
+上部ツールバーでMove／Rotate／Scaleを選び、選択対象の色付きハンドルを左ドラッグします。
 ImGuizmoの移動・回転ハンドルはWorld／Localを切り替えられます。拡縮はローカル軸です。
-Snapを有効にすると、移動4単位・回転15度・拡縮0.25刻みにそろいます。刻みはパネルで変更できます。
+Snapを有効にすると、移動4単位・回転15度・拡縮0.25刻みにそろいます。刻みはSnap settingsで変更できます。
 ギズモ操作中は自由カメラ、追加・複製・削除、保存・再読み込みを止めます。
 操作結果はInspectorに反映され、Saveで保存できます。ImGuizmoはEditorだけに組み込み、MITライセンスを同梱します。
 
@@ -84,7 +88,7 @@ GPUの待機が必要な操作とUndo／Redo・保存はStreetEditorが実行し
 
 `SceneViewport`で表示領域の位置・サイズ・縦横比と画面座標変換を共有します。
 カメラ投影、クリック選択、選択枠、ギズモ、右ドラッグ開始はこの領域を使います。
-現在の描画先は従来どおりウィンドウ全体です。Sceneパネルへのテクスチャ表示は後続の段階で導入します。
+Sceneパネルの画像領域を描画・入力の対象とし、タイトルバーや他のパネル上ではクリック選択・カメラ移動を開始しません。
 サイズが無効な間は選択・ギズモ・カメラ移動を止め、最後の有効な投影を維持します。
 
 ## オフスクリーン描画先
@@ -95,4 +99,4 @@ Engineの`RenderTexture`はRGBA8の色テクスチャ・深度バッファー・
 Renderの描画コールバック内でBegin→SceneWorldのDraw→Endを呼ぶと、色テクスチャを
 シェーダーから読める状態に戻します。End後は次の描画先を呼び出し側で設定します。
 SRVはUIのディスクリプターヒープへコピーして使います。破棄前にはWaitForIdleが必要です。
-現在のEditorはまだこの描画先を使用せず、Sceneパネルへの表示は次の段階で接続します。
+EditorはこのテクスチャをSceneパネルに表示します。サイズ変更は次のRender前に反映し、UIのSRV枠を再利用します。

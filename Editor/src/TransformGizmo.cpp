@@ -11,7 +11,6 @@ namespace Editor
     void TransformGizmo::UpdateAndDraw(SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
         EditState& state, const SceneViewport& viewport, bool active)
     {
-        DrawControls();
         hovered_=false;
         const auto& objects=world.Layout().objects;
         const auto found=std::find_if(objects.begin(), objects.end(),
@@ -54,32 +53,31 @@ namespace Editor
         if (dragging_) draggingId_=current.id;
         return modified;
     }
-    void TransformGizmo::DrawControls()
+    void TransformGizmo::DrawToolbar(bool enabled)
     {
-        PanelLayout::Place(PanelLayout::Panel::Gizmo);
-        if (ImGui::Begin("Transform Gizmo"))
+        ImGui::BeginDisabled(!enabled || dragging_);
+        if (ImGui::RadioButton("Move", mode_==Mode::Move)) mode_=Mode::Move;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate", mode_==Mode::Rotate)) mode_=Mode::Rotate;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scale", mode_==Mode::Scale)) mode_=Mode::Scale;
+        ImGui::SameLine();
+        ImGui::BeginDisabled(mode_==Mode::Scale);
+        if (ImGui::Button(local_ || mode_==Mode::Scale ? "Local" : "World")) local_=!local_;
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        ImGui::Checkbox("Snap", &snap_);
+        ImGui::SameLine();
+        if (ImGui::Button("Snap settings")) ImGui::OpenPopup("Snap settings");
+        if (ImGui::BeginPopup("Snap settings"))
         {
-            ImGui::BeginDisabled(dragging_);
-            if (ImGui::RadioButton("Move", mode_==Mode::Move)) mode_=Mode::Move;
-            ImGui::SameLine();
-            if (ImGui::RadioButton("Rotate", mode_==Mode::Rotate)) mode_=Mode::Rotate;
-            ImGui::SameLine();
-            if (ImGui::RadioButton("Scale", mode_==Mode::Scale)) mode_=Mode::Scale;
-            if (mode_!=Mode::Scale)
-            {
-                if (ImGui::RadioButton("World", !local_)) local_=false;
-                ImGui::SameLine();
-                if (ImGui::RadioButton("Local", local_)) local_=true;
-            }
-            else ImGui::TextUnformatted("Scale uses local axes.");
-            ImGui::Checkbox("Snap", &snap_);
             ImGui::DragFloat("Move step", &moveStep_, 0.1f, 0.01f, 100, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             ImGui::DragFloat("Angle step (deg)", &angleStep_, 1, 1, 180, "%.0f", ImGuiSliderFlags_AlwaysClamp);
             ImGui::DragFloat("Scale step", &scaleStep_, 0.05f, 0.01f, 10, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::EndDisabled();
-            if (invalidTransform_) ImGui::TextWrapped("Cannot apply this transform. Previous placement is preserved.");
+            ImGui::EndPopup();
         }
-        ImGui::End();
+        ImGui::EndDisabled();
+        if (invalidTransform_) { ImGui::SameLine(); ImGui::TextUnformatted("Invalid transform"); }
     }
 
     void TransformGizmo::ApplyTransform(SceneRuntime::SceneWorld& world, EditState& state,

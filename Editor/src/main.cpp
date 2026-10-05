@@ -210,8 +210,13 @@ namespace
 
         void DrawUi()
         {
-            Editor::TransformGizmo::BeginFrame();
+            if (!preview)
+            {
+                DrawMenuBar();
+                DrawToolbar();
+            }
             Editor::PanelLayout::BeginFrame(preview);
+            Editor::TransformGizmo::BeginFrame();
             sceneViewport = {};
             if (preview)
             {
@@ -230,7 +235,7 @@ namespace
             UpdateObjects();
             const bool historyEnabled = HistoryEnabled();
             UpdateShortcuts(historyEnabled);
-            DrawCommands(canFocus, historyEnabled);
+            DrawCommands();
             if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), editState, sceneViewport);
             Editor::ScenePanel::End();
         }
@@ -334,13 +339,18 @@ namespace
             }
         }
 
+        bool SceneEditingEnabled() const
+        {
+            return sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested &&
+                !pendingObject && !pendingHistory && !reloadConfirmRequested && ImGui::GetTopMostPopupModal()==nullptr;
+        }
+
         void UpdateObjects()
         {
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
-                sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject &&
-                (scenePanel.Hovered() || gizmo.IsDragging()));
+                SceneEditingEnabled() && (scenePanel.Hovered() || gizmo.IsDragging()));
             Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
-                sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject && !gizmo.ConsumesMouse() && scenePanel.Hovered());
+                SceneEditingEnabled() && !gizmo.ConsumesMouse() && scenePanel.Hovered());
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
@@ -390,16 +400,14 @@ namespace
                 pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
         }
 
-        void DrawCommands(bool canFocus, bool historyEnabled)
+        void DrawCommands()
         {
             Editor::PanelLayout::Place(Editor::PanelLayout::Panel::Commands);
             if (ImGui::Begin("Street Editor"))
             {
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
                 ImGui::TextUnformatted(editState.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
-                DrawEditCommands(canFocus, historyEnabled);
-                DrawFileCommands();
-                if (ImGui::Button("Reset panel layout")) Editor::PanelLayout::Reset();
+
                 if (ImGui::CollapsingHeader("Help / Content"))
                 {
                     ImGui::TextWrapped("Ctrl+S: Save / Ctrl+D: Duplicate / Delete: Remove / 1,2,3: Move,Rotate,Scale / F: Focus");
@@ -407,45 +415,106 @@ namespace
                 }
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 if (!Editor::PanelLayout::error.empty()) ImGui::TextWrapped("Layout: %s", Editor::PanelLayout::error.c_str());
+                if (reloadConfirmRequested)
+                {
+                    reloadConfirmRequested=false;
+                    ImGui::OpenPopup("Reload unsaved changes?");
+                }
                 DrawReloadPopup();
             }
             ImGui::End();
         }
 
-        void DrawEditCommands(bool canFocus, bool historyEnabled)
+        static bool EditingField()
         {
-            ImGui::BeginDisabled(!canFocus || editState.SelectedId().empty());
-            if (ImGui::Button("Focus selected (F)")) focusRequested=true;
-            ImGui::EndDisabled();
-            ImGui::BeginDisabled(!historyEnabled);
-            if (ImGui::Button("Preview title composition"))
-            {
-                preview=true;
-                cameraPanel.CancelDrag();
-            }
-            ImGui::EndDisabled();
-            ImGui::BeginDisabled(!historyEnabled || !history.CanUndo());
-            if (ImGui::Button("Undo (Ctrl+Z)")) pendingHistory=false;
-            ImGui::EndDisabled();
-            ImGui::SameLine();
-            ImGui::BeginDisabled(!historyEnabled || !history.CanRedo());
-            if (ImGui::Button("Redo (Ctrl+Y)")) pendingHistory=true;
-            ImGui::EndDisabled();
+            const auto* window=ImGui::GetCurrentContext()->ActiveIdWindow;
+            if (!ImGui::IsAnyItemActive() || !window) return false;
+            if (window->Flags & ImGuiWindowFlags_ChildMenu) return false;
+            if (std::string_view(window->Name)=="Editor toolbar") return false;
+            return !window->ParentWindow || std::string_view(window->ParentWindow->Name)!="Editor toolbar";
         }
 
-        void DrawFileCommands()
+        bool CommandsEnabled(bool allowToolbarText = false) const
         {
-            ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
-            if (ImGui::Button("Save")) Save();
-            ImGui::EndDisabled();
-            ImGui::SameLine();
-            ImGui::BeginDisabled(pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
-            if (ImGui::Button("Reload"))
+            return sceneLoaded && !pendingObject && !pendingHistory && !reloadRequested && !gizmo.IsDragging() &&
+                !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !EditingField() &&
+                (!ImGui::GetIO().WantTextInput || allowToolbarText) &&
+                ImGui::GetTopMostPopupModal()==nullptr && !closeRequested;
+        }
+
+        void RequestReload()
+        {
+            if (editState.HasChanges()) reloadConfirmRequested=true;
+            else reloadRequested=true;
+        }
+
+        void DrawMenuBar()
+        {
+            const bool enabled=CommandsEnabled();
+            if (!ImGui::BeginMainMenuBar()) return;
+            DrawFileMenu(enabled);
+            DrawEditMenu(enabled);
+            if (ImGui::BeginMenu("View"))
             {
-                if (editState.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");
-                else reloadRequested = true;
+                if (ImGui::MenuItem("Focus selected", "F", false, enabled && sceneViewport.Valid() && !editState.SelectedId().empty())) focusRequested=true;
+                if (ImGui::MenuItem("Preview title composition", nullptr, false, enabled))
+                {
+                    preview=true;
+                    cameraPanel.CancelDrag();
+                }
+                if (ImGui::MenuItem("Reset panel layout", nullptr, false, !gizmo.IsDragging())) Editor::PanelLayout::Reset();
+                ImGui::EndMenu();
             }
-            ImGui::EndDisabled();
+            ImGui::EndMainMenuBar();
+        }
+
+        void DrawFileMenu(bool enabled)
+        {
+            if (!ImGui::BeginMenu("File")) return;
+            if (ImGui::MenuItem("Save", "Ctrl+S", false, enabled)) Save();
+            if (ImGui::MenuItem("Reload", nullptr, false, enabled)) RequestReload();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit", nullptr, false, !gizmo.IsDragging())) closeRequested=true;
+            ImGui::EndMenu();
+        }
+
+        void DrawEditMenu(bool enabled)
+        {
+            if (!ImGui::BeginMenu("Edit")) return;
+            if (ImGui::MenuItem("Undo", "Ctrl+Z", false, enabled && history.CanUndo())) pendingHistory=false;
+            if (ImGui::MenuItem("Redo", "Ctrl+Y", false, enabled && history.CanRedo())) pendingHistory=true;
+            ImGui::Separator();
+            const bool selected=enabled && !editState.SelectedId().empty();
+            if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, selected))
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
+            if (ImGui::MenuItem("Delete", "Delete", false, selected))
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,editState.SelectedId(),{}, {}};
+            ImGui::EndMenu();
+        }
+
+        void DrawToolbar()
+        {
+            const auto flags=ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar;
+            const float height=ImGui::GetFrameHeight()+2*ImGui::GetStyle().WindowPadding.y;
+            const bool enabled=CommandsEnabled() &&
+                !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+            if (ImGui::BeginViewportSideBar("Editor toolbar", ImGui::GetMainViewport(), ImGuiDir_Up, height, flags))
+            {
+                ImGui::BeginDisabled(!enabled);
+                if (ImGui::Button("Save")) Save();
+                ImGui::SameLine();
+                ImGui::BeginDisabled(!history.CanUndo());
+                if (ImGui::Button("Undo")) pendingHistory=false;
+                ImGui::EndDisabled();
+                ImGui::SameLine();
+                ImGui::BeginDisabled(!history.CanRedo());
+                if (ImGui::Button("Redo")) pendingHistory=true;
+                ImGui::EndDisabled();
+                ImGui::EndDisabled();
+                ImGui::SameLine();
+                gizmo.DrawToolbar(CommandsEnabled(true));
+            }
+            ImGui::End();
         }
 
         void DrawReloadPopup()
@@ -494,6 +563,7 @@ namespace
         bool initialized = false;
         bool sceneLoaded = false;
         bool reloadRequested = false;
+        bool reloadConfirmRequested = false;
         bool closeRequested = false;
         bool closeConfirmed = false;
         std::string fileStatus;
