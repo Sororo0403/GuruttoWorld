@@ -879,6 +879,22 @@ void ValidateFocusSelection()
     corners[0][0]=-10000;
     Check(!Editor::FocusPosition(corners,camera), "oversized focus bounds rejected");
 }
+
+void ValidateDeferredClose()
+{
+    Engine::Window window;
+    Check(window.Create(L"Close request validation",320,240), "close validation window created");
+    int exitCode=99;
+    SendMessageW(window.GetHandle(),WM_CLOSE,0,0);
+    Check(window.ProcessMessages(exitCode,true) && IsWindow(window.GetHandle()),
+        "deferred close keeps the window alive for confirmation");
+    Check(window.TakeCloseRequest() && !window.TakeCloseRequest(), "close request is consumed once");
+    Check(window.ProcessMessages(exitCode,true), "cancelled close permits further frames");
+    SendMessageW(window.GetHandle(),WM_CLOSE,0,0);
+    Check(window.ProcessMessages(exitCode,true) && window.TakeCloseRequest(), "close can be requested again after cancel");
+    SendMessageW(window.GetHandle(),WM_CLOSE,0,0);
+    Check(!window.ProcessMessages(exitCode) && exitCode==0, "ordinary game windows still close without confirmation");
+}
 int main()
 {
     try
@@ -886,6 +902,7 @@ int main()
         ValidateTransformMatrix();
         ValidateEditHistory();
         ValidateFocusSelection();
+        ValidateDeferredClose();
         ValidateEditorCamera();
         ValidateSceneLayout();
         ValidateSceneFiles();

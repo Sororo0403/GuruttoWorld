@@ -93,7 +93,7 @@ namespace Engine
         }
     }
 
-    bool Window::ProcessMessages(int& exitCode)
+    bool Window::ProcessMessages(int& exitCode, bool deferClose)
     {
         exitCode = 0;
         if (handle_ == nullptr)
@@ -113,7 +113,14 @@ namespace Engine
             TranslateMessage(&message);
             DispatchMessageW(&message);
         }
-        return handle_ != nullptr && !closeRequested_;
+        return handle_ != nullptr && (deferClose || !closeRequested_);
+    }
+
+    bool Window::TakeCloseRequest() noexcept
+    {
+        const bool requested = closeRequested_;
+        closeRequested_ = false;
+        return requested;
     }
 
     HWND Window::GetHandle() const noexcept

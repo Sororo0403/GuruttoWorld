@@ -32,8 +32,15 @@ namespace Engine
             if (Initialize(settings, window, renderer) && keyboard.Initialize(window.GetHandle()))
             {
                 auto previousTime = std::chrono::steady_clock::now();
-                while (window.ProcessMessages(exitCode))
+                const bool deferClose = callbacks.closeRequested && callbacks.shouldClose;
+                while (window.ProcessMessages(exitCode, deferClose))
                 {
+                    if (deferClose && window.TakeCloseRequest())
+                    {
+                        if (IsIconic(window.GetHandle())) ShowWindow(window.GetHandle(), SW_RESTORE);
+                        callbacks.closeRequested();
+                    }
+                    if (deferClose && callbacks.shouldClose()) break;
                     const auto currentTime = std::chrono::steady_clock::now();
                     const double elapsedSeconds = std::chrono::duration<double>(currentTime - previousTime).count();
                     const double deltaSeconds = std::min(elapsedSeconds, settings.maxDeltaSeconds);

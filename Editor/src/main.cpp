@@ -59,6 +59,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     bool initialized = false;
     bool sceneLoaded = false;
     bool reloadRequested = false;
+    bool closeRequested = false;
+    bool closeConfirmed = false;
     std::string fileStatus;
     const auto layoutPath = root / "Assets/Scenes/TitleStreet.json";
     const auto save = [&]()
@@ -79,6 +81,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }
     };
     Engine::ApplicationCallbacks callbacks;
+    callbacks.closeRequested = [&]() { closeRequested = true; };
+    callbacks.shouldClose = [&]() { return closeConfirmed; };
     callbacks.update = [&](double dt, const Engine::Keyboard& input)
     {
         keyboard = &input;
@@ -158,6 +162,42 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }, [&]()
         {
             Editor::TransformGizmo::BeginFrame();
+            if (closeRequested)
+            {
+                cameraPanel.CancelDrag();
+                if (!sceneLoaded || !history.Dirty(world.Layout().Serialize()))
+                {
+                    closeConfirmed = true;
+                    return;
+                }
+                history.Observe({world.Layout().Serialize(), objectPanel.SelectedId()}, false);
+                // 編集中のギズモを止め、確認中は配置を変更しません。
+                gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel, false);
+                if (!ImGui::IsPopupOpen("Exit with unsaved changes?")) ImGui::OpenPopup("Exit with unsaved changes?");
+                if (ImGui::BeginPopupModal("Exit with unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::TextUnformatted("The current scene has unsaved changes.");
+                    if (ImGui::Button("Save and exit"))
+                    {
+                        if (save()) { closeConfirmed = true; ImGui::CloseCurrentPopup(); }
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Exit without saving"))
+                    {
+                        closeConfirmed = true;
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Cancel"))
+                    {
+                        closeRequested = false;
+                        ImGui::CloseCurrentPopup();
+                    }
+                    if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
+                    ImGui::EndPopup();
+                }
+                return;
+            }
             if (preview)
             {
                 ImGui::SetNextWindowPos(ImVec2(20,20),ImGuiCond_Always);

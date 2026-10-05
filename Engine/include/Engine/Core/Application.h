@@ -26,6 +26,9 @@ namespace Engine
     {
         std::function<void(double, const Keyboard&)> update;
         std::function<RenderResult(DirectX12Renderer&)> draw;
+        // 両方指定した場合、閉じる要求を通知し、shouldCloseがtrueになるまで実行を続けます。
+        std::function<void()> closeRequested;
+        std::function<bool()> shouldClose;
     };
 
     class Application final

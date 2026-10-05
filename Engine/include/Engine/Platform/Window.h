@@ -63,7 +63,9 @@ namespace Engine
         /// </summary>
         /// <param name="exitCode">通常は 0、終了要求時はその終了コード、ウィンドウが未作成の場合は 1 を受け取ります。</param>
         /// <returns>処理を継続できる場合は true、終了要求または未作成の場合は false。</returns>
-        bool ProcessMessages(int& exitCode);
+        bool ProcessMessages(int& exitCode, bool deferClose = false);
+        // 遅延したWM_CLOSEを一度だけ取得します。WM_QUITや外部からの破棄は遅延しません。
+        bool TakeCloseRequest() noexcept;
 
         /// <summary>
         /// 描画処理などに渡すためのウィンドウハンドルを取得します。
