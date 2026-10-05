@@ -1,4 +1,5 @@
 #include "TitleEnvironment.h"
+#include "SceneLayout.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Core/Log.h>
 #include <algorithm>
@@ -26,30 +27,6 @@ namespace App
         light_.ambientIntensity = 0.52f;
         light_.intensity = 0.76f;
         light_.specularStrength = 0.03f;
-        return true;
-    }
-
-    bool TitleEnvironment::AddStreetSigns(const std::filesystem::path& root)
-    {
-        const auto roads = root / "Assets/Models/Title/Roads";
-        constexpr float SidewalkTop = 0.16f;
-        return AddObject(roads / "road-sign-street.obj", { 2.85f, SidewalkTop, -0.5f }, -0.25f, { 4.0f, 4.0f, 4.0f }) &&
-            AddObject(roads / "road-sign-empty.obj", { -2.85f, SidewalkTop, 10.0f }, 0.3f, { 4.0f, 4.0f, 4.0f });
-    }
-
-    bool TitleEnvironment::AddObject(const std::filesystem::path& path, const std::array<float, 3>& position,
-        float yaw, const std::array<float, 3>& scale)
-    {
-        const auto model = models_.Load(path);
-        if (!model)
-        {
-            Engine::Log::Error(std::format("Title environment model could not be loaded: {}", path.filename().string()));
-            return false;
-        }
-        Engine::Object3D object;
-        object.SetModel(model);
-        if (!object.SetTransform(position, { 0.0f, yaw, 0.0f }, scale)) return false;
-        objects_.push_back(std::move(object));
         return true;
     }
 
@@ -97,172 +74,29 @@ namespace App
 
     bool TitleEnvironment::BuildStreet(const std::filesystem::path& root)
     {
-        const auto commercial = root / "Assets/Models/Title/Surface/Commercial";
-        const auto roads = root / "Assets/Models/Title/Roads";
-        const auto surfaceRoads = root / "Assets/Models/Title/Surface/Roads";
-        // 1 タイルを4ワールド単位に統一。道路上面は Y=0.08。
-        constexpr float TileSize = 4.0f;
-        constexpr float RoadTop = 0.08f;
-        if (!AddObject(surfaceRoads / "ground.obj", { 0.0f, -0.12f, 60.0f }, 0.0f, { 160.0f, 4.0f, 180.0f }))
-            return false;
-        for (int tile = -2; tile < 22; ++tile)
+        try
         {
-            const float z = static_cast<float>(tile) * TileSize;
-            if (!AddObject(surfaceRoads / "road-straight.obj", { 0.0f, 0.0f, z }, DirectX::XM_PIDIV2, { TileSize, TileSize, TileSize }))
-                return false;
-            constexpr std::array<float, 2> Sides{ -1.0f, 1.0f };
-            if (!std::all_of(Sides.begin(), Sides.end(), [&](float side)
-                { return AddObject(surfaceRoads / "sidewalk.obj", { side * 2.8f, RoadTop, z },
-                    0.0f, { 1.6f, 4.0f, TileSize }); })) return false;
-        }
-        // 正面を通りへ向け、高さと間口の違う建物を左右交互に配置します。
-        struct BuildingPlacement
-        {
-            const char* model;
-            float x;
-            float z;
-        };
-        constexpr BuildingPlacement Buildings[] = {
-            // 左右の建物配置を通常の街並みに戻します。
-            { "building-k.obj", 10.0f, 3.0f }, { "building-h.obj", -4.8f, 5.0f },
-            // ゲートを奥へ移した区画は元の建物へ戻します。
-            // 右側の中景は建物の列を開き、中央広場を見せます。
-            { "building-k.obj", -4.8f, 12.0f },
-            // 高架の両端に重なる右Z=19・左Z=20の建物は配置しません。
-            // 建物の列を通常の配置へ戻します。
-            { "building-e.obj", -4.8f, 27.0f },
-            { "building-c.obj", 4.8f, 34.0f }, { "building-h.obj", -4.8f, 35.0f }
-        };
-        for (const auto& building : Buildings)
-        {
-            const float yaw = building.x > 0.0f ? DirectX::XM_PIDIV2 : -DirectX::XM_PIDIV2;
-            if (!AddObject(commercial / building.model, { building.x, RoadTop, building.z }, yaw,
-                { TileSize, TileSize, TileSize })) return false;
-        }
-        // 高架は広場の奥へ移し、主役の建物の前を横切らないようにします。
-        for (int tile = -1; tile <= 1; ++tile)
-        {
-            if (!AddObject(roads / "road-bridge.obj", { static_cast<float>(tile) * TileSize, RoadTop, 42.0f },
-                0.0f, { TileSize, 8.0f, TileSize })) return false;
-        }
-        if (!AddDistantBuildings(commercial)) return false;
-        if (!AddStreetSigns(root)) return false;
-        if (!AddCentralPlaza(root)) return false;
-        if (!AddPlazaDetails(root)) return false;
-        if (!AddStorefrontDetails(root)) return false;
-        return true;
-    }
-
-    bool TitleEnvironment::AddCentralPlaza(const std::filesystem::path& root)
-    {
-        const auto surfaceRoads = root / "Assets/Models/Title/Surface/Roads";
-        const auto roads = root / "Assets/Models/Title/Roads";
-        const auto commercial = root / "Assets/Models/Title/Surface/Commercial";
-        // 車道の右側に12×16の歩行者広場。舗装の目地で空間に密度を付けます。
-        for (int column = 0; column < 3; ++column)
-        {
-            for (int row = 0; row < 4; ++row)
+            auto layout = SceneLayout::Load(root / "Assets/Scenes/TitleStreet.json");
+            std::vector<Engine::Object3D> objects;
+            objects.reserve(layout.objects.size());
+            for (const auto& placement : layout.objects)
             {
-                if (!AddObject(surfaceRoads / "sidewalk.obj",
-                    { 4.8f + column * 4.0f, 0.08f, 6.0f + row * 4.0f }, 0.0f,
-                    { 4.0f, 4.0f, 4.0f })) return false;
+                Engine::Object3D object;
+                const auto model = models_.Load(root / placement.model);
+                if (!model) throw std::runtime_error("Model could not be loaded: " + placement.id);
+                object.SetModel(model);
+                if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
+                    throw std::runtime_error("Invalid transform: " + placement.id);
+                objects.push_back(std::move(object));
             }
+            layout_ = std::move(layout);
+            objects_ = std::move(objects);
+            return true;
         }
-        // 既存CC0の低いタイルで、主役の建物へ上がる三段の階段と基壇を作ります。
-        for (int step = 0; step < 3; ++step)
+        catch (const std::exception& error)
         {
-            if (!AddObject(roads / "tile-low.obj", { 9.0f, 0.16f + step * 0.16f, 17.5f + step * 0.5f },
-                0.0f, { 7.5f, 8.0f, 1.0f })) return false;
+            Engine::Log::Error(std::format("Title street could not be loaded: {}", error.what()));
+            return false;
         }
-        if (!AddObject(roads / "tile-low.obj", { 9.0f, 0.08f, 22.0f }, 0.0f,
-            { 8.5f, 28.0f, 7.0f })) return false;
-        // 間口を広く取った市庁舎風の一棟を広場の奥に置き、正面をタイトル視点へ向けます。
-        if (!AddObject(commercial / "building-h.obj", { 9.0f, 0.64f, 22.0f }, DirectX::XM_PI,
-            { 8.0f, 7.0f, 6.0f })) return false;
-        // 低層の棟で右側の輪郭をつなぎ、主役の入口と階段を塞がないようにします。
-        return AddObject(commercial / "building-c.obj", { 15.0f, 0.08f, 24.0f }, -0.18f,
-            { 4.0f, 4.0f, 4.0f });
     }
-
-    bool TitleEnvironment::AddPlazaDetails(const std::filesystem::path& root)
-    {
-        const auto roads = root / "Assets/Models/Title/Roads";
-        const auto commercial = root / "Assets/Models/Title/Commercial";
-        constexpr float PavementTop = 0.16f;
-        // 広場の外周と反対側の歩道に街灯を並べ、前景から奥へのリズムを作ります。
-        constexpr std::array<std::array<float, 3>, 5> Lights{
-            std::array<float, 3>{ 3.3f, PavementTop, 5.0f },
-            { 3.3f, PavementTop, 13.0f }, { 14.0f, PavementTop, 7.0f },
-            { 14.0f, PavementTop, 15.0f }, { -2.8f, PavementTop, 3.0f }
-        };
-        for (const auto& position : Lights)
-        {
-            if (!AddObject(roads / "light-square-double.obj", position, 0.0f,
-                { 6.0f, 6.0f, 6.0f })) return false;
-        }
-        // テーブル付きパラソルは広場の右端へ。中央の階段への動線は塞ぎません。
-        for (float z : { 8.0f, 13.0f })
-        {
-            const auto model = z == 8.0f ? "detail-parasol-a.obj" : "detail-parasol-b.obj";
-            if (!AddObject(commercial / model, { 12.0f, PavementTop, z }, z == 8.0f ? 0.2f : -0.3f,
-                { 5.0f, 5.0f, 5.0f })) return false;
-        }
-        // 主役の入口に実際のCC0ひさしを付け、建物の用途と入口を読み取りやすくします。
-        return AddObject(commercial / "detail-awning-wide.obj", { 9.0f, 0.64f, 19.8f }, 0.0f,
-            { 8.0f, 8.0f, 8.0f });
-    }
-
-    bool TitleEnvironment::AddStorefrontDetails(const std::filesystem::path& root)
-    {
-        const auto commercial = root / "Assets/Models/Title/Commercial";
-        struct Storefront
-        {
-            const char* model;
-            std::array<float, 3> position;
-            float yaw;
-            float scale;
-        };
-        // 元モデルのひさしはローカル+Z側へ張り出します。建物正面と同じ向きで取り付けます。
-        // 左の商店、右手前の店、広場奥のカフェに大小のひさしを使い分けます。
-        const Storefront storefronts[] = {
-            { "detail-awning-wide.obj", { -3.3f, 0.16f, 5.0f }, -DirectX::XM_PIDIV2, 4.5f },
-            { "detail-awning.obj", { -3.4f, 0.16f, 12.0f }, -DirectX::XM_PIDIV2, 6.0f },
-            { "detail-awning-wide.obj", { 8.5f, 0.16f, 3.0f }, DirectX::XM_PIDIV2, 5.0f },
-            { "detail-awning-wide.obj", { 15.4f, 0.16f, 22.6f }, -0.18f, 5.0f }
-        };
-        for (const auto& storefront : storefronts)
-        {
-            if (!AddObject(commercial / storefront.model, storefront.position, storefront.yaw,
-                { storefront.scale, storefront.scale, storefront.scale })) return false;
-        }
-        return true;
-    }
-
-    bool TitleEnvironment::AddDistantBuildings(const std::filesystem::path& commercial)
-    {
-        constexpr float RoadTop = 0.08f;
-        // 遠景も同じ CC0 モデルで構成し、通りの奥に高層の目印を置きます。
-        // 近景より広い間隔で配置して、空と建物の輪郭を見せます。
-        constexpr std::array<int, 2> Sides{ -1, 1 };
-        if (!std::all_of(Sides.begin(), Sides.end(), [&](int side)
-        {
-            const float direction = static_cast<float>(side);
-            return AddObject(commercial / "building-e.obj", { direction * 12.0f, RoadTop, 54.0f },
-                0.0f, { 5.0f, 5.0f, 5.0f }) &&
-                AddObject(commercial / "building-k.obj", { direction * 24.0f, RoadTop, 68.0f },
-                0.0f, { 5.0f, 6.0f, 5.0f }) &&
-                AddObject(commercial / "building-skyscraper-a.obj", { direction * 36.0f, RoadTop, 116.0f },
-                direction * 0.25f, { 5.0f, side < 0 ? 5.5f : 7.0f, 5.0f });
-        })) return false;
-        // 高層建築を左右非対称にし、形と高さの違う輪郭を広場の背後へ重ねます。
-        const auto originalCommercial = commercial.parent_path().parent_path() / "Commercial";
-        if (!AddObject(originalCommercial / "building-skyscraper-b.obj", { -20.0f, RoadTop, 88.0f },
-            0.15f, { 5.0f, 6.0f, 5.0f }) ||
-            !AddObject(originalCommercial / "building-skyscraper-d.obj", { 23.0f, RoadTop, 96.0f },
-            -0.2f, { 5.0f, 7.0f, 5.0f }) ||
-            !AddObject(commercial / "building-skyscraper-e.obj", { -4.0f, RoadTop, 108.0f },
-            0.1f, { 5.0f, 6.5f, 5.0f })) return false;
-        return true;
-    }
-
 }

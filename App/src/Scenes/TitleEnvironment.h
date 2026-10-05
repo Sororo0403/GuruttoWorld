@@ -6,6 +6,7 @@
 #include <vector>
 #include <Engine/Graphics/Renderers/ParticleRenderer.h>
 #include "TitleAmbientMotion.h"
+#include "SceneLayout.h"
 
 namespace Engine { class DirectX12Renderer; }
 
@@ -24,19 +25,7 @@ namespace App
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height);
     private:
         bool BuildStreet(const std::filesystem::path& root);
-        bool AddCentralPlaza(const std::filesystem::path& root);
-        bool AddPlazaDetails(const std::filesystem::path& root);
-        bool AddStorefrontDetails(const std::filesystem::path& root);
-        bool AddDistantBuildings(const std::filesystem::path& commercial);
-        /// <summary>
-        /// 街路の看板を CC0 モデルで配置します。
-        /// </summary>
-        bool AddStreetSigns(const std::filesystem::path& root);
-        /// <summary>
-        /// 共有モデルに個別の変換を設定して街の配置へ追加します。
-        /// </summary>
-        bool AddObject(const std::filesystem::path& path, const std::array<float, 3>& position,
-            float yaw, const std::array<float, 3>& scale);
+        SceneLayout layout_;
         Engine::ModelManager models_;
         Engine::SpriteRenderer sky_;
         Engine::ParticleRenderer motes_;

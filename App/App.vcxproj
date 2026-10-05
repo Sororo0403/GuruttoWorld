@@ -216,6 +216,12 @@
     <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\Mesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMesh.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSky.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMote.hlsl"
           DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
+  <Target Name="CopyScenes" AfterTargets="Build">
+    <ItemGroup>
+      <SceneAssets Include="$(MSBuildThisFileDirectory)Assets\Scenes\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SceneAssets)" DestinationFiles="@(SceneAssets->'$(OutDir)Assets\Scenes\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
   <Target Name="CopyModels" AfterTargets="Build">
     <ItemGroup>
       <ModelAssets Include="$(MSBuildThisFileDirectory)Assets\Models\**\*" />
@@ -280,8 +286,11 @@
     <ClInclude Include="src\Scenes\TitleAmbientMotion.h" />
     <ClInclude Include="src\Scenes\GameSettings.h" />
     <ClInclude Include="src\Scenes\TitleUi.h" />
+    <ClCompile Include="src\Scenes\SceneLayout.cpp" />
     <ClCompile Include="src\Scenes\TitleEnvironment.cpp" />
     <ClInclude Include="src\Scenes\TitleEnvironment.h" />
+    <ClInclude Include="src\Scenes\SceneLayout.h" />
+    <None Include="Assets\Scenes\TitleStreet.json" />
     <ClInclude Include="src\Scenes\SceneFactory.h" />
     <ClCompile Include="src\Scenes\SceneFactory.cpp" />
   </ItemGroup>

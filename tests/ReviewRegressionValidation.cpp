@@ -1,3 +1,4 @@
+#include "../App/src/Scenes/SceneLayout.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -552,10 +553,39 @@ namespace
     }
 }
 
+void ValidateSceneLayout()
+{
+    const auto layout = App::SceneLayout::Load("App/Assets/Scenes/TitleStreet.json");
+    Check(layout.objects.size() == 123, "all existing street placements migrated");
+    Check(layout.objects.front().id == "ground" && layout.objects.front().position[2] == 60.0f,
+        "ground placement preserved");
+    const std::string entry = R"({"id":"test","name":"Test","model":"Assets/Models/Title/Roads/ground.obj","position":[1,2,3],"rotation":[0,1,0],"scale":[4,4,4]})";
+    const auto parse = [](const std::string& objects) {
+        return App::SceneLayout::Parse("{\"version\":1,\"objects\":[" + objects + "]}");
+    };
+    Check(parse(entry).objects[0].rotation[1] == 1.0f, "full transform read from JSON");
+    const auto reject = [](const std::string& json) {
+        bool rejected = false;
+        try { static_cast<void>(App::SceneLayout::Parse(json)); }
+        catch (const std::exception&) { rejected = true; }
+        Check(rejected, "invalid layout rejected");
+    };
+    reject("{invalid}");
+    reject("{\"version\":2,\"objects\":[]}");
+    reject("{\"version\":1,\"objects\":[" + entry + "," + entry + "]}");
+    auto invalid = entry;
+    invalid.replace(invalid.find("[4,4,4]"), 7, "[0,4,4]");
+    reject("{\"version\":1,\"objects\":[" + invalid + "]}");
+    invalid = entry;
+    invalid.replace(invalid.find("Roads/ground.obj"), 15, "../ground.obj");
+    reject("{\"version\":1,\"objects\":[" + invalid + "]}");
+}
+
 int main()
 {
     try
     {
+        ValidateSceneLayout();
         ValidateDiagnostics();
         ValidateTitleMenu();
         ValidateTitleAnimation();
