@@ -11,7 +11,9 @@ namespace SceneRuntime
     {
     public:
         bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
-            const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath);
+            const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath, std::string* error = nullptr);
+        // 描画の外でGPU完了を待ってから呼びます。失敗時は元の街を維持します。
+        bool Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath, std::string& error);
         void Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
             const Engine::DirectionalLight& light) const;
         const SceneLayout& Layout() const { return layout_; }
@@ -19,6 +21,7 @@ namespace SceneRuntime
         bool SetTransform(std::string_view id, const std::array<float, 3>& position,
             const std::array<float, 3>& rotation, const std::array<float, 3>& scale);
     private:
+        bool modelsReady_ = false;
         SceneLayout layout_;
         Engine::ModelManager models_;
         std::vector<Engine::Object3D> objects_;

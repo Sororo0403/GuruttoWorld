@@ -7,7 +7,7 @@ namespace Editor
     void ObjectPanel::Draw(SceneRuntime::SceneWorld& world)
     {
         const auto& objects = world.Layout().objects;
-        ImGui::SetNextWindowPos(ImVec2(20, 140), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(20, 230), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(340, 360), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Objects"))
         {
@@ -67,8 +67,8 @@ namespace Editor
                     ImGui::TextWrapped("Invalid transform. Use finite numbers and nonzero scale.");
             }
             ImGui::Separator();
-            ImGui::TextWrapped(changed_ ? "Unsaved changes. Saving will be added next." :
-                "Changes are temporary. Saving is not available yet.");
+            ImGui::TextWrapped(changed_ ? "Unsaved changes." :
+                "No unsaved changes.");
         }
         ImGui::End();
     }

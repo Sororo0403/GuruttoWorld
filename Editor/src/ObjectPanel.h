@@ -10,6 +10,8 @@ namespace Editor
     public:
         void Draw(SceneRuntime::SceneWorld& world);
         bool HasChanges() const { return changed_; }
+        void MarkSaved() { changed_ = false; }
+        void Reloaded() { changed_ = false; invalidTransform_ = false; }
     private:
         ImGuiTextFilter filter_;
         std::string selectedId_;

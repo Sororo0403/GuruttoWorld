@@ -22,7 +22,7 @@ namespace
         // 開発時は元のContentを使い、将来の保存先もビルド出力のコピーにしません。
         for (auto parent = directory; !parent.empty(); parent = parent.parent_path())
         {
-            if (std::filesystem::exists(parent / "Content/Assets/Scenes/TitleStreet.json")) return parent / "Content";
+            if (std::filesystem::exists(parent / "Content/Assets/Models/Title")) return parent / "Content";
             if (parent == parent.parent_path()) break;
         }
         return directory; // 配布時はEditorに同梱されたContentを読みます。
@@ -48,6 +48,26 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     const Engine::Keyboard* keyboard = nullptr;
     double seconds = 0.0;
     bool initialized = false;
+    bool sceneLoaded = false;
+    bool reloadRequested = false;
+    std::string fileStatus;
+    const auto layoutPath = root / "Assets/Scenes/TitleStreet.json";
+    const auto save = [&]()
+    {
+        if (!sceneLoaded) { fileStatus = "No scene is loaded to save."; return false; }
+        try
+        {
+            world.Layout().Save(layoutPath);
+            objectPanel.MarkSaved();
+            fileStatus = "Saved.";
+            return true;
+        }
+        catch (const std::exception& error)
+        {
+            fileStatus = std::string("Save failed: ") + error.what();
+            return false;
+        }
+    };
     Engine::ApplicationCallbacks callbacks;
     callbacks.update = [&](double dt, const Engine::Keyboard& input)
     {
@@ -59,9 +79,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     {
         if (!initialized)
         {
-            if (!world.Initialize(renderer, root, root / "Assets/Scenes/TitleStreet.json",
-                root / "Shaders/TitleMesh.hlsl")) return Engine::RenderResult::Failed;
+            sceneLoaded = world.Initialize(renderer, root, layoutPath,
+                root / "Shaders/TitleMesh.hlsl", &fileStatus);
             initialized = true;
+        }
+        if (reloadRequested)
+        {
+            reloadRequested = false;
+            if (!renderer.WaitForIdle()) return Engine::RenderResult::Failed;
+            if (world.Reload(root, layoutPath, fileStatus))
+            {
+                sceneLoaded = true;
+                objectPanel.Reloaded();
+                fileStatus = "Reloaded.";
+            }
         }
         return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspect)
         {
@@ -71,16 +102,45 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             world.Draw(commands, camera.GetCamera(), light);
         }, [&]()
         {
+            objectPanel.Draw(world);
             ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(340, 110), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(340, 200), ImGuiCond_FirstUseEver);
             if (ImGui::Begin("Street Editor"))
             {
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
                 ImGui::TextUnformatted("Select objects and edit transforms in Inspector.");
                 ImGui::TextWrapped("Content: %s", root.string().c_str());
+                ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
+                ImGui::BeginDisabled(!sceneLoaded);
+                if (ImGui::Button("Save")) save();
+                ImGui::EndDisabled();
+                ImGui::SameLine();
+                if (ImGui::Button("Reload"))
+                {
+                    if (objectPanel.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");
+                    else reloadRequested = true;
+                }
+                if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
+                if (ImGui::BeginPopupModal("Reload unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::TextUnformatted("The current scene has unsaved changes.");
+                    if (ImGui::Button("Save and reload"))
+                    {
+                        if (save()) { reloadRequested = true; ImGui::CloseCurrentPopup(); }
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Discard and reload"))
+                    {
+                        reloadRequested = true;
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+                    if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
+                    ImGui::EndPopup();
+                }
             }
             ImGui::End();
-            objectPanel.Draw(world);
             if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds);
         });
     };

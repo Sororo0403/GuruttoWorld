@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
+#include <atomic>
 #undef GetObject
 #pragma comment(lib, "windowsapp.lib")
 
@@ -34,7 +35,7 @@ namespace
         {
             const double value = values.GetNumberAt(i);
             if (!std::isfinite(value) || std::abs(value) > (std::numeric_limits<float>::max)() ||
-                (scale && std::abs(value) < 0.000001))
+                (scale && std::abs(value) < static_cast<double>(0.000001f)))
                 throw std::runtime_error("Transform contains an invalid number or zero scale");
             result[i] = static_cast<float>(value);
         }
@@ -90,6 +91,76 @@ namespace SceneRuntime
         catch (const winrt::hresult_error& error)
         {
             throw std::runtime_error("Invalid layout JSON: " + winrt::to_string(error.message()));
+        }
+    }
+
+    std::string SceneLayout::Serialize() const
+    {
+        JsonApartment apartment;
+        using namespace winrt::Windows::Data::Json;
+        const auto vector = [](const std::array<float, 3>& values)
+        {
+            JsonArray array;
+            for (float value : values)
+            {
+                if (!std::isfinite(value)) throw std::runtime_error("Cannot save nonfinite transform");
+                array.Append(JsonValue::CreateNumberValue(value));
+            }
+            return array;
+        };
+        std::string json = "{\n  \"version\": 1,\n  \"objects\": [\n";
+        for (size_t i = 0; i < objects.size(); ++i)
+        {
+            const auto& placement = objects[i];
+            JsonObject object;
+            object.SetNamedValue(L"id", JsonValue::CreateStringValue(winrt::to_hstring(placement.id)));
+            object.SetNamedValue(L"name", JsonValue::CreateStringValue(winrt::to_hstring(placement.name)));
+            const auto model = placement.model.generic_u8string();
+            object.SetNamedValue(L"model", JsonValue::CreateStringValue(winrt::to_hstring(
+                std::string_view(reinterpret_cast<const char*>(model.data()), model.size()))));
+            object.SetNamedValue(L"position", vector(placement.position));
+            object.SetNamedValue(L"rotation", vector(placement.rotation));
+            object.SetNamedValue(L"scale", vector(placement.scale));
+            json += "    " + winrt::to_string(object.Stringify()) + (i + 1 == objects.size() ? "\n" : ",\n");
+        }
+        json += "  ]\n}\n";
+        static_cast<void>(Parse(json)); // 再読み込みできるデータだけを書き出します。
+        return json;
+    }
+
+    void SceneLayout::Save(const std::filesystem::path& path) const
+    {
+        const auto json = Serialize();
+        static std::atomic<unsigned long long> sequence{ 0 };
+        auto temporary = path;
+        temporary += L"." + std::to_wstring(GetCurrentProcessId()) + L"." +
+            std::to_wstring(GetTickCount64()) + L"." + std::to_wstring(sequence++) + L".tmp";
+        HANDLE file = CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+            FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (file == INVALID_HANDLE_VALUE) throw std::runtime_error("Cannot create save file (error " +
+            std::to_string(GetLastError()) + ")");
+        try
+        {
+            size_t offset = 0;
+            while (offset < json.size())
+            {
+                const auto count = static_cast<DWORD>((std::min)(json.size() - offset, size_t(1024 * 1024)));
+                DWORD written = 0;
+                if (!WriteFile(file, json.data() + offset, count, &written, nullptr) || !written)
+                    throw std::runtime_error("Cannot write save file");
+                offset += written;
+            }
+            if (!FlushFileBuffers(file)) throw std::runtime_error("Cannot flush save file");
+            CloseHandle(file);
+            file = INVALID_HANDLE_VALUE;
+            if (!MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+                throw std::runtime_error("Cannot replace layout file (error " + std::to_string(GetLastError()) + ")");
+        }
+        catch (...)
+        {
+            if (file != INVALID_HANDLE_VALUE) CloseHandle(file);
+            DeleteFileW(temporary.c_str());
+            throw;
         }
     }
 

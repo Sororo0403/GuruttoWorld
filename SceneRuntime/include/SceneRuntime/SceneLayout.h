@@ -22,6 +22,8 @@ namespace SceneRuntime
         std::vector<ScenePlacement> objects;
         // 読み込み・検証に失敗した場合は例外。呼び出し元の配置は変更しません。
         static SceneLayout Parse(std::string_view json);
+        std::string Serialize() const;
+        void Save(const std::filesystem::path& path) const;
         static SceneLayout Load(const std::filesystem::path& path);
     };
 }

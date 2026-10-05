@@ -10,9 +10,28 @@
 namespace SceneRuntime
 {
     bool SceneWorld::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
-        const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath)
+        const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath, std::string* diagnostic)
     {
-        if (!models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath)) return false;
+        modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath);
+        if (!modelsReady_)
+        {
+            if (diagnostic) *diagnostic = "Scene renderer could not be initialized. Check shaders and restart.";
+            return false;
+        }
+        std::string error;
+        const bool loaded = Reload(assetsRoot, layoutPath, error);
+        if (diagnostic) *diagnostic = error;
+        return loaded;
+    }
+
+    bool SceneWorld::Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath,
+        std::string& error)
+    {
+        if (!modelsReady_)
+        {
+            error = "Scene renderer is unavailable. Check shaders and restart.";
+            return false;
+        }
         try
         {
             auto layout = SceneLayout::Load(layoutPath);
@@ -30,11 +49,13 @@ namespace SceneRuntime
             }
             layout_ = std::move(layout);
             objects_ = std::move(objects);
+            error.clear();
             return true;
         }
-        catch (const std::exception& error)
+        catch (const std::exception& errorException)
         {
-            Engine::Log::Error(std::format("Scene could not be loaded: {}", error.what()));
+            error = std::string("Scene could not be loaded: ") + errorException.what();
+            Engine::Log::Error(error);
             return false;
         }
     }

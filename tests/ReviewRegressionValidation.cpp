@@ -427,6 +427,28 @@ namespace
                     editorWorld.Draw(commands, editorView, {});
                 }) != Engine::RenderResult::Failed, "independent editor scene rendering");
                 Check(renderer.WaitForIdle(), "editor scene GPU completion");
+                SceneRuntime::SceneWorld startupFailure;
+                std::string startupError;
+                Check(!startupFailure.Initialize(renderer, content, content / "Assets/Scenes/missing.json",
+                    content / "Shaders/TitleMesh.hlsl", &startupError) && !startupError.empty(),
+                    "startup load failure provides a diagnostic");
+                Check(startupFailure.Reload(content, content / "Assets/Scenes/TitleStreet.json", startupError),
+                    "failed initial load can be recovered by reload");
+                Check(renderer.WaitForIdle(), "startup recovery GPU completion");
+                std::string reloadError;
+                Check(!editorWorld.Reload(content, content / "Assets/Scenes/missing.json", reloadError) &&
+                    !reloadError.empty() && editorWorld.Layout().objects.front().position == moved,
+                    "failed reload preserves live edits and provides error");
+                auto invalidLayout = editorWorld.Layout();
+                invalidLayout.objects.back().model = "Assets/Models/Title/Roads/missing.obj";
+                const auto reloadPath = std::filesystem::absolute("generated/tests/layout-io/missing-model.json");
+                invalidLayout.Save(reloadPath);
+                Check(!editorWorld.Reload(content, reloadPath, reloadError) &&
+                    editorWorld.Layout().objects.front().position == moved,
+                    "partial model load failure preserves current world");
+                Check(editorWorld.Reload(content, content / "Assets/Scenes/TitleStreet.json", reloadError) &&
+                    reloadError.empty() && editorWorld.Layout().objects.front().position == original.position,
+                    "successful reload restores saved scene");
                 App::TitleScene title(TestContentRoot());
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
@@ -646,12 +668,50 @@ void ValidateSceneLayout()
     reject("{\"version\":1,\"objects\":[" + invalid + "]}");
 }
 
+void ValidateSceneFiles()
+{
+    auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    layout.objects.front().name = "テスト\"看板\n二行目";
+    layout.objects.front().rotation = { 0.1234567f, -0.9876543f, 1.234567f };
+    const auto directory = std::filesystem::absolute("generated/tests/layout-io");
+    std::filesystem::create_directories(directory);
+    const auto path = directory / "roundtrip.json";
+    layout.Save(path);
+    auto restored = SceneRuntime::SceneLayout::Load(path);
+    Check(restored.objects.size() == layout.objects.size() &&
+        restored.objects.front().name == layout.objects.front().name &&
+        restored.objects.front().rotation == layout.objects.front().rotation &&
+        restored.objects.back().model == layout.objects.back().model, "layout UTF8 and transforms round-trip");
+    layout.objects.front().position[0] = 3.25f;
+    layout.Save(path);
+    Check(SceneRuntime::SceneLayout::Load(path).objects.front().position[0] == 3.25f, "save replaces existing layout");
+    HANDLE locked = CreateFileW(path.c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    Check(locked != INVALID_HANDLE_VALUE, "lock layout for save failure test");
+    bool failed = false;
+    layout.objects.front().position[0] = 9.0f;
+    try { layout.Save(path); } catch (const std::exception&) { failed = true; }
+    CloseHandle(locked);
+    Check(failed && SceneRuntime::SceneLayout::Load(path).objects.front().position[0] == 3.25f,
+        "failed replacement preserves original file");
+    for (const auto& file : std::filesystem::directory_iterator(directory))
+        Check(file.path().extension() != ".tmp", "failed save removes temporary file");
+    layout.objects.front().scale[0] = 0;
+    failed = false;
+    try { layout.Save(path); } catch (const std::exception&) { failed = true; }
+    Check(failed && SceneRuntime::SceneLayout::Load(path).objects.front().position[0] == 3.25f,
+        "invalid save leaves existing file intact");
+    layout.objects.front().scale[0] = 0.000001f;
+    Check(SceneRuntime::SceneLayout::Parse(layout.Serialize()).objects.front().scale[0] == 0.000001f,
+        "minimum editable scale can be saved and loaded");
+}
+
 int main()
 {
     try
     {
         ValidateEditorCamera();
         ValidateSceneLayout();
+        ValidateSceneFiles();
         ValidateDiagnostics();
         ValidateTitleMenu();
         ValidateTitleAnimation();
