@@ -241,6 +241,33 @@ namespace
     void ValidateAmbientMotion()
     {
         App::TitleAmbientMotion motion;
+        App::TitleAmbientMotion exitCamera;
+        const auto home = exitCamera.CameraPosition();
+        Engine::Camera framing;
+        framing.SetPosition(home);
+        framing.SetRotation(0.03f, 0.13f);
+        framing.SetPerspective(DirectX::XM_PIDIV4, 16.0f / 9.0f, 0.1f, 220.0f);
+        for (int frame = 0; frame < 7; ++frame) exitCamera.Update(0.1, false, true, false, true);
+        Check(std::abs(exitCamera.CameraPosition()[2] - 7.0f) < 0.001f &&
+            std::abs(exitCamera.CameraRotation()[0] - 0.15f) < 0.001f,
+            "exit hover frames gate in the building row within 0.7 seconds");
+        framing.SetPosition(exitCamera.CameraPosition());
+        framing.SetRotation(exitCamera.CameraRotation()[0], exitCamera.CameraRotation()[1]);
+        const auto gateCenter = DirectX::XMVector3TransformCoord(
+            DirectX::XMVectorSet(4.8f, 3.0f, 19.0f, 1.0f),
+            framing.GetViewMatrix() * framing.GetProjectionMatrix());
+        Check(DirectX::XMVectorGetX(gateCenter) > 0.0f && DirectX::XMVectorGetX(gateCenter) < 0.8f,
+            "exit hover reveals gate on right of menu");
+        const auto exitPose = exitCamera.CameraPosition();
+        exitCamera.Update(0.1, false, false, true, false);
+        Check(exitCamera.CameraPosition() == exitPose, "inactive exit camera pauses");
+        exitCamera.Update(0.1, false, true, true, false);
+        Check(std::abs(exitCamera.CameraPosition()[2] - exitPose[2]) < 0.5f,
+            "switching exit to settings starts smoothly");
+        for (int frame = 0; frame < 20; ++frame) exitCamera.Update(0.1, false, true, true, false);
+        Check(exitCamera.CameraRotation()[0] < -0.8f, "exit to settings turns toward control facility");
+        for (int frame = 0; frame < 20; ++frame) exitCamera.Update(0.1, false, true);
+        Check(exitCamera.CameraPosition() == home, "leaving menu targets restores home camera");
         const auto original = motion.CameraPosition();
         motion.Update(0.1, true, true);
         Check(motion.CameraPosition() != original, "ambient camera advances");

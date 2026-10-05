@@ -1,0 +1,12 @@
+mtllib ExitFacade.mtl
+usemtl farewell
+v 2.3 5.2 -0.55
+v -2.3 5.2 -0.55
+v -2.3 5.98 -0.55
+v 2.3 5.98 -0.55
+vt 0 0
+vt 1 0
+vt 1 1
+vt 0 1
+f 1/1 2/2 3/3 4/4
+f 4/4 3/3 2/2 1/1

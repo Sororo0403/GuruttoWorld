@@ -1,5 +1,13 @@
 # タイトル画面の採用素材
 
+## 終了ゲート（2026-10-05）
+
+- Kenney Castle Kit 2.0 の `wall-narrow-gate.obj` を採用。門本体のOBJ・MTL・Textures/colormap.pngは無編集で `App/Assets/Models/Title/Exit/Castle` に保存。
+- 配布ページ: https://kenney.nl/assets/castle-kit 。CC0表記と同梱License.txtを確認し、同じフォルダーに保存した。
+- 取得元: https://kenney.nl/media/pages/assets/castle-kit/a395102d20-1711543616/kenney_castle-kit.zip
+- 横道は撤去。門は右側の三軒目を置き換え、建物と同じ列の(4.8, 0.08, 19)に配置し、正面を通りへ向ける。終了へのホバーで通りを進み、少し右へ向いて門を見せる。門の倍率は4。
+- 「また来てください」の看板は独自の平面と同梱M PLUS 1pフォントから生成した画像。CC0門の形状とは別のプロジェクト素材。GenerateExitFacade.pyとGenerateExitSign.ps1で再生成可能。
+
 ## モデル側で管理する表面材質（2026-09-30）
 
 - 前回追加したTitleSurfaceMesh.hlsl・Common/TitleSurface.hlsliとMesh.hlslの材質推測処理を撤去。全モデルを既存TitleMesh.hlslの共通照明・霞で描画し、材質はOBJのusemtl、MTLのmap_Kd、UVで指定する。

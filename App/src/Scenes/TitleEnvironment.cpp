@@ -70,9 +70,9 @@ namespace App
         return true;
     }
 
-    void TitleEnvironment::Update(double deltaSeconds, bool enabled, bool active, bool settingsSelected)
+    void TitleEnvironment::Update(double deltaSeconds, bool enabled, bool active, bool settingsSelected, bool exitSelected)
     {
-        motion_.Update(deltaSeconds, enabled, active, settingsSelected);
+        motion_.Update(deltaSeconds, enabled, active, settingsSelected, exitSelected);
         camera_.SetPosition(motion_.CameraPosition());
         const auto rotation = motion_.CameraRotation();
         camera_.SetRotation(rotation[0], rotation[1]);
@@ -140,9 +140,11 @@ namespace App
             float z;
         };
         constexpr BuildingPlacement Buildings[] = {
+            // 左右の建物配置を通常の街並みに戻します。
             { "building-k.obj", 4.8f, 4.0f }, { "building-h.obj", -4.8f, 5.0f },
             { "building-e.obj", 4.8f, 12.0f }, { "building-k.obj", -4.8f, 12.0f },
-            { "building-h.obj", 4.8f, 19.0f }, { "building-c.obj", -4.8f, 20.0f },
+            // 右側の三軒目は出口ゲート。建物と同じ列に並べます。
+            { "building-c.obj", -4.8f, 20.0f },
             { "building-k.obj", 4.8f, 26.0f }, { "building-e.obj", -4.8f, 27.0f },
             { "building-c.obj", 4.8f, 34.0f }, { "building-h.obj", -4.8f, 35.0f }
         };
@@ -163,6 +165,14 @@ namespace App
         // 左側の二軒目を調整施設に。通りへ向く歯車看板・スライダー・操作端末。
         if (!AddObject(root / "Assets/Models/Title/Settings/ControlFacade.obj",
             { -4.8f, RoadTop, 12.0f }, 0.0f, { 1.0f, 1.0f, 1.0f })) return false;
+        // 奥の建物の一棟分を門に置き換え、正面を通りへ向けます。
+        const std::array<float, 3> exitPosition{ 4.8f, RoadTop, 19.0f };
+        const float exitYaw = -DirectX::XM_PIDIV2;
+        if (!AddObject(root / "Assets/Models/Title/Exit/Castle/wall-narrow-gate.obj",
+            exitPosition, exitYaw + DirectX::XM_PIDIV2, { 4.0f, 4.0f, 4.0f }) ||
+            !AddObject(root / "Assets/Models/Title/Exit/ExitFacade.obj",
+            exitPosition, exitYaw,
+            { 1.0f, 1.0f, 1.0f })) return false;
         return true;
     }
 

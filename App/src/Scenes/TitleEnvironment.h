@@ -19,7 +19,7 @@ namespace App
         /// </summary>
         bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root);
         /// <summary>設定とフォーカス状態に合わせて背景の待機演出を更新します。</summary>
-        void Update(double deltaSeconds, bool enabled, bool active, bool settingsSelected = false);
+        void Update(double deltaSeconds, bool enabled, bool active, bool settingsSelected = false, bool exitSelected = false);
         /// <summary>空・街並み・奥行きのある光の粒を描画します。</summary>
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height);
     private:

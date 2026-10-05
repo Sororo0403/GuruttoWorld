@@ -55,7 +55,8 @@ namespace App
         audio_.Update(root_, menu_, keyboard.IsActive(), deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
             keyboard.IsActive() && menu_.TransitionProgress() == 0.0f,
-            menu_.IsSettingsOpen() || menu_.GetSelected() == TitleMenuItem::Settings);
+            menu_.IsSettingsOpen() || menu_.GetSelected() == TitleMenuItem::Settings,
+            !menu_.IsSettingsOpen() && menu_.GetSelected() == TitleMenuItem::Exit);
         if (action == TitleMenuAction::Start) return "Game";
         // WM_QUIT を既存のメッセージループへ送り、GPU 完了待ちと通常の破棄を通します。
         if (action == TitleMenuAction::Exit) PostQuitMessage(0);
