@@ -13,12 +13,22 @@ namespace App
         void Update(double deltaSeconds, bool enabled, bool active, bool settingsSelected = false, bool exitSelected = false)
         {
             enabled_ = enabled;
-            if (active && std::isfinite(deltaSeconds) && deltaSeconds > 0.0)
+            if (active && std::isfinite(deltaSeconds) && deltaSeconds >= 0.0)
             {
-                travel_ = std::clamp(travel_ + static_cast<float>(std::min(deltaSeconds, 0.1)) / 1.4f *
-                    (settingsSelected ? 1.0f : -1.0f), 0.0f, 1.0f);
-                exitTravel_ = std::clamp(exitTravel_ + static_cast<float>(std::min(deltaSeconds, 0.1)) / 0.65f *
-                    (exitSelected && !settingsSelected ? 1.0f : -1.0f), 0.0f, 1.0f);
+                const int destination = settingsSelected ? 1 : (exitSelected ? 2 : 0);
+                if (destination != destination_)
+                {
+                    // 切り替えた瞬間の視点を始点に固定し、新しい終点へ直接移動します。
+                    start_ = pose_;
+                    destination_ = destination;
+                    target_ = destination == 1 ? Pose{ 0.6f, 2.3f, 7.0f, -0.82f, 0.18f } :
+                        destination == 2 ? Pose{ -0.8f, 1.8f, 7.0f, 0.15f, 0.13f } : Home;
+                    progress_ = 0.0f;
+                }
+                const float duration = destination_ == 1 ? 1.4f : 0.65f;
+                progress_ = std::min(1.0f, progress_ + static_cast<float>(std::min(deltaSeconds, 0.1)) / duration);
+                for (size_t index = 0; index < pose_.size(); ++index)
+                    pose_[index] = std::lerp(start_[index], target_[index], Blend(progress_));
             }
             if (enabled && active && std::isfinite(deltaSeconds) && deltaSeconds > 0.0)
                 seconds_ = std::fmod(seconds_ + std::min(deltaSeconds, 0.1), 120.0);
@@ -26,15 +36,12 @@ namespace App
         /// <summary>設定施設・出口ゲートへ移動しながら小さく揺れるカメラ座標を返します。</summary>
         std::array<float, 3> CameraPosition() const
         {
-            const float t = Blend(travel_), e = Blend(exitTravel_);
-            return { -0.8f + 1.4f * t + 0.10f * static_cast<float>(std::sin(seconds_ * std::numbers::pi / 12.0)),
-                1.8f + 0.5f * t + 0.04f * static_cast<float>(std::sin(seconds_ * std::numbers::pi / 20.0)), -7.0f + 14.0f * (t + e) };
+            return { pose_[0] + 0.10f * static_cast<float>(std::sin(seconds_ * std::numbers::pi / 12.0)),
+                pose_[1] + 0.04f * static_cast<float>(std::sin(seconds_ * std::numbers::pi / 20.0)), pose_[2] };
         }
         std::array<float, 2> CameraRotation() const
         {
-            // 建物の列に並ぶ奥の門を、通りから少し右へ向いて見せます。
-            return { 0.03f - 0.85f * Blend(travel_) + 0.12f * Blend(exitTravel_),
-                0.13f + 0.05f * Blend(travel_) };
+            return { pose_[3], pose_[4] };
         }
         /// <summary>光の粒を描画するか返します。</summary>
         bool IsEnabled() const { return enabled_; }
@@ -49,8 +56,13 @@ namespace App
         }
     private:
         static float Blend(float t) { return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f); }
-        float travel_ = 0.0f;
-        float exitTravel_ = 0.0f;
+        using Pose = std::array<float, 5>; // 座標XYZ、ヨー、ピッチ。
+        static constexpr Pose Home{ -0.8f, 1.8f, -7.0f, 0.03f, 0.13f };
+        Pose pose_ = Home;
+        Pose start_ = Home;
+        Pose target_ = Home;
+        int destination_ = 0;
+        float progress_ = 1.0f;
         double seconds_ = 0.0;
         bool enabled_ = true;
     };

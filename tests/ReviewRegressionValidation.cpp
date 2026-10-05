@@ -264,8 +264,22 @@ namespace
         exitCamera.Update(0.1, false, true, true, false);
         Check(std::abs(exitCamera.CameraPosition()[2] - exitPose[2]) < 0.5f,
             "switching exit to settings starts smoothly");
-        for (int frame = 0; frame < 20; ++frame) exitCamera.Update(0.1, false, true, true, false);
+        for (int frame = 0; frame < 20; ++frame)
+        {
+            exitCamera.Update(0.1, false, true, true, false);
+            Check(std::abs(exitCamera.CameraPosition()[2] - 7.0f) < 0.001f,
+                "exit to settings travels directly without returning home or overshooting");
+        }
         Check(exitCamera.CameraRotation()[0] < -0.8f, "exit to settings turns toward control facility");
+        exitCamera.Update(0.1, false, true);
+        const auto interruptedPosition = exitCamera.CameraPosition();
+        const auto interruptedRotation = exitCamera.CameraRotation();
+        exitCamera.Update(0.0, false, true, false, true);
+        Check(exitCamera.CameraPosition() == interruptedPosition && exitCamera.CameraRotation() == interruptedRotation,
+            "mid-flight retarget starts at current pose without snapping");
+        for (int frame = 0; frame < 7; ++frame) exitCamera.Update(0.1, false, true, false, true);
+        Check(std::abs(exitCamera.CameraPosition()[2] - 7.0f) < 0.001f &&
+            std::abs(exitCamera.CameraRotation()[0] - 0.15f) < 0.001f, "retarget reaches exit endpoint");
         for (int frame = 0; frame < 20; ++frame) exitCamera.Update(0.1, false, true);
         Check(exitCamera.CameraPosition() == home, "leaving menu targets restores home camera");
         const auto original = motion.CameraPosition();
