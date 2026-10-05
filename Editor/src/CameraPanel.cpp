@@ -1,4 +1,5 @@
 #include "CameraPanel.h"
+#include "PanelLayout.h"
 #include <imgui.h>
 
 namespace Editor
@@ -12,8 +13,7 @@ namespace Editor
     {
         if (allowMovement) UpdateInput(camera, keyboard, deltaSeconds);
         else CancelDrag();
-        ImGui::SetNextWindowPos(ImVec2(380.0f, 370.0f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(340.0f, 190.0f), ImGuiCond_FirstUseEver);
+        PanelLayout::Place(PanelLayout::Panel::Camera);
         if (ImGui::Begin("Debug Camera"))
         {
             ImGui::TextUnformatted("Hold RMB on scene: mouse look");

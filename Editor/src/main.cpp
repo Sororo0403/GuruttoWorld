@@ -4,6 +4,7 @@
 #include "TransformGizmo.h"
 #include "EditHistory.h"
 #include "FocusSelection.h"
+#include "PanelLayout.h"
 #include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
@@ -162,6 +163,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }, [&]()
         {
             Editor::TransformGizmo::BeginFrame();
+            Editor::PanelLayout::BeginFrame();
             if (closeRequested)
             {
                 cameraPanel.CancelDrag();
@@ -223,6 +225,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 !pendingObject && !pendingHistory && !reloadRequested &&
                 !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
+            if (canFocus && !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput &&
+                !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt)
+            {
+                if (ImGui::IsKeyPressed(ImGuiKey_1,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Move);
+                if (ImGui::IsKeyPressed(ImGuiKey_2,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Rotate);
+                if (ImGui::IsKeyPressed(ImGuiKey_3,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Scale);
+            }
             if (focusRequested || (canFocus && !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput &&
                 !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_F,false)))
             {
@@ -260,8 +269,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 objectPanel.SetChanged(history.Dirty(json));
             }
             const bool historyEnabled=sceneLoaded && !pendingObject && !pendingHistory && !reloadRequested &&
-                !gizmo.IsDragging() && !ImGui::IsAnyItemActive() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId);
-            if (historyEnabled && ImGui::GetIO().KeyCtrl && !ImGui::GetIO().WantTextInput)
+                !gizmo.IsDragging() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+            const bool shortcutsEnabled=historyEnabled && keyboard && keyboard->IsActive() &&
+                !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput && !ImGui::GetIO().KeyAlt &&
+                !ImGui::IsMouseDown(ImGuiMouseButton_Right);
+            if (shortcutsEnabled && ImGui::GetIO().KeyCtrl)
             {
                 if (ImGui::IsKeyPressed(ImGuiKey_Z, false))
                 {
@@ -269,14 +281,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                     if (redo ? history.CanRedo() : history.CanUndo()) pendingHistory=redo;
                 }
                 else if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && history.CanRedo()) pendingHistory=true;
+                else if (ImGui::IsKeyPressed(ImGuiKey_S,false)) save();
+                else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !objectPanel.SelectedId().empty())
+                    pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,objectPanel.SelectedId(),{}, {}};
             }
-            ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(340, 200), ImGuiCond_FirstUseEver);
+            else if (shortcutsEnabled && ImGui::IsKeyPressed(ImGuiKey_Delete,false) && !objectPanel.SelectedId().empty())
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,objectPanel.SelectedId(),{}, {}};
+            Editor::PanelLayout::Place(Editor::PanelLayout::Panel::Commands);
             if (ImGui::Begin("Street Editor"))
             {
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
-                ImGui::TextUnformatted("Select objects and edit transforms in Inspector.");
-                ImGui::TextWrapped("Content: %s", root.string().c_str());
                 ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
                 ImGui::BeginDisabled(!canFocus || objectPanel.SelectedId().empty());
                 if (ImGui::Button("Focus selected (F)")) focusRequested=true;
@@ -295,17 +309,23 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 ImGui::BeginDisabled(!historyEnabled || !history.CanRedo());
                 if (ImGui::Button("Redo (Ctrl+Y)")) pendingHistory=true;
                 ImGui::EndDisabled();
-                ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging() || ImGui::IsAnyItemActive());
+                ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
                 if (ImGui::Button("Save")) save();
                 ImGui::EndDisabled();
                 ImGui::SameLine();
-                ImGui::BeginDisabled(pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging() || ImGui::IsAnyItemActive());
+                ImGui::BeginDisabled(pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging());
                 if (ImGui::Button("Reload"))
                 {
                     if (objectPanel.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");
                     else reloadRequested = true;
                 }
                 ImGui::EndDisabled();
+                if (ImGui::Button("Reset panel layout")) Editor::PanelLayout::Reset();
+                if (ImGui::CollapsingHeader("Help / Content"))
+                {
+                    ImGui::TextWrapped("Ctrl+S: Save / Ctrl+D: Duplicate / Delete: Remove / 1,2,3: Move,Rotate,Scale / F: Focus");
+                    ImGui::TextWrapped("Content: %s",root.string().c_str());
+                }
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 if (ImGui::BeginPopupModal("Reload unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
                 {

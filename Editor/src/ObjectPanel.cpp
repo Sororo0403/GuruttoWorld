@@ -1,4 +1,5 @@
 #include "ObjectPanel.h"
+#include "PanelLayout.h"
 #include <algorithm>
 #include <numbers>
 
@@ -7,8 +8,7 @@ namespace Editor
     void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, const std::array<float, 3>& suggestedPosition, bool enabled)
     {
         const auto& objects = world.Layout().objects;
-        ImGui::SetNextWindowPos(ImVec2(20, 230), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(340, 360), ImGuiCond_FirstUseEver);
+        PanelLayout::Place(PanelLayout::Panel::Objects);
         if (ImGui::Begin("Objects"))
         {
             filter_.Draw("Search", -1);
@@ -32,8 +32,7 @@ namespace Editor
         }
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(380, 20), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(380, 310), ImGuiCond_FirstUseEver);
+        PanelLayout::Place(PanelLayout::Panel::Inspector);
         if (ImGui::Begin("Inspector"))
         {
             const auto found = std::find_if(objects.begin(), objects.end(),
@@ -102,8 +101,7 @@ namespace Editor
     void ObjectPanel::DrawModels(const std::array<float, 3>& suggestedPosition, bool enabled)
     {
         if (!positionInitialized_) { addPosition_ = suggestedPosition; positionInitialized_ = true; }
-        ImGui::SetNextWindowPos(ImVec2(780, 20), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_FirstUseEver);
+        PanelLayout::Place(PanelLayout::Panel::Models);
         if (ImGui::Begin("Models"))
         {
             modelFilter_.Draw("Search models", -1);

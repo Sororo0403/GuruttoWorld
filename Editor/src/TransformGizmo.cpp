@@ -1,5 +1,6 @@
 #include "TransformGizmo.h"
 #include "TransformMatrix.h"
+#include "PanelLayout.h"
 #include <ImGuizmo.h>
 #include <algorithm>
 
@@ -10,8 +11,7 @@ namespace Editor
     void TransformGizmo::UpdateAndDraw(SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
         ObjectPanel& panel, bool active)
     {
-        ImGui::SetNextWindowPos(ImVec2(20, 610), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(340, 210), ImGuiCond_FirstUseEver);
+        PanelLayout::Place(PanelLayout::Panel::Gizmo);
         if (ImGui::Begin("Transform Gizmo"))
         {
             ImGui::BeginDisabled(dragging_);

@@ -12,8 +12,9 @@ namespace Editor
             ObjectPanel& panel, bool active);
         bool IsDragging() const { return dragging_; }
         bool ConsumesMouse() const { return dragging_ || hovered_; }
-    private:
         enum class Mode { Move, Rotate, Scale };
+        void SetMode(Mode mode) { if (!dragging_) mode_=mode; }
+    private:
         Mode mode_ = Mode::Move;
         bool local_ = false, snap_ = false;
         float moveStep_ = 4.0f, angleStep_ = 15.0f, scaleStep_ = 0.25f;
