@@ -3,6 +3,7 @@
 #include "SceneSelection.h"
 #include "TransformGizmo.h"
 #include "EditHistory.h"
+#include "FocusSelection.h"
 #include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
@@ -48,6 +49,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Engine::Camera previewCamera;
     SceneRuntime::TitleView::SetHome(previewCamera);
     bool preview = false;
+    bool focusRequested = false;
     std::optional<bool> pendingHistory;
     objectPanel.ScanModels(root);
     std::optional<Editor::ObjectRequest> pendingObject;
@@ -177,6 +179,29 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 const float aspect = display.x / display.y;
                 SceneRuntime::TitleView::SetProjection(camera.GetCamera(), aspect);
             }
+            const bool canFocus=sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
+                !pendingObject && !pendingHistory && !reloadRequested &&
+                !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
+                !ImGui::IsMouseDown(ImGuiMouseButton_Right);
+            if (focusRequested || (canFocus && !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput &&
+                !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_F,false)))
+            {
+                focusRequested=false;
+                if (canFocus)
+                {
+                    std::array<std::array<float,3>,8> corners;
+                    if (world.WorldBounds(objectPanel.SelectedId(),corners))
+                    {
+                        const auto position=Editor::FocusPosition(corners,camera.GetCamera());
+                        if (position)
+                        {
+                            cameraPanel.CancelDrag();
+                            camera.GetCamera().SetPosition(*position);
+                        }
+                        else fileStatus="Selected object is too large to fit within the camera range.";
+                    }
+                }
+            }
             gizmo.UpdateAndDraw(world, camera.GetCamera(), objectPanel,
                 sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject);
             Editor::SceneSelection::Update(world, camera.GetCamera(), objectPanel,
@@ -213,6 +238,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 ImGui::TextUnformatted("Select objects and edit transforms in Inspector.");
                 ImGui::TextWrapped("Content: %s", root.string().c_str());
                 ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
+                ImGui::BeginDisabled(!canFocus || objectPanel.SelectedId().empty());
+                if (ImGui::Button("Focus selected (F)")) focusRequested=true;
+                ImGui::EndDisabled();
                 ImGui::BeginDisabled(!historyEnabled);
                 if (ImGui::Button("Preview title composition"))
                 {

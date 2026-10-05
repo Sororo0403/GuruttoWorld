@@ -106,6 +106,7 @@
     <ClInclude Include="src\TransformGizmo.h" />
     <ClInclude Include="src\TransformMatrix.h" />
     <ClInclude Include="src\EditHistory.h" />
+    <ClInclude Include="src\FocusSelection.h" />
     <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <TreatWarningAsError>false</TreatWarningAsError>

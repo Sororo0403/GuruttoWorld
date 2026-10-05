@@ -1,5 +1,6 @@
 #include "../Editor/src/TransformMatrix.h"
 #include "../Editor/src/EditHistory.h"
+#include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
 #endif
@@ -849,12 +850,42 @@ void ValidateEditHistory()
     while (history.CanUndo()) { history.Applied(false); ++undoCount; }
     Check(undoCount==100, "history is bounded to 100 edits");
 }
+
+void ValidateFocusSelection()
+{
+    using namespace DirectX;
+    Engine::Camera camera;
+    camera.SetRotation(0.7f,0.25f);
+    std::array<std::array<float,3>,8> corners{};
+    for (int i=0;i<8;++i) corners[i]={30.0f+(i&1 ? 3.0f : -3.0f),
+        7.0f+(i&2 ? 6.0f : -6.0f),50.0f+(i&4 ? 2.0f : -2.0f)};
+    for (float aspect : {16.0f/9.0f,1.0f,9.0f/16.0f})
+    {
+        camera.SetPerspective(XM_PIDIV4,aspect,0.1f,220.0f);
+        const auto position=Editor::FocusPosition(corners,camera);
+        Check(position.has_value(), "selected model fits within camera range");
+        camera.SetPosition(*position);
+        for (const auto& corner : corners)
+        {
+            XMFLOAT3 projected;
+            XMStoreFloat3(&projected,XMVector3TransformCoord(XMVectorSet(corner[0],corner[1],corner[2],1),
+                camera.GetViewMatrix()*camera.GetProjectionMatrix()));
+            Check(std::abs(projected.x)<1 && std::abs(projected.y)<1 && projected.z>0 && projected.z<1,
+                "focus fits every bounds corner in landscape and portrait views");
+        }
+    }
+    corners[0][0]=NAN;
+    Check(!Editor::FocusPosition(corners,camera), "nonfinite focus bounds rejected");
+    corners[0][0]=-10000;
+    Check(!Editor::FocusPosition(corners,camera), "oversized focus bounds rejected");
+}
 int main()
 {
     try
     {
         ValidateTransformMatrix();
         ValidateEditHistory();
+        ValidateFocusSelection();
         ValidateEditorCamera();
         ValidateSceneLayout();
         ValidateSceneFiles();
