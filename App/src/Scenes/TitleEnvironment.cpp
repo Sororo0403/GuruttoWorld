@@ -70,10 +70,12 @@ namespace App
         return true;
     }
 
-    void TitleEnvironment::Update(double deltaSeconds, bool enabled, bool active)
+    void TitleEnvironment::Update(double deltaSeconds, bool enabled, bool active, bool settingsSelected)
     {
-        motion_.Update(deltaSeconds, enabled, active);
+        motion_.Update(deltaSeconds, enabled, active, settingsSelected);
         camera_.SetPosition(motion_.CameraPosition());
+        const auto rotation = motion_.CameraRotation();
+        camera_.SetRotation(rotation[0], rotation[1]);
     }
 
     void TitleEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height)
@@ -158,6 +160,9 @@ namespace App
         }
         if (!AddDistantBuildings(commercial)) return false;
         if (!AddGreeneryAndSigns(root)) return false;
+        // 左側の二軒目を調整施設に。通りへ向く歯車看板・スライダー・操作端末。
+        if (!AddObject(root / "Assets/Models/Title/Settings/ControlFacade.obj",
+            { -4.8f, RoadTop, 12.0f }, 0.0f, { 1.0f, 1.0f, 1.0f })) return false;
         return true;
     }
 

@@ -1,0 +1,11 @@
+newmtl housing
+Kd 0.12 0.20 0.26
+
+newmtl screen
+Kd 0.04 0.10 0.14
+
+newmtl accent
+Kd 0.22 0.88 0.82
+
+newmtl rail
+Kd 0.78 0.88 0.89
