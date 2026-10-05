@@ -4,6 +4,7 @@
 #include <Engine/Graphics/Materials/UvTransform.h>
 #include <Engine/Graphics/Materials/DirectionalLight.h>
 #include <DirectXMath.h>
+#include <DirectXCollision.h>
 #include <array>
 #include <cstdint>
 #include <vector>
@@ -59,7 +60,12 @@ namespace Engine
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
             const UvTransform& uvTransform = {}) const;
 
+        const DirectX::BoundingBox& Bounds() const { return bounds_; }
+        // ローカル空間の単位レイを三角形へ当て、最も近い交点距離を返します。
+        bool IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const;
     private:
+        DirectX::BoundingBox bounds_{};
+        std::vector<DirectX::XMFLOAT3> trianglePositions_;
         std::vector<std::unique_ptr<MeshRenderer>> meshes_;
     };
 }

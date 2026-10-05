@@ -1,5 +1,6 @@
 #include "CameraPanel.h"
 #include "ObjectPanel.h"
+#include "SceneSelection.h"
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
@@ -133,6 +134,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             world.Draw(commands, camera.GetCamera(), light);
         }, [&]()
         {
+            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds);
+            const auto display = ImGui::GetIO().DisplaySize;
+            if (display.x > 0 && display.y > 0)
+            {
+                const float aspect = display.x / display.y;
+                const float fov = 2.0f * std::atan(std::tan(DirectX::XM_PIDIV4 * 0.5f) *
+                    (std::max)(1.0f, (16.0f / 9.0f) / aspect));
+                camera.GetCamera().SetPerspective(fov, aspect, 0.1f, 220.0f);
+            }
+            Editor::SceneSelection::Update(world, camera.GetCamera(), objectPanel,
+                sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested && !pendingObject);
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
@@ -180,7 +192,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 }
             }
             ImGui::End();
-            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds);
+            Editor::SceneSelection::Draw(world, camera.GetCamera(), objectPanel);
         });
     };
     Engine::ApplicationSettings settings;

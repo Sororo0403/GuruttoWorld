@@ -399,6 +399,49 @@ namespace
                 const auto content = std::filesystem::absolute("Content");
                 Check(editorWorld.Initialize(renderer, content, content / "Assets/Scenes/TitleStreet.json",
                     content / "Shaders/TitleMesh.hlsl"), "shared scene loads without App content");
+                const auto pickRoot = std::filesystem::absolute("generated/tests/picking");
+                std::filesystem::create_directories(pickRoot / "Assets/Models/Title");
+                {
+                    std::ofstream fixture(pickRoot / "Assets/Models/Title/triangle.obj");
+                    fixture << "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
+                }
+                SceneRuntime::SceneLayout pickLayout;
+                SceneRuntime::ScenePlacement nearObject;
+                nearObject.id = "pick-near";
+                nearObject.name = "Near triangle";
+                nearObject.model = "Assets/Models/Title/triangle.obj";
+                nearObject.position = { 0, 0, 5 };
+                nearObject.scale = { -2, 3, 2 };
+                auto farObject = nearObject;
+                farObject.id = "pick-far";
+                farObject.position[2] = 10;
+                pickLayout.objects = { farObject, nearObject };
+                const auto pickPath = pickRoot / "scene.json";
+                pickLayout.Save(pickPath);
+                SceneRuntime::SceneWorld pickingWorld;
+                Check(pickingWorld.Initialize(renderer, pickRoot, pickPath, content / "Shaders/TitleMesh.hlsl"),
+                    "picking fixture loaded");
+                Check(pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 5 }).value_or("") == "pick-near",
+                    "nearest triangle selected independent of object order and mirrored scale");
+                Check(!pickingWorld.PickRay({ -1.8f, 2.7f, 0 }, { 0, 0, 1 }),
+                    "empty portion of bounding box is not selected");
+                Check(!pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 1 }, 1) &&
+                    !pickingWorld.PickRay({ 0, 0, 0 }, { 0, 0, 0 }) &&
+                    !pickingWorld.PickRay({ NAN, 0, 0 }, { 0, 0, 1 }), "invalid and out-of-range rays rejected");
+                std::array<std::array<float, 3>, 8> corners;
+                Check(pickingWorld.WorldBounds("pick-near", corners), "selected world bounds available");
+                std::array<float, 3> center{};
+                for (const auto& corner : corners)
+                    for (size_t axis = 0; axis < 3; ++axis) center[axis] += corner[axis] / 8;
+                Check(std::abs(center[0] + 1) < 0.001f && std::abs(center[1] - 1.5f) < 0.001f &&
+                    std::abs(center[2] - 5) < 0.001f, "selection corners use instance transform");
+                Check(pickingWorld.SetTransform("pick-near", nearObject.position, { 0, DirectX::XM_PIDIV2, 0 },
+                    nearObject.scale) && pickingWorld.PickRay({ -5, 0.6f, 5.4f }, { 1, 0, 0 }).value_or("") == "pick-near",
+                    "rotated object uses updated picking transform");
+                Check(pickingWorld.RemoveObject("pick-near") &&
+                    pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 1 }).value_or("") == "pick-far" &&
+                    !pickingWorld.WorldBounds("pick-near", corners), "deleted object cannot be selected or outlined");
+                Check(renderer.WaitForIdle(), "picking resources GPU completion");
                 const auto original = editorWorld.Layout().objects.front();
                 auto moved = original.position;
                 moved[2] += 2.0f;

@@ -6,6 +6,7 @@
 #include <utility>
 #include <algorithm>
 #include <cmath>
+#include <Engine/Graphics/Renderers/ModelRenderer.h>
 
 namespace SceneRuntime
 {
@@ -165,6 +166,59 @@ namespace SceneRuntime
         const auto index = static_cast<size_t>(found - layout_.objects.begin());
         layout_.objects.erase(found);
         objects_.erase(objects_.begin() + static_cast<std::ptrdiff_t>(index));
+        return true;
+    }
+    std::optional<std::string> SceneWorld::PickRay(const std::array<float, 3>& origin,
+        const std::array<float, 3>& direction, float maxDistance) const
+    {
+        const auto finite = [](const auto& vector) {
+            return std::all_of(vector.begin(), vector.end(), [](float value) { return std::isfinite(value); });
+        };
+        if (!finite(origin) || !finite(direction) || !std::isfinite(maxDistance) || maxDistance <= 0) return {};
+        using namespace DirectX;
+        const auto start = XMVectorSet(origin[0], origin[1], origin[2], 1);
+        auto ray = XMVectorSet(direction[0], direction[1], direction[2], 0);
+        const float length = XMVectorGetX(XMVector3Length(ray));
+        if (!std::isfinite(length) || length <= 0) return {};
+        ray /= length;
+        float closest = maxDistance;
+        std::optional<std::string> selected;
+        for (size_t index = 0; index < objects_.size(); ++index)
+        {
+            const auto& object = objects_[index];
+            const auto inverse = XMMatrixInverse(nullptr, XMLoadFloat4x4(&object.GetWorldMatrix()));
+            const auto localStart = XMVector3TransformCoord(start, inverse);
+            auto localRay = XMVector3TransformNormal(ray, inverse);
+            const float factor = XMVectorGetX(XMVector3Length(localRay));
+            if (!std::isfinite(factor) || factor <= 0) continue;
+            localRay /= factor;
+            float hit;
+            if (object.GetModel()->IntersectRay(localStart, localRay, hit) && hit / factor < closest)
+            {
+                closest = hit / factor;
+                selected = layout_.objects[index].id;
+            }
+        }
+        return selected;
+    }
+
+    bool SceneWorld::WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const
+    {
+        const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
+            [id](const auto& placement) { return placement.id == id; });
+        if (found == layout_.objects.end()) return false;
+        const auto& object = objects_[static_cast<size_t>(found - layout_.objects.begin())];
+        DirectX::XMFLOAT3 localCorners[8];
+        object.GetModel()->Bounds().GetCorners(localCorners);
+        const auto matrix = DirectX::XMLoadFloat4x4(&object.GetWorldMatrix());
+        for (size_t i = 0; i < 8; ++i)
+        {
+            DirectX::XMFLOAT3 position;
+            DirectX::XMStoreFloat3(&position, DirectX::XMVector3TransformCoord(
+                DirectX::XMLoadFloat3(&localCorners[i]), matrix));
+            if (!std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z)) return false;
+            corners[i] = { position.x, position.y, position.z };
+        }
         return true;
     }
 }

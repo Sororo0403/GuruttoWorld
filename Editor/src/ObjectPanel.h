@@ -22,6 +22,8 @@ namespace Editor
         void Draw(SceneRuntime::SceneWorld& world, const std::array<float, 3>& suggestedPosition, bool enabled);
         std::optional<ObjectRequest> TakeRequest();
         void ObjectChanged(std::string id) { selectedId_ = std::move(id); changed_ = true; invalidTransform_ = false; }
+        const std::string& SelectedId() const { return selectedId_; }
+        void Select(std::string id) { selectedId_ = std::move(id); invalidTransform_ = false; }
         bool HasChanges() const { return changed_; }
         void MarkSaved() { changed_ = false; }
         void Reloaded() { changed_ = false; invalidTransform_ = false; }

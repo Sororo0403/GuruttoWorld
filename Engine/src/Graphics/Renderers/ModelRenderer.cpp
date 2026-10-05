@@ -1,5 +1,6 @@
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
 #include <Engine/Graphics/Models/ModelLoader.h>
+#include <limits>
 
 namespace Engine
 {
@@ -30,6 +31,16 @@ namespace Engine
             }
             loaded.push_back(std::move(renderer));
         }
+        std::vector<DirectX::XMFLOAT3> positions;
+        for (const auto& mesh : data)
+            for (auto index : mesh.indices)
+            {
+                const auto& p = mesh.vertices[index].position;
+                positions.push_back({ p[0], p[1], p[2] });
+            }
+        if (positions.empty()) return false;
+        DirectX::BoundingBox::CreateFromPoints(bounds_, positions.size(), positions.data(), sizeof(DirectX::XMFLOAT3));
+        trianglePositions_ = std::move(positions);
         meshes_ = std::move(loaded);
         return true;
     }
@@ -42,5 +53,27 @@ namespace Engine
         {
             mesh->Draw(commands, world, viewProjection, light, cameraPosition, uvTransform);
         }
+    }
+    bool ModelRenderer::IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction,
+        float& distance) const
+    {
+        float broadDistance;
+        if (!bounds_.Intersects(origin, direction, broadDistance)) return false;
+        float closest = (std::numeric_limits<float>::max)();
+        bool found = false;
+        for (size_t index = 0; index + 2 < trianglePositions_.size(); index += 3)
+        {
+            float hit;
+            if (DirectX::TriangleTests::Intersects(origin, direction,
+                DirectX::XMLoadFloat3(&trianglePositions_[index]),
+                DirectX::XMLoadFloat3(&trianglePositions_[index + 1]),
+                DirectX::XMLoadFloat3(&trianglePositions_[index + 2]), hit) && hit < closest)
+            {
+                closest = hit;
+                found = true;
+            }
+        }
+        if (found) distance = closest;
+        return found;
     }
 }

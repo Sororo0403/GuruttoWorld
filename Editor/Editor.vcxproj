@@ -101,6 +101,8 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\CameraPanel.cpp" />
     <ClCompile Include="src\ObjectPanel.cpp" />
+    <ClCompile Include="src\SceneSelection.cpp" />
+    <ClInclude Include="src\SceneSelection.h" />
     <ClInclude Include="src\ObjectPanel.h" />
     <ClInclude Include="src\CameraPanel.h" />
     <ProjectReference Include="..\Engine\Engine.vcxproj">

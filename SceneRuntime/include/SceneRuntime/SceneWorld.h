@@ -2,6 +2,7 @@
 #include <SceneRuntime/SceneLayout.h>
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
+#include <optional>
 
 namespace Engine { class DirectX12Renderer; }
 namespace SceneRuntime
@@ -26,6 +27,9 @@ namespace SceneRuntime
         bool DuplicateObject(std::string_view id, const std::array<float, 3>& offset,
             std::string& createdId, std::string& error);
         bool RemoveObject(std::string_view id);
+        std::optional<std::string> PickRay(const std::array<float, 3>& origin,
+            const std::array<float, 3>& direction, float maxDistance = 220.0f) const;
+        bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
     private:
         std::string NewId();
         size_t nextObjectId_ = 1;
