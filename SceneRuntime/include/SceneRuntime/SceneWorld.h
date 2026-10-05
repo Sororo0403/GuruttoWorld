@@ -15,6 +15,9 @@ namespace SceneRuntime
         void Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
             const Engine::DirectionalLight& light) const;
         const SceneLayout& Layout() const { return layout_; }
+        // 配置と描画用の変換を同時に更新します。失敗した場合は直前の状態を維持します。
+        bool SetTransform(std::string_view id, const std::array<float, 3>& position,
+            const std::array<float, 3>& rotation, const std::array<float, 3>& scale);
     private:
         SceneLayout layout_;
         Engine::ModelManager models_;

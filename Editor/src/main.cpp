@@ -1,4 +1,5 @@
 #include "CameraPanel.h"
+#include "ObjectPanel.h"
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
@@ -37,6 +38,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     camera.SetResetPose({ -0.8f, 2.8f, -7.0f }, 0.03f, 0.09f);
     camera.SetMoveSpeed(8.0f);
     Editor::CameraPanel cameraPanel;
+    Editor::ObjectPanel objectPanel;
     Engine::DirectionalLight light;
     light.direction = { -0.5f, -0.8f, 0.6f };
     light.color = { 1.0f, 0.95f, 0.84f };
@@ -70,13 +72,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }, [&]()
         {
             ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(340, 110), ImGuiCond_FirstUseEver);
             if (ImGui::Begin("Street Editor"))
             {
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
-                ImGui::TextUnformatted("Camera exploration / object editing follows next");
+                ImGui::TextUnformatted("Select objects and edit transforms in Inspector.");
                 ImGui::TextWrapped("Content: %s", root.string().c_str());
             }
             ImGui::End();
+            objectPanel.Draw(world);
             if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds);
         });
     };

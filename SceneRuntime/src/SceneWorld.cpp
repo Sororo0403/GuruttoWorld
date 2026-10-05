@@ -4,6 +4,8 @@
 #include <format>
 #include <stdexcept>
 #include <utility>
+#include <algorithm>
+#include <cmath>
 
 namespace SceneRuntime
 {
@@ -41,5 +43,21 @@ namespace SceneRuntime
         const Engine::DirectionalLight& light) const
     {
         for (const auto& object : objects_) object.Draw(commands, camera, light);
+    }
+
+    bool SceneWorld::SetTransform(std::string_view id, const std::array<float, 3>& position,
+        const std::array<float, 3>& rotation, const std::array<float, 3>& scale)
+    {
+        const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
+            [id](const ScenePlacement& placement) { return placement.id == id; });
+        if (found == layout_.objects.end() ||
+            !std::all_of(scale.begin(), scale.end(), [](float value)
+                { return std::isfinite(value) && std::abs(value) >= 0.000001f; })) return false;
+        const auto index = static_cast<size_t>(found - layout_.objects.begin());
+        if (!objects_[index].SetTransform(position, rotation, scale)) return false;
+        found->position = position;
+        found->rotation = rotation;
+        found->scale = scale;
+        return true;
     }
 }

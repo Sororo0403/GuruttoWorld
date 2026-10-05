@@ -399,6 +399,25 @@ namespace
                 const auto content = std::filesystem::absolute("Content");
                 Check(editorWorld.Initialize(renderer, content, content / "Assets/Scenes/TitleStreet.json",
                     content / "Shaders/TitleMesh.hlsl"), "shared scene loads without App content");
+                const auto original = editorWorld.Layout().objects.front();
+                auto moved = original.position;
+                moved[2] += 2.0f;
+                const std::array<float, 3> rotated{ 0.1f, 0.2f, 0.3f };
+                const std::array<float, 3> scaled{ 120, 4, 160 };
+                Check(editorWorld.SetTransform(original.id, moved, rotated, scaled), "live transform edit accepted");
+                const auto& changed = editorWorld.Layout().objects.front();
+                Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled &&
+                    changed.model == original.model, "live edits update layout while keeping model reference");
+                Check(!editorWorld.SetTransform(original.id, original.position, original.rotation, { 0, 4, 4 }),
+                    "zero scale edit rejected");
+                auto invalidPosition = original.position;
+                invalidPosition[0] = NAN;
+                Check(!editorWorld.SetTransform(original.id, invalidPosition, original.rotation, original.scale),
+                    "nonfinite position edit rejected");
+                Check(!editorWorld.SetTransform("missing-object", original.position, original.rotation, original.scale),
+                    "unknown object edit rejected");
+                Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled,
+                    "rejected edits preserve previous valid placement");
                 Engine::Camera editorView;
                 editorView.SetPosition({ -0.8f, 2.8f, -7.0f });
                 editorView.SetRotation(0.03f, 0.09f);
