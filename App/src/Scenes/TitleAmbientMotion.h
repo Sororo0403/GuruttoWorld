@@ -57,7 +57,7 @@ namespace App
     private:
         static float Blend(float t) { return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f); }
         using Pose = std::array<float, 5>; // 座標XYZ、ヨー、ピッチ。
-        static constexpr Pose Home{ -0.8f, 1.8f, -7.0f, 0.03f, 0.13f };
+        static constexpr Pose Home{ -0.8f, 2.8f, -7.0f, 0.03f, 0.09f };
         Pose pose_ = Home;
         Pose start_ = Home;
         Pose target_ = Home;

@@ -177,7 +177,7 @@ namespace App
         if (!AddObject(roads / "tile-low.obj", { 9.0f, 0.08f, 22.0f }, 0.0f,
             { 8.5f, 28.0f, 7.0f })) return false;
         // 間口を広く取った市庁舎風の一棟を広場の奥に置き、正面をタイトル視点へ向けます。
-        if (!AddObject(commercial / "building-h.obj", { 9.0f, 0.64f, 22.0f }, 0.0f,
+        if (!AddObject(commercial / "building-h.obj", { 9.0f, 0.64f, 22.0f }, DirectX::XM_PI,
             { 8.0f, 7.0f, 6.0f })) return false;
         // 低層の棟で右側の輪郭をつなぎ、主役の入口と階段を塞がないようにします。
         return AddObject(commercial / "building-c.obj", { 15.0f, 0.08f, 24.0f }, -0.18f,

@@ -262,7 +262,7 @@ namespace
         const auto home = exitCamera.CameraPosition();
         Engine::Camera framing;
         framing.SetPosition(home);
-        framing.SetRotation(0.03f, 0.13f);
+        framing.SetRotation(0.03f, 0.09f);
         framing.SetPerspective(DirectX::XM_PIDIV4, 16.0f / 9.0f, 0.1f, 220.0f);
         for (int frame = 0; frame < 7; ++frame) exitCamera.Update(0.1, false, true, false, true);
         Check(std::abs(exitCamera.CameraPosition()[2] - 20.0f) < 0.001f &&
@@ -316,7 +316,7 @@ namespace
             motion.Update(0.1, true, true);
             const auto position = motion.CameraPosition();
             Check(position[0] >= -0.901f && position[0] <= -0.699f &&
-                position[1] >= 1.759f && position[1] <= 1.841f && position[2] == -7.0f, "camera stays within composition bounds");
+                position[1] >= 2.759f && position[1] <= 2.841f && position[2] == -7.0f, "camera stays within composition bounds");
             for (unsigned int index = 0; index < 24; ++index)
             {
                 const auto value = motion.Mote(index);
