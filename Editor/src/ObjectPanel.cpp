@@ -15,6 +15,7 @@ namespace Editor
             ImGui::Text("%zu objects", objects.size());
             if (ImGui::BeginChild("Object list", ImVec2(0, 0)))
             {
+                ImGui::BeginDisabled(!enabled);
                 for (const auto& object : objects)
                 {
                     const auto searchable = object.name + " " + object.id + " " + object.model.generic_string();
@@ -27,6 +28,7 @@ namespace Editor
                     }
                     ImGui::PopID();
                 }
+                ImGui::EndDisabled();
             }
             ImGui::EndChild();
         }

@@ -202,14 +202,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             }
             if (preview)
             {
+                if (keyboard && keyboard->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape,false)) preview=false;
                 ImGui::SetNextWindowPos(ImVec2(20,20),ImGuiCond_Always);
                 ImGui::SetNextWindowBgAlpha(0.8f);
                 if (ImGui::Begin("Title composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
                 {
                     ImGui::TextUnformatted("Title camera / lighting - current layout (including unsaved edits)");
                     ImGui::TextUnformatted("Fixed view; sky, particles and title UI are excluded.");
-                    if (ImGui::Button("Back to editing (Escape)") ||
-                        (keyboard && keyboard->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape,false))) preview=false;
+                    if (ImGui::Button("Back to editing (Escape)")) preview=false;
                 }
                 ImGui::End();
                 return;

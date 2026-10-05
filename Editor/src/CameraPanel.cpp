@@ -16,6 +16,7 @@ namespace Editor
         PanelLayout::Place(PanelLayout::Panel::Camera);
         if (ImGui::Begin("Debug Camera"))
         {
+            ImGui::BeginDisabled(!allowMovement);
             ImGui::TextUnformatted("Hold RMB on scene: mouse look");
             ImGui::TextUnformatted("RMB + WASD: move / Q,E: down,up");
             ImGui::TextUnformatted("Shift: boost / R: reset");
@@ -28,6 +29,7 @@ namespace Editor
                 camera.Reset();
                 CancelDrag();
             }
+            ImGui::EndDisabled();
         }
         ImGui::End();
     }

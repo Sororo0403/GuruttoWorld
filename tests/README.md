@@ -45,6 +45,11 @@ WARP 上のオクルージョンクエリで、通常の三角形と X／XY 鏡�
 
 タイトルの回帰検証では1280×720、1024×768、720×1280の非表示ウィンドウで初期化と描画を確認します。
 
+Editorの配置処理は、実際のSceneWorldとEditHistoryを組み合わせて、複製→連続変形（鏡映を含む）→
+Undo／Redo→保存→削除→Undo→再読み込みの順に検証します。配置全体・選択ID・保存済み判定を比較します。
+保存先はgenerated/tests/layout-ioで、元のTitleStreet.jsonは書き換えません。
+この検証はUIのマウス操作を自動化したものではなく、編集処理と描画の回帰検証です。
+
 タイトル背景は CC0 の街並み・植生と、TitleSky/TitleMesh の専用シェーダーを描画します。ReviewRegressionValidation のタイトル検証ログは generated/tests/title-rendering.log に保存します。シェーダーは実行時にコンパイルするため、ビルド成功だけでなく Debug・Release の検証実行も確認してください。
 
 設定の回帰検証は generated/tests/settings 以下に一時ファイルを作り、ユーザーの設定を変更しません。欠損・不正形式・上下限・上書き・保存失敗・取消と再編集・パッド接続直後の入力を確認します。設定UIの3選択状態と保存失敗文も上記3サイズで描画します。

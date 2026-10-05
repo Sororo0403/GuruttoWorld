@@ -542,6 +542,50 @@ namespace
                 Check(editorWorld.Reload(content, editedPath, operationError) &&
                     editorWorld.Layout().objects.size() == count + 1 &&
                     editorWorld.Layout().objects.back().id == duplicateId, "object changes survive save and reload");
+                Editor::EditHistory workflow;
+                const auto initialJson=editorWorld.Layout().Serialize();
+                workflow.Reset({initialJson,duplicateId});
+                std::string workflowId;
+                Check(editorWorld.DuplicateObject(duplicateId,{4,0,0},workflowId,operationError), "workflow duplicate");
+                const auto duplicatedJson=editorWorld.Layout().Serialize();
+                workflow.Observe({duplicatedJson,workflowId},false);
+                auto edited=editorWorld.Layout().objects.back();
+                for (int frame=0;frame<3;++frame)
+                {
+                    edited.position[0]+=1;
+                    edited.rotation[1]+=0.1f;
+                    edited.scale[0]=-4;
+                    Check(editorWorld.SetTransform(workflowId,edited.position,edited.rotation,edited.scale), "workflow transform");
+                    workflow.Observe({editorWorld.Layout().Serialize(),workflowId},true);
+                }
+                const auto transformedJson=editorWorld.Layout().Serialize();
+                workflow.Observe({transformedJson,workflowId},false);
+                const auto applyHistory=[&](bool redo)
+                {
+                    Check(redo ? workflow.CanRedo() : workflow.CanUndo(), "workflow history entry exists");
+                    const auto target=workflow.Target(redo);
+                    Check(editorWorld.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json),content,operationError),
+                        "workflow history restore succeeds");
+                    workflow.Applied(redo);
+                    Check(editorWorld.Layout().Serialize()==target.json,"workflow restores complete scene exactly");
+                    return target.selection;
+                };
+                Check(applyHistory(false)==workflowId && editorWorld.Layout().Serialize()==duplicatedJson,
+                    "one undo reverses the whole continuous transform");
+                Check(applyHistory(false)==duplicateId && editorWorld.Layout().Serialize()==initialJson,
+                    "second undo reverses duplicate and restores selection");
+                applyHistory(true);
+                applyHistory(true);
+                Check(editorWorld.Layout().Serialize()==transformedJson,"redo restores mirrored transformed duplicate");
+                editorWorld.Layout().Save(editedPath);
+                workflow.Saved(transformedJson);
+                Check(editorWorld.RemoveObject(workflowId),"workflow delete");
+                workflow.Observe({editorWorld.Layout().Serialize(),""},false);
+                Check(workflow.Dirty(editorWorld.Layout().Serialize()),"deleting saved object marks scene dirty");
+                Check(applyHistory(false)==workflowId && !workflow.Dirty(editorWorld.Layout().Serialize()),
+                    "undo deletion restores selected object and saved state");
+                Check(editorWorld.Reload(content,editedPath,operationError) &&
+                    editorWorld.Layout().Serialize()==transformedJson,"workflow save and reload preserves final transforms");
                 App::TitleScene title(TestContentRoot());
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
