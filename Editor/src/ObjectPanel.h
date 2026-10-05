@@ -25,6 +25,7 @@ namespace Editor
         const std::string& SelectedId() const { return selectedId_; }
         void Select(std::string id) { selectedId_ = std::move(id); invalidTransform_ = false; }
         bool HasChanges() const { return changed_; }
+        void SetChanged(bool changed) { changed_ = changed; }
         void MarkSaved() { changed_ = false; }
         void Reloaded() { changed_ = false; invalidTransform_ = false; }
     private:

@@ -28,6 +28,12 @@ namespace SceneRuntime
     bool SceneWorld::Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath,
         std::string& error)
     {
+        try { return ReplaceLayout(SceneLayout::Load(layoutPath), assetsRoot, error); }
+        catch (const std::exception& exception) { error = exception.what(); return false; }
+    }
+
+    bool SceneWorld::ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error)
+    {
         if (!modelsReady_)
         {
             error = "Scene renderer is unavailable. Check shaders and restart.";
@@ -35,7 +41,7 @@ namespace SceneRuntime
         }
         try
         {
-            auto layout = SceneLayout::Load(layoutPath);
+            static_cast<void>(layout.Serialize());
             std::vector<Engine::Object3D> objects;
             objects.reserve(layout.objects.size());
             for (const auto& placement : layout.objects)

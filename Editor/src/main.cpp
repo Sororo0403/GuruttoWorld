@@ -2,6 +2,7 @@
 #include "ObjectPanel.h"
 #include "SceneSelection.h"
 #include "TransformGizmo.h"
+#include "EditHistory.h"
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
@@ -42,6 +43,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     Editor::CameraPanel cameraPanel;
     Editor::ObjectPanel objectPanel;
     Editor::TransformGizmo gizmo;
+    Editor::EditHistory history;
+    std::optional<bool> pendingHistory;
     objectPanel.ScanModels(root);
     std::optional<Editor::ObjectRequest> pendingObject;
     Engine::DirectionalLight light;
@@ -63,6 +66,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         try
         {
             world.Layout().Save(layoutPath);
+            history.Saved(world.Layout().Serialize());
             objectPanel.MarkSaved();
             fileStatus = "Saved.";
             return true;
@@ -87,6 +91,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             sceneLoaded = world.Initialize(renderer, root, layoutPath,
                 root / "Shaders/TitleMesh.hlsl", &fileStatus);
             initialized = true;
+            if (sceneLoaded) history.Reset({world.Layout().Serialize(), objectPanel.SelectedId()});
         }
         if (reloadRequested)
         {
@@ -96,7 +101,22 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             {
                 sceneLoaded = true;
                 objectPanel.Reloaded();
+                history.Reset({world.Layout().Serialize(), objectPanel.SelectedId()});
                 fileStatus = "Reloaded.";
+            }
+        }
+        if (pendingHistory)
+        {
+            if (!renderer.WaitForIdle()) return Engine::RenderResult::Failed;
+            const bool redo=*pendingHistory;
+            pendingHistory.reset();
+            const auto target=history.Target(redo);
+            if (world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), root, fileStatus))
+            {
+                history.Applied(redo);
+                objectPanel.Select(target.selection);
+                objectPanel.SetChanged(history.Dirty(target.json));
+                fileStatus=redo ? "Redone." : "Undone.";
             }
         }
         if (pendingObject)
@@ -126,6 +146,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 objectPanel.ObjectChanged(createdId);
                 fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
                     request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
+                history.Observe({world.Layout().Serialize(), objectPanel.SelectedId()}, false);
             }
         }
         return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float aspect)
@@ -157,6 +178,23 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 eye[2] + viewInverse._33 * 8.0f };
             objectPanel.Draw(world, suggested, sceneLoaded && !reloadRequested && !gizmo.IsDragging());
             if (auto request = objectPanel.TakeRequest()) pendingObject = std::move(request);
+            if (sceneLoaded)
+            {
+                const auto json=world.Layout().Serialize();
+                history.Observe({json, objectPanel.SelectedId()}, gizmo.IsDragging() || ImGui::IsAnyItemActive());
+                objectPanel.SetChanged(history.Dirty(json));
+            }
+            const bool historyEnabled=sceneLoaded && !pendingObject && !pendingHistory && !reloadRequested &&
+                !gizmo.IsDragging() && !ImGui::IsAnyItemActive() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId);
+            if (historyEnabled && ImGui::GetIO().KeyCtrl && !ImGui::GetIO().WantTextInput)
+            {
+                if (ImGui::IsKeyPressed(ImGuiKey_Z, false))
+                {
+                    const bool redo=ImGui::GetIO().KeyShift;
+                    if (redo ? history.CanRedo() : history.CanUndo()) pendingHistory=redo;
+                }
+                else if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && history.CanRedo()) pendingHistory=true;
+            }
             ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(340, 200), ImGuiCond_FirstUseEver);
             if (ImGui::Begin("Street Editor"))
@@ -165,11 +203,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 ImGui::TextUnformatted("Select objects and edit transforms in Inspector.");
                 ImGui::TextWrapped("Content: %s", root.string().c_str());
                 ImGui::TextUnformatted(objectPanel.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
-                ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value() || gizmo.IsDragging());
+                ImGui::BeginDisabled(!historyEnabled || !history.CanUndo());
+                if (ImGui::Button("Undo (Ctrl+Z)")) pendingHistory=false;
+                ImGui::EndDisabled();
+                ImGui::SameLine();
+                ImGui::BeginDisabled(!historyEnabled || !history.CanRedo());
+                if (ImGui::Button("Redo (Ctrl+Y)")) pendingHistory=true;
+                ImGui::EndDisabled();
+                ImGui::BeginDisabled(!sceneLoaded || pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging() || ImGui::IsAnyItemActive());
                 if (ImGui::Button("Save")) save();
                 ImGui::EndDisabled();
                 ImGui::SameLine();
-                ImGui::BeginDisabled(pendingObject.has_value() || gizmo.IsDragging());
+                ImGui::BeginDisabled(pendingObject.has_value() || pendingHistory.has_value() || gizmo.IsDragging() || ImGui::IsAnyItemActive());
                 if (ImGui::Button("Reload"))
                 {
                     if (objectPanel.HasChanges()) ImGui::OpenPopup("Reload unsaved changes?");

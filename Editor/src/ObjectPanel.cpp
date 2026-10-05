@@ -51,6 +51,7 @@ namespace Editor
                 constexpr float ToDegrees = 180.0f / std::numbers::pi_v<float>;
                 auto degrees = rotation;
                 for (auto& value : degrees) value *= ToDegrees;
+                ImGui::BeginDisabled(!enabled);
                 bool edited = ImGui::DragFloat3("Position", position.data(), 0.05f, 0, 0, "%.3f");
                 if (ImGui::DragFloat3("Rotation (deg)", degrees.data(), 0.5f, 0, 0, "%.2f"))
                 {
@@ -63,7 +64,6 @@ namespace Editor
                     invalidTransform_ = !world.SetTransform(selectedId_, position, rotation, scale);
                     if (!invalidTransform_) changed_ = true;
                 }
-                ImGui::BeginDisabled(!enabled);
                 if (ImGui::Button("Duplicate")) request_ = ObjectRequest{ ObjectAction::Duplicate, selectedId_, {}, {} };
                 ImGui::SameLine();
                 if (ImGui::Button("Delete")) request_ = ObjectRequest{ ObjectAction::Delete, selectedId_, {}, {} };

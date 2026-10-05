@@ -1,4 +1,5 @@
 #include "../Editor/src/TransformMatrix.h"
+#include "../Editor/src/EditHistory.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
 #endif
@@ -518,8 +519,18 @@ namespace
                 Check(!editorWorld.DuplicateObject(addedId, { NAN, 0, 0 }, rejectedId, operationError) &&
                     editorWorld.Layout().objects.size() == count + 2, "invalid duplicate keeps current scene");
                 Check(!editorWorld.RemoveObject("missing-id"), "unknown delete does not change scene");
+                const auto beforeDelete=editorWorld.Layout();
                 Check(editorWorld.RemoveObject(addedId) && editorWorld.Layout().objects.size() == count + 1 &&
                     editorWorld.Layout().objects.back().id == duplicateId, "delete removes only selected object");
+                const auto afterDelete=editorWorld.Layout();
+                Check(editorWorld.ReplaceLayout(beforeDelete, content, operationError) &&
+                    editorWorld.Layout().Serialize()==beforeDelete.Serialize(), "undo restores deleted object ID and ordering");
+                auto brokenSnapshot=beforeDelete;
+                brokenSnapshot.objects.back().model="Assets/Models/Title/Roads/missing.obj";
+                Check(!editorWorld.ReplaceLayout(brokenSnapshot, content, operationError) &&
+                    editorWorld.Layout().Serialize()==beforeDelete.Serialize(), "failed history restoration preserves the whole live scene");
+                Check(editorWorld.ReplaceLayout(afterDelete, content, operationError) &&
+                    editorWorld.Layout().Serialize()==afterDelete.Serialize(), "redo restores the deletion snapshot");
                 const auto editedPath = std::filesystem::absolute("generated/tests/layout-io/object-edits.json");
                 editorWorld.Layout().Save(editedPath);
                 Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
@@ -815,11 +826,35 @@ void ValidateTransformMatrix()
     invalid._11=NAN;
     Check(!Editor::TransformMatrix::Read(invalid,placement,output), "nonfinite transform is rejected");
 }
+
+void ValidateEditHistory()
+{
+    Editor::EditHistory history;
+    history.Reset({"initial", "a"});
+    history.Observe({"drag1", "a"}, true);
+    history.Observe({"drag2", "a"}, true);
+    Check(!history.CanUndo(), "ongoing drag is not a history entry");
+    history.Observe({"drag2", "a"}, false);
+    Check(history.CanUndo() && history.Target(false).json=="initial", "drag becomes one undo entry");
+    history.Saved("drag2");
+    Check(!history.Dirty("drag2") && history.Dirty("initial"), "saved content determines dirty state");
+    history.Applied(false);
+    Check(history.CanRedo() && history.Target(true).selection=="a", "redo preserves selection");
+    history.Observe({"branch", "b"}, false);
+    Check(!history.CanRedo() && history.Target(false).json=="initial", "new edit clears redo branch");
+    history.Reset({"reloaded", ""});
+    Check(!history.CanUndo() && !history.CanRedo() && !history.Dirty("reloaded"), "reload resets history and saved state");
+    for (int i=0;i<150;++i) history.Observe({std::to_string(i), ""}, false);
+    int undoCount=0;
+    while (history.CanUndo()) { history.Applied(false); ++undoCount; }
+    Check(undoCount==100, "history is bounded to 100 edits");
+}
 int main()
 {
     try
     {
         ValidateTransformMatrix();
+        ValidateEditHistory();
         ValidateEditorCamera();
         ValidateSceneLayout();
         ValidateSceneFiles();
