@@ -25,6 +25,7 @@ namespace App
     private:
         bool BuildStreet(const std::filesystem::path& root);
         bool AddCentralPlaza(const std::filesystem::path& root);
+        bool AddPlazaDetails(const std::filesystem::path& root);
         bool AddDistantBuildings(const std::filesystem::path& commercial);
         /// <summary>
         /// 街路の看板を CC0 モデルで配置します。

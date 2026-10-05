@@ -148,6 +148,7 @@ namespace App
         if (!AddDistantBuildings(commercial)) return false;
         if (!AddStreetSigns(root)) return false;
         if (!AddCentralPlaza(root)) return false;
+        if (!AddPlazaDetails(root)) return false;
         return true;
     }
 
@@ -180,6 +181,33 @@ namespace App
         // 低層の棟で右側の輪郭をつなぎ、主役の入口と階段を塞がないようにします。
         return AddObject(commercial / "building-c.obj", { 15.0f, 0.08f, 24.0f }, -0.18f,
             { 4.0f, 4.0f, 4.0f });
+    }
+
+    bool TitleEnvironment::AddPlazaDetails(const std::filesystem::path& root)
+    {
+        const auto roads = root / "Assets/Models/Title/Roads";
+        const auto commercial = root / "Assets/Models/Title/Commercial";
+        constexpr float PavementTop = 0.16f;
+        // 広場の外周と反対側の歩道に街灯を並べ、前景から奥へのリズムを作ります。
+        constexpr std::array<std::array<float, 3>, 5> Lights{
+            std::array<float, 3>{ 3.3f, PavementTop, 5.0f },
+            { 3.3f, PavementTop, 13.0f }, { 14.0f, PavementTop, 7.0f },
+            { 14.0f, PavementTop, 15.0f }, { -2.8f, PavementTop, 3.0f }
+        };
+        for (const auto& position : Lights)
+        {
+            if (!AddObject(roads / "light-square-double.obj", position, 0.0f,
+                { 6.0f, 6.0f, 6.0f })) return false;
+        }
+        // テーブル付きパラソルは広場の右端へ。中央の階段への動線は塞ぎません。
+        for (float z : { 8.0f, 13.0f })
+        {
+            if (!AddObject(commercial / "detail-parasol-a.obj", { 12.0f, PavementTop, z }, 0.2f,
+                { 5.0f, 5.0f, 5.0f })) return false;
+        }
+        // 主役の入口に実際のCC0ひさしを付け、建物の用途と入口を読み取りやすくします。
+        return AddObject(commercial / "detail-awning-wide.obj", { 9.0f, 0.64f, 19.8f }, 0.0f,
+            { 8.0f, 8.0f, 8.0f });
     }
 
     bool TitleEnvironment::AddDistantBuildings(const std::filesystem::path& commercial)
