@@ -73,4 +73,19 @@ namespace Editor::GizmoTransform
         output=std::move(candidate);
         return true;
     }
+
+    inline bool ScaleDelta(const SceneRuntime::SceneWorld& world, const SceneRuntime::ScenePlacement& current,
+        const DirectX::XMFLOAT4X4& handle, std::array<float,3>& output)
+    {
+        auto transformed=current;
+        DirectX::XMFLOAT4X4 expected;
+        if (!ReadScale(current,handle,transformed) || !Build(world,transformed,true,expected) ||
+            !SceneRuntime::SceneTransforms::Matches(expected,handle)) return false;
+        std::array<float,3> factors{};
+        for (size_t axis=0;axis<3;++axis) factors[axis]=transformed.scale[axis]/current.scale[axis];
+        if (!std::all_of(factors.begin(),factors.end(),[](float value) { return std::isfinite(value) && value>0; })) return false;
+        output=factors;
+        return true;
+    }
+
 }

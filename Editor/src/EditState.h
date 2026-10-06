@@ -67,11 +67,15 @@ namespace Editor
         {
             const auto before=world.Layout().objects;
             invalidTransform_=!world.RotateObjectsWorld(SelectedIds(),pivot,rotation);
-            const auto& after=world.Layout().objects;
-            if (!invalidTransform_ && !std::equal(before.begin(),before.end(),after.begin(),
-                [](const auto& previous,const auto& current) {
-                    return previous.position==current.position && previous.rotation==current.rotation && previous.scale==current.scale;
-                })) changed_=true;
+            TrackTransformChange(world,before);
+            return !invalidTransform_;
+        }
+        bool ScaleSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float,3>& pivot,
+            const DirectX::XMFLOAT4X4& axes, const std::array<float,3>& factors)
+        {
+            const auto before=world.Layout().objects;
+            invalidTransform_=!world.ScaleObjectsWorld(SelectedIds(),pivot,axes,factors);
+            TrackTransformChange(world,before);
             return !invalidTransform_;
         }
         bool SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId, std::string& error)
@@ -141,6 +145,14 @@ namespace Editor
             return request;
         }
     private:
+        void TrackTransformChange(const SceneRuntime::SceneWorld& world, const std::vector<SceneRuntime::ScenePlacement>& before)
+        {
+            const auto& after=world.Layout().objects;
+            if (!invalidTransform_ && !std::equal(before.begin(),before.end(),after.begin(),
+                [](const auto& previous,const auto& current) {
+                    return previous.position==current.position && previous.rotation==current.rotation && previous.scale==current.scale;
+                })) changed_=true;
+        }
         SelectionSet selection_;
         std::string interaction_;
         bool changed_ = false;

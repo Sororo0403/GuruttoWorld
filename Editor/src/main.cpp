@@ -435,7 +435,7 @@ namespace
             {
                 if (ImGui::IsKeyPressed(ImGuiKey_1,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Move);
                 if (ImGui::IsKeyPressed(ImGuiKey_2,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Rotate);
-                if (editState.SingleSelection() && ImGui::IsKeyPressed(ImGuiKey_3,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Scale);
+                if (ImGui::IsKeyPressed(ImGuiKey_3,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Scale);
             }
         }
 
@@ -669,7 +669,7 @@ namespace
                 ImGui::EndDisabled();
                 ImGui::EndDisabled();
                 ImGui::SameLine();
-                gizmo.DrawToolbar(CommandsEnabled(true),editState.SelectedIds().size()>1);
+                gizmo.DrawToolbar(CommandsEnabled(true));
             }
             ImGui::End();
         }

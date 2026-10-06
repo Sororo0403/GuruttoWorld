@@ -676,6 +676,98 @@ namespace
         Check(world.ReplaceLayout(initial,root,error), "workflow fixture restored");
     }
 
+    void ValidateMultipleScaling(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        auto parent=initial.objects.back(); parent.id="parent"; parent.parentId.clear();
+        parent.position={10,2,3}; parent.rotation={0,0.4f,0}; parent.scale={-2,3,4};
+        auto child=parent; child.id="child"; child.parentId=parent.id;
+        child.position={1,2,3}; child.rotation={0,0,0.3f}; child.scale={1,1,1};
+        auto grand=child; grand.id="grand"; grand.parentId=child.id;
+        auto other=child; other.id="other"; other.parentId.clear(); other.position={20,3,4}; other.rotation=parent.rotation;
+        SceneRuntime::SceneLayout layout; layout.objects={grand,child,parent,other};
+        std::string error;
+        Check(world.ReplaceLayout(layout,root,error), "multiple scaling fixture");
+        Editor::EditState state; state.Select("parent"); state.Select("other",true); state.Select("child",true);
+        const auto before=world.Layout().Serialize(); const auto selected=state.SelectedIds();
+        std::vector<DirectX::XMFLOAT4X4> poses;
+        for (const auto& placement : layout.objects)
+        {
+            DirectX::XMFLOAT4X4 pose;
+            Check(world.WorldMatrix(placement.id,pose), "capture group scale world pose"); poses.push_back(pose);
+        }
+        const std::array<float,3> pivot{poses[1]._41,poses[1]._42,poses[1]._43};
+        DirectX::XMFLOAT4X4 axes,identity,actual,expected;
+        Check(world.WorldRotation("child",axes), "active child scaling axes");
+        DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());
+        const auto delta=DirectX::XMMatrixTranslation(-pivot[0],-pivot[1],-pivot[2])*
+            DirectX::XMMatrixScaling(2,2,2)*DirectX::XMMatrixTranslation(pivot[0],pivot[1],pivot[2]);
+        Editor::EditHistory history; history.Reset({before,state.SelectedId(),selected});
+        state.SetInteraction("gizmo/child/2");
+        Check(state.ScaleSelectionWorld(world,pivot,axes,{2,2,2}) && state.HasChanges() && state.SelectedIds()==selected,
+            "group scaling succeeds around child pivot under mirrored nonuniform parent");
+        for (size_t index=0;index<layout.objects.size();++index)
+        {
+            DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&poses[index])*delta);
+            Check(world.WorldMatrix(layout.objects[index].id,actual) && SceneRuntime::SceneTransforms::Matches(expected,actual),
+                "group scaling updates shape and spacing once including unselected descendants");
+        }
+        Check(world.Layout().objects[2].scale[0]<0 && world.Layout().objects[1].scale==child.scale &&
+            world.Layout().objects[1].position==child.position && world.Layout().objects[0].scale==grand.scale,
+            "scaling preserves mirror sign and exact descendant local transforms");
+        const auto after=world.Layout().Serialize(); history.Observe({after,state.SelectedId(),selected},state.Interaction());
+        state.BeginFrame(); history.Observe({after,state.SelectedId(),selected},{});
+        const auto undo=history.Target(false);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(undo.json),root,error), "one Undo restores scale drag");
+        history.Applied(false); state.RestoreSelection(undo.selections,undo.selection); state.SetChanged(history.Dirty(undo.json));
+        Check(world.Layout().Serialize()==before && !state.HasChanges() && state.SelectedIds()==selected, "scale Undo restores scene selection and clean state");
+        Check(state.ScaleSelectionWorld(world,pivot,axes,{1,1,1}) && world.Layout().Serialize()==before && !state.HasChanges(),
+            "unit scale factors are exact no-op despite rotated axes");
+        Check(!world.ScaleObjectsWorld({},pivot,axes,{2,2,2}) && !world.ScaleObjectsWorld({"parent","missing"},pivot,axes,{2,2,2}) &&
+            !world.ScaleObjectsWorld({"parent","parent"},pivot,axes,{2,2,2}) && !world.ScaleObjectsWorld(selected,{NAN,0,0},axes,{2,2,2}),
+            "invalid scale selection and pivot rejected");
+        Check(!world.ScaleObjectsWorld(selected,pivot,axes,{0,1,1}) && !world.ScaleObjectsWorld(selected,pivot,axes,{-1,1,1}) &&
+            !world.ScaleObjectsWorld(selected,pivot,axes,{NAN,1,1}) && !world.ScaleObjectsWorld(selected,pivot,axes,{INFINITY,1,1}) &&
+            !world.ScaleObjectsWorld(selected,pivot,axes,{1e-30f,1e-30f,1e-30f}), "zero negative nonfinite and unsupported small factors rejected");
+        auto badAxes=axes; badAxes._41=5;
+        Check(!world.ScaleObjectsWorld(selected,pivot,badAxes,{2,2,2}) && world.Layout().Serialize()==before, "nonrotation scale axes rejected atomically");
+        history.Observe({before,state.SelectedId(),selected},{}); Check(history.CanRedo(), "rejected and no-op scaling preserves Redo");
+        const auto redo=history.Target(true);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(redo.json),root,error) && world.Layout().Serialize()==after, "Redo restores entire scaled group");
+        history.Applied(true);
+        Check(world.ReplaceLayout(layout,root,error), "restore scale handle fixture");
+        auto scaled=child; scaled.scale={2,0.5f,1.25f};
+        DirectX::XMFLOAT4X4 handle;
+        std::array<float,3> factors{};
+        Check(Editor::GizmoTransform::Build(world,scaled,true,handle) && Editor::GizmoTransform::ScaleDelta(world,child,handle,factors) &&
+            std::abs(factors[0]-2)<0.001f && std::abs(factors[1]-0.5f)<0.001f && std::abs(factors[2]-1.25f)<0.001f,
+            "scale handle extracts axis factors under inherited shear");
+        auto mirrored=parent; mirrored.scale={-4,1.5f,5};
+        Check(Editor::GizmoTransform::Build(world,mirrored,true,handle) && Editor::GizmoTransform::ScaleDelta(world,parent,handle,factors) &&
+            std::abs(factors[0]-2)<0.001f && std::abs(factors[1]-0.5f)<0.001f, "mirrored scale handle retains signs and extracts positive ratios");
+        const auto preserved=factors; handle._11=NAN;
+        Check(!Editor::GizmoTransform::ScaleDelta(world,parent,handle,factors) && factors==preserved, "invalid scale handle preserves output");
+        Check(world.WorldRotation("other",axes), "aligned active local axes");
+        const std::array<float,3> otherPivot{poses[3]._41,poses[3]._42,poses[3]._43};
+        state.RestoreSelection({"parent","other"},"other"); state.MarkSaved();
+        Check(state.ScaleSelectionWorld(world,otherPivot,axes,{2,0.5f,1.25f}), "axis scale succeeds for aligned root branches");
+        const auto frame=DirectX::XMLoadFloat4x4(&axes);
+        const auto axisDelta=DirectX::XMMatrixTranslation(-otherPivot[0],-otherPivot[1],-otherPivot[2])*
+            DirectX::XMMatrixTranspose(frame)*DirectX::XMMatrixScaling(2,0.5f,1.25f)*frame*
+            DirectX::XMMatrixTranslation(otherPivot[0],otherPivot[1],otherPivot[2]);
+        for (size_t index=0;index<layout.objects.size();++index)
+        {
+            DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&poses[index])*axisDelta);
+            Check(world.WorldMatrix(layout.objects[index].id,actual) && SceneRuntime::SceneTransforms::Matches(expected,actual), "axis scale matches active oriented pivot transform");
+        }
+        Check(world.ReplaceLayout(layout,root,error), "restore unrepresentable scale fixture");
+        state.RestoreSelection({"other","child"},"child"); state.MarkSaved();
+        Check(!state.ScaleSelectionWorld(world,pivot,axes,{2,1,1}) && state.InvalidTransform() && !state.HasChanges() &&
+            world.Layout().Serialize()==before && state.SelectedIds()==std::vector<std::string>{"other","child"},
+            "unrepresentable shear cancels entire scale operation without partial updates");
+        Check(world.ReplaceLayout(initial,root,error), "multiple scaling fixture restored");
+    }
+
     void ValidateMultipleRotation(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
     {
         const auto initial=world.Layout();
@@ -961,6 +1053,7 @@ namespace
         ValidateMultipleDeletion(world,root);
         ValidateMultipleDuplication(world,root);
         ValidateMultipleRotation(world,root);
+        ValidateMultipleScaling(world,root);
         CheckGpuMessages(renderer.GetDevice());
     }
 

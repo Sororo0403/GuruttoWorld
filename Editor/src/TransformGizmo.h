@@ -11,7 +11,7 @@ namespace Editor
         static void BeginFrame();
         void UpdateAndDraw(SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
             EditState& state, const SceneViewport& viewport, bool active);
-        void DrawToolbar(bool enabled, bool multiple = false);
+        void DrawToolbar(bool enabled);
         bool IsDragging() const { return dragging_; }
         bool ConsumesMouse() const { return dragging_ || hovered_; }
         enum class Mode { Move, Rotate, Scale };
@@ -20,6 +20,8 @@ namespace Editor
         bool Manipulate(const SceneRuntime::ScenePlacement& current,
             const Engine::Camera& camera, const SceneViewport& viewport, DirectX::XMFLOAT4X4& matrix);
         void ApplyTransform(SceneRuntime::SceneWorld& world, EditState& state,
+            const SceneRuntime::ScenePlacement& current, const DirectX::XMFLOAT4X4& matrix);
+        void ApplyMultipleTransform(SceneRuntime::SceneWorld& world, EditState& state,
             const SceneRuntime::ScenePlacement& current, const DirectX::XMFLOAT4X4& matrix);
         Mode mode_ = Mode::Move;
         bool local_ = false, snap_ = false;

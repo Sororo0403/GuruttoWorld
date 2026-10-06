@@ -33,6 +33,9 @@ namespace SceneRuntime
         // Rotate around a world pivot once per selected branch; reject unrepresentable local shear atomically.
         bool RotateObjectsWorld(const std::vector<std::string>& ids, const std::array<float,3>& pivot,
             const DirectX::XMFLOAT4X4& rotation);
+        // Scale around a pivot along orthonormal world axes with positive factors; selected descendants follow once.
+        bool ScaleObjectsWorld(const std::vector<std::string>& ids, const std::array<float,3>& pivot,
+            const DirectX::XMFLOAT4X4& axes, const std::array<float,3>& factors);
         bool SetParent(std::string_view id, std::string parentId, std::string& error);
         // 表示名だけを変更します。ID・描画リソースは維持します。
         bool RenameObject(std::string_view id, std::string name);
@@ -60,6 +63,7 @@ namespace SceneRuntime
         static bool PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error);
         bool SetPlacementTransform(std::string_view id, const ScenePlacement& placement);
         bool CommitTransforms(SceneLayout candidate);
+        bool TransformObjectsWorld(const std::vector<std::string>& ids, const DirectX::XMFLOAT4X4& delta);
         std::string NewId(size_t& nextCounter) const;
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
