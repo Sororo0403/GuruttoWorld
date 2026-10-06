@@ -2,48 +2,128 @@
 #include "PanelLayout.h"
 #include <algorithm>
 #include <numbers>
+#include <iterator>
+#include <Engine/Core/Log.h>
 
 namespace Editor
 {
     void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
+        editsEnabled_=enabled;
         DrawObjects(world, state, enabled);
         DrawInspector(world, state, enabled);
     }
 
-    void ObjectPanel::DrawObjects(const SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
+    void ObjectPanel::DrawObjects(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
-        const auto& objects = world.Layout().objects;
         if (state.SelectedIds().empty()) anchorId_.clear();
         PanelLayout::Place(PanelLayout::Panel::Objects);
         if (ImGui::Begin("Hierarchy###Objects"))
         {
-            filter_.Draw("Search", -1);
-            ImGui::Text("%zu objects / %zu selected", objects.size(),state.SelectedIds().size());
-            std::vector<std::string> visible;
-            for (const auto& object : objects)
-                if (filter_.PassFilter((object.name+" "+object.id+" "+object.model.generic_string()).c_str())) visible.push_back(object.id);
-            if (ImGui::BeginChild("Object list", ImVec2(0, 0)))
-            {
-                ImGui::BeginDisabled(!enabled);
-                for (const auto& object : objects)
-                {
-                    const auto searchable = object.name + " " + object.id + " " + object.model.generic_string();
-                    if (!filter_.PassFilter(searchable.c_str())) continue;
-                    ImGui::PushID(object.id.c_str());
-                    const auto textPosition=ImGui::GetCursorScreenPos();
-                    if (ImGui::Selectable("##object", state.IsSelected(object.id), 0, ImVec2(0, ImGui::GetTextLineHeight())))
-                    {
-                        SelectObject(state,visible,object.id);
-                    }
-                    ImGui::GetWindowDrawList()->AddText(textPosition, ImGui::GetColorU32(ImGuiCol_Text), object.name.c_str());
-                    ImGui::PopID();
-                }
-                ImGui::EndDisabled();
-            }
+            filter_.Draw("Search",-1);
+            ImGui::Text("%zu objects / %zu selected",world.Layout().objects.size(),state.SelectedIds().size());
+            ImGui::BeginDisabled(!enabled);
+            ImGui::Selectable("Drop here to make root",false);
+            DrawReparentTarget(world,state,{});
+            if (!parentError_.empty()) ImGui::TextWrapped("%s",parentError_.c_str());
+            if (ImGui::BeginChild("Object list",ImVec2(0,0))) DrawHierarchy(world,state,enabled);
             ImGui::EndChild();
+            ImGui::EndDisabled();
         }
         ImGui::End();
+    }
+
+    std::vector<HierarchyRow> ObjectPanel::VisibleRows(const SceneRuntime::SceneLayout& layout) const
+    {
+        if (!filter_.IsActive()) return BuildHierarchyRows(layout,collapsed_);
+        std::vector<HierarchyRow> rows;
+        for (size_t index=0;index<layout.objects.size();++index)
+        {
+            const auto& object=layout.objects[index];
+            if (filter_.PassFilter((object.name+" "+object.id+" "+object.model.generic_string()).c_str())) rows.push_back({index,0,false});
+        }
+        return rows;
+    }
+
+    void ObjectPanel::DrawHierarchy(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
+    {
+        const auto rows=VisibleRows(world.Layout());
+        std::vector<std::string> visible;
+        std::transform(rows.begin(),rows.end(),std::back_inserter(visible),
+            [&](const auto& row) { return world.Layout().objects[row.index].id; });
+        ImGui::BeginDisabled(!enabled);
+        for (const auto& row : rows) DrawRow(world,state,row,visible);
+        ImGui::EndDisabled();
+    }
+
+    void ObjectPanel::DrawRow(SceneRuntime::SceneWorld& world, EditState& state,
+        const HierarchyRow& row, const std::vector<std::string>& visible)
+    {
+        const auto& object=world.Layout().objects[row.index];
+        const float left=ImGui::GetCursorPosX();
+        ImGui::SetCursorPosX(left+static_cast<float>(row.depth)*ImGui::GetTreeNodeToLabelSpacing());
+        ImGui::PushID(object.id.c_str());
+        auto flags=ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+        if (!row.children) flags |= ImGuiTreeNodeFlags_Leaf;
+        if (state.IsSelected(object.id)) flags |= ImGuiTreeNodeFlags_Selected;
+        const bool open=ImGui::TreeNodeEx("##object",flags);
+        if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) SelectObject(state,visible,object.id);
+        if (row.children)
+        {
+            if (open) collapsed_.erase(object.id); else collapsed_.insert(object.id);
+        }
+        auto text=ImGui::GetItemRectMin();
+        text.x+=ImGui::GetTreeNodeToLabelSpacing();
+        text.y+=(ImGui::GetItemRectSize().y-ImGui::GetTextLineHeight())*0.5f;
+        ImGui::GetWindowDrawList()->AddText(text,ImGui::GetColorU32(ImGuiCol_Text),object.name.c_str());
+        if (ImGui::BeginDragDropSource())
+        {
+            ImGui::SetDragDropPayload("WP1_HIERARCHY_OBJECT",object.id.c_str(),object.id.size()+1);
+            ImGui::TextUnformatted(object.name.c_str());
+            ImGui::EndDragDropSource();
+        }
+        DrawReparentTarget(world,state,object.id);
+        ImGui::PopID();
+        ImGui::SetCursorPosX(left);
+    }
+
+    void ObjectPanel::DrawReparentTarget(SceneRuntime::SceneWorld& world, EditState& state, const std::string& parent)
+    {
+        if (!editsEnabled_ || !ImGui::BeginDragDropTarget()) return;
+        if (const auto* payload=ImGui::AcceptDragDropPayload("WP1_HIERARCHY_OBJECT"))
+        {
+            const auto* id=static_cast<const char*>(payload->Data);
+            if (payload->DataSize>1 && id[payload->DataSize-1]=='\0' &&
+                std::char_traits<char>::length(id)==static_cast<size_t>(payload->DataSize-1)) ChangeParent(world,state,id,parent);
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    void ObjectPanel::ChangeParent(SceneRuntime::SceneWorld& world, EditState& state,
+        const std::string& id, const std::string& parent)
+    {
+        if (!editsEnabled_) return;
+        if (!state.SetParent(world,id,parent,parentError_)) Engine::Log::Warning("Reparent: "+parentError_);
+    }
+
+    void ObjectPanel::DrawParent(SceneRuntime::SceneWorld& world, EditState& state, const SceneRuntime::ScenePlacement& placement)
+    {
+        const auto preview=placement.parentId.empty() ? std::string("<root>") : placement.parentId;
+        if (ImGui::BeginCombo("Parent",preview.c_str()))
+        {
+            if (ImGui::Selectable("<root>",placement.parentId.empty())) ChangeParent(world,state,placement.id,{});
+            for (const auto& candidate : world.Layout().objects)
+            {
+                if (candidate.id==placement.id) continue;
+                ImGui::PushID(candidate.id.c_str());
+                const auto text=ImGui::GetCursorScreenPos();
+                if (ImGui::Selectable("##parent",candidate.id==placement.parentId)) ChangeParent(world,state,placement.id,candidate.id);
+                ImGui::GetWindowDrawList()->AddText(text,ImGui::GetColorU32(ImGuiCol_Text),candidate.name.c_str());
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        if (!parentError_.empty()) ImGui::TextWrapped("%s",parentError_.c_str());
     }
 
     void ObjectPanel::SelectObject(EditState& state, const std::vector<std::string>& visible, const std::string& id)
@@ -72,7 +152,7 @@ namespace Editor
                 ImGui::BeginDisabled(!enabled);
                 DrawName(world, state, *found);
                 ImGui::Text("ID: %s", found->id.c_str());
-                ImGui::Text("Parent: %s",found->parentId.empty() ? "<root>" : found->parentId.c_str());
+                DrawParent(world,state,*found);
                 ImGui::TextWrapped("Model: %s", found->model.generic_string().c_str());
                 ImGui::Separator();
                 DrawTransform(world, state, *found);

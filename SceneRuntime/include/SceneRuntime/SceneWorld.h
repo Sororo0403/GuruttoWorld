@@ -24,6 +24,7 @@ namespace SceneRuntime
             const std::array<float, 3>& rotation, const std::array<float, 3>& scale);
         // Translate all IDs atomically; failed validation leaves both placement and draw transforms unchanged.
         bool TranslateObjects(const std::vector<std::string>& ids, const std::array<float,3>& delta);
+        bool SetParent(std::string_view id, std::string parentId, std::string& error);
         // 表示名だけを変更します。ID・描画リソースは維持します。
         bool RenameObject(std::string_view id, std::string name);
         // GPU完了を待った後、描画の外で呼びます。

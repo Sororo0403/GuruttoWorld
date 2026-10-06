@@ -5,6 +5,7 @@
 #include "../Editor/src/ModelDrop.h"
 #include "../Editor/src/ConsoleFilter.h"
 #include "../Editor/src/SceneDocument.h"
+#include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
@@ -527,6 +528,31 @@ namespace
         std::string error,created;
         Check(renderer.WaitForIdle() && world.ReplaceLayout(layout,root,error), "parent data loads into live world");
         const auto child=world.Layout().objects[1];
+        Editor::EditState parentState;
+        parentState.Select(child.id);
+        Check(parentState.SetParent(world,child.id,{},error) && parentState.HasChanges() &&
+            parentState.SelectedId()==child.id && world.Layout().objects[1].position==child.position,
+            "reparent to root preserves placement and selection while marking changes");
+        parentState.MarkSaved();
+        Check(parentState.SetParent(world,child.id,{},error) && !parentState.HasChanges(), "unchanged parent does not mark changes");
+        Check(parentState.SetParent(world,child.id,child.parentId,error), "child can be reparented to existing root");
+        const auto parentSnapshot=world.Layout().Serialize();
+        parentState.MarkSaved();
+        Check(!parentState.SetParent(world,child.parentId,child.id,error) && !error.empty() &&
+            !parentState.HasChanges() && world.Layout().Serialize()==parentSnapshot, "reparent to descendant is rejected atomically");
+        Check(!parentState.SetParent(world,child.id,child.id,error) && !parentState.SetParent(world,child.id,"missing-parent",error) &&
+            !parentState.SetParent(world,"missing-object",{},error) && world.Layout().Serialize()==parentSnapshot,
+            "reparent rejects self and missing IDs without changing world");
+        Editor::EditHistory reparentHistory;
+        reparentHistory.Reset({parentSnapshot,child.id,{child.id}});
+        Check(parentState.SetParent(world,child.id,{},error), "reparent Undo fixture moves child to root");
+        reparentHistory.Observe({world.Layout().Serialize(),child.id,{child.id}},false);
+        const auto reparented=world.Layout().Serialize();
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(reparentHistory.Target(false).json),root,error), "Undo restores previous parent");
+        reparentHistory.Applied(false);
+        Check(world.Layout().Serialize()==parentSnapshot &&
+            world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(reparentHistory.Target(true).json),root,error), "Redo restores changed parent");
+        Check(world.Layout().Serialize()==reparented && world.SetParent(child.id,child.parentId,error), "reparent history fixture restores parent");
         auto added=child;
         added.id="parent-added";
         Check(world.AddObject(added,root,created,error) && world.Layout().objects.back().parentId==child.parentId,
@@ -1168,6 +1194,26 @@ void ValidateSceneLayout()
     reject("{\"version\":1,\"objects\":[" + invalid + "]}");
 }
 
+void ValidateHierarchyRows()
+{
+    SceneRuntime::ScenePlacement root;
+    root.id="root";
+    auto child=root; child.id="child"; child.parentId=root.id;
+    auto grandchild=root; grandchild.id="grandchild"; grandchild.parentId=child.id;
+    auto other=root; other.id="other";
+    SceneRuntime::SceneLayout layout;
+    layout.objects={grandchild,child,root,other};
+    const auto rows=Editor::BuildHierarchyRows(layout,{});
+    Check(rows.size()==4 && rows[0].index==2 && rows[0].depth==0 && rows[0].children &&
+        rows[1].index==1 && rows[1].depth==1 && rows[1].children && rows[2].index==0 && rows[2].depth==2 &&
+        !rows[2].children && rows[3].index==3 && rows[3].depth==0, "Hierarchy preorder follows parents independently of storage order");
+    const auto collapsed=Editor::BuildHierarchyRows(layout,{"child"});
+    Check(collapsed.size()==3 && collapsed[0].index==2 && collapsed[1].index==1 && collapsed[2].index==3,
+        "collapsed parent hides descendants but preserves other roots");
+    Check(Editor::BuildHierarchyRows(layout,{"root"}).size()==2 && Editor::BuildHierarchyRows({},{}).empty(),
+        "root collapse and empty Hierarchy remain valid");
+}
+
 void ValidateParentData()
 {
     const auto legacy=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
@@ -1221,6 +1267,8 @@ void ValidateParentData()
         deep.objects.push_back(std::move(node));
     }
     std::reverse(deep.objects.begin(),deep.objects.end());
+    const auto deepRows=Editor::BuildHierarchyRows(deep,{});
+    Check(deepRows.size()==2000 && deepRows.back().depth==1999, "deep Hierarchy rows build without recursive traversal");
     Check(SceneRuntime::SceneLayout::Parse(deep.Serialize()).objects.size()==2000, "deep parent graph validates without recursive traversal");
     deep.objects.back().parentId=deep.objects.front().id;
     rejects(deep);
@@ -1582,6 +1630,7 @@ int main()
         ValidateEditorCamera();
         ValidateSceneLayout();
         ValidateParentData();
+        ValidateHierarchyRows();
         ValidateSceneFiles();
         ValidateDiagnostics();
         ValidateTitleMenu();

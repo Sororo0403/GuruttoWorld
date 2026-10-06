@@ -73,6 +73,24 @@ namespace SceneRuntime
         for (const auto& object : objects_) object.Draw(commands, camera, light);
     }
 
+    bool SceneWorld::SetParent(std::string_view id, std::string parentId, std::string& error)
+    {
+        try
+        {
+            auto candidate=layout_;
+            const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
+                [&](const auto& object) { return object.id==id; });
+            if (found==candidate.objects.end()) throw std::runtime_error("Object no longer exists");
+            const auto index=static_cast<size_t>(found-candidate.objects.begin());
+            found->parentId=parentId;
+            static_cast<void>(candidate.Serialize());
+            layout_.objects[index].parentId=std::move(parentId);
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& exception) { error=exception.what(); return false; }
+    }
+
     bool SceneWorld::RenameObject(std::string_view id, std::string name)
     {
         if (name.find_first_not_of(" \t\r\n")==std::string::npos || name.find('\0')!=std::string::npos) return false;

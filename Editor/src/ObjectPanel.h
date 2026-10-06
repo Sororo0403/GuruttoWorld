@@ -1,5 +1,6 @@
 #pragma once
 #include "EditState.h"
+#include "HierarchyRows.h"
 #include <imgui.h>
 #include <string>
 #include <optional>
@@ -11,7 +12,16 @@ namespace Editor
     public:
         void Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
     private:
-        void DrawObjects(const SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
+        void DrawObjects(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
+        std::vector<HierarchyRow> VisibleRows(const SceneRuntime::SceneLayout& layout) const;
+        void DrawHierarchy(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
+        void DrawRow(SceneRuntime::SceneWorld& world, EditState& state, const HierarchyRow& row, const std::vector<std::string>& visible);
+        void DrawReparentTarget(SceneRuntime::SceneWorld& world, EditState& state, const std::string& parent);
+        void DrawParent(SceneRuntime::SceneWorld& world, EditState& state, const SceneRuntime::ScenePlacement& placement);
+        void ChangeParent(SceneRuntime::SceneWorld& world, EditState& state, const std::string& id, const std::string& parent);
+        std::unordered_set<std::string> collapsed_;
+        std::string parentError_;
+        bool editsEnabled_=false;
         void DrawInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         static void DrawMultiInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         void DrawName(SceneRuntime::SceneWorld& world, EditState& state, const SceneRuntime::ScenePlacement& placement);

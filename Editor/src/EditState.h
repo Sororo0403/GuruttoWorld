@@ -49,6 +49,15 @@ namespace Editor
             if (!invalidTransform_ && delta!=std::array<float,3>{}) changed_=true;
             return !invalidTransform_;
         }
+        bool SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId, std::string& error)
+        {
+            const auto& objects=world.Layout().objects;
+            const auto found=std::find_if(objects.begin(),objects.end(),[&](const auto& object) { return object.id==id; });
+            const bool changed=found!=objects.end() && found->parentId!=parentId;
+            if (!world.SetParent(id,std::move(parentId),error)) return false;
+            if (changed) changed_=true;
+            return true;
+        }
         bool Rename(SceneRuntime::SceneWorld& world, const std::string& id, std::string name)
         {
             if (!world.RenameObject(id, std::move(name))) return false;
