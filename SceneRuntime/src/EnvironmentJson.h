@@ -1,10 +1,10 @@
 #pragma once
 #include <SceneRuntime/SceneLayout.h>
-#include <winrt/Windows.Data.Json.h>
+#include <Engine/Core/Json.h>
 
 namespace SceneRuntime
 {
-    bool ReadEnvironmentComponent(const winrt::Windows::Data::Json::JsonObject& object,
+    bool ReadEnvironmentComponent(const Engine::Json& object,
         ScenePlacement& placement, const std::string& type);
-    void WriteEnvironmentComponents(winrt::Windows::Data::Json::JsonArray& array, const ScenePlacement& placement);
+    void WriteEnvironmentComponents(Engine::Json& array, const ScenePlacement& placement);
 }

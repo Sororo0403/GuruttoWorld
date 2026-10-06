@@ -137,6 +137,11 @@
   </ImportGroup>
   <ItemGroup>
     <ClInclude Include="include\SceneRuntime\UiComponents.h" />
+    <ClInclude Include="include\SceneRuntime\SceneAudio.h" />
+    <ClCompile Include="src\SceneAudio.cpp" />
+    <ClInclude Include="include\SceneRuntime\SceneUi.h" />
+    <ClCompile Include="src\SceneUi.cpp" />
+    <ClCompile Include="src\UiLayout.cpp" />
     <ClInclude Include="src\UiJson.h" />
     <ClCompile Include="src\UiJson.cpp" />
     <ClInclude Include="include\SceneRuntime\EnvironmentComponents.h" />

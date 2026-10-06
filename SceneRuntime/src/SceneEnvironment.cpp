@@ -16,8 +16,8 @@ namespace SceneRuntime
         SceneLayout layout, std::string& error)
     {
         if (!presentation_.Initialize(renderer,root,error) ||
-            !world_.Initialize(renderer,root,std::move(layout),root/"Shaders/Mesh.hlsl",&error)) return false;
-        seconds_=0; motionEnabled_=true;
+            !world_.Initialize(renderer,root,std::move(layout),root/"Shaders/Mesh.hlsl",&error) || !presentation_.PrepareUi(renderer,root,world_.Layout(),error)) return false;
+        seconds_=0; motionEnabled_=true; uiState_=SceneUi::Defaults(world_.Layout());
         error.clear();
         return true;
     }
@@ -41,8 +41,15 @@ namespace SceneRuntime
         });
         return found==objects.end() ? std::array<float,4>{} : ScenePresentation::Particle(world_,*found,index,seconds_);
     }
+    UiEvent SceneEnvironment::Click(const std::string& object)
+    {
+        const auto event=SceneUi::Activate(world_.Layout(),object,uiState_);
+        if(!event.sound.empty()) audio_.Play(event.sound);
+        if(event.action=="playAudio") audio_.Play(event.target);
+        return event;
+    }
     void SceneEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height) const
     {
-        presentation_.Draw(commands,world_,width,height,nullptr,seconds_,motionEnabled_);
+        presentation_.Draw(commands,world_,width,height,nullptr,seconds_,motionEnabled_,&uiState_);
     }
 }

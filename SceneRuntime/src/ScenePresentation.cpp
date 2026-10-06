@@ -94,14 +94,16 @@ namespace SceneRuntime
         }
     }
     void ScenePresentation::Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world,
-        unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, double seconds, bool motionEnabled) const
+        unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, double seconds, bool motionEnabled, const UiState* uiState) const
     {
         if (!width || !height) return;
         DrawSky(commands,world.Layout(),width,height,seconds);
         Engine::Camera gameCamera;
-        if (!sceneCamera && !SceneView::Camera(world,float(width)/height,seconds,gameCamera)) return;
+        if (!sceneCamera && !SceneView::Camera(world,float(width)/height,seconds,gameCamera))
+        { DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{}); return; }
         const auto& camera=sceneCamera ? *sceneCamera : gameCamera;
         world.Draw(commands,camera,SceneView::Light(world));
         if (motionEnabled) DrawParticles(commands,world,camera,seconds);
+        if (!sceneCamera) DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{});
     }
 }

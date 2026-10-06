@@ -1,155 +1,173 @@
 #include "UiJson.h"
-#include <winrt/Windows.Foundation.Collections.h>
+#include <SceneRuntime/SceneUi.h>
 #include <cmath>
+#include <algorithm>
 #include <stdexcept>
-#undef GetObject
 namespace {
-using namespace winrt::Windows::Data::Json;
-float Number(const JsonObject& o,const wchar_t* key,float low,float high) {
-    const auto v=o.GetNamedNumber(key);
+using Engine::Json;
+    using Engine::JsonNumber;
+    using Engine::JsonArray;
+    using Engine::JsonObject;
+float Number(const Json& o,const char* key,float low,float high) {
+    const auto v=JsonNumber(o.at(key));
     if (!std::isfinite(v) || v<low || v>high) throw std::runtime_error("UI property out of range");
     return static_cast<float>(v);
 }
-template<size_t N> std::array<float,N> Vector(const JsonObject& o,const wchar_t* key,float low,float high) {
-    const auto a=o.GetNamedArray(key); if(a.Size()!=N) throw std::runtime_error("UI vector size");
+template<size_t N> std::array<float,N> Vector(const Json& o,const char* key,float low,float high) {
+    const auto& a=JsonArray(o.at(key)); if(a.size()!=N) throw std::runtime_error("UI vector size");
     std::array<float,N> r{};
-    for(uint32_t i=0;i<N;++i) {const auto v=a.GetNumberAt(i); if(!std::isfinite(v)||v<low||v>high) throw std::runtime_error("UI vector range"); r[i]=static_cast<float>(v);}
+    for(uint32_t i=0;i<N;++i) {const auto v=JsonNumber(a.at(i)); if(!std::isfinite(v)||v<low||v>high) throw std::runtime_error("UI vector range"); r[i]=static_cast<float>(v);}
     return r;
 }
-std::string String(const JsonObject& o,const wchar_t* key) {
-    auto s=winrt::to_string(o.GetNamedString(key));
+std::string String(const Json& o,const char* key) {
+    auto s=o.at(key).get<std::string>();
     if(s.size()>16384 || s.find('\0')!=std::string::npos) throw std::runtime_error("Invalid UI string"); return s;
 }
-std::filesystem::path Path(const JsonObject& o,const wchar_t* key) {
-    auto s=String(o,key); std::filesystem::path p(winrt::to_hstring(s).c_str());
+std::filesystem::path Path(const Json& o,const char* key) {
+    auto s=String(o,key); std::filesystem::path p(std::u8string(s.begin(),s.end()));
     if(!s.empty() && (!s.starts_with("Assets/") || p.is_absolute() || p.has_root_name())) throw std::runtime_error("Asset must be relative to Assets");
-    for(const auto& part:p) if(part==L"..") throw std::runtime_error("Asset traversal"); return p;
+    if(std::any_of(p.begin(),p.end(),[](const auto& part){return part=="..";})) throw std::runtime_error("Asset traversal"); return p;
 }
-void Put(JsonObject& o,const wchar_t* k,float v){o.SetNamedValue(k,JsonValue::CreateNumberValue(v));}
-void Put(JsonObject& o,const wchar_t* k,bool v){o.SetNamedValue(k,JsonValue::CreateBooleanValue(v));}
-void Put(JsonObject& o,const wchar_t* k,const std::string& v){o.SetNamedValue(k,JsonValue::CreateStringValue(winrt::to_hstring(v)));}
-void Put(JsonObject& o,const wchar_t* k,const std::filesystem::path& v){auto u=v.generic_u8string(); Put(o,k,std::string(u.begin(),u.end()));}
-template<size_t N> void Put(JsonObject& o,const wchar_t* k,const std::array<float,N>& v){JsonArray a; for(auto x:v)a.Append(JsonValue::CreateNumberValue(x)); o.SetNamedValue(k,a);}
-void ReadCanvas(const JsonObject& o,SceneRuntime::ScenePlacement& p) {
+void Put(Json& o,const char* k,float v){o[k]=v;}
+void Put(Json& o,const char* k,bool v){o[k]=v;}
+void Put(Json& o,const char* k,const std::string& v){o[k]=v;}
+void Put(Json& o,const char* k,const std::filesystem::path& v){auto u=v.generic_u8string(); Put(o,k,std::string(u.begin(),u.end()));}
+template<size_t N> void Put(Json& o,const char* k,const std::array<float,N>& v){Json a=Json::array(); for(auto x:v)a.push_back(x); o[k]=a;}
+void ReadCanvas(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.canvas) throw std::runtime_error("Duplicate Canvas");
-    SceneRuntime::CanvasComponent c; c.id=String(o,L"id"); c.enabled=o.GetNamedBoolean(L"enabled");
-    c.referenceSize=Vector<2>(o,L"referenceSize",1.0f,8192.0f);
+    SceneRuntime::CanvasComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
+    c.referenceSize=Vector<2>(o,"referenceSize",1.0f,8192.0f);
+    if(o.contains("stateDefaults")) for(const auto& [key,value]:JsonObject(o.at("stateDefaults")).items()) {
+        static_cast<void>(value);
+        if(key.empty() || key.find_first_of("=&")!=std::string::npos || key.find('\0')!=std::string::npos)
+            throw std::runtime_error("Invalid Canvas state key");
+        c.stateDefaults[key]=Number(o.at("stateDefaults"),key.c_str(),-100000,100000);
+    }
     p.canvas=std::move(c);
 }
-void WriteCanvas(JsonArray& a,const SceneRuntime::CanvasComponent& c) {
-    JsonObject o; Put(o,L"id",c.id); Put(o,L"type",std::string("Canvas")); Put(o,L"enabled",c.enabled);
-    Put(o,L"referenceSize",c.referenceSize);
-    a.Append(o);
+void WriteCanvas(Json& a,const SceneRuntime::CanvasComponent& c) {
+    Json o; Put(o,"id",c.id); Put(o,"type",std::string("Canvas")); Put(o,"enabled",c.enabled);
+    Put(o,"referenceSize",c.referenceSize);
+    Json defaults=Json::object(); for(const auto& [key,value]:c.stateDefaults) Put(defaults,key.c_str(),value); o["stateDefaults"]=defaults;
+    a.push_back(o);
 }
-void ReadRectTransform(const JsonObject& o,SceneRuntime::ScenePlacement& p) {
+void ReadRectTransform(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.rectTransform) throw std::runtime_error("Duplicate RectTransform");
-    SceneRuntime::RectTransformComponent c; c.id=String(o,L"id"); c.enabled=o.GetNamedBoolean(L"enabled");
-    c.anchorMin=Vector<2>(o,L"anchorMin",0.0f,1.0f);
-    c.anchorMax=Vector<2>(o,L"anchorMax",0.0f,1.0f);
-    c.pivot=Vector<2>(o,L"pivot",0.0f,1.0f);
-    c.position=Vector<2>(o,L"position",-100000.0f,100000.0f);
-    c.size=Vector<2>(o,L"size",0.0f,100000.0f);
-    c.rotation=Number(o,L"rotation",-100000.0f,100000.0f);
-    c.introDelay=Number(o,L"introDelay",0.0f,0.99f);
-    c.introOffset=Number(o,L"introOffset",-100000.0f,100000.0f);
-    c.visibleWhen=String(o,L"visibleWhen");
-    c.offsetBinding=String(o,L"offsetBinding");
-    c.opacityBinding=String(o,L"opacityBinding");
+    SceneRuntime::RectTransformComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
+    c.anchorMin=Vector<2>(o,"anchorMin",0.0f,1.0f);
+    c.anchorMax=Vector<2>(o,"anchorMax",0.0f,1.0f);
+    c.pivot=Vector<2>(o,"pivot",0.0f,1.0f);
+    c.position=Vector<2>(o,"position",-100000.0f,100000.0f);
+    c.size=Vector<2>(o,"size",0.0f,100000.0f);
+    c.rotation=Number(o,"rotation",-100000.0f,100000.0f);
+    c.introDelay=Number(o,"introDelay",0.0f,0.99f);
+    c.introOffset=Number(o,"introOffset",-100000.0f,100000.0f);
+    c.visibleWhen=String(o,"visibleWhen");
+    c.offsetBinding=String(o,"offsetBinding");
+    c.opacityBinding=String(o,"opacityBinding");
+    if(o.contains("widthBinding")) c.widthBinding=String(o,"widthBinding");
     for(size_t i=0;i<2;++i) if(c.anchorMin[i]>c.anchorMax[i]) throw std::runtime_error("Reversed anchors");
+    SceneRuntime::UiState check; if(!check.Assign(c.visibleWhen)) throw std::runtime_error("Invalid visibility expression");
     p.rectTransform=std::move(c);
 }
-void WriteRectTransform(JsonArray& a,const SceneRuntime::RectTransformComponent& c) {
-    JsonObject o; Put(o,L"id",c.id); Put(o,L"type",std::string("RectTransform")); Put(o,L"enabled",c.enabled);
-    Put(o,L"anchorMin",c.anchorMin);
-    Put(o,L"anchorMax",c.anchorMax);
-    Put(o,L"pivot",c.pivot);
-    Put(o,L"position",c.position);
-    Put(o,L"size",c.size);
-    Put(o,L"rotation",c.rotation);
-    Put(o,L"introDelay",c.introDelay);
-    Put(o,L"introOffset",c.introOffset);
-    Put(o,L"visibleWhen",c.visibleWhen);
-    Put(o,L"offsetBinding",c.offsetBinding);
-    Put(o,L"opacityBinding",c.opacityBinding);
-    a.Append(o);
+void WriteRectTransform(Json& a,const SceneRuntime::RectTransformComponent& c) {
+    Json o; Put(o,"id",c.id); Put(o,"type",std::string("RectTransform")); Put(o,"enabled",c.enabled);
+    Put(o,"anchorMin",c.anchorMin);
+    Put(o,"anchorMax",c.anchorMax);
+    Put(o,"pivot",c.pivot);
+    Put(o,"position",c.position);
+    Put(o,"size",c.size);
+    Put(o,"rotation",c.rotation);
+    Put(o,"introDelay",c.introDelay);
+    Put(o,"introOffset",c.introOffset);
+    Put(o,"visibleWhen",c.visibleWhen);
+    Put(o,"offsetBinding",c.offsetBinding);
+    Put(o,"opacityBinding",c.opacityBinding);
+    Put(o,"widthBinding",c.widthBinding);
+    a.push_back(o);
 }
-void ReadImage(const JsonObject& o,SceneRuntime::ScenePlacement& p) {
+void ReadImage(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.image) throw std::runtime_error("Duplicate Image");
-    SceneRuntime::ImageComponent c; c.id=String(o,L"id"); c.enabled=o.GetNamedBoolean(L"enabled");
-    c.texture=Path(o,L"texture");
-    c.uv=Vector<4>(o,L"uv",0.0f,1.0f);
-    c.color=Vector<4>(o,L"color",0.0f,1.0f);
+    SceneRuntime::ImageComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
+    c.texture=Path(o,"texture");
+    c.uv=Vector<4>(o,"uv",0.0f,1.0f);
+    c.color=Vector<4>(o,"color",0.0f,1.0f);
     if(c.uv[0]>c.uv[2] || c.uv[1]>c.uv[3]) throw std::runtime_error("Reversed UV");
     p.image=std::move(c);
 }
-void WriteImage(JsonArray& a,const SceneRuntime::ImageComponent& c) {
-    JsonObject o; Put(o,L"id",c.id); Put(o,L"type",std::string("Image")); Put(o,L"enabled",c.enabled);
-    Put(o,L"texture",c.texture);
-    Put(o,L"uv",c.uv);
-    Put(o,L"color",c.color);
-    a.Append(o);
+void WriteImage(Json& a,const SceneRuntime::ImageComponent& c) {
+    Json o; Put(o,"id",c.id); Put(o,"type",std::string("Image")); Put(o,"enabled",c.enabled);
+    Put(o,"texture",c.texture);
+    Put(o,"uv",c.uv);
+    Put(o,"color",c.color);
+    a.push_back(o);
 }
-void ReadText(const JsonObject& o,SceneRuntime::ScenePlacement& p) {
+void ReadText(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.text) throw std::runtime_error("Duplicate Text");
-    SceneRuntime::TextComponent c; c.id=String(o,L"id"); c.enabled=o.GetNamedBoolean(L"enabled");
-    c.text=String(o,L"text");
-    c.font=String(o,L"font");
-    c.fontSize=Number(o,L"fontSize",1.0f,512.0f);
-    c.color=Vector<4>(o,L"color",0.0f,1.0f);
+    SceneRuntime::TextComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
+    c.text=String(o,"text");
+    c.font=String(o,"font");
+    c.fontSize=Number(o,"fontSize",1.0f,512.0f);
+    c.color=Vector<4>(o,"color",0.0f,1.0f);
     p.text=std::move(c);
 }
-void WriteText(JsonArray& a,const SceneRuntime::TextComponent& c) {
-    JsonObject o; Put(o,L"id",c.id); Put(o,L"type",std::string("Text")); Put(o,L"enabled",c.enabled);
-    Put(o,L"text",c.text);
-    Put(o,L"font",c.font);
-    Put(o,L"fontSize",c.fontSize);
-    Put(o,L"color",c.color);
-    a.Append(o);
+void WriteText(Json& a,const SceneRuntime::TextComponent& c) {
+    Json o; Put(o,"id",c.id); Put(o,"type",std::string("Text")); Put(o,"enabled",c.enabled);
+    Put(o,"text",c.text);
+    Put(o,"font",c.font);
+    Put(o,"fontSize",c.fontSize);
+    Put(o,"color",c.color);
+    a.push_back(o);
 }
-void ReadButton(const JsonObject& o,SceneRuntime::ScenePlacement& p) {
+void ReadButton(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.button) throw std::runtime_error("Duplicate Button");
-    SceneRuntime::ButtonComponent c; c.id=String(o,L"id"); c.enabled=o.GetNamedBoolean(L"enabled");
-    c.action=String(o,L"action");
-    c.target=String(o,L"target");
-    c.sound=String(o,L"sound");
-    c.hoverColor=Vector<4>(o,L"hoverColor",0.0f,1.0f);
-    c.pressedColor=Vector<4>(o,L"pressedColor",0.0f,1.0f);
-    if(c.action!="click" && c.action!="show" && c.action!="hide" && c.action!="toggle" && c.action!="playAudio" && c.action!="loadScene" && c.action!="quit") throw std::runtime_error("Unsupported button action");
+    SceneRuntime::ButtonComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
+    c.action=String(o,"action");
+    c.target=String(o,"target");
+    if(o.contains("event")) c.event=String(o,"event");
+    c.sound=String(o,"sound");
+    c.hoverColor=Vector<4>(o,"hoverColor",0.0f,1.0f);
+    c.pressedColor=Vector<4>(o,"pressedColor",0.0f,1.0f);
+    const std::array<std::string_view,8> actions{"click","show","hide","toggle","playAudio","loadScene","quit","setState"};
+    if(std::find(actions.begin(),actions.end(),c.action)==actions.end()) throw std::runtime_error("Unsupported button action");
+    if(c.action=="loadScene" && (!c.target.starts_with("Assets/Scenes/") || std::filesystem::path(c.target).extension()!=".json" || std::filesystem::path(c.target).has_root_name() || c.target.find("..")!=std::string::npos)) throw std::runtime_error("Scene target must be relative to Assets/Scenes");
+    SceneRuntime::UiState check; if(c.action=="setState" && !check.Assign(c.target)) throw std::runtime_error("Invalid state assignment");
     p.button=std::move(c);
 }
-void WriteButton(JsonArray& a,const SceneRuntime::ButtonComponent& c) {
-    JsonObject o; Put(o,L"id",c.id); Put(o,L"type",std::string("Button")); Put(o,L"enabled",c.enabled);
-    Put(o,L"action",c.action);
-    Put(o,L"target",c.target);
-    Put(o,L"sound",c.sound);
-    Put(o,L"hoverColor",c.hoverColor);
-    Put(o,L"pressedColor",c.pressedColor);
-    a.Append(o);
+void WriteButton(Json& a,const SceneRuntime::ButtonComponent& c) {
+    Json o; Put(o,"id",c.id); Put(o,"type",std::string("Button")); Put(o,"enabled",c.enabled);
+    Put(o,"action",c.action);
+    Put(o,"target",c.target);
+    Put(o,"event",c.event);
+    Put(o,"sound",c.sound);
+    Put(o,"hoverColor",c.hoverColor);
+    Put(o,"pressedColor",c.pressedColor);
+    a.push_back(o);
 }
-void ReadAudioSource(const JsonObject& o,SceneRuntime::ScenePlacement& p) {
+void ReadAudioSource(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.audioSource) throw std::runtime_error("Duplicate AudioSource");
-    SceneRuntime::AudioSourceComponent c; c.id=String(o,L"id"); c.enabled=o.GetNamedBoolean(L"enabled");
-    c.clip=Path(o,L"clip");
-    c.volume=Number(o,L"volume",0.0f,1.0f);
-    c.loop=o.GetNamedBoolean(L"loop");
-    c.playOnAwake=o.GetNamedBoolean(L"playOnAwake");
-    c.cue=String(o,L"cue");
-    c.volumeBinding=String(o,L"volumeBinding");
+    SceneRuntime::AudioSourceComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
+    c.clip=Path(o,"clip");
+    c.volume=Number(o,"volume",0.0f,1.0f);
+    c.loop=o.at("loop").get<bool>();
+    c.playOnAwake=o.at("playOnAwake").get<bool>();
+    c.cue=String(o,"cue");
+    c.volumeBinding=String(o,"volumeBinding");
     p.audioSource=std::move(c);
 }
-void WriteAudioSource(JsonArray& a,const SceneRuntime::AudioSourceComponent& c) {
-    JsonObject o; Put(o,L"id",c.id); Put(o,L"type",std::string("AudioSource")); Put(o,L"enabled",c.enabled);
-    Put(o,L"clip",c.clip);
-    Put(o,L"volume",c.volume);
-    Put(o,L"loop",c.loop);
-    Put(o,L"playOnAwake",c.playOnAwake);
-    Put(o,L"cue",c.cue);
-    Put(o,L"volumeBinding",c.volumeBinding);
-    a.Append(o);
+void WriteAudioSource(Json& a,const SceneRuntime::AudioSourceComponent& c) {
+    Json o; Put(o,"id",c.id); Put(o,"type",std::string("AudioSource")); Put(o,"enabled",c.enabled);
+    Put(o,"clip",c.clip);
+    Put(o,"volume",c.volume);
+    Put(o,"loop",c.loop);
+    Put(o,"playOnAwake",c.playOnAwake);
+    Put(o,"cue",c.cue);
+    Put(o,"volumeBinding",c.volumeBinding);
+    a.push_back(o);
 }
 }
 namespace SceneRuntime {
-bool ReadUiComponent(const JsonObject& o,ScenePlacement& p,const std::string& type) {
+bool ReadUiComponent(const Json& o,ScenePlacement& p,const std::string& type) {
     if(type=="Canvas") ReadCanvas(o,p);
     else if(type=="RectTransform") ReadRectTransform(o,p);
     else if(type=="Image") ReadImage(o,p);
@@ -158,7 +176,7 @@ bool ReadUiComponent(const JsonObject& o,ScenePlacement& p,const std::string& ty
     else if(type=="AudioSource") ReadAudioSource(o,p);
     else return false; return true;
 }
-void WriteUiComponents(JsonArray& a,const ScenePlacement& p) {
+void WriteUiComponents(Json& a,const ScenePlacement& p) {
     if(p.canvas) WriteCanvas(a,*p.canvas);
     if(p.rectTransform) WriteRectTransform(a,*p.rectTransform);
     if(p.image) WriteImage(a,*p.image);

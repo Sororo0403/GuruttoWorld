@@ -132,6 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\Core\Application.h" />
+    <ClInclude Include="include\Engine\Core\Json.h" />
     <ClInclude Include="include\Engine\Core\DiagnosticPaths.h" />
     <ClInclude Include="include\Engine\Core\Log.h" />
     <ClInclude Include="include\Engine\Core\CrashHandler.h" />

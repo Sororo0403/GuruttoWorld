@@ -1,9 +1,8 @@
 #include <SceneRuntime/SceneLayout.h>
 #include "SceneComponentJson.h"
 #include "SceneSettingsJson.h"
-#include <winrt/Windows.Data.Json.h>
-#include <winrt/Windows.Foundation.Collections.h>
-#include <roapi.h>
+#include <Engine/Core/Json.h>
+#include <Windows.h>
 #include <cmath>
 #include <algorithm>
 #include <fstream>
@@ -14,21 +13,13 @@
 #include <optional>
 #include <utility>
 #include <atomic>
-#undef GetObject
-#pragma comment(lib, "windowsapp.lib")
 
 namespace
 {
-    // アプリの既存COM初期化方式を変えず、単体テストからも利用できます。
-    struct JsonApartment
-    {
-        HRESULT result = RoInitialize(RO_INIT_MULTITHREADED);
-        JsonApartment()
-        {
-            if (FAILED(result) && result != RPC_E_CHANGED_MODE) winrt::check_hresult(result);
-        }
-        ~JsonApartment() { if (SUCCEEDED(result)) RoUninitialize(); }
-    };
+    using Engine::Json;
+    using Engine::JsonNumber;
+    using Engine::JsonArray;
+    using Engine::JsonObject;
 
     void ValidateCamera(const SceneRuntime::SceneLayout& layout)
     {
@@ -68,15 +59,15 @@ namespace
         }
     }
 
-    std::array<float, 3> ReadVector(const winrt::Windows::Data::Json::JsonObject& object,
-        const wchar_t* key, bool scale = false)
+    std::array<float, 3> ReadVector(const Json& object,
+        const char* key, bool scale = false)
     {
-        const auto values = object.GetNamedArray(key);
-        if (values.Size() != 3) throw std::runtime_error("Transform requires three components");
+        const auto& values = JsonArray(object.at(key));
+        if (values.size() != 3) throw std::runtime_error("Transform requires three components");
         std::array<float, 3> result;
         for (uint32_t i = 0; i < 3; ++i)
         {
-            const double value = values.GetNumberAt(i);
+            const double value = JsonNumber(values.at(i));
             if (!std::isfinite(value) || std::abs(value) > (std::numeric_limits<float>::max)() ||
                 (scale && std::abs(value) < static_cast<double>(0.000001f)))
                 throw std::runtime_error("Transform contains an invalid number or zero scale");
@@ -92,34 +83,30 @@ namespace SceneRuntime
     {
         try
         {
-            JsonApartment apartment;
-            const auto document = winrt::Windows::Data::Json::JsonObject::Parse(winrt::to_hstring(json));
-            const double version=document.GetNamedNumber(L"version");
+            const auto document = Json::parse(json);
+            JsonObject(document);
+            const double version=JsonNumber(document.at("version"));
             if (version!=2.0 && version!=3.0 && version!=4.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
-            if (version==4.0) layout.settings=ReadSceneSettings(document.GetNamedObject(L"settings"));
-            if (document.HasKey(L"transformSpace")) throw std::runtime_error("Scenes always use local transforms");
+            if (version==4.0) layout.settings=ReadSceneSettings(JsonObject(document.at("settings")));
+            if (document.contains("transformSpace")) throw std::runtime_error("Scenes always use local transforms");
             std::unordered_set<std::string> ids;
-            for (const auto& value : document.GetNamedArray(L"objects"))
+            for (const auto& value : JsonArray(document.at("objects")))
             {
-                const auto object = value.GetObject();
+                const auto& object = JsonObject(value);
                 ScenePlacement placement;
-                placement.id = winrt::to_string(object.GetNamedString(L"id"));
+                placement.id = object.at("id").get<std::string>();
                 if (placement.id.empty() || !ids.insert(placement.id).second)
                     throw std::runtime_error("Empty or duplicate object ID: " + placement.id);
                 try
                 {
-                    placement.name = winrt::to_string(object.GetNamedString(L"name"));
-                    if (object.HasKey(L"parent")) placement.parentId = winrt::to_string(object.GetNamedString(L"parent"));
+                    placement.name = object.at("name").get<std::string>();
+                    if (object.contains("parent")) placement.parentId = object.at("parent").get<std::string>();
                     ReadSceneComponents(object,placement,version==2.0);
-                    placement.position = ReadVector(object, L"position");
-                    placement.rotation = ReadVector(object, L"rotation");
-                    placement.scale = ReadVector(object, L"scale", true);
-                }
-                catch (const winrt::hresult_error& error)
-                {
-                    throw std::runtime_error(placement.id + ": " + winrt::to_string(error.message()));
+                    placement.position = ReadVector(object, "position");
+                    placement.rotation = ReadVector(object, "rotation");
+                    placement.scale = ReadVector(object, "scale", true);
                 }
                 catch (const std::exception& error)
                 {
@@ -131,44 +118,27 @@ namespace SceneRuntime
             ValidateCamera(layout);
             return layout;
         }
-        catch (const winrt::hresult_error& error)
+        catch (const Json::exception& error)
         {
-            throw std::runtime_error("Invalid layout JSON: " + winrt::to_string(error.message()));
+            throw std::runtime_error("Invalid layout JSON: " + std::string(error.what()));
         }
     }
 
     std::string SceneLayout::Serialize() const
     {
-        JsonApartment apartment;
-        using namespace winrt::Windows::Data::Json;
-        const auto vector = [](const std::array<float, 3>& values)
-        {
-            JsonArray array;
-            for (float value : values)
-            {
-                if (!std::isfinite(value)) throw std::runtime_error("Cannot save nonfinite transform");
-                array.Append(JsonValue::CreateNumberValue(value));
-            }
-            return array;
-        };
         const auto settingsObject=WriteSceneSettings(settings);
-        std::string json = "{\n  \"version\": 4,\n  \"settings\": "+winrt::to_string(settingsObject.Stringify())+",\n  \"objects\": [\n";
-        for (size_t i = 0; i < objects.size(); ++i)
-        {
-            const auto& placement = objects[i];
-            JsonObject object;
-            object.SetNamedValue(L"id", JsonValue::CreateStringValue(winrt::to_hstring(placement.id)));
-            object.SetNamedValue(L"name", JsonValue::CreateStringValue(winrt::to_hstring(placement.name)));
-            if (!placement.parentId.empty())
-                object.SetNamedValue(L"parent",JsonValue::CreateStringValue(winrt::to_hstring(placement.parentId)));
-            object.SetNamedValue(L"components",WriteSceneComponents(placement));
-            object.SetNamedValue(L"position", vector(placement.position));
-            object.SetNamedValue(L"rotation", vector(placement.rotation));
-            object.SetNamedValue(L"scale", vector(placement.scale));
-            json += "    " + winrt::to_string(object.Stringify()) + (i + 1 == objects.size() ? "\n" : ",\n");
+        std::string json="{\n  \"version\": 4,\n  \"settings\": "+settingsObject.dump()+",\n  \"objects\": [\n";
+        for(size_t i=0;i<objects.size();++i) {
+            const auto& p=objects[i];
+            const Json object={{"id",p.id},{"name",p.name},{"parent",p.parentId},
+                {"components",WriteSceneComponents(p)},{"position",p.position},{"rotation",p.rotation},{"scale",p.scale}};
+            for(const auto& vector:{p.position,p.rotation,p.scale})
+                if(std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);}))
+                    throw std::runtime_error("Cannot save nonfinite transform");
+            json+="    "+object.dump()+(i+1==objects.size()?"\n":",\n");
         }
-        json += "  ]\n}\n";
-        static_cast<void>(Parse(json)); // 再読み込みできるデータだけを書き出します。
+        json+="  ]\n}\n";
+        static_cast<void>(Parse(json));
         return json;
     }
 

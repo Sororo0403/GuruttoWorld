@@ -1,113 +1,112 @@
 #include "SceneComponentJson.h"
 #include "EnvironmentJson.h"
 #include "UiJson.h"
-#include <winrt/Windows.Foundation.Collections.h>
 #include <algorithm>
 #include <cmath>
 #include <cctype>
 #include <stdexcept>
 #include <unordered_set>
-#undef GetObject
 
 namespace
 {
-    using namespace winrt::Windows::Data::Json;
-    std::filesystem::path ReadModel(const JsonObject& object)
+    using Engine::Json;
+    using Engine::JsonArray;
+    using Engine::JsonObject;
+    using Engine::JsonNumber;
+    std::filesystem::path ReadModel(const Json& object)
     {
-        const auto text=winrt::to_string(object.GetNamedString(L"model"));
-        const auto path=std::filesystem::path(winrt::to_hstring(text).c_str());
+        const auto text=object.at("model").get<std::string>();
+        const auto path=std::filesystem::path(std::u8string(text.begin(),text.end()));
         auto extension=path.extension().string();
         std::transform(extension.begin(),extension.end(),extension.begin(),[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (path.is_absolute() || path.has_root_name() || !text.starts_with("Assets/Models/") ||
-            extension!=".obj" || std::any_of(path.begin(),path.end(),[](const auto& part) { return part==L".."; }))
+            extension!=".obj" || std::any_of(path.begin(),path.end(),[](const auto& part) { return part==".."; }))
             throw std::runtime_error("MeshRenderer model must be an OBJ relative to Assets/Models");
         return path;
     }
 
-    std::array<float,3> ReadVelocity(const JsonObject& object)
+    std::array<float,3> ReadVelocity(const Json& object)
     {
-        const auto array=object.GetNamedArray(L"angularVelocity");
-        if (array.Size()!=3) throw std::runtime_error("Rotator angularVelocity requires three components");
+        const auto& array=JsonArray(object.at("angularVelocity"));
+        if (array.size()!=3) throw std::runtime_error("Rotator angularVelocity requires three components");
         std::array<float,3> result;
         for (uint32_t index=0;index<3;++index)
         {
-            const auto value=array.GetNumberAt(index);
+            const auto value=JsonNumber(array.at(index));
             if (!std::isfinite(value) || std::abs(value)>100000.0) throw std::runtime_error("Rotator speed must be finite and within +/-100000 degrees/s");
             result[index]=static_cast<float>(value);
         }
         return result;
     }
 
-    JsonObject Component(const std::string& id, const wchar_t* type, bool enabled)
+    Json Component(const std::string& id, const char* type, bool enabled)
     {
-        JsonObject object;
-        object.SetNamedValue(L"id",JsonValue::CreateStringValue(winrt::to_hstring(id)));
-        object.SetNamedValue(L"type",JsonValue::CreateStringValue(type));
-        object.SetNamedValue(L"enabled",JsonValue::CreateBooleanValue(enabled));
+        Json object=Json::object();
+        object["id"]=id;
+        object["type"]=type;
+        object["enabled"]=enabled;
         return object;
     }
 }
 
 namespace SceneRuntime
 {
-    void ReadSceneComponents(const JsonObject& object, ScenePlacement& placement, bool legacy)
+    void ReadSceneComponents(const Json& object, ScenePlacement& placement, bool legacy)
     {
         if (legacy)
         {
-            if (object.HasKey(L"components")) throw std::runtime_error("Version 2 cannot contain components");
+            if (object.contains("components")) throw std::runtime_error("Version 2 cannot contain components");
             placement.SetModel(ReadModel(object));
             return;
         }
-        if (object.HasKey(L"model")) throw std::runtime_error("Version 3 model belongs to MeshRenderer");
+        if (object.contains("model")) throw std::runtime_error("Version 3 model belongs to MeshRenderer");
         std::unordered_set<std::string> ids{"transform"};
-        for (const auto& value : object.GetNamedArray(L"components"))
+        for (const auto& value : JsonArray(object.at("components")))
         {
-            const auto component=value.GetObject();
-            const auto id=winrt::to_string(component.GetNamedString(L"id"));
+            const auto& component=JsonObject(value);
+            const auto id=component.at("id").get<std::string>();
             if (id.empty() || id.find('\0')!=std::string::npos || !ids.insert(id).second)
                 throw std::runtime_error("Empty, duplicate or reserved component ID");
-            const auto type=component.GetNamedString(L"type");
-            const bool enabled=component.GetNamedBoolean(L"enabled");
-            if (type==L"MeshRenderer")
+            const auto type=component.at("type").get<std::string>();
+            const bool enabled=component.at("enabled").get<bool>();
+            if (type=="MeshRenderer")
             {
                 if (placement.meshRenderer) throw std::runtime_error("Only one MeshRenderer is allowed");
                 placement.meshRenderer=MeshRendererComponent{id,enabled,ReadModel(component)};
             }
-            else if (type==L"Rotator")
+            else if (type=="Rotator")
             {
                 if (placement.rotator) throw std::runtime_error("Only one Rotator is allowed");
                 placement.rotator=RotatorComponent{id,enabled,ReadVelocity(component)};
             }
-            else if (!ReadEnvironmentComponent(component,placement,winrt::to_string(type)) &&
-                !ReadUiComponent(component,placement,winrt::to_string(type)))
-                throw std::runtime_error("Unsupported component type: "+winrt::to_string(type));
+            else if (!ReadEnvironmentComponent(component,placement,type) &&
+                !ReadUiComponent(component,placement,type))
+                throw std::runtime_error("Unsupported component type: "+type);
         }
     }
 
-    JsonArray WriteSceneComponents(const ScenePlacement& placement)
+    Json WriteSceneComponents(const ScenePlacement& placement)
     {
-        JsonArray components;
+        Json components=Json::array();
         if (placement.meshRenderer)
         {
             const auto& mesh=*placement.meshRenderer;
-            auto object=Component(mesh.id,L"MeshRenderer",mesh.enabled);
-            const auto text=mesh.model.generic_u8string();
-            object.SetNamedValue(L"model",JsonValue::CreateStringValue(winrt::to_hstring(
-                std::string_view(reinterpret_cast<const char*>(text.data()),text.size()))));
-            components.Append(object);
+            auto object=Component(mesh.id,"MeshRenderer",mesh.enabled);
+            object["model"]=mesh.model;
+            components.push_back(object);
         }
         if (placement.rotator)
         {
             const auto& rotator=*placement.rotator;
-            auto object=Component(rotator.id,L"Rotator",rotator.enabled);
-            JsonArray velocity;
+            auto object=Component(rotator.id,"Rotator",rotator.enabled);
+            Json velocity=Json::array();
             for (const auto value : rotator.angularVelocity)
             {
                 if (!std::isfinite(value) || std::abs(value)>100000.0f) throw std::runtime_error("Invalid Rotator speed");
-                velocity.Append(JsonValue::CreateNumberValue(value));
+                velocity.push_back(value);
             }
-            object.SetNamedValue(L"angularVelocity",velocity);
-            components.Append(object);
+            object["angularVelocity"]=velocity;
+            components.push_back(object);
         }
         WriteEnvironmentComponents(components,placement);
         WriteUiComponents(components,placement);

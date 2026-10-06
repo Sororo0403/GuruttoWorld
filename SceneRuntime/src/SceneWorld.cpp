@@ -520,6 +520,11 @@ namespace SceneRuntime
             if (parent!=copies.end()) placement.parentId=parent->second;
             else if (!TranslatePlacement(placement,offset))
             { error=placement.id+": invalid world duplicate offset"; return false; }
+            if(placement.button) {
+                const auto remap=[&](std::string& id) {const auto found=copies.find(id); if(found!=copies.end()) id=found->second;};
+                if(placement.button->action!="loadScene" && placement.button->action!="setState") remap(placement.button->target);
+                remap(placement.button->sound);
+            }
             placement.id=copies.at(placement.id); placement.name+=" copy";
             candidate.objects.push_back(std::move(placement));
             objects.push_back(objects_[index]);

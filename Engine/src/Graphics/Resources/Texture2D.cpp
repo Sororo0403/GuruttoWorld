@@ -47,8 +47,6 @@ namespace Engine
             return false;
         }
         ImageData image;
-        ComPtr<ID3D12Resource> upload;
-        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
         if (path.empty())
         {
             image = { 1, 1, { 255, 255, 255, 255 } };
@@ -57,17 +55,22 @@ namespace Engine
         {
             return false;
         }
-        if (!CreateResource(device, image) ||
-            !CreateUploadBuffer(device, image, upload, footprint) ||
-            !CreateShaderResourceView(device) || !UploadAndWait(device, queue, upload.Get(), footprint))
+        return InitializePixels(device,queue,image.width,image.height,std::move(image.pixels));
+    }
+
+    bool Texture2D::InitializePixels(ID3D12Device* device, ID3D12CommandQueue* queue, UINT width, UINT height,
+        std::vector<unsigned char> pixels)
+    {
+        if (resource_ || !device || !queue || queue->GetDesc().Type!=D3D12_COMMAND_LIST_TYPE_DIRECT ||
+            !width || !height || width>16384 || height>16384 || pixels.size()!=size_t(width)*height*4) return false;
+        ImageData image{width,height,std::move(pixels)};
+        ComPtr<ID3D12Resource> upload;
+        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+        if (!CreateResource(device,image) || !CreateUploadBuffer(device,image,upload,footprint) ||
+            !CreateShaderResourceView(device) || !UploadAndWait(device,queue,upload.Get(),footprint))
         {
-            descriptorHeap_.Reset();
-            cpuDescriptorHeap_.Reset();
-            resource_.Reset();
-            return false;
+            descriptorHeap_.Reset(); cpuDescriptorHeap_.Reset(); resource_.Reset(); return false;
         }
-        // 転送完了後なので、関数を抜ける際にアップロードバッファーを解放できます。
-        Log::Info(std::format("Texture loaded: {}x{}", image.width, image.height));
         return true;
     }
 

@@ -146,6 +146,13 @@ namespace Engine
         return found == sounds_.end() ? 0.0f : found->second.volume;
     }
 
+    bool AudioSystem::Pause(SoundHandle handle, bool paused)
+    {
+        const auto found=sounds_.find(handle);
+        if(found==sounds_.end() || !found->second.voice) return false;
+        return Check(paused?found->second.voice->Stop():found->second.voice->Start(),"Pause/resume sound");
+    }
+
     bool AudioSystem::IsPlaying(SoundHandle handle) const
     {
         const auto found = sounds_.find(handle);

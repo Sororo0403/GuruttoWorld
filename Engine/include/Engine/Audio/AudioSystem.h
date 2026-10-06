@@ -81,6 +81,7 @@ namespace Engine
         /// 指定した音に再生待ちまたは再生中のバッファーがあるか取得します。
         /// </summary>
         bool IsPlaying(SoundHandle handle) const;
+        bool Pause(SoundHandle handle, bool paused);
 
     private:
         struct Sound
