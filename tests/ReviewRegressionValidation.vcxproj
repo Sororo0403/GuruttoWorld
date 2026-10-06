@@ -91,6 +91,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ReviewRegressionValidation.cpp" />
+    <ClCompile Include="..\Editor\src\EditorFonts.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\Editor\src\AssetPreview.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>

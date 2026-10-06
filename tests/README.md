@@ -175,3 +175,6 @@ UI・音声・JSONの回帰はReviewRegressionValidationに含みます。Canvas
 AudioValidationは有限長音源をPauseしたまま本来の再生時間を超えて待ち、バッファー保持とResume後の終了を検証します。自動テストは聴感や手動のUI操作確認とは別です。ManualChecks N〜Pは未確認として扱います。
 
 シーンと設定のC++ JSON処理はnlohmann/json 3.12.0です。旧シーンの型検証・不正入力・Save/Loadと旧設定テキストの読み込みを維持し、JSON設定の型誤りも拒否します。依存ヘッダーの出典・SHA-256はEngine/externals/nlohmann/README.mdに記録しています。
+
+
+EditorのImGuiフォントはDebug回帰のEditorFontValidationで確認します。欠損時にアトラスが変わらないこと、初期化の重複防止、Fira MonoとM PLUS 1pの合成、ASCIIの等幅、ひらがな・カタカナ・半角カタカナ・漢字の字形とラスタライズ、UTF-8入力欄への日本語入力、DX12動的フォントテクスチャの描画を検証します。非表示の検証ウィンドウを使用します。ユーザーが操作中のEditor画面を制御しません。IME候補ウィンドウの位置と実際の変換操作はManualChecks Qで手動確認します。

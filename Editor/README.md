@@ -319,3 +319,14 @@ Playは独立したUI状態と音源を使用します。Pauseとフォーカス
 TitleStreetのロゴ・メニュー・設定表示・遷移帯・5音源はHierarchyから編集できます。タイトル固有の選択、設定保存、音量フェード、Game開始はAppのTitleMenuから状態／イベントで接続します。EditorのStartボタンのloadScene先はComponentDemoで、変更可能です。Appでは`menu:0`／`start`イベントが既存Gameへの開始を扱います。Game eventを空にすれば汎用Actionを使います。
 
 C++のJSON処理はnlohmann/json 3.12.0へ統一しています。依存ヘッダーとMITライセンスを同梱し、ビルド時のダウンロードは不要です。シーンversion 2〜4を読めます。ユーザー設定はsettings.jsonへ保存し、旧settings.txtも読み込みます。保存・再読み込み・UndoのJSON生成は同じ実装を使います。
+
+
+## エディターのImGuiフォントと日本語
+
+英数字はFira Mono Regular、日本語はM PLUS 1p Regularを同じImGuiフォントへ合成し、16pxを基準に表示します。Fira MonoのASCIIを維持し、同梱の日本語フォントでひらがな・カタカナ・漢字・日本語記号を補います。ImGui 1.92の動的字形読み込みを使い、旧GetGlyphRangesJapaneseの常用漢字リストで制限しません。
+
+フォントはContent/Assets/Fontsから読み込み、配布ビルドにもTTFとOFLライセンスをコピーします。Windowsへのフォントインストールは不要です。欠損時は起動エラーを表示し、別のフォントへの無言の置き換えは行いません。フォントを更新した場合はEditorを起動し直してください。出典とSHA-256はContent/Assets/Fonts/README.mdに記録しています。
+
+Hierarchyの名前、Inspectorの文字列、Projectの日本語パス、Consoleなどで日本語を表示できます。InputTextは既存のWin32 Unicode／IME入力を使ってUTF-8の値を編集します。今回の変更は文字の表示・入力対応です。メニューの英語ラベルやGame内のText Componentのフォント設定は従来どおりです。
+
+手動のIME候補表示・確定操作はManualChecks.mdのQで確認してください。

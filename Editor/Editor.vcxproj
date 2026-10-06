@@ -99,6 +99,8 @@
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\EditorFonts.cpp" />
+    <ClInclude Include="src\EditorFonts.h" />
     <ClCompile Include="src\CameraPanel.cpp" />
     <ClCompile Include="src\ObjectPanel.cpp" />
     <ClCompile Include="src\ComponentPanel.cpp" />

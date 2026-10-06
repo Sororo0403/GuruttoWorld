@@ -15,6 +15,7 @@
 #include "GameSession.h"
 #include "UiCanvasPanel.h"
 #include "AudioPreview.h"
+#include "EditorFonts.h"
 #include "PlaySnapshot.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/ScenePresentation.h>
@@ -279,6 +280,7 @@ namespace
         {
             if (!initialized)
             {
+                if(!Editor::EditorFonts::Initialize(root,fileStatus)) {LogResult(false); return false;}
                 const auto settingsRoot = Engine::GetDiagnosticsRoot();
                 Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{} : settingsRoot / "Editor/layout.ini");
                 sceneLoaded = world.Initialize(renderer, root, document.Path(),

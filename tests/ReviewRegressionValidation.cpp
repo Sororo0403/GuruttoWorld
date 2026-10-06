@@ -26,6 +26,7 @@
 #include "AuthoredViewFixture.h"
 #include "EnvironmentValidation.h"
 #include "UiValidation.h"
+#include "EditorFontValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -1766,6 +1767,9 @@ namespace
             Check(renderer.Initialize(window.GetHandle()), "title renderer");
             if (size==TitleSizes[0])
             {
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
+                EditorFontValidation::Run(renderer,TestContentRoot());
+#endif
                 ValidateAssetReload(renderer);
                 ValidateEmptyObjects(renderer);
                 EnvironmentValidation::Run(renderer);
