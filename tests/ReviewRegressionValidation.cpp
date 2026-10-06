@@ -26,6 +26,7 @@
 #include "AuthoredViewFixture.h"
 #include "EnvironmentValidation.h"
 #include "UiValidation.h"
+#include "AnimationValidation.h"
 #include "EditorFontValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
@@ -1775,6 +1776,7 @@ namespace
                 EnvironmentValidation::Run(renderer);
                 ValidateEnvironmentMotion(renderer);
                 UiValidation::Rendering(renderer,TestContentRoot());
+                AnimationValidation::Runtime(renderer,TestContentRoot());
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
@@ -2949,6 +2951,7 @@ int main()
         ValidateDeferredClose();
         ValidateEditorCamera();
         UiValidation::SchemaAndLayout();
+        AnimationValidation::Schema();
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
         ValidateAssetChangeBatching();

@@ -1,6 +1,7 @@
 #include "ComponentPanel.h"
 #include "EnvironmentPanel.h"
 #include "UiComponentPanel.h"
+#include "AnimationPanel.h"
 #include <imgui.h>
 
 namespace
@@ -89,6 +90,8 @@ namespace Editor
         }
         edited=EnvironmentPanel::Add(candidate) || edited;
         edited=UiComponentPanel::Add(candidate) || edited;
+        if (ImGui::MenuItem("アニメーション###Animation",nullptr,false,!candidate.animation))
+        { candidate.animation=SceneRuntime::AnimationComponent{NewComponentId(candidate,"animation"),true,{}}; edited=true; }
         ImGui::EndPopup();
         return edited;
     }
@@ -100,6 +103,7 @@ namespace Editor
         edited=DrawRotator(state,candidate) || edited;
         edited=EnvironmentPanel::Draw(state,candidate) || edited;
         edited=UiComponentPanel::Draw(state,candidate,catalog) || edited;
+        edited=AnimationPanel::Draw(state,candidate) || edited;
         edited=DrawAdd(candidate,catalog) || edited;
         if (edited && !candidate.SameComponents(placement))
             state.RequestComponents(std::move(candidate),state.Interaction());

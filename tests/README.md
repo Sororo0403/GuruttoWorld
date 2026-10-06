@@ -1,5 +1,9 @@
 # カメラ・パーティクルの検証
 
+キーフレーム演出はReviewRegressionValidationのAnimationValidationで検証します。
+補間・ループ・未開始時計・不正値の拒否・JSON保存復元・Canvas拡縮下のクリック判定と、
+Editorのカメラプレビュー・Pause・Step・開始時計・巻き戻し・編集データの保持を確認します。
+
 ## 静的解析と複雑度
 
 リポジトリのルートで `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/AnalyzeCode.ps1 -Label latest` を実行します。

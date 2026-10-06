@@ -289,6 +289,22 @@ TitleStreet.jsonとUiCheck.jsonにはCamera・DirectionalLight・Sky・ParticleE
 
 ## UIと音声を作る
 
+### キーフレームで演出を作る
+
+Inspectorの「コンポーネントを追加 → アニメーション」で、対象オブジェクトの演出を作れます。
+3D位置・3D回転・UI位置・UIサイズ・UI回転・不透明度を、昇順の時刻と値で保存します。
+回転はラジアン、位置・サイズは既存Transform／RectTransformと同じ座標系です。
+値はX/Y/Z/Wの4数値で保存し、2D位置・サイズはX/Y、回転・不透明度はXを使用します。
+等速・滑らか・減速・行き過ぎて止まる補間、遅延、ループをトラックごとに選べます。
+
+時計は「登場・経過時間」（sceneTime）、「待機」（motionTime）、「開始」（startTime）を選びます。
+開始時計はCanvas状態のstartRequested=1で起動します。負のstartTimeは未開始です。
+同じプロパティに複数トラックがあると、後の開始済みトラックが優先されます。
+CanvasのState defaultsで時計を設定すると編集プレビューのUIを確認できます。
+Play → 一時停止でツールバーの「演出時刻」「開始時刻」をドラッグすると、カメラとUIを同じ時刻へ移せます。
+Stopで実行用の配置と時計を破棄し、編集データへ戻ります。
+Animation ComponentはJSONへの保存／読み込み、複製、Undo／Redoに対応します。
+
 最初はProjectから`Assets/Scenes/UiAudioDemo.json`を開いて別名保存してください。Cameraを持たない2DシーンでもUIを描画できます。PlayでBGM、パネル切り替え、効果音、Play終了のボタンを確認できます。
 
 1. Create empty → Add Component → Canvas。Reference resolutionは基準の画面サイズです。実画面へ縦横比を保って収めます。Scale with screenをOFFにすると画面全体をピクセル座標で使い、全面の覆いなどを作れます。

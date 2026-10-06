@@ -2,6 +2,7 @@
 #include <SceneRuntime/SceneComponents.h>
 #include <SceneRuntime/EnvironmentComponents.h>
 #include <SceneRuntime/UiComponents.h>
+#include <SceneRuntime/Animation.h>
 #include <optional>
 #include <array>
 #include <filesystem>
@@ -28,23 +29,25 @@ namespace SceneRuntime
         std::optional<TextComponent> text;
         std::optional<ButtonComponent> button;
         std::optional<AudioSourceComponent> audioSource;
+        std::optional<AnimationComponent> animation;
         bool HasComponentId(const std::string& componentId) const
         {
             const auto matches=[&](const auto& component) { return component && component->id==componentId; };
             return componentId=="transform" || matches(meshRenderer) || matches(rotator) || matches(camera) ||
-                matches(directionalLight) || matches(sky) || matches(particleEmitter) || matches(cameraSway) || matches(canvas) || matches(rectTransform) || matches(image) || matches(text) || matches(button) || matches(audioSource);
+                matches(directionalLight) || matches(sky) || matches(particleEmitter) || matches(cameraSway) || matches(canvas) || matches(rectTransform) || matches(image) || matches(text) || matches(button) || matches(audioSource) || matches(animation);
         }
         bool SameComponents(const ScenePlacement& other) const
         {
             return meshRenderer==other.meshRenderer && rotator==other.rotator && camera==other.camera &&
                 directionalLight==other.directionalLight && sky==other.sky && particleEmitter==other.particleEmitter &&
-                cameraSway==other.cameraSway && canvas==other.canvas && rectTransform==other.rectTransform && image==other.image && text==other.text && button==other.button && audioSource==other.audioSource;
+                cameraSway==other.cameraSway && canvas==other.canvas && rectTransform==other.rectTransform && image==other.image && text==other.text && button==other.button && audioSource==other.audioSource && animation==other.animation;
         }
         void CopyComponents(const ScenePlacement& other)
         {
             meshRenderer=other.meshRenderer; rotator=other.rotator; camera=other.camera;
             directionalLight=other.directionalLight; sky=other.sky; particleEmitter=other.particleEmitter; cameraSway=other.cameraSway;
             canvas=other.canvas; rectTransform=other.rectTransform; image=other.image; text=other.text; button=other.button; audioSource=other.audioSource;
+            animation=other.animation;
         }
         const std::filesystem::path& Model() const
         {

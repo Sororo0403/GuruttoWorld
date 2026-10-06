@@ -18,6 +18,7 @@ namespace SceneRuntime
         if (!presentation_.Initialize(renderer,root,error) ||
             !world_.Initialize(renderer,root,std::move(layout),root/"Shaders/Mesh.hlsl",&error) || !presentation_.PrepareUi(renderer,root,world_.Layout(),error)) return false;
         seconds_=0; motionEnabled_=true; uiState_=SceneUi::Defaults(world_.Layout());
+        SeekAnimation(0,0);
         error.clear();
         return true;
     }
@@ -27,6 +28,24 @@ namespace SceneRuntime
         if (!active || !std::isfinite(deltaSeconds) || deltaSeconds<=0) return;
         if (!world_.UpdateComponents(deltaSeconds)) Engine::Log::Warning("Component update rejected an invalid inherited transform.");
         if (enabled) seconds_+=std::min(deltaSeconds,0.1);
+        const float elapsed=static_cast<float>(std::min(deltaSeconds,0.1));
+        sceneSeconds_+=elapsed;
+        if (uiState_.Value("startRequested")==1 && startSeconds_<0) startSeconds_=0;
+        else if (startSeconds_>=0) startSeconds_+=elapsed;
+        uiState_.values["sceneTime"]=sceneSeconds_;
+        uiState_.values["motionTime"]=static_cast<float>(seconds_);
+        uiState_.values["startTime"]=startSeconds_;
+        if (!world_.Animate(uiState_.values)) Engine::Log::Warning("Animation rejected an invalid transform.");
+    }
+    void SceneEnvironment::SeekAnimation(float sceneSeconds,float motionSeconds,float startSeconds)
+    {
+        if (!std::isfinite(sceneSeconds) || !std::isfinite(motionSeconds) || !std::isfinite(startSeconds) ||
+            sceneSeconds<0 || motionSeconds<0) return;
+        sceneSeconds_=sceneSeconds; seconds_=motionSeconds; startSeconds_=startSeconds;
+        uiState_.values["sceneTime"]=sceneSeconds;
+        uiState_.values["motionTime"]=motionSeconds;
+        uiState_.values["startTime"]=startSeconds;
+        world_.Animate(uiState_.values);
     }
     std::array<float,3> SceneEnvironment::CameraPosition() const
     {

@@ -49,6 +49,8 @@ namespace SceneRuntime
             const std::filesystem::path& assetsRoot, std::string& error);
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
         bool UpdateComponents(double seconds);
+        /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
+        bool Animate(const std::map<std::string, float>& clocks);
         bool RenameObject(std::string_view id, std::string name);
         // GPU完了を待った後、描画の外で呼びます。
         bool AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,

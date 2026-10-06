@@ -833,6 +833,16 @@ namespace
             ImGui::EndDisabled();
             ImGui::SameLine();
             ImGui::TextUnformatted(gameSession.State().Label());
+            if (auto* runtime=gameSession.Runtime(); runtime && gameSession.State().CanStep())
+            {
+                float time=runtime->Ui().Value("sceneTime");
+                float start=runtime->Ui().Value("startTime",-1);
+                ImGui::SameLine(); ImGui::SetNextItemWidth(120);
+                const bool seek=ImGui::DragFloat("演出時刻###Animation time",&time,0.01f,0,600,"%.2f秒",ImGuiSliderFlags_AlwaysClamp);
+                ImGui::SameLine(); ImGui::SetNextItemWidth(100);
+                const bool starting=ImGui::DragFloat("開始時刻###Start time",&start,0.01f,-1,600,"%.2f秒",ImGuiSliderFlags_AlwaysClamp);
+                if (seek || starting) runtime->SeekAnimation(time,time,start);
+            }
         }
 
         void DrawToolbar()

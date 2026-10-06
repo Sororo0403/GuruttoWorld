@@ -136,6 +136,8 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\Animation.h" />
+    <ClCompile Include="src\Animation.cpp" />
     <ClInclude Include="include\SceneRuntime\UiComponents.h" />
     <ClInclude Include="include\SceneRuntime\SceneAudio.h" />
     <ClCompile Include="src\SceneAudio.cpp" />

@@ -47,6 +47,48 @@ namespace
         object["enabled"]=enabled;
         return object;
     }
+    SceneRuntime::AnimationComponent ReadAnimation(const Json& object)
+    {
+        SceneRuntime::AnimationComponent animation;
+        animation.id=object.at("id").get<std::string>();
+        animation.enabled=object.at("enabled").get<bool>();
+        for (const auto& value : JsonArray(object.at("tracks")))
+        {
+            SceneRuntime::AnimationTrack track;
+            track.property=value.at("property").get<std::string>();
+            track.clock=value.at("clock").get<std::string>();
+            track.easing=value.at("easing").get<std::string>();
+            track.delay=static_cast<float>(JsonNumber(value.at("delay")));
+            track.loop=value.at("loop").get<bool>();
+            track.keys.clear();
+            for (const auto& key : JsonArray(value.at("keys")))
+            {
+                SceneRuntime::AnimationKey frame;
+                frame.time=static_cast<float>(JsonNumber(key.at("time")));
+                const auto& vector=JsonArray(key.at("value"));
+                if (vector.size()!=4) throw std::runtime_error("Animation value requires four numbers");
+                for (size_t axis=0;axis<4;++axis) frame.value[axis]=static_cast<float>(JsonNumber(vector.at(axis)));
+                track.keys.push_back(frame);
+            }
+            if (!SceneRuntime::Animation::Valid(track)) throw std::runtime_error("Invalid animation track");
+            animation.tracks.push_back(std::move(track));
+        }
+        if (animation.tracks.size()>32) throw std::runtime_error("Too many animation tracks");
+        return animation;
+    }
+    Json WriteAnimation(const SceneRuntime::AnimationComponent& animation)
+    {
+        auto object=Component(animation.id,"Animation",animation.enabled);
+        object["tracks"]=Json::array();
+        for (const auto& track : animation.tracks)
+        {
+            Json keys=Json::array();
+            for (const auto& key : track.keys) keys.push_back({{"time",key.time},{"value",key.value}});
+            object["tracks"].push_back({{"property",track.property},{"clock",track.clock},
+                {"easing",track.easing},{"delay",track.delay},{"loop",track.loop},{"keys",keys}});
+        }
+        return object;
+    }
 }
 
 namespace SceneRuntime
@@ -79,6 +121,11 @@ namespace SceneRuntime
                 if (placement.rotator) throw std::runtime_error("Only one Rotator is allowed");
                 placement.rotator=RotatorComponent{id,enabled,ReadVelocity(component)};
             }
+            else if (type=="Animation")
+            {
+                if (placement.animation) throw std::runtime_error("Only one Animation is allowed");
+                placement.animation=ReadAnimation(component);
+            }
             else if (!ReadEnvironmentComponent(component,placement,type) &&
                 !ReadUiComponent(component,placement,type))
                 throw std::runtime_error("Unsupported component type: "+type);
@@ -110,6 +157,7 @@ namespace SceneRuntime
         }
         WriteEnvironmentComponents(components,placement);
         WriteUiComponents(components,placement);
+        if (placement.animation) components.push_back(WriteAnimation(*placement.animation));
         return components;
     }
 }

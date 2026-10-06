@@ -76,7 +76,19 @@ UiRect SceneUi::Resolve(const SceneLayout& layout,const ScenePlacement& object,u
             r.size=c.scaleWithScreen?std::array<float,2>{c.referenceSize[0]*r.scale,c.referenceSize[1]*r.scale}:std::array<float,2>{static_cast<float>(width),static_cast<float>(height)};
             r.position={(width-r.size[0])*0.5f,(height-r.size[1])*0.5f}; r.visible=c.enabled;
         }
-        if(node.rectTransform) r=Child(r,*node.rectTransform,effective);
+        if(node.rectTransform) {
+            auto rect=*node.rectTransform;
+            float opacity=1;
+            if(node.animation && node.animation->enabled) for(const auto& track:node.animation->tracks) {
+                const auto value=Animation::Sample(track,effective.values);
+                if(!value) continue;
+                if(track.property=="uiPosition") rect.position={(*value)[0],(*value)[1]};
+                else if(track.property=="uiSize") rect.size={std::max(0.0f,(*value)[0]),std::max(0.0f,(*value)[1])};
+                else if(track.property=="uiRotation") rect.rotation=(*value)[0];
+                else if(track.property=="opacity") opacity=std::clamp((*value)[0],0.0f,1.0f);
+            }
+            r=Child(r,rect,effective); r.opacity*=opacity;
+        }
         const auto v=state.visibility.find(node.id); if(v!=state.visibility.end()) r.visible=r.visible && v->second;
     }
     return r;
