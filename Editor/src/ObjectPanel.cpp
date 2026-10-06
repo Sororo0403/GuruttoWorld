@@ -33,6 +33,8 @@ namespace Editor
             ImGui::Text("%zu objects / %zu selected",world.Layout().objects.size(),state.SelectedIds().size());
             ImGui::BeginDisabled(!enabled);
             if (ImGui::Button("Create empty")) state.Request({ObjectAction::AddEmpty,{},{},{}});
+            ImGui::SameLine();
+            if (ImGui::Button("Scene settings")) state.Select({});
             ImGui::Selectable("Drop here to make root",false);
             DrawReparentTarget(world,state,{});
             if (!parentError_.empty()) ImGui::TextWrapped("%s",parentError_.c_str());
@@ -154,7 +156,23 @@ namespace Editor
             {
                 DrawMultiInspector(world,state,enabled);
             }
-            else if (found == objects.end()) ImGui::TextUnformatted("Select an object in Hierarchy or Scene.");
+            else if (found == objects.end())
+            {
+                ImGui::BeginDisabled(!enabled);
+                ImGui::TextUnformatted("Scene settings");
+                auto settings=world.Layout().settings;
+                if (ImGui::ColorEdit4("Background",settings.background.data()))
+                {
+                    TrackInspectorEdit(state);
+                    ObjectRequest request;
+                    request.action=ObjectAction::Settings;
+                    request.settings=settings;
+                    request.interaction=state.Interaction();
+                    state.Request(std::move(request));
+                }
+                TrackInspectorEdit(state);
+                ImGui::EndDisabled();
+            }
             else
             {
                 ImGui::PushID(found->id.c_str());

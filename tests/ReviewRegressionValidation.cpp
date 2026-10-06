@@ -2221,8 +2221,15 @@ void ValidateComponentSchema()
     SceneRuntime::SceneLayout layout; layout.objects={empty};
     const auto json=layout.Serialize();
     auto restored=SceneRuntime::SceneLayout::Parse(json);
-    Check(json.find("\"version\": 3")!=std::string::npos && !restored.objects[0].meshRenderer &&
-        !restored.objects[0].rotator, "version 3 supports Transform-only objects");
+    Check(json.find("\"version\": 4")!=std::string::npos && !restored.objects[0].meshRenderer &&
+        !restored.objects[0].rotator, "version 4 supports Transform-only objects");
+    restored.settings.background={0.1f,0.2f,0.3f,0.4f};
+    Check(SceneRuntime::SceneLayout::Parse(restored.Serialize()).settings==restored.settings,
+        "scene background round-trips without altering objects");
+    auto badBackground=restored; badBackground.settings.background[0]=2;
+    bool rejectedBackground=false;
+    try { static_cast<void>(badBackground.Serialize()); } catch (const std::exception&) { rejectedBackground=true; }
+    Check(rejectedBackground,"out-of-range scene background is rejected");
     restored.objects[0].SetModel("Assets/Models/Title/Surface/Commercial/building-k.obj");
     restored.objects[0].meshRenderer->id="custom-mesh"; restored.objects[0].meshRenderer->enabled=false;
     restored.objects[0].rotator=SceneRuntime::RotatorComponent{"spin",false,{10,-20,30}};

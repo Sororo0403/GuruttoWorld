@@ -44,6 +44,7 @@ namespace SceneRuntime
         bool SetParent(std::string_view id, std::string parentId, std::string& error);
         // 表示名だけを変更します。ID・描画リソースは維持します。
         // Component changes are transactional. Call outside Render after GPU idle.
+        bool SetSettings(const SceneSettings& settings, std::string& error);
         bool SetComponents(std::string_view id, const ScenePlacement& settings,
             const std::filesystem::path& assetsRoot, std::string& error);
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.

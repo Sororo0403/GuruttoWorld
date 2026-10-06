@@ -140,7 +140,7 @@ namespace
 
         bool DrawGameTexture(ID3D12GraphicsCommandList* commands)
         {
-            if (!gameTexture.Begin(commands,{0.66f,0.79f,0.83f,1})) return false;
+            if (!gameTexture.Begin(commands,world.Layout().settings.background)) return false;
             SceneRuntime::TitleView::SetProjection(previewCamera,gamePanel.Viewport().Aspect());
             if (gameSession.Runtime()) gameSession.Draw(commands,gameTexture.GetWidth(),gameTexture.GetHeight());
             else world.Draw(commands,previewCamera,light);
@@ -149,7 +149,7 @@ namespace
 
         bool DrawSceneTexture(ID3D12GraphicsCommandList* commands)
         {
-            if (!sceneTexture.Begin(commands, {0.66f, 0.79f, 0.83f, 1})) return false;
+            if (!sceneTexture.Begin(commands, world.Layout().settings.background)) return false;
             world.Draw(commands, camera.GetCamera(), light);
             return sceneTexture.End(commands);
         }
@@ -230,6 +230,7 @@ namespace
                 return editState.DuplicateObjects(world,request.ids,{4,0,0},fileStatus);
             if (request.action==Editor::ObjectAction::Delete)
                 return editState.DeleteObjects(world,request.ids,fileStatus);
+            if (request.action==Editor::ObjectAction::Settings) return request.settings && world.SetSettings(*request.settings,fileStatus);
             return request.components && world.SetComponents(request.id,*request.components,root,fileStatus);
         }
 
@@ -239,7 +240,7 @@ namespace
             if (!renderer.WaitForIdle()) return false;
             auto request=std::move(*pendingObject);
             pendingObject.reset();
-            if (request.action!=Editor::ObjectAction::Components || request.interaction.empty()) history.Commit();
+            if (request.interaction.empty()) history.Commit();
             std::string createdId;
             const bool success=ApplyObjectRequest(request,createdId);
             if (success)

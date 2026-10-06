@@ -31,9 +31,17 @@ namespace SceneRuntime
         std::string parentId; // Empty means root. Position, rotation and scale are always relative to the parent.
     };
 
+    struct SceneSettings
+    {
+        std::array<float,4> background{0.66f,0.79f,0.83f,1};
+        std::string mainCamera;
+        bool operator==(const SceneSettings&) const = default;
+    };
+
     struct SceneLayout
     {
         std::vector<ScenePlacement> objects;
+        SceneSettings settings;
         // 読み込み・検証に失敗した場合は例外。呼び出し元の配置は変更しません。
         static SceneLayout Parse(std::string_view json);
         std::string Serialize() const;

@@ -237,6 +237,20 @@ namespace SceneRuntime
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
 
+    bool SceneWorld::SetSettings(const SceneSettings& settings, std::string& error)
+    {
+        try
+        {
+            auto candidate=layout_;
+            candidate.settings=settings;
+            static_cast<void>(candidate.Serialize());
+            layout_.settings=settings;
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& exception) { error=exception.what(); return false; }
+    }
+
     bool SceneWorld::SetComponents(std::string_view id, const ScenePlacement& settings,
         const std::filesystem::path& assetsRoot, std::string& error)
     {
@@ -525,6 +539,7 @@ namespace SceneRuntime
         });
         if (missing!=removed.end()) { error=*missing+": object no longer exists"; return false; }
         SceneLayout candidate;
+        candidate.settings=layout_.settings;
         std::vector<Engine::Object3D> objects;
         candidate.objects.reserve(layout_.objects.size()); objects.reserve(objects_.size());
         for (size_t index=0;index<layout_.objects.size();++index)

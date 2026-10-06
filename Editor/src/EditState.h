@@ -8,7 +8,7 @@
 
 namespace Editor
 {
-    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete, Components };
+    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete, Components, Settings };
     struct ObjectRequest
     {
         ObjectAction action = ObjectAction::Add;
@@ -18,6 +18,7 @@ namespace Editor
         std::vector<std::string> ids{};
         std::optional<SceneRuntime::ScenePlacement> components{};
         std::string interaction{};
+        std::optional<SceneRuntime::SceneSettings> settings{};
     };
 
     // Shared editing state and operations; independent of panels and ImGui.
