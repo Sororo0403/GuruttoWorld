@@ -13,7 +13,7 @@ Release のソリューションビルドはゲームを対象とし、Editor �
 
 起動時は上部にFile／Edit／Viewメニューとツールバー、左に状態表示とHierarchy、中央にScene、右にInspectorを配置します。
 中央のScene／Gameはタブで切り替え、分割して並べることもできます。View → Game tabでGameを選択します。
-編集中のGameは現在の配置（未保存を含む）をタイトルの固定カメラ・画角・照明で表示します。Play中は共通の背景演出（空・カメラの揺れ・光の粒）を実行します。タイトルUIは含みません。
+編集中のGameは現在のシーン（未保存を含む）のCamera・照明・Sky・ParticleEmitterで表示します。Play中はRotator・CameraSway・粒子・雲の移動を更新し、Sceneにも同じ実行用シーンを表示します。タイトルUIは含みません。
 Game上では選択・ギズモ・モデル追加は行わず、Sceneの視点を維持します。既存の全画面構図プレビューも利用できます。
 保存済みのレイアウトでGameが中央にない場合は、View → Reset panel layoutで標準配置へ戻せます。
 下部のProject／Console／Debug Cameraはタブで切り替えます。パネルはドッキング・分割・移動・サイズ変更できます。
@@ -38,10 +38,9 @@ Exit without saving（保存せず終了）、Cancelを選べます。保存失�
 プレビュー中も同じ確認を表示し、保存済みならそのまま終了します。
 ゲームには次のビルドで保存したJSONがコピーされます。
 
-Preview title compositionで編集パネル・ギズモ・選択枠を隠し、ゲームと共有する
-タイトルの固定カメラ・画角・照明で現在の街を確認できます。未保存の編集も反映します。
+Preview Game compositionで編集パネル・ギズモ・選択枠を隠し、シーンのCamera・照明・Sky・粒子で構図を確認できます。未保存の編集も反映します。
 Back to editingまたはEscapeで元の編集視点へ戻ります。プレビュー中は配置を編集しません。
-これは街の構図確認用で、ゲームの空・光の粒・カメラの揺れ・タイトルUIは含みません。
+編集中は位相0の静止プレビューです。動きを確認する場合はPlayを使用します。
 
 Projectの左側でフォルダーを選ぶと、そのフォルダー直下のモデル（.obj）とシーン（Assets/Scenes内の.json）を表示します。
 Search assetsは全フォルダーの相対パスを検索し、TypeでModel／Scene／Texture／Audio／Shader／Fontを絞り込みます。
@@ -78,7 +77,7 @@ Editor ───→ SceneRuntime ──→ Engine
 ```
 
 SceneRuntime は配置データとモデルの描画を担当し、ゲーム入力や編集UIを含みません。
-App はタイトルのUI・空・光の粒・待機演出を担当します。
+SceneRuntime はシーンのComponentからカメラ・照明・空・粒子・揺れを描画します。App は開始シーンの選択とタイトルのUI・音声を担当します。
 Editor は独自の起動処理・自由カメラ・編集UIを担当し、Appを参照しません。
 
 モデル・JSON・共有のメッシュシェーダーは `Content` にあります。
@@ -140,7 +139,7 @@ HierarchyのShift＋クリックは検索結果の表示順で範囲選択し、
 主選択を基準にWorld／LocalとSnapを利用でき、間隔・回転・拡縮・選択状態を維持します。連続ドラッグは一回のUndoで戻せます。
 移動先が不正な場合は全対象の移動を拒否します。複数選択の回転・拡縮・複製・削除・Fによるフォーカスにも対応しています。詳細と手動確認は末尾を参照してください。
 
-シーンJSONの各オブジェクトは任意のparent（親オブジェクトID）を持てます。省略／空文字はルートです。通常の読み込みはversion 2／3に対応し、旧version 1は下記の変換スクリプトを使用します。
+シーンJSONの各オブジェクトは任意のparent（親オブジェクトID）を持てます。省略／空文字はルートです。通常の読み込みはversion 2／3／4に対応し、旧version 1は下記の変換スクリプトを使用します。
 親は同じシーン内のIDを参照し、存在しない親・自分自身・循環参照は読み込み／保存時に拒否します。Inspectorに親IDを表示します。
 Transformは親に対するローカル座標で、親の移動・回転・拡縮に子孫が追従します。
 親を削除した場合は直接の子をルートへ戻し、配置を維持します。複製した対象は元と同じ親を持ちます。
@@ -150,7 +149,7 @@ Drop here to make rootへ落とすと親を解除します。InspectorのParent�
 親子付けはワールドの配置と選択を維持し、Undo／Redo・保存・再読み込みに対応します。自分や子孫への親子付けは拒否します。
 検索中は一致する対象を階層によらずフラットに表示し、Shift範囲選択は現在表示中の行に適用します。
 
-シーン保存形式はversion 3です。Position・Rotation（XYZラジアン）・Scaleは常に親に対するローカル座標です。
+シーン保存形式はversion 4です。Position・Rotation（XYZラジアン）・Scaleは常に親に対するローカル座標です。
 親がない場合はローカル座標がワールド座標になります。描画・クリック選択・選択枠はlocal × parentWorldで計算し、せん断も保持します。
 InspectorのLocal position / Local rotation / Local scaleは保存する値を直接編集します。
 ギズモのLocal/Worldは操作軸の指定です。軸は親子の回転から計算し、反転・非一様拡縮・せん断から分離します。
@@ -171,7 +170,7 @@ WorldMatrixは描画・選択用、WorldRotationはギズモの回転軸用、Lo
 
 保存形式のWorld/Local切り替えとEnable parent transformsメニューは廃止しました。
 旧version 1シーンは`python scripts/ConvertSceneToLocal.py <scene.json>`で検証し、`--write`を付けて一度だけ変換してください。
-エディターはversion 2を読み込み時にComponent形式へ変換し、version 3で保存します。変換不能な入力は変更せず、version 2／3を二重に座標変換しません。
+エディターはversion 2を読み込み時にComponent形式へ変換し、version 4で保存します。変換不能な入力は変更せず、version 2／3／4を二重に座標変換しません。
 
 最終の手動確認は既存シーンを編集せず、New sceneで新しい名前のシーンを作って進めてください。
 
@@ -216,7 +215,7 @@ Playing/Paused中は配置・選択の編集、保存、シーン切り替え、
 Gameの実行は下記の共通ランタイムへ接続しています。Pause中はStepで1/60秒ずつコマ送りします。
 手動確認: 未保存の編集と複数選択を作る → PlayでGameへ切り替わり時計が進む → 編集・Save・Undoが無効 → Pauseで時計が止まる → Resumeで続く → Stopで時計が0になり編集・選択・Undo履歴・未保存状態が維持されることを確認してください。
 
-Playで現在の未保存配置を実行用シーンへコピーし、Gameで空・街並み・カメラの揺れ・光の粒を更新・描画します。背景の更新処理はAppのタイトルとSceneRuntimeで共有しています。タイトルUI・メニュー・音声は実行対象に含みません。
+Playで現在の未保存シーンを実行用シーンへコピーし、そのComponentだけを更新・描画します。背景の更新処理はAppのタイトルとSceneRuntimeで共有しています。タイトルUI・メニュー・音声は実行対象に含みません。
 PauseはGameの時計・カメラ・光の粒を止めて描画だけを続け、Resumeは同じ実行用シーンを継続します。StopはGPU完了後に実行用シーンを破棄し、編集時の静的なGameプレビューへ戻します。
 実行開始・終了は描画の外で処理します。開始失敗時はEditingを維持してConsoleへ理由を表示し、編集配置・選択・保存済みシーンを変更しません。
 手動確認: モデルを移動して未保存のままPlay → Gameにその配置と空・動く光の粒が出る → Pauseで粒と視点が止まる → Resumeで続く → Stopで静的プレビューへ戻り未保存の編集が残ることを確認してください。
@@ -255,13 +254,34 @@ Playing／Paused中と編集操作中は更新を保留し、Editingへ戻って
 ## 空オブジェクトとComponent保存形式
 
 HierarchyのCreate emptyでTransformだけを持つオブジェクトを作成できます。親子付け・ギズモ・複数選択・複製・削除・Undo/Redo・保存に対応します。モデルを持たない対象はHierarchyで選択してください。選択枠とFフォーカスには原点付近の小さい境界を使います。
-version 3ではTransformを必須データとして持ち、任意のMeshRenderer／Rotatorをcomponents配列へ保存します。Componentにはオブジェクト内で一意なID、種類、enabledと型付きの設定を持たせます。TransformのIDはtransformとして予約します。未対応の種類・重複・不正なプロパティは読み込みを拒否し、黙って削除しません。
-旧version 2のmodelは読み込み時にMeshRendererへ移し、ローカルTransformと親子を維持します。保存するとversion 3になり、モデルの参照先はMeshRendererだけが保持します。version 1は従来の変換スクリプトでローカル座標へ変換してから開いてください。
+version 4ではTransformを必須データとして持ち、任意のMeshRenderer／Rotator／Camera／DirectionalLight／Sky／ParticleEmitter／CameraSwayをcomponents配列へ保存します。Componentにはオブジェクト内で一意なID、種類、enabledと型付きの設定を持たせます。TransformのIDはtransformとして予約します。未対応の種類・重複・不正なプロパティは読み込みを拒否し、黙って削除しません。
+旧version 2のmodelは読み込み時にMeshRendererへ移し、ローカルTransformと親子を維持します。保存するとversion 4になり、モデルの参照先はMeshRendererだけが保持します。version 1は従来の変換スクリプトでローカル座標へ変換してから開いてください。
 
 ## Componentの編集と実行
 
-単体選択のInspectorでAdd ComponentからMeshRenderer／Rotatorを追加できます。同じ種類は一つずつです。MeshRendererはProjectにあるAssets/Models配下のOBJを選び、有効切り替え・参照先変更・削除ができます。Reset MeshRendererは有効状態を戻し、モデル参照とIDを保持します。
+単体選択のInspectorでAdd Componentから各Componentを追加できます。同じ種類は一つずつです。MeshRendererはProjectにあるAssets/Models配下のOBJを選び、有効切り替え・参照先変更・削除ができます。Reset MeshRendererは有効状態を戻し、モデル参照とIDを保持します。
 RotatorはローカルX／Y／Zの角速度を度／秒で編集します。有効切り替え・リセット・削除にも対応します。Reset Rotatorは[0,90,0]とenabled=trueへ戻し、IDを保持します。有限値かつ各軸±100000度／秒以内に検証します。Componentの追加・削除・変更はUndo/Redoと未保存表示へ反映し、速度の一回のドラッグは一回のUndoになります。
 Transformは必須で削除できません。Component変更は描画の外で処理し、モデルの読み込み失敗時は直前の設定と履歴を維持します。複数選択中のComponent一括編集はこの段階の対象に含めません。
 RotatorはPlayの独立した実行用シーンでだけ更新します。Pauseで停止し、Stepで1/60秒、Resumeで継続します。Stopで実行用の回転を破棄し、編集中のTransform・設定・選択・履歴・保存先へ戻ります。空の親へ付けると子孫もTransform継承で回ります。
 `Assets/Scenes/ComponentDemo.json`を開いてPlayすると、空のSpinnerの子が周回し、Peerは静止します。編集する場合は別名保存してから操作してください。
+
+
+## シーンから作る背景・カメラ・照明
+
+HierarchyのScene settingsを押すと、Inspectorで背景色・Game camera・霧を編集できます。背景色はSkyがない／無効なときに見えます。霧は有効切り替え・色・開始／終了距離・濃さを持ちます。
+
+Create emptyでオブジェクトを作り、InspectorのAdd Componentから機能を追加します。位置・回転はTransformで編集します。各ComponentのEnabled・Reset・RemoveはUndo/Redoに対応し、ResetはComponent IDを維持します。色や数値の一回のドラッグは一回のUndoへまとめます。
+
+- Camera：縦画角、Near/Far clip、基準縦横比、狭い画面で横構図を維持する設定。位置は親の拡縮・回転・移動を継承し、向きは親と自分のXYZ回転を継承します。Game cameraで明示指定するか、未指定なら最初の有効なCameraを使用します。明示指定したCameraが無効なら別のCameraへ自動切り替えしません。削除すると参照を解除し、Undoで復元します。
+- DirectionalLight：ローカル方向、色、直接光・環境光・反射の強さ、反射の鋭さ。向きは親と自分の回転を継承します。現在はシーン内の最初の有効なDirectionalLightを使用します。照明がないシーンのモデルは暗くなります。
+- Sky：空の上下色、地平線高さ、太陽の色・位置・大きさ・強さ、雲の上下色・不透明度・UV移動速度、3つの雲群の位置・大きさ。大きさ0でその雲群を隠せます。背景は画面に描くためTransformでは動かしません。最初の有効なSkyを使用します。
+- ParticleEmitter：0〜1024粒、色・不透明度、ワールド単位の大きさ、ローカル発生範囲、周期ごとの移動量、周期、横揺れ。Transformと親子関係が発生範囲と軌道へ反映されます。複数の有効なEmitterを描画します。現在の粒は発光する丸形です。
+- CameraSway：カメラ軸XYZ方向の揺れ幅（ワールド単位）と周期。同じオブジェクトのCameraへPlay中だけ加え、保存したTransformを書き換えません。
+
+Sceneは編集用の自由カメラ、Gameはシーン内のCameraを使います。Play中は両方とも実行用の配置・照明・Sky・粒子を描画します。Pause／Step／Resume／Stopと、未保存状態・選択・保存先・Undo/Redoの復元は従来どおりです。アセット再読み込みは空・粒子の描画リソースも候補を先に生成し、失敗時は直前の表示と編集中のシーンを維持します。
+
+空の新規シーンにはCamera・照明・Sky・粒子を自動追加しません。Gameでモデルを表示する場合は、Create empty → Add Component → Cameraと、別の空オブジェクト → DirectionalLightを作成してください。Cameraの配置例は位置[0,3,-10]・回転[6,0,0]度です。モデルを原点付近へ配置し、必要に応じて構図を調整します。Sky・ParticleEmitter・CameraSwayは必要に応じて追加します。旧version 2／3の外部シーンも同様に環境を追加できます。
+
+TitleStreet.jsonとUiCheck.jsonにはCamera・DirectionalLight・Sky・ParticleEmitterがあり、CameraにCameraSwayが付いています。ComponentDemo.jsonとEditorAcceptance.jsonにもCamera・照明・Skyを保存しています。AppのタイトルはTitleStreet.jsonを使用し、背景専用の固定カメラ・専用シェーダーは使用しません。保存した変更は次のビルドでAppへコピーされます。タイトルUI・音声のシーン化は今後の別作業です。
+
+手動確認はManualChecks.mdのK〜Mを最新ビルドのEditorで実施してください。自動テストの成功と画面確認の結果は別に記録します。

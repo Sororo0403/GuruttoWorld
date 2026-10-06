@@ -9,7 +9,7 @@
 3. File → Save asで`EditorAcceptanceLocal.json`など別名の作業用シーンに保存する。確認用の原本へは上書きしない。
 4. View → Reset panel layoutで配置を戻す。Hierarchyの親子を展開し、ParentとPeerをCtrlで選択してScene上でFを押す。
 
-確認用シーンには8個のモデルがあります。Parent → Child → Grandchildは通常の三段階層、Peerは独立したモデル、MirrorはX軸が反転したモデルです。ShearParent → ShearChildは非一様拡縮と子の回転によってせん断を含む階層です。Groundは床です。
+確認用シーンには8個のモデルとCamera・Directional Light・Skyがあります。Parent → Child → Grandchildは通常の三段階層、Peerは独立したモデル、MirrorはX軸が反転したモデルです。ShearParent → ShearChildは非一様拡縮と子の回転によってせん断を含む階層です。Groundは床です。
 
 各項目は作業用シーンの保存直後から始めます。次の項目へ移る前にReloadし、未保存確認では「破棄して読み込み」を選びます。Gの保存確認後は原本を開いて新しい作業用シーンを作り直してください。文字入力中はEnterで確定してからSceneをクリックし、ショートカットを使用します。回転のInspector表示は度、JSONの保存値はラジアンです。
 
@@ -62,7 +62,7 @@
 
 1. Parentの名前と位置を編集して保存する。未保存表示が消える。
 2. Reloadと別シーンからのOpenで、保存した配置と親子が戻る。
-3. New sceneでモデルを追加し、未保存のままPlay → Stop。新規シーンの状態を維持し、初回保存で保存先を指定できる。
+3. New sceneでモデルを追加し、CameraとDirectionalLightも空オブジェクトへ追加する。未保存のままPlay → Stop。新規シーンの状態を維持し、初回保存で保存先を指定できる。
 4. 未保存でReloadと終了確認を開きCancel。現在の配置と選択が維持される。
 
 ## H：ドッキングと画面サイズ
@@ -93,3 +93,33 @@ NGには「操作した対象・手順番号・期待した結果・実際の結
 5. Scene JSONを外部で変更しても未保存の編集中シーンは置き換わらない。シーンを更新する場合は明示的なReloadを使う。
 
 I・JもOK／NG／未確認で報告してください。
+
+
+## K：背景・Camera・照明・Sky
+
+1. 最新ビルドのEditorを起動し直し、TitleStreet.jsonを開いて別名保存する。HierarchyにCamera／Directional Light／Sky／Light Particlesがあることを確認する。
+2. Scene settingsでGame cameraを確認する。CameraのTransform・縦画角・Near/Far clipを変更し、Gameの構図が変わることを確認する。親の空オブジェクトへ付け、親の位置・XYZ回転を変更して追従を確認する。Undoで戻す。
+3. Cameraを複製し、Scene settingsでコピーへ切り替える。位置を変更して切り替えを確認する。指定中のCameraを無効にするとGameのモデル表示が止まる。削除／Undoで指定とComponentが復元する。
+4. Directional Lightの色・方向・強さ・環境光・反射を変更する。SceneとGameに反映し、親の回転で照明方向が変わることを確認する。
+5. Skyの上下色・太陽・雲の位置・大きさ・不透明度を変更する。両ビューへ即時反映する。色を一回ドラッグしてUndo一回で元へ戻す。雲群の大きさ0でその群が消える。
+6. Skyを無効にし、Scene settingsの背景色を変更する。背景色が見える。Skyを戻し、霧の色・距離・濃さ・有効切り替えを確認する。
+7. カメラ・照明・SkyのEnabled／Reset／Remove／AddをそれぞれUndo/Redoする。保存して開き直し、設定とIDが戻る。
+
+## L：粒・揺れ・Play
+
+1. Light Particlesを選び、粒数・色・不透明度・大きさ・発生範囲・移動量・周期を編集する。粒数0で消え、Undoで戻る。
+2. 発生オブジェクトの位置と親を変更し、粒の発生範囲と軌道が追従することを確認する。Emitterを複製して両方が描画されることを確認する。
+3. CameraのCameraSwayの揺れ幅・周期、SkyのCloud velocityを変更し、Playで動くことを確認する。SceneとGameは同じ実行状態を描画する。
+4. Pauseで雲・粒・視点・Rotatorが止まり、Step一回で一フレームだけ進み、Resumeで続く。描画だけでは時間が進まない。
+5. Stopで編集時の設定・Transform・選択・保存先・未保存表示・Undo/Redo履歴が戻る。揺れがTransformへ書き込まれていない。
+6. ParticleEmitter／CameraSwayのEnabled／Reset／Remove／Addと、保存・開き直しを確認する。CameraがないオブジェクトのSwayは視点を動かさない。
+
+## M：新規作成・App・再読み込み
+
+1. New sceneを作る。背景だけでCamera・Sky・粒が自動生成されないことを確認する。
+2. 空オブジェクトへCameraを追加し、位置[0,3,-10]・回転[6,0,0]度へ変更する。別の空オブジェクトへDirectionalLightを追加する。原点付近にモデル、別の空オブジェクトにSkyも追加してGameに表示する。必要ならParticleEmitterとCameraSwayを追加する。
+3. 別名保存 → 別シーンを開く → 作ったシーンを開き直す。環境と配置・親子が再現する。
+4. Content/Shaders/Sky.hlsl・GlowParticle.hlsl・Mesh.hlslを退避してから編集し、Reload assetsを確認する。確認後は退避した内容へ戻す。空・モデル・粒が更新し、未保存のシーン・選択・履歴が維持される。構文エラー時は以前の表示を維持し、復旧後に更新する。Play中の更新はStop後に反映する。
+5. TitleStreet.jsonをAppで使う設定へ保存する場合は原本を退避して行う。次のビルドでAppの背景へ反映し、背景演出OFFで揺れ・雲の移動が止まり粒が消える。UIと音声は従来どおり。確認後に退避した原本を戻す。
+
+K〜Mも手動で操作した項目だけOKとし、未操作は未確認のままにしてください。

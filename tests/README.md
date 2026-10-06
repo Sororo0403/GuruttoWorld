@@ -65,7 +65,7 @@ RenderTextureは横長・縦長へのリサイズ、同サイズでの再利用�
 連続フレームのクリア色をGPUから読み戻して両隅の画素を比較し、共有シーンのオフスクリーン描画も検証します。
 Debugでは利用可能なD3D12 InfoQueueのエラーを確認します。
 
-タイトル背景は CC0 の街並み・植生と、TitleSky/TitleMesh の専用シェーダーを描画します。ReviewRegressionValidation のタイトル検証ログは generated/tests/title-rendering.log に保存します。シェーダーは実行時にコンパイルするため、ビルド成功だけでなく Debug・Release の検証実行も確認してください。
+タイトル背景はTitleStreet.jsonのCamera・照明・Sky・ParticleEmitter・CameraSway・霧設定から作り、CC0の街並み・植生と汎用Mesh/Sky/GlowParticleシェーダーを描画します。ReviewRegressionValidation のタイトル検証ログは generated/tests/title-rendering.log に保存します。シェーダーは実行時にコンパイルするため、ビルド成功だけでなく Debug・Release の検証実行も確認してください。
 
 設定の回帰検証は generated/tests/settings 以下に一時ファイルを作り、ユーザーの設定を変更しません。欠損・不正形式・上下限・上書き・保存失敗・取消と再編集・パッド接続直後の入力を確認します。設定UIの3選択状態と保存失敗文も上記3サイズで描画します。
 
@@ -73,7 +73,7 @@ Debugでは利用可能なD3D12 InfoQueueのエラーを確認します。
 
 タイトル演出の回帰検証は、登場スキップと決定を分離し、キーを離して押し直すまで開始しないこと、非アクティブ中の時間停止、画面を覆った後の一度だけの遷移通知を確認します。登場・ワイプ途中の描画も3サイズで実行します。実機では初回起動、登場中のEnter／A、開始、ゲームからの再訪（登場省略）、終了を確認してください。
 
-背景待機演出は250秒分のカメラ位置範囲・粒の不透明度を検証します。OFFと非アクティブ時の停止、不正時間の無視、3サイズでのON／OFF／再開描画も確認します。
+背景待機演出は150秒分のシーンに設定したカメラ位置範囲・粒の不透明度を検証します。OFFと非アクティブ時の停止、不正時間の無視、3サイズでのON／OFF／再開描画も確認します。
 
 タイトル音声の回帰検証は5つのWAVの読み込み・無音ループ再生・停止と、メニュー効果音イベントの重複抑止を確認します。実機では音量設定の即時反映と取消、0%の無音、フォーカス復帰時のBGM先頭からの再生、ゲーム遷移・終了時の停止を確認してください。音源再生成は scripts/GenerateTitleAudio.py を実行します。
 
@@ -160,3 +160,12 @@ StepはPausedでだけ固定1/60秒・更新一回を受理し、繰り返し実
 PlaySnapshotは配置・複数選択と主選択・未保存状態・保存先・保存基準を含むUndo/Redo分岐の一括復元、再構築失敗時のデータ維持、変更のない配置での読み込み省略、新規未保存シーンの復元とファイル非書き込みを確認します。
 
 Projectの種類別分類・Shadersルート・大文字拡張子・失敗時のカタログ維持、アセット参照からScene選択へ戻るInspector状態、サイズと制限付きソースプレビュー、バイナリ・不正パス・読み込み失敗を確認します。
+
+
+## シーンの環境Component
+
+ReviewRegressionValidationはDebug／Releaseの両方で、Camera・DirectionalLight・Sky・ParticleEmitter・CameraSwayと背景・霧の保存、カメラのXYZ回転・親Transform継承、粒の発生位置と軌道、長時間の揺れ、OFF・非アクティブ・不正時間での停止を確認します。
+
+EnvironmentValidation.hは64×32のGPU描画を読み戻し、Skyの青→緑の即時編集、Gameと編集プレビューの色一致、無効Skyに固定背景が残らないこと、霧の色／有効切り替えを検証します。MeshRendererの直接描画では大きい／小さいワールド拡縮でも法線がオーバーフロー／アンダーフローせず照明が一致することを確認します。環境編集のドラッグを一回のUndoへまとめ、Redo・全Componentを含む保存／再読み込み・複製・主Cameraの削除／Undoも確認します。既存のPlay／Pause／Step／Resume／Stop・スナップショット・アセット更新の回帰検証を継続します。
+
+ConvertSceneToLocal.pyはversion 4の設定とComponentを維持し、すでにローカル座標のシーンを二重変換しません。`python tests/test_scene_conversion.py`で検証します。画面上の入力と見た目はEditor/ManualChecks.mdのK〜Mを別途手動で確認してください。
