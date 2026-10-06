@@ -54,7 +54,7 @@ namespace SceneRuntime
         static bool PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error);
         bool SetPlacementTransform(std::string_view id, const ScenePlacement& placement);
         bool CommitTransforms(SceneLayout candidate);
-        std::string NewId();
+        std::string NewId(size_t& nextCounter) const;
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
         bool modelsReady_ = false;

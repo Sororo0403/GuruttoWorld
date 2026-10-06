@@ -215,6 +215,7 @@ namespace
             if (pendingObject)
             {
                 if (!renderer.WaitForIdle()) return false;
+                history.Commit();
                 auto request = std::move(*pendingObject);
                 pendingObject.reset();
                 std::string createdId;
@@ -238,7 +239,7 @@ namespace
                     editState.ObjectChanged(createdId);
                     fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
                         request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
-                    history.Observe(Snapshot(world.Layout().Serialize()), false);
+                    history.Observe(Snapshot(world.Layout().Serialize()), {});
                 }
                 LogResult(success);
             }
@@ -370,7 +371,7 @@ namespace
                 closeConfirmed = true;
                 return;
             }
-            history.Observe(Snapshot(world.Layout().Serialize()), false);
+            history.Observe(Snapshot(world.Layout().Serialize()), {});
             // 編集中のギズモを止め、確認中は配置を変更しません。
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport, false);
             if (!ImGui::IsPopupOpen("Exit with unsaved changes?")) ImGui::OpenPopup("Exit with unsaved changes?");
@@ -475,6 +476,7 @@ namespace
 
         void UpdateObjects()
         {
+            editState.BeginFrame();
             const bool sceneInput=SceneEditingEnabled() && !ImGui::GetDragDropPayload();
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
                 sceneInput && (scenePanel.Hovered() || gizmo.IsDragging()));
@@ -492,7 +494,7 @@ namespace
             if (sceneLoaded)
             {
                 const auto json=world.Layout().Serialize();
-                history.Observe(Snapshot(json), gizmo.IsDragging() || ImGui::IsAnyItemActive());
+                history.Observe(Snapshot(json), editState.Interaction());
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(json));
             }
         }

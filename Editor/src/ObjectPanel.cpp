@@ -5,6 +5,14 @@
 #include <iterator>
 #include <Engine/Core/Log.h>
 
+namespace
+{
+    void TrackInspectorEdit(Editor::EditState& state)
+    {
+        if (ImGui::IsItemActive()) state.SetInteraction("inspector/"+std::to_string(ImGui::GetItemID()));
+    }
+}
+
 namespace Editor
 {
     void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
@@ -188,6 +196,7 @@ namespace Editor
             const std::array<float,3> delta{position[0]-previous[0],position[1]-previous[1],position[2]-previous[2]};
             state.TranslateSelectionWorld(world,delta);
         }
+        TrackInspectorEdit(state);
         ImGui::EndDisabled();
         ImGui::PopID();
         ImGui::TextWrapped("Move uses the active object as pivot and preserves spacing. Rotate, scale, duplicate and delete require one object.");
@@ -210,6 +219,7 @@ namespace Editor
             invalidName_=!state.Rename(world,placement.id,nameBuffer_.data());
             if (!invalidName_) observedName_=placement.name;
         }
+        TrackInspectorEdit(state);
         if (ImGui::IsItemDeactivatedAfterEdit() && invalidName_)
         {
             observedName_.clear(); // Restore the last valid name on the next frame.
@@ -227,12 +237,15 @@ namespace Editor
         auto degrees=rotation;
         std::transform(degrees.begin(),degrees.end(),degrees.begin(), [](float value) { return value*ToDegrees; });
         bool edited=ImGui::DragFloat3("Local position",position.data(),0.05f,0,0,"%.3f");
+        TrackInspectorEdit(state);
         if (ImGui::DragFloat3("Local rotation (deg)",degrees.data(),0.5f,0,0,"%.2f"))
         {
             for (size_t i=0;i<3;++i) rotation[i]=degrees[i]/ToDegrees;
             edited=true;
         }
+        TrackInspectorEdit(state);
         edited |= ImGui::DragFloat3("Local scale",scale.data(),0.05f,0,0,"%.3f");
+        TrackInspectorEdit(state);
         if (edited && (position!=placement.position || rotation!=placement.rotation || scale!=placement.scale))
             state.SetLocalTransform(world,placement.id,position,rotation,scale);
         if (ImGui::Button("Reset Transform")) state.ResetTransform(world,placement.id);

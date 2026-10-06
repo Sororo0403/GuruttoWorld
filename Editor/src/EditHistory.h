@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <string_view>
+#include <utility>
 
 namespace Editor
 {
@@ -10,15 +12,18 @@ namespace Editor
     {
     public:
         struct State { std::string json; std::string selection; std::vector<std::string> selections{}; };
-        void Reset(State state) { states_={std::move(state)}; cursor_=0; pending_.reset(); saved_=states_[0].json; }
-        void Observe(State state, bool editing)
+        void Reset(State state) { states_={std::move(state)}; cursor_=0; pending_.reset(); interaction_.clear(); saved_=states_[0].json; }
+        void Observe(State state, std::string_view interaction)
         {
             if (states_.empty()) { Reset(std::move(state)); return; }
+            if (!interaction.empty() && interaction_!=interaction) Commit();
+            interaction_=interaction;
             pending_=std::move(state);
-            if (!editing) Commit();
+            if (interaction.empty()) Commit();
         }
         void Commit()
         {
+            interaction_.clear();
             if (!pending_) return;
             if (pending_->json!=states_[cursor_].json)
             {
@@ -37,13 +42,14 @@ namespace Editor
         bool CanUndo() const { return cursor_>0; }
         bool CanRedo() const { return cursor_+1<states_.size(); }
         const State& Target(bool redo) const { return states_.at(redo ? cursor_+1 : cursor_-1); }
-        void Applied(bool redo) { if (redo) ++cursor_; else --cursor_; pending_.reset(); }
-        void Saved(const std::string& json) { saved_=json; }
+        void Applied(bool redo) { if (redo) ++cursor_; else --cursor_; pending_.reset(); interaction_.clear(); }
+        void Saved(const std::string& json) { Commit(); saved_=json; }
         bool Dirty(const std::string& json) const { return json!=saved_; }
     private:
         std::vector<State> states_;
         size_t cursor_=0;
         std::optional<State> pending_;
         std::string saved_;
+        std::string interaction_;
     };
 }

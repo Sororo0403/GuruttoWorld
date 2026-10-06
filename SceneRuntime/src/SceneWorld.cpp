@@ -251,11 +251,12 @@ namespace SceneRuntime
         return CommitTransforms(std::move(candidate));
     }
 
-    std::string SceneWorld::NewId()
+    std::string SceneWorld::NewId(size_t& nextCounter) const
     {
+        nextCounter=nextObjectId_;
         for (;;)
         {
-            const auto id = "object-" + std::to_string(nextObjectId_++);
+            const auto id = "object-" + std::to_string(nextCounter++);
             if (std::none_of(layout_.objects.begin(), layout_.objects.end(),
                 [&](const auto& placement) { return placement.id == id; })) return id;
         }
@@ -276,7 +277,8 @@ namespace SceneRuntime
         try
         {
             if (!modelsReady_) throw std::runtime_error("Scene renderer is unavailable");
-            if (placement.id.empty()) placement.id = NewId();
+            auto nextCounter=nextObjectId_;
+            if (placement.id.empty()) placement.id=NewId(nextCounter);
             if (std::any_of(layout_.objects.begin(), layout_.objects.end(),
                 [&](const auto& existing) { return existing.id == placement.id; }))
                 throw std::runtime_error("Object ID already exists");
@@ -295,6 +297,7 @@ namespace SceneRuntime
             object.SetModel(model);
             const auto id = placement.id;
             Append(std::move(placement), std::move(object));
+            nextObjectId_=nextCounter;
             createdId = id;
             error.clear();
             return true;
@@ -318,12 +321,14 @@ namespace SceneRuntime
         auto placement=*found;
         if (!TranslatePlacement(placement,offset)) { error=placement.id+": invalid world duplicate offset"; return false; }
         auto object=objects[static_cast<size_t>(found-candidate.objects.begin())];
-        placement.id=NewId(); placement.name+=" copy";
+        size_t nextCounter=nextObjectId_;
+        placement.id=NewId(nextCounter); placement.name+=" copy";
         const auto newId=placement.id;
         candidate.objects.push_back(std::move(placement));
         objects.push_back(std::move(object));
         if (!PrepareTransforms(candidate,objects,error)) return false;
         layout_=std::move(candidate); objects_=std::move(objects);
+        nextObjectId_=nextCounter;
         createdId=newId;
         error.clear();
         return true;

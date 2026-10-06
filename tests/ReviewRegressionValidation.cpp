@@ -474,7 +474,7 @@ namespace
             Editor::TransformMatrix::Matches(grandBefore,actual) && world.Layout().objects[0].parentId.empty() &&
             world.Layout().objects[1].parentId.empty() && world.Layout().objects[2].parentId=="child",
             "delete only parent, promoting direct children while retaining grandchild hierarchy and pose");
-        history.Observe({world.Layout().Serialize(),"grandchild",{"child","grandchild"}},false);
+        history.Observe({world.Layout().Serialize(),"grandchild",{"child","grandchild"}},{});
         Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json),root,error) &&
             world.Layout().Serialize()==original, "Undo restores parent deletion with exact local transforms");
         history.Applied(false);
@@ -540,6 +540,53 @@ namespace
             world.WorldMatrix("grandchild",handle) && std::abs(handle._41-draw._41-2)<0.001f,
             "gizmo group move still avoids double transform for selected descendants");
         Check(world.ReplaceLayout(initial,root,error), "gizmo transform fixture restored");
+    }
+
+    void ValidateEditTransactions(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        const auto child=initial.objects[1];
+        Editor::EditState state; state.Select(child.id); state.Select("grandchild",true);
+        const auto selection=state.SelectedIds();
+        Editor::EditHistory history;
+        const auto original=initial.Serialize();
+        history.Reset({original,state.SelectedId(),selection});
+        Check(state.SetLocalTransform(world,child.id,child.position,child.rotation,child.scale) &&
+            state.Rename(world,child.id,child.name) && state.TranslateSelectionWorld(world,{0,0,0}) && !state.HasChanges(),
+            "no-op transform rename and move do not mark scene dirty");
+        Check(!state.SetLocalTransform(world,child.id,child.position,child.rotation,{0,1,1}) &&
+            !state.HasChanges() && state.SelectedIds()==selection && world.Layout().Serialize()==original,
+            "failed transform preserves scene selection and clean state");
+        for (int step=0;step<3;++step)
+        {
+            state.BeginFrame(); state.SetInteraction("gizmo/child/move");
+            Check(state.TranslateSelectionWorld(world,{1,0,0}), "transaction drag applies validated group movement");
+            history.Observe({world.Layout().Serialize(),state.SelectedId(),state.SelectedIds()},state.Interaction());
+        }
+        const auto moved=world.Layout().Serialize();
+        Check(state.HasChanges() && !history.CanUndo() && state.SelectedIds()==selection,
+            "continuous drag stays pending and preserves multiple selection");
+        Check(!state.TranslateSelectionWorld(world,{NAN,0,0}) && state.HasChanges() && world.Layout().Serialize()==moved &&
+            state.SelectedIds()==selection, "failed intermediate drag keeps last valid result and prior dirty state");
+        state.BeginFrame();
+        history.Observe({moved,state.SelectedId(),state.SelectedIds()},state.Interaction());
+        std::string error,created;
+        Check(history.CanUndo() && history.Target(false).json==original &&
+            world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json),root,error),
+            "one drag commits exactly one undo entry");
+        history.Applied(false); state.SetChanged(history.Dirty(world.Layout().Serialize()));
+        Check(!history.CanUndo() && history.CanRedo() && !state.HasChanges(), "undo returns directly to saved clean baseline");
+        Check(!state.SetLocalTransform(world,"missing",child.position,child.rotation,child.scale), "invalid edit after undo fails");
+        history.Observe({world.Layout().Serialize(),state.SelectedId(),state.SelectedIds()},{});
+        Check(history.CanRedo() && !state.HasChanges(), "failed edit preserves redo branch and dirty state");
+        Check(world.DuplicateObject(child.id,{0,0,0},created,error), "allocation baseline duplicate");
+        const auto next=std::stoull(created.substr(7))+1;
+        Check(world.RemoveObject(created,error), "allocation baseline duplicate removed");
+        auto invalid=child; invalid.id.clear(); invalid.model="Assets/Models/Title/missing-transaction-model.obj";
+        Check(!world.AddObject(invalid,root,created,error) && created.empty(), "failed model creation cancels ID allocation");
+        Check(world.DuplicateObject(child.id,{0,0,0},created,error) && created=="object-"+std::to_string(next),
+            "next successful creation reuses ID reserved by failed operation");
+        Check(world.ReplaceLayout(initial,root,error), "transaction fixture restored");
     }
 
     void ValidateInheritedRendering(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
@@ -611,6 +658,7 @@ namespace
         ValidateTransformApi(world,root);
         ValidateHierarchyMutations(world,root);
         ValidateGizmoTransforms(world,root);
+        ValidateEditTransactions(world,root);
         CheckGpuMessages(renderer.GetDevice());
     }
 
@@ -781,7 +829,7 @@ namespace
         Editor::EditHistory reparentHistory;
         reparentHistory.Reset({parentSnapshot,child.id,{child.id}});
         Check(parentState.SetParent(world,child.id,{},error), "reparent Undo fixture moves child to root");
-        reparentHistory.Observe({world.Layout().Serialize(),child.id,{child.id}},false);
+        reparentHistory.Observe({world.Layout().Serialize(),child.id,{child.id}},{});
         const auto reparented=world.Layout().Serialize();
         Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(reparentHistory.Target(false).json),root,error), "Undo restores previous parent");
         reparentHistory.Applied(false);
@@ -813,7 +861,7 @@ namespace
             [&](const auto& object) { return object.id==child.id; });
         Check(found!=world.Layout().objects.end() && world.WorldMatrix(child.id,resultWorld) &&
             Editor::TransformMatrix::Matches(childWorld,resultWorld), "parent deletion preserves child world transform");
-        history.Observe({world.Layout().Serialize(),child.id,{child.id}},false);
+        history.Observe({world.Layout().Serialize(),child.id,{child.id}},{});
         Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json),root,error) &&
             world.Layout().Serialize()==before, "Undo snapshot restores parent and child relationships");
         Check(world.ReplaceLayout(initial,root,error), "parent operation fixture restores original world");
@@ -850,10 +898,10 @@ namespace
                 Check(std::abs(after[corner][axis]-before[corner][axis]-delta[axis])<0.001f,
                     "group move updates rendered transform and mirrored bounds");
         Check(world.PickRay({1.6f,-2.4f,0},{0,0,1}).value_or("")=="pick-near", "group move updates picking transform");
-        history.Observe({world.Layout().Serialize(),state.SelectedId(),selected},true);
+        history.Observe({world.Layout().Serialize(),state.SelectedId(),selected},"drag");
         Check(state.TranslateSelectionWorld(world,{0.5f,0,0}), "second continuous group move applies");
         const auto movedJson=world.Layout().Serialize();
-        history.Observe({movedJson,state.SelectedId(),selected},false);
+        history.Observe({movedJson,state.SelectedId(),selected},{});
         Check(history.CanUndo(), "group drag creates an Undo entry");
         std::string error;
         const auto undo=history.Target(false);
@@ -1130,7 +1178,7 @@ namespace
                 Check(editorWorld.DuplicateObject(duplicateId,{4,0,0},workflowId,operationError), "workflow duplicate");
                 editState.ObjectChanged(workflowId);
                 const auto duplicatedJson=editorWorld.Layout().Serialize();
-                workflow.Observe({duplicatedJson,workflowId},false);
+                workflow.Observe({duplicatedJson,workflowId},{});
                 auto edited=editorWorld.Layout().objects.back();
                 for (int frame=0;frame<3;++frame)
                 {
@@ -1138,7 +1186,7 @@ namespace
                     edited.rotation[1]+=0.1f;
                     edited.scale[0]=-4;
                     Check(editState.SetLocalTransform(editorWorld,workflowId,edited.position,edited.rotation,edited.scale), "workflow transform");
-                    workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},true);
+                    workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},"drag");
                 }
                 const auto transformedJson=editorWorld.Layout().Serialize();
                 Check(!editState.SetLocalTransform(editorWorld,workflowId,edited.position,edited.rotation,{0,1,1}) &&
@@ -1147,7 +1195,7 @@ namespace
                 editState.Select(workflowId);
                 Check(!editState.InvalidTransform() && editState.HasChanges(),
                     "selection clears transform error and preserves unsaved state");
-                workflow.Observe({transformedJson,workflowId},false);
+                workflow.Observe({transformedJson,workflowId},{});
                 const auto applyHistory=[&](bool redo)
                 {
                     Check(redo ? workflow.CanRedo() : workflow.CanUndo(), "workflow history entry exists");
@@ -1173,7 +1221,7 @@ namespace
                 Check(!editState.HasChanges(), "shared edit state marked saved");
                 Check(editorWorld.RemoveObject(workflowId,operationError),"workflow delete");
                 editState.ObjectChanged("");
-                workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},false);
+                workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},{});
                 Check(workflow.Dirty(editorWorld.Layout().Serialize()),"deleting saved object marks scene dirty");
                 Check(applyHistory(false)==workflowId && !workflow.Dirty(editorWorld.Layout().Serialize()),
                     "undo deletion restores selected object and saved state");
@@ -1184,7 +1232,7 @@ namespace
                 const std::string renamedName="新しい建物##display";
                 Check(editState.Rename(editorWorld,workflowId,renamedName), "Inspector rename accepted");
                 const auto renamedJson=editorWorld.Layout().Serialize();
-                inspectorHistory.Observe({renamedJson,workflowId},false);
+                inspectorHistory.Observe({renamedJson,workflowId},{});
                 Check(editorWorld.Layout().objects.back().id==workflowId &&
                     editorWorld.Layout().objects.back().name==renamedName, "rename preserves object ID and Unicode name");
                 Check(!editState.Rename(editorWorld,workflowId," \t") && !editState.Rename(editorWorld,"missing-id","name") &&
@@ -1194,7 +1242,7 @@ namespace
                 Check(reset.position==std::array<float,3>{0,0,0} && reset.rotation==std::array<float,3>{0,0,0} &&
                     reset.scale==std::array<float,3>{1,1,1} && reset.name==renamedName, "reset restores identity and keeps name");
                 const auto resetJson=editorWorld.Layout().Serialize();
-                inspectorHistory.Observe({resetJson,workflowId},false);
+                inspectorHistory.Observe({resetJson,workflowId},{});
                 const auto restoreInspector=[&](bool redo)
                 {
                     const auto target=inspectorHistory.Target(redo);
@@ -1705,9 +1753,9 @@ void ValidateMultiSelection()
     Editor::EditHistory history;
     history.Reset({"initial","c",state.SelectedIds()});
     state.Select("e",true);
-    history.Observe({"initial",state.SelectedId(),state.SelectedIds()},false);
+    history.Observe({"initial",state.SelectedId(),state.SelectedIds()},{});
     Check(!history.CanUndo() && !history.Dirty("initial"), "selection-only change creates no Undo entry or dirty flag");
-    history.Observe({"changed","a",{"a"}},false);
+    history.Observe({"changed","a",{"a"}},{});
     const auto undo=history.Target(false);
     state.RestoreSelection(undo.selections,undo.selection);
     Check(state.SelectedIds()==std::vector<std::string>{"a","c","e"} && state.SelectedId()=="e",
@@ -1867,20 +1915,33 @@ void ValidateEditHistory()
 {
     Editor::EditHistory history;
     history.Reset({"initial", "a"});
-    history.Observe({"drag1", "a"}, true);
-    history.Observe({"drag2", "a"}, true);
+    history.Observe({"drag1", "a"},"drag");
+    history.Observe({"drag2", "a"},"drag");
     Check(!history.CanUndo(), "ongoing drag is not a history entry");
-    history.Observe({"drag2", "a"}, false);
+    history.Observe({"drag2", "a"},{});
     Check(history.CanUndo() && history.Target(false).json=="initial", "drag becomes one undo entry");
     history.Saved("drag2");
     Check(!history.Dirty("drag2") && history.Dirty("initial"), "saved content determines dirty state");
     history.Applied(false);
     Check(history.CanRedo() && history.Target(true).selection=="a", "redo preserves selection");
-    history.Observe({"branch", "b"}, false);
+    history.Observe({"branch", "b"},{});
     Check(!history.CanRedo() && history.Target(false).json=="initial", "new edit clears redo branch");
+    history.Reset({"initial","a",{"a","b"}});
+    history.Observe({"first","a",{"a","b"}},"inspector/position");
+    history.Observe({"second","a",{"a","b"}},"inspector/rotation");
+    history.Observe({"second","a",{"a","b"}},{});
+    Check(history.Target(false).json=="first", "different inspector fields split history without idle frame");
+    history.Applied(false);
+    Check(history.Target(false).json=="initial", "first field remains its own undo entry");
+    history.Observe({"first","a",{"a","b"}},"gizmo/move");
+    history.Observe({"first","a",{"a","b"}},{});
+    Check(history.CanRedo() && history.Target(true).json=="second", "unchanged interaction preserves redo branch");
+    history.Observe({"third","a",{"a","b"}},"gizmo/move");
+    history.Saved("third");
+    Check(history.Target(false).json=="first" && !history.Dirty("third"), "save flushes pending interaction before marking baseline");
     history.Reset({"reloaded", ""});
     Check(!history.CanUndo() && !history.CanRedo() && !history.Dirty("reloaded"), "reload resets history and saved state");
-    for (int i=0;i<150;++i) history.Observe({std::to_string(i), ""}, false);
+    for (int i=0;i<150;++i) history.Observe({std::to_string(i), ""},{});
     int undoCount=0;
     while (history.CanUndo()) { history.Applied(false); ++undoCount; }
     Check(undoCount==100, "history is bounded to 100 edits");

@@ -29,7 +29,9 @@ namespace Editor
         DirectX::XMFLOAT4X4 matrix;
         if (!GizmoTransform::Build(world,current,mode_==Mode::Scale,matrix))
         { invalidTransform_=true; dragging_=false; ImGuizmo::Enable(false); return; }
-        if (!Manipulate(current, camera, viewport, matrix)) return;
+        const bool modified=Manipulate(current,camera,viewport,matrix);
+        if (dragging_) state.SetInteraction("gizmo/"+current.id+"/"+std::to_string(static_cast<int>(mode_)));
+        if (!modified) return;
         ApplyTransform(world, state, current, matrix);
     }
 
@@ -103,7 +105,6 @@ namespace Editor
         if (invalidTransform_) return;
         if (transformed.position==current.position && transformed.rotation==current.rotation && transformed.scale==current.scale) return;
         invalidTransform_=!state.SetLocalTransform(world,current.id,transformed.position,transformed.rotation,transformed.scale);
-        if (!invalidTransform_) state.ObjectChanged(current.id);
     }
 
 }
