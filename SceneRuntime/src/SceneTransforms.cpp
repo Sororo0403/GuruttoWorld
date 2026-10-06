@@ -1,4 +1,5 @@
 #include <SceneRuntime/SceneTransforms.h>
+#include <SceneRuntime/TransformMatrix.h>
 #include <algorithm>
 #include <cmath>
 #include <optional>
@@ -98,6 +99,43 @@ namespace SceneRuntime
         output=candidate;
         return true;
     }
+    bool SceneTransforms::ConvertToLocal(const SceneLayout& source, SceneLayout& output, std::string& error)
+    {
+        try
+        {
+            auto candidate=source;
+            std::vector<DirectX::XMFLOAT4X4> worlds;
+            if (!Resolve(source,source.transformSpace,worlds,error)) return false;
+            if (source.transformSpace==TransformSpace::World)
+            {
+                const auto parents=ParentIndices(source);
+                for (size_t index=0;index<candidate.objects.size();++index)
+                {
+                    if (!parents[index]) continue;
+                    auto local=worlds[index];
+                    if (!WorldToLocal(worlds[index],worlds[*parents[index]],local))
+                        throw std::runtime_error(candidate.objects[index].id+": invalid parent transform");
+                    auto reference=candidate.objects[index];
+                    const auto determinant=DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(DirectX::XMLoadFloat4x4(&local)));
+                    const bool mirrored=std::signbit(reference.scale[0]) ^ std::signbit(reference.scale[1]) ^ std::signbit(reference.scale[2]);
+                    if (std::signbit(determinant)!=mirrored) reference.scale[0]=-reference.scale[0];
+                    if (!TransformMatrix::Read(local,reference,candidate.objects[index]))
+                        throw std::runtime_error(candidate.objects[index].id+": local transform requires shear; adjust parent rotation or scale first");
+                }
+            }
+            candidate.transformSpace=TransformSpace::Local;
+            std::vector<DirectX::XMFLOAT4X4> rebuilt;
+            if (!Resolve(candidate,candidate.transformSpace,rebuilt,error)) return false;
+            for (size_t index=0;index<worlds.size();++index)
+                if (!TransformMatrix::Matches(worlds[index],rebuilt[index]))
+                    throw std::runtime_error(candidate.objects[index].id+": conversion would change the world transform");
+            output=std::move(candidate);
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& exception) { error=exception.what(); return false; }
+    }
+
     bool SceneTransforms::Resolve(const SceneLayout& layout, TransformSpace space,
         std::vector<DirectX::XMFLOAT4X4>& output, std::string& error)
     {

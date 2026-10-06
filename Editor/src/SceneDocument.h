@@ -69,7 +69,9 @@ namespace Editor
             {
                 if (request.create && std::filesystem::exists(request.path))
                     throw std::runtime_error("The new scene path now exists. Choose another name.");
-                const bool success=request.create ? world.ReplaceLayout({},root,error) : world.Reload(root,request.path,error);
+                SceneRuntime::SceneLayout empty;
+                empty.transformSpace=SceneRuntime::TransformSpace::Local;
+                const bool success=request.create ? world.ReplaceLayout(std::move(empty),root,error) : world.Reload(root,request.path,error);
                 if (!success) return false;
                 path_=std::move(request.path);
                 unsavedNew_=request.create;

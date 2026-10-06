@@ -49,6 +49,14 @@ namespace Editor
             if (!invalidTransform_ && delta!=std::array<float,3>{}) changed_=true;
             return !invalidTransform_;
         }
+        bool EnableParentTransforms(SceneRuntime::SceneWorld& world, std::string& error)
+        {
+            const bool changed=world.Layout().transformSpace==SceneRuntime::TransformSpace::World;
+            if (!world.EnableParentTransforms(error)) return false;
+            if (changed) changed_=true;
+            invalidTransform_=false;
+            return true;
+        }
         bool SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId, std::string& error)
         {
             const auto& objects=world.Layout().objects;

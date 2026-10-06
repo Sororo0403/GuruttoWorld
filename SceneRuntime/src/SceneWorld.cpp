@@ -115,7 +115,17 @@ namespace SceneRuntime
             target.position=source.position; target.rotation=source.rotation; target.scale=source.scale;
             target.parentId=std::move(candidate.objects[index].parentId);
         }
+        layout_.transformSpace=candidate.transformSpace;
         objects_=std::move(objects);
+        return true;
+    }
+
+    bool SceneWorld::EnableParentTransforms(std::string& error)
+    {
+        SceneLayout candidate;
+        if (!SceneTransforms::ConvertToLocal(layout_,candidate,error)) return false;
+        if (!CommitTransforms(std::move(candidate))) { error="Could not apply converted transforms"; return false; }
+        error.clear();
         return true;
     }
 
