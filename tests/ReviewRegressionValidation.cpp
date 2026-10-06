@@ -518,6 +518,46 @@ namespace
         CheckGpuMessages(renderer.GetDevice());
     }
 
+    void ValidateParentOperations(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneWorld& world,
+        const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        auto layout=initial;
+        layout.objects[1].parentId=layout.objects[0].id;
+        std::string error,created;
+        Check(renderer.WaitForIdle() && world.ReplaceLayout(layout,root,error), "parent data loads into live world");
+        const auto child=world.Layout().objects[1];
+        auto added=child;
+        added.id="parent-added";
+        Check(world.AddObject(added,root,created,error) && world.Layout().objects.back().parentId==child.parentId,
+            "adding a child validates its parent against the whole scene");
+        Check(world.DuplicateObject(child.id,{4,0,0},created,error) && world.Layout().objects.back().parentId==child.parentId,
+            "duplicate preserves parent relation");
+        const auto before=world.Layout().Serialize();
+        auto missing=child;
+        missing.id="invalid-parent-added";
+        missing.parentId="missing-parent";
+        Check(!world.AddObject(missing,root,created,error) && world.Layout().Serialize()==before,
+            "invalid child addition preserves whole world");
+        auto cyclic=world.Layout();
+        cyclic.objects[0].parentId=child.id;
+        Check(!world.ReplaceLayout(cyclic,root,error) && world.Layout().Serialize()==before,
+            "cyclic scene replacement preserves loaded world");
+        Editor::EditHistory history;
+        history.Reset({before,child.id,{child.id}});
+        Check(world.RemoveObject(world.Layout().objects[1].parentId), "parent object deletion supports an aliased parent ID");
+        for (const auto& object : world.Layout().objects)
+            Check(object.parentId.empty(), "deleting parent makes direct children roots");
+        const auto found=std::find_if(world.Layout().objects.begin(),world.Layout().objects.end(),
+            [&](const auto& object) { return object.id==child.id; });
+        Check(found!=world.Layout().objects.end() && found->position==child.position && found->rotation==child.rotation &&
+            found->scale==child.scale, "parent deletion preserves child world transform");
+        history.Observe({world.Layout().Serialize(),child.id,{child.id}},false);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json),root,error) &&
+            world.Layout().Serialize()==before, "Undo snapshot restores parent and child relationships");
+        Check(world.ReplaceLayout(initial,root,error), "parent operation fixture restores original world");
+    }
+
     void ValidateGroupMove(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneWorld& world,
         const std::filesystem::path& root)
     {
@@ -692,6 +732,7 @@ namespace
                 Check(pickingWorld.Initialize(renderer, pickRoot, pickPath, content / "Shaders/TitleMesh.hlsl"),
                     "picking fixture loaded");
                 ValidateGroupMove(renderer,pickingWorld,pickRoot);
+                ValidateParentOperations(renderer,pickingWorld,pickRoot);
                 Check(pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 5 }).value_or("") == "pick-near",
                     "nearest triangle selected independent of object order and mirrored scale");
                 Check(!pickingWorld.PickRay({ -1.8f, 2.7f, 0 }, { 0, 0, 1 }),
@@ -1127,6 +1168,64 @@ void ValidateSceneLayout()
     reject("{\"version\":1,\"objects\":[" + invalid + "]}");
 }
 
+void ValidateParentData()
+{
+    const auto legacy=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    Check(std::all_of(legacy.objects.begin(),legacy.objects.end(),[](const auto& object) { return object.parentId.empty(); }),
+        "legacy scenes without parent data remain flat roots");
+    auto root=legacy.objects.front();
+    root.id="親";
+    auto child=root; child.id="child"; child.parentId=root.id;
+    auto grandchild=root; grandchild.id="grandchild"; grandchild.parentId=child.id;
+    SceneRuntime::SceneLayout layout;
+    layout.objects={grandchild,child,root};
+    const auto json=layout.Serialize();
+    const auto restored=SceneRuntime::SceneLayout::Parse(json);
+    Check(restored.objects[0].parentId=="child" && restored.objects[1].parentId=="親" &&
+        restored.objects[2].parentId.empty(), "parent IDs support UTF-8, forward references and roots in any object order");
+    const auto directory=std::filesystem::absolute("generated/tests/parent-data");
+    std::filesystem::create_directories(directory);
+    const auto path=directory/"scene.json";
+    layout.Save(path);
+    Check(SceneRuntime::SceneLayout::Load(path).Serialize()==json, "parent relationships round trip through scene file");
+    const auto rejects=[](const SceneRuntime::SceneLayout& invalid)
+    {
+        bool rejected=false;
+        try { static_cast<void>(invalid.Serialize()); } catch (const std::exception&) { rejected=true; }
+        Check(rejected, "invalid parent graph rejected on serialization");
+    };
+    auto invalid=layout;
+    invalid.objects[0].parentId="missing"; rejects(invalid);
+    invalid=layout; invalid.objects[0].parentId=invalid.objects[0].id; rejects(invalid);
+    invalid=layout; invalid.objects[1].parentId=invalid.objects[0].id; rejects(invalid);
+    invalid=layout; invalid.objects[2].parentId=invalid.objects[0].id; rejects(invalid);
+    bool failed=false;
+    try { invalid.Save(path); } catch (const std::exception&) { failed=true; }
+    Check(failed && SceneRuntime::SceneLayout::Load(path).Serialize()==json, "invalid parent graph cannot overwrite existing scene");
+    const auto parent=json.find("\"parent\":");
+    const auto comma=json.find(',',parent);
+    for (const auto* value : {"42","null","true"})
+    {
+        auto typed=json;
+        typed.replace(parent,comma-parent,std::string("\"parent\":")+value);
+        failed=false;
+        try { static_cast<void>(SceneRuntime::SceneLayout::Parse(typed)); } catch (const std::exception&) { failed=true; }
+        Check(failed, "present parent field must be a string");
+    }
+    SceneRuntime::SceneLayout deep;
+    for (int index=0;index<2000;++index)
+    {
+        auto node=root;
+        node.id="node-"+std::to_string(index);
+        if (index) node.parentId="node-"+std::to_string(index-1);
+        deep.objects.push_back(std::move(node));
+    }
+    std::reverse(deep.objects.begin(),deep.objects.end());
+    Check(SceneRuntime::SceneLayout::Parse(deep.Serialize()).objects.size()==2000, "deep parent graph validates without recursive traversal");
+    deep.objects.back().parentId=deep.objects.front().id;
+    rejects(deep);
+}
+
 void ValidateSceneFiles()
 {
     auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
@@ -1482,6 +1581,7 @@ int main()
         ValidateDeferredClose();
         ValidateEditorCamera();
         ValidateSceneLayout();
+        ValidateParentData();
         ValidateSceneFiles();
         ValidateDiagnostics();
         ValidateTitleMenu();

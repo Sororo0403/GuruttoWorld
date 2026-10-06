@@ -8,6 +8,8 @@
 #include <limits>
 #include <stdexcept>
 #include <unordered_set>
+#include <unordered_map>
+#include <optional>
 #include <utility>
 #include <atomic>
 #undef GetObject
@@ -25,6 +27,36 @@ namespace
         }
         ~JsonApartment() { if (SUCCEEDED(result)) RoUninitialize(); }
     };
+
+    void ValidateParents(const std::vector<SceneRuntime::ScenePlacement>& objects)
+    {
+        std::unordered_map<std::string,size_t> indices;
+        for (size_t index=0;index<objects.size();++index) indices.emplace(objects[index].id,index);
+        std::vector<std::optional<size_t>> parents(objects.size());
+        for (size_t index=0;index<objects.size();++index)
+        {
+            const auto& object=objects[index];
+            if (object.parentId.empty()) continue;
+            const auto found=indices.find(object.parentId);
+            if (found==indices.end()) throw std::runtime_error(object.id+": missing parent "+object.parentId);
+            if (found->second==index) throw std::runtime_error(object.id+": object cannot parent itself");
+            parents[index]=found->second;
+        }
+        std::vector<unsigned char> visited(objects.size(),0);
+        for (size_t index=0;index<objects.size();++index)
+        {
+            std::vector<size_t> chain;
+            std::optional<size_t> current=index;
+            while (current && visited[*current]==0)
+            {
+                visited[*current]=1;
+                chain.push_back(*current);
+                current=parents[*current];
+            }
+            if (current && visited[*current]==1) throw std::runtime_error(objects[*current].id+": parent cycle detected");
+            for (const auto item : chain) visited[item]=2;
+        }
+    }
 
     std::array<float, 3> ReadVector(const winrt::Windows::Data::Json::JsonObject& object,
         const wchar_t* key, bool scale = false)
@@ -66,6 +98,7 @@ namespace SceneRuntime
                 try
                 {
                     placement.name = winrt::to_string(object.GetNamedString(L"name"));
+                    if (object.HasKey(L"parent")) placement.parentId = winrt::to_string(object.GetNamedString(L"parent"));
                     const auto model = winrt::to_string(object.GetNamedString(L"model"));
                     placement.model = std::filesystem::path(winrt::to_hstring(model).c_str());
                     if (placement.model.is_absolute() || placement.model.has_root_name() ||
@@ -88,6 +121,7 @@ namespace SceneRuntime
                 }
                 layout.objects.push_back(std::move(placement));
             }
+            ValidateParents(layout.objects);
             return layout;
         }
         catch (const winrt::hresult_error& error)
@@ -117,6 +151,8 @@ namespace SceneRuntime
             JsonObject object;
             object.SetNamedValue(L"id", JsonValue::CreateStringValue(winrt::to_hstring(placement.id)));
             object.SetNamedValue(L"name", JsonValue::CreateStringValue(winrt::to_hstring(placement.name)));
+            if (!placement.parentId.empty())
+                object.SetNamedValue(L"parent",JsonValue::CreateStringValue(winrt::to_hstring(placement.parentId)));
             const auto model = placement.model.generic_u8string();
             object.SetNamedValue(L"model", JsonValue::CreateStringValue(winrt::to_hstring(
                 std::string_view(reinterpret_cast<const char*>(model.data()), model.size()))));

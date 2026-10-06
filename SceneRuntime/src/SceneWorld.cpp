@@ -160,7 +160,7 @@ namespace SceneRuntime
                 [&](const auto& existing) { return existing.id == placement.id; }))
                 throw std::runtime_error("Object ID already exists");
             if (placement.name.empty()) placement.name = placement.model.stem().string();
-            SceneLayout validation;
+            auto validation=layout_;
             validation.objects.push_back(placement);
             static_cast<void>(validation.Serialize());
             Engine::Object3D object;
@@ -212,6 +212,8 @@ namespace SceneRuntime
             [id](const auto& placement) { return placement.id == id; });
         if (found == layout_.objects.end()) return false;
         const auto index = static_cast<size_t>(found - layout_.objects.begin());
+        const auto removedId=found->id;
+        for (auto& placement : layout_.objects) if (placement.parentId==removedId) placement.parentId.clear();
         layout_.objects.erase(found);
         objects_.erase(objects_.begin() + static_cast<std::ptrdiff_t>(index));
         return true;

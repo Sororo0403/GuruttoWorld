@@ -72,6 +72,7 @@ namespace Editor
                 ImGui::BeginDisabled(!enabled);
                 DrawName(world, state, *found);
                 ImGui::Text("ID: %s", found->id.c_str());
+                ImGui::Text("Parent: %s",found->parentId.empty() ? "<root>" : found->parentId.c_str());
                 ImGui::TextWrapped("Model: %s", found->model.generic_string().c_str());
                 ImGui::Separator();
                 DrawTransform(world, state, *found);

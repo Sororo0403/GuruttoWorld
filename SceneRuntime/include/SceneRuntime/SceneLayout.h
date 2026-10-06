@@ -15,6 +15,7 @@ namespace SceneRuntime
         std::array<float, 3> position{};
         std::array<float, 3> rotation{}; // XYZ、ラジアン。
         std::array<float, 3> scale{ 1.0f, 1.0f, 1.0f };
+        std::string parentId; // Empty means root. Transforms remain in world space.
     };
 
     struct SceneLayout
