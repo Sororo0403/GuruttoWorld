@@ -1,5 +1,6 @@
 #include "ComponentPanel.h"
 #include "EnvironmentPanel.h"
+#include "UiComponentPanel.h"
 #include <imgui.h>
 
 namespace
@@ -87,6 +88,7 @@ namespace Editor
             edited=true;
         }
         edited=EnvironmentPanel::Add(candidate) || edited;
+        edited=UiComponentPanel::Add(candidate) || edited;
         ImGui::EndPopup();
         return edited;
     }
@@ -97,6 +99,7 @@ namespace Editor
         bool edited=DrawMesh(candidate,catalog);
         edited=DrawRotator(state,candidate) || edited;
         edited=EnvironmentPanel::Draw(state,candidate) || edited;
+        edited=UiComponentPanel::Draw(state,candidate,catalog) || edited;
         edited=DrawAdd(candidate,catalog) || edited;
         if (edited && !candidate.SameComponents(placement))
             state.RequestComponents(std::move(candidate),state.Interaction());

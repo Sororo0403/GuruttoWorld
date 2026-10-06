@@ -103,6 +103,11 @@
     <ClCompile Include="src\ObjectPanel.cpp" />
     <ClCompile Include="src\ComponentPanel.cpp" />
     <ClCompile Include="src\EnvironmentPanel.cpp" />
+    <ClCompile Include="src\UiCanvasPanel.cpp" />
+    <ClInclude Include="src\UiCanvasPanel.h" />
+    <ClInclude Include="src\AudioPreview.h" />
+    <ClCompile Include="src\UiComponentPanel.cpp" />
+    <ClInclude Include="src\UiComponentPanel.h" />
     <ClInclude Include="src\ComponentPanel.h" />
     <ClCompile Include="src\ProjectPanel.cpp" />
     <ClCompile Include="src\AssetPreview.cpp" />

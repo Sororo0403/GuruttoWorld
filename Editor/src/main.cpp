@@ -13,6 +13,8 @@
 #include "SceneDocument.h"
 #include "SaveAsPanel.h"
 #include "GameSession.h"
+#include "UiCanvasPanel.h"
+#include "AudioPreview.h"
 #include "PlaySnapshot.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/ScenePresentation.h>
@@ -81,6 +83,9 @@ namespace
         {
             if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer)) return Engine::RenderResult::Failed;
             if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
+            ApplyUiEvent(renderer);
+            audioPreview.Process(root);
+            if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             bool rendered = true;
             const auto result = renderer.Render(preview ? world.Layout().settings.background : std::array<float,4>{0.10f,0.11f,0.13f,1},
@@ -307,7 +312,7 @@ namespace
             if (!renderer.WaitForIdle()) return false;
             auto candidate=std::make_unique<SceneRuntime::ScenePresentation>();
             const bool success=Editor::ValidateProjectShaders(root,fileStatus) && candidate->Initialize(renderer,root,fileStatus) &&
-                world.ReloadAssets(renderer,root,root/"Shaders/Mesh.hlsl",fileStatus);
+                candidate->PrepareUi(renderer,root,world.Layout(),fileStatus) && world.ReloadAssets(renderer,root,root/"Shaders/Mesh.hlsl",fileStatus);
             if (success)
             {
                 presentation=std::move(candidate);
@@ -342,6 +347,8 @@ namespace
         void StartGame(const Engine::DirectX12Renderer& renderer)
         {
             std::optional<Editor::PlaySnapshot> captured;
+            Editor::AudioPreview::StopRequest();
+            audioPreview.Process(root);
             if (gameSession.State().IsEditing())
             {
                 history.Commit();
@@ -415,6 +422,7 @@ namespace
 
         void DrawUi()
         {
+            editState.BeginFrame();
             if (!preview)
             {
                 DrawMenuBar();
@@ -433,6 +441,8 @@ namespace
             if (focusGame) { ImGui::SetNextWindowFocus(); focusGame=false; }
             gamePanel.Begin(gameTextureId,"Game###Game");
             requestedGameSize=gamePanel.RequestedSize();
+            uiCanvasPanel.Draw(world,editState,gamePanel.Viewport(),SceneEditingEnabled());
+            UpdateGamePointer();
             Editor::ScenePanel::End();
             scenePanel.Begin(sceneTextureId);
             sceneViewport = scenePanel.Viewport();
@@ -449,6 +459,33 @@ namespace
             DrawCommands();
             if (!preview) Editor::SceneSelection::Draw(DisplayedWorld(), camera.GetCamera(), editState, sceneViewport);
             Editor::ScenePanel::End();
+        }
+
+        void ApplyUiEvent(Engine::DirectX12Renderer& renderer)
+        {
+            if(!pendingUiEvent) return;
+            if(!renderer.WaitForIdle()) return;
+            const auto event=std::move(*pendingUiEvent); pendingUiEvent.reset();
+            if(event.action=="quit") { StopGame(); return; }
+            if(event.action!="loadScene") return;
+            try {
+                const auto layout=SceneRuntime::SceneLayout::Load(root/std::filesystem::path(event.target));
+                if(!gameSession.LoadScene(renderer,root,layout,fileStatus)) LogResult(false);
+            } catch(const std::exception& e) { ReportStatus(e.what(),false); }
+        }
+
+        void UpdateGamePointer()
+        {
+            auto* runtime=gameSession.Runtime(); if(!runtime) return;
+            if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {runtime->Ui().pressed.clear(); runtime->Ui().hovered.clear(); return;}
+            const auto& v=gamePanel.Viewport(); if(!v.Valid()) return;
+            auto& ui=runtime->Ui(); const auto mouse=ImGui::GetIO().MousePos;
+            ui.hovered=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered()?SceneRuntime::SceneUi::Hit(runtime->World().Layout(),static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),mouse.x-v.x,mouse.y-v.y,ui):std::string{};
+            if(ImGui::IsMouseClicked(ImGuiMouseButton_Left)) ui.pressed=ui.hovered;
+            if(ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+                if(!ui.pressed.empty() && ui.pressed==ui.hovered) pendingUiEvent=runtime->Click(ui.pressed);
+                ui.pressed.clear();
+            }
         }
 
         void AcceptModelDrop()
@@ -502,6 +539,7 @@ namespace
                     closeRequested = false;
                     ImGui::CloseCurrentPopup();
                 }
+                if (!audioPreview.error.empty()) ImGui::TextWrapped("Audio: %s",audioPreview.error.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 ImGui::EndPopup();
             }
@@ -579,7 +617,6 @@ namespace
 
         void UpdateObjects()
         {
-            editState.BeginFrame();
             const bool sceneInput=SceneEditingEnabled() && !ImGui::GetDragDropPayload();
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
                 sceneInput && editState.InspectedAsset().empty() && (scenePanel.Hovered() || gizmo.IsDragging()));
@@ -658,6 +695,7 @@ namespace
                     ImGui::TextWrapped("Play runs the current scene and its environment Components. Pause freezes motion; Step advances one frame; Stop restores editing.");
                     ImGui::TextWrapped("Content: %s",root.string().c_str());
                 }
+                if (!audioPreview.error.empty()) ImGui::TextWrapped("Audio: %s",audioPreview.error.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 if (!Editor::PanelLayout::error.empty()) ImGui::TextWrapped("Layout: %s", Editor::PanelLayout::error.c_str());
                 if (reloadConfirmRequested)
@@ -831,6 +869,7 @@ namespace
                 if (ImGui::Button("Create")) CreateSceneRequest();
                 ImGui::SameLine();
                 if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+                if (!audioPreview.error.empty()) ImGui::TextWrapped("Audio: %s",audioPreview.error.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s",fileStatus.c_str());
                 ImGui::EndPopup();
             }
@@ -883,6 +922,7 @@ namespace
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+                if (!audioPreview.error.empty()) ImGui::TextWrapped("Audio: %s",audioPreview.error.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 ImGui::EndPopup();
             }
@@ -903,6 +943,9 @@ namespace
         Editor::ScenePanel scenePanel;
         Editor::SceneViewport sceneViewport;
         Editor::EditState editState;
+        std::optional<SceneRuntime::UiEvent> pendingUiEvent;
+        Editor::AudioPreview audioPreview;
+        Editor::UiCanvasPanel uiCanvasPanel;
         Editor::GameSession gameSession;
         std::optional<Editor::PlaySnapshot> playSnapshot;
         std::optional<Editor::GameSession::Command> pendingPlay;

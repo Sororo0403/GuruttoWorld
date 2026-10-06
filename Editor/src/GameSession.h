@@ -1,5 +1,6 @@
 #pragma once
 #include "PlayState.h"
+#include <Engine/Core/Log.h>
 #include <SceneRuntime/SceneEnvironment.h>
 #include <memory>
 #include <stdexcept>
@@ -11,7 +12,7 @@ namespace Editor
     public:
         enum class Command { Play, Pause, Stop, Step };
         const PlayState& State() const { return state_; }
-        const SceneRuntime::SceneEnvironment* Runtime() const { return runtime_.get(); }
+        SceneRuntime::SceneEnvironment* Runtime() const { return runtime_.get(); }
         // Create and release resources outside Render after GPU idle.
         bool Play(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             const SceneRuntime::SceneLayout& layout, std::string& error)
@@ -23,14 +24,25 @@ namespace Editor
                 {
                     auto candidate=std::make_unique<SceneRuntime::SceneEnvironment>();
                     if (!candidate->Initialize(renderer,root,layout,error)) return false;
+                    std::string audioError;
+                    if(!candidate->StartAudio(root,audioError)) Engine::Log::Warning(audioError);
                     runtime_=std::move(candidate);
                 }
                 catch (const std::exception& exception) { error=exception.what(); return false; }
             }
             error.clear();
+            if(runtime_) runtime_->PauseAudio(false);
             return state_.Play();
         }
-        bool Pause() { return state_.Pause(); }
+        bool LoadScene(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,const SceneRuntime::SceneLayout& layout,std::string& error)
+        {
+            if(state_.IsEditing()) {error="LoadScene requires Play"; return false;}
+            auto candidate=std::make_unique<SceneRuntime::SceneEnvironment>();
+            if(!candidate->Initialize(renderer,root,layout,error)) return false;
+            std::string audioError; if(!candidate->StartAudio(root,audioError)) Engine::Log::Warning(audioError);
+            runtime_=std::move(candidate); state_.Stop(); return state_.Play();
+        }
+        bool Pause() { const bool result=state_.Pause(); if(result && runtime_) {runtime_->PauseAudio(true); runtime_->Ui().pressed.clear(); runtime_->Ui().hovered.clear();} return result; }
         bool Stop()
         {
             if (!state_.CanStop()) return false;
@@ -39,6 +51,7 @@ namespace Editor
         }
         bool Update(double seconds, bool active)
         {
+            if(runtime_) runtime_->UpdateAudio(active && state_.CanPause());
             if (!active || !runtime_ || !state_.Advance(seconds)) return false;
             runtime_->Update(seconds,true,true);
             return true;

@@ -1,4 +1,5 @@
 #include "ProjectPanel.h"
+#include "AudioPreview.h"
 #include "PanelLayout.h"
 #include "ModelDrop.h"
 #include <Engine/Core/Log.h>
@@ -144,6 +145,7 @@ namespace Editor
                 ImGui::TextWrapped("%s",ProjectCatalog::Text(selected).c_str());
                 if (!info_->error.empty()) ImGui::TextWrapped("%s",info_->error.c_str());
                 else { preview_.Draw(*found); DrawAssetInfo(*info_); }
+                if(found->kind==AssetKind::Audio) {if(ImGui::Button("Audition audio")) AudioPreview::Play(selected); ImGui::SameLine(); if(ImGui::Button("Stop audio")) AudioPreview::StopRequest();}
             }
         }
         ImGui::End();
