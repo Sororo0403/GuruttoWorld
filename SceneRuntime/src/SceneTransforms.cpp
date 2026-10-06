@@ -1,8 +1,8 @@
 #include <SceneRuntime/SceneTransforms.h>
-#include <SceneRuntime/TransformMatrix.h>
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <iterator>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -35,6 +35,54 @@ namespace
             return std::all_of(std::begin(row),std::end(row),[](float value) { return std::isfinite(value); });
         });
     }
+    // Keep the existing mirror signs and choose the equivalent Euler angles nearest the inspector values.
+    bool ReadSrt(const DirectX::XMFLOAT4X4& matrix, const SceneRuntime::ScenePlacement& reference,
+        SceneRuntime::ScenePlacement& output)
+    {
+        auto result = reference;
+        float r[3][3]{};
+        for (int i=0; i<3; ++i)
+        {
+            const float length = std::sqrt(matrix.m[i][0]*matrix.m[i][0] +
+                matrix.m[i][1]*matrix.m[i][1] + matrix.m[i][2]*matrix.m[i][2]);
+            if (!std::isfinite(length) || length < 1e-6f) return false;
+            result.scale[i] = std::copysign(length, reference.scale[i]);
+            for (int j=0; j<3; ++j) r[i][j] = matrix.m[i][j] / result.scale[i];
+        }
+        const float y = std::asin(std::clamp(-r[0][2], -1.0f, 1.0f));
+        float x, z;
+        if (std::abs(std::cos(y)) > 1e-4f)
+        {
+            x=std::atan2(r[1][2],r[2][2]);
+            z=std::atan2(r[0][1],r[0][0]);
+        }
+        else
+        {
+            z=reference.rotation[2];
+            x=y>0 ? std::atan2(r[1][0],r[1][1])+z : std::atan2(-r[1][0],r[1][1])-z;
+        }
+        const auto nearest = [&](std::array<float,3> angles)
+        {
+            for (int i=0;i<3;++i) angles[i]=reference.rotation[i]+
+                std::remainder(angles[i]-reference.rotation[i],DirectX::XM_2PI);
+            return angles;
+        };
+        const auto primary=nearest({x,y,z});
+        const auto alternate=nearest({x+DirectX::XM_PI,DirectX::XM_PI-y,z+DirectX::XM_PI});
+        const auto distance = [&](const auto& angles)
+        {
+            float sum=0;
+            for (int i=0;i<3;++i) { const float d=angles[i]-reference.rotation[i]; sum+=d*d; }
+            return sum;
+        };
+        result.rotation=distance(primary)<=distance(alternate) ? primary : alternate;
+        result.position={matrix._41,matrix._42,matrix._43};
+        DirectX::XMFLOAT4X4 rebuilt;
+        if (!SceneRuntime::SceneTransforms::Compose(result,rebuilt) ||
+            !SceneRuntime::SceneTransforms::Matches(rebuilt,matrix)) return false;
+        output=result;
+        return true;
+    }
     void ResolveChain(size_t start, const std::vector<std::optional<size_t>>& parents,
         std::vector<unsigned char>& visited, std::vector<Matrix>& matrices)
     {
@@ -64,6 +112,16 @@ namespace
 
 namespace SceneRuntime
 {
+    bool SceneTransforms::Matches(const DirectX::XMFLOAT4X4& left, const DirectX::XMFLOAT4X4& right)
+    {
+        if (!Finite(left) || !Finite(right)) return false;
+        for (int row=0;row<4;++row)
+            for (int column=0;column<4;++column)
+                if (std::abs(left.m[row][column]-right.m[row][column])>
+                    0.001f*std::max(1.0f,std::abs(right.m[row][column]))) return false;
+        return true;
+    }
+
     bool SceneTransforms::IsUsable(const DirectX::XMFLOAT4X4& matrix)
     {
         if (!Finite(matrix) || std::abs(matrix._14)>1e-6f || std::abs(matrix._24)>1e-6f ||
@@ -107,7 +165,7 @@ namespace SceneRuntime
         const auto determinant=DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(DirectX::XMLoadFloat4x4(&matrix)));
         const bool mirrored=std::signbit(basis.scale[0]) ^ std::signbit(basis.scale[1]) ^ std::signbit(basis.scale[2]);
         if (std::signbit(determinant)!=mirrored) basis.scale[0]=-basis.scale[0];
-        return TransformMatrix::Read(matrix,basis,output);
+        return ReadSrt(matrix,basis,output);
     }
 
     bool SceneTransforms::Resolve(const SceneLayout& layout,

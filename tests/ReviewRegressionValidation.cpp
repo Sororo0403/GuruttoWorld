@@ -1,4 +1,3 @@
-#include "../Editor/src/TransformMatrix.h"
 #include "../Editor/src/GizmoTransform.h"
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
@@ -40,6 +39,12 @@ namespace
 {
     using Microsoft::WRL::ComPtr;
     void Check(bool condition, const char* message) { if (!condition) throw std::runtime_error(message); }
+    DirectX::XMFLOAT4X4 ComposeTransform(const SceneRuntime::ScenePlacement& placement)
+    {
+        DirectX::XMFLOAT4X4 matrix;
+        Check(SceneRuntime::SceneTransforms::Compose(placement,matrix), "compose validated transform fixture");
+        return matrix;
+    }
     void Hr(HRESULT result) { Check(SUCCEEDED(result), "D3D12 call failed"); }
 
     void CheckGpuMessages(ID3D12Device* device)
@@ -407,17 +412,17 @@ namespace
         auto child=initial.objects[1]; child.position={1,2,3}; child.rotation={0,0,0}; child.scale={1,1,1};
         DirectX::XMFLOAT4X4 parent{},actual{},expected{};
         Check(world.WorldMatrix(child.parentId,parent), "explicit transform API parent matrix");
-        const auto local=Editor::TransformMatrix::Compose(child);
+        const auto local=ComposeTransform(child);
         DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&local)*DirectX::XMLoadFloat4x4(&parent));
         Check(world.SetLocalTransform(child.id,child.position,child.rotation,child.scale) && world.WorldMatrix(child.id,actual) &&
-            Editor::TransformMatrix::Matches(actual,expected), "local setter uses parent-relative coordinates");
+            SceneRuntime::SceneTransforms::Matches(actual,expected), "local setter uses parent-relative coordinates");
         Check(world.SetWorldTransform(child.id,{50,60,70},{0,0,0},{1,1,1}) && world.WorldMatrix(child.id,actual) &&
             std::abs(actual._41-50)<0.001f && std::abs(actual._42-60)<0.001f && std::abs(actual._43-70)<0.001f,
             "world setter converts through parent into local storage");
         const auto snapshot=world.Layout().Serialize();
         expected=actual; expected._12+=0.5f;
         Check(!world.SetWorldTransform(child.id,expected) && world.Layout().Serialize()==snapshot &&
-            world.WorldMatrix(child.id,parent) && Editor::TransformMatrix::Matches(parent,actual),
+            world.WorldMatrix(child.id,parent) && SceneRuntime::SceneTransforms::Matches(parent,actual),
             "world matrix setter rejects unrepresentable shear without changing draw or data");
         SceneRuntime::ScenePlacement output=child;
         Check(!world.LocalTransformFromWorld("missing",actual,output) && output.position==child.position,
@@ -442,13 +447,13 @@ namespace
         DirectX::XMFLOAT4X4 childBefore{},grandBefore{},actual{};
         Check(world.WorldMatrix("child",childBefore) && world.WorldMatrix("grandchild",grandBefore), "capture hierarchy world poses");
         Check(world.SetParent("child","other",error) && world.WorldMatrix("child",actual) &&
-            Editor::TransformMatrix::Matches(childBefore,actual) && world.WorldMatrix("grandchild",actual) &&
-            Editor::TransformMatrix::Matches(grandBefore,actual), "reparent between rotated mirrored parents preserves subtree pose");
+            SceneRuntime::SceneTransforms::Matches(childBefore,actual) && world.WorldMatrix("grandchild",actual) &&
+            SceneRuntime::SceneTransforms::Matches(grandBefore,actual), "reparent between rotated mirrored parents preserves subtree pose");
         const auto unchanged=world.Layout().Serialize();
         Check(world.SetParent("child","other",error) && error.empty() && world.Layout().Serialize()==unchanged,
             "same parent is an exact no-op without Euler or scale drift");
         Check(world.SetParent("child",{},error) && world.WorldMatrix("grandchild",actual) &&
-            Editor::TransformMatrix::Matches(grandBefore,actual), "root detach preserves reflected descendant pose");
+            SceneRuntime::SceneTransforms::Matches(grandBefore,actual), "root detach preserves reflected descendant pose");
         Check(world.ReplaceLayout(layout,root,error), "restore hierarchy before duplicate");
         Check(world.SetLocalTransform("parent",parent.position,parent.rotation,{-2,3,4}), "nonuniform mirrored duplicate fixture");
         const auto source=world.Layout().objects[1];
@@ -464,14 +469,14 @@ namespace
         const auto before=world.Layout().Serialize();
         Check(world.WorldMatrix("plain",childBefore) && !world.RemoveObject("parent",error) &&
             error.find("child")!=std::string::npos && world.Layout().Serialize()==before &&
-            world.WorldMatrix("plain",actual) && Editor::TransformMatrix::Matches(childBefore,actual),
+            world.WorldMatrix("plain",actual) && SceneRuntime::SceneTransforms::Matches(childBefore,actual),
             "later unrepresentable child cancels whole deletion including earlier representable child");
         layout.objects[3].scale={-2,2,2};
         Check(world.ReplaceLayout(layout,root,error) && world.WorldMatrix("grandchild",grandBefore), "representable deletion fixture");
         const auto original=world.Layout().Serialize();
         Editor::EditHistory history; history.Reset({original,"grandchild",{"child","grandchild"}});
         Check(world.RemoveObject("parent",error) && error.empty() && world.WorldMatrix("grandchild",actual) &&
-            Editor::TransformMatrix::Matches(grandBefore,actual) && world.Layout().objects[0].parentId.empty() &&
+            SceneRuntime::SceneTransforms::Matches(grandBefore,actual) && world.Layout().objects[0].parentId.empty() &&
             world.Layout().objects[1].parentId.empty() && world.Layout().objects[2].parentId=="child",
             "delete only parent, promoting direct children while retaining grandchild hierarchy and pose");
         history.Observe({world.Layout().Serialize(),"grandchild",{"child","grandchild"}},{});
@@ -479,7 +484,7 @@ namespace
             world.Layout().Serialize()==original, "Undo restores parent deletion with exact local transforms");
         history.Applied(false);
         Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(true).json),root,error) &&
-            world.WorldMatrix("grandchild",actual) && Editor::TransformMatrix::Matches(grandBefore,actual), "Redo preserves promoted subtree pose");
+            world.WorldMatrix("grandchild",actual) && SceneRuntime::SceneTransforms::Matches(grandBefore,actual), "Redo preserves promoted subtree pose");
         Check(world.ReplaceLayout(initial,root,error), "hierarchy mutation fixture restored");
     }
 
@@ -499,10 +504,10 @@ namespace
             world.WorldRotation(child.id,orientation), "gizmo frame separates rotation from inherited shear");
         auto rotationChild=child,rotationParent=parent;
         rotationChild.position={}; rotationChild.scale={1,1,1}; rotationParent.position={}; rotationParent.scale={1,1,1};
-        const auto childRotation=Editor::TransformMatrix::Compose(rotationChild);
-        const auto parentRotation=Editor::TransformMatrix::Compose(rotationParent);
+        const auto childRotation=ComposeTransform(rotationChild);
+        const auto parentRotation=ComposeTransform(rotationParent);
         DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&childRotation)*DirectX::XMLoadFloat4x4(&parentRotation));
-        Check(Editor::TransformMatrix::Matches(expected,orientation) && handle._41==draw._41 && handle._42==draw._42 &&
+        Check(SceneRuntime::SceneTransforms::Matches(expected,orientation) && handle._41==draw._41 && handle._42==draw._42 &&
             handle._43==draw._43, "handle uses ancestor rotations and actual world pivot");
         const float drawDot=draw._11*draw._21+draw._12*draw._22+draw._13*draw._23;
         const float handleDot=handle._11*handle._21+handle._12*handle._22+handle._13*handle._23;
@@ -514,14 +519,14 @@ namespace
             result.scale==child.scale && world.SetLocalTransform(child.id,result.position,result.rotation,result.scale) &&
             world.WorldRotation(child.id,orientation), "world rotation edits only local rotation under nonuniform parent");
         expected._41=0; expected._42=0; expected._43=0;
-        Check(Editor::TransformMatrix::Matches(expected,orientation), "world rotation follows selected world axis");
+        Check(SceneRuntime::SceneTransforms::Matches(expected,orientation), "world rotation follows selected world axis");
         auto localDelta=rotationChild; localDelta.rotation={0,0,0.2f};
-        const auto delta=Editor::TransformMatrix::Compose(localDelta);
+        const auto delta=ComposeTransform(localDelta);
         DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&delta)*DirectX::XMLoadFloat4x4(&childRotation)*
             DirectX::XMLoadFloat4x4(&parentRotation));
         Check(Editor::GizmoTransform::ReadRotation(world,child,expected,result) &&
             world.SetLocalTransform(child.id,result.position,result.rotation,result.scale) && world.WorldRotation(child.id,orientation) &&
-            Editor::TransformMatrix::Matches(expected,orientation), "local rotation follows the object axis through parent rotation");
+            SceneRuntime::SceneTransforms::Matches(expected,orientation), "local rotation follows the object axis through parent rotation");
         child=world.Layout().objects[1];
         Check(Editor::GizmoTransform::Build(world,child,true,handle), "local scale handle builds with signed local scale");
         DirectX::XMStoreFloat4x4(&expected,DirectX::XMMatrixScaling(1.5f,0.5f,2)*DirectX::XMLoadFloat4x4(&handle));
@@ -589,6 +594,88 @@ namespace
         Check(world.ReplaceLayout(initial,root,error), "transaction fixture restored");
     }
 
+    void ValidateTransformWorkflow(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneWorld& world,
+        const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        const auto directory=std::filesystem::absolute("generated/tests/transform-workflow");
+        std::filesystem::create_directories(directory);
+        const auto path=directory/"New.json", copy=directory/"Copy.json";
+        std::filesystem::remove(path); std::filesystem::remove(copy);
+        Editor::SceneDocument document(path);
+        Editor::EditState state;
+        Editor::EditHistory history;
+        std::string error,created;
+        Check(renderer.WaitForIdle() && document.Request(path,true,false) && document.Apply(world,root,error) &&
+            world.Layout().objects.empty(), "workflow creates a new local scene");
+        history.Reset({world.Layout().Serialize(),{}, {}});
+        auto parent=initial.objects.back(); parent.id="parent"; parent.parentId.clear();
+        parent.position={10,0,0}; parent.rotation={0,0.3f,0}; parent.scale={2,2,2};
+        auto child=parent; child.id="child"; child.position={3,1,0}; child.rotation={0.2f,0.1f,-0.4f}; child.scale={1,1,1};
+        auto grandchild=child; grandchild.id="grandchild"; grandchild.parentId=child.id; grandchild.position={0,1,0};
+        const auto observe=[&]() { history.Observe({world.Layout().Serialize(),state.SelectedId(),state.SelectedIds()},state.Interaction()); };
+        for (const auto& placement : {parent,child,grandchild})
+        {
+            state.BeginFrame();
+            Check(world.AddObject(placement,root,created,error), "workflow adds parent child and grandchild");
+            state.ObjectChanged(created); observe();
+        }
+        DirectX::XMFLOAT4X4 before{},after{};
+        Check(world.WorldMatrix("grandchild",before), "workflow captures descendant world pose");
+        state.BeginFrame();
+        Check(state.SetParent(world,"child","parent",error) && world.WorldMatrix("grandchild",after) &&
+            SceneRuntime::SceneTransforms::Matches(before,after), "workflow parents child while preserving descendant pose");
+        observe(); state.BeginFrame();
+        state.Select("child"); state.Select("grandchild",true); observe();
+        const auto parented=world.Layout().Serialize();
+        for (int step=0;step<4;++step)
+        {
+            state.BeginFrame(); state.SetInteraction("gizmo/grandchild/move");
+            Check(state.TranslateSelectionWorld(world,{0.5f,0,0}), "workflow moves parented selection"); observe();
+        }
+        state.BeginFrame(); observe();
+        const auto moved=world.Layout().Serialize();
+        const auto apply=[&](bool redo)
+        {
+            const auto target=history.Target(redo);
+            Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json),root,error), "workflow history restores whole scene");
+            history.Applied(redo); state.RestoreSelection(target.selections,target.selection);
+            state.SetChanged(document.UnsavedNew() || history.Dirty(target.json));
+        };
+        apply(false);
+        Check(world.Layout().Serialize()==parented && state.SelectedIds()==std::vector<std::string>{"child","grandchild"},
+            "workflow Undo reverses one full drag with selection");
+        apply(true);
+        Check(world.Layout().Serialize()==moved, "workflow Redo restores full drag");
+        document.Save(world.Layout()); history.Saved(moved); state.MarkSaved();
+        Check(!document.UnsavedNew() && !state.HasChanges() && !history.Dirty(moved), "workflow saves clean baseline");
+        state.BeginFrame();
+        Check(world.DuplicateObject("child",{4,0,0},created,error), "workflow duplicates parented child");
+        state.ObjectChanged(created); observe();
+        const auto duplicated=world.Layout().Serialize();
+        state.Select("parent"); observe();
+        Check(world.WorldMatrix("grandchild",before) && world.RemoveObject("parent",error), "workflow deletes parent");
+        state.ObjectChanged({}); observe();
+        Check(world.WorldMatrix("grandchild",after) && SceneRuntime::SceneTransforms::Matches(before,after),
+            "workflow deletion preserves descendant world pose");
+        apply(false);
+        Check(world.Layout().Serialize()==duplicated && state.SelectedId()=="parent", "workflow Undo restores deleted parent and selection");
+        apply(false);
+        Check(world.Layout().Serialize()==moved && !state.HasChanges(), "workflow Undo duplicate returns to saved clean scene");
+        apply(true); apply(true); apply(false); apply(false);
+        Check(world.Layout().Serialize()==moved, "workflow Redo and Undo reproduce hierarchy mutations");
+        document.SaveAs(world.Layout(),copy,false); history.Saved(moved); state.MarkSaved();
+        Check(document.Path()==copy && SceneRuntime::SceneLayout::Load(path).Serialize()==moved,
+            "workflow SaveAs changes document while retaining original saved scene");
+        Engine::Camera camera; SceneRuntime::TitleView::SetHome(camera); SceneRuntime::TitleView::SetProjection(camera,1);
+        Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float) { world.Draw(commands,camera,{}); })!=
+            Engine::RenderResult::Failed && renderer.WaitForIdle(), "workflow final hierarchy renders before reload");
+        Check(document.Request(copy,false,false) && document.Apply(world,root,error) && world.Layout().Serialize()==moved &&
+            world.Layout().objects[1].parentId=="parent" && world.Layout().objects[2].parentId=="child",
+            "workflow reopen preserves saved hierarchy and local transforms");
+        Check(world.ReplaceLayout(initial,root,error), "workflow fixture restored");
+    }
+
     void ValidateInheritedRendering(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
         SceneRuntime::SceneWorld world;
@@ -608,7 +695,7 @@ namespace
         std::vector<DirectX::XMFLOAT4X4> expected;
         Check(SceneRuntime::SceneTransforms::Resolve(layout,expected,error), "inherited expected matrices");
         DirectX::XMFLOAT4X4 matrix;
-        Check(world.WorldMatrix("child",matrix) && Editor::TransformMatrix::Matches(matrix,expected[1]),
+        Check(world.WorldMatrix("child",matrix) && SceneRuntime::SceneTransforms::Matches(matrix,expected[1]),
             "draw object receives full inherited matrix including shear");
         std::array<std::array<float,3>,8> before{},after{};
         Check(world.WorldBounds("grandchild",before), "inherited bounds before edit");
@@ -647,9 +734,9 @@ namespace
         layout.objects[2].scale={2,2,2}; layout.objects[1].rotation={0,0,0};
         Check(world.ReplaceLayout(layout,root,error) && world.WorldMatrix("child",matrix), "uniform parent detach fixture");
         Check(world.SetParent("child",{},error) && world.WorldMatrix("child",shifted) &&
-            Editor::TransformMatrix::Matches(matrix,shifted), "representable reparent preserves world pose");
+            SceneRuntime::SceneTransforms::Matches(matrix,shifted), "representable reparent preserves world pose");
         Check(world.SetParent("child","parent",error) && world.RemoveObject("parent",error) && world.WorldMatrix("child",shifted) &&
-            Editor::TransformMatrix::Matches(matrix,shifted), "representable parent deletion preserves child pose");
+            SceneRuntime::SceneTransforms::Matches(matrix,shifted), "representable parent deletion preserves child pose");
         Check(world.ReplaceLayout(layout,root,error), "inherited serialization fixture restored");
         const auto json=world.Layout().Serialize();
         const auto path=std::filesystem::absolute("generated/tests/local-scene.json");
@@ -659,6 +746,7 @@ namespace
         ValidateHierarchyMutations(world,root);
         ValidateGizmoTransforms(world,root);
         ValidateEditTransactions(world,root);
+        ValidateTransformWorkflow(renderer,world,root);
         CheckGpuMessages(renderer.GetDevice());
     }
 
@@ -814,7 +902,7 @@ namespace
         parentState.Select(child.id);
         Check(parentState.SetParent(world,child.id,{},error) && parentState.HasChanges() &&
             parentState.SelectedId()==child.id && world.WorldMatrix(child.id,resultWorld) &&
-            Editor::TransformMatrix::Matches(childWorld,resultWorld),
+            SceneRuntime::SceneTransforms::Matches(childWorld,resultWorld),
             "reparent to root preserves placement and selection while marking changes");
         parentState.MarkSaved();
         Check(parentState.SetParent(world,child.id,{},error) && !parentState.HasChanges(), "unchanged parent does not mark changes");
@@ -860,7 +948,7 @@ namespace
         const auto found=std::find_if(world.Layout().objects.begin(),world.Layout().objects.end(),
             [&](const auto& object) { return object.id==child.id; });
         Check(found!=world.Layout().objects.end() && world.WorldMatrix(child.id,resultWorld) &&
-            Editor::TransformMatrix::Matches(childWorld,resultWorld), "parent deletion preserves child world transform");
+            SceneRuntime::SceneTransforms::Matches(childWorld,resultWorld), "parent deletion preserves child world transform");
         history.Observe({world.Layout().Serialize(),child.id,{child.id}},{});
         Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json),root,error) &&
             world.Layout().Serialize()==before, "Undo snapshot restores parent and child relationships");
@@ -1518,7 +1606,7 @@ void ValidateSceneTransforms()
     Check(SceneTransforms::WorldToLocal(worlds[1],worlds[2],local), "sheared world converts to local matrix");
     DirectX::XMFLOAT4X4 recomposed;
     DirectX::XMStoreFloat4x4(&recomposed,DirectX::XMLoadFloat4x4(&local)*DirectX::XMLoadFloat4x4(&worlds[2]));
-    Check(Editor::TransformMatrix::Matches(recomposed,worlds[1]), "world local world roundtrip preserves shear");
+    Check(SceneRuntime::SceneTransforms::Matches(recomposed,worlds[1]), "world local world roundtrip preserves shear");
     layout.objects[2].scale[0]=-2;
     Check(SceneTransforms::Resolve(layout,worlds,error) && SceneTransforms::IsUsable(worlds[0]),
         "mirrored parent transforms remain usable");
@@ -1526,7 +1614,7 @@ void ValidateSceneTransforms()
     const auto rejects=[&](const SceneRuntime::SceneLayout& invalid)
     {
         Check(!SceneTransforms::Resolve(invalid,worlds,error) && !error.empty() &&
-            worlds.size()==unchanged.size() && Editor::TransformMatrix::Matches(worlds[0],unchanged[0]),
+            worlds.size()==unchanged.size() && SceneRuntime::SceneTransforms::Matches(worlds[0],unchanged[0]),
             "invalid transform graph preserves output matrices");
     };
     auto invalid=layout; invalid.objects[2].parentId=invalid.objects[0].id; rejects(invalid);
@@ -1537,7 +1625,7 @@ void ValidateSceneTransforms()
     invalid=layout; invalid.objects[1].position[0]=NAN; rejects(invalid);
     auto singular=worlds[2]; singular._11=singular._12=singular._13=0;
     const auto previous=local;
-    Check(!SceneTransforms::WorldToLocal(worlds[1],singular,local) && Editor::TransformMatrix::Matches(local,previous),
+    Check(!SceneTransforms::WorldToLocal(worlds[1],singular,local) && SceneRuntime::SceneTransforms::Matches(local,previous),
         "singular parent is rejected without changing local output");
     auto perspective=worlds[1]; perspective._14=0.1f;
     Check(!SceneTransforms::IsUsable(perspective), "perspective matrices are excluded from affine transform calculations");
@@ -1579,12 +1667,12 @@ void ValidateHierarchyRows()
 
 void ValidateParentData()
 {
-    auto legacySource=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
-    for (auto& object : legacySource.objects) object.parentId.clear();
-    const auto legacy=SceneRuntime::SceneLayout::Parse(legacySource.Serialize());
-    Check(std::all_of(legacy.objects.begin(),legacy.objects.end(),[](const auto& object) { return object.parentId.empty(); }),
-        "legacy scenes without parent data remain flat roots");
-    auto root=legacy.objects.front();
+    auto rootSource=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    for (auto& object : rootSource.objects) object.parentId.clear();
+    const auto rootLayout=SceneRuntime::SceneLayout::Parse(rootSource.Serialize());
+    Check(std::all_of(rootLayout.objects.begin(),rootLayout.objects.end(),[](const auto& object) { return object.parentId.empty(); }),
+        "objects without parent IDs are roots");
+    auto root=rootLayout.objects.front();
     root.id="親";
     auto child=root; child.id="child"; child.parentId=root.id;
     auto grandchild=root; grandchild.id="grandchild"; grandchild.parentId=child.id;
@@ -1676,7 +1764,7 @@ void ValidateSceneFiles()
         "minimum editable scale can be saved and loaded");
 }
 
-void ValidateTransformMatrix()
+void ValidateTransformDecomposition()
 {
     SceneRuntime::ScenePlacement placement;
     placement.position={8,-2,12};
@@ -1685,25 +1773,26 @@ void ValidateTransformMatrix()
     {
         placement.scale=scale;
         placement.rotation={0.7f,y,-0.4f};
-        const auto matrix=Editor::TransformMatrix::Compose(placement);
+        const auto matrix=ComposeTransform(placement);
         auto result=placement;
-        Check(Editor::TransformMatrix::Read(matrix,placement,result), "gizmo matrix round trip including mirrored and gimbal poses");
+        Check(SceneRuntime::SceneTransforms::ReadTransform(matrix,placement,result), "gizmo matrix round trip including mirrored and gimbal poses");
         for (int i=0;i<3;++i)
             Check(std::abs(result.scale[i]-scale[i])<0.001f && std::abs(result.rotation[i]-placement.rotation[i])<0.001f,
                 "gizmo conversion preserves mirror signs and continuous Euler angles");
     }
     placement.rotation={0,0,0};
     placement.scale={1,1,1};
-    auto invalid=Editor::TransformMatrix::Compose(placement);
+    auto invalid=ComposeTransform(placement);
     invalid._12=0.5f;
     auto output=placement;
-    Check(!Editor::TransformMatrix::Read(invalid,placement,output) && output.rotation==placement.rotation,
+    Check(!SceneRuntime::SceneTransforms::ReadTransform(invalid,placement,output) && output.rotation==placement.rotation,
         "sheared gizmo matrix is rejected without changing placement");
-    invalid=Editor::TransformMatrix::Compose(placement);
+    invalid=ComposeTransform(placement);
     invalid._11=0;
-    Check(!Editor::TransformMatrix::Read(invalid,placement,output), "zero scale is rejected");
+    Check(!SceneRuntime::SceneTransforms::ReadTransform(invalid,placement,output), "zero scale is rejected");
     invalid._11=NAN;
-    Check(!Editor::TransformMatrix::Read(invalid,placement,output), "nonfinite transform is rejected");
+    Check(!SceneRuntime::SceneTransforms::ReadTransform(invalid,placement,output), "nonfinite transform is rejected");
+    Check(!SceneRuntime::SceneTransforms::Matches(invalid,invalid), "nonfinite matrices never compare as matching");
 }
 
 void ValidateSceneViewport()
@@ -1995,7 +2084,7 @@ int main()
 {
     try
     {
-        ValidateTransformMatrix();
+        ValidateTransformDecomposition();
         ValidateSceneViewport();
         ValidateProjectCatalog();
         ValidateModelDrop();

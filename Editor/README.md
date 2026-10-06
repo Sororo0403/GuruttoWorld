@@ -150,31 +150,38 @@ Drop here to make rootへ落とすと親を解除します。InspectorのParent�
 親子付けはワールドの配置と選択を維持し、Undo／Redo・保存・再読み込みに対応します。自分や子孫への親子付けは拒否します。
 検索中は一致する対象を階層によらずフラットに表示し、Shift範囲選択は現在表示中の行に適用します。
 
-シーン保存形式はversion 2に統一しています。Position・Rotation（XYZラジアン）・Scaleは常に親に対するローカル座標です。
-親がないオブジェクトではローカル座標がワールド座標になります。描画・クリック選択・選択枠はlocal × parentWorldで計算します。
-Inspectorはローカル座標、複数選択の移動量はワールド座標で扱います。親と子を同時選択しても二重に移動しません。
-World/Local切り替えとEnable parent transformsメニューは廃止しました。New・Open・Save・Undo/Redoはすべて同じ形式です。
-親の変更・削除で配置保持にせん断が必要な場合は、SRTで保存できないため変更を拒否します。描画行列ではせん断を保持します。
+シーン保存形式はversion 2です。Position・Rotation（XYZラジアン）・Scaleは常に親に対するローカル座標です。
+親がない場合はローカル座標がワールド座標になります。描画・クリック選択・選択枠はlocal × parentWorldで計算し、せん断も保持します。
+InspectorのLocal position / Local rotation / Local scaleは保存する値を直接編集します。
+ギズモのLocal/Worldは操作軸の指定です。軸は親子の回転から計算し、反転・非一様拡縮・せん断から分離します。
+Moveはワールド移動量をローカル位置へ変換し、Rotateはローカル回転だけ、ScaleはLocal軸でローカル拡縮だけを変更します。
+親と子の同時移動では子孫を二重に移動しません。
 
-旧version 1シーンは通常のエディターでは読み込みません。独立した変換ツールを利用してください。
-`python scripts/ConvertSceneToLocal.py <scene.json>`で配置保持を検証し、`--write`を付けるとversion 2へ保存します。
-既にversion 2のシーンは二重に変換しません。変換不能なシーンは対象IDを表示して拒否します。
+親変更・親解除はワールド配置を維持します。親削除は直下の子だけをルートへ戻し、孫以下の親子関係を保持します。
+配置を保存するためにせん断が必要な場合は操作全体を拒否し、対象IDと理由を表示します。
+複製は同じ親の下へ一個作成し、ワールド移動量を親座標へ変換して位置だけを変更します。ローカル回転・拡縮は元の値を保持します。
 
-Transform APIはSetLocalTransform（親に対するSRT）、SetWorldTransform（ワールドSRTまたは行列）、TranslateObjectsWorld（ワールド移動量）です。
-LocalTransformFromWorldはワールド行列を親に対するSRTへ変換し、SceneTransforms::ReadTransformが行列の検証と分解を担当します。
+UndoはギズモやInspectorの入力欄ごとの操作IDで区切ります。一回のドラッグ・文字入力を一回のUndoとし、別の入力欄へ移ると直前の操作を確定します。
+親変更・Reset・作成・削除は別の操作です。無変更・失敗した操作では変更状態を立てず、Redoと選択を維持します。
+保存時は未確定の編集履歴を確定します。失敗したモデル作成では予約したオブジェクトIDを消費しません。
 
-手動確認: シーンを別名保存 → 親の移動・回転・拡縮に子が追従することを確認 → Ctrl+Z/Ctrl+Yで編集を戻す/復元する →
-Save/Reload後も配置と親子関係が維持されることを確認してください。
+Transformの計算・検証・分解はSceneRuntimeのSceneTransformsへ集約しています。Editor専用の行列実装はありません。
+SceneWorldのSetLocalTransform / SetWorldTransform / TranslateObjectsWorldは座標系を明示した編集APIです。
+WorldMatrixは描画・選択用、WorldRotationはギズモの回転軸用、LocalTransformFromWorldは親に対するSRTへの変換です。
 
-階層操作では親変更・親解除・親削除の配置保持処理を共通化しています。同じ親への設定は値を変更しません。
-親削除は直下の子だけをルートへ戻し、孫以下の親子関係を保持します。ひとつでも配置を保存できない子がある場合は削除全体を拒否し、対象IDと理由を表示します。
-複製は同じ親の下に一個作成し、ワールド移動量を親座標へ変換して位置だけを変更します。ローカル回転・拡縮は元の値を保持します。
+保存形式のWorld/Local切り替えとEnable parent transformsメニューは廃止しました。
+旧version 1シーンは`python scripts/ConvertSceneToLocal.py <scene.json>`で検証し、`--write`を付けて一度だけ変換してください。
+通常のエディターはversion 2だけを読み込みます。変換不能な入力は変更せず、version 2を二重に変換しません。
 
-ギズモの軸は親子の回転だけを合成し、親の反転・非一様拡縮・せん断から分離します。操作の中心は実際のワールド位置です。
-Moveはワールド移動量をローカル位置へ変換し、Rotateは親の回転を除いてローカル回転だけを変更します。
-ScaleはLocal軸でローカル拡縮だけを変更します。回転で位置・拡縮、拡縮で位置・回転を上書きしません。
-InspectorのLocal position / Local rotation / Local scaleは親に対する値を直接編集します。
+最終の手動確認は既存シーンを編集せず、New sceneで新しい名前のシーンを作って進めてください。
 
-UndoはギズモやInspectorの入力欄ごとの操作IDで区切ります。一回のドラッグ・文字入力を一回のUndoとし、
-別の入力欄へ移った場合も直前の操作を確定します。カメラ・パネル操作はシーン編集の履歴に混ざりません。
-同じ値の設定や失敗した操作では変更状態を立てず、Redoを維持します。保存時は未確定の編集履歴を確定します。
+1. Projectからモデルを三個配置し、Parent・Child・Grandchildと命名する。
+2. ChildをParentの子、GrandchildをChildの子にし、配置が変わらないことを確認する。
+3. Parentを移動・回転・非一様拡縮し、子孫と選択枠が追従することを確認する。
+4. ChildでLocal/World回転とLocal拡縮を試し、操作していないInspectorの成分が変わらないことを確認する。
+5. ChildとGrandchildをCtrlで同時選択して移動し、二重に動かないこととCtrl+Z一回で戻ることを確認する。Ctrl+Yで復元する。
+6. Save/Reloadで配置・親子関係を確認する。
+7. Parentの拡縮を均等に戻し、Childの複製とParentの削除を試す。子孫の配置保持、Undo/Redo、Save as/Open後の復元を確認する。
+
+自動の通しテストは新規作成、三段階層、複数選択ドラッグ、Undo/Redo、保存、複製、親削除、別名保存、再読み込みと描画まで確認します。
+画面上の入力とギズモの感触は上記の手動確認で確認してください。
