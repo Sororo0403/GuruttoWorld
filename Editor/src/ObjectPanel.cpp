@@ -84,7 +84,6 @@ namespace Editor
         }
         DrawReparentTarget(world,state,object.id);
         ImGui::PopID();
-        ImGui::SetCursorPosX(left);
     }
 
     void ObjectPanel::DrawReparentTarget(SceneRuntime::SceneWorld& world, EditState& state, const std::string& parent)

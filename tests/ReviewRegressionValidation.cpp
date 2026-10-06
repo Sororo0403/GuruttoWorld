@@ -11,6 +11,7 @@
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
 #include "../Editor/src/ScenePanel.h"
+#include "../Editor/src/ObjectPanel.h"
 #endif
 #include <SceneRuntime/SceneLayout.h>
 #include <SceneRuntime/SceneWorld.h>
@@ -406,6 +407,19 @@ namespace
         Engine::RenderTexture target;
         Engine::RenderTexture gameTarget;
 #if defined(_DEBUG)
+        SceneRuntime::SceneWorld hierarchyWorld;
+        const auto hierarchyRoot=std::filesystem::absolute("Content");
+        Check(hierarchyWorld.Initialize(renderer,hierarchyRoot,hierarchyRoot/"Assets/Scenes/TitleStreet.json",
+            hierarchyRoot/"Shaders/TitleMesh.hlsl"), "Hierarchy panel test world loads");
+        auto nested=hierarchyWorld.Layout();
+        nested.objects[2].parentId=nested.objects[1].id;
+        nested.objects[1].parentId=nested.objects[0].id;
+        std::string hierarchyError;
+        Check(hierarchyWorld.ReplaceLayout(nested,hierarchyRoot,hierarchyError), "Hierarchy panel contains nested rows");
+        Editor::ObjectPanel objectPanel;
+        Editor::EditState hierarchyState;
+#endif
+#if defined(_DEBUG)
         Editor::PanelLayout::Initialize(std::filesystem::absolute("generated/tests/editor-layout/layout.ini"));
         Editor::PanelLayout::Reset();
         UINT64 stableTextureId = 0, stableGameId = 0;
@@ -481,6 +495,8 @@ namespace
                 , [&]()
                 {
                     Editor::PanelLayout::BeginFrame();
+                    ImGui::SetNextWindowFocus();
+                    objectPanel.Draw(hierarchyWorld,hierarchyState,true);
                     Editor::ScenePanel panel;
                     ImGui::SetNextWindowFocus();
                     panel.Begin(textureId);
