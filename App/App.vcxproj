@@ -142,12 +142,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Triangle.hlsl" />
-    <None Include="Shaders\Sprite.hlsl" />
+    <None Include="..\Content\Shaders\Sprite.hlsl" />
     <None Include="Shaders\Sphere.hlsl" />
     <None Include="..\Content\Shaders\Mesh.hlsl" />
     <None Include="..\Content\Shaders\TitleMesh.hlsl" />
-    <None Include="Shaders\TitleSky.hlsl" />
-    <None Include="Shaders\TitleMote.hlsl" />
+    <None Include="..\Content\Shaders\TitleSky.hlsl" />
+    <None Include="..\Content\Shaders\TitleMote.hlsl" />
     <None Include="..\Content\Shaders\Common\TitleAtmosphere.hlsli" />
     <None Include="..\Content\Assets\Models\Title\Commercial\building-c.obj" />
     <None Include="..\Content\Assets\Models\Title\Commercial\building-c.mtl" />
@@ -211,7 +211,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)Shaders;$(OutDir)Shaders\Common" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sprite.hlsl;$(MSBuildThisFileDirectory)Shaders\Particle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleSky.hlsl;$(MSBuildThisFileDirectory)Shaders\TitleMote.hlsl" DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl" DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyModels" AfterTargets="Build">
     <ItemGroup>
@@ -259,7 +259,7 @@
     <ClInclude Include="src\DevTools\CameraPanel.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Particle.hlsl" />
+    <None Include="..\Content\Shaders\Particle.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Game.h" />
@@ -274,11 +274,8 @@
     <ClCompile Include="src\Scenes\GameSettings.cpp" />
     <ClInclude Include="src\Scenes\TitleMenu.h" />
     <ClInclude Include="src\Scenes\TitleAudio.h" />
-    <ClInclude Include="src\Scenes\TitleAmbientMotion.h" />
     <ClInclude Include="src\Scenes\GameSettings.h" />
     <ClInclude Include="src\Scenes\TitleUi.h" />
-    <ClCompile Include="src\Scenes\TitleEnvironment.cpp" />
-    <ClInclude Include="src\Scenes\TitleEnvironment.h" />
     <None Include="..\Content\Assets\Scenes\TitleStreet.json" />
     <ClInclude Include="src\Scenes\SceneFactory.h" />
     <ClCompile Include="src\Scenes\SceneFactory.cpp" />

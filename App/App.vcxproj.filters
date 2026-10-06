@@ -39,7 +39,7 @@
     <None Include="Shaders\Triangle.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\Sprite.hlsl">
+    <None Include="..\Content\Shaders\Sprite.hlsl">
       <Filter>Shaders</Filter>
     </None>
     <None Include="Shaders\Sphere.hlsl">
@@ -48,7 +48,7 @@
     <None Include="..\Content\Shaders\TitleMesh.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\TitleSky.hlsl">
+    <None Include="..\Content\Shaders\TitleSky.hlsl">
       <Filter>Shaders</Filter>
     </None>
     <None Include="..\Content\Shaders\Common\TitleAtmosphere.hlsli">
@@ -218,7 +218,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Particle.hlsl">
+    <None Include="..\Content\Shaders\Particle.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
@@ -241,12 +241,6 @@
     <ClInclude Include="src\Scenes\TitleScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
-    <ClCompile Include="src\Scenes\TitleEnvironment.cpp">
-      <Filter>src\Scenes</Filter>
-    </ClCompile>
-    <ClInclude Include="src\Scenes\TitleEnvironment.h">
-      <Filter>src\Scenes</Filter>
-    </ClInclude>
     <ClCompile Include="src\Scenes\TitleMenu.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
@@ -260,9 +254,6 @@
       <Filter>src\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="src\Scenes\TitleAudio.h">
-      <Filter>src\Scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Scenes\TitleAmbientMotion.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="src\Scenes\GameSettings.h">
@@ -302,7 +293,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\TitleMote.hlsl">
+    <None Include="..\Content\Shaders\TitleMote.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

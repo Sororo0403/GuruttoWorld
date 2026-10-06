@@ -46,7 +46,7 @@ namespace Editor
             updates_=0;
             return true;
         }
-        // Accepted ticks will drive Game updates when runtime execution is connected.
+        // Only accepted ticks advance the runtime. Pause and invalid timing leave it frozen.
         bool Advance(double seconds)
         {
             if (mode_!=Mode::Playing || !std::isfinite(seconds) || seconds<=0 ||

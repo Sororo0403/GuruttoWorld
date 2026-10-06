@@ -5,12 +5,12 @@
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <vector>
 #include <Engine/Graphics/Renderers/ParticleRenderer.h>
-#include "TitleAmbientMotion.h"
+#include <SceneRuntime/TitleAmbientMotion.h>
 #include <SceneRuntime/SceneWorld.h>
 
 namespace Engine { class DirectX12Renderer; }
 
-namespace App
+namespace SceneRuntime
 {
     class TitleEnvironment final
     {
@@ -20,6 +20,10 @@ namespace App
         /// </summary>
         bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root);
         /// <summary>設定とフォーカス状態に合わせて背景の待機演出を更新します。</summary>
+        bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+            SceneLayout layout, std::string& error);
+        const SceneWorld& World() const { return world_; }
+        const TitleAmbientMotion& Motion() const { return motion_; }
         void Update(double deltaSeconds, bool enabled, bool active, bool settingsSelected = false, bool exitSelected = false);
         /// <summary>空・街並み・奥行きのある光の粒を描画します。</summary>
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height);

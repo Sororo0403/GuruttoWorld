@@ -52,16 +52,33 @@ namespace SceneRuntime
     bool SceneWorld::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
         const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath, std::string* diagnostic)
     {
+        if (!InitializeModels(renderer,shaderPath,diagnostic)) return false;
+        std::string error;
+        const bool loaded = Reload(assetsRoot, layoutPath, error);
+        if (diagnostic) *diagnostic = error;
+        return loaded;
+    }
+
+    bool SceneWorld::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
+        SceneLayout layout, const std::filesystem::path& shaderPath, std::string* diagnostic)
+    {
+        if (!InitializeModels(renderer,shaderPath,diagnostic)) return false;
+        std::string error;
+        const bool loaded=ReplaceLayout(std::move(layout),assetsRoot,error);
+        if (diagnostic) *diagnostic=error;
+        return loaded;
+    }
+
+    bool SceneWorld::InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
+        std::string* diagnostic)
+    {
         modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath);
         if (!modelsReady_)
         {
             if (diagnostic) *diagnostic = "Scene renderer could not be initialized. Check shaders and restart.";
             return false;
         }
-        std::string error;
-        const bool loaded = Reload(assetsRoot, layoutPath, error);
-        if (diagnostic) *diagnostic = error;
-        return loaded;
+        return true;
     }
 
     bool SceneWorld::Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath,

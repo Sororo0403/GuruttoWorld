@@ -1,22 +1,36 @@
-#include "TitleEnvironment.h"
+#include <SceneRuntime/TitleEnvironment.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <algorithm>
 #include <cmath>
+#include <utility>
+#include <stdexcept>
 
-namespace App
+namespace SceneRuntime
 {
     bool TitleEnvironment::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
+    {
+        try
+        {
+            std::string error;
+            return Initialize(renderer,root,SceneLayout::Load(root / "Assets/Scenes/TitleStreet.json"),error);
+        }
+        catch (const std::exception&) { return false; }
+    }
+
+    bool TitleEnvironment::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+        SceneLayout layout, std::string& error)
     {
         auto skyTexture = std::make_shared<Engine::Texture2D>();
         if (!skyTexture->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), {}) ||
             !sky_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), skyTexture, root / "Shaders/TitleSky.hlsl"))
-            return false;
+        { error="Title sky could not be initialized"; return false; }
         if (!motes_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), skyTexture,
-            root / "Shaders/TitleMote.hlsl")) return false;
-        if (!world_.Initialize(renderer, root, root / "Assets/Scenes/TitleStreet.json",
-            root / "Shaders/TitleMesh.hlsl")) return false;
+            root / "Shaders/TitleMote.hlsl")) { error="Title motes could not be initialized"; return false; }
+        if (!world_.Initialize(renderer,root,std::move(layout),root / "Shaders/TitleMesh.hlsl",&error)) return false;
+        motion_=TitleAmbientMotion{};
         SceneRuntime::TitleView::SetHome(camera_);
         light_ = SceneRuntime::TitleView::Light();
+        error.clear();
         return true;
     }
 

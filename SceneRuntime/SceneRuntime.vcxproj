@@ -137,6 +137,9 @@
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="src\SceneLayout.cpp" />
+    <ClCompile Include="src\TitleEnvironment.cpp" />
+    <ClInclude Include="include\SceneRuntime\TitleEnvironment.h" />
+    <ClInclude Include="include\SceneRuntime\TitleAmbientMotion.h" />
     <ClCompile Include="src\SceneWorld.cpp" />
     <ClCompile Include="src\SceneTransforms.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneTransforms.h" />

@@ -112,6 +112,7 @@
     <ClInclude Include="src\EditHistory.h" />
     <ClInclude Include="src\EditState.h" />
     <ClInclude Include="src\PlayState.h" />
+    <ClInclude Include="src\GameSession.h" />
     <ClInclude Include="src\SelectionSet.h" />
     <ClInclude Include="src\HierarchyRows.h" />
     <ClInclude Include="src\SceneViewport.h" />

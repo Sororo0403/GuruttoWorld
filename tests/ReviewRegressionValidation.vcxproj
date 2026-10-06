@@ -99,7 +99,6 @@
     <ClCompile Include="..\App\src\Scenes\TitleMenu.cpp" />
     <ClCompile Include="..\App\src\Scenes\TitleAudio.cpp" />
     <ClCompile Include="..\App\src\Scenes\GameSettings.cpp" />
-    <ClCompile Include="..\App\src\Scenes\TitleEnvironment.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">

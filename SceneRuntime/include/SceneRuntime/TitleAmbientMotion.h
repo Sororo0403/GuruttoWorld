@@ -5,7 +5,7 @@
 #include <numbers>
 #include <SceneRuntime/TitleView.h>
 
-namespace App
+namespace SceneRuntime
 {
     class TitleAmbientMotion final
     {

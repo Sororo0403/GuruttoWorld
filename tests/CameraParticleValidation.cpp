@@ -65,7 +65,7 @@ int main()
         auto white = textures.Load({});
         Check(checker && white && checker != white, "different textures");
         Engine::ParticleSystem particles;
-        const auto shader = std::filesystem::path("App/Shaders/Particle.hlsl");
+        const auto shader = std::filesystem::path("Content/Shaders/Particle.hlsl");
         Check(particles.CreateGroup("Checker", device.Get(), queue.Get(), checker, shader), "checker group");
         Check(particles.CreateGroup("Glow", device.Get(), queue.Get(), white, shader), "glow group");
         Check(!particles.CreateGroup("Glow", device.Get(), queue.Get(), white, shader), "duplicate group rejected");

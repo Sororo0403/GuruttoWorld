@@ -2,6 +2,7 @@
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
 #include "../Editor/src/PlayState.h"
+#include "../Editor/src/GameSession.h"
 #include "../Editor/src/SceneViewport.h"
 #include "../Editor/src/ModelDrop.h"
 #include "../Editor/src/ConsoleFilter.h"
@@ -284,8 +285,8 @@ namespace
             Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::None, "press-any transition draws before start");
         Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::Start, "press-any emits game start");
         Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::None, "press-any emits start once");
-        App::TitleAmbientMotion motion;
-        App::TitleAmbientMotion exitCamera;
+        SceneRuntime::TitleAmbientMotion motion;
+        SceneRuntime::TitleAmbientMotion exitCamera;
         const auto home = exitCamera.CameraPosition();
         Engine::Camera framing;
         framing.SetPosition(home);
@@ -1416,6 +1417,58 @@ namespace
         Check(renderer.WaitForIdle(), "scene document destruction GPU completion");
     }
 
+    void ValidateGameSession(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
+    {
+        auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
+        layout.objects.back().name="Unsaved runtime name";
+        layout.objects.back().position[0]+=3;
+        const auto unsaved=layout.Serialize();
+        const auto onDisk=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json").Serialize();
+        Editor::GameSession session;
+        std::string error;
+        Check(!session.Update(0.1,true) && !session.Pause() && !session.Stop(), "editing has no running game session");
+        Check(session.Play(renderer,root,layout,error) && error.empty() && session.Runtime() &&
+            session.Runtime()->World().Layout().Serialize()==unsaved, "Play uses unsaved layout snapshot rather than saved title scene");
+        const auto* running=session.Runtime();
+        const auto initialMote=running->Motion().Mote(0);
+        const auto initialCamera=running->Motion().CameraPosition();
+        layout.objects.back().position[0]+=100;
+        Check(running->World().Layout().Serialize()==unsaved, "runtime layout is independent from later editor changes");
+        Check(session.Update(0.1,true) && session.State().Elapsed()==0.1 && session.State().Updates()==1 &&
+            running->Motion().Mote(0)!=initialMote && running->Motion().CameraPosition()!=initialCamera,
+            "accepted Play tick advances shared background runtime");
+        const auto mote=running->Motion().Mote(0); const auto camera=running->Motion().CameraPosition();
+        Check(!session.Update(0.1,false) && !session.Update(NAN,true) && running->Motion().Mote(0)==mote &&
+            running->Motion().CameraPosition()==camera && session.State().Updates()==1, "inactive and invalid ticks do not change runtime or clock");
+        Check(!session.Play(renderer,root,layout,error) && session.Runtime()==running, "repeated Play preserves active runtime");
+        Check(session.Pause() && !session.Update(0.1,true) && running->Motion().Mote(0)==mote &&
+            running->Motion().CameraPosition()==camera, "Pause freezes actual runtime camera and particles");
+        Engine::RenderTexture target;
+        Check(target.Resize(renderer,320,180), "Game render texture created");
+        const auto render=[&]() {
+            Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float) {
+                Check(target.Begin(commands,{0,0,0,1}), "Game target begins");
+                session.Draw(commands,target.GetWidth(),target.GetHeight());
+                Check(target.End(commands), "Game target ends");
+            })!=Engine::RenderResult::Failed && renderer.WaitForIdle(), "Game session renders to texture with GPU completion");
+        };
+        render(); render();
+        Check(running->Motion().Mote(0)==mote && running->Motion().CameraPosition()==camera, "paused rendering cannot advance runtime");
+        Check(session.Play(renderer,root,layout,error) && session.Runtime()==running && session.Update(0.1,true) &&
+            running->Motion().Mote(0)!=mote && session.State().Updates()==2, "Resume continues existing runtime without recreating scene");
+        render();
+        Check(session.Stop() && session.State().IsEditing() && !session.Runtime() && session.State().Updates()==0,
+            "Stop releases runtime after GPU completion and resets state");
+        Check(SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json").Serialize()==onDisk, "runtime never writes the saved scene");
+        auto bad=layout; bad.objects.back().model="Assets/Models/Title/missing-runtime.obj";
+        Check(!session.Play(renderer,root,bad,error) && !error.empty() && !session.Runtime() && session.State().IsEditing() &&
+            session.State().Elapsed()==0, "failed runtime initialization leaves editor state intact");
+        Check(session.Play(renderer,root,{},error) && session.Runtime()->World().Layout().objects.empty() &&
+            session.Runtime()->Motion().Mote(0)==initialMote, "empty unsaved scene starts with fresh background timing");
+        render();
+        Check(session.Pause() && session.Stop(), "paused session can stop safely");
+    }
+
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
@@ -1428,6 +1481,7 @@ namespace
             Check(renderer.Initialize(window.GetHandle()), "title renderer");
             if (size==TitleSizes[0])
             {
+                ValidateGameSession(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
                 ValidateInheritedRendering(renderer,std::filesystem::absolute("Content"));
             }
@@ -1693,7 +1747,7 @@ namespace
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
                 Check(renderer.WaitForIdle(), "title GPU completion");
-                App::TitleEnvironment environment;
+                SceneRuntime::TitleEnvironment environment;
                 Check(environment.Initialize(renderer, TestContentRoot()), "ambient environment assets");
                 for (int state = 0; state < 3; ++state)
                 {

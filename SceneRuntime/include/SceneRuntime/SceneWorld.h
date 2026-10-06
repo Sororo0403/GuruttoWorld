@@ -13,6 +13,8 @@ namespace SceneRuntime
     public:
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
             const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath, std::string* error = nullptr);
+        bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
+            SceneLayout layout, const std::filesystem::path& shaderPath, std::string* error = nullptr);
         // 描画の外でGPU完了を待ってから呼びます。失敗時は元の街を維持します。
         bool Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath, std::string& error);
         bool ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error);
@@ -58,6 +60,8 @@ namespace SceneRuntime
         bool LocalTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
     private:
+        bool InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
+            std::string* error);
         bool ReparentPlacement(ScenePlacement& placement, std::string parentId, std::string& error) const;
         bool TranslatePlacement(ScenePlacement& placement, const std::array<float,3>& delta) const;
         static bool PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error);
