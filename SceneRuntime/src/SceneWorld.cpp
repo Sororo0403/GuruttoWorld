@@ -381,6 +381,28 @@ namespace SceneRuntime
         return selected;
     }
 
+    bool SceneWorld::WorldRotation(std::string_view id, DirectX::XMFLOAT4X4& matrix) const
+    {
+        auto rotation=DirectX::XMMatrixIdentity();
+        auto current=std::string(id);
+        size_t remaining=layout_.objects.size();
+        do
+        {
+            const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),
+                [&](const auto& placement) { return placement.id==current; });
+            if (found==layout_.objects.end() || remaining--==0) return false;
+            const auto& angles=found->rotation;
+            rotation=rotation*DirectX::XMMatrixRotationX(angles[0])*DirectX::XMMatrixRotationY(angles[1])*
+                DirectX::XMMatrixRotationZ(angles[2]);
+            current=found->parentId;
+        } while (!current.empty());
+        DirectX::XMFLOAT4X4 candidate;
+        DirectX::XMStoreFloat4x4(&candidate,rotation);
+        if (!SceneTransforms::IsUsable(candidate)) return false;
+        matrix=candidate;
+        return true;
+    }
+
     bool SceneWorld::WorldMatrix(std::string_view id, DirectX::XMFLOAT4X4& matrix) const
     {
         const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),

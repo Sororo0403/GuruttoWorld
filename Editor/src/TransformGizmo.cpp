@@ -1,5 +1,5 @@
 #include "TransformGizmo.h"
-#include "TransformMatrix.h"
+#include "GizmoTransform.h"
 #include "PanelLayout.h"
 #include <ImGuizmo.h>
 #include <algorithm>
@@ -27,7 +27,8 @@ namespace Editor
         }
         const auto current=*found;
         DirectX::XMFLOAT4X4 matrix;
-        if (!world.WorldMatrix(current.id,matrix)) return;
+        if (!GizmoTransform::Build(world,current,mode_==Mode::Scale,matrix))
+        { invalidTransform_=true; dragging_=false; ImGuizmo::Enable(false); return; }
         if (!Manipulate(current, camera, viewport, matrix)) return;
         ApplyTransform(world, state, current, matrix);
     }
@@ -67,7 +68,7 @@ namespace Editor
         ImGui::SameLine();
         ImGui::EndDisabled();
         ImGui::BeginDisabled(mode_==Mode::Scale);
-        if (ImGui::Button(local_ || mode_==Mode::Scale ? "Local" : "World")) local_=!local_;
+        if (ImGui::Button(mode_==Mode::Scale ? "Local (scale)" : local_ ? "Local" : "World")) local_=!local_;
         ImGui::EndDisabled();
         ImGui::SameLine();
         ImGui::Checkbox("Snap", &snap_);
@@ -81,7 +82,7 @@ namespace Editor
             ImGui::EndPopup();
         }
         ImGui::EndDisabled();
-        if (invalidTransform_) { ImGui::SameLine(); ImGui::TextUnformatted("Invalid transform"); }
+        if (invalidTransform_) { ImGui::SameLine(); ImGui::TextUnformatted("Transform rejected: use finite values and nonzero scale"); }
     }
 
     void TransformGizmo::ApplyTransform(SceneRuntime::SceneWorld& world, EditState& state,
@@ -96,10 +97,10 @@ namespace Editor
             return;
         }
         auto transformed=current;
-        invalidTransform_=!world.LocalTransformFromWorld(current.id,matrix,transformed);
+        const bool valid=mode_==Mode::Rotate ? GizmoTransform::ReadRotation(world,current,matrix,transformed) :
+            GizmoTransform::ReadScale(current,matrix,transformed);
+        invalidTransform_=!valid;
         if (invalidTransform_) return;
-        if (mode_==Mode::Rotate) { transformed.position=current.position; transformed.scale=current.scale; }
-        if (mode_==Mode::Scale) { transformed.position=current.position; transformed.rotation=current.rotation; }
         if (transformed.position==current.position && transformed.rotation==current.rotation && transformed.scale==current.scale) return;
         invalidTransform_=!state.SetLocalTransform(world,current.id,transformed.position,transformed.rotation,transformed.scale);
         if (!invalidTransform_) state.ObjectChanged(current.id);

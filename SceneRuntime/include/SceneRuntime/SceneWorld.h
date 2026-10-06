@@ -42,6 +42,8 @@ namespace SceneRuntime
         bool RemoveObject(std::string_view id, std::string& error);
         std::optional<std::string> PickRay(const std::array<float, 3>& origin,
             const std::array<float, 3>& direction, float maxDistance = 220.0f) const;
+        // Rotation-only frame: combine ancestor rotations without scale, reflection or shear.
+        bool WorldRotation(std::string_view id, DirectX::XMFLOAT4X4& matrix) const;
         bool WorldMatrix(std::string_view id, DirectX::XMFLOAT4X4& matrix) const;
         // Convert a world matrix to the parent-relative local SRT, preserving output on failure.
         bool LocalTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;

@@ -1,4 +1,5 @@
 #include "../Editor/src/TransformMatrix.h"
+#include "../Editor/src/GizmoTransform.h"
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
 #include "../Editor/src/SceneViewport.h"
@@ -482,6 +483,65 @@ namespace
         Check(world.ReplaceLayout(initial,root,error), "hierarchy mutation fixture restored");
     }
 
+    void ValidateGizmoTransforms(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        auto parent=initial.objects.back(); parent.id="parent"; parent.parentId.clear();
+        parent.position={10,20,30}; parent.rotation={0.2f,0.4f,0.1f}; parent.scale={-2,3,4};
+        auto child=parent; child.id="child"; child.parentId=parent.id;
+        child.position={1,2,3}; child.rotation={0.3f,-0.2f,0.37f}; child.scale={-1,2,3};
+        auto grandchild=child; grandchild.id="grandchild"; grandchild.parentId=child.id;
+        SceneRuntime::SceneLayout layout; layout.objects={grandchild,child,parent};
+        std::string error;
+        Check(world.ReplaceLayout(layout,root,error), "gizmo nonuniform reflected parent fixture");
+        DirectX::XMFLOAT4X4 handle{},draw{},orientation{},expected{};
+        Check(Editor::GizmoTransform::Build(world,child,false,handle) && world.WorldMatrix(child.id,draw) &&
+            world.WorldRotation(child.id,orientation), "gizmo frame separates rotation from inherited shear");
+        auto rotationChild=child,rotationParent=parent;
+        rotationChild.position={}; rotationChild.scale={1,1,1}; rotationParent.position={}; rotationParent.scale={1,1,1};
+        const auto childRotation=Editor::TransformMatrix::Compose(rotationChild);
+        const auto parentRotation=Editor::TransformMatrix::Compose(rotationParent);
+        DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&childRotation)*DirectX::XMLoadFloat4x4(&parentRotation));
+        Check(Editor::TransformMatrix::Matches(expected,orientation) && handle._41==draw._41 && handle._42==draw._42 &&
+            handle._43==draw._43, "handle uses ancestor rotations and actual world pivot");
+        const float drawDot=draw._11*draw._21+draw._12*draw._22+draw._13*draw._23;
+        const float handleDot=handle._11*handle._21+handle._12*handle._22+handle._13*handle._23;
+        Check(std::abs(drawDot)>0.01f && std::abs(handleDot)<0.001f, "sheared geometry retains orthogonal handle axes");
+        DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&orientation)*DirectX::XMMatrixRotationY(0.25f));
+        expected._41=draw._41; expected._42=draw._42; expected._43=draw._43;
+        auto result=child;
+        Check(Editor::GizmoTransform::ReadRotation(world,child,expected,result) && result.position==child.position &&
+            result.scale==child.scale && world.SetLocalTransform(child.id,result.position,result.rotation,result.scale) &&
+            world.WorldRotation(child.id,orientation), "world rotation edits only local rotation under nonuniform parent");
+        expected._41=0; expected._42=0; expected._43=0;
+        Check(Editor::TransformMatrix::Matches(expected,orientation), "world rotation follows selected world axis");
+        auto localDelta=rotationChild; localDelta.rotation={0,0,0.2f};
+        const auto delta=Editor::TransformMatrix::Compose(localDelta);
+        DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&delta)*DirectX::XMLoadFloat4x4(&childRotation)*
+            DirectX::XMLoadFloat4x4(&parentRotation));
+        Check(Editor::GizmoTransform::ReadRotation(world,child,expected,result) &&
+            world.SetLocalTransform(child.id,result.position,result.rotation,result.scale) && world.WorldRotation(child.id,orientation) &&
+            Editor::TransformMatrix::Matches(expected,orientation), "local rotation follows the object axis through parent rotation");
+        child=world.Layout().objects[1];
+        Check(Editor::GizmoTransform::Build(world,child,true,handle), "local scale handle builds with signed local scale");
+        DirectX::XMStoreFloat4x4(&expected,DirectX::XMMatrixScaling(1.5f,0.5f,2)*DirectX::XMLoadFloat4x4(&handle));
+        Check(Editor::GizmoTransform::ReadScale(child,expected,result) && result.position==child.position &&
+            result.rotation==child.rotation && std::abs(result.scale[0]-child.scale[0]*1.5f)<0.001f &&
+            std::abs(result.scale[1]-child.scale[1]*0.5f)<0.001f && std::abs(result.scale[2]-child.scale[2]*2)<0.001f,
+            "scale changes signed local scale without changing local rotation or position");
+        const auto preserved=result;
+        expected._11=0; expected._12=0; expected._13=0;
+        Check(!Editor::GizmoTransform::ReadScale(child,expected,result) && result.scale==preserved.scale,
+            "zero scale handle rejects without changing output");
+        expected=handle; expected._14=0.1f;
+        Check(!Editor::GizmoTransform::ReadRotation(world,child,expected,result) && result.scale==preserved.scale,
+            "invalid affine rotation rejects without changing output");
+        Check(world.WorldMatrix("grandchild",draw) && world.TranslateObjectsWorld({"parent","child","grandchild"},{2,0,0}) &&
+            world.WorldMatrix("grandchild",handle) && std::abs(handle._41-draw._41-2)<0.001f,
+            "gizmo group move still avoids double transform for selected descendants");
+        Check(world.ReplaceLayout(initial,root,error), "gizmo transform fixture restored");
+    }
+
     void ValidateInheritedRendering(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
         SceneRuntime::SceneWorld world;
@@ -550,6 +610,7 @@ namespace
         Check(world.Reload(root,path,error) && world.Layout().Serialize()==json, "local scene survives save and reload");
         ValidateTransformApi(world,root);
         ValidateHierarchyMutations(world,root);
+        ValidateGizmoTransforms(world,root);
         CheckGpuMessages(renderer.GetDevice());
     }
 
