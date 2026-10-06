@@ -254,7 +254,7 @@ Playing／Paused中と編集操作中は更新を保留し、Editingへ戻って
 ## 空オブジェクトとComponent保存形式
 
 HierarchyのCreate emptyでTransformだけを持つオブジェクトを作成できます。親子付け・ギズモ・複数選択・複製・削除・Undo/Redo・保存に対応します。モデルを持たない対象はHierarchyで選択してください。選択枠とFフォーカスには原点付近の小さい境界を使います。
-version 4ではTransformを必須データとして持ち、任意のMeshRenderer／Rotator／Camera／DirectionalLight／Sky／ParticleEmitter／CameraSwayをcomponents配列へ保存します。Componentにはオブジェクト内で一意なID、種類、enabledと型付きの設定を持たせます。TransformのIDはtransformとして予約します。未対応の種類・重複・不正なプロパティは読み込みを拒否し、黙って削除しません。
+version 4ではTransformを必須データとして持ち、任意のMeshRenderer／Rotator／Camera／DirectionalLight／Sky／ParticleEmitter／CameraSway／Canvas／RectTransform／Image／Text／Button／AudioSourceをcomponents配列へ保存します。Componentにはオブジェクト内で一意なID、種類、enabledと型付きの設定を持たせます。TransformのIDはtransformとして予約します。未対応の種類・重複・不正なプロパティは読み込みを拒否し、黙って削除しません。
 旧version 2のmodelは読み込み時にMeshRendererへ移し、ローカルTransformと親子を維持します。保存するとversion 4になり、モデルの参照先はMeshRendererだけが保持します。version 1は従来の変換スクリプトでローカル座標へ変換してから開いてください。
 
 ## Componentの編集と実行
@@ -282,6 +282,40 @@ Sceneは編集用の自由カメラ、Gameはシーン内のCameraを使いま�
 
 空の新規シーンにはCamera・照明・Sky・粒子を自動追加しません。Gameでモデルを表示する場合は、Create empty → Add Component → Cameraと、別の空オブジェクト → DirectionalLightを作成してください。Cameraの配置例は位置[0,3,-10]・回転[6,0,0]度です。モデルを原点付近へ配置し、必要に応じて構図を調整します。Sky・ParticleEmitter・CameraSwayは必要に応じて追加します。旧version 2／3の外部シーンも同様に環境を追加できます。
 
-TitleStreet.jsonとUiCheck.jsonにはCamera・DirectionalLight・Sky・ParticleEmitterがあり、CameraにCameraSwayが付いています。ComponentDemo.jsonとEditorAcceptance.jsonにもCamera・照明・Skyを保存しています。AppのタイトルはTitleStreet.jsonを使用し、背景専用の固定カメラ・専用シェーダーは使用しません。保存した変更は次のビルドでAppへコピーされます。タイトルUI・音声のシーン化は今後の別作業です。
+TitleStreet.jsonとUiCheck.jsonにはCamera・DirectionalLight・Sky・ParticleEmitterがあり、CameraにCameraSwayが付いています。ComponentDemo.jsonとEditorAcceptance.jsonにもCamera・照明・Skyを保存しています。AppのタイトルはTitleStreet.jsonを使用し、背景専用の固定カメラ・専用シェーダーは使用しません。保存した変更は次のビルドでAppへコピーされます。タイトルUI・BGM・効果音も同じシーンへ保存し、共通ランタイムで描画・再生します。
 
-手動確認はManualChecks.mdのK〜Mを最新ビルドのEditorで実施してください。自動テストの成功と画面確認の結果は別に記録します。
+手動確認はManualChecks.mdのK〜Pを最新ビルドのEditorで実施してください。自動テストの成功と画面確認の結果は別に記録します。
+
+
+## UIと音声を作る
+
+最初はProjectから`Assets/Scenes/UiAudioDemo.json`を開いて別名保存してください。Cameraを持たない2DシーンでもUIを描画できます。PlayでBGM、パネル切り替え、効果音、Play終了のボタンを確認できます。
+
+1. Create empty → Add Component → Canvas。Reference resolutionは基準の画面サイズです。実画面へ縦横比を保って収めます。Scale with screenをOFFにすると画面全体をピクセル座標で使い、全面の覆いなどを作れます。
+2. Canvasの子を作り、RectTransformとImageまたはTextを追加します。UI位置は左上が原点で下方向が正です。3D TransformはUI配置に使いません。
+3. RectTransformのAnchor min/max・Pivot・Position・Size・Rotationを編集します。アンカーの範囲を広げると親のサイズに合わせて伸びます。回転・表示状態は親UIから継承します。入れ子のCanvasは外側Canvasの座標系を使います。
+4. Game上でクリックしてUIを選び、選択済みUIをドラッグして移動します。右下の黄色いハンドルでサイズ変更できます。Hierarchy選択も使えます。ドラッグ一回をUndo一回で戻せます。
+5. ImageはProjectの画像をAssetで割り当て、色・透明度・UV範囲を編集します。空のAssetは単色の四角形です。TextはUTF-8文字列・Windowsのフォントファミリー・文字サイズ・色を編集します。文字はRectの固定サイズへ折り返し、範囲外を切ります。伸縮アンカーでは文字の描画も伸縮します。描画用文字画像は各辺4096pxまでです。
+6. ボタン用オブジェクトへButtonを追加し、Hover/Pressed tintとActionを設定します。親Canvas、RectTransform、有効なButtonが必要です。子TextにButtonを付けなくても親ボタンがクリックできます。描画順は保存したobjectsの順で、後のUIほど前面になります。
+7. 空オブジェクトへAudioSourceを追加し、Asset・Volume・Loop・Play on awakeを設定します。InspectorのAudition／Stop auditionで試聴できます。Projectの音源Inspectorからも試聴可能です。OSのデコーダー対応形式を使用し、読み込み失敗をConsoleへ表示します。現在は2D音声です。
+
+### ボタンの動作とUI状態
+
+| Action | Target |
+| --- | --- |
+| show / hide / toggle | 表示を切り替えるオブジェクトID。子UIにも反映 |
+| playAudio | AudioSourceを持つオブジェクトID |
+| loadScene | Assets/Scenes配下のJSONパス |
+| quit | EditorではPlay終了、Appでは終了要求 |
+| setState | `screen=1&volume=5`のような状態値の代入 |
+| click | ゲーム処理へUiEventを通知 |
+
+Click audio objectにはクリック音のAudioSource IDを指定します。Game eventはAppの処理に渡す識別子です。複製した対象に含まれるボタンのTarget／音源参照は複製先IDへ移します。setStateの値やシーンパスはそのままです。
+
+CanvasのState defaultsで初期状態値を保存できます。RectTransformのVisible whenは`screen=1&selected=0`のような一致条件です。空なら常に表示します。X offset／Opacity／Width bindingは状態キーを指定します。Widthは0〜1の倍率です。Intro delay／X offsetは状態キー`intro`の0〜1進行率に対応します。編集プレビューでもState defaultsを使うので、分岐画面のレイアウトを確認できます。
+
+Playは独立したUI状態と音源を使用します。Pauseとフォーカス喪失で音声の再生位置を保持して停止し、Resume／復帰で再開します。Stepは一フレームの動作を進め、音声は停止したままです。Stopで音源・UI状態を破棄し、編集データ・選択・Undo/Redoを復元します。Play開始時に試聴を停止します。
+
+TitleStreetのロゴ・メニュー・設定表示・遷移帯・5音源はHierarchyから編集できます。タイトル固有の選択、設定保存、音量フェード、Game開始はAppのTitleMenuから状態／イベントで接続します。EditorのStartボタンのloadScene先はComponentDemoで、変更可能です。Appでは`menu:0`／`start`イベントが既存Gameへの開始を扱います。Game eventを空にすれば汎用Actionを使います。
+
+C++のJSON処理はnlohmann/json 3.12.0へ統一しています。依存ヘッダーとMITライセンスを同梱し、ビルド時のダウンロードは不要です。シーンversion 2〜4を読めます。ユーザー設定はsettings.jsonへ保存し、旧settings.txtも読み込みます。保存・再読み込み・UndoのJSON生成は同じ実装を使います。

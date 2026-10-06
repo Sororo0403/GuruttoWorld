@@ -51,7 +51,7 @@ Release でも実行してください。診断保存先が LocalAppData/WP1 に
 
 WARP 上のオクルージョンクエリで、通常の三角形と X／XY 鏡映した三角形が同じサンプル数を描画すること、裏向きの面は引き続き除去されることを確認します。Debug では利用可能な D3D12 InfoQueue のエラーも確認します。音量の取得・ミュート・再初期化後の状態は AudioValidation で検証します。
 
-タイトルUIは全構成で App/Assets/Textures/Title/UiAtlas.png を使用します。再生成する場合のみ PowerShell 7で scripts/GenerateTitleUi.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。以前の Title.png は現在のタイトルでは使用しません。
+タイトルUIは全構成で Content/Assets/Textures/Title/UiAtlas.png を使用します。再生成する場合のみ PowerShell 7で scripts/GenerateTitleUi.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。以前の Title.png は現在のタイトルでは使用しません。
 
 タイトルの回帰検証では1280×720、1024×768、720×1280の非表示ウィンドウで初期化と描画を確認します。
 
@@ -75,7 +75,7 @@ Debugでは利用可能なD3D12 InfoQueueのエラーを確認します。
 
 背景待機演出は150秒分のシーンに設定したカメラ位置範囲・粒の不透明度を検証します。OFFと非アクティブ時の停止、不正時間の無視、3サイズでのON／OFF／再開描画も確認します。
 
-タイトル音声の回帰検証は5つのWAVの読み込み・無音ループ再生・停止と、メニュー効果音イベントの重複抑止を確認します。実機では音量設定の即時反映と取消、0%の無音、フォーカス復帰時のBGM先頭からの再生、ゲーム遷移・終了時の停止を確認してください。音源再生成は scripts/GenerateTitleAudio.py を実行します。
+タイトル音声の回帰検証は5つのWAVの読み込み・無音ループ再生・停止と、メニュー効果音イベントの重複抑止を確認します。実機では音量設定の即時反映と取消、0%の無音、フォーカス復帰時のBGMの続きからの再開、ゲーム遷移・終了時の停止を確認してください。音源再生成は scripts/GenerateTitleAudio.py を実行します。
 
 DebugのRenderTexture検証ではScene用SRVの枠がリサイズ後も同じであること、ドッキング後の画像領域、
 レイアウトの保存内容も確認します。初回配置の測定フレームの次から画像領域を検証します。
@@ -169,3 +169,9 @@ ReviewRegressionValidationはDebug／Releaseの両方で、Camera・DirectionalL
 EnvironmentValidation.hは64×32のGPU描画を読み戻し、Skyの青→緑の即時編集、Gameと編集プレビューの色一致、無効Skyに固定背景が残らないこと、霧の色／有効切り替えを検証します。MeshRendererの直接描画では大きい／小さいワールド拡縮でも法線がオーバーフロー／アンダーフローせず照明が一致することを確認します。環境編集のドラッグを一回のUndoへまとめ、Redo・全Componentを含む保存／再読み込み・複製・主Cameraの削除／Undoも確認します。既存のPlay／Pause／Step／Resume／Stop・スナップショット・アセット更新の回帰検証を継続します。
 
 ConvertSceneToLocal.pyはversion 4の設定とComponentを維持し、すでにローカル座標のシーンを二重変換しません。`python tests/test_scene_conversion.py`で検証します。画面上の入力と見た目はEditor/ManualChecks.mdのK〜Mを別途手動で確認してください。
+
+
+UI・音声・JSONの回帰はReviewRegressionValidationに含みます。Canvasの縦横比、アンカー・ピボット・親の回転、条件表示、状態代入、Component保存、UIドラッグのUndo／Redo、複製時の参照変更を検証します。GPU読み戻しで単色Image・ボタンHover・非表示・Unicode Textを確認し、CameraなしのUI描画と失敗時のリソース保持も検証します。音源はミュートして自動再生・Pause保持・Stop・失敗時の停止を確認します。
+AudioValidationは有限長音源をPauseしたまま本来の再生時間を超えて待ち、バッファー保持とResume後の終了を検証します。自動テストは聴感や手動のUI操作確認とは別です。ManualChecks N〜Pは未確認として扱います。
+
+シーンと設定のC++ JSON処理はnlohmann/json 3.12.0です。旧シーンの型検証・不正入力・Save/Loadと旧設定テキストの読み込みを維持し、JSON設定の型誤りも拒否します。依存ヘッダーの出典・SHA-256はEngine/externals/nlohmann/README.mdに記録しています。

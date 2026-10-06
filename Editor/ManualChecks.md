@@ -123,3 +123,32 @@ I・JもOK／NG／未確認で報告してください。
 5. TitleStreet.jsonをAppで使う設定へ保存する場合は原本を退避して行う。次のビルドでAppの背景へ反映し、背景演出OFFで揺れ・雲の移動が止まり粒が消える。UIと音声は従来どおり。確認後に退避した原本を戻す。
 
 K〜Mも手動で操作した項目だけOKとし、未操作は未確認のままにしてください。
+
+
+## N：UIの作成・配置・保存
+
+1. 最新Editorを起動し直し、UiAudioDemo.jsonを別名保存する。Gameに日本語見出し・パネル・3ボタンが表示される。
+2. HierarchyのTextを選び、文字・フォント名・文字サイズ・色を変更する。Imageの画像・色・透明度・UVを変更する。保存・開き直しで再現する。
+3. GameでUIを選択し、ドラッグで移動、黄色い右下ハンドルでサイズ変更する。Undo一回で一回のドラッグが戻り、Redoで復元する。回転した親の子でも確認する。
+4. Canvasの基準サイズとRectのアンカー・ピボットを変更する。Gameの幅・高さを変えて位置と伸縮を確認する。親UIを非表示にすると子も消える。
+5. UI親子と音源をまとめて複製し、コピーのボタンがコピー側を操作する。Componentの追加・削除・Reset・Undo/Redoも確認する。
+6. 新規シーンでCanvas → 子のRectTransform → Image／Text／Buttonを作り、保存して開き直す。CameraなしでもUIが表示される。
+
+## O：ボタン・音声・Play
+
+1. UiAudioDemoをPlayする。BGMが鳴り、ホバー／押下でボタン色が変わる。押したボタンの外で離すと動作しない。
+2. パネル切り替えで表示が切り替わり、効果音ボタンで音が鳴る。Play終了ボタンでEditingへ戻り、BGMが止まる。
+3. AudioSourceのAsset・Volume・Loop・Play on awakeを編集し、Audition／Stop auditionを確認する。Projectの音源Inspectorでも試聴する。Play開始で試聴が止まる。
+4. Pauseで音が止まり、Step中も停止したまま、Resumeで続きから再開する。別アプリへの切り替えと復帰でも確認する。Stopで音が完全に止まる。
+5. Buttonにshow／hide／toggle／playAudio／setState／loadSceneを設定し、Playで確認する。loadScene失敗時に直前の実行シーンが残る。Stop後に元の編集シーン・保存先・選択・履歴へ戻る。
+6. 使用中の画像を退避して破損させ、Reload assetsの失敗時に直前のUIが残ることを確認する。戻して再読み込みする。未保存のUI配置が維持される。
+
+## P：既存タイトルとJSON互換
+
+1. TitleStreetを別名保存し、タイトルUIと5つのAudioSourceがHierarchyにあることを確認する。CanvasのState defaultsのscreenを1、screenNotSettingsを0にすると設定画面を編集できる。確認後はUndoで戻す。
+2. UIの位置・切り出し・色・BGM音量を変更し、保存・開き直し、Playで確認する。原本をAppへ使う場合は原本を退避してから保存・ビルドする。
+3. Appのタイトルで開始入力・メニュー・設定・マウスボタンとキーボード／ゲームパッドの既存操作、音量・背景演出設定・遷移を確認する。設定画面の保存／戻るも確認する。確認後は原本を復元する。
+4. 既存version 2／3／4のシーンを開き、保存して再度開く。親子・ローカルTransform・Componentが保たれる。新規保存したJSONはnlohmann/jsonで処理する。
+5. 旧settings.txtだけがある場合に設定が読み込まれ、保存後にsettings.jsonが作られることを確認する。確認に使った設定ファイルは退避して戻す。
+
+N〜Pも、手動で操作した項目だけOKとし、未操作は未確認のままにしてください。

@@ -25,6 +25,7 @@
 #include <SceneRuntime/SceneWorld.h>
 #include "AuthoredViewFixture.h"
 #include "EnvironmentValidation.h"
+#include "UiValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -204,7 +205,7 @@ namespace
         using namespace App;
         const auto folder = std::filesystem::path("generated/tests/settings") / std::to_string(GetTickCount64());
         const auto path = folder / "settings.txt";
-        Check(GameSettings::UserPath() == Engine::GetDiagnosticsRoot() / "settings.txt", "user settings location");
+        Check(GameSettings::UserPath() == Engine::GetDiagnosticsRoot() / "settings.json", "user settings location");
         Check(GameSettings::Load(path).volume == 10, "missing settings defaults");
         GameSettings settings{ 3, false };
         Check(settings.Save(path), "save settings");
@@ -220,6 +221,14 @@ namespace
             { std::ofstream stream(path); stream << invalid; }
             const auto fallback = GameSettings::Load(path);
             Check(fallback.volume == 10 && fallback.backgroundMotion, "invalid settings default safely");
+        }
+        { std::ofstream legacy(folder/"legacy.txt"); legacy << "WP1_SETTINGS 1 4 0"; }
+        const auto legacy=GameSettings::Load(folder/"legacy.json");
+        Check(legacy.volume==4 && !legacy.backgroundMotion,"legacy settings migrate through JSON path");
+        Check(legacy.Save(folder/"legacy.json"),"migrated settings save JSON");
+        for(const auto* invalid:{R"({"version":1,"volume":3.5,"backgroundMotion":true})",R"({"version":1,"volume":3,"backgroundMotion":1})",R"({"version":true,"volume":3,"backgroundMotion":false})"}) {
+            {std::ofstream stream(path); stream<<invalid;}
+            Check(GameSettings::Load(path).volume==10,"JSON settings reject wrong types");
         }
         TitleMenu menu;
         menu.LoadSettings(settings);
@@ -327,7 +336,7 @@ namespace
         Check(audio.Initialize(), "title audio device");
         for (const auto* file : { "Bgm.wav", "Select.wav", "Confirm.wav", "Back.wav", "Error.wav" })
         {
-            const auto sound = audio.Load(std::filesystem::path("App/Assets/Audio/Title") / file);
+            const auto sound = audio.Load(std::filesystem::path("Content/Assets/Audio/Title") / file);
             Check(sound != 0, "title sound decoding");
             Check(audio.SetVolume(sound, 0.0f) && audio.GetVolume(sound) == 0.0f, "title sound mute");
             Check(audio.Play(sound, true) && audio.IsPlaying(sound), "title sound loop playback silently");
@@ -1761,6 +1770,7 @@ namespace
                 ValidateEmptyObjects(renderer);
                 EnvironmentValidation::Run(renderer);
                 ValidateEnvironmentMotion(renderer);
+                UiValidation::Rendering(renderer,TestContentRoot());
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
@@ -2220,7 +2230,7 @@ void ValidateEditorCamera()
 void ValidateSceneLayout()
 {
     const auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
-    Check(layout.objects.size() == 127, "all existing street placements migrated");
+    Check(std::count_if(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.meshRenderer.has_value();}) == 123, "all existing street mesh placements migrated");
     Check(layout.objects.front().id == "ground" && layout.objects.front().position[2] == 60.0f,
         "ground placement preserved");
     const std::string entry = R"({"id":"test","name":"Test","model":"Assets/Models/Title/Roads/ground.obj","position":[1,2,3],"rotation":[0,1,0],"scale":[4,4,4]})";
@@ -2934,6 +2944,7 @@ int main()
         ValidatePlayState();
         ValidateDeferredClose();
         ValidateEditorCamera();
+        UiValidation::SchemaAndLayout();
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
         ValidateAssetChangeBatching();

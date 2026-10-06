@@ -1,0 +1,95 @@
+#pragma once
+#include <SceneRuntime/SceneUi.h>
+#include <SceneRuntime/SceneAudio.h>
+#include "../App/src/Scenes/AuthoredScene.h"
+#include "EnvironmentValidation.h"
+#include "../Editor/src/ProjectCatalog.h"
+namespace UiValidation {
+using namespace SceneRuntime;
+inline void Require(bool success,const char* message) {if(!success) throw std::runtime_error(message);}
+inline SceneLayout Layout() {
+    SceneLayout layout;
+    ScenePlacement canvas; canvas.id="canvas"; canvas.name="Canvas"; canvas.canvas.emplace(); canvas.canvas->referenceSize={64,32};
+    ScenePlacement panel; panel.id="panel"; panel.name="Panel"; panel.parentId=canvas.id; panel.rectTransform.emplace(); panel.rectTransform->size={64,32};
+    panel.image.emplace(); panel.image->color={1,0,0,1}; panel.button.emplace(); panel.button->hoverColor={0,1,0,1}; panel.button->target="panel"; panel.button->action="toggle";
+    ScenePlacement audio; audio.id="audio"; audio.name="Audio"; audio.audioSource.emplace(); audio.audioSource->clip="Assets/Audio/Title/Select.wav"; audio.audioSource->volume=0;
+    layout.objects={canvas,panel,audio}; return layout;
+}
+inline void SchemaAndLayout() {
+    Require(Editor::ProjectCatalog::Kind("Assets/Audio/sample.m4a")==Editor::AssetKind::Audio && Editor::ProjectCatalog::Kind("Assets/Audio/sample.aac")==Editor::AssetKind::Audio,"Project exposes decoder-supported AAC assets");
+    auto layout=Layout(); layout.objects[1].text.emplace(); layout.objects[1].text->text="日本語 UI";
+    const auto restored=SceneLayout::Parse(layout.Serialize());
+    Require(restored.objects[1].SameComponents(layout.objects[1]) && restored.objects[2].SameComponents(layout.objects[2]),"UI/audio roundtrip preserves values and IDs");
+    auto rect=SceneUi::Resolve(layout,layout.objects[1],128,128);
+    Require(rect.position==std::array<float,2>{0,32} && rect.size==std::array<float,2>{128,64},"Canvas aspect fit letterboxes");
+    layout.objects[0].canvas->scaleWithScreen=false;
+    layout.objects[1].rectTransform->anchorMax={1,1}; layout.objects[1].rectTransform->size={0,0};
+    rect=SceneUi::Resolve(layout,layout.objects[1],128,128);
+    Require(rect.position==std::array<float,2>{0,0} && rect.size==std::array<float,2>{128,128},"pixel Canvas overlays cover the full viewport");
+    layout.objects[0].canvas->scaleWithScreen=true;
+    layout.objects[1].rectTransform->anchorMin={0.5f,0.5f}; layout.objects[1].rectTransform->anchorMax={0.5f,0.5f}; layout.objects[1].rectTransform->pivot={0.5f,0.5f}; layout.objects[1].rectTransform->size={16,8};
+    rect=SceneUi::Resolve(layout,layout.objects[1],64,32);
+    Require(rect.position==std::array<float,2>{24,12},"anchors and pivot center UI");
+    ScenePlacement child; child.id="child"; child.parentId="panel"; child.rectTransform.emplace(); child.rectTransform->size={4,4}; layout.objects.push_back(child);
+    layout.objects[1].rectTransform->rotation=DirectX::XM_PIDIV2;
+    const auto nested=SceneUi::Resolve(layout,layout.objects.back(),64,32);
+    Require(std::abs(nested.rotation-DirectX::XM_PIDIV2)<0.0001f && nested.Contains(nested.position[0]+2,nested.position[1]+2),"nested rotation and hit testing agree");
+    UiState state; const auto before=state.values; Require(!state.Assign("x=2&bad=oops") && state.values==before,"state assignments are transactional");
+    state=SceneUi::Defaults(layout); SceneUi::Activate(layout,"panel",state);
+    Require(!SceneUi::Resolve(layout,layout.objects.back(),64,32,state).visible,"hiding parent hides descendants");
+    SceneUi::Activate(layout,"panel",state); Require(SceneUi::Resolve(layout,layout.objects.back(),64,32,state).visible,"toggle restores parent visibility");
+    auto invalid=layout; invalid.objects[1].image->texture="../outside.png";
+    bool rejected=false; try{invalid.Serialize();}catch(...){rejected=true;} Require(rejected,"UI rejects asset traversal");
+    invalid=layout; invalid.objects[2].audioSource->volume=2; rejected=false;
+    try{invalid.Serialize();}catch(...){rejected=true;} Require(rejected,"audio validates volume");
+    invalid=layout; invalid.objects[1].button->action="loadScene"; invalid.objects[1].button->target="../outside.json"; rejected=false;
+    try{invalid.Serialize();}catch(...){rejected=true;} Require(rejected,"button scene target stays inside scenes");
+    const auto title=SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    Require(std::count_if(title.objects.begin(),title.objects.end(),[](const auto& p){return p.audioSource.has_value();})==5,"all title sounds are authored");
+    Require(std::any_of(title.objects.begin(),title.objects.end(),[](const auto& p){return p.canvas.has_value();}),"title canvas is authored");
+}
+inline void EditingAndAudio(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root) {
+    auto layout=Layout(); layout.objects[2].audioSource->playOnAwake=true; layout.objects[2].audioSource->loop=true;
+    SceneWorld world; std::string error;
+    Require(world.Initialize(renderer,root,layout,root/"Shaders/Mesh.hlsl",&error),"UI editing world initializes");
+    Editor::EditHistory history; history.Reset({world.Layout().Serialize(),"panel",{"panel"}});
+    const auto original=world.Layout().Serialize(); auto panel=world.Layout().objects[1];
+    for(const float x:{20.0f,40.0f}) {
+        panel.rectTransform->position[0]=x;
+        Require(world.SetComponents(panel.id,panel,root,error),"RectTransform updates through component command");
+        history.Observe({world.Layout().Serialize(),"panel",{"panel"}},"ui/drag/panel");
+    }
+    history.Commit();
+    Require(world.ReplaceLayout(SceneLayout::Parse(history.Target(false).json),root,error),"UI Undo restores layout"); history.Applied(false);
+    Require(world.Layout().Serialize()==original && !history.CanUndo(),"one Undo restores full UI drag");
+    Require(world.ReplaceLayout(SceneLayout::Parse(history.Target(true).json),root,error),"UI Redo applies"); history.Applied(true);
+    std::vector<std::string> created;
+    Require(world.DuplicateObjects({"canvas","panel","audio"},{0,0,0},created,error),"UI hierarchy duplicates");
+    Require(world.Layout().objects[4].parentId==created[0] && world.Layout().objects[4].button->target==created[1],"copied UI references target copied hierarchy");
+    Require(world.Layout().objects[5].audioSource==layout.objects[2].audioSource,"AudioSource settings duplicate");
+    SceneAudio audio; Require(audio.Initialize(root,layout,error),"authored audio loads");
+    audio.Update(layout,{},true); Require(audio.IsPlaying("audio") && audio.Volume("audio")==0,"awake audio respects muted volume");
+    audio.Pause(true); Require(audio.IsPlaying("audio"),"scene pause retains audio buffer"); audio.Pause(false);
+    audio.Stop(); Require(!audio.IsPlaying("audio"),"scene stop stops voices");
+    layout.objects[2].audioSource->clip="Assets/Audio/missing.wav";
+    Require(!audio.Initialize(root,layout,error) && !audio.IsPlaying("audio"),"failed audio load is reported without a live voice");
+}
+inline void Rendering(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root) {
+    auto layout=Layout(); SceneUi ui; std::string error;
+    Require(ui.Prepare(renderer,root,layout,error),"UI prepares resources outside draw");
+    const auto pixel=[&](const UiState& state=UiState{}) {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){ui.Draw(commands,layout,64,32,state);});};
+    Require(pixel()==std::array<unsigned char,4>{255,0,0,255},"authored UI image is drawn without Camera");
+    UiState state; state.hovered="panel"; Require(pixel(state)==std::array<unsigned char,4>{0,255,0,255},"button hover tint reaches GPU");
+    SceneUi::Activate(layout,"panel",state); Require(pixel(state)==std::array<unsigned char,4>{0,0,0,255},"hidden UI is omitted");
+    layout.objects[1].image.reset(); layout.objects[1].text.emplace(); layout.objects[1].text->text="█"; layout.objects[1].rectTransform->position={20,0};
+    Require(ui.Prepare(renderer,root,layout,error),"Unicode text rasterizes and uploads");
+    const auto textPixel=pixel(); Require(textPixel[0]>0 && textPixel[1]>0 && textPixel[2]>0,"text pixels reach the Game framebuffer");
+    layout.objects[1].image.emplace(); layout.objects[1].image->texture="Assets/Textures/missing.png";
+    Require(!ui.Prepare(renderer,root,layout,error),"missing UI image reports failure and keeps previous resources");
+    Require(renderer.WaitForIdle(),"UI GPU work completes before resources are destroyed");
+    EditingAndAudio(renderer,root);
+    App::AuthoredScene appScene(root,"Assets/Scenes/UiAudioDemo.json");
+    Require(appScene.Initialize(renderer),"App initializes an authored UI scene");
+    Require(appScene.Draw(renderer)!=Engine::RenderResult::Failed && renderer.WaitForIdle(),"App renders authored UI through the shared runtime");
+}
+}
