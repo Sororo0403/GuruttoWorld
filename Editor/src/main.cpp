@@ -16,6 +16,7 @@
 #include "PlaySnapshot.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/TitleView.h>
+#include <SceneRuntime/SceneView.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
 #include <Engine/Core/Log.h>
@@ -143,6 +144,8 @@ namespace
             if (!gameTexture.Begin(commands,world.Layout().settings.background)) return false;
             SceneRuntime::TitleView::SetProjection(previewCamera,gamePanel.Viewport().Aspect());
             if (gameSession.Runtime()) gameSession.Draw(commands,gameTexture.GetWidth(),gameTexture.GetHeight());
+            else if (SceneRuntime::SceneView::Camera(world,gamePanel.Viewport().Aspect(),0,previewCamera))
+                world.Draw(commands,previewCamera,SceneRuntime::SceneView::Light(world));
             else world.Draw(commands,previewCamera,light);
             return gameTexture.End(commands);
         }

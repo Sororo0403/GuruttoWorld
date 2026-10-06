@@ -1,3 +1,4 @@
+#include <SceneRuntime/SceneView.h>
 #include "../Editor/src/GizmoTransform.h"
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
@@ -1553,6 +1554,50 @@ namespace
         Check(session.Pause() && session.Stop(), "paused session can stop safely");
     }
 
+    void ValidateSceneView(Engine::DirectX12Renderer& renderer)
+    {
+        const auto root=std::filesystem::absolute("Content");
+        SceneRuntime::SceneLayout layout;
+        SceneRuntime::ScenePlacement parent; parent.id="rig"; parent.name="Rig";
+        parent.position={3,4,5}; parent.rotation={0,DirectX::XM_PIDIV2,0}; parent.scale={2,3,4};
+        SceneRuntime::ScenePlacement camera; camera.id="camera"; camera.name="Camera"; camera.parentId=parent.id;
+        camera.position={0,0,2}; camera.camera.emplace(); camera.camera->verticalFov=60;
+        camera.directionalLight.emplace(); camera.directionalLight->direction={0,0,1};
+        camera.directionalLight->color={0.2f,0.4f,0.6f}; camera.directionalLight->intensity=2;
+        camera.sky.emplace(); camera.sky->clouds[1].center={0.12f,0.34f};
+        camera.particleEmitter.emplace(); camera.particleEmitter->count=13;
+        camera.cameraSway.emplace(); camera.cameraSway->amplitude={0,0,0};
+        layout.objects={parent,camera}; layout.settings.mainCamera=camera.id;
+        const auto restored=SceneRuntime::SceneLayout::Parse(layout.Serialize());
+        Check(restored.settings==layout.settings && restored.objects[1].SameComponents(camera),"Camera and lighting settings round-trip");
+        SceneRuntime::SceneWorld world; std::string error;
+        Check(world.Initialize(renderer,root,layout,root/"Shaders/Mesh.hlsl",&error),"scene camera fixture initializes");
+        Engine::Camera view;
+        Check(SceneRuntime::SceneView::Camera(world,16.0f/9.0f,0,view),"main camera resolves");
+        Check(std::abs(view.GetPosition()[0]-11)<0.0001f && view.GetPosition()[1]==4 &&
+            std::abs(view.GetPosition()[2]-5)<0.0001f,"parent scale and rotation affect camera position once");
+        const auto light=SceneRuntime::SceneView::Light(world);
+        Check(std::abs(light.direction[0]-1)<0.0001f && std::abs(light.direction[2])<0.0001f &&
+            light.color==camera.directionalLight->color && light.intensity==2,"light direction inherits rotations and retains authored color");
+        const auto reject=[](const SceneRuntime::SceneLayout& candidate) {
+            bool failed=false; try { static_cast<void>(candidate.Serialize()); } catch (const std::exception&) { failed=true; }
+            Check(failed,"invalid camera/light settings rejected before changing live scene");
+        };
+        auto invalid=layout; invalid.objects[1].camera->farClip=0.05f; reject(invalid);
+        invalid=layout; invalid.settings.mainCamera="missing"; reject(invalid);
+        invalid=layout; invalid.objects[1].directionalLight->intensity=NAN; reject(invalid);
+        invalid=layout; invalid.objects[1].camera->id="light"; reject(invalid);
+        invalid=layout; invalid.objects[1].sky->sunRadius[0]=0; reject(invalid);
+        invalid=layout; invalid.objects[1].particleEmitter->count=1025; reject(invalid);
+        invalid=layout; invalid.objects[1].cameraSway->period[0]=0; reject(invalid);
+        auto disabled=camera; disabled.camera->enabled=false;
+        Check(world.SetComponents(camera.id,disabled,root,error) && !SceneRuntime::SceneView::Camera(world,1,0,view),
+            "disabled explicit camera does not silently switch to another viewpoint");
+        Check(world.SetComponents(camera.id,camera,root,error),"camera restored without replacing object resources");
+        Check(world.RemoveObjects({camera.id},error) && world.Layout().settings.mainCamera.empty() &&
+            !SceneRuntime::SceneView::Camera(world,1,0,view),"deleting main camera clears dangling reference");
+    }
+
     void ValidateComponents(Engine::DirectX12Renderer& renderer)
     {
         const auto root=std::filesystem::absolute("Content");
@@ -1727,6 +1772,7 @@ namespace
             {
                 ValidateAssetReload(renderer);
                 ValidateEmptyObjects(renderer);
+                ValidateSceneView(renderer);
                 ValidateComponents(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
                 ValidateGameSession(renderer,std::filesystem::absolute("Content"));

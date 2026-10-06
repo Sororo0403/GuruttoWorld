@@ -161,7 +161,22 @@ namespace Editor
                 ImGui::BeginDisabled(!enabled);
                 ImGui::TextUnformatted("Scene settings");
                 auto settings=world.Layout().settings;
-                if (ImGui::ColorEdit4("Background",settings.background.data()))
+                bool settingsEdited=ImGui::ColorEdit4("Background",settings.background.data());
+                TrackInspectorEdit(state);
+                const auto label=settings.mainCamera.empty() ? std::string("First enabled Camera") : settings.mainCamera;
+                if (ImGui::BeginCombo("Game camera",label.c_str()))
+                {
+                    if (ImGui::Selectable("First enabled Camera",settings.mainCamera.empty()))
+                    { settings.mainCamera.clear(); settingsEdited=true; }
+                    for (const auto& object : objects)
+                    {
+                        if (!object.camera) continue;
+                        if (ImGui::Selectable((object.name+"##"+object.id).c_str(),settings.mainCamera==object.id))
+                        { settings.mainCamera=object.id; settingsEdited=true; }
+                    }
+                    ImGui::EndCombo();
+                }
+                if (settingsEdited)
                 {
                     TrackInspectorEdit(state);
                     ObjectRequest request;

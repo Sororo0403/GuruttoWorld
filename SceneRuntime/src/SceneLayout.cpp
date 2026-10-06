@@ -29,6 +29,29 @@ namespace
         ~JsonApartment() { if (SUCCEEDED(result)) RoUninitialize(); }
     };
 
+    SceneRuntime::SceneSettings ReadSettings(const winrt::Windows::Data::Json::JsonObject& object)
+    {
+        SceneRuntime::SceneSettings result;
+        const auto background=object.GetNamedArray(L"background");
+        if (background.Size()!=4) throw std::runtime_error("Background requires four components");
+        for (uint32_t index=0;index<4;++index)
+        {
+            const auto value=background.GetNumberAt(index);
+            if (!std::isfinite(value) || value<0 || value>1) throw std::runtime_error("Background must be within [0,1]");
+            result.background[index]=static_cast<float>(value);
+        }
+        result.mainCamera=winrt::to_string(object.GetNamedString(L"mainCamera"));
+        return result;
+    }
+
+    void ValidateCamera(const SceneRuntime::SceneLayout& layout)
+    {
+        if (layout.settings.mainCamera.empty()) return;
+        if (std::none_of(layout.objects.begin(),layout.objects.end(),[&](const auto& object) {
+            return object.id==layout.settings.mainCamera && object.camera;
+        })) throw std::runtime_error("Main camera must reference an object with Camera");
+    }
+
     void ValidateParents(const std::vector<SceneRuntime::ScenePlacement>& objects)
     {
         std::unordered_map<std::string,size_t> indices;
@@ -89,19 +112,7 @@ namespace SceneRuntime
             if (version!=2.0 && version!=3.0 && version!=4.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
-            if (version==4.0)
-            {
-                const auto settings=document.GetNamedObject(L"settings");
-                const auto background=settings.GetNamedArray(L"background");
-                if (background.Size()!=4) throw std::runtime_error("Background requires four components");
-                for (uint32_t index=0;index<4;++index)
-                {
-                    const auto value=background.GetNumberAt(index);
-                    if (!std::isfinite(value) || value<0 || value>1) throw std::runtime_error("Background must be within [0,1]");
-                    layout.settings.background[index]=static_cast<float>(value);
-                }
-                layout.settings.mainCamera=winrt::to_string(settings.GetNamedString(L"mainCamera"));
-            }
+            if (version==4.0) layout.settings=ReadSettings(document.GetNamedObject(L"settings"));
             if (document.HasKey(L"transformSpace")) throw std::runtime_error("Scenes always use local transforms");
             std::unordered_set<std::string> ids;
             for (const auto& value : document.GetNamedArray(L"objects"))
@@ -131,6 +142,7 @@ namespace SceneRuntime
                 layout.objects.push_back(std::move(placement));
             }
             ValidateParents(layout.objects);
+            ValidateCamera(layout);
             return layout;
         }
         catch (const winrt::hresult_error& error)

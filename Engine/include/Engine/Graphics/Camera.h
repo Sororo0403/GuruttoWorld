@@ -19,6 +19,7 @@ namespace Engine
         /// ヨー角・ピッチ角をラジアンで指定します。不正値は変更しません。
         /// </summary>
         bool SetRotation(float yaw, float pitch);
+        bool SetOrientation(const std::array<float,3>& forward, const std::array<float,3>& up);
         /// <summary>
         /// 画角・縦横比・近遠クリップを設定します。不正値は変更しません。
         /// 縦横比と近遠クリップの差は DirectXMath の許容誤差 0.00001 より大きくしてください。
@@ -46,6 +47,8 @@ namespace Engine
         DirectX::XMFLOAT4X4 GetViewProjectionMatrix() const;
     private:
         std::array<float, 3> position_{ 0.0f, 0.0f, -3.5f };
+        bool oriented_=false;
+        std::array<float,3> forward_{0,0,1}, up_{0,1,0};
         float yaw_ = 0.0f;
         float pitch_ = 0.0f;
         float fov_ = DirectX::XM_PIDIV4;

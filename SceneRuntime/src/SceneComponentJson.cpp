@@ -1,4 +1,5 @@
 #include "SceneComponentJson.h"
+#include "EnvironmentJson.h"
 #include <winrt/Windows.Foundation.Collections.h>
 #include <algorithm>
 #include <cmath>
@@ -76,7 +77,8 @@ namespace SceneRuntime
                 if (placement.rotator) throw std::runtime_error("Only one Rotator is allowed");
                 placement.rotator=RotatorComponent{id,enabled,ReadVelocity(component)};
             }
-            else throw std::runtime_error("Unsupported component type: "+winrt::to_string(type));
+            else if (!ReadEnvironmentComponent(component,placement,winrt::to_string(type)))
+                throw std::runtime_error("Unsupported component type: "+winrt::to_string(type));
         }
     }
 
@@ -105,6 +107,7 @@ namespace SceneRuntime
             object.SetNamedValue(L"angularVelocity",velocity);
             components.Append(object);
         }
+        WriteEnvironmentComponents(components,placement);
         return components;
     }
 }

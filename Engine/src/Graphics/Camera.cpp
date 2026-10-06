@@ -17,8 +17,28 @@ namespace Engine
     bool Camera::SetRotation(float yaw, float pitch)
     {
         if (!std::isfinite(yaw) || !std::isfinite(pitch)) return false;
+        oriented_=false;
         yaw_ = std::remainder(yaw, DirectX::XM_2PI);
         pitch_ = std::clamp(pitch, -DirectX::XM_PIDIV2 + 0.01f, DirectX::XM_PIDIV2 - 0.01f);
+        return true;
+    }
+    bool Camera::SetOrientation(const std::array<float,3>& forward, const std::array<float,3>& up)
+    {
+        using namespace DirectX;
+        const auto finite=[](const auto& values) {
+            return std::all_of(values.begin(),values.end(),[](float value) { return std::isfinite(value); });
+        };
+        if (!finite(forward) || !finite(up)) return false;
+        const auto f=XMVectorSet(forward[0],forward[1],forward[2],0);
+        const auto u=XMVectorSet(up[0],up[1],up[2],0);
+        const float fLength=XMVectorGetX(XMVector3Length(f));
+        const float uLength=XMVectorGetX(XMVector3Length(u));
+        if (!std::isfinite(fLength) || !std::isfinite(uLength) || fLength<0.00001f || uLength<0.00001f) return false;
+        const auto normalF=f/fLength, normalU=u/uLength;
+        if (XMVectorGetX(XMVector3Length(XMVector3Cross(normalF,normalU)))<0.00001f) return false;
+        XMFLOAT3 direction,vertical;
+        XMStoreFloat3(&direction,normalF); XMStoreFloat3(&vertical,normalU);
+        forward_={direction.x,direction.y,direction.z}; up_={vertical.x,vertical.y,vertical.z}; oriented_=true;
         return true;
     }
     bool Camera::SetPerspective(float verticalFov, float aspectRatio, float nearClip, float farClip)
@@ -46,6 +66,8 @@ namespace Engine
     DirectX::XMMATRIX Camera::GetViewMatrix() const
     {
         using namespace DirectX;
+        if (oriented_) return XMMatrixLookToLH(XMVectorSet(position_[0],position_[1],position_[2],1),
+            XMVectorSet(forward_[0],forward_[1],forward_[2],0),XMVectorSet(up_[0],up_[1],up_[2],0));
         const float horizontal = std::cos(pitch_);
         return XMMatrixLookToLH(XMVectorSet(position_[0], position_[1], position_[2], 1.0f),
             XMVectorSet(std::sin(yaw_) * horizontal, std::sin(pitch_), std::cos(yaw_) * horizontal, 0.0f), XMVectorSet(0, 1, 0, 0));

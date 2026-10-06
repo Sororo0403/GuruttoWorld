@@ -1,5 +1,6 @@
 #pragma once
 #include <SceneRuntime/SceneComponents.h>
+#include <SceneRuntime/EnvironmentComponents.h>
 #include <optional>
 #include <array>
 #include <filesystem>
@@ -15,6 +16,28 @@ namespace SceneRuntime
         std::string name;
         std::optional<MeshRendererComponent> meshRenderer;
         std::optional<RotatorComponent> rotator;
+        std::optional<CameraComponent> camera;
+        std::optional<DirectionalLightComponent> directionalLight;
+        std::optional<SkyComponent> sky;
+        std::optional<ParticleEmitterComponent> particleEmitter;
+        std::optional<CameraSwayComponent> cameraSway;
+        bool HasComponentId(const std::string& componentId) const
+        {
+            const auto matches=[&](const auto& component) { return component && component->id==componentId; };
+            return componentId=="transform" || matches(meshRenderer) || matches(rotator) || matches(camera) ||
+                matches(directionalLight) || matches(sky) || matches(particleEmitter) || matches(cameraSway);
+        }
+        bool SameComponents(const ScenePlacement& other) const
+        {
+            return meshRenderer==other.meshRenderer && rotator==other.rotator && camera==other.camera &&
+                directionalLight==other.directionalLight && sky==other.sky && particleEmitter==other.particleEmitter &&
+                cameraSway==other.cameraSway;
+        }
+        void CopyComponents(const ScenePlacement& other)
+        {
+            meshRenderer=other.meshRenderer; rotator=other.rotator; camera=other.camera;
+            directionalLight=other.directionalLight; sky=other.sky; particleEmitter=other.particleEmitter; cameraSway=other.cameraSway;
+        }
         const std::filesystem::path& Model() const
         {
             static const std::filesystem::path empty;

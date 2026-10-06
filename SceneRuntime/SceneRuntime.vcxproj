@@ -136,6 +136,11 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\EnvironmentComponents.h" />
+    <ClInclude Include="include\SceneRuntime\SceneView.h" />
+    <ClCompile Include="src\SceneView.cpp" />
+    <ClInclude Include="src\EnvironmentJson.h" />
+    <ClCompile Include="src\EnvironmentJson.cpp" />
     <ClCompile Include="src\SceneLayout.cpp" />
     <ClCompile Include="src\SceneComponentJson.cpp" />
     <ClInclude Include="src\SceneComponentJson.h" />

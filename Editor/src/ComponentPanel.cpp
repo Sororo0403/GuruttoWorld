@@ -1,4 +1,5 @@
 #include "ComponentPanel.h"
+#include "EnvironmentPanel.h"
 #include <imgui.h>
 
 namespace
@@ -7,8 +8,7 @@ namespace
     {
         std::string id=base;
         size_t counter=2;
-        while ((placement.meshRenderer && placement.meshRenderer->id==id) ||
-            (placement.rotator && placement.rotator->id==id) || id=="transform") id=base+"-"+std::to_string(counter++);
+        while (placement.HasComponentId(id)) id=base+"-"+std::to_string(counter++);
         return id;
     }
 }
@@ -86,6 +86,7 @@ namespace Editor
             candidate.rotator=SceneRuntime::RotatorComponent{NewComponentId(candidate,"rotator"),true,{0,90,0}};
             edited=true;
         }
+        edited=EnvironmentPanel::Add(candidate) || edited;
         ImGui::EndPopup();
         return edited;
     }
@@ -95,8 +96,9 @@ namespace Editor
         auto candidate=placement;
         bool edited=DrawMesh(candidate,catalog);
         edited=DrawRotator(state,candidate) || edited;
+        edited=EnvironmentPanel::Draw(state,candidate) || edited;
         edited=DrawAdd(candidate,catalog) || edited;
-        if (edited && (candidate.meshRenderer!=placement.meshRenderer || candidate.rotator!=placement.rotator))
+        if (edited && !candidate.SameComponents(placement))
             state.RequestComponents(std::move(candidate),state.Interaction());
     }
 }
