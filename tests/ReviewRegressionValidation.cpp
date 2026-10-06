@@ -1426,7 +1426,7 @@ namespace
         const auto onDisk=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json").Serialize();
         Editor::GameSession session;
         std::string error;
-        Check(!session.Update(0.1,true) && !session.Pause() && !session.Stop(), "editing has no running game session");
+        Check(!session.Step() && !session.Update(0.1,true) && !session.Pause() && !session.Stop(), "editing has no running game session");
         Check(session.Play(renderer,root,layout,error) && error.empty() && session.Runtime() &&
             session.Runtime()->World().Layout().Serialize()==unsaved, "Play uses unsaved layout snapshot rather than saved title scene");
         const auto* running=session.Runtime();
@@ -1440,7 +1440,7 @@ namespace
         const auto mote=running->Motion().Mote(0); const auto camera=running->Motion().CameraPosition();
         Check(!session.Update(0.1,false) && !session.Update(NAN,true) && running->Motion().Mote(0)==mote &&
             running->Motion().CameraPosition()==camera && session.State().Updates()==1, "inactive and invalid ticks do not change runtime or clock");
-        Check(!session.Play(renderer,root,layout,error) && session.Runtime()==running, "repeated Play preserves active runtime");
+        Check(!session.Step() && !session.Play(renderer,root,layout,error) && session.Runtime()==running, "repeated Play preserves active runtime");
         Check(session.Pause() && !session.Update(0.1,true) && running->Motion().Mote(0)==mote &&
             running->Motion().CameraPosition()==camera, "Pause freezes actual runtime camera and particles");
         Engine::RenderTexture target;
@@ -1454,8 +1454,16 @@ namespace
         };
         render(); render();
         Check(running->Motion().Mote(0)==mote && running->Motion().CameraPosition()==camera, "paused rendering cannot advance runtime");
+        const auto beforeStep=session.State().Elapsed();
+        Check(session.Step() && session.State().CanStep() && session.State().Updates()==2 &&
+            std::abs(session.State().Elapsed()-beforeStep-Editor::PlayState::StepSeconds)<1e-12 &&
+            running->Motion().Mote(0)!=mote, "Step advances runtime exactly one fixed frame while staying paused");
+        const auto stepped=running->Motion().Mote(0);
+        render();
+        Check(!session.Update(0.1,true) && running->Motion().Mote(0)==stepped && session.State().Updates()==2,
+            "drawing and ordinary ticks do not advance after a Step");
         Check(session.Play(renderer,root,layout,error) && session.Runtime()==running && session.Update(0.1,true) &&
-            running->Motion().Mote(0)!=mote && session.State().Updates()==2, "Resume continues existing runtime without recreating scene");
+            running->Motion().Mote(0)!=stepped && session.State().Updates()==3, "Resume continues existing runtime without recreating scene");
         render();
         Check(session.Stop() && session.State().IsEditing() && !session.Runtime() && session.State().Updates()==0,
             "Stop releases runtime after GPU completion and resets state");
@@ -2477,6 +2485,9 @@ void ValidatePlayState()
         std::string_view(state.Label())=="Editing", "Stop from playing restores editing and resets timing");
     Check(state.Play() && state.Advance(0.125) && state.Pause() && state.Stop() && state.IsEditing() &&
         state.Elapsed()==0 && state.Updates()==0, "Stop from paused resets the next session");
+    Check(!state.Step() && state.Play() && !state.Step() && state.Pause() && state.Step() && state.Step() &&
+        state.Current()==Editor::PlayState::Mode::Paused && state.Updates()==2 &&
+        std::abs(state.Elapsed()-2*Editor::PlayState::StepSeconds)<1e-12 && state.Stop(), "only paused state accepts repeatable fixed frame steps");
     Check(state.Play() && state.Advance(std::numeric_limits<double>::max()), "finite large tick accepted");
     Check(!state.Advance(std::numeric_limits<double>::max()) && state.Elapsed()==std::numeric_limits<double>::max() &&
         state.Updates()==1, "overflowing elapsed time is rejected atomically");

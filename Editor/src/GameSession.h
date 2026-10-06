@@ -9,7 +9,7 @@ namespace Editor
     class GameSession final
     {
     public:
-        enum class Command { Play, Pause, Stop };
+        enum class Command { Play, Pause, Stop, Step };
         const PlayState& State() const { return state_; }
         const SceneRuntime::TitleEnvironment* Runtime() const { return runtime_.get(); }
         // Create and release resources outside Render after GPU idle.
@@ -41,6 +41,12 @@ namespace Editor
         {
             if (!active || !runtime_ || !state_.Advance(seconds)) return false;
             runtime_->Update(seconds,true,true);
+            return true;
+        }
+        bool Step()
+        {
+            if (!runtime_ || !state_.Step()) return false;
+            runtime_->Update(PlayState::StepSeconds,true,true);
             return true;
         }
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height)

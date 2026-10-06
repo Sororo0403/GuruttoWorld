@@ -275,6 +275,11 @@ namespace
                 if (gameSession.Pause()) ReportStatus("Game paused.",true);
                 return true;
             }
+            if (command==Editor::GameSession::Command::Step)
+            {
+                if (gameSession.Step()) ReportStatus("Stepped one frame (1/60 s).",true);
+                return true;
+            }
             if (!renderer.WaitForIdle()) return false;
             if (command==Editor::GameSession::Command::Stop)
             {
@@ -699,6 +704,10 @@ namespace
             ImGui::SameLine();
             ImGui::BeginDisabled(!gameSession.State().CanStop());
             if (ImGui::Button("Stop")) pendingPlay=Editor::GameSession::Command::Stop;
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!gameSession.State().CanStep());
+            if (ImGui::Button("Step")) pendingPlay=Editor::GameSession::Command::Step;
             ImGui::EndDisabled();
             ImGui::EndDisabled();
             ImGui::SameLine();
