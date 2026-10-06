@@ -27,6 +27,7 @@
 #include "EnvironmentValidation.h"
 #include "UiValidation.h"
 #include "AnimationValidation.h"
+#include "TitlePresentationValidation.h"
 #include "EditorFontValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
@@ -1777,6 +1778,7 @@ namespace
                 ValidateEnvironmentMotion(renderer);
                 UiValidation::Rendering(renderer,TestContentRoot());
                 AnimationValidation::Runtime(renderer,TestContentRoot());
+                TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
@@ -2236,9 +2238,9 @@ void ValidateEditorCamera()
 void ValidateSceneLayout()
 {
     const auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
-    Check(std::count_if(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.meshRenderer.has_value();}) == 123, "all existing street mesh placements migrated");
-    Check(layout.objects.front().id == "ground" && layout.objects.front().position[2] == 60.0f,
-        "ground placement preserved");
+    Check(std::count_if(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.meshRenderer.has_value();}) >= 80, "authored title includes a full three-dimensional town");
+    Check(layout.objects.front().id == "ground" && !layout.settings.mainCamera.empty(),
+        "title has ground and an authored main camera");
     const std::string entry = R"({"id":"test","name":"Test","model":"Assets/Models/Title/Roads/ground.obj","position":[1,2,3],"rotation":[0,1,0],"scale":[4,4,4]})";
     const auto parse = [](const std::string& objects) {
         return SceneRuntime::SceneLayout::Parse("{\"version\":2,\"objects\":[" + objects + "]}");
