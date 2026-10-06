@@ -42,6 +42,8 @@ namespace SceneRuntime
     Engine::DirectionalLight SceneView::Light(const SceneWorld& world)
     {
         Engine::DirectionalLight result;
+        const auto& fog=world.Layout().settings.fog;
+        result.fog={fog.enabled,fog.color,fog.start,fog.end,fog.strength};
         result.intensity=0; result.ambientIntensity=0; result.specularStrength=0;
         const auto& objects=world.Layout().objects;
         const auto found=std::find_if(objects.begin(),objects.end(),[](const auto& object) {

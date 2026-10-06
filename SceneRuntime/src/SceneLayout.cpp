@@ -1,5 +1,6 @@
 #include <SceneRuntime/SceneLayout.h>
 #include "SceneComponentJson.h"
+#include "SceneSettingsJson.h"
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <roapi.h>
@@ -28,21 +29,6 @@ namespace
         }
         ~JsonApartment() { if (SUCCEEDED(result)) RoUninitialize(); }
     };
-
-    SceneRuntime::SceneSettings ReadSettings(const winrt::Windows::Data::Json::JsonObject& object)
-    {
-        SceneRuntime::SceneSettings result;
-        const auto background=object.GetNamedArray(L"background");
-        if (background.Size()!=4) throw std::runtime_error("Background requires four components");
-        for (uint32_t index=0;index<4;++index)
-        {
-            const auto value=background.GetNumberAt(index);
-            if (!std::isfinite(value) || value<0 || value>1) throw std::runtime_error("Background must be within [0,1]");
-            result.background[index]=static_cast<float>(value);
-        }
-        result.mainCamera=winrt::to_string(object.GetNamedString(L"mainCamera"));
-        return result;
-    }
 
     void ValidateCamera(const SceneRuntime::SceneLayout& layout)
     {
@@ -112,7 +98,7 @@ namespace SceneRuntime
             if (version!=2.0 && version!=3.0 && version!=4.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
-            if (version==4.0) layout.settings=ReadSettings(document.GetNamedObject(L"settings"));
+            if (version==4.0) layout.settings=ReadSceneSettings(document.GetNamedObject(L"settings"));
             if (document.HasKey(L"transformSpace")) throw std::runtime_error("Scenes always use local transforms");
             std::unordered_set<std::string> ids;
             for (const auto& value : document.GetNamedArray(L"objects"))
@@ -165,11 +151,7 @@ namespace SceneRuntime
             }
             return array;
         };
-        JsonObject settingsObject;
-        JsonArray background;
-        for (const auto value : settings.background) background.Append(JsonValue::CreateNumberValue(value));
-        settingsObject.SetNamedValue(L"background",background);
-        settingsObject.SetNamedValue(L"mainCamera",JsonValue::CreateStringValue(winrt::to_hstring(settings.mainCamera)));
+        const auto settingsObject=WriteSceneSettings(settings);
         std::string json = "{\n  \"version\": 4,\n  \"settings\": "+winrt::to_string(settingsObject.Stringify())+",\n  \"objects\": [\n";
         for (size_t i = 0; i < objects.size(); ++i)
         {

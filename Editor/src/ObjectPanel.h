@@ -25,6 +25,7 @@ namespace Editor
         bool editsEnabled_=false;
         const ProjectCatalog* catalog_=nullptr;
         void DrawInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
+        static void DrawSettings(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         static void DrawMultiInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         void DrawName(SceneRuntime::SceneWorld& world, EditState& state, const SceneRuntime::ScenePlacement& placement);
         static void DrawTransform(SceneRuntime::SceneWorld& world, EditState& state, const SceneRuntime::ScenePlacement& placement);

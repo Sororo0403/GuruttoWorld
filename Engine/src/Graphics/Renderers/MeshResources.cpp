@@ -94,7 +94,7 @@ namespace Engine
         D3D12_ROOT_PARAMETER parameters[4]{};
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
-        parameters[0].Constants.Num32BitValues = 40;
+        parameters[0].Constants.Num32BitValues = 28;
         parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
         parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
@@ -102,7 +102,7 @@ namespace Engine
         parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[2].Constants.ShaderRegister = 1;
-        parameters[2].Constants.Num32BitValues = 14;
+        parameters[2].Constants.Num32BitValues = 20;
         parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[3].Constants.ShaderRegister = 2;

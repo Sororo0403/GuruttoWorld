@@ -4,6 +4,12 @@
 
 namespace Engine
 {
+    struct DistanceFog
+    {
+        bool enabled=false;
+        std::array<float,3> color{1,1,1};
+        float start=0, end=100, strength=1;
+    };
     struct DirectionalLight
     {
         // ワールド空間で光が進む方向です。ゼロの場合、直接光は無効になります。
@@ -16,5 +22,7 @@ namespace Engine
         float shininess = 32.0f;
         // false の場合は照明計算を行わず、テクスチャの色をそのまま使用します。
         bool enabled = true;
+        // Scene-wide fog travels with lighting parameters to the mesh shader.
+        DistanceFog fog;
     };
 }

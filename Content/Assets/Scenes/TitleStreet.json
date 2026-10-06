@@ -1,6 +1,6 @@
 {
   "version": 4,
-  "settings": {"background":[0.66,0.79,0.83,1],"mainCamera":"scene-camera"},
+  "settings": {"background":[0.66,0.79,0.83,1],"mainCamera":"scene-camera","fog":{"enabled":true,"color":[0.76,0.84,0.85],"start":24,"end":155,"strength":0.72}},
   "objects": [
     {"id":"ground","name":"ground","position":[-12.800000190734863,-0.11999999731779099,60],"rotation":[0,0,0],"scale":[160,4,180],"components":[{"id":"mesh","type":"MeshRenderer","enabled":true,"model":"Assets/Models/Title/Surface/Roads/ground.obj"}]},
     {"id":"road-00","name":"road-00","position":[0,0,-8],"rotation":[0,1.5707963705062866,0],"scale":[4,4,4],"components":[{"id":"mesh","type":"MeshRenderer","enabled":true,"model":"Assets/Models/Title/Surface/Roads/road-straight.obj"}]},

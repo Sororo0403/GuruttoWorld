@@ -54,10 +54,18 @@ namespace SceneRuntime
         std::string parentId; // Empty means root. Position, rotation and scale are always relative to the parent.
     };
 
+    struct FogSettings
+    {
+        bool enabled=false;
+        std::array<float,3> color{0.76f,0.84f,0.85f};
+        float start=24, end=155, strength=0.72f;
+        bool operator==(const FogSettings&) const = default;
+    };
     struct SceneSettings
     {
         std::array<float,4> background{0.66f,0.79f,0.83f,1};
         std::string mainCamera;
+        FogSettings fog;
         bool operator==(const SceneSettings&) const = default;
     };
 

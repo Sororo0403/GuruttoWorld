@@ -51,39 +51,35 @@ namespace Engine
         }
         using namespace DirectX;
         const XMMATRIX worldMatrix = XMLoadFloat4x4(&world);
-        // HLSL の row_major float3x3 は、各行が 16 バイト境界に配置されます。
+        // Normal cofactors are derived from the world rows in the vertex shader.
         struct TransformConstants
         {
-            XMFLOAT4 normalRows[3];
             XMFLOAT4X4 worldViewProjection;
             XMFLOAT4 worldRows[3];
         } constants;
-        XMVECTOR determinant;
-        const XMMATRIX normalMatrix = XMMatrixTranspose(XMMatrixInverse(&determinant, worldMatrix));
-        const bool mirrored = XMVectorGetX(determinant) < 0.0f;
-        for (size_t row = 0; row < 3; ++row)
-        {
-            XMStoreFloat4(&constants.normalRows[row], normalMatrix.r[row]);
-        }
+        const bool mirrored=XMVectorGetX(XMMatrixDeterminant(worldMatrix))<0;
         XMStoreFloat4x4(&constants.worldViewProjection, worldMatrix * XMLoadFloat4x4(&viewProjection));
         const XMMATRIX transposedWorld = XMMatrixTranspose(worldMatrix);
         for (size_t row = 0; row < 3; ++row)
         {
             XMStoreFloat4(&constants.worldRows[row], transposedWorld.r[row]);
         }
-        static_assert(sizeof(constants) == sizeof(float) * 40);
-        const std::array<float, 14> lightConstants
+        static_assert(sizeof(constants) == sizeof(float) * 28);
+        const std::array<float, 20> lightConstants
         {
             light.direction[0], light.direction[1], light.direction[2], std::max(0.0f, light.intensity),
             light.color[0], light.color[1], light.color[2], std::max(0.0f, light.ambientIntensity),
             cameraPosition[0], cameraPosition[1], cameraPosition[2], std::max(1.0f, light.shininess),
-            std::max(0.0f, light.specularStrength), light.enabled ? 1.0f : 0.0f
+            std::max(0.0f, light.specularStrength), light.enabled ? 1.0f : 0.0f,
+            std::max(0.0f,light.fog.start), std::max(light.fog.start+0.001f,light.fog.end),
+            light.fog.color[0],light.fog.color[1],light.fog.color[2],
+            light.fog.enabled ? std::clamp(light.fog.strength,0.0f,1.0f) : 0.0f
         };
-        // 行列 40 + 光源 14 + UV 8 + SRV テーブル 1 = 63 DWORD（上限 64）。
+        // Transform 28 + lighting/fog 20 + UV 8 + SRV 1 = 57 DWORD (limit 64).
         commands->SetPipelineState(resources_->GetPipelineState(mirrored));
         commands->SetGraphicsRootSignature(resources_->GetRootSignature());
-        commands->SetGraphicsRoot32BitConstants(0, 40, &constants, 0);
-        commands->SetGraphicsRoot32BitConstants(2, 14, lightConstants.data(), 0);
+        commands->SetGraphicsRoot32BitConstants(0, 28, &constants, 0);
+        commands->SetGraphicsRoot32BitConstants(2, 20, lightConstants.data(), 0);
         const auto uvConstants = uvTransform.GetConstants();
         commands->SetGraphicsRoot32BitConstants(3, 8, uvConstants.data(), 0);
         ID3D12DescriptorHeap* heaps[] = { texture_->GetDescriptorHeap() };

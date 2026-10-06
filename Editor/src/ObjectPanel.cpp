@@ -156,38 +156,7 @@ namespace Editor
             {
                 DrawMultiInspector(world,state,enabled);
             }
-            else if (found == objects.end())
-            {
-                ImGui::BeginDisabled(!enabled);
-                ImGui::TextUnformatted("Scene settings");
-                auto settings=world.Layout().settings;
-                bool settingsEdited=ImGui::ColorEdit4("Background",settings.background.data());
-                TrackInspectorEdit(state);
-                const auto label=settings.mainCamera.empty() ? std::string("First enabled Camera") : settings.mainCamera;
-                if (ImGui::BeginCombo("Game camera",label.c_str()))
-                {
-                    if (ImGui::Selectable("First enabled Camera",settings.mainCamera.empty()))
-                    { settings.mainCamera.clear(); settingsEdited=true; }
-                    for (const auto& object : objects)
-                    {
-                        if (!object.camera) continue;
-                        if (ImGui::Selectable((object.name+"##"+object.id).c_str(),settings.mainCamera==object.id))
-                        { settings.mainCamera=object.id; settingsEdited=true; }
-                    }
-                    ImGui::EndCombo();
-                }
-                if (settingsEdited)
-                {
-                    TrackInspectorEdit(state);
-                    ObjectRequest request;
-                    request.action=ObjectAction::Settings;
-                    request.settings=settings;
-                    request.interaction=state.Interaction();
-                    state.Request(std::move(request));
-                }
-                TrackInspectorEdit(state);
-                ImGui::EndDisabled();
-            }
+            else if (found == objects.end()) DrawSettings(world,state,enabled);
             else
             {
                 ImGui::PushID(found->id.c_str());
@@ -211,6 +180,48 @@ namespace Editor
                 "No unsaved changes.");
         }
         ImGui::End();
+    }
+
+    void ObjectPanel::DrawSettings(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
+    {
+        ImGui::BeginDisabled(!enabled);
+        ImGui::TextUnformatted("Scene settings");
+        auto settings=world.Layout().settings;
+        bool settingsEdited=ImGui::ColorEdit4("Background",settings.background.data());
+        TrackInspectorEdit(state);
+        const auto label=settings.mainCamera.empty() ? std::string("First enabled Camera") : settings.mainCamera;
+        if (ImGui::BeginCombo("Game camera",label.c_str()))
+        {
+            if (ImGui::Selectable("First enabled Camera",settings.mainCamera.empty()))
+            { settings.mainCamera.clear(); settingsEdited=true; }
+            for (const auto& object : world.Layout().objects)
+            {
+                if (!object.camera) continue;
+                if (ImGui::Selectable((object.name+"##"+object.id).c_str(),settings.mainCamera==object.id))
+                { settings.mainCamera=object.id; settingsEdited=true; }
+            }
+            ImGui::EndCombo();
+        }
+        settingsEdited=ImGui::Checkbox("Fog enabled",&settings.fog.enabled) || settingsEdited;
+        settingsEdited=ImGui::ColorEdit3("Fog color",settings.fog.color.data()) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::DragFloat("Fog start",&settings.fog.start,0.1f,0,settings.fog.end-0.001f,"%.2f",ImGuiSliderFlags_AlwaysClamp) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::DragFloat("Fog end",&settings.fog.end,0.1f,settings.fog.start+0.001f,1000000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("Fog strength",&settings.fog.strength,0,1) || settingsEdited;
+        TrackInspectorEdit(state);
+        if (settingsEdited)
+        {
+            TrackInspectorEdit(state);
+            ObjectRequest request;
+            request.action=ObjectAction::Settings;
+            request.settings=settings;
+            request.interaction=state.Interaction();
+            state.Request(std::move(request));
+        }
+        TrackInspectorEdit(state);
+        ImGui::EndDisabled();
     }
 
     void ObjectPanel::DrawMultiInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)

@@ -145,6 +145,8 @@
     <ClCompile Include="src\ScenePresentation.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneEnvironment.h" />
     <ClCompile Include="src\SceneEnvironment.cpp" />
+    <ClInclude Include="src\SceneSettingsJson.h" />
+    <ClCompile Include="src\SceneSettingsJson.cpp" />
     <ClCompile Include="src\SceneLayout.cpp" />
     <ClCompile Include="src\SceneComponentJson.cpp" />
     <ClInclude Include="src\SceneComponentJson.h" />

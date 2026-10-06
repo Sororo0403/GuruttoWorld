@@ -2251,6 +2251,12 @@ void ValidateComponentSchema()
     restored.settings.background={0.1f,0.2f,0.3f,0.4f};
     Check(SceneRuntime::SceneLayout::Parse(restored.Serialize()).settings==restored.settings,
         "scene background round-trips without altering objects");
+    restored.settings.fog={true,{0.1f,0.3f,0.5f},5,40,0.6f};
+    Check(SceneRuntime::SceneLayout::Parse(restored.Serialize()).settings==restored.settings,"fog configuration round-trips");
+    auto invalidFog=restored; invalidFog.settings.fog.end=invalidFog.settings.fog.start;
+    bool rejectedFog=false;
+    try { static_cast<void>(invalidFog.Serialize()); } catch (const std::exception&) { rejectedFog=true; }
+    Check(rejectedFog,"zero fog range is rejected");
     auto badBackground=restored; badBackground.settings.background[0]=2;
     bool rejectedBackground=false;
     try { static_cast<void>(badBackground.Serialize()); } catch (const std::exception&) { rejectedBackground=true; }
