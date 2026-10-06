@@ -23,7 +23,8 @@ namespace SceneRuntime
         // 読み込み・検証に失敗した場合は例外。呼び出し元の配置は変更しません。
         static SceneLayout Parse(std::string_view json);
         std::string Serialize() const;
-        void Save(const std::filesystem::path& path) const;
+        // With overwrite=false, the final atomic commit also refuses an existing destination.
+        void Save(const std::filesystem::path& path, bool overwrite = true) const;
         static SceneLayout Load(const std::filesystem::path& path);
     };
 }

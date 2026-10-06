@@ -116,6 +116,7 @@
     <ClInclude Include="src\ConsolePanel.h" />
     <ClInclude Include="src\ConsoleFilter.h" />
     <ClInclude Include="src\SceneDocument.h" />
+    <ClInclude Include="src\SaveAsPanel.h" />
     <ClInclude Include="src\FocusSelection.h" />
     <ClInclude Include="src\PanelLayout.h" />
     <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">

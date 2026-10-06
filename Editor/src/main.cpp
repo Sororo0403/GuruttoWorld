@@ -10,6 +10,7 @@
 #include "ScenePanel.h"
 #include "ConsolePanel.h"
 #include "SceneDocument.h"
+#include "SaveAsPanel.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
@@ -262,16 +263,38 @@ namespace
             try
             {
                 document.Save(world.Layout());
-                history.Saved(world.Layout().Serialize());
-                editState.MarkSaved();
-                projectPanel.Scan(root);
-                fileStatus = "Saved.";
-                LogResult(true);
+                SavedSuccessfully("Saved.");
                 return true;
             }
             catch (const std::exception& error)
             {
                 fileStatus = std::string("Save failed: ") + error.what();
+                LogResult(false);
+                return false;
+            }
+        }
+
+        void SavedSuccessfully(std::string status)
+        {
+            history.Saved(world.Layout().Serialize());
+            editState.MarkSaved();
+            projectPanel.Scan(root);
+            fileStatus=std::move(status);
+            LogResult(true);
+        }
+
+        bool SaveAs(const std::filesystem::path& target, bool overwrite)
+        {
+            if (!sceneLoaded) return false;
+            try
+            {
+                document.SaveAs(world.Layout(),target,overwrite);
+                SavedSuccessfully("Saved as: "+Editor::ProjectCatalog::Text(document.Path().filename()));
+                return true;
+            }
+            catch (const std::exception& error)
+            {
+                fileStatus=std::string("Save as failed: ")+error.what();
                 LogResult(false);
                 return false;
             }
@@ -499,7 +522,10 @@ namespace
                 if (redo ? history.CanRedo() : history.CanUndo()) pendingHistory=redo;
             }
             else if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && history.CanRedo()) pendingHistory=true;
-            else if (ImGui::IsKeyPressed(ImGuiKey_S,false)) Save();
+            else if (ImGui::IsKeyPressed(ImGuiKey_S,false))
+            {
+                if (ImGui::GetIO().KeyShift) saveAsPanel.Request(document.Path()); else Save();
+            }
             else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !editState.SelectedId().empty())
                 pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
         }
@@ -587,6 +613,7 @@ namespace
             if (ImGui::MenuItem("New scene", nullptr, false, CommandContextEnabled())) newScenePopupRequested=true;
             DrawOpenMenu(CommandContextEnabled());
             if (ImGui::MenuItem("Save", "Ctrl+S", false, enabled)) Save();
+            if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S", false, enabled)) saveAsPanel.Request(document.Path());
             if (ImGui::MenuItem("Reload", nullptr, false, enabled && !document.UnsavedNew())) RequestReload();
             ImGui::Separator();
             if (ImGui::MenuItem("Exit", nullptr, false, !gizmo.IsDragging())) closeRequested=true;
@@ -648,6 +675,7 @@ namespace
 
         void DrawSceneDialogs()
         {
+            saveAsPanel.Draw(root,[&](const auto& path,bool overwrite) { return SaveAs(path,overwrite); },fileStatus);
             if (newScenePopupRequested) { ImGui::OpenPopup("New scene"); newScenePopupRequested=false; }
             if (ImGui::BeginPopupModal("New scene",nullptr,ImGuiWindowFlags_AlwaysAutoResize))
             {
@@ -733,6 +761,7 @@ namespace
         Editor::TransformGizmo gizmo;
         Editor::EditHistory history;
         Editor::ConsolePanel consolePanel;
+        Editor::SaveAsPanel saveAsPanel;
         Engine::Camera previewCamera;
         bool preview = false;
         bool focusRequested = false;

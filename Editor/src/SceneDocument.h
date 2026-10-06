@@ -19,7 +19,15 @@ namespace Editor
         {
             if (unsavedNew_ && std::filesystem::exists(path_))
                 throw std::runtime_error("The new scene destination now exists. Save was cancelled.");
-            layout.Save(path_);
+            layout.Save(path_,!unsavedNew_);
+            unsavedNew_=false;
+        }
+        void SaveAs(const SceneRuntime::SceneLayout& layout, std::filesystem::path target, bool overwrite)
+        {
+            if (!overwrite && std::filesystem::exists(target))
+                throw std::runtime_error("The destination exists. Confirm overwrite before saving.");
+            layout.Save(target,overwrite);
+            path_=std::move(target);
             unsavedNew_=false;
         }
         bool Pending() const { return request_.has_value(); }
@@ -34,7 +42,7 @@ namespace Editor
             ready_=!dirty;
             return true;
         }
-        static std::filesystem::path NewTarget(const std::filesystem::path& root, const std::string& name)
+        static std::filesystem::path SaveTarget(const std::filesystem::path& root, const std::string& name)
         {
             const auto filename=std::filesystem::path(std::u8string_view(reinterpret_cast<const char8_t*>(name.data()),name.size()));
             auto extension=filename.extension().string();
@@ -43,7 +51,11 @@ namespace Editor
             if (name.empty() || filename!=filename.filename() || extension!=".json" ||
                 name.find_first_of("<>:\\|?*\"\r\n")!=std::string::npos || name.back()==' ')
                 throw std::runtime_error("Enter a .json filename without folders or reserved characters.");
-            const auto target=root/"Assets/Scenes"/filename;
+            return root/"Assets/Scenes"/filename;
+        }
+        static std::filesystem::path NewTarget(const std::filesystem::path& root, const std::string& name)
+        {
+            const auto target=SaveTarget(root,name);
             if (std::filesystem::exists(target)) throw std::runtime_error("That scene already exists. Choose another name.");
             return target;
         }

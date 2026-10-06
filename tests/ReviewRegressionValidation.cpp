@@ -1147,6 +1147,55 @@ void ValidateSceneViewport()
         "resized portrait scene keeps its center and aspect");
 }
 
+void ValidateSaveAs()
+{
+    const auto root=std::filesystem::absolute("generated/tests/scene-save-as");
+    std::filesystem::create_directories(root/"Assets/Scenes");
+    const auto original=root/"Assets/Scenes/original.json";
+    const auto existing=root/"Assets/Scenes/existing.json";
+    const auto copied=root/"Assets/Scenes/copied.json";
+    const auto blocked=root/"Assets/Scenes/blocked.json";
+    if (std::filesystem::exists(copied)) std::filesystem::remove(copied);
+    std::filesystem::create_directories(blocked);
+    SceneRuntime::SceneLayout layout;
+    SceneRuntime::ScenePlacement object;
+    object.id="save-as-object";
+    object.name="別名保存";
+    object.model="Assets/Models/Title/triangle.obj";
+    layout.objects.push_back(object);
+    layout.Save(original);
+    layout.Save(existing);
+    const auto originalJson=layout.Serialize();
+    Editor::SceneDocument document(original);
+    layout.objects[0].position[0]=12;
+    bool rejected=false;
+    try { document.SaveAs(layout,existing,false); }
+    catch (const std::exception&) { rejected=true; }
+    Check(rejected && document.Path()==original && SceneRuntime::SceneLayout::Load(existing).Serialize()==originalJson,
+        "Save as requires explicit overwrite and preserves existing file and destination");
+    rejected=false;
+    try { document.SaveAs(layout,blocked,true); }
+    catch (const std::exception&) { rejected=true; }
+    Check(rejected && document.Path()==original && layout.objects[0].position[0]==12 && std::filesystem::is_directory(blocked),
+        "Save as write failure preserves active destination, scene and target");
+    document.SaveAs(layout,copied,false);
+    Check(document.Path()==copied && !document.UnsavedNew() &&
+        SceneRuntime::SceneLayout::Load(copied).Serialize()==layout.Serialize() &&
+        SceneRuntime::SceneLayout::Load(original).Serialize()==originalJson,
+        "Save as writes current edits to a new destination without changing original scene");
+    rejected=false;
+    try { layout.Save(existing,false); }
+    catch (const std::exception&) { rejected=true; }
+    Check(rejected && SceneRuntime::SceneLayout::Load(existing).Serialize()==originalJson,
+        "atomic save commit refuses replacement when overwrite is not approved");
+    document.SaveAs(layout,existing,true);
+    Check(document.Path()==existing && SceneRuntime::SceneLayout::Load(existing).Serialize()==layout.Serialize(),
+        "confirmed Save as replaces destination and changes active path");
+    Check(Editor::SceneDocument::SaveTarget(root,"existing.json")==existing &&
+        Editor::SceneDocument::SaveTarget(root,"新規コピー.JSON").parent_path()==root/"Assets/Scenes",
+        "Save as accepts existing and UTF-8 targets for subsequent confirmation");
+}
+
 void ValidateConsoleLog()
 {
     Engine::Log::ClearRecent();
@@ -1316,6 +1365,7 @@ int main()
         ValidateProjectCatalog();
         ValidateModelDrop();
         ValidateConsoleLog();
+        ValidateSaveAs();
         ValidateEditHistory();
         ValidateFocusSelection();
         ValidateDeferredClose();

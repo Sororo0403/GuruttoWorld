@@ -130,7 +130,7 @@ namespace SceneRuntime
         return json;
     }
 
-    void SceneLayout::Save(const std::filesystem::path& path) const
+    void SceneLayout::Save(const std::filesystem::path& path, bool overwrite) const
     {
         const auto json = Serialize();
         static std::atomic<unsigned long long> sequence{ 0 };
@@ -155,7 +155,7 @@ namespace SceneRuntime
             if (!FlushFileBuffers(file)) throw std::runtime_error("Cannot flush save file");
             CloseHandle(file);
             file = INVALID_HANDLE_VALUE;
-            if (!MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+            if (!MoveFileExW(temporary.c_str(), path.c_str(), (overwrite ? MOVEFILE_REPLACE_EXISTING : 0) | MOVEFILE_WRITE_THROUGH))
                 throw std::runtime_error("Cannot replace layout file (error " + std::to_string(GetLastError()) + ")");
         }
         catch (...)
