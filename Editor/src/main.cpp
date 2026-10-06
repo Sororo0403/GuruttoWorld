@@ -231,8 +231,7 @@ namespace
                     success = world.DuplicateObject(request.id, { 4, 0, 0 }, createdId, fileStatus);
                 else
                 {
-                    success = world.RemoveObject(request.id);
-                    fileStatus = success ? "" : "Object no longer exists.";
+                    success = world.RemoveObject(request.id,fileStatus);
                 }
                 if (success)
                 {

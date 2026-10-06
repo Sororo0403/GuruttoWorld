@@ -38,7 +38,8 @@ namespace SceneRuntime
             std::string& createdId, std::string& error);
         bool DuplicateObject(std::string_view id, const std::array<float, 3>& offset,
             std::string& createdId, std::string& error);
-        bool RemoveObject(std::string_view id);
+        // Remove only this object; direct children become roots while retaining their world pose.
+        bool RemoveObject(std::string_view id, std::string& error);
         std::optional<std::string> PickRay(const std::array<float, 3>& origin,
             const std::array<float, 3>& direction, float maxDistance = 220.0f) const;
         bool WorldMatrix(std::string_view id, DirectX::XMFLOAT4X4& matrix) const;
@@ -46,6 +47,9 @@ namespace SceneRuntime
         bool LocalTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
     private:
+        bool ReparentPlacement(ScenePlacement& placement, std::string parentId, std::string& error) const;
+        bool TranslatePlacement(ScenePlacement& placement, const std::array<float,3>& delta) const;
+        static bool PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error);
         bool SetPlacementTransform(std::string_view id, const ScenePlacement& placement);
         bool CommitTransforms(SceneLayout candidate);
         std::string NewId();

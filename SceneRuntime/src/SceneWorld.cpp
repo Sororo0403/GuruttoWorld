@@ -94,19 +94,64 @@ namespace SceneRuntime
         for (const auto& object : objects_) object.Draw(commands, camera, light);
     }
 
-    bool SceneWorld::CommitTransforms(SceneLayout candidate)
+    bool SceneWorld::PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error)
     {
         std::vector<DirectX::XMFLOAT4X4> matrices;
-        std::string error;
-        if (!SceneTransforms::Resolve(candidate,matrices,error)) return false;
-        auto objects=objects_;
-        if (objects.size()!=matrices.size()) return false;
+        if (!SceneTransforms::Resolve(layout,matrices,error)) return false;
+        if (objects.size()!=matrices.size()) { error="Placement and draw object counts differ"; return false; }
         for (size_t index=0;index<objects.size();++index)
         {
-            const auto& placement=candidate.objects[index];
+            const auto& placement=layout.objects[index];
             if (!objects[index].SetTransform(placement.position,placement.rotation,placement.scale) ||
-                !objects[index].SetWorldMatrix(matrices[index])) return false;
+                !objects[index].SetWorldMatrix(matrices[index]))
+            { error=placement.id+": invalid inherited transform"; return false; }
         }
+        error.clear();
+        return true;
+    }
+
+    bool SceneWorld::ReparentPlacement(ScenePlacement& placement, std::string parentId, std::string& error) const
+    {
+        DirectX::XMFLOAT4X4 matrix;
+        if (!WorldMatrix(placement.id,matrix)) { error=placement.id+": object no longer exists"; return false; }
+        if (!parentId.empty())
+        {
+            DirectX::XMFLOAT4X4 parent;
+            if (!WorldMatrix(parentId,parent) || !SceneTransforms::WorldToLocal(matrix,parent,matrix))
+            { error=placement.id+": invalid parent transform"; return false; }
+        }
+        auto candidate=placement;
+        if (!SceneTransforms::ReadTransform(matrix,placement,candidate))
+        { error=placement.id+": preserving world placement requires shear that cannot be stored as SRT"; return false; }
+        candidate.parentId=std::move(parentId);
+        placement=std::move(candidate);
+        error.clear();
+        return true;
+    }
+
+    bool SceneWorld::TranslatePlacement(ScenePlacement& placement, const std::array<float,3>& delta) const
+    {
+        if (!std::all_of(delta.begin(),delta.end(),[](float value) { return std::isfinite(value); })) return false;
+        auto movement=DirectX::XMVectorSet(delta[0],delta[1],delta[2],0);
+        if (!placement.parentId.empty())
+        {
+            DirectX::XMFLOAT4X4 parent;
+            if (!WorldMatrix(placement.parentId,parent)) return false;
+            movement=DirectX::XMVector3TransformNormal(movement,
+                DirectX::XMMatrixInverse(nullptr,DirectX::XMLoadFloat4x4(&parent)));
+        }
+        DirectX::XMFLOAT3 local;
+        DirectX::XMStoreFloat3(&local,movement);
+        placement.position[0]+=local.x; placement.position[1]+=local.y; placement.position[2]+=local.z;
+        DirectX::XMFLOAT4X4 matrix;
+        return SceneTransforms::Compose(placement,matrix);
+    }
+
+    bool SceneWorld::CommitTransforms(SceneLayout candidate)
+    {
+        auto objects=objects_;
+        std::string error;
+        if (!PrepareTransforms(candidate,objects,error)) return false;
         for (size_t index=0;index<layout_.objects.size();++index)
         {
             auto& target=layout_.objects[index];
@@ -126,17 +171,11 @@ namespace SceneRuntime
             const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
                 [&](const auto& object) { return object.id==id; });
             if (found==candidate.objects.end()) throw std::runtime_error("Object no longer exists");
-            DirectX::XMFLOAT4X4 matrix;
-            if (!WorldMatrix(id,matrix)) throw std::runtime_error("World matrix is unavailable");
-            found->parentId=std::move(parentId);
-            static_cast<void>(candidate.Serialize());
-            DirectX::XMFLOAT4X4 parent;
-            if (!found->parentId.empty() && (!WorldMatrix(found->parentId,parent) ||
-                !SceneTransforms::WorldToLocal(matrix,parent,matrix))) throw std::runtime_error("Invalid parent transform");
-            auto reference=*found;
-            if (!SceneTransforms::ReadTransform(matrix,reference,*found))
-                throw std::runtime_error("Parent change requires shear that cannot be stored as position, rotation and scale");
-
+            if (found->parentId==parentId) { error.clear(); return true; }
+            auto validation=candidate;
+            validation.objects[static_cast<size_t>(found-candidate.objects.begin())].parentId=parentId;
+            static_cast<void>(validation.Serialize());
+            if (!ReparentPlacement(*found,std::move(parentId),error)) return false;
             if (!CommitTransforms(std::move(candidate))) throw std::runtime_error("Invalid inherited transform");
             error.clear();
             return true;
@@ -207,12 +246,7 @@ namespace SceneRuntime
             seen.push_back(id);
             if (HasSelectedAncestor(layout_,found->parentId,ids)) continue;
 
-            DirectX::XMFLOAT4X4 matrix;
-            ScenePlacement translated;
-            if (!WorldMatrix(id,matrix)) return false;
-            matrix._41+=delta[0]; matrix._42+=delta[1]; matrix._43+=delta[2];
-            if (!LocalTransformFromWorld(id,matrix,translated)) return false;
-            found->position=translated.position;
+            if (!TranslatePlacement(*found,delta)) return false;
         }
         return CommitTransforms(std::move(candidate));
     }
@@ -272,61 +306,45 @@ namespace SceneRuntime
         }
     }
 
-    bool SceneWorld::DuplicateObject(std::string_view id, const std::array<float, 3>& offset,
+    bool SceneWorld::DuplicateObject(std::string_view id, const std::array<float,3>& offset,
         std::string& createdId, std::string& error)
     {
         createdId.clear();
-        const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
-            [id](const auto& placement) { return placement.id == id; });
-        if (found == layout_.objects.end()) { error = "Object no longer exists"; return false; }
-        auto placement = *found;
-        auto object = objects_[static_cast<size_t>(found - layout_.objects.begin())];
-        DirectX::XMFLOAT4X4 matrix;
-        if (!WorldMatrix(id,matrix)) { error="World matrix is unavailable"; return false; }
-        matrix._41+=offset[0]; matrix._42+=offset[1]; matrix._43+=offset[2];
-        if (!LocalTransformFromWorld(id,matrix,placement)) { error="Invalid duplicate offset"; return false; }
-        placement.id = NewId();
-        placement.name += " copy";
-        if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
-        {
-            error = "Invalid duplicate offset";
-            return false;
-        }
-        if (!object.SetWorldMatrix(matrix)) { error="Invalid duplicate matrix"; return false; }
-        const auto newId = placement.id;
-        Append(std::move(placement), std::move(object));
-        createdId = newId;
+        auto candidate=layout_;
+        auto objects=objects_;
+        const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
+            [&](const auto& placement) { return placement.id==id; });
+        if (found==candidate.objects.end()) { error="Object no longer exists"; return false; }
+        auto placement=*found;
+        if (!TranslatePlacement(placement,offset)) { error=placement.id+": invalid world duplicate offset"; return false; }
+        auto object=objects[static_cast<size_t>(found-candidate.objects.begin())];
+        placement.id=NewId(); placement.name+=" copy";
+        const auto newId=placement.id;
+        candidate.objects.push_back(std::move(placement));
+        objects.push_back(std::move(object));
+        if (!PrepareTransforms(candidate,objects,error)) return false;
+        layout_=std::move(candidate); objects_=std::move(objects);
+        createdId=newId;
         error.clear();
         return true;
     }
 
-    bool SceneWorld::RemoveObject(std::string_view id)
+    bool SceneWorld::RemoveObject(std::string_view id, std::string& error)
     {
         auto candidate=layout_;
         auto objects=objects_;
         const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
             [&](const auto& placement) { return placement.id==id; });
-        if (found==candidate.objects.end()) return false;
+        if (found==candidate.objects.end()) { error="Object no longer exists"; return false; }
         const auto index=static_cast<size_t>(found-candidate.objects.begin());
         const auto removedId=found->id;
         for (auto& placement : candidate.objects)
-        {
-            if (placement.parentId!=removedId) continue;
-            placement.parentId.clear();
-            DirectX::XMFLOAT4X4 matrix;
-            auto reference=placement;
-            if (!WorldMatrix(placement.id,matrix) || !SceneTransforms::ReadTransform(matrix,reference,placement)) return false;
-
-        }
+            if (placement.parentId==removedId && !ReparentPlacement(placement,{},error)) return false;
         candidate.objects.erase(found);
         objects.erase(objects.begin()+static_cast<std::ptrdiff_t>(index));
-        std::vector<DirectX::XMFLOAT4X4> matrices;
-        std::string error;
-        if (!SceneTransforms::Resolve(candidate,matrices,error)) return false;
-        for (size_t item=0;item<objects.size();++item)
-            if (!objects[item].SetWorldMatrix(matrices[item])) return false;
-        layout_=std::move(candidate);
-        objects_=std::move(objects);
+        if (!PrepareTransforms(candidate,objects,error)) return false;
+        layout_=std::move(candidate); objects_=std::move(objects);
+        error.clear();
         return true;
     }
     std::optional<std::string> SceneWorld::PickRay(const std::array<float, 3>& origin,
