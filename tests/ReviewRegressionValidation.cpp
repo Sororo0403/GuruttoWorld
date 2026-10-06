@@ -401,10 +401,11 @@ namespace
         Check(window.Create(L"Hidden render texture validation", 320, 240), "render texture window");
         Check(renderer.Initialize(window.GetHandle()), "render texture renderer");
         Engine::RenderTexture target;
+        Engine::RenderTexture gameTarget;
 #if defined(_DEBUG)
         Editor::PanelLayout::Initialize(std::filesystem::absolute("generated/tests/editor-layout/layout.ini"));
         Editor::PanelLayout::Reset();
-        UINT64 stableTextureId = 0;
+        UINT64 stableTextureId = 0, stableGameId = 0;
 #endif
         Check(!target.Begin(nullptr,{0,0,0,1}) && !target.End(nullptr), "uninitialized target rejects recording");
         for (const auto size : std::array<std::array<UINT,2>,3>{{{64,32},{32,64},{64,32}}})
@@ -421,6 +422,12 @@ namespace
             const auto textureId = renderer.SetSceneTexture(target.GetShaderResourceView()).ptr;
             Check(textureId && (!stableTextureId || textureId==stableTextureId), "Scene UI descriptor remains stable after resize");
             stableTextureId = textureId;
+            Check(gameTarget.Resize(renderer,size[1],size[0]), "independent Game render texture resizes");
+            const auto gameId=renderer.SetSceneTexture(gameTarget.GetShaderResourceView(),1).ptr;
+            Check(gameId && gameId!=textureId && (!stableGameId || gameId==stableGameId),
+                "Game descriptor is distinct from Scene and stable across resize");
+            stableGameId=gameId;
+            Check(!renderer.SetSceneTexture(target.GetShaderResourceView(),2).ptr, "invalid preview slot is rejected");
 #endif
             auto* device = renderer.GetDevice();
             D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
@@ -446,6 +453,10 @@ namespace
                     Check(target.Begin(commands,color) && !target.Begin(commands,color), "render texture binds color and depth once");
                     Check(!target.Resize(renderer,16,16), "resize rejected during target recording");
                     Check(target.End(commands) && !target.End(commands), "render texture ends once for shader sampling");
+#if defined(_DEBUG)
+                    Check(gameTarget.Begin(commands,{0,0,1,1}) && gameTarget.End(commands),
+                        "Game texture renders independently before Scene readback");
+#endif
                     D3D12_RESOURCE_BARRIER barrier{};
                     barrier.Type=D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                     barrier.Transition.pResource=resource;
@@ -468,9 +479,14 @@ namespace
                 {
                     Editor::PanelLayout::BeginFrame();
                     Editor::ScenePanel panel;
+                    ImGui::SetNextWindowFocus();
                     panel.Begin(textureId);
                     Check(frame==0 || (panel.Viewport().Valid() && panel.RequestedSize()[0]>0), "docked Scene image has usable content rectangle");
                     Check(ImGui::GetWindowDockID()!=0, "Scene belongs to the standard dockspace");
+                    Editor::ScenePanel::End();
+                    Editor::ScenePanel gamePanel;
+                    gamePanel.Begin(gameId,"Game (title composition)###Game");
+                    Check(ImGui::GetWindowDockID()!=0, "Game belongs to the standard dockspace");
                     Editor::ScenePanel::End();
                 }
 #endif

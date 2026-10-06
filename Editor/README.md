@@ -12,6 +12,10 @@ Release のソリューションビルドはゲームを対象とし、Editor �
 - 1／2／3：ギズモを移動／回転／拡縮に切替
 
 起動時は上部にFile／Edit／Viewメニューとツールバー、左に状態表示とHierarchy、中央にScene、右にInspectorを配置します。
+中央のScene／Gameはタブで切り替え、分割して並べることもできます。View → Game tabでGameを選択します。
+Gameは現在の配置（未保存を含む）をタイトルの固定カメラ・画角・照明で表示します。空・光の粒・タイトルUIは含みません。
+Game上では選択・ギズモ・モデル追加は行わず、Sceneの視点を維持します。既存の全画面構図プレビューも利用できます。
+保存済みのレイアウトでGameが中央にない場合は、View → Reset panel layoutで標準配置へ戻せます。
 下部のProject／Debug Cameraはタブで切り替えます。パネルはドッキング・分割・移動・サイズ変更できます。
 View → Reset panel layoutで標準配置へ戻します。配置はLocalAppData/WP1/Editor/layout.iniへ保存し、再起動時に復元します。
 ツールバーにはSave・Undo・Redo・Move／Rotate／Scale・World／Local・Snapを表示します。

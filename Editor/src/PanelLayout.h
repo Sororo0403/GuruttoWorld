@@ -57,9 +57,11 @@ namespace Editor::PanelLayout
         ImGui::DockBuilderDockWindow("Hierarchy###Objects", left);
         ImGui::DockBuilderDockWindow("Inspector", right);
         ImGui::DockBuilderDockWindow("Scene", center);
+        ImGui::DockBuilderDockWindow("Game (title composition)###Game", center);
         ImGui::DockBuilderDockWindow("Project###Models", bottom);
         ImGui::DockBuilderDockWindow("Debug Camera", bottom);
         ImGui::DockBuilderFinish(root);
+        if (auto* scene = ImGui::DockBuilderGetNode(center)) scene->SelectedTabId = ImHashStr("Scene");
     }
     inline void BeginFrame(bool preview = false)
     {

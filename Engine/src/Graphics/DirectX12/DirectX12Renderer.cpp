@@ -79,9 +79,9 @@ namespace Engine
     }
 
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
-    D3D12_GPU_DESCRIPTOR_HANDLE DirectX12Renderer::SetSceneTexture(D3D12_CPU_DESCRIPTOR_HANDLE source)
+    D3D12_GPU_DESCRIPTOR_HANDLE DirectX12Renderer::SetSceneTexture(D3D12_CPU_DESCRIPTOR_HANDLE source, unsigned int slot)
     {
-        return debugUi_.SetSceneTexture(device_.Get(), source);
+        return debugUi_.SetSceneTexture(device_.Get(), source, slot);
     }
 #endif
 

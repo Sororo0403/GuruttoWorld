@@ -72,7 +72,7 @@ namespace
     private:
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
         {
-            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer)) return Engine::RenderResult::Failed;
+            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer)) return Engine::RenderResult::Failed;
             bool rendered = true;
             const auto result = renderer.Render({0.10f, 0.11f, 0.13f, 1},
                 [&](ID3D12GraphicsCommandList* commands, float aspect)
@@ -82,7 +82,11 @@ namespace
                         SceneRuntime::TitleView::SetProjection(previewCamera, aspect);
                         world.Draw(commands, previewCamera, light);
                     }
-                    else if (sceneViewport.Valid()) rendered = DrawSceneTexture(commands);
+                    else
+                    {
+                        if (sceneViewport.Valid()) rendered = DrawSceneTexture(commands);
+                        if (gamePanel.Viewport().Valid()) rendered = DrawGameTexture(commands) && rendered;
+                    }
                 }, [&]() { DrawUi(); });
             return rendered ? result : Engine::RenderResult::Failed;
         }
@@ -98,6 +102,27 @@ namespace
             }
             sceneTextureId = renderer.SetSceneTexture(sceneTexture.GetShaderResourceView()).ptr;
             return sceneTextureId != 0;
+        }
+
+        bool PrepareGameTexture(Engine::DirectX12Renderer& renderer)
+        {
+            if (!requestedGameSize[0] || !requestedGameSize[1]) return true;
+            if (gameTexture.GetWidth()==requestedGameSize[0] && gameTexture.GetHeight()==requestedGameSize[1]) return true;
+            if (!gameTexture.Resize(renderer,requestedGameSize[0],requestedGameSize[1]))
+            {
+                fileStatus="Could not resize the Game render texture.";
+                return gameTexture.GetResource()!=nullptr;
+            }
+            gameTextureId=renderer.SetSceneTexture(gameTexture.GetShaderResourceView(),1).ptr;
+            return gameTextureId!=0;
+        }
+
+        bool DrawGameTexture(ID3D12GraphicsCommandList* commands)
+        {
+            if (!gameTexture.Begin(commands,{0.66f,0.79f,0.83f,1})) return false;
+            SceneRuntime::TitleView::SetProjection(previewCamera,gamePanel.Viewport().Aspect());
+            world.Draw(commands,previewCamera,light);
+            return gameTexture.End(commands);
         }
 
         bool DrawSceneTexture(ID3D12GraphicsCommandList* commands)
@@ -226,6 +251,10 @@ namespace
                 else DrawPreview();
                 return;
             }
+            if (focusGame) { ImGui::SetNextWindowFocus(); focusGame=false; }
+            gamePanel.Begin(gameTextureId,"Game (title composition)###Game");
+            requestedGameSize=gamePanel.RequestedSize();
+            Editor::ScenePanel::End();
             scenePanel.Begin(sceneTextureId);
             sceneViewport = scenePanel.Viewport();
             requestedSceneSize = scenePanel.RequestedSize();
@@ -482,6 +511,7 @@ namespace
             if (ImGui::BeginMenu("View"))
             {
                 if (ImGui::MenuItem("Focus selected", "F", false, enabled && sceneViewport.Valid() && !editState.SelectedId().empty())) focusRequested=true;
+                if (ImGui::MenuItem("Game tab", nullptr, false, enabled)) focusGame=true;
                 if (ImGui::MenuItem("Preview title composition", nullptr, false, enabled))
                 {
                     preview=true;
@@ -568,6 +598,11 @@ namespace
         SceneRuntime::SceneWorld world;
         Engine::DebugCamera camera;
         Editor::CameraPanel cameraPanel;
+        Engine::RenderTexture gameTexture;
+        Editor::ScenePanel gamePanel;
+        UINT64 gameTextureId=0;
+        std::array<UINT,2> requestedGameSize{640,480};
+        bool focusGame=false;
         Engine::RenderTexture sceneTexture;
         UINT64 sceneTextureId = 0;
         std::array<UINT, 2> requestedSceneSize{640, 480};

@@ -11,12 +11,12 @@ namespace Editor
     {
     public:
         // Keep the Scene window current while constructing its overlays; always pair with End.
-        bool Begin(std::uint64_t texture)
+        bool Begin(std::uint64_t texture, const char* name = "Scene")
         {
             viewport_ = {};
             hovered_ = false;
             PanelLayout::Place(PanelLayout::Panel::Scene);
-            if (!ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) return false;
+            if (!ImGui::Begin(name, nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) return false;
             const auto size = ImGui::GetContentRegionAvail();
             if (size.x < 1 || size.y < 1 || !texture) return false;
             const auto position = ImGui::GetCursorScreenPos();
