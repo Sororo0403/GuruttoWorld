@@ -94,7 +94,13 @@ namespace Editor
             [&](const auto& asset) { return asset.path==selected_; });
         if (found==catalog_.Assets().end()) { ImGui::TextUnformatted("Select a model or scene asset."); return; }
         ImGui::TextWrapped("%s: %s",found->kind==AssetKind::Model ? "Model" : "Scene",ProjectCatalog::Text(selected_).c_str());
-        if (found->kind!=AssetKind::Model) return;
+        if (found->kind==AssetKind::Scene)
+        {
+            ImGui::BeginDisabled(!enabled);
+            if (ImGui::Button("Open selected scene")) sceneRequest_=found->path;
+            ImGui::EndDisabled();
+            return;
+        }
         ImGui::DragFloat3("Add position",addPosition_.data(),0.1f);
         if (ImGui::Button("Use camera front")) addPosition_=suggestedPosition;
         ImGui::SameLine();

@@ -9,6 +9,7 @@
 #include "PanelLayout.h"
 #include "ScenePanel.h"
 #include "ConsolePanel.h"
+#include "SceneDocument.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
@@ -151,7 +152,7 @@ namespace
             {
                 reloadRequested = false;
                 if (!renderer.WaitForIdle()) return false;
-                if (world.Reload(root, layoutPath, fileStatus))
+                if (world.Reload(root, document.Path(), fileStatus))
                 {
                     sceneLoaded = true;
                     editState.Reloaded();
@@ -161,6 +162,24 @@ namespace
                 }
                 else LogResult(false);
             }
+            return true;
+        }
+
+        bool ApplySceneChange(Engine::DirectX12Renderer& renderer)
+        {
+            if (!document.Ready()) return true;
+            if (!renderer.WaitForIdle()) return false;
+            if (document.Apply(world,root,fileStatus))
+            {
+                sceneLoaded=true;
+                editState.Reloaded();
+                history.Reset({world.Layout().Serialize(),{}});
+                editState.SetChanged(document.UnsavedNew());
+                cameraPanel.CancelDrag();
+                fileStatus=document.UnsavedNew() ? "New scene (not saved yet)." : "Scene opened.";
+                LogResult(true);
+            }
+            else LogResult(false);
             return true;
         }
 
@@ -176,7 +195,7 @@ namespace
                 {
                     history.Applied(redo);
                     editState.Select(target.selection);
-                    editState.SetChanged(history.Dirty(target.json));
+                    editState.SetChanged(document.UnsavedNew() || history.Dirty(target.json));
                     fileStatus=redo ? "Redone." : "Undone.";
                     LogResult(true);
                 }
@@ -227,14 +246,14 @@ namespace
             {
                 const auto settingsRoot = Engine::GetDiagnosticsRoot();
                 Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{} : settingsRoot / "Editor/layout.ini");
-                sceneLoaded = world.Initialize(renderer, root, layoutPath,
+                sceneLoaded = world.Initialize(renderer, root, document.Path(),
                     root / "Shaders/TitleMesh.hlsl", &fileStatus);
                 initialized = true;
                 if (sceneLoaded) history.Reset({world.Layout().Serialize(), editState.SelectedId()});
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
                     sceneLoaded ? "Editor scene loaded." : fileStatus);
             }
-            return ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer);
+            return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer);
         }
 
         bool Save()
@@ -242,9 +261,10 @@ namespace
             if (!sceneLoaded) { fileStatus = "No scene is loaded to save."; LogResult(false); return false; }
             try
             {
-                world.Layout().Save(layoutPath);
+                document.Save(world.Layout());
                 history.Saved(world.Layout().Serialize());
                 editState.MarkSaved();
+                projectPanel.Scan(root);
                 fileStatus = "Saved.";
                 LogResult(true);
                 return true;
@@ -318,7 +338,7 @@ namespace
         void DrawClosePopup()
         {
             cameraPanel.CancelDrag();
-            if (!sceneLoaded || !history.Dirty(world.Layout().Serialize()))
+            if (!sceneLoaded || !editState.HasChanges())
             {
                 closeConfirmed = true;
                 return;
@@ -374,7 +394,7 @@ namespace
 
         bool CanFocus() const
         {
-            return sceneViewport.Valid() && sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
+            return sceneViewport.Valid() && !document.Pending() && sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
                 !pendingObject && !pendingHistory && !reloadRequested &&
                 !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
@@ -414,9 +434,15 @@ namespace
             }
         }
 
+        bool EditWidgetsEnabled() const
+        {
+            return sceneLoaded && !document.Pending() && !reloadRequested && !gizmo.IsDragging() &&
+                ImGui::GetTopMostPopupModal()==nullptr;
+        }
+
         bool SceneEditingEnabled() const
         {
-            return sceneLoaded && keyboard && keyboard->IsActive() && !reloadRequested &&
+            return sceneLoaded && !document.Pending() && !reloadRequested && keyboard && keyboard->IsActive() &&
                 !pendingObject && !pendingHistory && !reloadConfirmRequested && ImGui::GetTopMostPopupModal()==nullptr;
         }
 
@@ -432,20 +458,21 @@ namespace
             const auto& eye = camera.GetPosition();
             const std::array<float, 3> suggested{ eye[0] + viewInverse._31 * 8.0f, 0.08f,
                 eye[2] + viewInverse._33 * 8.0f };
-            objectPanel.Draw(world, editState, sceneLoaded && !reloadRequested && !gizmo.IsDragging());
-            projectPanel.Draw(editState, suggested, sceneLoaded && !reloadRequested && !pendingObject && !pendingHistory && !gizmo.IsDragging());
+            objectPanel.Draw(world, editState, EditWidgetsEnabled());
+            projectPanel.Draw(editState, suggested, EditWidgetsEnabled() && !pendingObject && !pendingHistory);
             if (auto request = editState.TakeRequest()) pendingObject = std::move(request);
+            if (auto scene=projectPanel.TakeSceneRequest()) document.Request(root / *scene,false,editState.HasChanges());
             if (sceneLoaded)
             {
                 const auto json=world.Layout().Serialize();
                 history.Observe({json, editState.SelectedId()}, gizmo.IsDragging() || ImGui::IsAnyItemActive());
-                editState.SetChanged(history.Dirty(json));
+                editState.SetChanged(document.UnsavedNew() || history.Dirty(json));
             }
         }
 
         bool HistoryEnabled() const
         {
-            return sceneLoaded && !pendingObject && !pendingHistory && !reloadRequested &&
+            return sceneLoaded && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
                 !gizmo.IsDragging() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
         }
 
@@ -482,6 +509,7 @@ namespace
             Editor::PanelLayout::Place(Editor::PanelLayout::Panel::Commands);
             if (ImGui::Begin("Street Editor"))
             {
+                ImGui::TextWrapped("Scene: %s",Editor::ProjectCatalog::Text(document.Path().filename()).c_str());
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
                 ImGui::TextUnformatted(editState.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
 
@@ -498,6 +526,7 @@ namespace
                     ImGui::OpenPopup("Reload unsaved changes?");
                 }
                 DrawReloadPopup();
+                DrawSceneDialogs();
             }
             ImGui::End();
         }
@@ -511,12 +540,17 @@ namespace
             return !window->ParentWindow || std::string_view(window->ParentWindow->Name)!="Editor toolbar";
         }
 
-        bool CommandsEnabled(bool allowToolbarText = false) const
+        bool CommandContextEnabled(bool allowToolbarText = false) const
         {
-            return sceneLoaded && !pendingObject && !pendingHistory && !reloadRequested && !gizmo.IsDragging() &&
-                !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !EditingField() &&
+            return initialized && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
+                !gizmo.IsDragging() && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !EditingField() &&
                 (!ImGui::GetIO().WantTextInput || allowToolbarText) &&
                 ImGui::GetTopMostPopupModal()==nullptr && !closeRequested;
+        }
+
+        bool CommandsEnabled(bool allowToolbarText = false) const
+        {
+            return sceneLoaded && CommandContextEnabled(allowToolbarText);
         }
 
         void RequestReload()
@@ -550,10 +584,26 @@ namespace
         void DrawFileMenu(bool enabled)
         {
             if (!ImGui::BeginMenu("File")) return;
+            if (ImGui::MenuItem("New scene", nullptr, false, CommandContextEnabled())) newScenePopupRequested=true;
+            DrawOpenMenu(CommandContextEnabled());
             if (ImGui::MenuItem("Save", "Ctrl+S", false, enabled)) Save();
-            if (ImGui::MenuItem("Reload", nullptr, false, enabled)) RequestReload();
+            if (ImGui::MenuItem("Reload", nullptr, false, enabled && !document.UnsavedNew())) RequestReload();
             ImGui::Separator();
             if (ImGui::MenuItem("Exit", nullptr, false, !gizmo.IsDragging())) closeRequested=true;
+            ImGui::EndMenu();
+        }
+
+        void DrawOpenMenu(bool enabled)
+        {
+            if (!ImGui::BeginMenu("Open scene",enabled)) return;
+            if (ImGui::MenuItem("Refresh scene list")) projectPanel.Scan(root);
+            ImGui::Separator();
+            for (const auto& asset : projectPanel.Catalog().Assets())
+            {
+                if (asset.kind!=Editor::AssetKind::Scene) continue;
+                const auto path=Editor::ProjectCatalog::Text(asset.path);
+                if (ImGui::MenuItem(path.c_str())) document.Request(root/asset.path,false,editState.HasChanges());
+            }
             ImGui::EndMenu();
         }
 
@@ -594,6 +644,51 @@ namespace
                 gizmo.DrawToolbar(CommandsEnabled(true));
             }
             ImGui::End();
+        }
+
+        void DrawSceneDialogs()
+        {
+            if (newScenePopupRequested) { ImGui::OpenPopup("New scene"); newScenePopupRequested=false; }
+            if (ImGui::BeginPopupModal("New scene",nullptr,ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::TextUnformatted("Filename in Assets/Scenes (written on Save):");
+                ImGui::InputText("Filename",newSceneName.data(),newSceneName.size());
+                if (ImGui::Button("Create")) CreateSceneRequest();
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+                if (!fileStatus.empty()) ImGui::TextWrapped("%s",fileStatus.c_str());
+                ImGui::EndPopup();
+            }
+            if (document.NeedsConfirmation() && !ImGui::IsPopupOpen("Switch scene with unsaved changes?"))
+                ImGui::OpenPopup("Switch scene with unsaved changes?");
+            DrawSceneSwitchPopup();
+        }
+
+        void CreateSceneRequest()
+        {
+            try
+            {
+                const auto path=Editor::SceneDocument::NewTarget(root,newSceneName.data());
+                document.Request(path,true,editState.HasChanges());
+                ImGui::CloseCurrentPopup();
+            }
+            catch (const std::exception& error) { fileStatus=error.what(); LogResult(false); }
+        }
+
+        void DrawSceneSwitchPopup()
+        {
+            if (!ImGui::BeginPopupModal("Switch scene with unsaved changes?",nullptr,ImGuiWindowFlags_AlwaysAutoResize)) return;
+            ImGui::TextUnformatted("The current scene has unsaved changes.");
+            if (ImGui::Button("Save and continue"))
+            {
+                if (Save()) { document.Confirm(); ImGui::CloseCurrentPopup(); }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Discard and continue")) { document.Confirm(); ImGui::CloseCurrentPopup(); }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel")) { document.Cancel(); ImGui::CloseCurrentPopup(); }
+            if (!fileStatus.empty()) ImGui::TextWrapped("%s",fileStatus.c_str());
+            ImGui::EndPopup();
         }
 
         void DrawReloadPopup()
@@ -653,7 +748,9 @@ namespace
         bool closeRequested = false;
         bool closeConfirmed = false;
         std::string fileStatus;
-        const std::filesystem::path layoutPath = root / "Assets/Scenes/TitleStreet.json";
+        Editor::SceneDocument document{root / "Assets/Scenes/TitleStreet.json"};
+        bool newScenePopupRequested=false;
+        std::array<char,256> newSceneName{"NewScene.json"};
     };
 }
 

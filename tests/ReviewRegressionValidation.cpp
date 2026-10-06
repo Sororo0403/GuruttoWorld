@@ -4,6 +4,7 @@
 #include "../Editor/src/SceneViewport.h"
 #include "../Editor/src/ModelDrop.h"
 #include "../Editor/src/ConsoleFilter.h"
+#include "../Editor/src/SceneDocument.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
@@ -517,6 +518,65 @@ namespace
         CheckGpuMessages(renderer.GetDevice());
     }
 
+    void ValidateSceneDocument(Engine::DirectX12Renderer& renderer, const std::filesystem::path& content)
+    {
+        const auto root=std::filesystem::absolute("generated/tests/scene-document");
+        std::filesystem::create_directories(root/"Assets/Scenes");
+        const auto initial=root/"Assets/Scenes/initial.json";
+        const auto opened=root/"Assets/Scenes/opened.json";
+        const auto created=root/"Assets/Scenes/created.json";
+        if (std::filesystem::exists(created)) std::filesystem::remove(created);
+        auto layout=SceneRuntime::SceneLayout::Load(content/"Assets/Scenes/TitleStreet.json");
+        layout.Save(initial);
+        auto alternate=layout;
+        alternate.objects.resize(1);
+        alternate.Save(opened);
+        Editor::SceneDocument document(initial);
+        SceneRuntime::SceneWorld world;
+        Check(world.Initialize(renderer,content,initial,content/"Shaders/TitleMesh.hlsl"), "scene document initial world loads");
+        const auto original=world.Layout().Serialize();
+        std::string error;
+        Check(document.Request(opened,false,true) && document.NeedsConfirmation() && !document.Ready(),
+            "dirty scene switch awaits confirmation");
+        Check(!document.Apply(world,content,error) && document.Path()==initial && world.Layout().Serialize()==original,
+            "unconfirmed switch preserves active scene");
+        document.Cancel();
+        Check(!document.Pending() && document.Path()==initial, "cancel preserves document and scene");
+        Check(document.Request(root/"missing.json",false,false), "clean scene switch queues directly");
+        Check(!document.Apply(world,content,error) && !error.empty() && document.Path()==initial &&
+            world.Layout().Serialize()==original, "failed scene read preserves path and world");
+        Check(document.Request(opened,false,true), "scene switch can be retried after failure");
+        document.Confirm();
+        Check(renderer.WaitForIdle() && document.Apply(world,content,error) && document.Path()==opened &&
+            !document.UnsavedNew() && world.Layout().objects.size()==1, "confirmed open changes scene and save destination");
+        Check(document.Request(created,true,false) && renderer.WaitForIdle() && document.Apply(world,content,error),
+            "new scene replaces world after GPU completion");
+        Check(document.UnsavedNew() && document.Path()==created && world.Layout().objects.empty() &&
+            !std::filesystem::exists(created), "empty new scene remains unsaved without writing a file");
+        alternate.Save(created);
+        bool saveRejected=false;
+        try { document.Save(world.Layout()); }
+        catch (const std::exception&) { saveRejected=true; }
+        Check(saveRejected && document.UnsavedNew() && SceneRuntime::SceneLayout::Load(created).objects.size()==1,
+            "new scene refuses to overwrite a destination created while editing");
+        std::filesystem::remove(created);
+        document.Save(world.Layout());
+        Check(!document.UnsavedNew() && SceneRuntime::SceneLayout::Load(created).objects.empty(),
+            "saving new scene writes its own destination");
+        Check(document.Request(initial,true,false) && !document.Apply(world,content,error) && document.Path()==created,
+            "new scene rejects existing destination without replacing current document");
+        for (const auto& name : {std::string("../escape.json"),std::string("bad.txt"),std::string("initial.json"),std::string("bad:name.json")})
+        {
+            bool rejected=false;
+            try { static_cast<void>(Editor::SceneDocument::NewTarget(root,name)); }
+            catch (const std::exception&) { rejected=true; }
+            Check(rejected, "new scene rejects traversal, invalid names and existing files");
+        }
+        Check(Editor::SceneDocument::NewTarget(root,"新規シーン.JSON").parent_path()==root/"Assets/Scenes",
+            "new scene accepts UTF-8 filename and uppercase extension");
+        Check(renderer.WaitForIdle(), "scene document destruction GPU completion");
+    }
+
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
@@ -527,6 +587,7 @@ namespace
             Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden title validation", size[0], size[1]), "title window");
             Check(renderer.Initialize(window.GetHandle()), "title renderer");
+            if (size==TitleSizes[0]) ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
             {
                 SceneRuntime::SceneWorld editorWorld;
                 const auto content = std::filesystem::absolute("Content");
