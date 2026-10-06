@@ -177,12 +177,15 @@ namespace Editor
         const auto& objects=world.Layout().objects;
         const auto found=std::find_if(objects.begin(),objects.end(),[&](const auto& object) { return object.id==state.SelectedId(); });
         if (found==objects.end()) return;
-        auto position=found->position;
+        DirectX::XMFLOAT4X4 matrix;
+        if (!world.WorldMatrix(found->id,matrix)) return;
+        const std::array<float,3> previous{matrix._41,matrix._42,matrix._43};
+        auto position=previous;
         ImGui::PushID(found->id.c_str());
         ImGui::BeginDisabled(!enabled);
-        if (ImGui::DragFloat3("Active position",position.data(),0.05f,0,0,"%.3f") && position!=found->position)
+        if (ImGui::DragFloat3("Active position",position.data(),0.05f,0,0,"%.3f") && position!=previous)
         {
-            const std::array<float,3> delta{position[0]-found->position[0],position[1]-found->position[1],position[2]-found->position[2]};
+            const std::array<float,3> delta{position[0]-previous[0],position[1]-previous[1],position[2]-previous[2]};
             state.TranslateSelection(world,delta);
         }
         ImGui::EndDisabled();
@@ -218,6 +221,8 @@ namespace Editor
         const SceneRuntime::ScenePlacement& placement)
     {
         if (!ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) return;
+        if (world.Layout().transformSpace==SceneRuntime::TransformSpace::Local)
+            ImGui::TextUnformatted("Coordinates: Local (relative to parent)");
         auto position=placement.position, rotation=placement.rotation, scale=placement.scale;
         constexpr float ToDegrees=180.0f/std::numbers::pi_v<float>;
         auto degrees=rotation;

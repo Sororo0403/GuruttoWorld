@@ -399,6 +399,73 @@ namespace
         return std::filesystem::path(executable).parent_path();
     }
 
+    void ValidateInheritedRendering(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
+    {
+        SceneRuntime::SceneWorld world;
+        std::string error,created;
+        Check(world.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",root/"Shaders/TitleMesh.hlsl"),
+            "inherited transform renderer initializes");
+        auto parent=world.Layout().objects.front();
+        parent.id="parent"; parent.parentId.clear(); parent.position={10,20,30};
+        parent.rotation={0,DirectX::XM_PIDIV2,0}; parent.scale={2,3,4};
+        auto child=parent; child.id="child"; child.parentId=parent.id;
+        child.position={1,2,3}; child.rotation={0,0,0.37f}; child.scale={1,1,1};
+        auto grandchild=child; grandchild.id="grandchild"; grandchild.parentId=child.id; grandchild.position={0,1,0};
+        SceneRuntime::SceneLayout layout;
+        layout.objects={grandchild,child,parent}; layout.transformSpace=SceneRuntime::TransformSpace::Local;
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(layout.Serialize()),root,error),
+            "explicit local scene loads and preserves coordinate convention");
+        std::vector<DirectX::XMFLOAT4X4> expected;
+        Check(SceneRuntime::SceneTransforms::Resolve(layout,layout.transformSpace,expected,error), "inherited expected matrices");
+        DirectX::XMFLOAT4X4 matrix;
+        Check(world.WorldMatrix("child",matrix) && Editor::TransformMatrix::Matches(matrix,expected[1]),
+            "draw object receives full inherited matrix including shear");
+        std::array<std::array<float,3>,8> before{},after{};
+        Check(world.WorldBounds("grandchild",before), "inherited bounds before edit");
+        auto moved=parent.position; moved[0]+=5;
+        Check(world.SetTransform(parent.id,moved,parent.rotation,parent.scale) && world.WorldBounds("grandchild",after),
+            "parent edit updates all descendant draw bounds");
+        for (size_t corner=0;corner<8;++corner)
+            Check(std::abs(after[corner][0]-before[corner][0]-5)<0.01f &&
+                std::abs(after[corner][1]-before[corner][1])<0.01f, "descendant bounds follow parent displacement");
+        const auto snapshot=world.Layout().Serialize();
+        Check(!world.SetParent("child",{},error) && !error.empty() && world.Layout().Serialize()==snapshot &&
+            !world.RemoveObject("parent") && world.Layout().Serialize()==snapshot,
+            "unrepresentable shear on detach or delete preserves scene atomically");
+        auto invalid=moved; invalid[0]=(std::numeric_limits<float>::max)();
+        auto huge=parent.scale; huge[0]=(std::numeric_limits<float>::max)();
+        Check(!world.SetTransform("parent",invalid,parent.rotation,huge) && world.Layout().Serialize()==snapshot,
+            "overflowing inherited edit preserves placements and matrices");
+        Check(world.TranslateObjects({"parent","child","grandchild"},{3,0,0}) && world.WorldBounds("grandchild",before),
+            "group parent and descendants move together");
+        for (size_t corner=0;corner<8;++corner)
+            Check(std::abs(before[corner][0]-after[corner][0]-3)<0.01f, "group inheritance avoids double translation");
+        Check(world.WorldMatrix("child",matrix), "child draw matrix before world move");
+        Check(world.TranslateObjects({"child"},{0,0,2}), "child world move converts through rotated scaled parent");
+        DirectX::XMFLOAT4X4 shifted;
+        Check(world.WorldMatrix("child",shifted) && std::abs(shifted._43-matrix._43-2)<0.001f &&
+            std::abs(shifted._41-matrix._41)<0.001f, "child movement uses world axes");
+        Check(world.DuplicateObject("child",{2,0,0},created,error) && world.WorldMatrix(created,shifted) &&
+            std::abs(shifted._41-matrix._41-2)<0.001f, "duplicate offset uses world axes under transformed parent");
+        auto addition=child; addition.id="added";
+        Check(world.AddObject(addition,root,created,error) && world.WorldMatrix(created,matrix), "new child gets inherited draw matrix");
+        Engine::Camera camera;
+        SceneRuntime::TitleView::SetHome(camera); SceneRuntime::TitleView::SetProjection(camera,1);
+        Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float) { world.Draw(commands,camera,{}); })!=Engine::RenderResult::Failed,
+            "full inherited matrices render through model pipeline");
+        Check(renderer.WaitForIdle(), "inherited rendering completes before resource destruction");
+        layout.objects[2].scale={2,2,2}; layout.objects[1].rotation={0,0,0};
+        Check(world.ReplaceLayout(layout,root,error) && world.WorldMatrix("child",matrix), "uniform parent detach fixture");
+        Check(world.SetParent("child",{},error) && world.WorldMatrix("child",shifted) &&
+            Editor::TransformMatrix::Matches(matrix,shifted), "representable reparent preserves world pose");
+        Check(world.SetParent("child","parent",error) && world.RemoveObject("parent") && world.WorldMatrix("child",shifted) &&
+            Editor::TransformMatrix::Matches(matrix,shifted), "representable parent deletion preserves child pose");
+        auto legacy=layout; legacy.transformSpace=SceneRuntime::TransformSpace::World;
+        Check(world.ReplaceLayout(legacy,root,error) && world.WorldMatrix("child",matrix) &&
+            Editor::TransformMatrix::Matches(matrix,Editor::TransformMatrix::Compose(legacy.objects[1])), "legacy scenes keep world-space placement");
+        CheckGpuMessages(renderer.GetDevice());
+    }
+
     void ValidateRenderTexture()
     {
         Engine::Window window;
@@ -734,7 +801,11 @@ namespace
             Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden title validation", size[0], size[1]), "title window");
             Check(renderer.Initialize(window.GetHandle()), "title renderer");
-            if (size==TitleSizes[0]) ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
+            if (size==TitleSizes[0])
+            {
+                ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
+                ValidateInheritedRendering(renderer,std::filesystem::absolute("Content"));
+            }
             {
                 SceneRuntime::SceneWorld editorWorld;
                 const auto content = std::filesystem::absolute("Content");
@@ -1202,6 +1273,11 @@ void ValidateSceneLayout()
     };
     reject("{invalid}");
     reject("{\"version\":2,\"objects\":[]}");
+    reject("{\"version\":1,\"transformSpace\":\"invalid\",\"objects\":[]}");
+    reject("{\"version\":1,\"transformSpace\":3,\"objects\":[]}");
+    const auto local=SceneRuntime::SceneLayout::Parse("{\"version\":1,\"transformSpace\":\"local\",\"objects\":[]}");
+    Check(SceneRuntime::SceneLayout::Parse(local.Serialize()).transformSpace==SceneRuntime::TransformSpace::Local,
+        "local coordinate convention survives save and reload");
     reject("{\"version\":1,\"objects\":[" + entry + "," + entry + "]}");
     auto invalid = entry;
     invalid.replace(invalid.find("[4,4,4]"), 7, "[0,4,4]");

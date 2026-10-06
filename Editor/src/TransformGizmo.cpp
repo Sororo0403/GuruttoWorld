@@ -26,7 +26,8 @@ namespace Editor
             return;
         }
         const auto current=*found;
-        auto matrix=TransformMatrix::Compose(current);
+        DirectX::XMFLOAT4X4 matrix;
+        if (!world.WorldMatrix(current.id,matrix)) return;
         if (!Manipulate(current, camera, viewport, matrix)) return;
         ApplyTransform(world, state, current, matrix);
     }
@@ -86,17 +87,17 @@ namespace Editor
     void TransformGizmo::ApplyTransform(SceneRuntime::SceneWorld& world, EditState& state,
         const SceneRuntime::ScenePlacement& current, const DirectX::XMFLOAT4X4& matrix)
     {
-        auto transformed=current;
-        invalidTransform_=!TransformMatrix::Read(matrix,current,transformed);
-        if (invalidTransform_) return;
-        if (!state.SingleSelection())
+        if (mode_==Mode::Move)
         {
-            const std::array<float,3> delta{transformed.position[0]-current.position[0],
-                transformed.position[1]-current.position[1],transformed.position[2]-current.position[2]};
+            DirectX::XMFLOAT4X4 previous;
+            if (!world.WorldMatrix(current.id,previous)) { invalidTransform_=true; return; }
+            const std::array<float,3> delta{matrix._41-previous._41,matrix._42-previous._42,matrix._43-previous._43};
             invalidTransform_=!state.TranslateSelection(world,delta);
             return;
         }
-        if (mode_==Mode::Move) { transformed.rotation=current.rotation; transformed.scale=current.scale; }
+        auto transformed=current;
+        invalidTransform_=!world.ToPlacement(current.id,matrix,transformed);
+        if (invalidTransform_) return;
         if (mode_==Mode::Rotate) { transformed.position=current.position; transformed.scale=current.scale; }
         if (mode_==Mode::Scale) { transformed.position=current.position; transformed.rotation=current.rotation; }
         if (transformed.position==current.position && transformed.rotation==current.rotation && transformed.scale==current.scale) return;

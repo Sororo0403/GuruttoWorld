@@ -28,6 +28,15 @@ namespace
         ~JsonApartment() { if (SUCCEEDED(result)) RoUninitialize(); }
     };
 
+    SceneRuntime::TransformSpace ReadTransformSpace(const winrt::Windows::Data::Json::JsonObject& document)
+    {
+        if (!document.HasKey(L"transformSpace")) return SceneRuntime::TransformSpace::World;
+        const auto space=document.GetNamedString(L"transformSpace");
+        if (space==L"local") return SceneRuntime::TransformSpace::Local;
+        if (space==L"world") return SceneRuntime::TransformSpace::World;
+        throw std::runtime_error("Unsupported transform space");
+    }
+
     void ValidateParents(const std::vector<SceneRuntime::ScenePlacement>& objects)
     {
         std::unordered_map<std::string,size_t> indices;
@@ -87,6 +96,7 @@ namespace SceneRuntime
             if (document.GetNamedNumber(L"version") != 1.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
+            layout.transformSpace=ReadTransformSpace(document);
             std::unordered_set<std::string> ids;
             for (const auto& value : document.GetNamedArray(L"objects"))
             {
@@ -145,6 +155,9 @@ namespace SceneRuntime
             return array;
         };
         std::string json = "{\n  \"version\": 1,\n  \"objects\": [\n";
+        if (transformSpace==TransformSpace::Local)
+            json.insert(json.find("  \"objects\""), "  \"transformSpace\": \"local\",\n");
+        else if (transformSpace!=TransformSpace::World) throw std::runtime_error("Unsupported transform space");
         for (size_t i = 0; i < objects.size(); ++i)
         {
             const auto& placement = objects[i];

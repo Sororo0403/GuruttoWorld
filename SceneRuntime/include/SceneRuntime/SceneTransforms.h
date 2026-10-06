@@ -4,8 +4,6 @@
 
 namespace SceneRuntime
 {
-    enum class TransformSpace { World, Local };
-
     // All outputs are preserved on failure. Full matrices retain shear from nonuniform parent scales.
     class SceneTransforms final
     {

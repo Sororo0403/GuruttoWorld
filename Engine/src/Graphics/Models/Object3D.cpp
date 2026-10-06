@@ -45,6 +45,21 @@ namespace Engine
         return true;
     }
 
+    bool Object3D::SetWorldMatrix(const DirectX::XMFLOAT4X4& matrix)
+    {
+        using namespace DirectX;
+        const auto world=XMLoadFloat4x4(&matrix);
+        if (XMMatrixIsNaN(world) || XMMatrixIsInfinite(world) ||
+            std::abs(matrix._14)>1e-6f || std::abs(matrix._24)>1e-6f ||
+            std::abs(matrix._34)>1e-6f || std::abs(matrix._44-1)>1e-6f) return false;
+        XMVECTOR determinant;
+        const auto inverse=XMMatrixInverse(&determinant,world);
+        const auto value=XMVectorGetX(determinant);
+        if (!std::isfinite(value) || value==0 || XMMatrixIsNaN(inverse) || XMMatrixIsInfinite(inverse)) return false;
+        world_=matrix;
+        return true;
+    }
+
     const std::array<float, 3>& Object3D::GetPosition() const
     {
         return position_;

@@ -35,8 +35,11 @@ namespace SceneRuntime
         bool RemoveObject(std::string_view id);
         std::optional<std::string> PickRay(const std::array<float, 3>& origin,
             const std::array<float, 3>& direction, float maxDistance = 220.0f) const;
+        bool WorldMatrix(std::string_view id, DirectX::XMFLOAT4X4& matrix) const;
+        bool ToPlacement(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
     private:
+        bool CommitTransforms(SceneLayout candidate);
         std::string NewId();
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
