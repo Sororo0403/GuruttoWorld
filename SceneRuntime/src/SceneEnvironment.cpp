@@ -6,17 +6,17 @@
 
 namespace SceneRuntime
 {
-    bool SceneEnvironment::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+    bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
         const std::filesystem::path& scenePath, std::string& error)
     {
         try { return Initialize(renderer,root,SceneLayout::Load(scenePath),error); }
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
-    bool SceneEnvironment::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+    bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
         SceneLayout layout, std::string& error)
     {
         if (!presentation_.Initialize(renderer,root,error) ||
-            !world_.Initialize(renderer,root,std::move(layout),root/"Shaders/TitleMesh.hlsl",&error)) return false;
+            !world_.Initialize(renderer,root,std::move(layout),root/"Shaders/Mesh.hlsl",&error)) return false;
         seconds_=0; motionEnabled_=true;
         error.clear();
         return true;

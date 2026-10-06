@@ -1,4 +1,4 @@
-"""One-time version 1 -> version 2 scene conversion; versions 2 and 3 already use local transforms."""
+"""One-time version 1 -> version 2 scene conversion; versions 2, 3 and 4 already use local transforms."""
 import argparse
 import copy
 import json
@@ -114,7 +114,7 @@ def resolve(objects):
 
 def convert(document):
     version = document.get("version")
-    if version not in (1, 2, 3) or isinstance(version, bool):
+    if version not in (1, 2, 3, 4) or isinstance(version, bool):
         raise ValueError("Unsupported scene version")
     space = document.get("transformSpace", "world" if version == 1 else "local")
     if space not in ("world", "local") or (version >= 2 and "transformSpace" in document):
@@ -132,7 +132,7 @@ def convert(document):
     rebuilt = resolve(result["objects"])
     if not all(matches(a, b) for a, b in zip(original, rebuilt)):
         raise ValueError("Conversion would change world placement")
-    result["version"] = 3 if version == 3 else 2
+    result["version"] = max(version, 2)
     result.pop("transformSpace", None)
     return result
 

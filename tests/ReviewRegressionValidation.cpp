@@ -23,7 +23,8 @@
 #include <SceneRuntime/SceneLayout.h>
 #include <SceneRuntime/SceneTransforms.h>
 #include <SceneRuntime/SceneWorld.h>
-#include <SceneRuntime/TitleView.h>
+#include "AuthoredViewFixture.h"
+#include "EnvironmentValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -607,7 +608,7 @@ namespace
         document.SaveAs(world.Layout(),copy,false); history.Saved(moved); state.MarkSaved();
         Check(document.Path()==copy && SceneRuntime::SceneLayout::Load(path).Serialize()==moved,
             "workflow SaveAs changes document while retaining original saved scene");
-        Engine::Camera camera; SceneRuntime::TitleView::SetHome(camera); SceneRuntime::TitleView::SetProjection(camera,1);
+        Engine::Camera camera; AuthoredViewFixture::SetHome(camera); AuthoredViewFixture::SetProjection(camera,1);
         Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float) { world.Draw(commands,camera,{}); })!=
             Engine::RenderResult::Failed && renderer.WaitForIdle(), "workflow final hierarchy renders before reload");
         Check(document.Request(copy,false,false) && document.Apply(world,root,error) && world.Layout().Serialize()==moved &&
@@ -923,7 +924,7 @@ namespace
     {
         SceneRuntime::SceneWorld world;
         std::string error,created;
-        Check(world.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",root/"Shaders/TitleMesh.hlsl"),
+        Check(world.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",root/"Shaders/Mesh.hlsl"),
             "inherited transform renderer initializes");
         auto parent=world.Layout().objects.front();
         parent.id="parent"; parent.parentId.clear(); parent.position={10,20,30};
@@ -970,7 +971,7 @@ namespace
         auto addition=child; addition.id="added";
         Check(world.AddObject(addition,root,created,error) && world.WorldMatrix(created,matrix), "new child gets inherited draw matrix");
         Engine::Camera camera;
-        SceneRuntime::TitleView::SetHome(camera); SceneRuntime::TitleView::SetProjection(camera,1);
+        AuthoredViewFixture::SetHome(camera); AuthoredViewFixture::SetProjection(camera,1);
         Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float) { world.Draw(commands,camera,{}); })!=Engine::RenderResult::Failed,
             "full inherited matrices render through model pipeline");
         Check(renderer.WaitForIdle(), "inherited rendering completes before resource destruction");
@@ -1032,7 +1033,7 @@ namespace
         SceneRuntime::SceneWorld hierarchyWorld;
         const auto hierarchyRoot=std::filesystem::absolute("Content");
         Check(hierarchyWorld.Initialize(renderer,hierarchyRoot,hierarchyRoot/"Assets/Scenes/TitleStreet.json",
-            hierarchyRoot/"Shaders/TitleMesh.hlsl"), "Hierarchy panel test world loads");
+            hierarchyRoot/"Shaders/Mesh.hlsl"), "Hierarchy panel test world loads");
         auto nested=hierarchyWorld.Layout();
         nested.objects[2].parentId=nested.objects[1].id;
         nested.objects[1].parentId=nested.objects[0].id;
@@ -1245,7 +1246,7 @@ namespace
         std::array<std::array<float,3>,8> before,after;
         Check(world.WorldBounds("pick-near",before), "group move initial draw bounds");
         Engine::Camera focusCamera;
-        SceneRuntime::TitleView::SetProjection(focusCamera,1.5f);
+        AuthoredViewFixture::SetProjection(focusCamera,1.5f);
         focusCamera.SetRotation(0.4f,0.2f);
         DirectX::XMFLOAT4X4 direction;
         DirectX::XMStoreFloat4x4(&direction,focusCamera.GetViewMatrix());
@@ -1340,7 +1341,7 @@ namespace
         alternate.Save(opened);
         Editor::SceneDocument document(initial);
         SceneRuntime::SceneWorld world;
-        Check(world.Initialize(renderer,content,initial,content/"Shaders/TitleMesh.hlsl"), "scene document initial world loads");
+        Check(world.Initialize(renderer,content,initial,content/"Shaders/Mesh.hlsl"), "scene document initial world loads");
         const auto original=world.Layout().Serialize();
         std::string error;
         Check(document.Request(opened,false,true) && document.NeedsConfirmation() && !document.Ready(),
@@ -1388,7 +1389,7 @@ namespace
     {
         SceneRuntime::SceneWorld world;
         std::string error;
-        Check(world.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",root/"Shaders/TitleMesh.hlsl"), "snapshot edit world");
+        Check(world.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",root/"Shaders/Mesh.hlsl"), "snapshot edit world");
         Editor::EditState state;
         const auto first=world.Layout().objects.front().id, last=world.Layout().objects.back().id;
         state.RestoreSelection({first,last},last);
@@ -1568,6 +1569,13 @@ namespace
         invalid=layout; invalid.objects[1].sky->sunRadius[0]=0; reject(invalid);
         invalid=layout; invalid.objects[1].particleEmitter->count=1025; reject(invalid);
         invalid=layout; invalid.objects[1].cameraSway->period[0]=0; reject(invalid);
+        Check(world.SetLocalTransform(camera.id,camera.position,{0.1f,0.2f,0.7f},camera.scale) &&
+            SceneRuntime::SceneView::Camera(world,1,0,view),"camera accepts inherited roll and pitch");
+        DirectX::XMFLOAT4X4 orientation,viewFrame;
+        Check(world.WorldRotation(camera.id,orientation),"camera rotation frame resolves");
+        DirectX::XMStoreFloat4x4(&viewFrame,DirectX::XMMatrixInverse(nullptr,view.GetViewMatrix()));
+        viewFrame._41=0; viewFrame._42=0; viewFrame._43=0;
+        Check(SceneRuntime::SceneTransforms::Matches(orientation,viewFrame),"camera view retains full authored XYZ orientation without parent scale");
         auto disabled=camera; disabled.camera->enabled=false;
         Check(world.SetComponents(camera.id,disabled,root,error) && !SceneRuntime::SceneView::Camera(world,1,0,view),
             "disabled explicit camera does not silently switch to another viewpoint");
@@ -1582,7 +1590,7 @@ namespace
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/ComponentDemo.json");
         SceneRuntime::SceneWorld world;
         std::string error;
-        Check(world.Initialize(renderer,root,layout,root/"Shaders/TitleMesh.hlsl",&error), "component demo initializes");
+        Check(world.Initialize(renderer,root,layout,root/"Shaders/Mesh.hlsl",&error), "component demo initializes");
         const auto json=world.Layout().Serialize();
         Editor::EditState state; state.Select("Spinner");
         Editor::EditHistory history; history.Reset({json,"Spinner",state.SelectedIds()});
@@ -1655,7 +1663,8 @@ namespace
             "Component scene Stop snapshot preserves settings and selection");
         std::vector<std::string> copies;
         Check(world.DuplicateObjects({"Spinner","OrbitingChild"},{4,0,0},copies,error) &&
-            world.Layout().objects[4].rotator==layout.objects[1].rotator && world.Layout().objects[5].meshRenderer==layout.objects[2].meshRenderer,
+            world.Layout().objects[layout.objects.size()].rotator==layout.objects[1].rotator &&
+            world.Layout().objects[layout.objects.size()+1].meshRenderer==layout.objects[2].meshRenderer,
             "duplication preserves all component IDs and properties within copied owners");
         const auto saved=std::filesystem::absolute("generated/tests/component-roundtrip.json");
         world.Layout().Save(saved);
@@ -1667,7 +1676,7 @@ namespace
         const auto root=std::filesystem::absolute("Content");
         SceneRuntime::SceneWorld world;
         std::string error,created;
-        Check(world.Initialize(renderer,root,SceneRuntime::SceneLayout{},root/"Shaders/TitleMesh.hlsl",&error), "empty world initializes");
+        Check(world.Initialize(renderer,root,SceneRuntime::SceneLayout{},root/"Shaders/Mesh.hlsl",&error), "empty world initializes");
         SceneRuntime::ScenePlacement parent; parent.position={5,0,0};
         Check(world.AddObject(parent,root,created,error) && !created.empty() && !world.Layout().objects[0].meshRenderer,
             "empty object is created without a model and receives a stable ID");
@@ -1712,7 +1721,7 @@ namespace
         placement.id="unsaved"; placement.name="Unsaved name";
         placement.SetModel("Assets/Models/Title/triangle.obj"); placement.position={4,5,6};
         SceneRuntime::SceneLayout layout; layout.objects={placement};
-        const auto shader=std::filesystem::absolute("Content/Shaders/TitleMesh.hlsl");
+        const auto shader=std::filesystem::absolute("Content/Shaders/Mesh.hlsl");
         SceneRuntime::SceneWorld world;
         std::string error;
         Check(world.Initialize(renderer,root,layout,shader,&error), "asset reload fixture initializes");
@@ -1750,6 +1759,7 @@ namespace
             {
                 ValidateAssetReload(renderer);
                 ValidateEmptyObjects(renderer);
+                EnvironmentValidation::Run(renderer);
                 ValidateEnvironmentMotion(renderer);
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
@@ -1762,16 +1772,16 @@ namespace
                 SceneRuntime::SceneWorld editorWorld;
                 const auto content = std::filesystem::absolute("Content");
                 Check(editorWorld.Initialize(renderer, content, content / "Assets/Scenes/TitleStreet.json",
-                    content / "Shaders/TitleMesh.hlsl"), "shared scene loads without App content");
+                    content / "Shaders/Mesh.hlsl"), "shared scene loads without App content");
                 Engine::RenderTexture sceneTarget;
                 Check(sceneTarget.Resize(renderer,96,48), "offscreen scene target");
                 Engine::Camera sceneCamera;
-                SceneRuntime::TitleView::SetHome(sceneCamera);
-                SceneRuntime::TitleView::SetProjection(sceneCamera,2.0f);
+                AuthoredViewFixture::SetHome(sceneCamera);
+                AuthoredViewFixture::SetProjection(sceneCamera,2.0f);
                 Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float)
                 {
                     Check(sceneTarget.Begin(commands,{0,0,0,1}), "offscreen scene begin");
-                    editorWorld.Draw(commands,sceneCamera,SceneRuntime::TitleView::Light());
+                    editorWorld.Draw(commands,sceneCamera,AuthoredViewFixture::Light());
                     Check(sceneTarget.End(commands), "offscreen scene end");
                 })!=Engine::RenderResult::Failed, "shared scene renders to texture");
                 Check(renderer.WaitForIdle(), "offscreen scene GPU completion");
@@ -1795,7 +1805,7 @@ namespace
                 const auto pickPath = pickRoot / "scene.json";
                 pickLayout.Save(pickPath);
                 SceneRuntime::SceneWorld pickingWorld;
-                Check(pickingWorld.Initialize(renderer, pickRoot, pickPath, content / "Shaders/TitleMesh.hlsl"),
+                Check(pickingWorld.Initialize(renderer, pickRoot, pickPath, content / "Shaders/Mesh.hlsl"),
                     "picking fixture loaded");
                 ValidateGroupMove(renderer,pickingWorld,pickRoot);
                 ValidateParentOperations(renderer,pickingWorld,pickRoot);
@@ -1852,7 +1862,7 @@ namespace
                 SceneRuntime::SceneWorld startupFailure;
                 std::string startupError;
                 Check(!startupFailure.Initialize(renderer, content, content / "Assets/Scenes/missing.json",
-                    content / "Shaders/TitleMesh.hlsl", &startupError) && !startupError.empty(),
+                    content / "Shaders/Mesh.hlsl", &startupError) && !startupError.empty(),
                     "startup load failure provides a diagnostic");
                 Check(startupFailure.Reload(content, content / "Assets/Scenes/TitleStreet.json", startupError),
                     "failed initial load can be recovered by reload");
@@ -2334,7 +2344,7 @@ void ValidateEditorAcceptanceScene()
     Check(SceneRuntime::SceneTransforms::Resolve(restored, worlds, error),
         "manual acceptance scene resolves after serialization");
     for (const auto& object : restored.objects)
-        Check(std::filesystem::is_regular_file(std::filesystem::path("Content") / object.Model()),
+        if (object.meshRenderer) Check(std::filesystem::is_regular_file(std::filesystem::path("Content") / object.Model()),
             "manual acceptance scene references an existing model");
     const auto matrix = [&](const std::string& id) -> const DirectX::XMFLOAT4X4& {
         const auto found = std::find_if(restored.objects.begin(), restored.objects.end(),

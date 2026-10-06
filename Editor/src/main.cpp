@@ -15,7 +15,6 @@
 #include "GameSession.h"
 #include "PlaySnapshot.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
-#include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/ScenePresentation.h>
 #include <SceneRuntime/SceneView.h>
 #include <SceneRuntime/SceneWorld.h>
@@ -53,9 +52,9 @@ namespace
         int Run()
         {
             if (root.empty()) return 1;
-            camera.SetResetPose({ -0.8f, 2.8f, -7.0f }, 0.03f, 0.09f);
+            camera.SetResetPose({0,3,-10},0,0);
+            camera.GetCamera().SetPerspective(DirectX::XM_PIDIV4,16.0f/9.0f,0.1f,1000);
             camera.SetMoveSpeed(8.0f);
-            SceneRuntime::TitleView::SetHome(previewCamera);
             projectPanel.Scan(root);
             Engine::ApplicationCallbacks callbacks;
             callbacks.closeRequested = [&]() { closeRequested = true; };
@@ -84,22 +83,26 @@ namespace
             if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             bool rendered = true;
-            const auto result = renderer.Render({0.10f, 0.11f, 0.13f, 1},
+            const auto result = renderer.Render(preview ? world.Layout().settings.background : std::array<float,4>{0.10f,0.11f,0.13f,1},
                 [&](ID3D12GraphicsCommandList* commands, float aspect)
                 {
-                    if (preview)
-                    {
-                        static_cast<void>(aspect);
-                        if (presentation) presentation->Draw(commands,world,renderer.GetWidth(),renderer.GetHeight());
-                    }
-                    else
-                    {
-                        rendered=projectPanel.RenderPreview(commands);
-                        if (sceneViewport.Valid()) rendered = DrawSceneTexture(commands) && rendered;
-                        if (gamePanel.Viewport().Valid()) rendered = DrawGameTexture(commands) && rendered;
-                    }
+                    static_cast<void>(aspect);
+                    rendered=RenderViews(commands,renderer);
                 }, [&]() { DrawUi(); });
             return rendered ? result : Engine::RenderResult::Failed;
+        }
+
+        bool RenderViews(ID3D12GraphicsCommandList* commands, const Engine::DirectX12Renderer& renderer)
+        {
+            if (preview)
+            {
+                if (presentation) presentation->Draw(commands,world,renderer.GetWidth(),renderer.GetHeight());
+                return true;
+            }
+            bool success=projectPanel.RenderPreview(commands);
+            if (sceneViewport.Valid()) success=DrawSceneTexture(commands) && success;
+            if (gamePanel.Viewport().Valid()) success=DrawGameTexture(commands) && success;
+            return success;
         }
 
         void ReportStatus(std::string message, bool success)
@@ -148,10 +151,19 @@ namespace
             return gameTexture.End(commands);
         }
 
+        const SceneRuntime::SceneWorld& DisplayedWorld() const
+        {
+            const auto* runtime=gameSession.Runtime();
+            return runtime ? runtime->World() : world;
+        }
+
         bool DrawSceneTexture(ID3D12GraphicsCommandList* commands)
         {
             if (!sceneTexture.Begin(commands, world.Layout().settings.background)) return false;
-            if (presentation) presentation->Draw(commands,world,sceneTexture.GetWidth(),sceneTexture.GetHeight(),&camera.GetCamera());
+            const auto* runtime=gameSession.Runtime();
+            const auto& displayed=DisplayedWorld();
+            if (presentation) presentation->Draw(commands,displayed,sceneTexture.GetWidth(),sceneTexture.GetHeight(),
+                &camera.GetCamera(),runtime ? runtime->MotionSeconds() : 0,runtime ? runtime->MotionEnabled() : true);
             return sceneTexture.End(commands);
         }
 
@@ -249,7 +261,8 @@ namespace
                 if (!createdId.empty()) editState.ObjectChanged(createdId);
                 fileStatus=request.action==Editor::ObjectAction::Delete ? "Deleted." :
                     request.action==Editor::ObjectAction::Duplicate ? "Duplicated." :
-                    request.action==Editor::ObjectAction::Components ? "Component updated." : "Added.";
+                    request.action==Editor::ObjectAction::Components ? "Component updated." :
+                    request.action==Editor::ObjectAction::Settings ? "Scene settings updated." : "Added.";
                 history.Observe(Snapshot(world.Layout().Serialize()),request.interaction);
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(world.Layout().Serialize()));
             }
@@ -264,7 +277,7 @@ namespace
                 const auto settingsRoot = Engine::GetDiagnosticsRoot();
                 Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{} : settingsRoot / "Editor/layout.ini");
                 sceneLoaded = world.Initialize(renderer, root, document.Path(),
-                    root / "Shaders/TitleMesh.hlsl", &fileStatus);
+                    root / "Shaders/Mesh.hlsl", &fileStatus);
                 presentation=std::make_unique<SceneRuntime::ScenePresentation>();
                 if (!presentation->Initialize(renderer,root,fileStatus)) { presentation.reset(); sceneLoaded=false; }
                 initialized = true;
@@ -294,7 +307,7 @@ namespace
             if (!renderer.WaitForIdle()) return false;
             auto candidate=std::make_unique<SceneRuntime::ScenePresentation>();
             const bool success=Editor::ValidateProjectShaders(root,fileStatus) && candidate->Initialize(renderer,root,fileStatus) &&
-                world.ReloadAssets(renderer,root,root/"Shaders/TitleMesh.hlsl",fileStatus);
+                world.ReloadAssets(renderer,root,root/"Shaders/Mesh.hlsl",fileStatus);
             if (success)
             {
                 presentation=std::move(candidate);
@@ -326,7 +339,7 @@ namespace
             return true;
         }
 
-        void StartGame(Engine::DirectX12Renderer& renderer)
+        void StartGame(const Engine::DirectX12Renderer& renderer)
         {
             std::optional<Editor::PlaySnapshot> captured;
             if (gameSession.State().IsEditing())
@@ -418,7 +431,7 @@ namespace
                 return;
             }
             if (focusGame) { ImGui::SetNextWindowFocus(); focusGame=false; }
-            gamePanel.Begin(gameTextureId,"Game (title composition)###Game");
+            gamePanel.Begin(gameTextureId,"Game###Game");
             requestedGameSize=gamePanel.RequestedSize();
             Editor::ScenePanel::End();
             scenePanel.Begin(sceneTextureId);
@@ -434,7 +447,7 @@ namespace
             const bool historyEnabled = HistoryEnabled();
             UpdateShortcuts(historyEnabled);
             DrawCommands();
-            if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), editState, sceneViewport);
+            if (!preview) Editor::SceneSelection::Draw(DisplayedWorld(), camera.GetCamera(), editState, sceneViewport);
             Editor::ScenePanel::End();
         }
 
@@ -449,7 +462,7 @@ namespace
                 if (payload->DataSize>1 && path[payload->DataSize-1]=='\0' &&
                     std::char_traits<char>::length(path)==static_cast<size_t>(payload->DataSize-1))
                 {
-                    SceneRuntime::TitleView::SetProjection(camera.GetCamera(),sceneViewport.Aspect());
+                    camera.GetCamera().SetAspectRatio(sceneViewport.Aspect());
                     const auto mouse=ImGui::GetIO().MousePos;
                     if (const auto position=Editor::ModelDropPosition(camera.GetCamera(),sceneViewport,mouse.x,mouse.y))
                         projectPanel.RequestDrop(editState,path,*position);
@@ -499,9 +512,9 @@ namespace
             if (keyboard && keyboard->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape,false)) preview=false;
             ImGui::SetNextWindowPos(ImVec2(20,20),ImGuiCond_Always);
             ImGui::SetNextWindowBgAlpha(0.8f);
-            if (ImGui::Begin("Title composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            if (ImGui::Begin("Game composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
-                ImGui::TextUnformatted("Title camera / lighting - current layout (including unsaved edits)");
+                ImGui::TextUnformatted("Scene camera / lighting - current layout (including unsaved edits)");
                 ImGui::TextUnformatted("Scene camera, sky, lighting and particles - current unsaved layout.");
                 if (ImGui::Button("Back to editing (Escape)")) preview=false;
             }
@@ -512,7 +525,7 @@ namespace
         {
             if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, scenePanel.Hovered(), !gizmo.IsDragging() && !ImGui::GetDragDropPayload());
             if (sceneViewport.Valid())
-                SceneRuntime::TitleView::SetProjection(camera.GetCamera(), sceneViewport.Aspect());
+                camera.GetCamera().SetAspectRatio(sceneViewport.Aspect());
         }
 
         bool CanFocus() const
@@ -635,12 +648,14 @@ namespace
                 ImGui::TextWrapped("Scene: %s",Editor::ProjectCatalog::Text(document.Path().filename()).c_str());
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
                 ImGui::Text("Game: %s / %.2f s",gameSession.State().Label(),gameSession.State().Elapsed());
+                if (!SceneRuntime::SceneView::CameraObject(world.Layout()))
+                    ImGui::TextWrapped("No enabled Game camera. Create an empty object and add Camera.");
                 ImGui::TextUnformatted(editState.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
 
                 if (ImGui::CollapsingHeader("Help / Content"))
                 {
                     ImGui::TextWrapped("Ctrl+S: Save / Ctrl+D: Duplicate / Delete: Remove / 1,2,3: Move,Rotate,Scale / F: Focus");
-                    ImGui::TextWrapped("Play runs the current layout with the title background. Pause freezes Game; Resume continues. Stop returns to the edit preview.");
+                    ImGui::TextWrapped("Play runs the current scene and its environment Components. Pause freezes motion; Step advances one frame; Stop restores editing.");
                     ImGui::TextWrapped("Content: %s",root.string().c_str());
                 }
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
@@ -700,7 +715,7 @@ namespace
                 if (ImGui::MenuItem("Focus selected", "F", false, enabled && editState.InspectedAsset().empty() && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
                 if (ImGui::MenuItem("Console")) ImGui::SetWindowFocus("Console");
                 if (ImGui::MenuItem("Game tab", nullptr, false, enabled)) focusGame=true;
-                if (ImGui::MenuItem("Preview title composition", nullptr, false, enabled))
+                if (ImGui::MenuItem("Preview Game composition", nullptr, false, enabled))
                 {
                     preview=true;
                     cameraPanel.CancelDrag();
@@ -899,13 +914,11 @@ namespace
         Editor::EditHistory history;
         Editor::ConsolePanel consolePanel;
         Editor::SaveAsPanel saveAsPanel;
-        Engine::Camera previewCamera;
         std::unique_ptr<SceneRuntime::ScenePresentation> presentation;
         bool preview = false;
         bool focusRequested = false;
         std::optional<bool> pendingHistory;
         std::optional<Editor::ObjectRequest> pendingObject;
-        const Engine::DirectionalLight light = SceneRuntime::TitleView::Light();
         const Engine::Keyboard* keyboard = nullptr;
         double seconds = 0.0;
         bool initialized = false;

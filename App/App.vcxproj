@@ -145,10 +145,8 @@
     <None Include="..\Content\Shaders\Sprite.hlsl" />
     <None Include="Shaders\Sphere.hlsl" />
     <None Include="..\Content\Shaders\Mesh.hlsl" />
-    <None Include="..\Content\Shaders\TitleMesh.hlsl" />
-    <None Include="..\Content\Shaders\TitleSky.hlsl" />
-    <None Include="..\Content\Shaders\TitleMote.hlsl" />
-    <None Include="..\Content\Shaders\Common\TitleAtmosphere.hlsli" />
+    <None Include="..\Content\Shaders\Sky.hlsl" />
+    <None Include="..\Content\Shaders\GlowParticle.hlsl" />
     <None Include="..\Content\Assets\Models\Title\Commercial\building-c.obj" />
     <None Include="..\Content\Assets\Models\Title\Commercial\building-c.mtl" />
     <None Include="..\Content\Assets\Models\Title\Commercial\Textures\colormap.png" />

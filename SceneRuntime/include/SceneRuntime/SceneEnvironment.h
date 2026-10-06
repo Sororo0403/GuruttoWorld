@@ -6,9 +6,9 @@ namespace SceneRuntime
     class SceneEnvironment final
     {
     public:
-        bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+        bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             const std::filesystem::path& scenePath, std::string& error);
-        bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+        bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             SceneLayout layout, std::string& error);
         const SceneWorld& World() const { return world_; }
         double MotionSeconds() const { return seconds_; }

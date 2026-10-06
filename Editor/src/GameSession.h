@@ -13,7 +13,7 @@ namespace Editor
         const PlayState& State() const { return state_; }
         const SceneRuntime::SceneEnvironment* Runtime() const { return runtime_.get(); }
         // Create and release resources outside Render after GPU idle.
-        bool Play(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+        bool Play(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             const SceneRuntime::SceneLayout& layout, std::string& error)
         {
             if (!state_.CanPlay()) { error="Game is already playing"; return false; }

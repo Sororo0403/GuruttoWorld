@@ -151,15 +151,11 @@
     <ClCompile Include="src\SceneComponentJson.cpp" />
     <ClInclude Include="src\SceneComponentJson.h" />
     <ClInclude Include="include\SceneRuntime\SceneComponents.h" />
-    <ClCompile Include="src\TitleEnvironment.cpp" />
-    <ClInclude Include="include\SceneRuntime\TitleEnvironment.h" />
-    <ClInclude Include="include\SceneRuntime\TitleAmbientMotion.h" />
     <ClCompile Include="src\SceneWorld.cpp" />
     <ClCompile Include="src\SceneTransforms.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneTransforms.h" />
     <ClInclude Include="include\SceneRuntime\SceneLayout.h" />
     <ClInclude Include="include\SceneRuntime\SceneWorld.h" />
-    <ClInclude Include="include\SceneRuntime\TitleView.h" />
     <ProjectReference Include="..\Engine\Engine.vcxproj">
       <Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project>
     </ProjectReference>

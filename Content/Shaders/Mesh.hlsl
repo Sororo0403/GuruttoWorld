@@ -48,8 +48,12 @@ float3 TransformNormal(float3 normal)
     float3 row1=float3(worldRows[0].y,worldRows[1].y,worldRows[2].y);
     float3 row2=float3(worldRows[0].z,worldRows[1].z,worldRows[2].z);
     float3 cofactor0=cross(row1,row2);
-    // Inverse transpose up to a positive scale; PS normalizes it. Keep the determinant sign for mirrors.
-    return (normal.x*cofactor0+normal.y*cross(row2,row0)+normal.z*cross(row0,row1))*sign(dot(row0,cofactor0));
+    float3 cofactor1=cross(row2,row0);
+    float3 cofactor2=cross(row0,row1);
+    float3 largest=max(abs(cofactor0),max(abs(cofactor1),abs(cofactor2)));
+    float scale=max(max(largest.x,largest.y),max(largest.z,1e-30f));
+    // One uniform scale per object preserves interpolation while keeping large/small transforms in range.
+    return (normal.x*(cofactor0/scale)+normal.y*(cofactor1/scale)+normal.z*(cofactor2/scale))*sign(dot(row0,cofactor0));
 }
 
 VertexOutput VSMain(VertexInput input)
@@ -69,7 +73,9 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     float3 color=albedo.rgb;
     if (lightingEnabled >= 0.5f)
     {
-        float3 normal = normalize(input.normal);
+        float3 magnitude=abs(input.normal);
+        float normalScale=max(max(magnitude.x,magnitude.y),max(magnitude.z,1e-30f));
+        float3 normal = normalize(input.normal/normalScale);
         float directionLengthSquared = dot(lightDirection, lightDirection);
         float3 toLight = -lightDirection * rsqrt(max(directionLengthSquared, 0.00000001f));
         float diffuse = saturate(dot(normal, toLight));

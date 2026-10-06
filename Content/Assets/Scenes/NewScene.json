@@ -1,4 +1,24 @@
 {
-  "version": 3,
-  "objects": []
+  "version": 4,
+  "objects": [],
+  "settings": {
+    "background": [
+      0.66,
+      0.79,
+      0.83,
+      1
+    ],
+    "mainCamera": "",
+    "fog": {
+      "enabled": false,
+      "color": [
+        0.76,
+        0.84,
+        0.85
+      ],
+      "start": 24,
+      "end": 155,
+      "strength": 0.72
+    }
+  }
 }

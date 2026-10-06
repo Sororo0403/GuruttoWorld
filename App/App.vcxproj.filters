@@ -45,14 +45,8 @@
     <None Include="Shaders\Sphere.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\Content\Shaders\TitleMesh.hlsl">
+    <None Include="..\Content\Shaders\Sky.hlsl">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\Content\Shaders\TitleSky.hlsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\Content\Shaders\Common\TitleAtmosphere.hlsli">
-      <Filter>Shaders\Common</Filter>
     </None>
     <None Include="..\Content\Shaders\Mesh.hlsl">
       <Filter>Shaders</Filter>
@@ -293,7 +287,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Content\Shaders\TitleMote.hlsl">
+    <None Include="..\Content\Shaders\GlowParticle.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

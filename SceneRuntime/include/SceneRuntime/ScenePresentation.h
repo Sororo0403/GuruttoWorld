@@ -8,7 +8,7 @@ namespace SceneRuntime
     class ScenePresentation final
     {
     public:
-        bool Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root, std::string& error);
+        bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root, std::string& error);
         void Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width,
             unsigned int height, const Engine::Camera* sceneCamera=nullptr, double seconds=0, bool motionEnabled=true) const;
         static std::array<float,4> Particle(const SceneWorld& world, const ScenePlacement& placement,

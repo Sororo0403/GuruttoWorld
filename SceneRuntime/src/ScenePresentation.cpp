@@ -6,7 +6,7 @@
 
 namespace SceneRuntime
 {
-    bool ScenePresentation::Initialize(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root, std::string& error)
+    bool ScenePresentation::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root, std::string& error)
     {
         auto texture=std::make_shared<Engine::Texture2D>();
         if (!texture->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),{}) ||

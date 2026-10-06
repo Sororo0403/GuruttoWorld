@@ -85,6 +85,11 @@ class SceneConversionTests(unittest.TestCase):
             self.assertEqual(json.loads(first.read_text(encoding="utf-8"))["version"], 2)
             self.assertEqual(json.loads(second.read_text(encoding="utf-8"))["version"], 2)
 
+    def test_version_four_keeps_environment_and_local_coordinates(self):
+        scene = json.loads(Path("Content/Assets/Scenes/TitleStreet.json").read_text(encoding="utf-8"))
+        self.assertEqual(scene["version"], 4)
+        self.assertEqual(conversion.convert(scene), scene)
+
     def test_empty_and_deep_scenes(self):
         self.assertEqual(conversion.convert({"version": 1, "objects": []}), {"version": 2, "objects": []})
         objects = [placement(str(i), str(i-1) if i else "") for i in range(2000)]

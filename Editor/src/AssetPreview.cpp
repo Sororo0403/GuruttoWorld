@@ -1,5 +1,4 @@
 #include "AssetPreview.h"
-#include <SceneRuntime/TitleView.h>
 #include <algorithm>
 #include <stdexcept>
 
@@ -64,7 +63,7 @@ namespace Editor
     {
         if (!visible_ || loaded_!=selected_ || kind_!=AssetKind::Model || !model_.GetModel()) return true;
         if (!target_.Begin(commands,{0.12f,0.14f,0.18f,1})) return false;
-        model_.Draw(commands,camera_,SceneRuntime::TitleView::Light());
+        model_.Draw(commands,camera_,Engine::DirectionalLight{});
         return target_.End(commands);
     }
 
