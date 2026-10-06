@@ -11,6 +11,7 @@
 #include "ConsolePanel.h"
 #include "SceneDocument.h"
 #include "SaveAsPanel.h"
+#include "PlayState.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
@@ -63,6 +64,7 @@ namespace
             {
                 keyboard = &input;
                 seconds = dt;
+                if (input.IsActive() && !closeRequested) playState.Advance(dt);
                 if (!input.IsActive()) cameraPanel.CancelDrag();
             };
             callbacks.draw = [&](Engine::DirectX12Renderer& renderer) { return Draw(renderer); };
@@ -459,13 +461,13 @@ namespace
 
         bool EditWidgetsEnabled() const
         {
-            return sceneLoaded && !document.Pending() && !reloadRequested && !gizmo.IsDragging() &&
+            return playState.IsEditing() && sceneLoaded && !document.Pending() && !reloadRequested && !gizmo.IsDragging() &&
                 ImGui::GetTopMostPopupModal()==nullptr;
         }
 
         bool SceneEditingEnabled() const
         {
-            return sceneLoaded && !document.Pending() && !reloadRequested && keyboard && keyboard->IsActive() &&
+            return playState.IsEditing() && sceneLoaded && !document.Pending() && !reloadRequested && keyboard && keyboard->IsActive() &&
                 !pendingObject && !pendingHistory && !reloadConfirmRequested && ImGui::GetTopMostPopupModal()==nullptr;
         }
 
@@ -496,7 +498,7 @@ namespace
 
         bool HistoryEnabled() const
         {
-            return sceneLoaded && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
+            return playState.IsEditing() && sceneLoaded && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
                 !gizmo.IsDragging() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
         }
 
@@ -538,11 +540,13 @@ namespace
             {
                 ImGui::TextWrapped("Scene: %s",Editor::ProjectCatalog::Text(document.Path().filename()).c_str());
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
+                ImGui::Text("Preview: %s / %.2f s",playState.Label(),playState.Elapsed());
                 ImGui::TextUnformatted(editState.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
 
                 if (ImGui::CollapsingHeader("Help / Content"))
                 {
                     ImGui::TextWrapped("Ctrl+S: Save / Ctrl+D: Duplicate / Delete: Remove / 1,2,3: Move,Rotate,Scale / F: Focus");
+                    ImGui::TextWrapped("Play/Pause/Stop control preview timing. Game remains a static title composition until runtime execution is connected.");
                     ImGui::TextWrapped("Content: %s",root.string().c_str());
                 }
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
@@ -568,6 +572,11 @@ namespace
         }
 
         bool CommandContextEnabled(bool allowToolbarText = false) const
+        {
+            return playState.IsEditing() && IdleContextEnabled(allowToolbarText);
+        }
+
+        bool IdleContextEnabled(bool allowToolbarText = false) const
         {
             return initialized && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
                 !gizmo.IsDragging() && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !EditingField() &&
@@ -649,14 +658,43 @@ namespace
             ImGui::EndMenu();
         }
 
+        void DrawPlayToolbar()
+        {
+            const bool enabled=sceneLoaded && IdleContextEnabled() && !reloadConfirmRequested && !newScenePopupRequested &&
+                !saveAsPanel.Requested() && !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+            ImGui::BeginDisabled(!enabled);
+            ImGui::BeginDisabled(!playState.CanPlay());
+            if (ImGui::Button(playState.IsEditing() ? "Play###Play" : "Resume###Play") && playState.Play())
+            {
+                history.Commit();
+                focusGame=true;
+                cameraPanel.CancelDrag();
+                ReportStatus("Playing preview state.",true);
+            }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!playState.CanPause());
+            if (ImGui::Button("Pause") && playState.Pause()) ReportStatus("Preview paused.",true);
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!playState.CanStop());
+            if (ImGui::Button("Stop") && playState.Stop()) ReportStatus("Returned to editing.",true);
+            ImGui::EndDisabled();
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::Text("%s (preview)",playState.Label());
+        }
+
         void DrawToolbar()
         {
             const auto flags=ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar;
             const float height=ImGui::GetFrameHeight()+2*ImGui::GetStyle().WindowPadding.y;
-            const bool enabled=CommandsEnabled() &&
-                !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
             if (ImGui::BeginViewportSideBar("Editor toolbar", ImGui::GetMainViewport(), ImGuiDir_Up, height, flags))
             {
+                DrawPlayToolbar();
+                ImGui::SameLine();
+                const bool enabled=CommandsEnabled() &&
+                    !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
                 ImGui::BeginDisabled(!enabled);
                 if (ImGui::Button("Save")) Save();
                 ImGui::SameLine();
@@ -757,6 +795,7 @@ namespace
         Editor::ScenePanel scenePanel;
         Editor::SceneViewport sceneViewport;
         Editor::EditState editState;
+        Editor::PlayState playState;
         Editor::ObjectPanel objectPanel;
         Editor::ProjectPanel projectPanel;
         Editor::TransformGizmo gizmo;

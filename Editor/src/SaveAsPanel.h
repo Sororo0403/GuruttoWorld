@@ -10,6 +10,7 @@ namespace Editor
     class SaveAsPanel final
     {
     public:
+        bool Requested() const { return requested_; }
         void Request(const std::filesystem::path& current)
         {
             const auto name=ProjectCatalog::Text(current.filename());

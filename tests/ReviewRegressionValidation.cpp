@@ -1,6 +1,7 @@
 #include "../Editor/src/GizmoTransform.h"
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
+#include "../Editor/src/PlayState.h"
 #include "../Editor/src/SceneViewport.h"
 #include "../Editor/src/ModelDrop.h"
 #include "../Editor/src/ConsoleFilter.h"
@@ -2402,6 +2403,33 @@ void ValidateFocusSelection()
     Check(!Editor::FocusPosition(corners,camera), "oversized focus bounds rejected");
 }
 
+void ValidatePlayState()
+{
+    Editor::PlayState state;
+    Check(state.Current()==Editor::PlayState::Mode::Editing && state.IsEditing() && state.CanPlay() &&
+        !state.CanPause() && !state.CanStop() && state.Elapsed()==0 && state.Updates()==0, "play state starts in editing");
+    Check(!state.Pause() && !state.Stop() && !state.Advance(0.25), "editing cannot pause stop or advance game time");
+    Check(state.Play() && !state.IsEditing() && !state.CanPlay() && state.CanPause() && state.CanStop() &&
+        std::string_view(state.Label())=="Playing", "Play enters playing and locks editing");
+    Check(state.Advance(0.25) && state.Elapsed()==0.25 && state.Updates()==1, "playing accepts a game tick");
+    Check(!state.Play() && state.Elapsed()==0.25 && state.Updates()==1, "repeated Play does not reset active timing");
+    Check(state.Pause() && state.Current()==Editor::PlayState::Mode::Paused && !state.IsEditing() &&
+        state.CanPlay() && !state.CanPause() && state.CanStop() && std::string_view(state.Label())=="Paused", "Pause freezes playing while keeping editing locked");
+    Check(!state.Advance(0.5) && !state.Pause() && state.Elapsed()==0.25 && state.Updates()==1, "paused time and update count do not advance");
+    Check(state.Play() && state.Advance(0.5) && state.Elapsed()==0.75 && state.Updates()==2, "Resume continues existing game time");
+    Check(!state.Advance(0) && !state.Advance(-1) && !state.Advance(NAN) && !state.Advance(INFINITY) &&
+        state.Elapsed()==0.75 && state.Updates()==2, "invalid deltas leave playback timing intact");
+    Check(state.Stop() && state.IsEditing() && state.Elapsed()==0 && state.Updates()==0 &&
+        std::string_view(state.Label())=="Editing", "Stop from playing restores editing and resets timing");
+    Check(state.Play() && state.Advance(0.125) && state.Pause() && state.Stop() && state.IsEditing() &&
+        state.Elapsed()==0 && state.Updates()==0, "Stop from paused resets the next session");
+    Check(state.Play() && state.Advance(std::numeric_limits<double>::max()), "finite large tick accepted");
+    Check(!state.Advance(std::numeric_limits<double>::max()) && state.Elapsed()==std::numeric_limits<double>::max() &&
+        state.Updates()==1, "overflowing elapsed time is rejected atomically");
+    Check(state.Stop() && state.Play() && state.Advance(0.25) && state.Elapsed()==0.25 && state.Updates()==1,
+        "new session after overflow starts cleanly");
+}
+
 void ValidateDeferredClose()
 {
     Engine::Window window;
@@ -2430,6 +2458,7 @@ int main()
         ValidateMultiSelection();
         ValidateEditHistory();
         ValidateFocusSelection();
+        ValidatePlayState();
         ValidateDeferredClose();
         ValidateEditorCamera();
         ValidateSceneLayout();
