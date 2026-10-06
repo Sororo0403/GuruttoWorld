@@ -1,0 +1,168 @@
+{
+  "version": 2,
+  "objects": [
+    {
+      "id": "Ground",
+      "name": "Ground",
+      "model": "Assets/Models/Title/Surface/Roads/ground.obj",
+      "position": [
+        0,
+        -0.12,
+        12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        24,
+        1,
+        24
+      ]
+    },
+    {
+      "id": "Parent",
+      "name": "Parent",
+      "model": "Assets/Models/Title/Surface/Commercial/building-k.obj",
+      "position": [
+        -5,
+        0,
+        6
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "Child",
+      "name": "Child",
+      "model": "Assets/Models/Title/Surface/Commercial/building-h.obj",
+      "position": [
+        3,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "Parent"
+    },
+    {
+      "id": "Grandchild",
+      "name": "Grandchild",
+      "model": "Assets/Models/Title/Surface/Commercial/building-e.obj",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "Child"
+    },
+    {
+      "id": "Peer",
+      "name": "Peer",
+      "model": "Assets/Models/Title/Surface/Commercial/building-c.obj",
+      "position": [
+        5,
+        0,
+        6
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "Mirror",
+      "name": "Mirror",
+      "model": "Assets/Models/Title/Surface/Commercial/building-k.obj",
+      "position": [
+        0,
+        0,
+        15
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        -2,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "ShearParent",
+      "name": "ShearParent",
+      "model": "Assets/Models/Title/Surface/Commercial/building-h.obj",
+      "position": [
+        -6,
+        0,
+        16
+      ],
+      "rotation": [
+        0,
+        0.4,
+        0
+      ],
+      "scale": [
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "ShearChild",
+      "name": "ShearChild",
+      "model": "Assets/Models/Title/Surface/Commercial/building-e.obj",
+      "position": [
+        0,
+        0,
+        3
+      ],
+      "rotation": [
+        0,
+        0,
+        0.4
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "ShearParent"
+    }
+  ]
+}

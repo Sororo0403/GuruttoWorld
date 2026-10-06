@@ -2020,6 +2020,35 @@ void ValidateSceneLayout()
     reject("{\"version\":2,\"objects\":[" + invalid + "]}");
 }
 
+void ValidateEditorAcceptanceScene()
+{
+    const auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/EditorAcceptance.json");
+    const auto restored = SceneRuntime::SceneLayout::Parse(layout.Serialize());
+    std::vector<DirectX::XMFLOAT4X4> worlds;
+    std::string error;
+    Check(SceneRuntime::SceneTransforms::Resolve(restored, worlds, error),
+        "manual acceptance scene resolves after serialization");
+    for (const auto& object : restored.objects)
+        Check(std::filesystem::is_regular_file(std::filesystem::path("Content") / object.model),
+            "manual acceptance scene references an existing model");
+    const auto matrix = [&](const std::string& id) -> const DirectX::XMFLOAT4X4& {
+        const auto found = std::find_if(restored.objects.begin(), restored.objects.end(),
+            [&](const auto& object) { return object.id == id; });
+        Check(found != restored.objects.end(), "manual acceptance target exists");
+        return worlds.at(static_cast<size_t>(found - restored.objects.begin()));
+    };
+    Check(std::abs(matrix("Child")._41 + 2.0f) < 0.001f &&
+        std::abs(matrix("Grandchild")._43 - 10.0f) < 0.001f,
+        "manual hierarchy baseline has the documented world positions");
+    Check(DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(
+        DirectX::XMLoadFloat4x4(&matrix("Mirror")))) < 0.0f,
+        "manual mirror baseline retains negative determinant");
+    SceneRuntime::ScenePlacement reference;
+    SceneRuntime::ScenePlacement decomposed;
+    Check(!SceneRuntime::SceneTransforms::ReadTransform(matrix("ShearChild"), reference, decomposed),
+        "manual shear baseline cannot be reparented to root without changing its shape");
+}
+
 void ValidateSceneTransforms()
 {
     using SceneRuntime::SceneTransforms;
@@ -2591,6 +2620,7 @@ int main()
         ValidateDeferredClose();
         ValidateEditorCamera();
         ValidateSceneLayout();
+        ValidateEditorAcceptanceScene();
         ValidateParentData();
         ValidateHierarchyRows();
         ValidateSceneTransforms();
