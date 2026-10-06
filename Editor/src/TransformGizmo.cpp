@@ -92,16 +92,16 @@ namespace Editor
             DirectX::XMFLOAT4X4 previous;
             if (!world.WorldMatrix(current.id,previous)) { invalidTransform_=true; return; }
             const std::array<float,3> delta{matrix._41-previous._41,matrix._42-previous._42,matrix._43-previous._43};
-            invalidTransform_=!state.TranslateSelection(world,delta);
+            invalidTransform_=!state.TranslateSelectionWorld(world,delta);
             return;
         }
         auto transformed=current;
-        invalidTransform_=!world.ToPlacement(current.id,matrix,transformed);
+        invalidTransform_=!world.PlacementTransformFromWorld(current.id,matrix,transformed);
         if (invalidTransform_) return;
         if (mode_==Mode::Rotate) { transformed.position=current.position; transformed.scale=current.scale; }
         if (mode_==Mode::Scale) { transformed.position=current.position; transformed.rotation=current.rotation; }
         if (transformed.position==current.position && transformed.rotation==current.rotation && transformed.scale==current.scale) return;
-        invalidTransform_=!state.SetTransform(world,current.id,transformed.position,transformed.rotation,transformed.scale);
+        invalidTransform_=!state.SetInspectorTransform(world,current.id,transformed.position,transformed.rotation,transformed.scale);
         if (!invalidTransform_) state.ObjectChanged(current.id);
     }
 

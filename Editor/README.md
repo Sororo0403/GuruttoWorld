@@ -168,3 +168,7 @@ New sceneで作成したシーンは最初からLocal形式です。JSONへlocal
 手動確認: 既存シーンをSave asで別名保存 → Enable parent transforms → 配置が変わらないことを確認 →
 親を移動・回転・拡縮して子の追従を確認 → Ctrl+Zで親の編集を戻す → さらにCtrl+Zで移行を戻す →
 Ctrl+Yで移行を復元 → Save/Reloadで追従が維持されることを確認してください。
+
+Transform APIはSetLocalTransform（親に対するSRT）、SetWorldTransform（ワールドSRTまたは行列）、
+TranslateObjectsWorld（ワールド移動量）を明示的に分けています。行列からSRTへの検証・分解はSceneTransforms::ReadTransformに集約します。
+Inspectorは現在の保存形式に応じてAPIを選びます。World/Local保存形式の統一は次の段階です。

@@ -20,10 +20,16 @@ namespace SceneRuntime
             const Engine::DirectionalLight& light) const;
         const SceneLayout& Layout() const { return layout_; }
         // 配置と描画用の変換を同時に更新します。失敗した場合は直前の状態を維持します。
-        bool SetTransform(std::string_view id, const std::array<float, 3>& position,
+        // Local values are relative to the parent, regardless of the temporary scene storage convention.
+        bool SetLocalTransform(std::string_view id, const std::array<float, 3>& position,
             const std::array<float, 3>& rotation, const std::array<float, 3>& scale);
-        // Translate all IDs atomically; failed validation leaves both placement and draw transforms unchanged.
-        bool TranslateObjects(const std::vector<std::string>& ids, const std::array<float,3>& delta);
+        // Set a world pose; convert to the stored SRT and reject unrepresentable shear atomically.
+        bool SetWorldTransform(std::string_view id, const DirectX::XMFLOAT4X4& matrix);
+        bool SetWorldTransform(std::string_view id, const std::array<float,3>& position,
+            const std::array<float,3>& rotation, const std::array<float,3>& scale);
+        // Translate all IDs atomically; delta is always in world coordinates.
+        // Selected descendants follow selected ancestors once.
+        bool TranslateObjectsWorld(const std::vector<std::string>& ids, const std::array<float,3>& delta);
         bool EnableParentTransforms(std::string& error);
         bool SetParent(std::string_view id, std::string parentId, std::string& error);
         // 表示名だけを変更します。ID・描画リソースは維持します。
@@ -37,9 +43,11 @@ namespace SceneRuntime
         std::optional<std::string> PickRay(const std::array<float, 3>& origin,
             const std::array<float, 3>& direction, float maxDistance = 220.0f) const;
         bool WorldMatrix(std::string_view id, DirectX::XMFLOAT4X4& matrix) const;
-        bool ToPlacement(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;
+        // Convert a world matrix to the current storage convention, preserving output on failure.
+        bool PlacementTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
     private:
+        bool SetPlacementTransform(std::string_view id, const ScenePlacement& placement);
         bool CommitTransforms(SceneLayout candidate);
         std::string NewId();
         size_t nextObjectId_ = 1;

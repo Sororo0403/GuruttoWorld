@@ -399,6 +399,43 @@ namespace
         return std::filesystem::path(executable).parent_path();
     }
 
+    bool SetSceneTransform(SceneRuntime::SceneWorld& world, std::string_view id,
+        const std::array<float,3>& position, const std::array<float,3>& rotation, const std::array<float,3>& scale)
+    {
+        if (world.Layout().transformSpace==SceneRuntime::TransformSpace::Local)
+            return world.SetLocalTransform(id,position,rotation,scale);
+        return world.SetWorldTransform(id,position,rotation,scale);
+    }
+
+    void ValidateTransformApi(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        std::string error;
+        Check(world.Layout().transformSpace==SceneRuntime::TransformSpace::World, "explicit transform API legacy fixture");
+        auto child=initial.objects[1]; child.position={1,2,3}; child.rotation={0,0,0}; child.scale={1,1,1};
+        DirectX::XMFLOAT4X4 parent{},actual{},expected{};
+        Check(world.WorldMatrix(child.parentId,parent), "explicit transform API parent matrix");
+        const auto local=Editor::TransformMatrix::Compose(child);
+        DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&local)*DirectX::XMLoadFloat4x4(&parent));
+        Check(world.SetLocalTransform(child.id,child.position,child.rotation,child.scale) && world.WorldMatrix(child.id,actual) &&
+            Editor::TransformMatrix::Matches(actual,expected), "local setter uses parent-relative coordinates even with legacy storage");
+        Check(world.EnableParentTransforms(error), "explicit transform API local fixture");
+        Check(world.SetWorldTransform(child.id,{50,60,70},{0,0,0},{1,1,1}) && world.WorldMatrix(child.id,actual) &&
+            std::abs(actual._41-50)<0.001f && std::abs(actual._42-60)<0.001f && std::abs(actual._43-70)<0.001f,
+            "world setter converts through parent into local storage");
+        const auto snapshot=world.Layout().Serialize();
+        expected=actual; expected._12+=0.5f;
+        Check(!world.SetWorldTransform(child.id,expected) && world.Layout().Serialize()==snapshot &&
+            world.WorldMatrix(child.id,parent) && Editor::TransformMatrix::Matches(parent,actual),
+            "world matrix setter rejects unrepresentable shear without changing draw or data");
+        SceneRuntime::ScenePlacement output=child;
+        Check(!world.PlacementTransformFromWorld("missing",actual,output) && output.position==child.position,
+            "matrix conversion preserves output for missing objects");
+        Check(!world.SetLocalTransform("missing",child.position,child.rotation,child.scale) &&
+            !world.SetWorldTransform("missing",actual), "explicit setters reject missing objects");
+        Check(world.ReplaceLayout(initial,root,error), "explicit transform API fixture restored");
+    }
+
     void ValidateTransformMigration(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneWorld& world,
         const std::filesystem::path& root)
     {
@@ -444,7 +481,7 @@ namespace
         const auto parent=world.Layout().objects[2];
         auto position=parent.position; position[0]+=4;
         DirectX::XMFLOAT4X4 childBefore,childAfter;
-        Check(world.WorldMatrix("child",childBefore) && world.SetTransform("parent",position,parent.rotation,parent.scale) &&
+        Check(world.WorldMatrix("child",childBefore) && SetSceneTransform(world,"parent",position,parent.rotation,parent.scale) &&
             world.WorldMatrix("child",childAfter) && std::abs(childAfter._41-childBefore._41-4)<0.001f,
             "migrated and reloaded child follows subsequent parent edits");
         auto shear=legacy; shear.objects[2].scale={2,3,4}; shear.objects[1].rotation={0,0,0.37f};
@@ -480,7 +517,7 @@ namespace
         std::array<std::array<float,3>,8> before{},after{};
         Check(world.WorldBounds("grandchild",before), "inherited bounds before edit");
         auto moved=parent.position; moved[0]+=5;
-        Check(world.SetTransform(parent.id,moved,parent.rotation,parent.scale) && world.WorldBounds("grandchild",after),
+        Check(SetSceneTransform(world,parent.id,moved,parent.rotation,parent.scale) && world.WorldBounds("grandchild",after),
             "parent edit updates all descendant draw bounds");
         for (size_t corner=0;corner<8;++corner)
             Check(std::abs(after[corner][0]-before[corner][0]-5)<0.01f &&
@@ -491,14 +528,14 @@ namespace
             "unrepresentable shear on detach or delete preserves scene atomically");
         auto invalid=moved; invalid[0]=(std::numeric_limits<float>::max)();
         auto huge=parent.scale; huge[0]=(std::numeric_limits<float>::max)();
-        Check(!world.SetTransform("parent",invalid,parent.rotation,huge) && world.Layout().Serialize()==snapshot,
+        Check(!SetSceneTransform(world,"parent",invalid,parent.rotation,huge) && world.Layout().Serialize()==snapshot,
             "overflowing inherited edit preserves placements and matrices");
-        Check(world.TranslateObjects({"parent","child","grandchild"},{3,0,0}) && world.WorldBounds("grandchild",before),
+        Check(world.TranslateObjectsWorld({"parent","child","grandchild"},{3,0,0}) && world.WorldBounds("grandchild",before),
             "group parent and descendants move together");
         for (size_t corner=0;corner<8;++corner)
             Check(std::abs(before[corner][0]-after[corner][0]-3)<0.01f, "group inheritance avoids double translation");
         Check(world.WorldMatrix("child",matrix), "child draw matrix before world move");
-        Check(world.TranslateObjects({"child"},{0,0,2}), "child world move converts through rotated scaled parent");
+        Check(world.TranslateObjectsWorld({"child"},{0,0,2}), "child world move converts through rotated scaled parent");
         DirectX::XMFLOAT4X4 shifted;
         Check(world.WorldMatrix("child",shifted) && std::abs(shifted._43-matrix._43-2)<0.001f &&
             std::abs(shifted._41-matrix._41)<0.001f, "child movement uses world axes");
@@ -520,6 +557,7 @@ namespace
         auto legacy=layout; legacy.transformSpace=SceneRuntime::TransformSpace::World;
         Check(world.ReplaceLayout(legacy,root,error) && world.WorldMatrix("child",matrix) &&
             Editor::TransformMatrix::Matches(matrix,Editor::TransformMatrix::Compose(legacy.objects[1])), "legacy scenes keep world-space placement");
+        ValidateTransformApi(world,root);
         ValidateTransformMigration(renderer,world,root);
         CheckGpuMessages(renderer.GetDevice());
     }
@@ -740,7 +778,7 @@ namespace
         std::array<std::array<float,3>,8> before,after;
         Check(world.WorldBounds("pick-near",before), "group move initial draw bounds");
         const std::array<float,3> delta{2,-3,1};
-        Check(state.TranslateSelection(world,delta) && state.HasChanges() && state.SelectedIds()==selected,
+        Check(state.TranslateSelectionWorld(world,delta) && state.HasChanges() && state.SelectedIds()==selected,
             "group move preserves multi selection and marks changes");
         for (size_t index=0;index<initial.objects.size();++index)
         {
@@ -758,7 +796,7 @@ namespace
                     "group move updates rendered transform and mirrored bounds");
         Check(world.PickRay({1.6f,-2.4f,0},{0,0,1}).value_or("")=="pick-near", "group move updates picking transform");
         history.Observe({world.Layout().Serialize(),state.SelectedId(),selected},true);
-        Check(state.TranslateSelection(world,{0.5f,0,0}), "second continuous group move applies");
+        Check(state.TranslateSelectionWorld(world,{0.5f,0,0}), "second continuous group move applies");
         const auto movedJson=world.Layout().Serialize();
         history.Observe({movedJson,state.SelectedId(),selected},false);
         Check(history.CanUndo(), "group drag creates an Undo entry");
@@ -773,19 +811,19 @@ namespace
         Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(redo.json),root,error), "group move Redo restores world");
         history.Applied(true);
         Check(world.Layout().Serialize()==movedJson, "Redo restores entire group movement");
-        Check(!world.TranslateObjects({"pick-far","missing"},delta) && world.Layout().Serialize()==movedJson,
+        Check(!world.TranslateObjectsWorld({"pick-far","missing"},delta) && world.Layout().Serialize()==movedJson,
             "invalid later ID cannot leave earlier object partially moved");
-        Check(!world.TranslateObjects({"pick-far","pick-far"},delta) && world.Layout().Serialize()==movedJson,
+        Check(!world.TranslateObjectsWorld({"pick-far","pick-far"},delta) && world.Layout().Serialize()==movedJson,
             "duplicate group IDs are rejected without double moving");
-        Check(!state.TranslateSelection(world,{NAN,0,0}) && state.InvalidTransform() && world.Layout().Serialize()==movedJson,
+        Check(!state.TranslateSelectionWorld(world,{NAN,0,0}) && state.InvalidTransform() && world.Layout().Serialize()==movedJson,
             "nonfinite group move is rejected atomically");
         state.SetChanged(false);
-        Check(state.TranslateSelection(world,{}) && !state.HasChanges(), "zero group delta does not mark changes");
+        Check(state.TranslateSelectionWorld(world,{}) && !state.HasChanges(), "zero group delta does not mark changes");
         const float maximum=(std::numeric_limits<float>::max)();
-        Check(world.SetTransform("pick-far",{0,0,10},{0,0,0},{1,1,1}) &&
-            world.SetTransform("pick-near",{maximum,0,5},{0,0,0},{1,1,1}), "finite extreme group move fixture");
+        Check(SetSceneTransform(world,"pick-far",{0,0,10},{0,0,0},{1,1,1}) &&
+            SetSceneTransform(world,"pick-near",{maximum,0,5},{0,0,0},{1,1,1}), "finite extreme group move fixture");
         const auto extremeJson=world.Layout().Serialize();
-        Check(!world.TranslateObjects(selected,{maximum,0,0}) && world.Layout().Serialize()==extremeJson,
+        Check(!world.TranslateObjectsWorld(selected,{maximum,0,0}) && world.Layout().Serialize()==extremeJson,
             "overflow in later move rejects earlier valid translation atomically");
         Check(world.ReplaceLayout(initial,root,error), "group move fixture restores initial placements");
     }
@@ -920,7 +958,7 @@ namespace
                     for (size_t axis = 0; axis < 3; ++axis) center[axis] += corner[axis] / 8;
                 Check(std::abs(center[0] + 1) < 0.001f && std::abs(center[1] - 1.5f) < 0.001f &&
                     std::abs(center[2] - 5) < 0.001f, "selection corners use instance transform");
-                Check(pickingWorld.SetTransform("pick-near", nearObject.position, { 0, DirectX::XM_PIDIV2, 0 },
+                Check(SetSceneTransform(pickingWorld,"pick-near", nearObject.position, { 0, DirectX::XM_PIDIV2, 0 },
                     nearObject.scale) && pickingWorld.PickRay({ -5, 0.6f, 5.4f }, { 1, 0, 0 }).value_or("") == "pick-near",
                     "rotated object uses updated picking transform");
                 Check(pickingWorld.RemoveObject("pick-near") &&
@@ -932,17 +970,17 @@ namespace
                 moved[2] += 2.0f;
                 const std::array<float, 3> rotated{ 0.1f, 0.2f, 0.3f };
                 const std::array<float, 3> scaled{ 120, 4, 160 };
-                Check(editorWorld.SetTransform(original.id, moved, rotated, scaled), "live transform edit accepted");
+                Check(SetSceneTransform(editorWorld,original.id, moved, rotated, scaled), "live transform edit accepted");
                 const auto& changed = editorWorld.Layout().objects.front();
                 Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled &&
                     changed.model == original.model, "live edits update layout while keeping model reference");
-                Check(!editorWorld.SetTransform(original.id, original.position, original.rotation, { 0, 4, 4 }),
+                Check(!SetSceneTransform(editorWorld,original.id, original.position, original.rotation, { 0, 4, 4 }),
                     "zero scale edit rejected");
                 auto invalidPosition = original.position;
                 invalidPosition[0] = NAN;
-                Check(!editorWorld.SetTransform(original.id, invalidPosition, original.rotation, original.scale),
+                Check(!SetSceneTransform(editorWorld,original.id, invalidPosition, original.rotation, original.scale),
                     "nonfinite position edit rejected");
-                Check(!editorWorld.SetTransform("missing-object", original.position, original.rotation, original.scale),
+                Check(!SetSceneTransform(editorWorld,"missing-object", original.position, original.rotation, original.scale),
                     "unknown object edit rejected");
                 Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled,
                     "rejected edits preserve previous valid placement");
@@ -1044,11 +1082,11 @@ namespace
                     edited.position[0]+=1;
                     edited.rotation[1]+=0.1f;
                     edited.scale[0]=-4;
-                    Check(editState.SetTransform(editorWorld,workflowId,edited.position,edited.rotation,edited.scale), "workflow transform");
+                    Check(editState.SetInspectorTransform(editorWorld,workflowId,edited.position,edited.rotation,edited.scale), "workflow transform");
                     workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},true);
                 }
                 const auto transformedJson=editorWorld.Layout().Serialize();
-                Check(!editState.SetTransform(editorWorld,workflowId,edited.position,edited.rotation,{0,1,1}) &&
+                Check(!editState.SetInspectorTransform(editorWorld,workflowId,edited.position,edited.rotation,{0,1,1}) &&
                     editState.InvalidTransform() && editorWorld.Layout().Serialize()==transformedJson,
                     "shared edit rejects invalid transform without changing scene");
                 editState.Select(workflowId);

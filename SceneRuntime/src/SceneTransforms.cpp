@@ -99,6 +99,17 @@ namespace SceneRuntime
         output=candidate;
         return true;
     }
+    bool SceneTransforms::ReadTransform(const DirectX::XMFLOAT4X4& matrix,
+        const ScenePlacement& reference, ScenePlacement& output)
+    {
+        if (!IsUsable(matrix)) return false;
+        auto basis=reference;
+        const auto determinant=DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(DirectX::XMLoadFloat4x4(&matrix)));
+        const bool mirrored=std::signbit(basis.scale[0]) ^ std::signbit(basis.scale[1]) ^ std::signbit(basis.scale[2]);
+        if (std::signbit(determinant)!=mirrored) basis.scale[0]=-basis.scale[0];
+        return TransformMatrix::Read(matrix,basis,output);
+    }
+
     bool SceneTransforms::ConvertToLocal(const SceneLayout& source, SceneLayout& output, std::string& error)
     {
         try
@@ -116,10 +127,7 @@ namespace SceneRuntime
                     if (!WorldToLocal(worlds[index],worlds[*parents[index]],local))
                         throw std::runtime_error(candidate.objects[index].id+": invalid parent transform");
                     auto reference=candidate.objects[index];
-                    const auto determinant=DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(DirectX::XMLoadFloat4x4(&local)));
-                    const bool mirrored=std::signbit(reference.scale[0]) ^ std::signbit(reference.scale[1]) ^ std::signbit(reference.scale[2]);
-                    if (std::signbit(determinant)!=mirrored) reference.scale[0]=-reference.scale[0];
-                    if (!TransformMatrix::Read(local,reference,candidate.objects[index]))
+                    if (!ReadTransform(local,reference,candidate.objects[index]))
                         throw std::runtime_error(candidate.objects[index].id+": local transform requires shear; adjust parent rotation or scale first");
                 }
             }

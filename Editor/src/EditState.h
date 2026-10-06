@@ -35,17 +35,19 @@ namespace Editor
         void SetChanged(bool changed) { changed_ = changed; }
         void MarkSaved() { changed_ = false; }
         void Reloaded() { selection_.Select({}); changed_ = false; invalidTransform_ = false; }
-        bool SetTransform(SceneRuntime::SceneWorld& world, const std::string& id,
+        bool SetInspectorTransform(SceneRuntime::SceneWorld& world, const std::string& id,
             const std::array<float, 3>& position, const std::array<float, 3>& rotation,
             const std::array<float, 3>& scale)
         {
-            invalidTransform_ = !world.SetTransform(id, position, rotation, scale);
+            if (world.Layout().transformSpace==SceneRuntime::TransformSpace::Local)
+                invalidTransform_=!world.SetLocalTransform(id,position,rotation,scale);
+            else invalidTransform_=!world.SetWorldTransform(id,position,rotation,scale);
             if (!invalidTransform_) changed_ = true;
             return !invalidTransform_;
         }
-        bool TranslateSelection(SceneRuntime::SceneWorld& world, const std::array<float,3>& delta)
+        bool TranslateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float,3>& delta)
         {
-            invalidTransform_=!world.TranslateObjects(SelectedIds(),delta);
+            invalidTransform_=!world.TranslateObjectsWorld(SelectedIds(),delta);
             if (!invalidTransform_ && delta!=std::array<float,3>{}) changed_=true;
             return !invalidTransform_;
         }
@@ -74,7 +76,7 @@ namespace Editor
         }
         bool ResetTransform(SceneRuntime::SceneWorld& world, const std::string& id)
         {
-            return SetTransform(world, id, {0,0,0}, {0,0,0}, {1,1,1});
+            return SetInspectorTransform(world, id, {0,0,0}, {0,0,0}, {1,1,1});
         }
         bool InvalidTransform() const { return invalidTransform_; }
         void Request(ObjectRequest request) { request_ = std::move(request); }

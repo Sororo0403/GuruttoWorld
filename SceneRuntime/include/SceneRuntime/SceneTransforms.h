@@ -16,6 +16,8 @@ namespace SceneRuntime
             std::vector<DirectX::XMFLOAT4X4>& output, std::string& error);
         // Convert legacy world SRT to local SRT without moving objects. Refuse unrepresentable shear.
         static bool ConvertToLocal(const SceneLayout& source, SceneLayout& output, std::string& error);
+        // Decompose an affine matrix into editable SRT; preserve output on failure and reject shear.
+        static bool ReadTransform(const DirectX::XMFLOAT4X4& matrix, const ScenePlacement& reference, ScenePlacement& output);
         static bool IsUsable(const DirectX::XMFLOAT4X4& matrix);
     };
 }

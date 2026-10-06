@@ -186,7 +186,7 @@ namespace Editor
         if (ImGui::DragFloat3("Active position",position.data(),0.05f,0,0,"%.3f") && position!=previous)
         {
             const std::array<float,3> delta{position[0]-previous[0],position[1]-previous[1],position[2]-previous[2]};
-            state.TranslateSelection(world,delta);
+            state.TranslateSelectionWorld(world,delta);
         }
         ImGui::EndDisabled();
         ImGui::PopID();
@@ -235,7 +235,7 @@ namespace Editor
         }
         edited |= ImGui::DragFloat3("Scale",scale.data(),0.05f,0,0,"%.3f");
         if (edited && (position!=placement.position || rotation!=placement.rotation || scale!=placement.scale))
-            state.SetTransform(world,placement.id,position,rotation,scale);
+            state.SetInspectorTransform(world,placement.id,position,rotation,scale);
         if (ImGui::Button("Reset Transform")) state.ResetTransform(world,placement.id);
     }
 
