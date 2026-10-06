@@ -3,6 +3,7 @@
 #include "../Editor/src/EditState.h"
 #include "../Editor/src/SceneViewport.h"
 #include "../Editor/src/ModelDrop.h"
+#include "../Editor/src/ConsoleFilter.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
@@ -1085,6 +1086,40 @@ void ValidateSceneViewport()
         "resized portrait scene keeps its center and aspect");
 }
 
+void ValidateConsoleLog()
+{
+    Engine::Log::ClearRecent();
+    Engine::Log::Shutdown();
+    Engine::Log::Info("before initialization");
+    Check(Engine::Log::Recent().size()==1, "Console captures logs without an open file");
+    const auto path=std::filesystem::absolute("generated/tests/console/console.log");
+    Check(Engine::Log::Initialize(path), "Console diagnostic file opens");
+    Engine::Log::ClearRecent();
+    for (int index=0;index<503;++index) Engine::Log::Info("entry "+std::to_string(index));
+    const auto entries=Engine::Log::Recent();
+    Check(entries.size()==500 && entries.front().text.find("entry 3\n")!=std::string::npos &&
+        entries.back().text.find("entry 502\n")!=std::string::npos, "Console retains the newest 500 logs in order");
+    Check(entries.back().sequence-entries.front().sequence==499, "Console log sequence increases monotonically");
+    Engine::Log::Error("モデル追加 Failed\nsecond line");
+    const auto error=Engine::Log::Recent().back();
+    const std::array<bool,4> all{true,true,true,true}, infoOnly{false,true,false,false};
+    Check(Editor::ConsoleMatches(error,all,"failed") && Editor::ConsoleMatches(error,all,"モデル") &&
+        !Editor::ConsoleMatches(error,infoOnly,"") && !Editor::ConsoleMatches(error,all,"not present"),
+        "Console filters severity, ASCII case, UTF-8 and multiline messages");
+    Check(!Editor::ConsoleMatches({0,static_cast<Engine::LogLevel>(99),"unknown"},all,""),
+        "Console rejects unknown log levels safely");
+    Engine::Log::ClearRecent();
+    Check(Engine::Log::Recent().empty() && entries.size()==500, "Console clear preserves copied snapshots");
+    Engine::Log::Warning("after clear");
+    Check(Engine::Log::Recent().back().sequence>error.sequence, "Console clear does not reuse log sequence IDs");
+    Engine::Log::Shutdown();
+    std::ifstream input(path,std::ios::binary);
+    const std::string text((std::istreambuf_iterator<char>(input)),{});
+    Check(text.find("モデル追加 Failed")!=std::string::npos && text.find("after clear")!=std::string::npos,
+        "Console clear preserves diagnostic file and subsequent writes");
+    Engine::Log::ClearRecent();
+}
+
 void ValidateModelDrop()
 {
     Engine::Camera camera;
@@ -1219,6 +1254,7 @@ int main()
         ValidateSceneViewport();
         ValidateProjectCatalog();
         ValidateModelDrop();
+        ValidateConsoleLog();
         ValidateEditHistory();
         ValidateFocusSelection();
         ValidateDeferredClose();

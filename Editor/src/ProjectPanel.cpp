@@ -1,13 +1,14 @@
 #include "ProjectPanel.h"
 #include "PanelLayout.h"
 #include "ModelDrop.h"
+#include <Engine/Core/Log.h>
 
 namespace Editor
 {
     void ProjectPanel::Scan(const std::filesystem::path& root)
     {
         root_=root;
-        if (!catalog_.Scan(root)) return;
+        if (!catalog_.Scan(root)) { Engine::Log::Error("Project scan: "+catalog_.Error()); return; }
         if (std::none_of(catalog_.Assets().begin(),catalog_.Assets().end(),
             [&](const auto& asset) { return asset.path==selected_; })) selected_.clear();
         if (std::find(catalog_.Folders().begin(),catalog_.Folders().end(),folder_)==catalog_.Folders().end()) folder_="Assets";

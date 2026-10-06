@@ -2,6 +2,9 @@
 
 #include <filesystem>
 #include <string_view>
+#include <string>
+#include <vector>
+#include <cstdint>
 
 namespace Engine
 {
@@ -11,6 +14,13 @@ namespace Engine
         Info,
         Warning,
         Error
+    };
+
+    struct LogEntry
+    {
+        std::uint64_t sequence = 0;
+        LogLevel level = LogLevel::Info;
+        std::string text;
     };
 
     class Log final
@@ -32,6 +42,10 @@ namespace Engine
         /// ログファイルを閉じます。デバッグ出力は引き続き利用できます。
         /// </summary>
         static void Shutdown();
+
+        // Thread-safe snapshots of the latest 500 entries. Clear only affects this in-memory history.
+        static std::vector<LogEntry> Recent();
+        static void ClearRecent();
 
         /// <summary>
         /// 日時とログレベルを付けてデバッグ出力とログファイルに書き込み、ファイルを即時フラッシュします。

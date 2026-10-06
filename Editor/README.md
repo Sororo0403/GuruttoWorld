@@ -16,7 +16,7 @@ Release のソリューションビルドはゲームを対象とし、Editor �
 Gameは現在の配置（未保存を含む）をタイトルの固定カメラ・画角・照明で表示します。空・光の粒・タイトルUIは含みません。
 Game上では選択・ギズモ・モデル追加は行わず、Sceneの視点を維持します。既存の全画面構図プレビューも利用できます。
 保存済みのレイアウトでGameが中央にない場合は、View → Reset panel layoutで標準配置へ戻せます。
-下部のProject／Debug Cameraはタブで切り替えます。パネルはドッキング・分割・移動・サイズ変更できます。
+下部のProject／Console／Debug Cameraはタブで切り替えます。パネルはドッキング・分割・移動・サイズ変更できます。
 View → Reset panel layoutで標準配置へ戻します。配置はLocalAppData/WP1/Editor/layout.iniへ保存し、再起動時に復元します。
 ツールバーにはSave・Undo・Redo・Move／Rotate／Scale・World／Local・Snapを表示します。
 Snap settingsで刻みを変更できます。Scaleは常にLocalで、座標系ボタンは無効です。
@@ -116,3 +116,8 @@ InspectorのNameで名前を編集できます。IDとモデルは変わらず�
 空欄・空白だけの名前は拒否し、入力を終えると最後の有効な名前へ戻します。連続入力は一回のUndoにまとめます。
 Transformは折りたたみ可能で、Reset Transformは位置・回転を0、拡縮を1へまとめて戻します。
 名前変更とリセットはUndo／Redo・保存・再読み込みに対応します。Hierarchyはこの段階では平坦な一覧です。
+
+Consoleはエンジンのログと保存・読み込み・追加・複製・削除・Undo／Redoの結果を直近500件表示します。
+Debug／Info／Warning／Errorの種類別フィルター、Search logs、Clearに対応します。検索は英字の大文字・小文字を区別しません。
+Auto-scrollは末尾を表示している場合のみ新しいログへ追従します。Clearは画面用の履歴だけを消し、診断ログファイルは残します。
+View → Consoleでタブを選択できます。既存の保存レイアウトでは必要に応じてReset panel layoutを使ってください。

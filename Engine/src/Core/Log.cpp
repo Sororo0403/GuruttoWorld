@@ -6,6 +6,7 @@
 #include <Windows.h>
 
 #include <fstream>
+#include <deque>
 #include <format>
 #include <limits>
 #include <mutex>
@@ -17,6 +18,8 @@ namespace
     {
         std::mutex mutex;
         std::ofstream file;
+        std::deque<Engine::LogEntry> recent;
+        std::uint64_t sequence = 0;
     };
 
     LogState& GetState()
@@ -107,6 +110,20 @@ namespace Engine
         }
     }
 
+    std::vector<LogEntry> Log::Recent()
+    {
+        auto& state=GetState();
+        const std::lock_guard lock(state.mutex);
+        return {state.recent.begin(),state.recent.end()};
+    }
+
+    void Log::ClearRecent()
+    {
+        auto& state=GetState();
+        const std::lock_guard lock(state.mutex);
+        state.recent.clear();
+    }
+
     void Log::Write(LogLevel level, std::string_view message)
     {
         auto& state = GetState();
@@ -118,6 +135,8 @@ namespace Engine
             time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute,
             time.wSecond, time.wMilliseconds, LevelName(level), message);
 
+        state.recent.push_back({++state.sequence,level,entry});
+        if (state.recent.size()>500) state.recent.pop_front();
         WriteDebugger(entry);
         if (state.file.is_open())
         {

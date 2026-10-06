@@ -8,6 +8,7 @@
 #include "FocusSelection.h"
 #include "PanelLayout.h"
 #include "ScenePanel.h"
+#include "ConsolePanel.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
@@ -91,13 +92,25 @@ namespace
             return rendered ? result : Engine::RenderResult::Failed;
         }
 
+        void ReportStatus(std::string message, bool success)
+        {
+            if (message==fileStatus) return;
+            fileStatus=std::move(message);
+            LogResult(success);
+        }
+
+        void LogResult(bool success) const
+        {
+            if (!fileStatus.empty()) Engine::Log::Write(success ? Engine::LogLevel::Info : Engine::LogLevel::Error,fileStatus);
+        }
+
         bool PrepareSceneTexture(Engine::DirectX12Renderer& renderer)
         {
             if (!requestedSceneSize[0] || !requestedSceneSize[1]) return true;
             if (sceneTexture.GetWidth() == requestedSceneSize[0] && sceneTexture.GetHeight() == requestedSceneSize[1]) return true;
             if (!sceneTexture.Resize(renderer, requestedSceneSize[0], requestedSceneSize[1]))
             {
-                fileStatus = "Could not resize the Scene render texture.";
+                ReportStatus("Could not resize the Scene render texture.",false);
                 return sceneTexture.GetResource() != nullptr;
             }
             sceneTextureId = renderer.SetSceneTexture(sceneTexture.GetShaderResourceView()).ptr;
@@ -110,7 +123,7 @@ namespace
             if (gameTexture.GetWidth()==requestedGameSize[0] && gameTexture.GetHeight()==requestedGameSize[1]) return true;
             if (!gameTexture.Resize(renderer,requestedGameSize[0],requestedGameSize[1]))
             {
-                fileStatus="Could not resize the Game render texture.";
+                ReportStatus("Could not resize the Game render texture.",false);
                 return gameTexture.GetResource()!=nullptr;
             }
             gameTextureId=renderer.SetSceneTexture(gameTexture.GetShaderResourceView(),1).ptr;
@@ -144,7 +157,9 @@ namespace
                     editState.Reloaded();
                     history.Reset({world.Layout().Serialize(), editState.SelectedId()});
                     fileStatus = "Reloaded.";
+                    LogResult(true);
                 }
+                else LogResult(false);
             }
             return true;
         }
@@ -163,7 +178,9 @@ namespace
                     editState.Select(target.selection);
                     editState.SetChanged(history.Dirty(target.json));
                     fileStatus=redo ? "Redone." : "Undone.";
+                    LogResult(true);
                 }
+                else LogResult(false);
             }
             return true;
         }
@@ -199,6 +216,7 @@ namespace
                         request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
                     history.Observe({world.Layout().Serialize(), editState.SelectedId()}, false);
                 }
+                LogResult(success);
             }
             return true;
         }
@@ -213,24 +231,28 @@ namespace
                     root / "Shaders/TitleMesh.hlsl", &fileStatus);
                 initialized = true;
                 if (sceneLoaded) history.Reset({world.Layout().Serialize(), editState.SelectedId()});
+                Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
+                    sceneLoaded ? "Editor scene loaded." : fileStatus);
             }
             return ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer);
         }
 
         bool Save()
         {
-            if (!sceneLoaded) { fileStatus = "No scene is loaded to save."; return false; }
+            if (!sceneLoaded) { fileStatus = "No scene is loaded to save."; LogResult(false); return false; }
             try
             {
                 world.Layout().Save(layoutPath);
                 history.Saved(world.Layout().Serialize());
                 editState.MarkSaved();
                 fileStatus = "Saved.";
+                LogResult(true);
                 return true;
             }
             catch (const std::exception& error)
             {
                 fileStatus = std::string("Save failed: ") + error.what();
+                LogResult(false);
                 return false;
             }
         }
@@ -243,6 +265,7 @@ namespace
                 DrawToolbar();
             }
             Editor::PanelLayout::BeginFrame(preview);
+            if (!preview) consolePanel.Draw();
             Editor::TransformGizmo::BeginFrame();
             sceneViewport = {};
             if (preview)
@@ -511,6 +534,7 @@ namespace
             if (ImGui::BeginMenu("View"))
             {
                 if (ImGui::MenuItem("Focus selected", "F", false, enabled && sceneViewport.Valid() && !editState.SelectedId().empty())) focusRequested=true;
+                if (ImGui::MenuItem("Console")) ImGui::SetWindowFocus("Console");
                 if (ImGui::MenuItem("Game tab", nullptr, false, enabled)) focusGame=true;
                 if (ImGui::MenuItem("Preview title composition", nullptr, false, enabled))
                 {
@@ -613,6 +637,7 @@ namespace
         Editor::ProjectPanel projectPanel;
         Editor::TransformGizmo gizmo;
         Editor::EditHistory history;
+        Editor::ConsolePanel consolePanel;
         Engine::Camera previewCamera;
         bool preview = false;
         bool focusRequested = false;
