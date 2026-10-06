@@ -33,9 +33,7 @@ namespace
     template<size_t N>
     void Put(Json& object, const char* key, const std::array<float,N>& values)
     {
-        Json array=Json::array();
-        for (const auto value : values) array.push_back(value);
-        object[key]=array;
+        object[key]=values;
     }
     template<class T>
     T ReadBase(const Json& object, const std::optional<T>& existing)

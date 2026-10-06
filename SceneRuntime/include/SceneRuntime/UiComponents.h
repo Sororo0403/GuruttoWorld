@@ -9,6 +9,7 @@ namespace SceneRuntime
     {
         std::string id="canvas"; bool enabled=true;
         std::array<float,2> referenceSize{1280,720};
+        bool scaleWithScreen=true;
         std::map<std::string,float> stateDefaults;
         bool operator==(const CanvasComponent&) const = default;
     };

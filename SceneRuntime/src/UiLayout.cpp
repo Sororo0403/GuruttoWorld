@@ -72,8 +72,8 @@ UiRect SceneUi::Resolve(const SceneLayout& layout,const ScenePlacement& object,u
         if(node.canvas && hasCanvas) r.visible=r.visible && node.canvas->enabled;
         if(node.canvas && !hasCanvas) {
             hasCanvas=true;
-            const auto& c=*node.canvas; r.scale=std::min(width/c.referenceSize[0],height/c.referenceSize[1]);
-            r.size={c.referenceSize[0]*r.scale,c.referenceSize[1]*r.scale};
+            const auto& c=*node.canvas; r.scale=c.scaleWithScreen?std::min(width/c.referenceSize[0],height/c.referenceSize[1]):1;
+            r.size=c.scaleWithScreen?std::array<float,2>{c.referenceSize[0]*r.scale,c.referenceSize[1]*r.scale}:std::array<float,2>{static_cast<float>(width),static_cast<float>(height)};
             r.position={(width-r.size[0])*0.5f,(height-r.size[1])*0.5f}; r.visible=c.enabled;
         }
         if(node.rectTransform) r=Child(r,*node.rectTransform,effective);

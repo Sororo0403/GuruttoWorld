@@ -40,7 +40,7 @@ void Rect(Editor::EditState& state,SceneRuntime::RectTransformComponent& c) {
 namespace Editor {
 bool UiComponentPanel::Draw(EditState& state,SceneRuntime::ScenePlacement& p,const ProjectCatalog* catalog) {
     const auto before=p;
-    Component(p.canvas,"Canvas",[&](auto& c){Vector(state,"Reference resolution",c.referenceSize,1,8192);
+    Component(p.canvas,"Canvas",[&](auto& c){Vector(state,"Reference resolution",c.referenceSize,1,8192); ImGui::Checkbox("Scale with screen",&c.scaleWithScreen);
         std::string eraseKey;
         for(auto& [key,value]:c.stateDefaults) {ImGui::PushID(key.c_str()); ImGui::DragFloat(key.c_str(),&value,0.1f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state); ImGui::SameLine(); if(ImGui::SmallButton("X")) eraseKey=key; ImGui::PopID();}
         if(!eraseKey.empty()) c.stateDefaults.erase(eraseKey);

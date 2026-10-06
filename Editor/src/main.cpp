@@ -629,7 +629,7 @@ namespace
                 eye[2] + viewInverse._33 * 8.0f };
             projectPanel.Draw(editState, suggested, EditWidgetsEnabled() && !pendingObject && !pendingHistory);
             objectPanel.Draw(world, editState, EditWidgetsEnabled(),&projectPanel.Catalog());
-            projectPanel.DrawInspector(editState);
+            projectPanel.DrawInspector(editState,EditWidgetsEnabled());
             if (auto request = editState.TakeRequest()) pendingObject = std::move(request);
             if (auto scene=projectPanel.TakeSceneRequest()) document.Request(root / *scene,false,editState.HasChanges());
             if (sceneLoaded)
@@ -685,7 +685,8 @@ namespace
                 ImGui::TextWrapped("Scene: %s",Editor::ProjectCatalog::Text(document.Path().filename()).c_str());
                 ImGui::Text("Objects: %zu", world.Layout().objects.size());
                 ImGui::Text("Game: %s / %.2f s",gameSession.State().Label(),gameSession.State().Elapsed());
-                if (!SceneRuntime::SceneView::CameraObject(world.Layout()))
+                if (!SceneRuntime::SceneView::CameraObject(world.Layout()) &&
+                    std::any_of(world.Layout().objects.begin(),world.Layout().objects.end(),[](const auto& p){return p.meshRenderer || p.particleEmitter;}))
                     ImGui::TextWrapped("No enabled Game camera. Create an empty object and add Camera.");
                 ImGui::TextUnformatted(editState.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
 

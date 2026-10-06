@@ -47,7 +47,7 @@ namespace Editor
             if (extension==".obj") return AssetKind::Model;
             if (extension==".json" && Text(path).starts_with("Assets/Scenes/")) return AssetKind::Scene;
             if (HasExtension(extension,{".png",".jpg",".jpeg",".bmp",".tif",".tiff",".dds"})) return AssetKind::Texture;
-            if (HasExtension(extension,{".wav",".mp3",".ogg",".flac"})) return AssetKind::Audio;
+            if (HasExtension(extension,{".wav",".mp3",".aac",".m4a",".ogg",".flac"})) return AssetKind::Audio;
             if (HasExtension(extension,{".hlsl",".hlsli"})) return AssetKind::Shader;
             if (HasExtension(extension,{".ttf",".otf"})) return AssetKind::Font;
             return std::nullopt;

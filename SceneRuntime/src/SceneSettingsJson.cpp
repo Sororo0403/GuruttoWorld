@@ -31,9 +31,7 @@ namespace
     template<size_t N>
     Json Array(const std::array<float,N>& values)
     {
-        Json result=Json::array();
-        for (const auto value : values) result.push_back(value);
-        return result;
+        return Json(values);
     }
 }
 namespace SceneRuntime

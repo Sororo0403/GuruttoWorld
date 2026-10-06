@@ -11,7 +11,7 @@ bool SceneAudio::Initialize(const std::filesystem::path& root,const SceneLayout&
         const auto& c=*p.audioSource; const auto h=audio_.Load(root/c.clip);
         if(!h) {error="Cannot load audio: "+p.id; Stop(); audio_.Shutdown(); sources_.clear(); return false;}
         audio_.SetVolume(h,c.volume); sources_[p.id]={h,c.loop,c.playOnAwake,false};
-        if(!c.cue.empty()) cues_[c.cue]=p.id;
+        if(!c.cue.empty()) cues_.try_emplace(c.cue,p.id);
     }
     error.clear(); return true;
 }

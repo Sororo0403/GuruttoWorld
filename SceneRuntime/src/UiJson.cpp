@@ -32,11 +32,12 @@ void Put(Json& o,const char* k,float v){o[k]=v;}
 void Put(Json& o,const char* k,bool v){o[k]=v;}
 void Put(Json& o,const char* k,const std::string& v){o[k]=v;}
 void Put(Json& o,const char* k,const std::filesystem::path& v){auto u=v.generic_u8string(); Put(o,k,std::string(u.begin(),u.end()));}
-template<size_t N> void Put(Json& o,const char* k,const std::array<float,N>& v){Json a=Json::array(); for(auto x:v)a.push_back(x); o[k]=a;}
+template<size_t N> void Put(Json& o,const char* k,const std::array<float,N>& v){o[k]=v;}
 void ReadCanvas(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.canvas) throw std::runtime_error("Duplicate Canvas");
     SceneRuntime::CanvasComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
     c.referenceSize=Vector<2>(o,"referenceSize",1.0f,8192.0f);
+    if(o.contains("scaleWithScreen")) c.scaleWithScreen=o.at("scaleWithScreen").get<bool>();
     if(o.contains("stateDefaults")) for(const auto& [key,value]:JsonObject(o.at("stateDefaults")).items()) {
         static_cast<void>(value);
         if(key.empty() || key.find_first_of("=&")!=std::string::npos || key.find('\0')!=std::string::npos)
@@ -47,7 +48,7 @@ void ReadCanvas(const Json& o,SceneRuntime::ScenePlacement& p) {
 }
 void WriteCanvas(Json& a,const SceneRuntime::CanvasComponent& c) {
     Json o; Put(o,"id",c.id); Put(o,"type",std::string("Canvas")); Put(o,"enabled",c.enabled);
-    Put(o,"referenceSize",c.referenceSize);
+    Put(o,"referenceSize",c.referenceSize); Put(o,"scaleWithScreen",c.scaleWithScreen);
     Json defaults=Json::object(); for(const auto& [key,value]:c.stateDefaults) Put(defaults,key.c_str(),value); o["stateDefaults"]=defaults;
     a.push_back(o);
 }

@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Keep the vendored upstream header checksum reproducible.
+Engine/externals/nlohmann/*.hpp text eol=lf
+Engine/externals/nlohmann/LICENSE.MIT text eol=lf

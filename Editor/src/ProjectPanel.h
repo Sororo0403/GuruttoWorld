@@ -18,7 +18,7 @@ namespace Editor
         void InvalidatePreview() { preview_.Invalidate(); previewed_.clear(); info_.reset(); }
         void Scan(const std::filesystem::path& root);
         void Draw(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
-        void DrawInspector(const EditState& state);
+        void DrawInspector(const EditState& state, bool enabled=true);
         void RequestDrop(EditState& state, const std::string& path, const std::array<float,3>& position) const;
         const ProjectCatalog& Catalog() const { return catalog_; }
         std::optional<std::filesystem::path> TakeSceneRequest()

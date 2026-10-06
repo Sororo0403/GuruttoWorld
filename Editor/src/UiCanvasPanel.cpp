@@ -20,6 +20,7 @@ void UiCanvasPanel::SelectAndBegin(const SceneRuntime::SceneLayout& layout,EditS
         draw->AddRectFilled({c.x-6,c.y-6},{c.x+6,c.y+6},IM_COL32(255,190,40,255));
         const bool handle=std::abs(mouse.x-c.x)<9 && std::abs(mouse.y-c.y)<9;
         if(ImGui::IsMouseClicked(ImGuiMouseButton_Left) && (handle || rect.Contains(mouse.x-viewport.x,mouse.y-viewport.y))) {
+            state.Select(selected->id);
             start_=*selected; mouse_={mouse.x,mouse.y}; scale_=rect.scale;
             rotation_=rect.rotation-selected->rectTransform->rotation; resize_=handle;
         }

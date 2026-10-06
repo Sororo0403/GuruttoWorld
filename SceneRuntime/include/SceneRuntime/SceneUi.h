@@ -29,6 +29,7 @@ public:
     static UiEvent Activate(const SceneLayout&,const std::string& object,UiState& state);
 private:
     struct Resource {std::string signature; std::shared_ptr<Engine::SpriteRenderer> sprite;};
+    void Prune(const Engine::DirectX12Renderer&,const SceneLayout&);
     void PreparePart(const Engine::DirectX12Renderer&,const std::filesystem::path&,const ScenePlacement&,bool text,std::map<std::string,Resource>& pending);
     void DrawPart(ID3D12GraphicsCommandList*,const ScenePlacement&,const UiRect&,unsigned int width,unsigned int height,const UiState&,bool text) const;
     std::map<std::string,Resource> resources_;

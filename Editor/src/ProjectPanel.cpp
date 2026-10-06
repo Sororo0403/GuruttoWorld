@@ -128,7 +128,7 @@ namespace Editor
         if (ImGui::Button("Add selected model")) state.Request({ObjectAction::Add,{},selected_,addPosition_});
         ImGui::EndDisabled();
     }
-    void ProjectPanel::DrawInspector(const EditState& state)
+    void ProjectPanel::DrawInspector(const EditState& state, bool enabled)
     {
         const auto& selected=state.InspectedAsset();
         if (selected.empty()) return;
@@ -145,7 +145,7 @@ namespace Editor
                 ImGui::TextWrapped("%s",ProjectCatalog::Text(selected).c_str());
                 if (!info_->error.empty()) ImGui::TextWrapped("%s",info_->error.c_str());
                 else { preview_.Draw(*found); DrawAssetInfo(*info_); }
-                if(found->kind==AssetKind::Audio) {if(ImGui::Button("Audition audio")) AudioPreview::Play(selected); ImGui::SameLine(); if(ImGui::Button("Stop audio")) AudioPreview::StopRequest();}
+                if(found->kind==AssetKind::Audio) {ImGui::BeginDisabled(!enabled); if(ImGui::Button("Audition audio")) AudioPreview::Play(selected); ImGui::SameLine(); if(ImGui::Button("Stop audio")) AudioPreview::StopRequest(); ImGui::EndDisabled();}
             }
         }
         ImGui::End();

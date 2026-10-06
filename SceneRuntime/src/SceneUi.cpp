@@ -2,7 +2,9 @@
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <winrt/base.h>
 #include <algorithm>
+#include <cstring>
 #include <stdexcept>
+#include <unordered_set>
 #pragma comment(lib,"gdi32.lib")
 namespace {
 std::shared_ptr<Engine::Texture2D> TextTexture(const Engine::DirectX12Renderer& renderer,const SceneRuntime::TextComponent& text,const std::array<float,2>& size) {
@@ -59,6 +61,19 @@ void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::f
         throw std::runtime_error("Cannot create UI renderer");
     pending.emplace(key,Resource{signature,std::move(sprite)});
 }
+void SceneUi::Prune(const Engine::DirectX12Renderer& renderer,const SceneLayout& layout)
+{
+    std::unordered_set<std::string> keys;
+    for(const auto& p:layout.objects) {
+        if(p.image) keys.insert(p.id+"/image");
+        if(p.text) keys.insert(p.id+"/text");
+    }
+    if(std::none_of(resources_.begin(),resources_.end(),[&](const auto& item){return !keys.contains(item.first);})) return;
+    // The upload fence completes earlier rendering on this queue before releasing unused sprites.
+    Engine::Texture2D fenceTexture;
+    if(!fenceTexture.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),{})) throw std::runtime_error("Cannot synchronize UI resource release");
+    std::erase_if(resources_,[&](const auto& item){return !keys.contains(item.first);});
+}
 bool SceneUi::Prepare(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,
     const SceneLayout& layout,std::string& error)
 {
@@ -68,6 +83,7 @@ bool SceneUi::Prepare(const Engine::DirectX12Renderer& renderer,const std::files
             if(p.image) PreparePart(renderer,root,p,false,pending);
             if(p.text) PreparePart(renderer,root,p,true,pending);
         }
+        Prune(renderer,layout);
         for(auto& [key,value]:pending) resources_.insert_or_assign(key,std::move(value));
         error.clear(); return true;
     } catch(const std::exception& exception) {error=exception.what(); return false;}
