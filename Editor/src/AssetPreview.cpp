@@ -70,10 +70,9 @@ namespace Editor
 
     void AssetPreview::Draw(const ProjectAsset& asset)
     {
-        if (selected_!=asset.path) { selected_=asset.path; kind_=asset.kind; requested_=true; }
-        visible_=asset.kind==AssetKind::Model;
+        Request(asset);
         if (!error_.empty()) ImGui::TextWrapped("%s",error_.c_str());
-        if (loaded_!=selected_) { ImGui::TextUnformatted(error_.empty() ? "Loading preview..." : "Preview unavailable."); return; }
+        if (!Ready()) { ImGui::TextUnformatted(error_.empty() ? "Loading preview..." : "Preview unavailable."); return; }
         if (asset.kind==AssetKind::Texture && image_)
         {
             ImGui::Text("Image: %u x %u (%s, RGBA8 preview)",image_->GetWidth(),image_->GetHeight(),

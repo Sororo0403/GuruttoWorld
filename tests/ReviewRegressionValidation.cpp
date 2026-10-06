@@ -11,11 +11,13 @@
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetInfo.h"
+#include "../Editor/src/AssetChanges.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
 #include "../Editor/src/ScenePanel.h"
 #include "../Editor/src/ObjectPanel.h"
+#include "../Editor/src/AssetPreview.h"
 #endif
 #include <SceneRuntime/SceneLayout.h>
 #include <SceneRuntime/SceneTransforms.h>
@@ -1061,6 +1063,29 @@ namespace
         CheckGpuMessages(renderer.GetDevice());
     }
 
+#if defined(_DEBUG)
+    void ValidateAssetPreview(Engine::DirectX12Renderer& renderer)
+    {
+        const auto root=std::filesystem::absolute("Content");
+        Editor::AssetPreview preview;
+        const Editor::ProjectAsset model{"Assets/Models/Title/Surface/Commercial/building-k.obj",Editor::AssetKind::Model};
+        preview.Request(model);
+        Check(preview.Prepare(renderer,root) && preview.Ready() && preview.Error().empty(), "independent model preview loads");
+        Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float) {
+            Check(preview.Render(commands), "model preview renders to dedicated target");
+        },[&]() { ImGui::Begin("Asset preview test"); preview.Draw(model); ImGui::End(); })!=Engine::RenderResult::Failed,
+            "model preview is sampled by ImGui after rendering");
+        const Editor::ProjectAsset image{"Assets/Models/Title/Surface/Textures/plaster.png",Editor::AssetKind::Texture};
+        preview.Request(image);
+        Check(preview.Prepare(renderer,root) && preview.Ready() && preview.Error().empty(), "image preview loads and replaces model resource");
+        Check(renderer.Render({0,0,0,1},{},[&]() { ImGui::Begin("Asset preview test"); preview.Draw(image); ImGui::End(); })!=Engine::RenderResult::Failed,
+            "image preview dimensions and pixels render in Inspector");
+        preview.Request({"Assets/missing.png",Editor::AssetKind::Texture});
+        Check(preview.Prepare(renderer,root) && !preview.Ready() && !preview.Error().empty(), "missing preview reports failure without displaying another asset");
+        Check(renderer.WaitForIdle(), "asset preview GPU completion before releasing resources");
+    }
+#endif
+
     void ValidateRenderTexture()
     {
         Engine::Window window;
@@ -1083,6 +1108,7 @@ namespace
         Editor::EditState hierarchyState;
 #endif
 #if defined(_DEBUG)
+        ValidateAssetPreview(renderer);
         Editor::PanelLayout::Initialize(std::filesystem::absolute("generated/tests/editor-layout/layout.ini"));
         Editor::PanelLayout::Reset();
         UINT64 stableTextureId = 0, stableGameId = 0;
@@ -1527,6 +1553,47 @@ namespace
         Check(session.Pause() && session.Stop(), "paused session can stop safely");
     }
 
+    void ValidateAssetReload(Engine::DirectX12Renderer& renderer)
+    {
+        const auto root=std::filesystem::absolute("generated/tests/asset-reload");
+        const auto models=root/"Assets/Models/Title";
+        std::filesystem::create_directories(models);
+        const auto writeModel=[&](int size) {
+            std::ofstream file(models/"triangle.obj");
+            file << "mtllib triangle.mtl\nv 0 0 0\nv " << size << " 0 0\nv 0 " << size << " 0\nusemtl preview\nf 1 2 3\n";
+        };
+        { std::ofstream file(models/"triangle.mtl"); file << "newmtl preview\nKd 1 1 1\nmap_Kd preview.png\n"; }
+        const auto source=std::filesystem::absolute("Content/Assets/Models/Title/Surface/Textures/plaster.png");
+        std::filesystem::copy_file(source,models/"preview.png",std::filesystem::copy_options::overwrite_existing);
+        writeModel(1);
+        SceneRuntime::ScenePlacement placement;
+        placement.id="unsaved"; placement.name="Unsaved name";
+        placement.model="Assets/Models/Title/triangle.obj"; placement.position={4,5,6};
+        SceneRuntime::SceneLayout layout; layout.objects={placement};
+        const auto shader=std::filesystem::absolute("Content/Shaders/TitleMesh.hlsl");
+        SceneRuntime::SceneWorld world;
+        std::string error;
+        Check(world.Initialize(renderer,root,layout,shader,&error), "asset reload fixture initializes");
+        const auto json=world.Layout().Serialize();
+        std::array<std::array<float,3>,8> before{},after{};
+        Check(world.WorldBounds("unsaved",before), "asset reload captures original model bounds");
+        writeModel(2);
+        Check(world.ReloadAssets(renderer,root,shader,error) && world.Layout().Serialize()==json &&
+            world.WorldBounds("unsaved",after) && before!=after,
+            "fresh resource cache reloads changed geometry without replacing unsaved layout");
+        before=after;
+        { std::ofstream file(models/"preview.png"); file << "invalid image"; }
+        Check(!world.ReloadAssets(renderer,root,shader,error) && !error.empty() && world.Layout().Serialize()==json &&
+            world.WorldBounds("unsaved",after) && before==after,
+            "texture reload failure preserves all live scene resources");
+        std::filesystem::copy_file(source,models/"preview.png",std::filesystem::copy_options::overwrite_existing);
+        const auto broken=root/"broken.hlsl";
+        { std::ofstream file(broken); file << "invalid shader"; }
+        Check(!world.ReloadAssets(renderer,root,broken,error) && world.WorldBounds("unsaved",after) && before==after,
+            "shader compilation failure preserves the previous model pipeline");
+        Check(renderer.WaitForIdle(), "asset reload resources are safe to release");
+    }
+
     void ValidateTitle()
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
@@ -1539,6 +1606,7 @@ namespace
             Check(renderer.Initialize(window.GetHandle()), "title renderer");
             if (size==TitleSizes[0])
             {
+                ValidateAssetReload(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
                 ValidateGameSession(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
@@ -2023,6 +2091,26 @@ void ValidateSceneLayout()
     invalid = entry;
     invalid.replace(invalid.find("Roads/ground.obj"), 15, "../ground.obj");
     reject("{\"version\":2,\"objects\":[" + invalid + "]}");
+}
+
+void ValidateAssetChangeBatching()
+{
+    Editor::AssetChanges changes;
+    Editor::AssetChanges::Files files;
+    const auto time=std::filesystem::file_time_type::clock::now();
+    files.emplace("mesh.obj",Editor::AssetChanges::Stamp{time,1});
+    changes.Observe(files);
+    Check(!changes.Pending(), "initial asset inventory does not reload");
+    files.at("mesh.obj").bytes=2; changes.Observe(files);
+    Check(changes.Pending() && !changes.TakeReady(true), "asset changes wait for a stable inventory");
+    changes.Observe(files);
+    Check(!changes.TakeReady(false) && changes.Pending(), "Play and Pause retain queued reloads");
+    files.emplace("material.mtl",Editor::AssetChanges::Stamp{time,2}); changes.Observe(files);
+    Check(!changes.TakeReady(true), "additional dependent changes restart batching");
+    changes.Observe(files);
+    Check(changes.TakeReady(true) && !changes.TakeReady(true), "stable batch applies once after returning to editing");
+    std::string error;
+    Check(Editor::ValidateProjectShaders(std::filesystem::absolute("Content"),error), "project shader entry points compile");
 }
 
 void ValidateEditorAcceptanceScene()
@@ -2626,6 +2714,7 @@ int main()
         ValidateEditorCamera();
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
+        ValidateAssetChangeBatching();
         ValidateParentData();
         ValidateHierarchyRows();
         ValidateSceneTransforms();

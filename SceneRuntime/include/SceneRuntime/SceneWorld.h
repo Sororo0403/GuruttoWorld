@@ -17,6 +17,9 @@ namespace SceneRuntime
             SceneLayout layout, const std::filesystem::path& shaderPath, std::string* error = nullptr);
         // 描画の外でGPU完了を待ってから呼びます。失敗時は元の街を維持します。
         bool Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath, std::string& error);
+        // Rebuild resources from the current unsaved layout; failure preserves every live resource.
+        bool ReloadAssets(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
+            const std::filesystem::path& shaderPath, std::string& error);
         bool ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error);
         void Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
             const Engine::DirectionalLight& light) const;

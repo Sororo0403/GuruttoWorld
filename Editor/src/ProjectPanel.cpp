@@ -22,6 +22,9 @@ namespace Editor
         {
             if (ImGui::Button("Refresh")) Scan(root_);
             ImGui::SameLine();
+            if (ImGui::Button("Reload assets")) reloadAssets_=true;
+            if (reloadPending_) ImGui::TextUnformatted("Asset changes queued until editing is idle.");
+            ImGui::SameLine();
             ImGui::SetNextItemWidth(180);
             ImGui::InputText("Search assets",search_.data(),search_.size());
             ImGui::SameLine();

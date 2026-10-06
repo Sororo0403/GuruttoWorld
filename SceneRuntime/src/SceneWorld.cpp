@@ -88,6 +88,17 @@ namespace SceneRuntime
         catch (const std::exception& exception) { error = exception.what(); return false; }
     }
 
+    bool SceneWorld::ReloadAssets(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
+        const std::filesystem::path& shaderPath, std::string& error)
+    {
+        SceneWorld candidate;
+        if (!candidate.Initialize(renderer,assetsRoot,layout_,shaderPath,&error)) return false;
+        models_.Swap(candidate.models_);
+        objects_.swap(candidate.objects_);
+        error.clear();
+        return true;
+    }
+
     bool SceneWorld::ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error)
     {
         if (!modelsReady_)

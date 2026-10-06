@@ -41,6 +41,12 @@ namespace Engine
         return model;
     }
 
+    void ModelManager::Swap(ModelManager& other) noexcept
+    {
+        device_.Swap(other.device_); queue_.Swap(other.queue_);
+        shaderPath_.swap(other.shaderPath_); models_.swap(other.models_);
+    }
+
     bool ModelManager::PathLess::operator()(const std::filesystem::path& left, const std::filesystem::path& right) const
     {
         return CompareStringOrdinal(left.c_str(), -1, right.c_str(), -1, TRUE) == CSTR_LESS_THAN;

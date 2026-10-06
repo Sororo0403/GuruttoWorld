@@ -62,6 +62,7 @@ namespace Engine
             !CreateShaderResourceView(device) || !UploadAndWait(device, queue, upload.Get(), footprint))
         {
             descriptorHeap_.Reset();
+            cpuDescriptorHeap_.Reset();
             resource_.Reset();
             return false;
         }
@@ -233,6 +234,9 @@ namespace Engine
         view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         view.Texture2D.MipLevels = 1;
         device->CreateShaderResourceView(resource_.Get(), &view, descriptorHeap_->GetCPUDescriptorHandleForHeapStart());
+        description.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        if (!Check(device->CreateDescriptorHeap(&description, IID_PPV_ARGS(&cpuDescriptorHeap_)), "Create copyable texture SRV heap")) return false;
+        device->CreateShaderResourceView(resource_.Get(), &view, cpuDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
         return true;
     }
 

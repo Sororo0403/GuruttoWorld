@@ -42,6 +42,9 @@ namespace Engine
         /// </summary>
         std::shared_ptr<const ModelRenderer> Load(const std::filesystem::path& path);
 
+        // Swap complete caches only after GPU idle. Existing shared models keep their ownership.
+        void Swap(ModelManager& other) noexcept;
+
     private:
         struct PathLess
         {

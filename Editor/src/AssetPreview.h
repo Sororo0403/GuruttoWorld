@@ -15,6 +15,13 @@ namespace Editor
     class AssetPreview final
     {
     public:
+        void Request(const ProjectAsset& asset)
+        {
+            if (selected_!=asset.path) { selected_=asset.path; kind_=asset.kind; requested_=true; }
+            visible_=asset.kind==AssetKind::Model;
+        }
+        bool Ready() const { return loaded_==selected_ && !loaded_.empty(); }
+        const std::string& Error() const { return error_; }
         void Invalidate() { requested_=true; }
         bool Prepare(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root);
         bool Render(ID3D12GraphicsCommandList* commands);

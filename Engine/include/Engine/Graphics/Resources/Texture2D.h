@@ -56,7 +56,7 @@ namespace Engine
         UINT GetWidth() const noexcept { return resource_ ? static_cast<UINT>(resource_->GetDesc().Width) : 0; }
         UINT GetHeight() const noexcept { return resource_ ? resource_->GetDesc().Height : 0; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceView() const noexcept
-        { return descriptorHeap_ ? descriptorHeap_->GetCPUDescriptorHandleForHeapStart() : D3D12_CPU_DESCRIPTOR_HANDLE{}; }
+        { return cpuDescriptorHeap_ ? cpuDescriptorHeap_->GetCPUDescriptorHandleForHeapStart() : D3D12_CPU_DESCRIPTOR_HANDLE{}; }
 
     private:
         struct ImageData
@@ -113,5 +113,6 @@ namespace Engine
 
         Microsoft::WRL::ComPtr<ID3D12Resource> resource_;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap_;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> cpuDescriptorHeap_;
     };
 }

@@ -1,6 +1,7 @@
 #include "CameraPanel.h"
 #include "ObjectPanel.h"
 #include "ProjectPanel.h"
+#include "AssetChanges.h"
 #include "ModelDrop.h"
 #include "SceneSelection.h"
 #include "TransformGizmo.h"
@@ -264,7 +265,31 @@ namespace
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
                     sceneLoaded ? "Editor scene loaded." : fileStatus);
             }
-            return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer) && ApplyPlay(renderer);
+            return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer) && ApplyPlay(renderer) && ApplyAssets(renderer);
+        }
+
+        bool ApplyAssets(Engine::DirectX12Renderer& renderer)
+        {
+            assetChanges.Poll(root,seconds);
+            assetReloadRequested=projectPanel.TakeAssetReloadRequest() || assetReloadRequested;
+            const bool ready=sceneLoaded && gameSession.State().IsEditing() && !pendingPlay &&
+                !document.Pending() && !pendingObject && !pendingHistory && !gizmo.IsDragging() &&
+                editState.Interaction().empty();
+            projectPanel.SetReloadPending(assetReloadRequested || assetChanges.Pending());
+            if (!ready) return true;
+            const bool changed=assetChanges.TakeReady(true);
+            if (!assetReloadRequested && !changed) return true;
+            assetReloadRequested=false;
+            if (!renderer.WaitForIdle()) return false;
+            const bool success=Editor::ValidateProjectShaders(root,fileStatus) &&
+                world.ReloadAssets(renderer,root,root/"Shaders/TitleMesh.hlsl",fileStatus);
+            if (success)
+            {
+                projectPanel.Scan(root);
+                fileStatus="Assets reloaded. Unsaved scene and history preserved.";
+            }
+            LogResult(success);
+            return true;
         }
 
         bool ApplyPlay(Engine::DirectX12Renderer& renderer)
@@ -855,6 +880,8 @@ namespace
         std::optional<Editor::GameSession::Command> pendingPlay;
         Editor::ObjectPanel objectPanel;
         Editor::ProjectPanel projectPanel;
+        Editor::AssetChanges assetChanges;
+        bool assetReloadRequested=false;
         Editor::TransformGizmo gizmo;
         Editor::EditHistory history;
         Editor::ConsolePanel consolePanel;

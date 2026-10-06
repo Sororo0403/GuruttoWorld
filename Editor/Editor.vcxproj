@@ -107,6 +107,7 @@
     <ClInclude Include="src\ProjectPanel.h" />
     <ClInclude Include="src\ProjectCatalog.h" />
     <ClInclude Include="src\AssetInfo.h" />
+    <ClInclude Include="src\AssetChanges.h" />
     <ClInclude Include="src\ModelDrop.h" />
     <ClCompile Include="src\SceneSelection.cpp" />
     <ClCompile Include="src\TransformGizmo.cpp" />
