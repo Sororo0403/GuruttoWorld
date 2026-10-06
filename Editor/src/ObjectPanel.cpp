@@ -63,9 +63,7 @@ namespace Editor
                 [&](const auto& object) { return object.id == state.SelectedId(); });
             if (state.SelectedIds().size()>1)
             {
-                ImGui::Text("%zu objects selected",state.SelectedIds().size());
-                ImGui::Text("Active ID: %s",state.SelectedId().c_str());
-                ImGui::TextWrapped("Transform, duplicate and delete are available with one object selected.");
+                DrawMultiInspector(world,state,enabled);
             }
             else if (found == objects.end()) ImGui::TextUnformatted("Select an object in Hierarchy or Scene.");
             else
@@ -90,6 +88,27 @@ namespace Editor
                 "No unsaved changes.");
         }
         ImGui::End();
+    }
+
+    void ObjectPanel::DrawMultiInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
+    {
+        ImGui::Text("%zu objects selected",state.SelectedIds().size());
+        ImGui::Text("Active ID: %s",state.SelectedId().c_str());
+        const auto& objects=world.Layout().objects;
+        const auto found=std::find_if(objects.begin(),objects.end(),[&](const auto& object) { return object.id==state.SelectedId(); });
+        if (found==objects.end()) return;
+        auto position=found->position;
+        ImGui::PushID(found->id.c_str());
+        ImGui::BeginDisabled(!enabled);
+        if (ImGui::DragFloat3("Active position",position.data(),0.05f,0,0,"%.3f") && position!=found->position)
+        {
+            const std::array<float,3> delta{position[0]-found->position[0],position[1]-found->position[1],position[2]-found->position[2]};
+            state.TranslateSelection(world,delta);
+        }
+        ImGui::EndDisabled();
+        ImGui::PopID();
+        ImGui::TextWrapped("Move uses the active object as pivot and preserves spacing. Rotate, scale, duplicate and delete require one object.");
+        if (state.InvalidTransform()) ImGui::TextWrapped("Move rejected. Use finite positions within the supported range.");
     }
 
     void ObjectPanel::DrawName(SceneRuntime::SceneWorld& world, EditState& state,

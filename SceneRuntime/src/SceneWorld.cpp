@@ -98,6 +98,38 @@ namespace SceneRuntime
         found->scale = scale;
         return true;
     }
+    bool SceneWorld::TranslateObjects(const std::vector<std::string>& ids, const std::array<float,3>& delta)
+    {
+        if (ids.empty() || !std::all_of(delta.begin(),delta.end(),[](float value) { return std::isfinite(value); })) return false;
+        struct PendingTransform
+        {
+            size_t index=0;
+            std::array<float,3> position{};
+            Engine::Object3D object;
+        };
+        std::vector<PendingTransform> pending;
+        pending.reserve(ids.size());
+        for (const auto& id : ids)
+        {
+            const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),
+                [&](const auto& placement) { return placement.id==id; });
+            if (found==layout_.objects.end()) return false;
+            const auto index=static_cast<size_t>(found-layout_.objects.begin());
+            if (std::any_of(pending.begin(),pending.end(),[&](const auto& item) { return item.index==index; })) return false;
+            auto position=found->position;
+            for (size_t axis=0;axis<3;++axis) position[axis]+=delta[axis];
+            auto object=objects_[index];
+            if (!object.SetTransform(position,found->rotation,found->scale)) return false;
+            pending.push_back({index,position,std::move(object)});
+        }
+        for (auto& item : pending)
+        {
+            layout_.objects[item.index].position=item.position;
+            objects_[item.index]=std::move(item.object);
+        }
+        return true;
+    }
+
     std::string SceneWorld::NewId()
     {
         for (;;)

@@ -12,11 +12,12 @@ namespace Editor
         EditState& state, const SceneViewport& viewport, bool active)
     {
         hovered_=false;
+        if (state.SelectedIds().size()>1 && !dragging_) mode_=Mode::Move;
         const auto& objects=world.Layout().objects;
         const auto found=std::find_if(objects.begin(), objects.end(),
             [&](const auto& object) { return object.id==state.SelectedId(); });
         const auto& io=ImGui::GetIO();
-        if (!active || !state.SingleSelection() || found==objects.end() || !viewport.Valid() ||
+        if (!active || found==objects.end() || !viewport.Valid() ||
             (!dragging_ && !viewport.Contains(io.MousePos.x, io.MousePos.y)) ||
             (dragging_ && draggingId_!=state.SelectedId()))
         {
@@ -53,15 +54,17 @@ namespace Editor
         if (dragging_) draggingId_=current.id;
         return modified;
     }
-    void TransformGizmo::DrawToolbar(bool enabled)
+    void TransformGizmo::DrawToolbar(bool enabled, bool multiple)
     {
         ImGui::BeginDisabled(!enabled || dragging_);
         if (ImGui::RadioButton("Move", mode_==Mode::Move)) mode_=Mode::Move;
         ImGui::SameLine();
+        ImGui::BeginDisabled(multiple);
         if (ImGui::RadioButton("Rotate", mode_==Mode::Rotate)) mode_=Mode::Rotate;
         ImGui::SameLine();
         if (ImGui::RadioButton("Scale", mode_==Mode::Scale)) mode_=Mode::Scale;
         ImGui::SameLine();
+        ImGui::EndDisabled();
         ImGui::BeginDisabled(mode_==Mode::Scale);
         if (ImGui::Button(local_ || mode_==Mode::Scale ? "Local" : "World")) local_=!local_;
         ImGui::EndDisabled();
@@ -86,6 +89,13 @@ namespace Editor
         auto transformed=current;
         invalidTransform_=!TransformMatrix::Read(matrix,current,transformed);
         if (invalidTransform_) return;
+        if (!state.SingleSelection())
+        {
+            const std::array<float,3> delta{transformed.position[0]-current.position[0],
+                transformed.position[1]-current.position[1],transformed.position[2]-current.position[2]};
+            invalidTransform_=!state.TranslateSelection(world,delta);
+            return;
+        }
         if (mode_==Mode::Move) { transformed.rotation=current.rotation; transformed.scale=current.scale; }
         if (mode_==Mode::Rotate) { transformed.position=current.position; transformed.scale=current.scale; }
         if (mode_==Mode::Scale) { transformed.position=current.position; transformed.rotation=current.rotation; }

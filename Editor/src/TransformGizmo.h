@@ -11,7 +11,7 @@ namespace Editor
         static void BeginFrame();
         void UpdateAndDraw(SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
             EditState& state, const SceneViewport& viewport, bool active);
-        void DrawToolbar(bool enabled);
+        void DrawToolbar(bool enabled, bool multiple = false);
         bool IsDragging() const { return dragging_; }
         bool ConsumesMouse() const { return dragging_ || hovered_; }
         enum class Mode { Move, Rotate, Scale };

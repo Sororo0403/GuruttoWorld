@@ -43,6 +43,12 @@ namespace Editor
             if (!invalidTransform_) changed_ = true;
             return !invalidTransform_;
         }
+        bool TranslateSelection(SceneRuntime::SceneWorld& world, const std::array<float,3>& delta)
+        {
+            invalidTransform_=!world.TranslateObjects(SelectedIds(),delta);
+            if (!invalidTransform_ && delta!=std::array<float,3>{}) changed_=true;
+            return !invalidTransform_;
+        }
         bool Rename(SceneRuntime::SceneWorld& world, const std::string& id, std::string name)
         {
             if (!world.RenameObject(id, std::move(name))) return false;

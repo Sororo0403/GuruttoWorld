@@ -518,6 +518,70 @@ namespace
         CheckGpuMessages(renderer.GetDevice());
     }
 
+    void ValidateGroupMove(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneWorld& world,
+        const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        const auto json=initial.Serialize();
+        Editor::EditState state;
+        state.Select("pick-far");
+        state.Select("pick-near",true);
+        const auto selected=state.SelectedIds();
+        Editor::EditHistory history;
+        history.Reset({json,state.SelectedId(),selected});
+        std::array<std::array<float,3>,8> before,after;
+        Check(world.WorldBounds("pick-near",before), "group move initial draw bounds");
+        const std::array<float,3> delta{2,-3,1};
+        Check(state.TranslateSelection(world,delta) && state.HasChanges() && state.SelectedIds()==selected,
+            "group move preserves multi selection and marks changes");
+        for (size_t index=0;index<initial.objects.size();++index)
+        {
+            const auto& old=initial.objects[index];
+            const auto& moved=world.Layout().objects[index];
+            Check(moved.rotation==old.rotation && moved.scale==old.scale && moved.model==old.model,
+                "group move preserves rotation, scale and model");
+            for (size_t axis=0;axis<3;++axis)
+                Check(moved.position[axis]==old.position[axis]+delta[axis], "group move applies identical world delta");
+        }
+        Check(world.WorldBounds("pick-near",after), "group move updated draw bounds");
+        for (size_t corner=0;corner<before.size();++corner)
+            for (size_t axis=0;axis<3;++axis)
+                Check(std::abs(after[corner][axis]-before[corner][axis]-delta[axis])<0.001f,
+                    "group move updates rendered transform and mirrored bounds");
+        Check(world.PickRay({1.6f,-2.4f,0},{0,0,1}).value_or("")=="pick-near", "group move updates picking transform");
+        history.Observe({world.Layout().Serialize(),state.SelectedId(),selected},true);
+        Check(state.TranslateSelection(world,{0.5f,0,0}), "second continuous group move applies");
+        const auto movedJson=world.Layout().Serialize();
+        history.Observe({movedJson,state.SelectedId(),selected},false);
+        Check(history.CanUndo(), "group drag creates an Undo entry");
+        std::string error;
+        const auto undo=history.Target(false);
+        Check(renderer.WaitForIdle() && world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(undo.json),root,error), "group move Undo restores world");
+        history.Applied(false);
+        state.RestoreSelection(undo.selections,undo.selection);
+        Check(world.Layout().Serialize()==json && !history.CanUndo() && state.SelectedIds()==selected,
+            "one Undo reverses full group drag and preserves selection");
+        const auto redo=history.Target(true);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(redo.json),root,error), "group move Redo restores world");
+        history.Applied(true);
+        Check(world.Layout().Serialize()==movedJson, "Redo restores entire group movement");
+        Check(!world.TranslateObjects({"pick-far","missing"},delta) && world.Layout().Serialize()==movedJson,
+            "invalid later ID cannot leave earlier object partially moved");
+        Check(!world.TranslateObjects({"pick-far","pick-far"},delta) && world.Layout().Serialize()==movedJson,
+            "duplicate group IDs are rejected without double moving");
+        Check(!state.TranslateSelection(world,{NAN,0,0}) && state.InvalidTransform() && world.Layout().Serialize()==movedJson,
+            "nonfinite group move is rejected atomically");
+        state.SetChanged(false);
+        Check(state.TranslateSelection(world,{}) && !state.HasChanges(), "zero group delta does not mark changes");
+        const float maximum=(std::numeric_limits<float>::max)();
+        Check(world.SetTransform("pick-far",{0,0,10},{0,0,0},{1,1,1}) &&
+            world.SetTransform("pick-near",{maximum,0,5},{0,0,0},{1,1,1}), "finite extreme group move fixture");
+        const auto extremeJson=world.Layout().Serialize();
+        Check(!world.TranslateObjects(selected,{maximum,0,0}) && world.Layout().Serialize()==extremeJson,
+            "overflow in later move rejects earlier valid translation atomically");
+        Check(world.ReplaceLayout(initial,root,error), "group move fixture restores initial placements");
+    }
+
     void ValidateSceneDocument(Engine::DirectX12Renderer& renderer, const std::filesystem::path& content)
     {
         const auto root=std::filesystem::absolute("generated/tests/scene-document");
@@ -627,6 +691,7 @@ namespace
                 SceneRuntime::SceneWorld pickingWorld;
                 Check(pickingWorld.Initialize(renderer, pickRoot, pickPath, content / "Shaders/TitleMesh.hlsl"),
                     "picking fixture loaded");
+                ValidateGroupMove(renderer,pickingWorld,pickRoot);
                 Check(pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 5 }).value_or("") == "pick-near",
                     "nearest triangle selected independent of object order and mirrored scale");
                 Check(!pickingWorld.PickRay({ -1.8f, 2.7f, 0 }, { 0, 0, 1 }),
