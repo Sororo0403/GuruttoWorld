@@ -42,6 +42,31 @@ namespace
         Scalar(state,"Reference aspect",camera.referenceAspect,0.01f,100);
         ImGui::Checkbox("Keep horizontal framing on narrow screens",&camera.preserveHorizontal);
     }
+    void Vector2(Editor::EditState& state, const char* label, std::array<float,2>& value, float low, float high)
+    {
+        ImGui::DragFloat2(label,value.data(),0.001f,low,high,"%.3f",ImGuiSliderFlags_AlwaysClamp); Track(state);
+    }
+    void Sky(Editor::EditState& state, SceneRuntime::SkyComponent& sky)
+    {
+        Color(state,"Horizon color",sky.horizon); Color(state,"Zenith color",sky.zenith);
+        Scalar(state,"Horizon height",sky.horizonHeight,0.001f,2);
+        Color(state,"Sun color",sky.sunColor);
+        Vector2(state,"Sun center",sky.sunCenter,-10,10); Vector2(state,"Sun radius",sky.sunRadius,0.001f,10);
+        Scalar(state,"Sun strength",sky.sunStrength,0,1);
+        Color(state,"Cloud bottom color",sky.cloudLow); Color(state,"Cloud top color",sky.cloudHigh);
+        Scalar(state,"Cloud opacity",sky.cloudOpacity,0,1);
+        Vector2(state,"Cloud velocity (UV/s)",sky.cloudVelocity,-10,10);
+        Scalar(state,"Sky reference aspect",sky.referenceAspect,0.01f,100);
+        for (size_t index=0;index<sky.clouds.size();++index)
+        {
+            ImGui::PushID(static_cast<int>(index));
+            ImGui::Text("Cloud bank %zu",index+1);
+            Vector2(state,"Center (UV)",sky.clouds[index].center,-10,10);
+            Scalar(state,"Size",sky.clouds[index].size,0,10);
+            ImGui::PopID();
+        }
+        ImGui::TextWrapped("The first enabled Sky supplies the background. Transform does not move this screen-space sky.");
+    }
     void Light(Editor::EditState& state, SceneRuntime::DirectionalLightComponent& light)
     {
         Vector(state,"Local direction",light.direction,-100000,100000);
@@ -67,6 +92,7 @@ namespace Editor
         const auto before=placement;
         Component(state,placement.camera,"Camera",[&](auto& value) { Camera(state,value); });
         Component(state,placement.directionalLight,"DirectionalLight",[&](auto& value) { Light(state,value); });
+        Component(state,placement.sky,"Sky",[&](auto& value) { Sky(state,value); });
         return !placement.SameComponents(before);
     }
     bool EnvironmentPanel::Add(SceneRuntime::ScenePlacement& placement)
@@ -76,6 +102,8 @@ namespace Editor
         { const auto id=NewId(placement,"camera"); placement.camera.emplace(); placement.camera->id=id; changed=true; }
         if (ImGui::MenuItem("DirectionalLight",nullptr,false,!placement.directionalLight))
         { const auto id=NewId(placement,"light"); placement.directionalLight.emplace(); placement.directionalLight->id=id; changed=true; }
+        if (ImGui::MenuItem("Sky",nullptr,false,!placement.sky))
+        { const auto id=NewId(placement,"sky"); placement.sky.emplace(); placement.sky->id=id; changed=true; }
         return changed;
     }
 }

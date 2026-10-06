@@ -25,7 +25,8 @@ namespace App
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)
     {
         menu_.LoadSettings(GameSettings::Load(GameSettings::UserPath()));
-        if (!environment_.Initialize(renderer, root_)) return false;
+        std::string error;
+        if (!environment_.Initialize(renderer,root_,root_/"Assets/Scenes/TitleStreet.json",error)) return false;
         environment_.Update(0.0, menu_.GetSettings().backgroundMotion, false);
         return ui_.Initialize(renderer, root_);
     }
@@ -67,7 +68,7 @@ namespace App
     }
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)
     {
-        return renderer.Render({ 0.66f, 0.79f, 0.83f, 1.0f }, [&](ID3D12GraphicsCommandList* commands, float)
+        return renderer.Render(environment_.World().Layout().settings.background, [&](ID3D12GraphicsCommandList* commands, float)
         {
             environment_.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
             ui_.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), menu_);

@@ -271,7 +271,7 @@ namespace
         Check(!menu.IsSettingsOpen(), "gamepad back");
     }
 
-    void ValidateAmbientMotion()
+    void ValidatePressAnyTitle()
     {
         App::TitleMenu pressAny(true, true);
         App::TitleMenuInput startInput;
@@ -290,73 +290,6 @@ namespace
             Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::None, "press-any transition draws before start");
         Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::Start, "press-any emits game start");
         Check(pressAny.Update(startInput, 0.1) == App::TitleMenuAction::None, "press-any emits start once");
-        SceneRuntime::TitleAmbientMotion motion;
-        SceneRuntime::TitleAmbientMotion exitCamera;
-        const auto home = exitCamera.CameraPosition();
-        Engine::Camera framing;
-        framing.SetPosition(home);
-        framing.SetRotation(0.03f, 0.09f);
-        framing.SetPerspective(DirectX::XM_PIDIV4, 16.0f / 9.0f, 0.1f, 220.0f);
-        for (int frame = 0; frame < 7; ++frame) exitCamera.Update(0.1, false, true, false, true);
-        Check(std::abs(exitCamera.CameraPosition()[2] - 20.0f) < 0.001f &&
-            std::abs(exitCamera.CameraRotation()[0] - 0.56f) < 0.001f,
-            "exit hover frames gate in the building row within 0.7 seconds");
-        framing.SetPosition(exitCamera.CameraPosition());
-        framing.SetRotation(exitCamera.CameraRotation()[0], exitCamera.CameraRotation()[1]);
-        const auto gateCenter = DirectX::XMVector3TransformCoord(
-            DirectX::XMVectorSet(4.8f, 3.0f, 26.0f, 1.0f),
-            framing.GetViewMatrix() * framing.GetProjectionMatrix());
-        Check(DirectX::XMVectorGetX(gateCenter) > 0.0f && DirectX::XMVectorGetX(gateCenter) < 0.8f,
-            "exit hover reveals gate on right of menu");
-        const auto exitPose = exitCamera.CameraPosition();
-        exitCamera.Update(0.1, false, false, true, false);
-        Check(exitCamera.CameraPosition() == exitPose, "inactive exit camera pauses");
-        exitCamera.Update(0.1, false, true, true, false);
-        Check(std::abs(exitCamera.CameraPosition()[2] - exitPose[2]) < 0.5f,
-            "switching exit to settings starts smoothly");
-        for (int frame = 0; frame < 20; ++frame)
-        {
-            exitCamera.Update(0.1, false, true, true, false);
-            Check(exitCamera.CameraPosition()[2] >= 7.0f && exitCamera.CameraPosition()[2] <= 20.0f,
-                "exit to settings travels directly without returning home or overshooting");
-        }
-        Check(exitCamera.CameraRotation()[0] < -0.8f, "exit to settings turns toward control facility");
-        exitCamera.Update(0.1, false, true);
-        const auto interruptedPosition = exitCamera.CameraPosition();
-        const auto interruptedRotation = exitCamera.CameraRotation();
-        exitCamera.Update(0.0, false, true, false, true);
-        Check(exitCamera.CameraPosition() == interruptedPosition && exitCamera.CameraRotation() == interruptedRotation,
-            "mid-flight retarget starts at current pose without snapping");
-        for (int frame = 0; frame < 7; ++frame) exitCamera.Update(0.1, false, true, false, true);
-        Check(std::abs(exitCamera.CameraPosition()[2] - 20.0f) < 0.001f &&
-            std::abs(exitCamera.CameraRotation()[0] - 0.56f) < 0.001f, "retarget reaches exit endpoint");
-        for (int frame = 0; frame < 20; ++frame) exitCamera.Update(0.1, false, true);
-        Check(exitCamera.CameraPosition() == home, "leaving menu targets restores home camera");
-        const auto original = motion.CameraPosition();
-        motion.Update(0.1, true, true);
-        Check(motion.CameraPosition() != original, "ambient camera advances");
-        const auto paused = motion.CameraPosition();
-        const auto mote = motion.Mote(5);
-        motion.Update(100.0, false, true);
-        Check(!motion.IsEnabled() && motion.CameraPosition() == paused && motion.Mote(5) == mote, "OFF freezes phase and hides motes");
-        motion.Update(100.0, true, false);
-        Check(motion.CameraPosition() == paused && motion.Mote(5) == mote, "inactive background paused");
-        motion.Update(-1.0, true, true);
-        motion.Update(std::numeric_limits<double>::quiet_NaN(), true, true);
-        Check(motion.CameraPosition() == paused, "invalid ambient time ignored");
-        for (int frame = 0; frame < 2500; ++frame)
-        {
-            motion.Update(0.1, true, true);
-            const auto position = motion.CameraPosition();
-            Check(position[0] >= -0.901f && position[0] <= -0.699f &&
-                position[1] >= 2.759f && position[1] <= 2.841f && position[2] == -7.0f, "camera stays within composition bounds");
-            for (unsigned int index = 0; index < 24; ++index)
-            {
-                const auto value = motion.Mote(index);
-                Check(std::isfinite(value[0]) && std::isfinite(value[1]) && std::isfinite(value[2]) &&
-                    value[3] >= 0 && value[3] <= 0.321f, "bounded ambient particle opacity");
-            }
-        }
     }
 
     void ValidateTitleAudio()
@@ -1403,7 +1336,7 @@ namespace
         auto layout=SceneRuntime::SceneLayout::Load(content/"Assets/Scenes/TitleStreet.json");
         layout.Save(initial);
         auto alternate=layout;
-        alternate.objects.resize(1);
+        alternate.objects.resize(1); alternate.settings.mainCamera.clear();
         alternate.Save(opened);
         Editor::SceneDocument document(initial);
         SceneRuntime::SceneWorld world;
@@ -1507,19 +1440,19 @@ namespace
         Check(session.Play(renderer,root,layout,error) && error.empty() && session.Runtime() &&
             session.Runtime()->World().Layout().Serialize()==unsaved, "Play uses unsaved layout snapshot rather than saved title scene");
         const auto* running=session.Runtime();
-        const auto initialMote=running->Motion().Mote(0);
-        const auto initialCamera=running->Motion().CameraPosition();
+        const auto initialMote=running->Particle(0);
+        const auto initialCamera=running->CameraPosition();
         layout.objects.back().position[0]+=100;
         Check(running->World().Layout().Serialize()==unsaved, "runtime layout is independent from later editor changes");
         Check(session.Update(0.1,true) && session.State().Elapsed()==0.1 && session.State().Updates()==1 &&
-            running->Motion().Mote(0)!=initialMote && running->Motion().CameraPosition()!=initialCamera,
+            running->Particle(0)!=initialMote && running->CameraPosition()!=initialCamera,
             "accepted Play tick advances shared background runtime");
-        const auto mote=running->Motion().Mote(0); const auto camera=running->Motion().CameraPosition();
-        Check(!session.Update(0.1,false) && !session.Update(NAN,true) && running->Motion().Mote(0)==mote &&
-            running->Motion().CameraPosition()==camera && session.State().Updates()==1, "inactive and invalid ticks do not change runtime or clock");
+        const auto mote=running->Particle(0); const auto camera=running->CameraPosition();
+        Check(!session.Update(0.1,false) && !session.Update(NAN,true) && running->Particle(0)==mote &&
+            running->CameraPosition()==camera && session.State().Updates()==1, "inactive and invalid ticks do not change runtime or clock");
         Check(!session.Step() && !session.Play(renderer,root,layout,error) && session.Runtime()==running, "repeated Play preserves active runtime");
-        Check(session.Pause() && !session.Update(0.1,true) && running->Motion().Mote(0)==mote &&
-            running->Motion().CameraPosition()==camera, "Pause freezes actual runtime camera and particles");
+        Check(session.Pause() && !session.Update(0.1,true) && running->Particle(0)==mote &&
+            running->CameraPosition()==camera, "Pause freezes actual runtime camera and particles");
         Engine::RenderTexture target;
         Check(target.Resize(renderer,320,180), "Game render texture created");
         const auto render=[&]() {
@@ -1530,17 +1463,17 @@ namespace
             })!=Engine::RenderResult::Failed && renderer.WaitForIdle(), "Game session renders to texture with GPU completion");
         };
         render(); render();
-        Check(running->Motion().Mote(0)==mote && running->Motion().CameraPosition()==camera, "paused rendering cannot advance runtime");
+        Check(running->Particle(0)==mote && running->CameraPosition()==camera, "paused rendering cannot advance runtime");
         const auto beforeStep=session.State().Elapsed();
         Check(session.Step() && session.State().CanStep() && session.State().Updates()==2 &&
             std::abs(session.State().Elapsed()-beforeStep-Editor::PlayState::StepSeconds)<1e-12 &&
-            running->Motion().Mote(0)!=mote, "Step advances runtime exactly one fixed frame while staying paused");
-        const auto stepped=running->Motion().Mote(0);
+            running->Particle(0)!=mote, "Step advances runtime exactly one fixed frame while staying paused");
+        const auto stepped=running->Particle(0);
         render();
-        Check(!session.Update(0.1,true) && running->Motion().Mote(0)==stepped && session.State().Updates()==2,
+        Check(!session.Update(0.1,true) && running->Particle(0)==stepped && session.State().Updates()==2,
             "drawing and ordinary ticks do not advance after a Step");
         Check(session.Play(renderer,root,layout,error) && session.Runtime()==running && session.Update(0.1,true) &&
-            running->Motion().Mote(0)!=stepped && session.State().Updates()==3, "Resume continues existing runtime without recreating scene");
+            running->Particle(0)!=stepped && session.State().Updates()==3, "Resume continues existing runtime without recreating scene");
         render();
         Check(session.Stop() && session.State().IsEditing() && !session.Runtime() && session.State().Updates()==0,
             "Stop releases runtime after GPU completion and resets state");
@@ -1549,7 +1482,7 @@ namespace
         Check(!session.Play(renderer,root,bad,error) && !error.empty() && !session.Runtime() && session.State().IsEditing() &&
             session.State().Elapsed()==0, "failed runtime initialization leaves editor state intact");
         Check(session.Play(renderer,root,{},error) && session.Runtime()->World().Layout().objects.empty() &&
-            session.Runtime()->Motion().Mote(0)==initialMote, "empty unsaved scene starts with fresh background timing");
+            session.Runtime()->Particle(0)==std::array<float,4>{}, "empty unsaved scene starts with fresh background timing");
         render();
         Check(session.Pause() && session.Stop(), "paused session can stop safely");
     }
@@ -2041,8 +1974,8 @@ namespace
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
                 Check(renderer.WaitForIdle(), "title GPU completion");
-                SceneRuntime::TitleEnvironment environment;
-                Check(environment.Initialize(renderer, TestContentRoot()), "ambient environment assets");
+                SceneRuntime::SceneEnvironment environment;
+                Check(environment.Initialize(renderer,TestContentRoot(),TestContentRoot()/"Assets/Scenes/TitleStreet.json",operationError), "ambient environment assets");
                 for (int state = 0; state < 3; ++state)
                 {
                     for (int frame = 0; frame < 30; ++frame) environment.Update(0.1, state != 1, true);
@@ -2231,7 +2164,7 @@ void ValidateEditorCamera()
 void ValidateSceneLayout()
 {
     const auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
-    Check(layout.objects.size() == 123, "all existing street placements migrated");
+    Check(layout.objects.size() == 127, "all existing street placements migrated");
     Check(layout.objects.front().id == "ground" && layout.objects.front().position[2] == 60.0f,
         "ground placement preserved");
     const std::string entry = R"({"id":"test","name":"Test","model":"Assets/Models/Title/Roads/ground.obj","position":[1,2,3],"rotation":[0,1,0],"scale":[4,4,4]})";
@@ -2951,7 +2884,7 @@ int main()
         ValidateTitleMenu();
         ValidateTitleAnimation();
         ValidateSettings();
-        ValidateAmbientMotion();
+        ValidatePressAnyTitle();
         ValidateTitleAudio();
         ValidateRenderTexture();
         ValidateTitle();

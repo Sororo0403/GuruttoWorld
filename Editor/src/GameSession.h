@@ -1,6 +1,6 @@
 #pragma once
 #include "PlayState.h"
-#include <SceneRuntime/TitleEnvironment.h>
+#include <SceneRuntime/SceneEnvironment.h>
 #include <memory>
 #include <stdexcept>
 
@@ -11,7 +11,7 @@ namespace Editor
     public:
         enum class Command { Play, Pause, Stop, Step };
         const PlayState& State() const { return state_; }
-        const SceneRuntime::TitleEnvironment* Runtime() const { return runtime_.get(); }
+        const SceneRuntime::SceneEnvironment* Runtime() const { return runtime_.get(); }
         // Create and release resources outside Render after GPU idle.
         bool Play(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             const SceneRuntime::SceneLayout& layout, std::string& error)
@@ -21,7 +21,7 @@ namespace Editor
             {
                 try
                 {
-                    auto candidate=std::make_unique<SceneRuntime::TitleEnvironment>();
+                    auto candidate=std::make_unique<SceneRuntime::SceneEnvironment>();
                     if (!candidate->Initialize(renderer,root,layout,error)) return false;
                     runtime_=std::move(candidate);
                 }
@@ -55,6 +55,6 @@ namespace Editor
         }
     private:
         PlayState state_;
-        std::unique_ptr<SceneRuntime::TitleEnvironment> runtime_;
+        std::unique_ptr<SceneRuntime::SceneEnvironment> runtime_;
     };
 }

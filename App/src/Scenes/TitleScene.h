@@ -3,7 +3,7 @@
 #include "TitleUi.h"
 #include "TitleMenu.h"
 #include <Engine/Input/Gamepad.h>
-#include <SceneRuntime/TitleEnvironment.h>
+#include <SceneRuntime/SceneEnvironment.h>
 #include "TitleAudio.h"
 
 namespace App
@@ -33,7 +33,7 @@ namespace App
         TitleUi ui_;
         TitleMenu menu_;
         Engine::Gamepad gamepad_;
-        SceneRuntime::TitleEnvironment environment_;
+        SceneRuntime::SceneEnvironment environment_;
         TitleAudio audio_;
     };
 }

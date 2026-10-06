@@ -16,6 +16,7 @@
 #include "PlaySnapshot.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/TitleView.h>
+#include <SceneRuntime/ScenePresentation.h>
 #include <SceneRuntime/SceneView.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Application.h>
@@ -88,8 +89,8 @@ namespace
                 {
                     if (preview)
                     {
-                        SceneRuntime::TitleView::SetProjection(previewCamera, aspect);
-                        world.Draw(commands, previewCamera, light);
+                        static_cast<void>(aspect);
+                        if (presentation) presentation->Draw(commands,world,renderer.GetWidth(),renderer.GetHeight());
                     }
                     else
                     {
@@ -142,18 +143,15 @@ namespace
         bool DrawGameTexture(ID3D12GraphicsCommandList* commands)
         {
             if (!gameTexture.Begin(commands,world.Layout().settings.background)) return false;
-            SceneRuntime::TitleView::SetProjection(previewCamera,gamePanel.Viewport().Aspect());
             if (gameSession.Runtime()) gameSession.Draw(commands,gameTexture.GetWidth(),gameTexture.GetHeight());
-            else if (SceneRuntime::SceneView::Camera(world,gamePanel.Viewport().Aspect(),0,previewCamera))
-                world.Draw(commands,previewCamera,SceneRuntime::SceneView::Light(world));
-            else world.Draw(commands,previewCamera,light);
+            else if (presentation) presentation->Draw(commands,world,gameTexture.GetWidth(),gameTexture.GetHeight());
             return gameTexture.End(commands);
         }
 
         bool DrawSceneTexture(ID3D12GraphicsCommandList* commands)
         {
             if (!sceneTexture.Begin(commands, world.Layout().settings.background)) return false;
-            world.Draw(commands, camera.GetCamera(), light);
+            if (presentation) presentation->Draw(commands,world,sceneTexture.GetWidth(),sceneTexture.GetHeight(),&camera.GetCamera());
             return sceneTexture.End(commands);
         }
 
@@ -267,6 +265,8 @@ namespace
                 Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{} : settingsRoot / "Editor/layout.ini");
                 sceneLoaded = world.Initialize(renderer, root, document.Path(),
                     root / "Shaders/TitleMesh.hlsl", &fileStatus);
+                presentation=std::make_unique<SceneRuntime::ScenePresentation>();
+                if (!presentation->Initialize(renderer,root,fileStatus)) { presentation.reset(); sceneLoaded=false; }
                 initialized = true;
                 if (sceneLoaded) history.Reset(Snapshot(world.Layout().Serialize()));
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
@@ -292,10 +292,12 @@ namespace
             if (!assetReloadRequested && !changed) return true;
             assetReloadRequested=false;
             if (!renderer.WaitForIdle()) return false;
-            const bool success=Editor::ValidateProjectShaders(root,fileStatus) &&
+            auto candidate=std::make_unique<SceneRuntime::ScenePresentation>();
+            const bool success=Editor::ValidateProjectShaders(root,fileStatus) && candidate->Initialize(renderer,root,fileStatus) &&
                 world.ReloadAssets(renderer,root,root/"Shaders/TitleMesh.hlsl",fileStatus);
             if (success)
             {
+                presentation=std::move(candidate);
                 projectPanel.Scan(root);
                 fileStatus="Assets reloaded. Unsaved scene and history preserved.";
             }
@@ -500,7 +502,7 @@ namespace
             if (ImGui::Begin("Title composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
                 ImGui::TextUnformatted("Title camera / lighting - current layout (including unsaved edits)");
-                ImGui::TextUnformatted("Fixed view; sky, particles and title UI are excluded.");
+                ImGui::TextUnformatted("Scene camera, sky, lighting and particles - current unsaved layout.");
                 if (ImGui::Button("Back to editing (Escape)")) preview=false;
             }
             ImGui::End();
@@ -898,6 +900,7 @@ namespace
         Editor::ConsolePanel consolePanel;
         Editor::SaveAsPanel saveAsPanel;
         Engine::Camera previewCamera;
+        std::unique_ptr<SceneRuntime::ScenePresentation> presentation;
         bool preview = false;
         bool focusRequested = false;
         std::optional<bool> pendingHistory;

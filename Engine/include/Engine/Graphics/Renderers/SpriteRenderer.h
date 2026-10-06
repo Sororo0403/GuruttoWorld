@@ -19,6 +19,8 @@ namespace Engine
         std::array<float, 4> uvRect{ 0.0f, 0.0f, 1.0f, 1.0f };
         // UV 範囲で切り出した座標に変換を適用します。
         UvTransform uvTransform;
+        // Optional pixel shader b1 constants (9 float4s); the standard sprite shader ignores them.
+        std::array<float,36> pixelConstants{};
     };
 
     class SpriteRenderer final
