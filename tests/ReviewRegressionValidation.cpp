@@ -968,6 +968,36 @@ namespace
         history.Reset({json,state.SelectedId(),selected});
         std::array<std::array<float,3>,8> before,after;
         Check(world.WorldBounds("pick-near",before), "group move initial draw bounds");
+        Engine::Camera focusCamera;
+        SceneRuntime::TitleView::SetProjection(focusCamera,1.5f);
+        focusCamera.SetRotation(0.4f,0.2f);
+        DirectX::XMFLOAT4X4 direction;
+        DirectX::XMStoreFloat4x4(&direction,focusCamera.GetViewMatrix());
+        direction._41=0; direction._42=0; direction._43=0;
+        const auto focused=Editor::FocusPosition(world,selected,focusCamera);
+        Check(focused.has_value(), "multiple selection focus computes shared camera position");
+        focusCamera.SetPosition(*focused);
+        const auto viewProjection=focusCamera.GetViewProjectionMatrix();
+        for (const auto& id : selected)
+        {
+            std::array<std::array<float,3>,8> bounds;
+            Check(world.WorldBounds(id,bounds), "multiple focus uses world bounds");
+            for (const auto& corner : bounds)
+            {
+                DirectX::XMFLOAT3 projected;
+                DirectX::XMStoreFloat3(&projected,DirectX::XMVector3TransformCoord(
+                    DirectX::XMVectorSet(corner[0],corner[1],corner[2],1),DirectX::XMLoadFloat4x4(&viewProjection)));
+                Check(std::abs(projected.x)<=1 && std::abs(projected.y)<=1 && projected.z>=0 && projected.z<=1,
+                    "all selected mirrored object corners fit after focus");
+            }
+        }
+        DirectX::XMFLOAT4X4 afterDirection;
+        DirectX::XMStoreFloat4x4(&afterDirection,focusCamera.GetViewMatrix());
+        afterDirection._41=0; afterDirection._42=0; afterDirection._43=0;
+        Check(SceneRuntime::SceneTransforms::Matches(direction,afterDirection) && !Editor::FocusPosition(world,{},focusCamera) &&
+            !Editor::FocusPosition(world,{selected.front(),"missing"},focusCamera) && world.Layout().Serialize()==json,
+            "focus preserves viewing direction and scene, and rejects empty or missing selection");
+
         const std::array<float,3> delta{2,-3,1};
         Check(state.TranslateSelectionWorld(world,delta) && state.HasChanges() && state.SelectedIds()==selected,
             "group move preserves multi selection and marks changes");

@@ -1,5 +1,8 @@
 #pragma once
 #include <Engine/Graphics/Camera.h>
+#include <SceneRuntime/SceneWorld.h>
+#include <span>
+#include <vector>
 #include <optional>
 #include <algorithm>
 #include <cmath>
@@ -9,8 +12,9 @@ namespace Editor
 {
     // Fit a sphere around the transformed bounds while preserving the current viewing direction.
     inline std::optional<std::array<float,3>> FocusPosition(
-        const std::array<std::array<float,3>,8>& corners, const Engine::Camera& camera)
+        std::span<const std::array<float,3>> corners, const Engine::Camera& camera)
     {
+        if (corners.empty()) return std::nullopt;
         using namespace DirectX;
         std::array<float,3> low=corners[0], high=corners[0], center{};
         for (const auto& corner : corners) for (int i=0;i<3;++i)
@@ -37,4 +41,17 @@ namespace Editor
         return std::array<float,3>{center[0]-inverse._31*distance,
             center[1]-inverse._32*distance,center[2]-inverse._33*distance};
     }
+    inline std::optional<std::array<float,3>> FocusPosition(const SceneRuntime::SceneWorld& world,
+        const std::vector<std::string>& ids, const Engine::Camera& camera)
+    {
+        std::vector<std::array<float,3>> corners;
+        for (const auto& id : ids)
+        {
+            std::array<std::array<float,3>,8> bounds;
+            if (!world.WorldBounds(id,bounds)) return std::nullopt;
+            corners.insert(corners.end(),bounds.begin(),bounds.end());
+        }
+        return FocusPosition(corners,camera);
+    }
+
 }

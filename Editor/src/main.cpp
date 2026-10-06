@@ -445,19 +445,14 @@ namespace
                 !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_F,false)))
             {
                 focusRequested=false;
-                if (canFocus && editState.SingleSelection())
+                if (canFocus && !editState.SelectedIds().empty())
                 {
-                    std::array<std::array<float,3>,8> corners;
-                    if (world.WorldBounds(editState.SelectedId(),corners))
+                    if (const auto position=Editor::FocusPosition(world,editState.SelectedIds(),camera.GetCamera()))
                     {
-                        const auto position=Editor::FocusPosition(corners,camera.GetCamera());
-                        if (position)
-                        {
-                            cameraPanel.CancelDrag();
-                            camera.GetCamera().SetPosition(*position);
-                        }
-                        else fileStatus="Selected object is too large to fit within the camera range.";
+                        cameraPanel.CancelDrag();
+                        camera.GetCamera().SetPosition(*position);
                     }
+                    else fileStatus="Selection cannot fit within the camera range, or an object is unavailable.";
                 }
             }
         }
@@ -599,7 +594,7 @@ namespace
             DrawEditMenu(enabled);
             if (ImGui::BeginMenu("View"))
             {
-                if (ImGui::MenuItem("Focus selected", "F", false, enabled && sceneViewport.Valid() && editState.SingleSelection())) focusRequested=true;
+                if (ImGui::MenuItem("Focus selected", "F", false, enabled && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
                 if (ImGui::MenuItem("Console")) ImGui::SetWindowFocus("Console");
                 if (ImGui::MenuItem("Game tab", nullptr, false, enabled)) focusGame=true;
                 if (ImGui::MenuItem("Preview title composition", nullptr, false, enabled))
