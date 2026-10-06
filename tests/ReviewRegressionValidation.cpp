@@ -2,6 +2,7 @@
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
 #include "../Editor/src/SceneViewport.h"
+#include "../Editor/src/ModelDrop.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
@@ -1068,6 +1069,29 @@ void ValidateSceneViewport()
         "resized portrait scene keeps its center and aspect");
 }
 
+void ValidateModelDrop()
+{
+    Engine::Camera camera;
+    camera.SetPosition({3,10,-5});
+    camera.SetRotation(0,0);
+    camera.SetPerspective(DirectX::XM_PIDIV4,2,0.1f,2000);
+    const Editor::SceneViewport viewport{120,80,800,400};
+    const auto ground=Editor::ModelDropPosition(camera,viewport,520,450);
+    Check(ground && std::abs((*ground)[1]-0.08f)<0.001f &&
+        std::abs((*ground)[0]-3)<0.001f && (*ground)[2]>-5, "model drop ray intersects ground under cursor");
+    const auto horizon=Editor::ModelDropPosition(camera,viewport,520,280);
+    Check(horizon && std::abs((*horizon)[1]-10)<0.001f && (*horizon)[2]>3 && (*horizon)[2]<3.2f,
+        "horizontal model drop falls back to eight units from near plane");
+    const auto sky=Editor::ModelDropPosition(camera,viewport,520,100);
+    Check(sky && (*sky)[1]>10, "sky drop uses forward ray instead of intersection behind camera");
+    Check(!Editor::ModelDropPosition(camera,viewport,119,280) &&
+        !Editor::ModelDropPosition(camera,{},520,280), "model drop rejects outside and hidden viewport");
+    const Editor::SceneViewport moved{20,30,400,200};
+    const auto sameRay=Editor::ModelDropPosition(camera,moved,220,215);
+    Check(sameRay && ground && std::abs((*sameRay)[2]-(*ground)[2])<0.001f,
+        "model drop position survives dock movement and viewport resize");
+}
+
 void ValidateProjectCatalog()
 {
     const auto root=std::filesystem::absolute("generated/tests/project-catalog");
@@ -1178,6 +1202,7 @@ int main()
         ValidateTransformMatrix();
         ValidateSceneViewport();
         ValidateProjectCatalog();
+        ValidateModelDrop();
         ValidateEditHistory();
         ValidateFocusSelection();
         ValidateDeferredClose();

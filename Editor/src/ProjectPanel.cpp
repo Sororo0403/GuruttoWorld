@@ -1,5 +1,6 @@
 #include "ProjectPanel.h"
 #include "PanelLayout.h"
+#include "ModelDrop.h"
 
 namespace Editor
 {
@@ -29,7 +30,7 @@ namespace Editor
             if (ImGui::BeginChild("Folders",ImVec2(180,listHeight),ImGuiChildFlags_Borders)) DrawFolder("Assets");
             ImGui::EndChild();
             ImGui::SameLine();
-            if (ImGui::BeginChild("Assets",ImVec2(0,listHeight),ImGuiChildFlags_Borders)) DrawAssets();
+            if (ImGui::BeginChild("Assets",ImVec2(0,listHeight),ImGuiChildFlags_Borders)) DrawAssets(enabled);
             ImGui::EndChild();
             DrawSelection(state,suggestedPosition,enabled);
         }
@@ -55,7 +56,7 @@ namespace Editor
         }
         ImGui::PopID();
     }
-    void ProjectPanel::DrawAssets()
+    void ProjectPanel::DrawAssets(bool enabled)
     {
         ImGui::TextUnformatted(search_[0] ? "Search results (all folders)" : ProjectCatalog::Text(folder_).c_str());
         size_t count=0;
@@ -69,10 +70,22 @@ namespace Editor
             const auto position=ImGui::GetCursorScreenPos();
             if (ImGui::Selectable("##asset",asset.path==selected_,0,ImVec2(0,ImGui::GetTextLineHeight()))) selected_=asset.path;
             ImGui::GetWindowDrawList()->AddText(position,ImGui::GetColorU32(ImGuiCol_Text),label.c_str());
+            if (enabled && asset.kind==AssetKind::Model && ImGui::BeginDragDropSource())
+            {
+                ImGui::SetDragDropPayload(ModelPayload,path.c_str(),path.size()+1);
+                ImGui::TextUnformatted(label.c_str());
+                ImGui::EndDragDropSource();
+            }
             ImGui::PopID();
             ++count;
         }
         if (!count) ImGui::TextUnformatted("No matching assets.");
+    }
+    void ProjectPanel::RequestDrop(EditState& state, const std::string& path, const std::array<float,3>& position) const
+    {
+        const auto found=std::find_if(catalog_.Assets().begin(),catalog_.Assets().end(),
+            [&](const auto& asset) { return asset.kind==AssetKind::Model && ProjectCatalog::Text(asset.path)==path; });
+        if (found!=catalog_.Assets().end()) state.Request({ObjectAction::Add,{},found->path,position});
     }
     void ProjectPanel::DrawSelection(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled)
     {

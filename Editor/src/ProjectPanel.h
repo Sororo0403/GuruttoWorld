@@ -10,9 +10,10 @@ namespace Editor
     public:
         void Scan(const std::filesystem::path& root);
         void Draw(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
+        void RequestDrop(EditState& state, const std::string& path, const std::array<float,3>& position) const;
     private:
         void DrawFolder(const std::filesystem::path& folder);
-        void DrawAssets();
+        void DrawAssets(bool enabled);
         void DrawSelection(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
         std::filesystem::path root_, folder_="Assets", selected_;
         ProjectCatalog catalog_;

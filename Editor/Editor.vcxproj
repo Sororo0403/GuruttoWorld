@@ -104,6 +104,7 @@
     <ClCompile Include="src\ProjectPanel.cpp" />
     <ClInclude Include="src\ProjectPanel.h" />
     <ClInclude Include="src\ProjectCatalog.h" />
+    <ClInclude Include="src\ModelDrop.h" />
     <ClCompile Include="src\SceneSelection.cpp" />
     <ClCompile Include="src\TransformGizmo.cpp" />
     <ClInclude Include="src\TransformGizmo.h" />

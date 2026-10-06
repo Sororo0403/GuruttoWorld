@@ -1,6 +1,7 @@
 #include "CameraPanel.h"
 #include "ObjectPanel.h"
 #include "ProjectPanel.h"
+#include "ModelDrop.h"
 #include "SceneSelection.h"
 #include "TransformGizmo.h"
 #include "EditHistory.h"
@@ -228,6 +229,7 @@ namespace
             scenePanel.Begin(sceneTextureId);
             sceneViewport = scenePanel.Viewport();
             requestedSceneSize = scenePanel.RequestedSize();
+            AcceptModelDrop();
             if (closeRequested) { DrawClosePopup(); Editor::ScenePanel::End(); return; }
             UpdateCamera();
             const bool canFocus = CanFocus();
@@ -239,6 +241,26 @@ namespace
             DrawCommands();
             if (!preview) Editor::SceneSelection::Draw(world, camera.GetCamera(), editState, sceneViewport);
             Editor::ScenePanel::End();
+        }
+
+        void AcceptModelDrop()
+        {
+            if (closeRequested || !SceneEditingEnabled() || gizmo.IsDragging() ||
+                ImGui::IsMouseDown(ImGuiMouseButton_Right) || !sceneViewport.Valid()) return;
+            if (!ImGui::BeginDragDropTarget()) return;
+            if (const auto* payload=ImGui::AcceptDragDropPayload(Editor::ModelPayload))
+            {
+                const auto* path=static_cast<const char*>(payload->Data);
+                if (payload->DataSize>1 && path[payload->DataSize-1]=='\0' &&
+                    std::char_traits<char>::length(path)==static_cast<size_t>(payload->DataSize-1))
+                {
+                    SceneRuntime::TitleView::SetProjection(camera.GetCamera(),sceneViewport.Aspect());
+                    const auto mouse=ImGui::GetIO().MousePos;
+                    if (const auto position=Editor::ModelDropPosition(camera.GetCamera(),sceneViewport,mouse.x,mouse.y))
+                        projectPanel.RequestDrop(editState,path,*position);
+                }
+            }
+            ImGui::EndDragDropTarget();
         }
 
         void DrawClosePopup()
@@ -293,7 +315,7 @@ namespace
 
         void UpdateCamera()
         {
-            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, scenePanel.Hovered(), !gizmo.IsDragging());
+            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, scenePanel.Hovered(), !gizmo.IsDragging() && !ImGui::GetDragDropPayload());
             if (sceneViewport.Valid())
                 SceneRuntime::TitleView::SetProjection(camera.GetCamera(), sceneViewport.Aspect());
         }
@@ -348,10 +370,11 @@ namespace
 
         void UpdateObjects()
         {
+            const bool sceneInput=SceneEditingEnabled() && !ImGui::GetDragDropPayload();
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
-                SceneEditingEnabled() && (scenePanel.Hovered() || gizmo.IsDragging()));
+                sceneInput && (scenePanel.Hovered() || gizmo.IsDragging()));
             Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
-                SceneEditingEnabled() && !gizmo.ConsumesMouse() && scenePanel.Hovered());
+                sceneInput && !gizmo.ConsumesMouse() && scenePanel.Hovered());
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
