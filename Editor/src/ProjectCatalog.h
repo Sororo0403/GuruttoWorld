@@ -5,10 +5,13 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <optional>
+#include <initializer_list>
+#include <string_view>
 
 namespace Editor
 {
-    enum class AssetKind { Model, Scene };
+    enum class AssetKind { Model, Scene, Texture, Audio, Shader, Font };
     struct ProjectAsset
     {
         std::filesystem::path path;
@@ -28,16 +31,8 @@ namespace Editor
             {
                 std::vector<ProjectAsset> assets;
                 std::set<std::filesystem::path> folders{"Assets"};
-                for (const auto& entry : std::filesystem::recursive_directory_iterator(root/"Assets"))
-                {
-                    if (!entry.is_regular_file()) continue;
-                    const auto relative=entry.path().lexically_relative(root);
-                    const auto extension=Lower(Text(relative.extension()));
-                    const bool scene=extension==".json" && Text(relative).starts_with("Assets/Scenes/");
-                    if (extension!=".obj" && !scene) continue;
-                    assets.push_back({relative, scene ? AssetKind::Scene : AssetKind::Model});
-                    for (auto parent=relative.parent_path(); !parent.empty(); parent=parent.parent_path()) folders.insert(parent);
-                }
+                ScanFolder(root,"Assets",assets,folders);
+                if (std::filesystem::is_directory(root/"Shaders")) ScanFolder(root,"Shaders",assets,folders);
                 std::sort(assets.begin(),assets.end(), [](const auto& a,const auto& b) { return a.path<b.path; });
                 assets_=std::move(assets);
                 folders_={folders.begin(),folders.end()};
@@ -45,6 +40,30 @@ namespace Editor
                 return true;
             }
             catch (const std::exception& error) { error_=error.what(); return false; }
+        }
+        static std::optional<AssetKind> Kind(const std::filesystem::path& path)
+        {
+            const auto extension=Lower(Text(path.extension()));
+            if (extension==".obj") return AssetKind::Model;
+            if (extension==".json" && Text(path).starts_with("Assets/Scenes/")) return AssetKind::Scene;
+            if (HasExtension(extension,{".png",".jpg",".jpeg",".bmp",".tif",".tiff",".dds"})) return AssetKind::Texture;
+            if (HasExtension(extension,{".wav",".mp3",".ogg",".flac"})) return AssetKind::Audio;
+            if (HasExtension(extension,{".hlsl",".hlsli"})) return AssetKind::Shader;
+            if (HasExtension(extension,{".ttf",".otf"})) return AssetKind::Font;
+            return std::nullopt;
+        }
+        static const char* Label(AssetKind kind)
+        {
+            switch (kind)
+            {
+            case AssetKind::Model: return "Model";
+            case AssetKind::Scene: return "Scene";
+            case AssetKind::Texture: return "Texture";
+            case AssetKind::Audio: return "Audio";
+            case AssetKind::Shader: return "Shader";
+            case AssetKind::Font: return "Font";
+            }
+            return "Asset";
         }
         static bool Matches(const ProjectAsset& asset, const std::filesystem::path& folder, const std::string& search)
         {
@@ -55,6 +74,22 @@ namespace Editor
         const std::vector<std::filesystem::path>& Folders() const { return folders_; }
         const std::string& Error() const { return error_; }
     private:
+        static bool HasExtension(const std::string& extension, std::initializer_list<std::string_view> supported)
+        { return std::find(supported.begin(),supported.end(),extension)!=supported.end(); }
+        static void ScanFolder(const std::filesystem::path& root, const std::filesystem::path& folder,
+            std::vector<ProjectAsset>& assets, std::set<std::filesystem::path>& folders)
+        {
+            folders.insert(folder);
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(root/folder))
+            {
+                if (!entry.is_regular_file()) continue;
+                const auto relative=entry.path().lexically_relative(root);
+                const auto kind=Kind(relative);
+                if (!kind) continue;
+                assets.push_back({relative,*kind});
+                for (auto parent=relative.parent_path(); !parent.empty(); parent=parent.parent_path()) folders.insert(parent);
+            }
+        }
         static std::string Lower(std::string value)
         {
             std::transform(value.begin(),value.end(),value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });

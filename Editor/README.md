@@ -227,3 +227,10 @@ Pause中だけStepボタンを使用できます。一回につき1/60秒の更�
 Play開始時に配置・編集状態・複数選択・保存先と新規シーン状態・Undo/Redo履歴を記録し、Stopでまとめて復元します。ResumeとStepは最初の記録を維持します。
 通常は編集シーンが独立しているためモデルの再読み込みは不要です。配置が変わっていた場合だけ再構築し、復元失敗時は現在の編集データと実行用シーンを維持してPausedにします。
 手動確認: 未保存の編集とRedo可能な履歴を作る → Play/Pause/Step/Resume → Stop → 配置・複数選択・保存先・未保存表示が戻り、Ctrl+Z/Ctrl+YがPlay前と同じ履歴をたどることを確認してください。
+
+ProjectはModel/Scene/Texture/Audio/Shader/Fontを種類別に表示し、AssetsとShadersを参照します。画像・音声・フォントの登録は情報表示用で、シーンへの追加はModelだけです。
+アセットをクリックするとInspectorに種類・Content相対パス・ファイルサイズを表示します。OBJ・Scene JSON・シェーダーは先頭8192バイトまで読み取り専用でプレビューします。Refreshで情報を更新します。
+アセットの参照は配置と未保存状態を変更しません。HierarchyまたはSceneで対象を選ぶとInspectorはオブジェクト編集へ戻ります。
+手動確認: ProjectのTypeで画像・シェーダーなどを絞り込む → アセットを選んでInspectorの種類・サイズ・ソースを確認 → Hierarchyを選んでTransform編集へ戻ることを確認してください。
+
+アセットInspectorの表示中はSceneのギズモ・Delete・Ctrl+Dを無効にし、以前のScene選択へ誤適用しません。アセットファイルの削除・複製はまだ操作対象に含めません。

@@ -19,7 +19,7 @@ namespace Editor
     {
         editsEnabled_=enabled;
         DrawObjects(world, state, enabled);
-        DrawInspector(world, state, enabled);
+        if (state.InspectedAsset().empty()) DrawInspector(world, state, enabled);
     }
 
     void ObjectPanel::DrawObjects(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)

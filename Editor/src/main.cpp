@@ -478,7 +478,7 @@ namespace
 
         bool CanFocus() const
         {
-            return !pendingPlay && sceneViewport.Valid() && !document.Pending() && sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
+            return editState.InspectedAsset().empty() && !pendingPlay && sceneViewport.Valid() && !document.Pending() && sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
                 !pendingObject && !pendingHistory && !reloadRequested &&
                 !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
@@ -530,7 +530,7 @@ namespace
             editState.BeginFrame();
             const bool sceneInput=SceneEditingEnabled() && !ImGui::GetDragDropPayload();
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
-                sceneInput && (scenePanel.Hovered() || gizmo.IsDragging()));
+                sceneInput && editState.InspectedAsset().empty() && (scenePanel.Hovered() || gizmo.IsDragging()));
             Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
                 sceneInput && !gizmo.ConsumesMouse() && scenePanel.Hovered());
             DirectX::XMFLOAT4X4 viewInverse;
@@ -538,8 +538,9 @@ namespace
             const auto& eye = camera.GetPosition();
             const std::array<float, 3> suggested{ eye[0] + viewInverse._31 * 8.0f, 0.08f,
                 eye[2] + viewInverse._33 * 8.0f };
-            objectPanel.Draw(world, editState, EditWidgetsEnabled());
             projectPanel.Draw(editState, suggested, EditWidgetsEnabled() && !pendingObject && !pendingHistory);
+            objectPanel.Draw(world, editState, EditWidgetsEnabled());
+            projectPanel.DrawInspector(editState);
             if (auto request = editState.TakeRequest()) pendingObject = std::move(request);
             if (auto scene=projectPanel.TakeSceneRequest()) document.Request(root / *scene,false,editState.HasChanges());
             if (sceneLoaded)
@@ -560,7 +561,7 @@ namespace
         {
             if (!CanUseShortcuts(historyEnabled)) return;
             if (ImGui::GetIO().KeyCtrl) UpdateControlShortcuts();
-            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && !editState.SelectedIds().empty())
+            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && editState.InspectedAsset().empty() && !editState.SelectedIds().empty())
                 pendingObject=editState.DeleteSelectionRequest();
         }
 
@@ -583,7 +584,7 @@ namespace
             {
                 if (ImGui::GetIO().KeyShift) saveAsPanel.Request(document.Path()); else Save();
             }
-            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !editState.SelectedIds().empty())
+            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && editState.InspectedAsset().empty() && !editState.SelectedIds().empty())
                 pendingObject=editState.DuplicateSelectionRequest();
         }
 
@@ -704,10 +705,10 @@ namespace
             if (ImGui::MenuItem("Undo", "Ctrl+Z", false, enabled && history.CanUndo())) pendingHistory=false;
             if (ImGui::MenuItem("Redo", "Ctrl+Y", false, enabled && history.CanRedo())) pendingHistory=true;
             ImGui::Separator();
-            const bool selected=enabled && !editState.SelectedIds().empty();
+            const bool selected=enabled && editState.InspectedAsset().empty() && !editState.SelectedIds().empty();
             if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, selected))
                 pendingObject=editState.DuplicateSelectionRequest();
-            if (ImGui::MenuItem("Delete", "Delete", false, enabled && !editState.SelectedIds().empty()))
+            if (ImGui::MenuItem("Delete", "Delete", false, selected))
                 pendingObject=editState.DeleteSelectionRequest();
             ImGui::EndMenu();
         }
@@ -760,7 +761,7 @@ namespace
                 ImGui::EndDisabled();
                 ImGui::EndDisabled();
                 ImGui::SameLine();
-                gizmo.DrawToolbar(CommandsEnabled(true));
+                gizmo.DrawToolbar(CommandsEnabled(true) && editState.InspectedAsset().empty());
             }
             ImGui::End();
         }

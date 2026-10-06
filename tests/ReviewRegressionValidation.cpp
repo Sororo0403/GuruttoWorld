@@ -10,6 +10,7 @@
 #include "../Editor/src/SceneDocument.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
+#include "../Editor/src/AssetInfo.h"
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
@@ -2414,7 +2415,8 @@ void ValidateProjectCatalog()
     const auto root=std::filesystem::absolute("generated/tests/project-catalog");
     for (const auto* path : {"Assets/Models/Title/building.obj","Assets/Models/Mesh.OBJ",
         "Assets/Scenes/title.json","Assets/Scenes/Nested/Second.JSON","Assets/Settings/settings.json",
-        "Assets/Models/Title/building.mtl","Assets/Models/Title/texture.png"})
+        "Assets/Models/Title/building.mtl","Assets/Models/Title/texture.png",
+        "Assets/Audio/click.WAV","Assets/Fonts/Test.ttf","Shaders/Test.HLSL","Shaders/Common/Test.hlsli"})
     {
         const auto destination=root/path;
         std::filesystem::create_directories(destination.parent_path());
@@ -2422,15 +2424,15 @@ void ValidateProjectCatalog()
         fixture << "fixture";
     }
     Editor::ProjectCatalog catalog;
-    Check(catalog.Scan(root) && catalog.Assets().size()==4, "Project lists models and scene JSON only, case-insensitive extensions");
-    size_t models=0,scenes=0;
+    Check(catalog.Scan(root) && catalog.Assets().size()==9, "Project lists typed assets and shaders with case-insensitive extensions");
+    std::array<size_t,6> counts{};
     for (const auto& asset : catalog.Assets())
     {
-        if (asset.kind==Editor::AssetKind::Model) ++models; else ++scenes;
-        Check(!asset.path.is_absolute() && Editor::ProjectCatalog::Text(asset.path).starts_with("Assets/"),
+        ++counts[static_cast<size_t>(asset.kind)];
+        Check(!asset.path.is_absolute() && (Editor::ProjectCatalog::Text(asset.path).starts_with("Assets/") || Editor::ProjectCatalog::Text(asset.path).starts_with("Shaders/")),
             "Project keeps Content-relative asset paths");
     }
-    Check(models==2 && scenes==2, "Project distinguishes models and scenes");
+    Check(counts==std::array<size_t,6>{2,2,1,1,2,1}, "Project distinguishes models scenes textures audio shaders and fonts");
     const Editor::ProjectAsset nested{"Assets/Models/Title/building.obj",Editor::AssetKind::Model};
     Check(Editor::ProjectCatalog::Matches(nested,"Assets/Models/Title","") &&
         !Editor::ProjectCatalog::Matches(nested,"Assets/Models","") &&
@@ -2440,9 +2442,26 @@ void ValidateProjectCatalog()
         std::find(catalog.Folders().begin(),catalog.Folders().end(),"Assets/Settings")==catalog.Folders().end(),
         "Project tree contains the supported asset ancestors");
     const auto oldPath=catalog.Assets().front().path;
-    Check(!catalog.Scan(root/"missing-root") && !catalog.Error().empty() && catalog.Assets().size()==4 &&
+    Check(!catalog.Scan(root/"missing-root") && !catalog.Error().empty() && catalog.Assets().size()==9 &&
         catalog.Assets().front().path==oldPath, "failed refresh preserves previous Project catalog");
     Check(catalog.Scan(root) && catalog.Error().empty(), "successful refresh clears Project error");
+    Editor::EditState state; state.Select("object"); state.MarkSaved();
+    state.InspectAsset("Shaders/Test.HLSL");
+    Check(!state.InspectedAsset().empty() && state.SelectedId()=="object" && !state.HasChanges(), "asset inspection preserves scene selection and dirty state");
+    state.Select("object"); Check(state.InspectedAsset().empty(), "scene selection returns Inspector to object properties");
+    const Editor::ProjectAsset shader{"Shaders/Test.HLSL",Editor::AssetKind::Shader};
+    const auto info=Editor::AssetInfo::Read(root,shader);
+    Check(info.error.empty() && info.bytes==7 && info.text=="fixture" && !info.truncated, "source asset metadata and read-only preview");
+    { std::ofstream fixture(root/shader.path); fixture << std::string(9000,'x'); }
+    const auto large=Editor::AssetInfo::Read(root,shader);
+    Check(large.error.empty() && large.bytes==9000 && large.text.size()==8192 && large.truncated, "source preview is bounded independently of file size");
+    { std::ofstream fixture(root/shader.path,std::ios::binary); fixture.write("a\0b",3); }
+    const auto binary=Editor::AssetInfo::Read(root,shader);
+    Check(!binary.error.empty() && binary.text.empty(), "binary source preview rejected without displaying partial data");
+    const auto texture=Editor::AssetInfo::Read(root,{"Assets/Models/Title/texture.png",Editor::AssetKind::Texture});
+    Check(texture.error.empty() && texture.bytes==7 && texture.text.empty(), "binary asset provides metadata without source decoding");
+    Check(!Editor::AssetInfo::Read(root,{"../outside.hlsl",Editor::AssetKind::Shader}).error.empty() &&
+        !Editor::AssetInfo::Read(root,{"Shaders/missing.hlsl",Editor::AssetKind::Shader}).error.empty(), "invalid and missing asset paths report preview errors");
 }
 
 void ValidateEditHistory()

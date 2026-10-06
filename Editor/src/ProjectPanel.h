@@ -1,6 +1,7 @@
 #pragma once
 #include "EditState.h"
 #include "ProjectCatalog.h"
+#include "AssetInfo.h"
 #include <imgui.h>
 
 namespace Editor
@@ -10,6 +11,7 @@ namespace Editor
     public:
         void Scan(const std::filesystem::path& root);
         void Draw(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
+        void DrawInspector(const EditState& state);
         void RequestDrop(EditState& state, const std::string& path, const std::array<float,3>& position) const;
         const ProjectCatalog& Catalog() const { return catalog_; }
         std::optional<std::filesystem::path> TakeSceneRequest()
@@ -19,11 +21,14 @@ namespace Editor
             return request;
         }
     private:
+        static void DrawAssetInfo(const AssetInfo& info);
         void DrawFolder(const std::filesystem::path& folder);
-        void DrawAssets(bool enabled);
+        void DrawAssets(EditState& state, bool enabled);
         void DrawSelection(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
         std::filesystem::path root_, folder_="Assets", selected_;
         ProjectCatalog catalog_;
+        std::filesystem::path previewed_;
+        std::optional<AssetInfo> info_;
         std::optional<std::filesystem::path> sceneRequest_;
         std::array<char,256> search_{};
         std::array<float,3> addPosition_{};

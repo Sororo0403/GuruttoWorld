@@ -25,21 +25,23 @@ namespace Editor
         void BeginFrame() { interaction_.clear(); }
         void SetInteraction(std::string key) { interaction_=std::move(key); }
         const std::string& Interaction() const { return interaction_; }
-        void ObjectChanged(std::string id) { selection_.Select(std::move(id)); changed_ = true; invalidTransform_ = false; }
+        void ObjectChanged(std::string id) { inspectedAsset_.clear(); selection_.Select(std::move(id)); changed_ = true; invalidTransform_ = false; }
+        void InspectAsset(std::filesystem::path path) { inspectedAsset_=std::move(path); }
+        const std::filesystem::path& InspectedAsset() const { return inspectedAsset_; }
         const std::string& SelectedId() const { return selection_.Primary(); }
         const std::vector<std::string>& SelectedIds() const { return selection_.Ids(); }
         bool IsSelected(const std::string& id) const { return selection_.Contains(id); }
         bool SingleSelection() const { return SelectedIds().size()==1; }
         void RestoreSelection(const std::vector<std::string>& ids, const std::string& primary)
-        { selection_.Restore(ids,primary); invalidTransform_=false; }
+        { inspectedAsset_.clear(); selection_.Restore(ids,primary); invalidTransform_=false; }
         void SelectRange(const std::vector<std::string>& visible, const std::string& anchor,
             const std::string& clicked, bool additive)
-        { selection_.Range(visible,anchor,clicked,additive); invalidTransform_=false; }
-        void Select(std::string id, bool additive=false) { selection_.Select(std::move(id),additive); invalidTransform_ = false; }
+        { inspectedAsset_.clear(); selection_.Range(visible,anchor,clicked,additive); invalidTransform_=false; }
+        void Select(std::string id, bool additive=false) { inspectedAsset_.clear(); selection_.Select(std::move(id),additive); invalidTransform_ = false; }
         bool HasChanges() const { return changed_; }
         void SetChanged(bool changed) { changed_ = changed; }
         void MarkSaved() { changed_ = false; }
-        void Reloaded() { selection_.Select({}); changed_ = false; invalidTransform_ = false; interaction_.clear(); }
+        void Reloaded() { inspectedAsset_.clear(); selection_.Select({}); changed_ = false; invalidTransform_ = false; interaction_.clear(); }
         bool SetLocalTransform(SceneRuntime::SceneWorld& world, const std::string& id,
             const std::array<float, 3>& position, const std::array<float, 3>& rotation,
             const std::array<float, 3>& scale)
@@ -153,6 +155,7 @@ namespace Editor
                     return previous.position==current.position && previous.rotation==current.rotation && previous.scale==current.scale;
                 })) changed_=true;
         }
+        std::filesystem::path inspectedAsset_;
         SelectionSet selection_;
         std::string interaction_;
         bool changed_ = false;
