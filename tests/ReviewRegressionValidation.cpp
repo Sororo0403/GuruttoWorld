@@ -1487,6 +1487,46 @@ namespace
         Check(session.Pause() && session.Stop(), "paused session can stop safely");
     }
 
+    void ValidateEnvironmentMotion(Engine::DirectX12Renderer& renderer)
+    {
+        const auto root=std::filesystem::absolute("Content");
+        auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
+        SceneRuntime::SceneEnvironment environment; std::string error;
+        Check(environment.Initialize(renderer,root,layout,error),"authored environment initializes");
+        const auto original=environment.World().Layout().Serialize();
+        const auto home=environment.CameraPosition(); const auto particle=environment.Particle(5);
+        environment.Update(0.1,true,true);
+        Check(environment.CameraPosition()!=home && environment.Particle(5)!=particle,"authored sway and particles advance");
+        const auto paused=environment.CameraPosition(); const auto mote=environment.Particle(5);
+        const auto time=environment.MotionSeconds();
+        environment.Update(100,false,true);
+        Check(!environment.MotionEnabled() && environment.MotionSeconds()==time && environment.CameraPosition()==paused &&
+            environment.Particle(5)==mote,"background OFF freezes authored motion and hides particles");
+        environment.Update(100,true,false); environment.Update(-1,true,true); environment.Update(NAN,true,true);
+        Check(environment.MotionSeconds()==time && environment.CameraPosition()==paused,"inactive and invalid ticks preserve motion");
+        for (int frame=0;frame<1500;++frame)
+        {
+            environment.Update(0.1,true,true);
+            const auto camera=environment.CameraPosition();
+            float distance=0;
+            for (size_t axis=0;axis<3;++axis) distance+=(camera[axis]-home[axis])*(camera[axis]-home[axis]);
+            Check(distance<0.012f,"sway stays within authored amplitude over long sessions");
+            const auto sample=environment.Particle(static_cast<unsigned int>(frame%24));
+            Check(std::all_of(sample.begin(),sample.end(),[](float value) { return std::isfinite(value); }) &&
+                sample[3]>=0 && sample[3]<=0.321f,"authored particles stay finite and within opacity range");
+        }
+        Check(environment.World().Layout().Serialize()==original,"sway and particle phases never modify saved Transform or settings");
+        auto* camera=&*std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& object) { return object.camera.has_value(); });
+        camera->cameraSway->enabled=false;
+        for (auto& object : layout.objects) if (object.particleEmitter) object.particleEmitter->count=0;
+        SceneRuntime::SceneEnvironment stationary;
+        Check(stationary.Initialize(renderer,root,layout,error),"disabled sway and zero particle count are valid");
+        const auto position=stationary.CameraPosition(); stationary.Update(0.1,true,true);
+        Check(stationary.CameraPosition()==position && stationary.Particle(0)==std::array<float,4>{},
+            "disabled sway and empty emitter have no hidden fixed title effect");
+        Check(renderer.WaitForIdle(),"motion fixture resources safe to release");
+    }
+
     void ValidateSceneView(Engine::DirectX12Renderer& renderer)
     {
         const auto root=std::filesystem::absolute("Content");
@@ -1509,6 +1549,11 @@ namespace
         Check(SceneRuntime::SceneView::Camera(world,16.0f/9.0f,0,view),"main camera resolves");
         Check(std::abs(view.GetPosition()[0]-11)<0.0001f && view.GetPosition()[1]==4 &&
             std::abs(view.GetPosition()[2]-5)<0.0001f,"parent scale and rotation affect camera position once");
+        const auto particle0=SceneRuntime::ScenePresentation::Particle(world,camera,0,0);
+        const auto particleHalf=SceneRuntime::ScenePresentation::Particle(world,camera,0,6);
+        Check(std::abs(particle0[0]-11)<0.0001f && particle0[1]==4 && std::abs(particleHalf[1]-8.5f)<0.0001f &&
+            std::abs(particleHalf[3]-camera.particleEmitter->color[3])<0.0001f,
+            "particle spawn and travel use full inherited transform and authored opacity");
         const auto light=SceneRuntime::SceneView::Light(world);
         Check(std::abs(light.direction[0]-1)<0.0001f && std::abs(light.direction[2])<0.0001f &&
             light.color==camera.directionalLight->color && light.intensity==2,"light direction inherits rotations and retains authored color");
@@ -1705,6 +1750,7 @@ namespace
             {
                 ValidateAssetReload(renderer);
                 ValidateEmptyObjects(renderer);
+                ValidateEnvironmentMotion(renderer);
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));

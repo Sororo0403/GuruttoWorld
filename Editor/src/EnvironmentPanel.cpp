@@ -67,6 +67,25 @@ namespace
         }
         ImGui::TextWrapped("The first enabled Sky supplies the background. Transform does not move this screen-space sky.");
     }
+    void Emitter(Editor::EditState& state, SceneRuntime::ParticleEmitterComponent& emitter)
+    {
+        int count=static_cast<int>(emitter.count);
+        ImGui::DragInt("Particle count",&count,1,0,1024,"%d",ImGuiSliderFlags_AlwaysClamp); Track(state);
+        emitter.count=static_cast<unsigned int>(count);
+        ImGui::ColorEdit4("Particle color / opacity",emitter.color.data()); Track(state);
+        Scalar(state,"Size (world units)",emitter.size,0.001f,1000);
+        Vector(state,"Local spawn extent",emitter.extent,0,100000);
+        Vector(state,"Local travel per cycle",emitter.travel,-100000,100000);
+        Scalar(state,"Cycle (seconds)",emitter.cycle,0.01f,100000);
+        Scalar(state,"Local horizontal drift",emitter.drift,0,100000);
+        ImGui::TextWrapped("Transform sets the local spawn origin. Parent transforms move the emission volume. Play animates deterministic glow particles.");
+    }
+    void Sway(Editor::EditState& state, SceneRuntime::CameraSwayComponent& sway)
+    {
+        Vector(state,"Local sway amplitude",sway.amplitude,-100000,100000);
+        Vector(state,"Period (seconds)",sway.period,0.01f,100000);
+        ImGui::TextWrapped("Add Camera to this object. Play offsets its view without modifying the saved Transform.");
+    }
     void Light(Editor::EditState& state, SceneRuntime::DirectionalLightComponent& light)
     {
         Vector(state,"Local direction",light.direction,-100000,100000);
@@ -93,6 +112,8 @@ namespace Editor
         Component(state,placement.camera,"Camera",[&](auto& value) { Camera(state,value); });
         Component(state,placement.directionalLight,"DirectionalLight",[&](auto& value) { Light(state,value); });
         Component(state,placement.sky,"Sky",[&](auto& value) { Sky(state,value); });
+        Component(state,placement.particleEmitter,"ParticleEmitter",[&](auto& value) { Emitter(state,value); });
+        Component(state,placement.cameraSway,"CameraSway",[&](auto& value) { Sway(state,value); });
         return !placement.SameComponents(before);
     }
     bool EnvironmentPanel::Add(SceneRuntime::ScenePlacement& placement)
@@ -104,6 +125,10 @@ namespace Editor
         { const auto id=NewId(placement,"light"); placement.directionalLight.emplace(); placement.directionalLight->id=id; changed=true; }
         if (ImGui::MenuItem("Sky",nullptr,false,!placement.sky))
         { const auto id=NewId(placement,"sky"); placement.sky.emplace(); placement.sky->id=id; changed=true; }
+        if (ImGui::MenuItem("ParticleEmitter",nullptr,false,!placement.particleEmitter))
+        { const auto id=NewId(placement,"particles"); placement.particleEmitter.emplace(); placement.particleEmitter->id=id; changed=true; }
+        if (ImGui::MenuItem("CameraSway",nullptr,false,!placement.cameraSway))
+        { const auto id=NewId(placement,"sway"); placement.cameraSway.emplace(); placement.cameraSway->id=id; changed=true; }
         return changed;
     }
 }
