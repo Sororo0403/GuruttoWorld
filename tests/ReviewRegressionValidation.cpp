@@ -467,7 +467,7 @@ namespace
         layout.objects={plain,child,grandchild,parent,other}; layout.objects[3].rotation={0,0,0}; layout.objects[3].scale={2,3,4};
         Check(world.ReplaceLayout(layout,root,error), "partial deletion validation fixture");
         const auto before=world.Layout().Serialize();
-        Check(world.WorldMatrix("plain",childBefore) && !world.RemoveObject("parent",error) &&
+        Check(world.WorldMatrix("plain",childBefore) && !world.RemoveObjects({"parent"},error) &&
             error.find("child")!=std::string::npos && world.Layout().Serialize()==before &&
             world.WorldMatrix("plain",actual) && SceneRuntime::SceneTransforms::Matches(childBefore,actual),
             "later unrepresentable child cancels whole deletion including earlier representable child");
@@ -475,7 +475,7 @@ namespace
         Check(world.ReplaceLayout(layout,root,error) && world.WorldMatrix("grandchild",grandBefore), "representable deletion fixture");
         const auto original=world.Layout().Serialize();
         Editor::EditHistory history; history.Reset({original,"grandchild",{"child","grandchild"}});
-        Check(world.RemoveObject("parent",error) && error.empty() && world.WorldMatrix("grandchild",actual) &&
+        Check(world.RemoveObjects({"parent"},error) && error.empty() && world.WorldMatrix("grandchild",actual) &&
             SceneRuntime::SceneTransforms::Matches(grandBefore,actual) && world.Layout().objects[0].parentId.empty() &&
             world.Layout().objects[1].parentId.empty() && world.Layout().objects[2].parentId=="child",
             "delete only parent, promoting direct children while retaining grandchild hierarchy and pose");
@@ -586,7 +586,7 @@ namespace
         Check(history.CanRedo() && !state.HasChanges(), "failed edit preserves redo branch and dirty state");
         Check(world.DuplicateObject(child.id,{0,0,0},created,error), "allocation baseline duplicate");
         const auto next=std::stoull(created.substr(7))+1;
-        Check(world.RemoveObject(created,error), "allocation baseline duplicate removed");
+        Check(world.RemoveObjects({created},error), "allocation baseline duplicate removed");
         auto invalid=child; invalid.id.clear(); invalid.model="Assets/Models/Title/missing-transaction-model.obj";
         Check(!world.AddObject(invalid,root,created,error) && created.empty(), "failed model creation cancels ID allocation");
         Check(world.DuplicateObject(child.id,{0,0,0},created,error) && created=="object-"+std::to_string(next),
@@ -654,7 +654,7 @@ namespace
         state.ObjectChanged(created); observe();
         const auto duplicated=world.Layout().Serialize();
         state.Select("parent"); observe();
-        Check(world.WorldMatrix("grandchild",before) && world.RemoveObject("parent",error), "workflow deletes parent");
+        Check(world.WorldMatrix("grandchild",before) && world.RemoveObjects({"parent"},error), "workflow deletes parent");
         state.ObjectChanged({}); observe();
         Check(world.WorldMatrix("grandchild",after) && SceneRuntime::SceneTransforms::Matches(before,after),
             "workflow deletion preserves descendant world pose");
@@ -674,6 +674,63 @@ namespace
             world.Layout().objects[1].parentId=="parent" && world.Layout().objects[2].parentId=="child",
             "workflow reopen preserves saved hierarchy and local transforms");
         Check(world.ReplaceLayout(initial,root,error), "workflow fixture restored");
+    }
+
+    void ValidateMultipleDeletion(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        auto parent=initial.objects.back(); parent.id="parent"; parent.parentId.clear();
+        parent.position={10,20,30}; parent.rotation={0,0.4f,0}; parent.scale={-2,2,2};
+        auto child=parent; child.id="child"; child.parentId=parent.id; child.position={1,2,3}; child.rotation={0,0,0.3f}; child.scale={1,1,1};
+        auto grand=child; grand.id="grand"; grand.parentId=child.id;
+        auto other=child; other.id="other"; other.parentId.clear();
+        SceneRuntime::SceneLayout layout; layout.objects={grand,child,parent,other};
+        std::string error;
+        Check(world.ReplaceLayout(layout,root,error), "multiple delete hierarchy fixture");
+        Editor::EditState state; state.Select("parent"); state.Select("child",true);
+        const auto request=state.DeleteSelectionRequest();
+        Check(request.action==Editor::ObjectAction::Delete && request.ids==std::vector<std::string>{"parent","child"},
+            "delete request captures all selected IDs");
+        const auto before=world.Layout().Serialize();
+        DirectX::XMFLOAT4X4 grandBefore{},actual{};
+        Check(world.WorldMatrix("grand",grandBefore), "multiple deletion captures surviving grandchild pose");
+        Editor::EditHistory history; history.Reset({before,state.SelectedId(),state.SelectedIds()});
+        Check(state.DeleteObjects(world,request.ids,error) && state.SelectedIds().empty() && state.HasChanges() &&
+            world.Layout().objects.size()==2 && world.Layout().objects[0].parentId.empty() &&
+            world.WorldMatrix("grand",actual) && SceneRuntime::SceneTransforms::Matches(grandBefore,actual),
+            "parent and selected child deleted once while surviving grandchild becomes root at same world pose");
+        const auto deleted=world.Layout().Serialize();
+        history.Observe({deleted,state.SelectedId(),state.SelectedIds()},{});
+        const auto undo=history.Target(false);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(undo.json),root,error), "one Undo restores entire multiple deletion");
+        history.Applied(false); state.RestoreSelection(undo.selections,undo.selection); state.SetChanged(history.Dirty(undo.json));
+        Check(world.Layout().Serialize()==before && state.SelectedIds()==request.ids && !state.HasChanges(),
+            "Undo restores hierarchy multi selection primary and clean state");
+        Check(!state.DeleteObjects(world,{"child","missing"},error) && !error.empty() &&
+            world.Layout().Serialize()==before && state.SelectedIds()==request.ids && !state.HasChanges(),
+            "missing later ID cancels deletion without changing state or selection");
+        history.Observe({before,state.SelectedId(),state.SelectedIds()},{});
+        Check(history.CanRedo(), "failed multiple deletion preserves redo branch");
+        const auto redo=history.Target(true);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(redo.json),root,error) && world.Layout().Serialize()==deleted,
+            "Redo reapplies entire multiple deletion");
+        history.Applied(true);
+        Check(world.ReplaceLayout(layout,root,error), "restore multiple deletion duplicate IDs fixture");
+        state.RestoreSelection({"parent","child","other"},"other"); state.MarkSaved();
+        Check(state.DeleteObjects(world,{"parent","child","child"},error) && state.SingleSelection() && state.SelectedId()=="other" &&
+            world.Layout().objects.size()==2, "duplicate IDs normalize and unrelated current selection remains selected");
+        layout.objects[2].scale={2,3,4};
+        Check(world.ReplaceLayout(layout,root,error), "unrepresentable surviving grandchild fixture");
+        const auto invalid=world.Layout().Serialize(); state.RestoreSelection(request.ids,"child"); state.MarkSaved();
+        Check(!state.DeleteObjects(world,request.ids,error) && error.find("grand")!=std::string::npos &&
+            world.Layout().Serialize()==invalid && state.SelectedIds()==request.ids && !state.HasChanges(),
+            "unrepresentable surviving descendant cancels every selected deletion atomically");
+        Check(state.DeleteObjects(world,{"parent","child","grand"},error) && world.Layout().objects.size()==1 &&
+            world.Layout().objects.front().id=="other" && state.SelectedIds().empty(),
+            "selected sheared subtree can be removed without decomposing already deleted nodes");
+        Check(!world.RemoveObjects({},error) && !error.empty(), "empty deletion is rejected");
+        Check(world.RemoveObjects({"other"},error) && world.Layout().objects.empty(), "all scene objects can be deleted");
+        Check(world.ReplaceLayout(initial,root,error), "multiple deletion fixture restored");
     }
 
     void ValidateInheritedRendering(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
@@ -707,7 +764,7 @@ namespace
                 std::abs(after[corner][1]-before[corner][1])<0.01f, "descendant bounds follow parent displacement");
         const auto snapshot=world.Layout().Serialize();
         Check(!world.SetParent("child",{},error) && !error.empty() && world.Layout().Serialize()==snapshot &&
-            !world.RemoveObject("parent",error) && world.Layout().Serialize()==snapshot,
+            !world.RemoveObjects({"parent"},error) && world.Layout().Serialize()==snapshot,
             "unrepresentable shear on detach or delete preserves scene atomically");
         auto invalid=moved; invalid[0]=(std::numeric_limits<float>::max)();
         auto huge=parent.scale; huge[0]=(std::numeric_limits<float>::max)();
@@ -735,7 +792,7 @@ namespace
         Check(world.ReplaceLayout(layout,root,error) && world.WorldMatrix("child",matrix), "uniform parent detach fixture");
         Check(world.SetParent("child",{},error) && world.WorldMatrix("child",shifted) &&
             SceneRuntime::SceneTransforms::Matches(matrix,shifted), "representable reparent preserves world pose");
-        Check(world.SetParent("child","parent",error) && world.RemoveObject("parent",error) && world.WorldMatrix("child",shifted) &&
+        Check(world.SetParent("child","parent",error) && world.RemoveObjects({"parent"},error) && world.WorldMatrix("child",shifted) &&
             SceneRuntime::SceneTransforms::Matches(matrix,shifted), "representable parent deletion preserves child pose");
         Check(world.ReplaceLayout(layout,root,error), "inherited serialization fixture restored");
         const auto json=world.Layout().Serialize();
@@ -747,6 +804,7 @@ namespace
         ValidateGizmoTransforms(world,root);
         ValidateEditTransactions(world,root);
         ValidateTransformWorkflow(renderer,world,root);
+        ValidateMultipleDeletion(world,root);
         CheckGpuMessages(renderer.GetDevice());
     }
 
@@ -942,7 +1000,7 @@ namespace
             "cyclic scene replacement preserves loaded world");
         Editor::EditHistory history;
         history.Reset({before,child.id,{child.id}});
-        Check(world.RemoveObject(world.Layout().objects[1].parentId,error), "parent object deletion supports an aliased parent ID");
+        Check(world.RemoveObjects({world.Layout().objects[1].parentId},error), "parent object deletion supports an aliased parent ID");
         for (const auto& object : world.Layout().objects)
             Check(object.parentId.empty(), "deleting parent makes direct children roots");
         const auto found=std::find_if(world.Layout().objects.begin(),world.Layout().objects.end(),
@@ -1182,7 +1240,7 @@ namespace
                     nearObject.scale) && pickingWorld.PickRay({ -5, 0.6f, 5.4f }, { 1, 0, 0 }).value_or("") == "pick-near",
                     "rotated object uses updated picking transform");
                 std::string removalError;
-                Check(pickingWorld.RemoveObject("pick-near",removalError) &&
+                Check(pickingWorld.RemoveObjects({"pick-near"},removalError) &&
                     pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 1 }).value_or("") == "pick-far" &&
                     !pickingWorld.WorldBounds("pick-near", corners), "deleted object cannot be selected or outlined");
                 Check(renderer.WaitForIdle(), "picking resources GPU completion");
@@ -1260,9 +1318,9 @@ namespace
                     editorWorld.Layout().objects.size() == count + 2, "failed addition keeps all current objects");
                 Check(!editorWorld.DuplicateObject(addedId, { NAN, 0, 0 }, rejectedId, operationError) &&
                     editorWorld.Layout().objects.size() == count + 2, "invalid duplicate keeps current scene");
-                Check(!editorWorld.RemoveObject("missing-id",operationError), "unknown delete does not change scene");
+                Check(!editorWorld.RemoveObjects({"missing-id"},operationError), "unknown delete does not change scene");
                 const auto beforeDelete=editorWorld.Layout();
-                Check(editorWorld.RemoveObject(addedId,operationError) && editorWorld.Layout().objects.size() == count + 1 &&
+                Check(editorWorld.RemoveObjects({addedId},operationError) && editorWorld.Layout().objects.size() == count + 1 &&
                     editorWorld.Layout().objects.back().id == duplicateId, "delete removes only selected object");
                 const auto afterDelete=editorWorld.Layout();
                 Check(editorWorld.ReplaceLayout(beforeDelete, content, operationError) &&
@@ -1337,7 +1395,7 @@ namespace
                 workflow.Saved(transformedJson);
                 editState.MarkSaved();
                 Check(!editState.HasChanges(), "shared edit state marked saved");
-                Check(editorWorld.RemoveObject(workflowId,operationError),"workflow delete");
+                Check(editorWorld.RemoveObjects({workflowId},operationError),"workflow delete");
                 editState.ObjectChanged("");
                 workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},{});
                 Check(workflow.Dirty(editorWorld.Layout().Serialize()),"deleting saved object marks scene dirty");

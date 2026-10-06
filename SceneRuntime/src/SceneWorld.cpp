@@ -7,6 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
 
 namespace
@@ -334,19 +335,25 @@ namespace SceneRuntime
         return true;
     }
 
-    bool SceneWorld::RemoveObject(std::string_view id, std::string& error)
+    bool SceneWorld::RemoveObjects(const std::vector<std::string>& ids, std::string& error)
     {
-        auto candidate=layout_;
-        auto objects=objects_;
-        const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
-            [&](const auto& placement) { return placement.id==id; });
-        if (found==candidate.objects.end()) { error="Object no longer exists"; return false; }
-        const auto index=static_cast<size_t>(found-candidate.objects.begin());
-        const auto removedId=found->id;
-        for (auto& placement : candidate.objects)
-            if (placement.parentId==removedId && !ReparentPlacement(placement,{},error)) return false;
-        candidate.objects.erase(found);
-        objects.erase(objects.begin()+static_cast<std::ptrdiff_t>(index));
+        if (ids.empty()) { error="No objects selected"; return false; }
+        const std::unordered_set<std::string> removed(ids.begin(),ids.end());
+        const auto missing=std::find_if(removed.begin(),removed.end(),[&](const auto& id) {
+            return std::none_of(layout_.objects.begin(),layout_.objects.end(),[&](const auto& object) { return object.id==id; });
+        });
+        if (missing!=removed.end()) { error=*missing+": object no longer exists"; return false; }
+        SceneLayout candidate;
+        std::vector<Engine::Object3D> objects;
+        candidate.objects.reserve(layout_.objects.size()); objects.reserve(objects_.size());
+        for (size_t index=0;index<layout_.objects.size();++index)
+        {
+            auto placement=layout_.objects[index];
+            if (removed.contains(placement.id)) continue;
+            if (removed.contains(placement.parentId) && !ReparentPlacement(placement,{},error)) return false;
+            candidate.objects.push_back(std::move(placement));
+            objects.push_back(objects_[index]);
+        }
         if (!PrepareTransforms(candidate,objects,error)) return false;
         layout_=std::move(candidate); objects_=std::move(objects);
         error.clear();

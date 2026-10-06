@@ -15,6 +15,7 @@ namespace Editor
         std::string id;
         std::filesystem::path model;
         std::array<float, 3> position{};
+        std::vector<std::string> ids{};
     };
 
     // Shared editing state and operations; independent of panels and ImGui.
@@ -77,6 +78,24 @@ namespace Editor
             const bool changed=found!=objects.end() && found->name!=name;
             if (!world.RenameObject(id,std::move(name))) return false;
             if (changed) changed_=true;
+            return true;
+        }
+        ObjectRequest DeleteSelectionRequest() const
+        {
+            ObjectRequest request;
+            request.action=ObjectAction::Delete;
+            request.ids=SelectedIds();
+            return request;
+        }
+        bool DeleteObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids, std::string& error)
+        {
+            if (!world.RemoveObjects(ids,error)) return false;
+            auto remaining=SelectedIds();
+            auto primary=SelectedId();
+            std::erase_if(remaining,[&](const auto& id) { return std::find(ids.begin(),ids.end(),id)!=ids.end(); });
+            if (std::find(remaining.begin(),remaining.end(),primary)==remaining.end()) primary.clear();
+            selection_.Restore(remaining,primary);
+            changed_=true; invalidTransform_=false;
             return true;
         }
         bool ResetTransform(SceneRuntime::SceneWorld& world, const std::string& id)

@@ -38,8 +38,8 @@ namespace SceneRuntime
             std::string& createdId, std::string& error);
         bool DuplicateObject(std::string_view id, const std::array<float, 3>& offset,
             std::string& createdId, std::string& error);
-        // Remove only this object; direct children become roots while retaining their world pose.
-        bool RemoveObject(std::string_view id, std::string& error);
+        // Remove exactly these IDs atomically. Surviving children of removed objects become roots.
+        bool RemoveObjects(const std::vector<std::string>& ids, std::string& error);
         std::optional<std::string> PickRay(const std::array<float, 3>& origin,
             const std::array<float, 3>& direction, float maxDistance = 220.0f) const;
         // Rotation-only frame: combine ancestor rotations without scale, reflection or shear.

@@ -165,7 +165,7 @@ namespace Editor
                 DrawTransform(world, state, *found);
                 if (ImGui::Button("Duplicate")) state.Request(ObjectRequest{ ObjectAction::Duplicate, state.SelectedId(), {}, {} });
                 ImGui::SameLine();
-                if (ImGui::Button("Delete")) state.Request(ObjectRequest{ ObjectAction::Delete, state.SelectedId(), {}, {} });
+                if (ImGui::Button("Delete")) state.Request(state.DeleteSelectionRequest());
                 ImGui::EndDisabled();
                 ImGui::PopID();
                 if (state.InvalidTransform())
@@ -197,9 +197,10 @@ namespace Editor
             state.TranslateSelectionWorld(world,delta);
         }
         TrackInspectorEdit(state);
+        if (ImGui::Button("Delete selected")) state.Request(state.DeleteSelectionRequest());
         ImGui::EndDisabled();
         ImGui::PopID();
-        ImGui::TextWrapped("Move uses the active object as pivot and preserves spacing. Rotate, scale, duplicate and delete require one object.");
+        ImGui::TextWrapped("Move uses the active object as pivot and preserves spacing. Rotate, scale and duplicate require one object. Delete removes the selection.");
         if (state.InvalidTransform()) ImGui::TextWrapped("Move rejected. Use finite positions within the supported range.");
     }
 

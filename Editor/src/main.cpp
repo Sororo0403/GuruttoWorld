@@ -232,11 +232,11 @@ namespace
                     success = world.DuplicateObject(request.id, { 4, 0, 0 }, createdId, fileStatus);
                 else
                 {
-                    success = world.RemoveObject(request.id,fileStatus);
+                    success = editState.DeleteObjects(world,request.ids,fileStatus);
                 }
                 if (success)
                 {
-                    editState.ObjectChanged(createdId);
+                    if (request.action!=Editor::ObjectAction::Delete) editState.ObjectChanged(createdId);
                     fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
                         request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
                     history.Observe(Snapshot(world.Layout().Serialize()), {});
@@ -504,8 +504,8 @@ namespace
         {
             if (!CanUseShortcuts(historyEnabled)) return;
             if (ImGui::GetIO().KeyCtrl) UpdateControlShortcuts();
-            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && editState.SingleSelection())
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,editState.SelectedId(),{}, {}};
+            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && !editState.SelectedIds().empty())
+                pendingObject=editState.DeleteSelectionRequest();
         }
 
         bool CanUseShortcuts(bool historyEnabled) const
@@ -644,8 +644,8 @@ namespace
             const bool selected=enabled && editState.SingleSelection();
             if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, selected))
                 pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
-            if (ImGui::MenuItem("Delete", "Delete", false, selected))
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,editState.SelectedId(),{}, {}};
+            if (ImGui::MenuItem("Delete", "Delete", false, enabled && !editState.SelectedIds().empty()))
+                pendingObject=editState.DeleteSelectionRequest();
             ImGui::EndMenu();
         }
 
