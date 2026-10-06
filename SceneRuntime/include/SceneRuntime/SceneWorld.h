@@ -30,6 +30,9 @@ namespace SceneRuntime
         // Translate all IDs atomically; delta is always in world coordinates.
         // Selected descendants follow selected ancestors once.
         bool TranslateObjectsWorld(const std::vector<std::string>& ids, const std::array<float,3>& delta);
+        // Rotate around a world pivot once per selected branch; reject unrepresentable local shear atomically.
+        bool RotateObjectsWorld(const std::vector<std::string>& ids, const std::array<float,3>& pivot,
+            const DirectX::XMFLOAT4X4& rotation);
         bool SetParent(std::string_view id, std::string parentId, std::string& error);
         // 表示名だけを変更します。ID・描画リソースは維持します。
         bool RenameObject(std::string_view id, std::string name);

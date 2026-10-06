@@ -62,6 +62,18 @@ namespace Editor
                 [](const auto& position,const auto& object) { return position==object.position; })) changed_=true;
             return !invalidTransform_;
         }
+        bool RotateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float,3>& pivot,
+            const DirectX::XMFLOAT4X4& rotation)
+        {
+            const auto before=world.Layout().objects;
+            invalidTransform_=!world.RotateObjectsWorld(SelectedIds(),pivot,rotation);
+            const auto& after=world.Layout().objects;
+            if (!invalidTransform_ && !std::equal(before.begin(),before.end(),after.begin(),
+                [](const auto& previous,const auto& current) {
+                    return previous.position==current.position && previous.rotation==current.rotation && previous.scale==current.scale;
+                })) changed_=true;
+            return !invalidTransform_;
+        }
         bool SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId, std::string& error)
         {
             const auto& objects=world.Layout().objects;

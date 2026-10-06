@@ -434,7 +434,7 @@ namespace
                 !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt)
             {
                 if (ImGui::IsKeyPressed(ImGuiKey_1,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Move);
-                if (editState.SingleSelection() && ImGui::IsKeyPressed(ImGuiKey_2,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Rotate);
+                if (ImGui::IsKeyPressed(ImGuiKey_2,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Rotate);
                 if (editState.SingleSelection() && ImGui::IsKeyPressed(ImGuiKey_3,false)) gizmo.SetMode(Editor::TransformGizmo::Mode::Scale);
             }
         }

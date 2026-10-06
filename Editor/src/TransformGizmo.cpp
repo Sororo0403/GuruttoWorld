@@ -12,7 +12,7 @@ namespace Editor
         EditState& state, const SceneViewport& viewport, bool active)
     {
         hovered_=false;
-        if (state.SelectedIds().size()>1 && !dragging_) mode_=Mode::Move;
+        if (state.SelectedIds().size()>1 && mode_==Mode::Scale && !dragging_) mode_=Mode::Move;
         const auto& objects=world.Layout().objects;
         const auto found=std::find_if(objects.begin(), objects.end(),
             [&](const auto& object) { return object.id==state.SelectedId(); });
@@ -63,9 +63,9 @@ namespace Editor
         ImGui::BeginDisabled(!enabled || dragging_);
         if (ImGui::RadioButton("Move", mode_==Mode::Move)) mode_=Mode::Move;
         ImGui::SameLine();
-        ImGui::BeginDisabled(multiple);
         if (ImGui::RadioButton("Rotate", mode_==Mode::Rotate)) mode_=Mode::Rotate;
         ImGui::SameLine();
+        ImGui::BeginDisabled(multiple);
         if (ImGui::RadioButton("Scale", mode_==Mode::Scale)) mode_=Mode::Scale;
         ImGui::SameLine();
         ImGui::EndDisabled();
@@ -84,7 +84,7 @@ namespace Editor
             ImGui::EndPopup();
         }
         ImGui::EndDisabled();
-        if (invalidTransform_) { ImGui::SameLine(); ImGui::TextUnformatted("Transform rejected: use finite values and nonzero scale"); }
+        if (invalidTransform_) { ImGui::SameLine(); ImGui::TextUnformatted("Transform rejected: invalid values or local shear cannot be stored"); }
     }
 
     void TransformGizmo::ApplyTransform(SceneRuntime::SceneWorld& world, EditState& state,
@@ -96,6 +96,14 @@ namespace Editor
             if (!world.WorldMatrix(current.id,previous)) { invalidTransform_=true; return; }
             const std::array<float,3> delta{matrix._41-previous._41,matrix._42-previous._42,matrix._43-previous._43};
             invalidTransform_=!state.TranslateSelectionWorld(world,delta);
+            return;
+        }
+        if (mode_==Mode::Rotate && state.SelectedIds().size()>1)
+        {
+            DirectX::XMFLOAT4X4 previous,delta;
+            if (!world.WorldMatrix(current.id,previous) || !GizmoTransform::RotationDelta(world,current,matrix,delta))
+            { invalidTransform_=true; return; }
+            invalidTransform_=!state.RotateSelectionWorld(world,{previous._41,previous._42,previous._43},delta);
             return;
         }
         auto transformed=current;

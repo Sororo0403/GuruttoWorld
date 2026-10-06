@@ -202,7 +202,7 @@ namespace Editor
         if (ImGui::Button("Delete selected")) state.Request(state.DeleteSelectionRequest());
         ImGui::EndDisabled();
         ImGui::PopID();
-        ImGui::TextWrapped("Move uses the active object as pivot and preserves spacing. Rotate and scale require one object. Duplicate and delete use the selection.");
+        ImGui::TextWrapped("Move and Rotate use the active object as pivot and preserve spacing. Rotate uses the Scene gizmo. Scale requires one object. Duplicate and delete use the selection.");
         if (state.InvalidTransform()) ImGui::TextWrapped("Move rejected. Use finite positions within the supported range.");
     }
 

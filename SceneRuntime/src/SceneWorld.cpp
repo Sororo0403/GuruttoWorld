@@ -13,6 +13,25 @@
 
 namespace
 {
+    bool IsRotation(const DirectX::XMFLOAT4X4& rotation)
+    {
+        if (!SceneRuntime::SceneTransforms::IsUsable(rotation)) return false;
+        const auto matrix=DirectX::XMLoadFloat4x4(&rotation);
+        DirectX::XMFLOAT4X4 product,identity;
+        DirectX::XMStoreFloat4x4(&product,matrix*DirectX::XMMatrixTranspose(matrix));
+        DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());
+        return DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(matrix))>0 &&
+            SceneRuntime::SceneTransforms::Matches(product,identity);
+    }
+
+    bool IsIdentity(const DirectX::XMFLOAT4X4& matrix)
+    {
+        for (size_t row=0;row<4;++row)
+            for (size_t column=0;column<4;++column)
+                if (matrix.m[row][column]!=(row==column ? 1.0f : 0.0f)) return false;
+        return true;
+    }
+
     bool HasSelectedAncestor(const SceneRuntime::SceneLayout& layout, std::string parent,
         const std::vector<std::string>& ids)
     {
@@ -249,6 +268,32 @@ namespace SceneRuntime
             if (HasSelectedAncestor(layout_,found->parentId,ids)) continue;
 
             if (!TranslatePlacement(*found,delta)) return false;
+        }
+        return CommitTransforms(std::move(candidate));
+    }
+
+    bool SceneWorld::RotateObjectsWorld(const std::vector<std::string>& ids, const std::array<float,3>& pivot,
+        const DirectX::XMFLOAT4X4& rotation)
+    {
+        if (ids.empty() || !IsRotation(rotation) ||
+            !std::all_of(pivot.begin(),pivot.end(),[](float value) { return std::isfinite(value); })) return false;
+        const auto delta=DirectX::XMMatrixTranslation(-pivot[0],-pivot[1],-pivot[2])*
+            DirectX::XMLoadFloat4x4(&rotation)*DirectX::XMMatrixTranslation(pivot[0],pivot[1],pivot[2]);
+        auto candidate=layout_;
+        std::vector<std::string> seen;
+        for (const auto& id : ids)
+        {
+            const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
+                [&](const auto& placement) { return placement.id==id; });
+            if (found==candidate.objects.end() || std::find(seen.begin(),seen.end(),id)!=seen.end()) return false;
+            seen.push_back(id);
+            if (IsIdentity(rotation) || HasSelectedAncestor(layout_,found->parentId,ids)) continue;
+            DirectX::XMFLOAT4X4 matrix;
+            if (!WorldMatrix(id,matrix)) return false;
+            DirectX::XMStoreFloat4x4(&matrix,DirectX::XMLoadFloat4x4(&matrix)*delta);
+            ScenePlacement placement;
+            if (!LocalTransformFromWorld(id,matrix,placement)) return false;
+            *found=std::move(placement);
         }
         return CommitTransforms(std::move(candidate));
     }

@@ -676,6 +676,96 @@ namespace
         Check(world.ReplaceLayout(initial,root,error), "workflow fixture restored");
     }
 
+    void ValidateMultipleRotation(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        auto parent=initial.objects.back(); parent.id="parent"; parent.parentId.clear();
+        parent.position={10,2,3}; parent.rotation={0,0.4f,0}; parent.scale={-2,2,2};
+        auto child=parent; child.id="child"; child.parentId=parent.id;
+        child.position={1,2,3}; child.rotation={0,0,0.3f}; child.scale={1,1,1};
+        auto grand=child; grand.id="grand"; grand.parentId=child.id;
+        auto other=child; other.id="other"; other.parentId.clear(); other.position={20,3,4};
+        SceneRuntime::SceneLayout layout; layout.objects={grand,child,parent,other};
+        std::string error;
+        Check(world.ReplaceLayout(layout,root,error), "multiple rotation fixture");
+        Editor::EditState state; state.Select("parent"); state.Select("other",true); state.Select("child",true);
+        const auto before=world.Layout().Serialize(); const auto selected=state.SelectedIds();
+        std::vector<DirectX::XMFLOAT4X4> poses;
+        for (const auto& placement : layout.objects)
+        {
+            DirectX::XMFLOAT4X4 pose;
+            Check(world.WorldMatrix(placement.id,pose), "capture group rotation world pose"); poses.push_back(pose);
+        }
+        const std::array<float,3> pivot{poses[1]._41,poses[1]._42,poses[1]._43};
+        DirectX::XMFLOAT4X4 rotation;
+        DirectX::XMStoreFloat4x4(&rotation,DirectX::XMMatrixRotationY(0.5f));
+        const auto delta=DirectX::XMMatrixTranslation(-pivot[0],-pivot[1],-pivot[2])*
+            DirectX::XMLoadFloat4x4(&rotation)*DirectX::XMMatrixTranslation(pivot[0],pivot[1],pivot[2]);
+        Editor::EditHistory history; history.Reset({before,state.SelectedId(),selected});
+        state.SetInteraction("gizmo/child/1");
+        Check(state.RotateSelectionWorld(world,pivot,rotation) && state.HasChanges() && state.SelectedIds()==selected,
+            "group rotation succeeds around child pivot with parent selected and mirrored scale");
+        DirectX::XMFLOAT4X4 actual,expected;
+        for (size_t index=0;index<layout.objects.size();++index)
+        {
+            DirectX::XMStoreFloat4x4(&expected,DirectX::XMLoadFloat4x4(&poses[index])*delta);
+            Check(world.WorldMatrix(layout.objects[index].id,actual) && SceneRuntime::SceneTransforms::Matches(expected,actual),
+                "group rotation applies exactly once and unselected descendants follow parent");
+        }
+        Check(world.Layout().objects[0].position==grand.position && world.Layout().objects[0].rotation==grand.rotation &&
+            world.Layout().objects[1].position==child.position && world.Layout().objects[1].rotation==child.rotation,
+            "selected and unselected descendants keep exact local transforms");
+        const auto after=world.Layout().Serialize(); history.Observe({after,state.SelectedId(),selected},state.Interaction());
+        state.BeginFrame(); history.Observe({after,state.SelectedId(),selected},{});
+        const auto undo=history.Target(false);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(undo.json),root,error), "one Undo restores rotation drag");
+        history.Applied(false); state.RestoreSelection(undo.selections,undo.selection); state.SetChanged(history.Dirty(undo.json));
+        Check(world.Layout().Serialize()==before && state.SelectedIds()==selected && !state.HasChanges(), "rotation Undo restores selection and clean state");
+        DirectX::XMFLOAT4X4 identity; DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());
+        Check(state.RotateSelectionWorld(world,pivot,identity) && world.Layout().Serialize()==before && !state.HasChanges(),
+            "identity rotation is exact no-op");
+        Check(!world.RotateObjectsWorld({},pivot,rotation) && !world.RotateObjectsWorld({"parent","missing"},pivot,rotation) &&
+            !world.RotateObjectsWorld({"parent","parent"},pivot,rotation) && !world.RotateObjectsWorld(selected,{NAN,0,0},rotation),
+            "empty duplicate missing selections and invalid pivot are rejected");
+        auto invalid=rotation; invalid._11=NAN;
+        Check(!world.RotateObjectsWorld(selected,pivot,invalid), "nonfinite rotation rejected");
+        DirectX::XMStoreFloat4x4(&invalid,DirectX::XMMatrixScaling(2,1,1));
+        Check(!world.RotateObjectsWorld(selected,pivot,invalid), "scale cannot be used as a group rotation");
+        DirectX::XMStoreFloat4x4(&invalid,DirectX::XMMatrixScaling(-1,1,1));
+        Check(!world.RotateObjectsWorld(selected,pivot,invalid), "reflection cannot be used as a group rotation");
+        DirectX::XMStoreFloat4x4(&invalid,DirectX::XMMatrixTranslation(1,0,0));
+        Check(!world.RotateObjectsWorld(selected,pivot,invalid) && world.Layout().Serialize()==before, "translation rejected atomically");
+        history.Observe({before,state.SelectedId(),selected},{}); Check(history.CanRedo(), "no-op and rejected rotations preserve Redo");
+        const auto redo=history.Target(true);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(redo.json),root,error) && world.Layout().Serialize()==after, "Redo restores entire rotated group");
+        history.Applied(true);
+        Check(world.ReplaceLayout(layout,root,error), "restore local and world rotation handle fixture");
+        DirectX::XMFLOAT4X4 handle,previous,extracted;
+        Check(Editor::GizmoTransform::Build(world,child,false,previous), "build active rotation handle");
+        const auto axes=DirectX::XMLoadFloat4x4(&previous);
+        const auto turn=DirectX::XMMatrixRotationZ(DirectX::XM_PI/12);
+        DirectX::XMStoreFloat4x4(&handle,axes*turn); handle._41=previous._41; handle._42=previous._42; handle._43=previous._43;
+        Check(Editor::GizmoTransform::RotationDelta(world,child,handle,extracted), "extract world-axis snapped rotation delta");
+        DirectX::XMStoreFloat4x4(&expected,turn);
+        Check(SceneRuntime::SceneTransforms::Matches(expected,extracted), "world handle produces expected world rotation");
+        auto frame=previous; frame._41=0; frame._42=0; frame._43=0;
+        DirectX::XMStoreFloat4x4(&handle,turn*DirectX::XMLoadFloat4x4(&frame));
+        handle._41=previous._41; handle._42=previous._42; handle._43=previous._43;
+        DirectX::XMStoreFloat4x4(&expected,DirectX::XMMatrixTranspose(DirectX::XMLoadFloat4x4(&frame))*turn*DirectX::XMLoadFloat4x4(&frame));
+        Check(Editor::GizmoTransform::RotationDelta(world,child,handle,extracted) && SceneRuntime::SceneTransforms::Matches(expected,extracted),
+            "local-axis handle produces conjugated world rotation");
+        layout.objects[2].scale={2,3,4};
+        Check(world.ReplaceLayout(layout,root,error), "nonuniform parent rejection fixture");
+        const auto stable=world.Layout().Serialize(); state.RestoreSelection({"other","child"},"child"); state.MarkSaved();
+        DirectX::XMStoreFloat4x4(&rotation,DirectX::XMMatrixRotationZ(0.4f));
+        Check(!state.RotateSelectionWorld(world,pivot,rotation) && state.InvalidTransform() && !state.HasChanges() &&
+            world.Layout().Serialize()==stable && state.SelectedIds()==std::vector<std::string>{"other","child"},
+            "unrepresentable local shear rejects group after earlier object without partial mutation");
+        state.RestoreSelection({"parent","child"},"child");
+        Check(state.RotateSelectionWorld(world,pivot,rotation), "selected nonuniform parent rotates sheared child by inheritance");
+        Check(world.ReplaceLayout(initial,root,error), "multiple rotation fixture restored");
+    }
+
     void ValidateMultipleDuplication(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
     {
         const auto initial=world.Layout();
@@ -870,6 +960,7 @@ namespace
         ValidateTransformWorkflow(renderer,world,root);
         ValidateMultipleDeletion(world,root);
         ValidateMultipleDuplication(world,root);
+        ValidateMultipleRotation(world,root);
         CheckGpuMessages(renderer.GetDevice());
     }
 

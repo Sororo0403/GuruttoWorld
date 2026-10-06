@@ -47,6 +47,22 @@ namespace Editor::GizmoTransform
         return true;
     }
 
+    inline bool RotationDelta(const SceneRuntime::SceneWorld& world, const SceneRuntime::ScenePlacement& current,
+        const DirectX::XMFLOAT4X4& handle, DirectX::XMFLOAT4X4& output)
+    {
+        SceneRuntime::ScenePlacement validated;
+        DirectX::XMFLOAT4X4 previous;
+        if (!ReadRotation(world,current,handle,validated) || !world.WorldRotation(current.id,previous)) return false;
+        auto next=handle;
+        next._41=0; next._42=0; next._43=0;
+        DirectX::XMFLOAT4X4 delta;
+        DirectX::XMStoreFloat4x4(&delta,DirectX::XMMatrixTranspose(DirectX::XMLoadFloat4x4(&previous))*
+            DirectX::XMLoadFloat4x4(&next));
+        if (!SceneRuntime::SceneTransforms::IsUsable(delta)) return false;
+        output=delta;
+        return true;
+    }
+
     inline bool ReadScale(const SceneRuntime::ScenePlacement& current,
         const DirectX::XMFLOAT4X4& handle, SceneRuntime::ScenePlacement& output)
     {
