@@ -28,7 +28,8 @@ namespace App
         std::string error;
         if (!environment_.Initialize(renderer,root_,root_/"Assets/Scenes/TitleStreet.json",error)) return false;
         environment_.Update(0.0, menu_.GetSettings().backgroundMotion, false);
-        return ui_.Initialize(renderer, root_);
+        environment_.Ui()=TitleUi::State(menu_);
+        return true;
     }
     TitleMenuInput TitleScene::ReadMenuInput(const Engine::Keyboard& keyboard) const
     {
@@ -59,19 +60,52 @@ namespace App
     {
         gamepad_.Update(keyboard.IsActive());
         const auto input = ReadMenuInput(keyboard);
-        const auto action = menu_.Update(input, deltaSeconds);
-        audio_.Update(root_, menu_, keyboard.IsActive(), deltaSeconds);
+        auto action = menu_.Update(input, deltaSeconds);
+        SyncUi();
+        const auto pointerAction=UpdatePointer(keyboard);
+        if(pointerAction!=TitleMenuAction::None) action=pointerAction;
+        if(action==TitleMenuAction::SaveSettings) menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
+        if(action==TitleMenuAction::Exit) PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
+        SyncUi();
+        environment_.Ui().hovered=hovered_; environment_.Ui().pressed=pressed_;
+        audio_.Update(environment_,root_, menu_, keyboard.IsActive(), deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
             keyboard.IsActive() && menu_.TransitionProgress() == 0.0f);
         if (action == TitleMenuAction::Start) return "Game";
+        if(!requestedScene_.empty()) return std::exchange(requestedScene_,{});
         return {};
+    }
+    void TitleScene::SyncUi()
+    {
+        for(const auto& [key,value]:TitleUi::State(menu_).values) environment_.Ui().values[key]=value;
+    }
+    TitleMenuAction TitleScene::UpdatePointer(const Engine::Keyboard& keyboard)
+    {
+        if(!keyboard.IsActive()) {mouseReady_=false; mouseDown_=false; pressed_.clear(); hovered_.clear(); return TitleMenuAction::None;}
+        POINT cursor{}; GetCursorPos(&cursor); ScreenToClient(keyboard.WindowHandle(),&cursor);
+        const bool down=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+        const auto& state=environment_.Ui();
+        hovered_=SceneRuntime::SceneUi::Hit(environment_.World().Layout(),width_,height_,static_cast<float>(cursor.x),static_cast<float>(cursor.y),state);
+        auto action=TitleMenuAction::None;
+        if(mouseReady_ && down && !mouseDown_) pressed_=hovered_;
+        if(mouseReady_ && !down && mouseDown_) {
+            if(!pressed_.empty() && pressed_==hovered_) {
+                const auto event=environment_.Click(pressed_);
+                if(!event.event.empty()) action=menu_.ActivateUi(event.event);
+                else if(event.action=="quit") PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
+                else if(event.action=="loadScene") requestedScene_=event.target;
+            }
+            pressed_.clear();
+        }
+        mouseDown_=down; mouseReady_=true; return action;
     }
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)
     {
+        width_=renderer.GetWidth(); height_=renderer.GetHeight();
         return renderer.Render(environment_.World().Layout().settings.background, [&](ID3D12GraphicsCommandList* commands, float)
         {
             environment_.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
-            ui_.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), menu_);
+
         });
     }
 }

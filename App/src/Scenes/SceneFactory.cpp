@@ -1,5 +1,6 @@
 #include "SceneFactory.h"
 #include "GameScene.h"
+#include "AuthoredScene.h"
 #include "TitleScene.h"
 #include <utility>
 
@@ -15,6 +16,8 @@ namespace App
             return title;
         }
         if (name == "Game") return std::make_unique<GameScene>(root_);
+        if(name.starts_with("Assets/Scenes/") && name.ends_with(".json") && name.find("..") == std::string_view::npos)
+            return std::make_unique<AuthoredScene>(root_,std::filesystem::path(std::u8string(name.begin(),name.end())));
         return {};
     }
 }

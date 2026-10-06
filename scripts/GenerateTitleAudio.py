@@ -6,7 +6,7 @@ import wave
 from pathlib import Path
 
 RATE = 32000
-ROOT = Path(__file__).resolve().parents[1] / "App/Assets/Audio/Title"
+ROOT = Path(__file__).resolve().parents[1] / "Content/Assets/Audio/Title"
 ROOT.mkdir(parents=True, exist_ok=True)
 
 def save(name, samples):

@@ -28,9 +28,14 @@ namespace App
         /// </summary>
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer) override;
     private:
+        void SyncUi();
+        std::string requestedScene_;
+        TitleMenuAction UpdatePointer(const Engine::Keyboard& keyboard);
+        unsigned int width_=0,height_=0;
+        bool mouseDown_=false,mouseReady_=false;
+        std::string pressed_,hovered_;
         TitleMenuInput ReadMenuInput(const Engine::Keyboard& keyboard) const;
         std::filesystem::path root_;
-        TitleUi ui_;
         TitleMenu menu_;
         Engine::Gamepad gamepad_;
         SceneRuntime::SceneEnvironment environment_;

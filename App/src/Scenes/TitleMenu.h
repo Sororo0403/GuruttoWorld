@@ -1,5 +1,6 @@
 #pragma once
 #include "GameSettings.h"
+#include <string_view>
 
 namespace App
 {
@@ -36,6 +37,7 @@ namespace App
         /// 入力の立ち上がりで選択・決定します。初回・復帰・接続直後の押下は抑止します。
         /// </summary>
         TitleMenuAction Update(const TitleMenuInput& input, double deltaSeconds = 0.0);
+        TitleMenuAction ActivateUi(std::string_view event);
         /// <summary>
         /// 現在の選択項目を返します。
         /// </summary>

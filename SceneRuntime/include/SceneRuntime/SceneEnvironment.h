@@ -19,6 +19,7 @@ namespace SceneRuntime
         UiState& Ui() { return uiState_; }
         bool StartAudio(const std::filesystem::path& root,std::string& error) { return audio_.Initialize(root,world_.Layout(),error); }
         void UpdateAudio(bool active) { audio_.Update(world_.Layout(),uiState_,active); }
+        void AudioCue(const std::string& cue) { audio_.Cue(cue); }
         void PauseAudio(bool paused) { audio_.Pause(paused); }
         UiEvent Click(const std::string& object);
         void Update(double deltaSeconds, bool enabled, bool active);

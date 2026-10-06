@@ -188,7 +188,7 @@
     <None Include="..\Content\Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
     <None Include="Assets\Textures\Title.png" />
-    <None Include="Assets\Textures\Title\UiAtlas.png" />
+    <None Include="..\Content\Assets\Textures\Title\UiAtlas.png" />
     <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf" />
     <None Include="Assets\Fonts\MPlus1p\OFL.txt" />
   </ItemGroup>
@@ -266,6 +266,8 @@
     <ClCompile Include="src\Scenes\GameScene.cpp" />
     <ClInclude Include="src\Scenes\TitleScene.h" />
     <ClCompile Include="src\Scenes\TitleScene.cpp" />
+    <ClCompile Include="src\Scenes\AuthoredScene.cpp" />
+    <ClInclude Include="src\Scenes\AuthoredScene.h" />
     <ClCompile Include="src\Scenes\TitleUi.cpp" />
     <ClCompile Include="src\Scenes\TitleMenu.cpp" />
     <ClCompile Include="src\Scenes\TitleAudio.cpp" />

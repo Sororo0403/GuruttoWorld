@@ -59,6 +59,7 @@ namespace Engine
         /// 入力が取得できているか返します。非アクティブ時は false です。
         /// </summary>
         bool IsActive() const noexcept;
+        HWND WindowHandle() const noexcept { return window_; }
 
         /// <summary>
         /// DIK_* で指定したキーを押しているか返します。範囲外は false です。

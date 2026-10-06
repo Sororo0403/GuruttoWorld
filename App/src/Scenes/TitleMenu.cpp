@@ -1,9 +1,17 @@
 #include "TitleMenu.h"
 #include <cmath>
 #include <algorithm>
+#include <optional>
 
 namespace
 {
+    std::optional<int> UiRow(std::string_view event,std::string_view prefix)
+    {
+        if(event.size()!=prefix.size()+1 || !event.starts_with(prefix)) return std::nullopt;
+        const char row=event.back();
+        if(row<'0' || row>'2') return std::nullopt;
+        return row-'0';
+    }
     unsigned int ReadStick(bool connected, float value, unsigned int previous,
         unsigned int positive, unsigned int negative)
     {
@@ -68,6 +76,26 @@ namespace App
         }
         if (settingsOpen_) return UpdateSettings(pressed);
         return UpdateMainMenu(pressed);
+    }
+
+    TitleMenuAction TitleMenu::ActivateUi(std::string_view event)
+    {
+        if(finished_) return TitleMenuAction::None;
+        introSeconds_=0.65f;
+        if(pressAnyButton_ && event=="start") {
+            cue_=TitleMenuCue::Confirm; finished_=true; pending_=TitleMenuAction::Start; return TitleMenuAction::None;
+        }
+        if(event=="back" && settingsOpen_) {
+            draft_=saved_; settingsOpen_=false; saveFailed_=false; cue_=TitleMenuCue::Back; return TitleMenuAction::None;
+        }
+        if(event=="volume" && settingsOpen_) {draft_.volume=(draft_.volume+1)%11; cue_=TitleMenuCue::Select; return TitleMenuAction::None;}
+        if(const auto row=UiRow(event,"menu:"); row && !settingsOpen_) {
+            selected_=static_cast<TitleMenuItem>(*row); selectionSeconds_=0.16f; return UpdateMainMenu(MenuConfirm);
+        }
+        if(const auto row=UiRow(event,"settings:"); row && settingsOpen_) {
+            settingsRow_=*row; selectionSeconds_=0.16f; return UpdateSettings(MenuConfirm);
+        }
+        return TitleMenuAction::None;
     }
 
     TitleMenuAction TitleMenu::UpdateTransition(float elapsed)
