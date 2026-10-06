@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <unordered_set>
+#include <unordered_map>
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
 
 namespace
@@ -254,7 +255,6 @@ namespace SceneRuntime
 
     std::string SceneWorld::NewId(size_t& nextCounter) const
     {
-        nextCounter=nextObjectId_;
         for (;;)
         {
             const auto id = "object-" + std::to_string(nextCounter++);
@@ -313,24 +313,53 @@ namespace SceneRuntime
     bool SceneWorld::DuplicateObject(std::string_view id, const std::array<float,3>& offset,
         std::string& createdId, std::string& error)
     {
-        createdId.clear();
+        std::vector<std::string> created;
+        const bool success=DuplicateObjects({std::string(id)},offset,created,error);
+        createdId=success ? created.front() : std::string{};
+        return success;
+    }
+
+    bool SceneWorld::DuplicateObjects(const std::vector<std::string>& ids, const std::array<float,3>& offset,
+        std::vector<std::string>& createdIds, std::string& error)
+    {
+        const auto requested=ids;
+        createdIds.clear();
+        if (requested.empty()) { error="No objects selected"; return false; }
+        std::vector<size_t> indices;
+        for (const auto& id : requested)
+        {
+            const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),
+                [&](const auto& placement) { return placement.id==id; });
+            if (found==layout_.objects.end()) { error=id+": object no longer exists"; return false; }
+            const auto index=static_cast<size_t>(found-layout_.objects.begin());
+            if (std::find(indices.begin(),indices.end(),index)==indices.end()) indices.push_back(index);
+        }
         auto candidate=layout_;
         auto objects=objects_;
-        const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
-            [&](const auto& placement) { return placement.id==id; });
-        if (found==candidate.objects.end()) { error="Object no longer exists"; return false; }
-        auto placement=*found;
-        if (!TranslatePlacement(placement,offset)) { error=placement.id+": invalid world duplicate offset"; return false; }
-        auto object=objects[static_cast<size_t>(found-candidate.objects.begin())];
-        size_t nextCounter=nextObjectId_;
-        placement.id=NewId(nextCounter); placement.name+=" copy";
-        const auto newId=placement.id;
-        candidate.objects.push_back(std::move(placement));
-        objects.push_back(std::move(object));
+        auto nextCounter=nextObjectId_;
+        std::unordered_map<std::string,std::string> copies;
+        std::vector<std::string> created;
+        for (const auto index : indices)
+        {
+            auto id=NewId(nextCounter);
+            copies.emplace(layout_.objects[index].id,id);
+            created.push_back(std::move(id));
+        }
+        for (const auto index : indices)
+        {
+            auto placement=layout_.objects[index];
+            const auto parent=copies.find(placement.parentId);
+            if (parent!=copies.end()) placement.parentId=parent->second;
+            else if (!TranslatePlacement(placement,offset))
+            { error=placement.id+": invalid world duplicate offset"; return false; }
+            placement.id=copies.at(placement.id); placement.name+=" copy";
+            candidate.objects.push_back(std::move(placement));
+            objects.push_back(objects_[index]);
+        }
         if (!PrepareTransforms(candidate,objects,error)) return false;
         layout_=std::move(candidate); objects_=std::move(objects);
         nextObjectId_=nextCounter;
-        createdId=newId;
+        createdIds=std::move(created);
         error.clear();
         return true;
     }

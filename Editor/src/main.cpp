@@ -229,14 +229,14 @@ namespace
                     success = world.AddObject(std::move(placement), root, createdId, fileStatus);
                 }
                 else if (request.action == Editor::ObjectAction::Duplicate)
-                    success = world.DuplicateObject(request.id, { 4, 0, 0 }, createdId, fileStatus);
+                    success = editState.DuplicateObjects(world,request.ids,{4,0,0},fileStatus);
                 else
                 {
                     success = editState.DeleteObjects(world,request.ids,fileStatus);
                 }
                 if (success)
                 {
-                    if (request.action!=Editor::ObjectAction::Delete) editState.ObjectChanged(createdId);
+                    if (request.action==Editor::ObjectAction::Add) editState.ObjectChanged(createdId);
                     fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
                         request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
                     history.Observe(Snapshot(world.Layout().Serialize()), {});
@@ -527,8 +527,8 @@ namespace
             {
                 if (ImGui::GetIO().KeyShift) saveAsPanel.Request(document.Path()); else Save();
             }
-            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && editState.SingleSelection())
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
+            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !editState.SelectedIds().empty())
+                pendingObject=editState.DuplicateSelectionRequest();
         }
 
         void DrawCommands()
@@ -641,9 +641,9 @@ namespace
             if (ImGui::MenuItem("Undo", "Ctrl+Z", false, enabled && history.CanUndo())) pendingHistory=false;
             if (ImGui::MenuItem("Redo", "Ctrl+Y", false, enabled && history.CanRedo())) pendingHistory=true;
             ImGui::Separator();
-            const bool selected=enabled && editState.SingleSelection();
+            const bool selected=enabled && !editState.SelectedIds().empty();
             if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, selected))
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
+                pendingObject=editState.DuplicateSelectionRequest();
             if (ImGui::MenuItem("Delete", "Delete", false, enabled && !editState.SelectedIds().empty()))
                 pendingObject=editState.DeleteSelectionRequest();
             ImGui::EndMenu();

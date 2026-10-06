@@ -80,6 +80,22 @@ namespace Editor
             if (changed) changed_=true;
             return true;
         }
+        ObjectRequest DuplicateSelectionRequest() const
+        {
+            ObjectRequest request;
+            request.action=ObjectAction::Duplicate;
+            request.ids=SelectedIds();
+            return request;
+        }
+        bool DuplicateObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids,
+            const std::array<float,3>& offset, std::string& error)
+        {
+            std::vector<std::string> created;
+            if (!world.DuplicateObjects(ids,offset,created,error)) return false;
+            selection_.Restore(created,created.back());
+            changed_=true; invalidTransform_=false;
+            return true;
+        }
         ObjectRequest DeleteSelectionRequest() const
         {
             ObjectRequest request;

@@ -38,6 +38,9 @@ namespace SceneRuntime
             std::string& createdId, std::string& error);
         bool DuplicateObject(std::string_view id, const std::array<float, 3>& offset,
             std::string& createdId, std::string& error);
+        // Copy selected objects once, remap selected parents, and apply one world offset per copied branch.
+        bool DuplicateObjects(const std::vector<std::string>& ids, const std::array<float, 3>& offset,
+            std::vector<std::string>& createdIds, std::string& error);
         // Remove exactly these IDs atomically. Surviving children of removed objects become roots.
         bool RemoveObjects(const std::vector<std::string>& ids, std::string& error);
         std::optional<std::string> PickRay(const std::array<float, 3>& origin,

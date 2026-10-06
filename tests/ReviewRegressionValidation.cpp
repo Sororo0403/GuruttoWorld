@@ -676,6 +676,70 @@ namespace
         Check(world.ReplaceLayout(initial,root,error), "workflow fixture restored");
     }
 
+    void ValidateMultipleDuplication(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
+    {
+        const auto initial=world.Layout();
+        auto parent=initial.objects.back(); parent.id="object-1"; parent.parentId.clear();
+        parent.position={10,20,30}; parent.rotation={0,0.4f,0}; parent.scale={-2,3,4};
+        auto child=parent; child.id="child"; child.parentId=parent.id;
+        child.position={1,2,3}; child.rotation={0,0,0.3f}; child.scale={1,1,1};
+        auto grand=child; grand.id="grand"; grand.parentId=child.id;
+        auto other=child; other.id="other"; other.parentId.clear();
+        SceneRuntime::SceneLayout layout; layout.objects={grand,child,parent,other};
+        std::string error;
+        Check(world.ReplaceLayout(layout,root,error), "multiple duplication hierarchy fixture");
+        Editor::EditState state; state.Select("child"); state.Select(parent.id,true); state.Select("other",true);
+        const auto request=state.DuplicateSelectionRequest();
+        Check(request.action==Editor::ObjectAction::Duplicate && request.ids==state.SelectedIds(), "duplicate request captures ordered selection");
+        const auto before=world.Layout().Serialize();
+        Editor::EditHistory history; history.Reset({before,state.SelectedId(),state.SelectedIds()});
+        DirectX::XMFLOAT4X4 childBefore{},otherBefore{},actual{};
+        Check(world.WorldMatrix("child",childBefore) && world.WorldMatrix("other",otherBefore), "duplicate captures original world poses");
+        Check(state.DuplicateObjects(world,request.ids,{4,0,0},error), "multiple duplicate supports child before mirrored nonuniform parent");
+        const auto copies=state.SelectedIds();
+        Check(copies.size()==3 && state.SelectedId()==copies.back() && state.HasChanges() && world.Layout().objects.size()==7,
+            "all copies selected with matching primary and no unselected descendants copied");
+        const auto& added=world.Layout().objects;
+        Check(added[4].parentId==copies[1] && added[4].position==child.position && added[4].rotation==child.rotation &&
+            added[4].scale==child.scale && added[5].parentId.empty() && added[6].parentId.empty(), "copied hierarchy remaps parent and retains exact local SRT");
+        childBefore._41+=4; otherBefore._41+=4;
+        Check(world.WorldMatrix(copies[0],actual) && SceneRuntime::SceneTransforms::Matches(childBefore,actual) &&
+            world.WorldMatrix(copies[2],actual) && SceneRuntime::SceneTransforms::Matches(otherBefore,actual), "all copies receive one world offset including sheared child");
+        for (size_t index=0;index<layout.objects.size();++index)
+            Check(added[index].id==layout.objects[index].id && added[index].position==layout.objects[index].position &&
+                added[index].parentId==layout.objects[index].parentId, "original hierarchy unchanged by duplication");
+        const auto after=world.Layout().Serialize(); history.Observe({after,state.SelectedId(),copies},{});
+        const auto undo=history.Target(false);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(undo.json),root,error), "one Undo restores entire multiple duplication");
+        history.Applied(false); state.RestoreSelection(undo.selections,undo.selection); state.SetChanged(history.Dirty(undo.json));
+        Check(world.Layout().Serialize()==before && state.SelectedIds()==request.ids && !state.HasChanges(), "Undo restores originals selection and clean state");
+        Check(!state.DuplicateObjects(world,{"child","missing"},{4,0,0},error) && !error.empty() &&
+            !state.DuplicateObjects(world,request.ids,{NAN,0,0},error) && !error.empty() &&
+            world.Layout().Serialize()==before && state.SelectedIds()==request.ids && !state.HasChanges(), "missing ID and invalid offset leave scene and selection unchanged");
+        history.Observe({before,state.SelectedId(),state.SelectedIds()},{});
+        Check(history.CanRedo(), "failed multiple duplication preserves redo branch");
+        const auto redo=history.Target(true);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(redo.json),root,error), "Redo restores all copies");
+        history.Applied(true); state.RestoreSelection(redo.selections,redo.selection);
+        Check(world.Layout().Serialize()==after && state.SelectedIds()==copies, "Redo restores copied hierarchy and selection");
+        Check(world.ReplaceLayout(layout,root,error), "restore duplicate ID fixture");
+        std::vector<std::string> created;
+        Check(world.DuplicateObjects({"grand","grand","other"},{4,0,0},created,error) && created.size()==2 &&
+            created[0]!=created[1] && world.Layout().objects.size()==6 && world.Layout().objects[4].parentId=="child",
+            "duplicate IDs normalize and unselected parent is retained");
+        const auto stable=world.Layout().Serialize();
+        Check(!world.DuplicateObjects({}, {4,0,0},created,error) && created.empty() && world.Layout().Serialize()==stable,
+            "empty duplication rejected without mutation");
+        std::string baseline;
+        Check(world.DuplicateObject("other",{0,0,0},baseline,error), "ID allocation baseline");
+        const auto next=std::stoull(baseline.substr(7))+1;
+        Check(!world.DuplicateObjects({"other","child"},{NAN,0,0},created,error) && created.empty(), "failed batch returns no generated IDs");
+        Check(world.DuplicateObjects({"other","child"},{0,0,0},created,error) && created.size()==2 &&
+            created[0]=="object-"+std::to_string(next) && created[1]=="object-"+std::to_string(next+1),
+            "failed batch consumes no IDs and successful batch allocates unique consecutive IDs");
+        Check(world.ReplaceLayout(initial,root,error), "multiple duplication fixture restored");
+    }
+
     void ValidateMultipleDeletion(SceneRuntime::SceneWorld& world, const std::filesystem::path& root)
     {
         const auto initial=world.Layout();
@@ -805,6 +869,7 @@ namespace
         ValidateEditTransactions(world,root);
         ValidateTransformWorkflow(renderer,world,root);
         ValidateMultipleDeletion(world,root);
+        ValidateMultipleDuplication(world,root);
         CheckGpuMessages(renderer.GetDevice());
     }
 
