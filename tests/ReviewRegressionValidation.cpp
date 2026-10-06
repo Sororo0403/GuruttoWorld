@@ -14,6 +14,7 @@
 #include "../Editor/src/ObjectPanel.h"
 #endif
 #include <SceneRuntime/SceneLayout.h>
+#include <SceneRuntime/SceneTransforms.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <SceneRuntime/TitleView.h>
 #include <Engine/Core/DiagnosticPaths.h>
@@ -1210,6 +1211,80 @@ void ValidateSceneLayout()
     reject("{\"version\":1,\"objects\":[" + invalid + "]}");
 }
 
+void ValidateSceneTransforms()
+{
+    using SceneRuntime::SceneTransforms;
+    using SceneRuntime::TransformSpace;
+    SceneRuntime::ScenePlacement parent;
+    parent.id="parent";
+    parent.position={10,20,30};
+    parent.rotation={0,DirectX::XM_PIDIV2,0};
+    parent.scale={2,3,4};
+    auto child=parent;
+    child.id="child"; child.parentId=parent.id;
+    child.position={1,2,3}; child.rotation={}; child.scale={1,1,1};
+    auto grandchild=child;
+    grandchild.id="grandchild"; grandchild.parentId=child.id; grandchild.position={0,1,0};
+    SceneRuntime::SceneLayout layout;
+    layout.objects={grandchild,child,parent};
+    std::vector<DirectX::XMFLOAT4X4> worlds;
+    std::string error;
+    Check(SceneTransforms::Resolve(layout,TransformSpace::Local,worlds,error) && worlds.size()==3,
+        "local transforms resolve parent-first independent of storage order");
+    Check(std::abs(worlds[1]._41-22)<0.001f && std::abs(worlds[1]._42-26)<0.001f && std::abs(worlds[1]._43-28)<0.001f &&
+        std::abs(worlds[0]._42-29)<0.001f, "parent scale, rotation and translation affect descendants in row-vector order");
+    DirectX::XMFLOAT4X4 local;
+    Check(SceneTransforms::WorldToLocal(worlds[1],worlds[2],local) &&
+        std::abs(local._41-1)<0.001f && std::abs(local._42-2)<0.001f && std::abs(local._43-3)<0.001f,
+        "world to local conversion inverts transformed parent");
+    Check(SceneTransforms::Resolve(layout,TransformSpace::World,worlds,error) && worlds[1]._41==1 && worlds[0]._42==1,
+        "legacy world coordinates remain unchanged despite parent metadata");
+    layout.objects[1].rotation[2]=0.37f;
+    Check(SceneTransforms::Resolve(layout,TransformSpace::Local,worlds,error), "nonuniform parent with rotated child resolves full affine matrix");
+    const float dot=worlds[1]._11*worlds[1]._21+worlds[1]._12*worlds[1]._22+worlds[1]._13*worlds[1]._23;
+    Check(std::abs(dot)>0.1f, "inherited shear is retained instead of approximated by a TRS");
+    Check(SceneTransforms::WorldToLocal(worlds[1],worlds[2],local), "sheared world converts to local matrix");
+    DirectX::XMFLOAT4X4 recomposed;
+    DirectX::XMStoreFloat4x4(&recomposed,DirectX::XMLoadFloat4x4(&local)*DirectX::XMLoadFloat4x4(&worlds[2]));
+    Check(Editor::TransformMatrix::Matches(recomposed,worlds[1]), "world local world roundtrip preserves shear");
+    layout.objects[2].scale[0]=-2;
+    Check(SceneTransforms::Resolve(layout,TransformSpace::Local,worlds,error) && SceneTransforms::IsUsable(worlds[0]),
+        "mirrored parent transforms remain usable");
+    const auto unchanged=worlds;
+    const auto rejects=[&](const SceneRuntime::SceneLayout& invalid)
+    {
+        Check(!SceneTransforms::Resolve(invalid,TransformSpace::Local,worlds,error) && !error.empty() &&
+            worlds.size()==unchanged.size() && Editor::TransformMatrix::Matches(worlds[0],unchanged[0]),
+            "invalid transform graph preserves output matrices");
+    };
+    auto invalid=layout; invalid.objects[2].parentId=invalid.objects[0].id; rejects(invalid);
+    invalid=layout; invalid.objects[1].parentId="missing"; rejects(invalid);
+    invalid=layout; invalid.objects[1].parentId=invalid.objects[1].id; rejects(invalid);
+    invalid=layout; invalid.objects[1].id=invalid.objects[0].id; rejects(invalid);
+    invalid=layout; invalid.objects[1].scale[0]=0; rejects(invalid);
+    invalid=layout; invalid.objects[1].position[0]=NAN; rejects(invalid);
+    auto singular=worlds[2]; singular._11=singular._12=singular._13=0;
+    const auto previous=local;
+    Check(!SceneTransforms::WorldToLocal(worlds[1],singular,local) && Editor::TransformMatrix::Matches(local,previous),
+        "singular parent is rejected without changing local output");
+    auto perspective=worlds[1]; perspective._14=0.1f;
+    Check(!SceneTransforms::IsUsable(perspective), "perspective matrices are excluded from affine transform calculations");
+    SceneRuntime::SceneLayout deep;
+    for (int index=0;index<2000;++index)
+    {
+        SceneRuntime::ScenePlacement node;
+        node.id="transform-"+std::to_string(index);
+        node.position={1,0,0};
+        if (index) node.parentId="transform-"+std::to_string(index-1);
+        deep.objects.push_back(std::move(node));
+    }
+    std::reverse(deep.objects.begin(),deep.objects.end());
+    Check(SceneTransforms::Resolve(deep,TransformSpace::Local,worlds,error) && worlds.front()._41==2000,
+        "deep local hierarchy resolves iteratively without stack overflow");
+    Check(SceneTransforms::Resolve({},TransformSpace::Local,worlds,error) && worlds.empty() && error.empty(),
+        "empty transform graph succeeds and clears previous result");
+}
+
 void ValidateHierarchyRows()
 {
     SceneRuntime::ScenePlacement root;
@@ -1232,7 +1307,9 @@ void ValidateHierarchyRows()
 
 void ValidateParentData()
 {
-    const auto legacy=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    auto legacySource=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    for (auto& object : legacySource.objects) object.parentId.clear();
+    const auto legacy=SceneRuntime::SceneLayout::Parse(legacySource.Serialize());
     Check(std::all_of(legacy.objects.begin(),legacy.objects.end(),[](const auto& object) { return object.parentId.empty(); }),
         "legacy scenes without parent data remain flat roots");
     auto root=legacy.objects.front();
@@ -1647,6 +1724,7 @@ int main()
         ValidateSceneLayout();
         ValidateParentData();
         ValidateHierarchyRows();
+        ValidateSceneTransforms();
         ValidateSceneFiles();
         ValidateDiagnostics();
         ValidateTitleMenu();
