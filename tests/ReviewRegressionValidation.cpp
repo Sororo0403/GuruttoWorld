@@ -593,7 +593,7 @@ namespace
         Check(world.DuplicateObject(child.id,{0,0,0},created,error), "allocation baseline duplicate");
         const auto next=std::stoull(created.substr(7))+1;
         Check(world.RemoveObjects({created},error), "allocation baseline duplicate removed");
-        auto invalid=child; invalid.id.clear(); invalid.model="Assets/Models/Title/missing-transaction-model.obj";
+        auto invalid=child; invalid.id.clear(); invalid.SetModel("Assets/Models/Title/missing-transaction-model.obj");
         Check(!world.AddObject(invalid,root,created,error) && created.empty(), "failed model creation cancels ID allocation");
         Check(world.DuplicateObject(child.id,{0,0,0},created,error) && created=="object-"+std::to_string(next),
             "next successful creation reuses ID reserved by failed operation");
@@ -1347,7 +1347,7 @@ namespace
         {
             const auto& old=initial.objects[index];
             const auto& moved=world.Layout().objects[index];
-            Check(moved.rotation==old.rotation && moved.scale==old.scale && moved.model==old.model,
+            Check(moved.rotation==old.rotation && moved.scale==old.scale && moved.Model()==old.Model(),
                 "group move preserves rotation, scale and model");
             for (size_t axis=0;axis<3;++axis)
                 Check(moved.position[axis]==old.position[axis]+delta[axis], "group move applies identical world delta");
@@ -1544,13 +1544,46 @@ namespace
         Check(session.Stop() && session.State().IsEditing() && !session.Runtime() && session.State().Updates()==0,
             "Stop releases runtime after GPU completion and resets state");
         Check(SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json").Serialize()==onDisk, "runtime never writes the saved scene");
-        auto bad=layout; bad.objects.back().model="Assets/Models/Title/missing-runtime.obj";
+        auto bad=layout; bad.objects.back().SetModel("Assets/Models/Title/missing-runtime.obj");
         Check(!session.Play(renderer,root,bad,error) && !error.empty() && !session.Runtime() && session.State().IsEditing() &&
             session.State().Elapsed()==0, "failed runtime initialization leaves editor state intact");
         Check(session.Play(renderer,root,{},error) && session.Runtime()->World().Layout().objects.empty() &&
             session.Runtime()->Motion().Mote(0)==initialMote, "empty unsaved scene starts with fresh background timing");
         render();
         Check(session.Pause() && session.Stop(), "paused session can stop safely");
+    }
+
+    void ValidateEmptyObjects(Engine::DirectX12Renderer& renderer)
+    {
+        const auto root=std::filesystem::absolute("Content");
+        SceneRuntime::SceneWorld world;
+        std::string error,created;
+        Check(world.Initialize(renderer,root,SceneRuntime::SceneLayout{},root/"Shaders/TitleMesh.hlsl",&error), "empty world initializes");
+        SceneRuntime::ScenePlacement parent; parent.position={5,0,0};
+        Check(world.AddObject(parent,root,created,error) && !created.empty() && !world.Layout().objects[0].meshRenderer,
+            "empty object is created without a model and receives a stable ID");
+        const auto parentId=created;
+        auto child=parent; child.parentId=parentId; child.position={2,0,0};
+        child.SetModel("Assets/Models/Title/Surface/Commercial/building-k.obj");
+        Check(world.AddObject(child,root,created,error), "model child can be parented to an empty object");
+        DirectX::XMFLOAT4X4 matrix;
+        Check(world.WorldMatrix(created,matrix) && std::abs(matrix._41-7)<0.001f,
+            "empty parent participates in Transform inheritance");
+        Check(world.TranslateObjectsWorld({parentId,created},{3,0,0}) && world.WorldMatrix(created,matrix) &&
+            std::abs(matrix._41-10)<0.001f, "empty parents and model children move once per selected branch");
+        std::array<std::array<float,3>,8> bounds;
+        Check(world.WorldBounds(parentId,bounds), "empty object exposes a focus and gizmo selection marker");
+        std::vector<std::string> copies;
+        Check(world.DuplicateObjects({parentId,created},{4,0,0},copies,error) && copies.size()==2 &&
+            !world.Layout().objects[2].meshRenderer && world.Layout().objects[3].parentId==copies[0],
+            "duplicating an empty parent preserves its copied child relationship");
+        const auto json=world.Layout().Serialize();
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(json),root,error) && world.Layout().Serialize()==json,
+            "empty hierarchy survives saving and reopening");
+        Check(world.RemoveObjects({parentId},error) && world.WorldMatrix(created,matrix) && std::abs(matrix._41-10)<0.001f,
+            "deleting empty parent preserves surviving child world pose");
+        Check(!world.PickRay({100,100,100},{0,0,1}), "empty draw objects are skipped safely during ray picking");
+        Check(renderer.WaitForIdle(), "empty object resources safe to release");
     }
 
     void ValidateAssetReload(Engine::DirectX12Renderer& renderer)
@@ -1568,7 +1601,7 @@ namespace
         writeModel(1);
         SceneRuntime::ScenePlacement placement;
         placement.id="unsaved"; placement.name="Unsaved name";
-        placement.model="Assets/Models/Title/triangle.obj"; placement.position={4,5,6};
+        placement.SetModel("Assets/Models/Title/triangle.obj"); placement.position={4,5,6};
         SceneRuntime::SceneLayout layout; layout.objects={placement};
         const auto shader=std::filesystem::absolute("Content/Shaders/TitleMesh.hlsl");
         SceneRuntime::SceneWorld world;
@@ -1607,6 +1640,7 @@ namespace
             if (size==TitleSizes[0])
             {
                 ValidateAssetReload(renderer);
+                ValidateEmptyObjects(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
                 ValidateGameSession(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
@@ -1639,7 +1673,7 @@ namespace
                 SceneRuntime::ScenePlacement nearObject;
                 nearObject.id = "pick-near";
                 nearObject.name = "Near triangle";
-                nearObject.model = "Assets/Models/Title/triangle.obj";
+                nearObject.SetModel("Assets/Models/Title/triangle.obj");
                 nearObject.position = { 0, 0, 5 };
                 nearObject.scale = { -2, 3, 2 };
                 auto farObject = nearObject;
@@ -1683,7 +1717,7 @@ namespace
                 Check(editorWorld.SetLocalTransform(original.id, moved, rotated, scaled), "live transform edit accepted");
                 const auto& changed = editorWorld.Layout().objects.front();
                 Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled &&
-                    changed.model == original.model, "live edits update layout while keeping model reference");
+                    changed.Model()==original.Model(), "live edits update layout while keeping model reference");
                 Check(!editorWorld.SetLocalTransform(original.id, original.position, original.rotation, { 0, 4, 4 }),
                     "zero scale edit rejected");
                 auto invalidPosition = original.position;
@@ -1716,7 +1750,7 @@ namespace
                     !reloadError.empty() && editorWorld.Layout().objects.front().position == moved,
                     "failed reload preserves live edits and provides error");
                 auto invalidLayout = editorWorld.Layout();
-                invalidLayout.objects.back().model = "Assets/Models/Title/Roads/missing.obj";
+                invalidLayout.objects.back().SetModel("Assets/Models/Title/Roads/missing.obj");
                 const auto reloadPath = std::filesystem::absolute("generated/tests/layout-io/missing-model.json");
                 invalidLayout.Save(reloadPath);
                 Check(!editorWorld.Reload(content, reloadPath, reloadError) &&
@@ -1727,7 +1761,7 @@ namespace
                     "successful reload restores saved scene");
                 SceneRuntime::ScenePlacement added;
                 added.name = "Test awning";
-                added.model = "Assets/Models/Title/Commercial/detail-awning.obj";
+                added.SetModel("Assets/Models/Title/Commercial/detail-awning.obj");
                 added.position = { 9, 0.16f, 10 };
                 added.rotation = { 0, 0.25f, 0 };
                 added.scale = { 4, 4, 4 };
@@ -1744,7 +1778,7 @@ namespace
                 std::string rejectedId;
                 Check(!editorWorld.AddObject(added, content, rejectedId, operationError), "duplicate ID rejected");
                 added.id.clear();
-                added.model = "Assets/Models/Title/Roads/missing.obj";
+                added.SetModel("Assets/Models/Title/Roads/missing.obj");
                 Check(!editorWorld.AddObject(added, content, rejectedId, operationError) &&
                     editorWorld.Layout().objects.size() == count + 2, "failed addition keeps all current objects");
                 Check(!editorWorld.DuplicateObject(addedId, { NAN, 0, 0 }, rejectedId, operationError) &&
@@ -1757,7 +1791,7 @@ namespace
                 Check(editorWorld.ReplaceLayout(beforeDelete, content, operationError) &&
                     editorWorld.Layout().Serialize()==beforeDelete.Serialize(), "undo restores deleted object ID and ordering");
                 auto brokenSnapshot=beforeDelete;
-                brokenSnapshot.objects.back().model="Assets/Models/Title/Roads/missing.obj";
+                brokenSnapshot.objects.back().SetModel("Assets/Models/Title/Roads/missing.obj");
                 Check(!editorWorld.ReplaceLayout(brokenSnapshot, content, operationError) &&
                     editorWorld.Layout().Serialize()==beforeDelete.Serialize(), "failed history restoration preserves the whole live scene");
                 Check(editorWorld.ReplaceLayout(afterDelete, content, operationError) &&
@@ -2093,6 +2127,45 @@ void ValidateSceneLayout()
     reject("{\"version\":2,\"objects\":[" + invalid + "]}");
 }
 
+void ValidateComponentSchema()
+{
+    SceneRuntime::ScenePlacement empty;
+    empty.id="empty"; empty.name="Empty";
+    SceneRuntime::SceneLayout layout; layout.objects={empty};
+    const auto json=layout.Serialize();
+    auto restored=SceneRuntime::SceneLayout::Parse(json);
+    Check(json.find("\"version\": 3")!=std::string::npos && !restored.objects[0].meshRenderer &&
+        !restored.objects[0].rotator, "version 3 supports Transform-only objects");
+    restored.objects[0].SetModel("Assets/Models/Title/Surface/Commercial/building-k.obj");
+    restored.objects[0].meshRenderer->id="custom-mesh"; restored.objects[0].meshRenderer->enabled=false;
+    restored.objects[0].rotator=SceneRuntime::RotatorComponent{"spin",false,{10,-20,30}};
+    const auto copy=SceneRuntime::SceneLayout::Parse(restored.Serialize());
+    Check(copy.objects[0].meshRenderer==restored.objects[0].meshRenderer && copy.objects[0].rotator==restored.objects[0].rotator,
+        "component IDs enable states model and typed velocity round-trip");
+    const auto reject=[](const SceneRuntime::SceneLayout& invalid) {
+        bool failed=false; try { static_cast<void>(invalid.Serialize()); } catch (const std::exception&) { failed=true; }
+        Check(failed, "invalid component settings cannot be saved");
+    };
+    auto invalid=restored; invalid.objects[0].rotator->id="custom-mesh"; reject(invalid);
+    invalid=restored; invalid.objects[0].rotator->id="transform"; reject(invalid);
+    invalid=restored; invalid.objects[0].rotator->angularVelocity[0]=NAN; reject(invalid);
+    invalid=restored; invalid.objects[0].rotator->angularVelocity[0]=100001; reject(invalid);
+    invalid=restored; invalid.objects[0].meshRenderer->model="../outside.obj"; reject(invalid);
+    const std::string entry=R"({"id":"old","name":"Old","model":"Assets/Models/Title/Roads/ground.obj","position":[1,2,3],"rotation":[0,0,0],"scale":[1,1,1]})";
+    const auto migrated=SceneRuntime::SceneLayout::Parse("{\"version\":2,\"objects\":["+entry+"]}");
+    Check(migrated.objects[0].meshRenderer && migrated.objects[0].meshRenderer->id=="mesh" &&
+        migrated.objects[0].meshRenderer->enabled && migrated.objects[0].position==std::array<float,3>{1,2,3} &&
+        migrated.Serialize().find("\"components\"")!=std::string::npos, "version 2 migration preserves local poses and adds MeshRenderer once");
+    const std::string prefix=R"({"version":3,"objects":[{"id":"bad","name":"Bad","position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1],"components":[)";
+    for (const auto* component : {R"({"id":"unknown","type":"Missing","enabled":true})",
+        R"({"id":"spin","type":"Rotator","enabled":"true","angularVelocity":[0,90,0]})"})
+    {
+        bool failed=false; try { static_cast<void>(SceneRuntime::SceneLayout::Parse(prefix+component+"]}] }")); }
+        catch (const std::exception&) { failed=true; }
+        Check(failed, "unknown component types and wrong property types are rejected instead of discarded");
+    }
+}
+
 void ValidateAssetChangeBatching()
 {
     Editor::AssetChanges changes;
@@ -2122,7 +2195,7 @@ void ValidateEditorAcceptanceScene()
     Check(SceneRuntime::SceneTransforms::Resolve(restored, worlds, error),
         "manual acceptance scene resolves after serialization");
     for (const auto& object : restored.objects)
-        Check(std::filesystem::is_regular_file(std::filesystem::path("Content") / object.model),
+        Check(std::filesystem::is_regular_file(std::filesystem::path("Content") / object.Model()),
             "manual acceptance scene references an existing model");
     const auto matrix = [&](const std::string& id) -> const DirectX::XMFLOAT4X4& {
         const auto found = std::find_if(restored.objects.begin(), restored.objects.end(),
@@ -2308,7 +2381,7 @@ void ValidateSceneFiles()
     Check(restored.objects.size() == layout.objects.size() &&
         restored.objects.front().name == layout.objects.front().name &&
         restored.objects.front().rotation == layout.objects.front().rotation &&
-        restored.objects.back().model == layout.objects.back().model, "layout UTF8 and transforms round-trip");
+        restored.objects.back().Model()==layout.objects.back().Model(), "layout UTF8 and transforms round-trip");
     layout.objects.front().position[0] = 3.25f;
     layout.Save(path);
     Check(SceneRuntime::SceneLayout::Load(path).objects.front().position[0] == 3.25f, "save replaces existing layout");
@@ -2440,7 +2513,7 @@ void ValidateSaveAs()
     SceneRuntime::ScenePlacement object;
     object.id="save-as-object";
     object.name="別名保存";
-    object.model="Assets/Models/Title/triangle.obj";
+    object.SetModel("Assets/Models/Title/triangle.obj");
     layout.objects.push_back(object);
     layout.Save(original);
     layout.Save(existing);
@@ -2715,6 +2788,7 @@ int main()
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
         ValidateAssetChangeBatching();
+        ValidateComponentSchema();
         ValidateParentData();
         ValidateHierarchyRows();
         ValidateSceneTransforms();

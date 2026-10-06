@@ -1,4 +1,6 @@
 #pragma once
+#include <SceneRuntime/SceneComponents.h>
+#include <optional>
 #include <array>
 #include <filesystem>
 #include <string>
@@ -11,7 +13,18 @@ namespace SceneRuntime
     {
         std::string id;
         std::string name;
-        std::filesystem::path model; // アプリルートからの相対パス。
+        std::optional<MeshRendererComponent> meshRenderer;
+        std::optional<RotatorComponent> rotator;
+        const std::filesystem::path& Model() const
+        {
+            static const std::filesystem::path empty;
+            return meshRenderer ? meshRenderer->model : empty;
+        }
+        void SetModel(std::filesystem::path path)
+        {
+            if (!meshRenderer) meshRenderer.emplace();
+            meshRenderer->model=std::move(path);
+        }
         std::array<float, 3> position{};
         std::array<float, 3> rotation{}; // XYZ、ラジアン。
         std::array<float, 3> scale{ 1.0f, 1.0f, 1.0f };

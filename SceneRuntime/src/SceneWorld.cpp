@@ -116,9 +116,12 @@ namespace SceneRuntime
             for (const auto& placement : layout.objects)
             {
                 Engine::Object3D object;
-                const auto model = models_.Load(assetsRoot / placement.model);
-                if (!model) throw std::runtime_error("Model could not be loaded: " + placement.id);
-                object.SetModel(model);
+                if (placement.meshRenderer)
+                {
+                    const auto model = models_.Load(assetsRoot / placement.Model());
+                    if (!model) throw std::runtime_error("Model could not be loaded: " + placement.id);
+                    object.SetModel(model);
+                }
                 if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
                     throw std::runtime_error("Invalid transform: " + placement.id);
                 if (!object.SetWorldMatrix(matrices[objects.size()])) throw std::runtime_error("Invalid world matrix");
@@ -140,7 +143,9 @@ namespace SceneRuntime
     void SceneWorld::Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
         const Engine::DirectionalLight& light) const
     {
-        for (const auto& object : objects_) object.Draw(commands, camera, light);
+        for (size_t index=0;index<objects_.size();++index)
+            if (layout_.objects[index].meshRenderer && layout_.objects[index].meshRenderer->enabled)
+                objects_[index].Draw(commands,camera,light);
     }
 
     bool SceneWorld::PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error)
@@ -381,7 +386,7 @@ namespace SceneRuntime
             if (std::any_of(layout_.objects.begin(), layout_.objects.end(),
                 [&](const auto& existing) { return existing.id == placement.id; }))
                 throw std::runtime_error("Object ID already exists");
-            if (placement.name.empty()) placement.name = placement.model.stem().string();
+            if (placement.name.empty()) placement.name = placement.meshRenderer ? placement.Model().stem().string() : "Empty object";
             auto validation=layout_;
             validation.objects.push_back(placement);
             static_cast<void>(validation.Serialize());
@@ -391,9 +396,12 @@ namespace SceneRuntime
             if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
                 throw std::runtime_error("Invalid transform");
             if (!object.SetWorldMatrix(matrices.back())) throw std::runtime_error("Invalid world matrix");
-            const auto model = models_.Load(assetsRoot / placement.model);
-            if (!model) throw std::runtime_error("Model could not be loaded");
-            object.SetModel(model);
+            if (placement.meshRenderer)
+            {
+                const auto model = models_.Load(assetsRoot / placement.Model());
+                if (!model) throw std::runtime_error("Model could not be loaded");
+                object.SetModel(model);
+            }
             const auto id = placement.id;
             Append(std::move(placement), std::move(object));
             nextObjectId_=nextCounter;
@@ -504,6 +512,7 @@ namespace SceneRuntime
         for (size_t index = 0; index < objects_.size(); ++index)
         {
             const auto& object = objects_[index];
+            if (!object.GetModel() || !layout_.objects[index].meshRenderer->enabled) continue;
             const auto inverse = XMMatrixInverse(nullptr, XMLoadFloat4x4(&object.GetWorldMatrix()));
             const auto localStart = XMVector3TransformCoord(start, inverse);
             auto localRay = XMVector3TransformNormal(ray, inverse);
@@ -572,7 +581,8 @@ namespace SceneRuntime
         if (found == layout_.objects.end()) return false;
         const auto& object = objects_[static_cast<size_t>(found - layout_.objects.begin())];
         DirectX::XMFLOAT3 localCorners[8];
-        object.GetModel()->Bounds().GetCorners(localCorners);
+        if (object.GetModel()) object.GetModel()->Bounds().GetCorners(localCorners);
+        else DirectX::BoundingBox(DirectX::XMFLOAT3{},DirectX::XMFLOAT3{0.25f,0.25f,0.25f}).GetCorners(localCorners);
         const auto matrix = DirectX::XMLoadFloat4x4(&object.GetWorldMatrix());
         for (size_t i = 0; i < 8; ++i)
         {

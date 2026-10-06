@@ -8,7 +8,7 @@
 
 namespace Editor
 {
-    enum class ObjectAction { Add, Duplicate, Delete };
+    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete };
     struct ObjectRequest
     {
         ObjectAction action = ObjectAction::Add;

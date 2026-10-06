@@ -1,10 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "objects": [
     {
       "id": "Ground",
       "name": "Ground",
-      "model": "Assets/Models/Title/Surface/Roads/ground.obj",
       "position": [
         0,
         -0.12,
@@ -19,12 +18,19 @@
         24,
         1,
         24
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Roads/ground.obj"
+        }
       ]
     },
     {
       "id": "Parent",
       "name": "Parent",
-      "model": "Assets/Models/Title/Surface/Commercial/building-k.obj",
       "position": [
         -5,
         0,
@@ -39,12 +45,19 @@
         1,
         1,
         1
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-k.obj"
+        }
       ]
     },
     {
       "id": "Child",
       "name": "Child",
-      "model": "Assets/Models/Title/Surface/Commercial/building-h.obj",
       "position": [
         3,
         0,
@@ -60,12 +73,19 @@
         1,
         1
       ],
-      "parent": "Parent"
+      "parent": "Parent",
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-h.obj"
+        }
+      ]
     },
     {
       "id": "Grandchild",
       "name": "Grandchild",
-      "model": "Assets/Models/Title/Surface/Commercial/building-e.obj",
       "position": [
         0,
         0,
@@ -81,12 +101,19 @@
         1,
         1
       ],
-      "parent": "Child"
+      "parent": "Child",
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-e.obj"
+        }
+      ]
     },
     {
       "id": "Peer",
       "name": "Peer",
-      "model": "Assets/Models/Title/Surface/Commercial/building-c.obj",
       "position": [
         5,
         0,
@@ -101,12 +128,19 @@
         1,
         1,
         1
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-c.obj"
+        }
       ]
     },
     {
       "id": "Mirror",
       "name": "Mirror",
-      "model": "Assets/Models/Title/Surface/Commercial/building-k.obj",
       "position": [
         0,
         0,
@@ -121,12 +155,19 @@
         -2,
         2,
         2
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-k.obj"
+        }
       ]
     },
     {
       "id": "ShearParent",
       "name": "ShearParent",
-      "model": "Assets/Models/Title/Surface/Commercial/building-h.obj",
       "position": [
         -6,
         0,
@@ -141,12 +182,19 @@
         2,
         3,
         4
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-h.obj"
+        }
       ]
     },
     {
       "id": "ShearChild",
       "name": "ShearChild",
-      "model": "Assets/Models/Title/Surface/Commercial/building-e.obj",
       "position": [
         0,
         0,
@@ -162,7 +210,15 @@
         1,
         1
       ],
-      "parent": "ShearParent"
+      "parent": "ShearParent",
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-e.obj"
+        }
+      ]
     }
   ]
 }

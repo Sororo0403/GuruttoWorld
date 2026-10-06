@@ -13,7 +13,7 @@ namespace Editor
         bool PreparePreview(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
         { return preview_.Prepare(renderer,root); }
         bool RenderPreview(ID3D12GraphicsCommandList* commands) { return preview_.Render(commands); }
-        bool TakeAssetReloadRequest() { return std::exchange(reloadAssets_,false); }
+        bool TakeAssetReloadRequest();
         void SetReloadPending(bool pending) { reloadPending_=pending; }
         void InvalidatePreview() { preview_.Invalidate(); previewed_.clear(); info_.reset(); }
         void Scan(const std::filesystem::path& root);

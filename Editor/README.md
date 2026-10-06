@@ -140,7 +140,7 @@ HierarchyのShift＋クリックは検索結果の表示順で範囲選択し、
 主選択を基準にWorld／LocalとSnapを利用でき、間隔・回転・拡縮・選択状態を維持します。連続ドラッグは一回のUndoで戻せます。
 移動先が不正な場合は全対象の移動を拒否します。複数選択の回転・拡縮・複製・削除・Fによるフォーカスにも対応しています。詳細と手動確認は末尾を参照してください。
 
-シーンJSONの各オブジェクトは任意のparent（親オブジェクトID）を持てます。省略／空文字はルートです。通常の読み込みはversion 2のみ対応し、旧version 1は下記の変換スクリプトを使用します。
+シーンJSONの各オブジェクトは任意のparent（親オブジェクトID）を持てます。省略／空文字はルートです。通常の読み込みはversion 2／3に対応し、旧version 1は下記の変換スクリプトを使用します。
 親は同じシーン内のIDを参照し、存在しない親・自分自身・循環参照は読み込み／保存時に拒否します。Inspectorに親IDを表示します。
 Transformは親に対するローカル座標で、親の移動・回転・拡縮に子孫が追従します。
 親を削除した場合は直接の子をルートへ戻し、配置を維持します。複製した対象は元と同じ親を持ちます。
@@ -150,7 +150,7 @@ Drop here to make rootへ落とすと親を解除します。InspectorのParent�
 親子付けはワールドの配置と選択を維持し、Undo／Redo・保存・再読み込みに対応します。自分や子孫への親子付けは拒否します。
 検索中は一致する対象を階層によらずフラットに表示し、Shift範囲選択は現在表示中の行に適用します。
 
-シーン保存形式はversion 2です。Position・Rotation（XYZラジアン）・Scaleは常に親に対するローカル座標です。
+シーン保存形式はversion 3です。Position・Rotation（XYZラジアン）・Scaleは常に親に対するローカル座標です。
 親がない場合はローカル座標がワールド座標になります。描画・クリック選択・選択枠はlocal × parentWorldで計算し、せん断も保持します。
 InspectorのLocal position / Local rotation / Local scaleは保存する値を直接編集します。
 ギズモのLocal/Worldは操作軸の指定です。軸は親子の回転から計算し、反転・非一様拡縮・せん断から分離します。
@@ -171,7 +171,7 @@ WorldMatrixは描画・選択用、WorldRotationはギズモの回転軸用、Lo
 
 保存形式のWorld/Local切り替えとEnable parent transformsメニューは廃止しました。
 旧version 1シーンは`python scripts/ConvertSceneToLocal.py <scene.json>`で検証し、`--write`を付けて一度だけ変換してください。
-通常のエディターはversion 2だけを読み込みます。変換不能な入力は変更せず、version 2を二重に変換しません。
+エディターはversion 2を読み込み時にComponent形式へ変換し、version 3で保存します。変換不能な入力は変更せず、version 2／3を二重に座標変換しません。
 
 最終の手動確認は既存シーンを編集せず、New sceneで新しい名前のシーンを作って進めてください。
 
@@ -251,3 +251,9 @@ Assets内のリソース（OBJ・MTL・テクスチャなど）とShaders内のH
 Playing／Paused中と編集操作中は更新を保留し、Editingへ戻って操作が終わった後に反映します。ProjectのReload assetsから明示的にも更新できます。
 プロジェクトのHLSL（VSMain／PSMain）を検証し、現在の未保存配置から新しいモデル・テクスチャ・パイプラインを準備します。すべて成功してから差し替えます。失敗した場合は表示・配置・選択・未保存表示・Undo/Redo履歴を維持し、Consoleへ理由を表示します。失敗後はファイルを修正するかReload assetsで再試行してください。
 この段階では使用モデル全体を再構築するため、大きいシーンの更新時には待ち時間があります。
+
+## 空オブジェクトとComponent保存形式
+
+HierarchyのCreate emptyでTransformだけを持つオブジェクトを作成できます。親子付け・ギズモ・複数選択・複製・削除・Undo/Redo・保存に対応します。モデルを持たない対象はHierarchyで選択してください。選択枠とFフォーカスには原点付近の小さい境界を使います。
+version 3ではTransformを必須データとして持ち、任意のMeshRenderer／Rotatorをcomponents配列へ保存します。Componentにはオブジェクト内で一意なID、種類、enabledと型付きの設定を持たせます。TransformのIDはtransformとして予約します。未対応の種類・重複・不正なプロパティは読み込みを拒否し、黙って削除しません。
+旧version 2のmodelは読み込み時にMeshRendererへ移し、ローカルTransformと親子を維持します。保存するとversion 3になり、モデルの参照先はMeshRendererだけが保持します。version 1は従来の変換スクリプトでローカル座標へ変換してから開いてください。

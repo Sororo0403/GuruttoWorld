@@ -5,6 +5,12 @@
 
 namespace Editor
 {
+    bool ProjectPanel::TakeAssetReloadRequest()
+    {
+        const bool requested=reloadAssets_;
+        reloadAssets_=false;
+        return requested;
+    }
     void ProjectPanel::Scan(const std::filesystem::path& root)
     {
         root_=root;

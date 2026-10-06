@@ -137,6 +137,9 @@
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="src\SceneLayout.cpp" />
+    <ClCompile Include="src\SceneComponentJson.cpp" />
+    <ClInclude Include="src\SceneComponentJson.h" />
+    <ClInclude Include="include\SceneRuntime\SceneComponents.h" />
     <ClCompile Include="src\TitleEnvironment.cpp" />
     <ClInclude Include="include\SceneRuntime\TitleEnvironment.h" />
     <ClInclude Include="include\SceneRuntime\TitleAmbientMotion.h" />

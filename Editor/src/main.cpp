@@ -226,12 +226,12 @@ namespace
                 pendingObject.reset();
                 std::string createdId;
                 bool success = false;
-                if (request.action == Editor::ObjectAction::Add)
+                if (request.action == Editor::ObjectAction::Add || request.action == Editor::ObjectAction::AddEmpty)
                 {
                     SceneRuntime::ScenePlacement placement;
-                    placement.model = request.model;
+                    if (request.action==Editor::ObjectAction::Add) placement.SetModel(request.model);
                     placement.position = request.position;
-                    placement.scale = { 4, 4, 4 };
+                    if (request.action==Editor::ObjectAction::Add) placement.scale = { 4, 4, 4 };
                     success = world.AddObject(std::move(placement), root, createdId, fileStatus);
                 }
                 else if (request.action == Editor::ObjectAction::Duplicate)
@@ -242,7 +242,7 @@ namespace
                 }
                 if (success)
                 {
-                    if (request.action==Editor::ObjectAction::Add) editState.ObjectChanged(createdId);
+                    if (request.action==Editor::ObjectAction::Add || request.action==Editor::ObjectAction::AddEmpty) editState.ObjectChanged(createdId);
                     fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
                         request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
                     history.Observe(Snapshot(world.Layout().Serialize()), {});
@@ -268,15 +268,19 @@ namespace
             return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer) && ApplyPlay(renderer) && ApplyAssets(renderer);
         }
 
+        bool CanReloadAssets() const
+        {
+            return sceneLoaded && gameSession.State().IsEditing() && !pendingPlay &&
+                !document.Pending() && !pendingObject && !pendingHistory && !gizmo.IsDragging() &&
+                editState.Interaction().empty();
+        }
+
         bool ApplyAssets(Engine::DirectX12Renderer& renderer)
         {
             assetChanges.Poll(root,seconds);
             assetReloadRequested=projectPanel.TakeAssetReloadRequest() || assetReloadRequested;
-            const bool ready=sceneLoaded && gameSession.State().IsEditing() && !pendingPlay &&
-                !document.Pending() && !pendingObject && !pendingHistory && !gizmo.IsDragging() &&
-                editState.Interaction().empty();
             projectPanel.SetReloadPending(assetReloadRequested || assetChanges.Pending());
-            if (!ready) return true;
+            if (!CanReloadAssets()) return true;
             const bool changed=assetChanges.TakeReady(true);
             if (!assetReloadRequested && !changed) return true;
             assetReloadRequested=false;

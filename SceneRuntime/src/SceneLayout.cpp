@@ -1,4 +1,5 @@
 #include <SceneRuntime/SceneLayout.h>
+#include "SceneComponentJson.h"
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <roapi.h>
@@ -84,10 +85,11 @@ namespace SceneRuntime
         {
             JsonApartment apartment;
             const auto document = winrt::Windows::Data::Json::JsonObject::Parse(winrt::to_hstring(json));
-            if (document.GetNamedNumber(L"version") != 2.0)
+            const double version=document.GetNamedNumber(L"version");
+            if (version!=2.0 && version!=3.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
-            if (document.HasKey(L"transformSpace")) throw std::runtime_error("Version 2 scenes always use local transforms");
+            if (document.HasKey(L"transformSpace")) throw std::runtime_error("Scenes always use local transforms");
             std::unordered_set<std::string> ids;
             for (const auto& value : document.GetNamedArray(L"objects"))
             {
@@ -100,14 +102,7 @@ namespace SceneRuntime
                 {
                     placement.name = winrt::to_string(object.GetNamedString(L"name"));
                     if (object.HasKey(L"parent")) placement.parentId = winrt::to_string(object.GetNamedString(L"parent"));
-                    const auto model = winrt::to_string(object.GetNamedString(L"model"));
-                    placement.model = std::filesystem::path(winrt::to_hstring(model).c_str());
-                    if (placement.model.is_absolute() || placement.model.has_root_name() ||
-                        !model.starts_with("Assets/Models/Title/") || placement.model.extension() != L".obj")
-                        throw std::runtime_error("Model must be an OBJ relative to Assets/Models/Title");
-                    if (std::any_of(placement.model.begin(), placement.model.end(),
-                        [](const auto& part) { return part == L".."; }))
-                        throw std::runtime_error("Model path cannot contain parent traversal");
+                    ReadSceneComponents(object,placement,version==2.0);
                     placement.position = ReadVector(object, L"position");
                     placement.rotation = ReadVector(object, L"rotation");
                     placement.scale = ReadVector(object, L"scale", true);
@@ -145,7 +140,7 @@ namespace SceneRuntime
             }
             return array;
         };
-        std::string json = "{\n  \"version\": 2,\n  \"objects\": [\n";
+        std::string json = "{\n  \"version\": 3,\n  \"objects\": [\n";
         for (size_t i = 0; i < objects.size(); ++i)
         {
             const auto& placement = objects[i];
@@ -154,9 +149,7 @@ namespace SceneRuntime
             object.SetNamedValue(L"name", JsonValue::CreateStringValue(winrt::to_hstring(placement.name)));
             if (!placement.parentId.empty())
                 object.SetNamedValue(L"parent",JsonValue::CreateStringValue(winrt::to_hstring(placement.parentId)));
-            const auto model = placement.model.generic_u8string();
-            object.SetNamedValue(L"model", JsonValue::CreateStringValue(winrt::to_hstring(
-                std::string_view(reinterpret_cast<const char*>(model.data()), model.size()))));
+            object.SetNamedValue(L"components",WriteSceneComponents(placement));
             object.SetNamedValue(L"position", vector(placement.position));
             object.SetNamedValue(L"rotation", vector(placement.rotation));
             object.SetNamedValue(L"scale", vector(placement.scale));

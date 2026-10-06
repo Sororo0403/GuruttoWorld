@@ -31,6 +31,7 @@ namespace Editor
             filter_.Draw("Search",-1);
             ImGui::Text("%zu objects / %zu selected",world.Layout().objects.size(),state.SelectedIds().size());
             ImGui::BeginDisabled(!enabled);
+            if (ImGui::Button("Create empty")) state.Request({ObjectAction::AddEmpty,{},{},{}});
             ImGui::Selectable("Drop here to make root",false);
             DrawReparentTarget(world,state,{});
             if (!parentError_.empty()) ImGui::TextWrapped("%s",parentError_.c_str());
@@ -48,7 +49,7 @@ namespace Editor
         for (size_t index=0;index<layout.objects.size();++index)
         {
             const auto& object=layout.objects[index];
-            if (filter_.PassFilter((object.name+" "+object.id+" "+object.model.generic_string()).c_str())) rows.push_back({index,0,false});
+            if (filter_.PassFilter((object.name+" "+object.id+" "+object.Model().generic_string()).c_str())) rows.push_back({index,0,false});
         }
         return rows;
     }
@@ -160,7 +161,7 @@ namespace Editor
                 DrawName(world, state, *found);
                 ImGui::Text("ID: %s", found->id.c_str());
                 DrawParent(world,state,*found);
-                ImGui::TextWrapped("Model: %s", found->model.generic_string().c_str());
+                ImGui::TextWrapped("Model: %s", found->Model().generic_string().c_str());
                 ImGui::Separator();
                 DrawTransform(world, state, *found);
                 if (ImGui::Button("Duplicate")) state.Request(state.DuplicateSelectionRequest());
