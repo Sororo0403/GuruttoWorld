@@ -221,8 +221,7 @@ namespace Editor
         const SceneRuntime::ScenePlacement& placement)
     {
         if (!ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) return;
-        if (world.Layout().transformSpace==SceneRuntime::TransformSpace::Local)
-            ImGui::TextUnformatted("Coordinates: Local (relative to parent)");
+        ImGui::TextUnformatted("Coordinates: Local (relative to parent)");
         auto position=placement.position, rotation=placement.rotation, scale=placement.scale;
         constexpr float ToDegrees=180.0f/std::numbers::pi_v<float>;
         auto degrees=rotation;
@@ -235,7 +234,7 @@ namespace Editor
         }
         edited |= ImGui::DragFloat3("Scale",scale.data(),0.05f,0,0,"%.3f");
         if (edited && (position!=placement.position || rotation!=placement.rotation || scale!=placement.scale))
-            state.SetInspectorTransform(world,placement.id,position,rotation,scale);
+            state.SetLocalTransform(world,placement.id,position,rotation,scale);
         if (ImGui::Button("Reset Transform")) state.ResetTransform(world,placement.id);
     }
 

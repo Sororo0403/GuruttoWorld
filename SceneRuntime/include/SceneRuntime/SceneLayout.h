@@ -7,8 +7,6 @@
 
 namespace SceneRuntime
 {
-    enum class TransformSpace { World, Local };
-
     struct ScenePlacement
     {
         std::string id;
@@ -17,13 +15,12 @@ namespace SceneRuntime
         std::array<float, 3> position{};
         std::array<float, 3> rotation{}; // XYZ、ラジアン。
         std::array<float, 3> scale{ 1.0f, 1.0f, 1.0f };
-        std::string parentId; // Empty means root. Coordinates follow SceneLayout::transformSpace.
+        std::string parentId; // Empty means root. Position, rotation and scale are always relative to the parent.
     };
 
     struct SceneLayout
     {
         std::vector<ScenePlacement> objects;
-        TransformSpace transformSpace = TransformSpace::World;
         // 読み込み・検証に失敗した場合は例外。呼び出し元の配置は変更しません。
         static SceneLayout Parse(std::string_view json);
         std::string Serialize() const;

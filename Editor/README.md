@@ -150,25 +150,18 @@ Drop here to make rootへ落とすと親を解除します。InspectorのParent�
 親子付けはワールドの配置と選択を維持し、Undo／Redo・保存・再読み込みに対応します。自分や子孫への親子付けは拒否します。
 検索中は一致する対象を階層によらずフラットに表示し、Shift範囲選択は現在表示中の行に適用します。
 
-親Transform継承の計算基盤としてSceneRuntimeのSceneTransformsを追加しています。
-既存のWorld形式と、local × parentWorldで合成するLocal形式を明示的に分け、親子の並び順によらずワールド行列を計算します。
-ワールド行列から親に対するローカル行列へ変換でき、非一様拡縮によるせん断も行列として保持します。
-既存シーンはワールド座標のまま読み込みます。ローカル座標の描画形式については以下を参照してください。
+シーン保存形式はversion 2に統一しています。Position・Rotation（XYZラジアン）・Scaleは常に親に対するローカル座標です。
+親がないオブジェクトではローカル座標がワールド座標になります。描画・クリック選択・選択枠はlocal × parentWorldで計算します。
+Inspectorはローカル座標、複数選択の移動量はワールド座標で扱います。親と子を同時選択しても二重に移動しません。
+World/Local切り替えとEnable parent transformsメニューは廃止しました。New・Open・Save・Undo/Redoはすべて同じ形式です。
+親の変更・削除で配置保持にせん断が必要な場合は、SRTで保存できないため変更を拒否します。描画行列ではせん断を保持します。
 
-親Transform継承の描画に対応しています。シーンJSONの`transformSpace: "local"`を明示したシーンは、
-親子の行列を合成して描画・クリック選択・選択枠を計算します。省略または`"world"`では従来の配置を維持します。
-LocalシーンのInspectorは親に対するローカル座標、ギズモと複数選択移動はワールド座標で編集します。
-親と子の同時移動では子孫を二重に移動しません。保存・Undo/Redoでも座標形式を保持します。
-Localシーンで親変更・親削除後の行列にせん断が必要な場合は、現在のSRT保存形式では表せないため変更を拒否します。
-既存シーンはEdit → Enable parent transformsで移行できます。全オブジェクトのワールド配置と選択を保ち、Undo/Redoにも対応します。
-変換で保存できないせん断が必要な場合は対象IDを表示し、シーン全体を変更しません。
-移行は未保存の編集として扱うため、SaveまたはSave asで保存してください。移行済みではメニューにチェックが付きます。
-New sceneで作成したシーンは最初からLocal形式です。JSONへlocal指定を追加するだけでは既存の配置は移行されません。
+旧version 1シーンは通常のエディターでは読み込みません。独立した変換ツールを利用してください。
+`python scripts/ConvertSceneToLocal.py <scene.json>`で配置保持を検証し、`--write`を付けるとversion 2へ保存します。
+既にversion 2のシーンは二重に変換しません。変換不能なシーンは対象IDを表示して拒否します。
 
-手動確認: 既存シーンをSave asで別名保存 → Enable parent transforms → 配置が変わらないことを確認 →
-親を移動・回転・拡縮して子の追従を確認 → Ctrl+Zで親の編集を戻す → さらにCtrl+Zで移行を戻す →
-Ctrl+Yで移行を復元 → Save/Reloadで追従が維持されることを確認してください。
+Transform APIはSetLocalTransform（親に対するSRT）、SetWorldTransform（ワールドSRTまたは行列）、TranslateObjectsWorld（ワールド移動量）です。
+LocalTransformFromWorldはワールド行列を親に対するSRTへ変換し、SceneTransforms::ReadTransformが行列の検証と分解を担当します。
 
-Transform APIはSetLocalTransform（親に対するSRT）、SetWorldTransform（ワールドSRTまたは行列）、
-TranslateObjectsWorld（ワールド移動量）を明示的に分けています。行列からSRTへの検証・分解はSceneTransforms::ReadTransformに集約します。
-Inspectorは現在の保存形式に応じてAPIを選びます。World/Local保存形式の統一は次の段階です。
+手動確認: シーンを別名保存 → 親の移動・回転・拡縮に子が追従することを確認 → Ctrl+Z/Ctrl+Yで編集を戻す/復元する →
+Save/Reload後も配置と親子関係が維持されることを確認してください。

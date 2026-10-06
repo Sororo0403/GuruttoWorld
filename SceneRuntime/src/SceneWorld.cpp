@@ -61,7 +61,7 @@ namespace SceneRuntime
         {
             static_cast<void>(layout.Serialize());
             std::vector<DirectX::XMFLOAT4X4> matrices;
-            if (!SceneTransforms::Resolve(layout,layout.transformSpace,matrices,error)) throw std::runtime_error(error);
+            if (!SceneTransforms::Resolve(layout,matrices,error)) throw std::runtime_error(error);
             std::vector<Engine::Object3D> objects;
             objects.reserve(layout.objects.size());
             for (const auto& placement : layout.objects)
@@ -98,7 +98,7 @@ namespace SceneRuntime
     {
         std::vector<DirectX::XMFLOAT4X4> matrices;
         std::string error;
-        if (!SceneTransforms::Resolve(candidate,candidate.transformSpace,matrices,error)) return false;
+        if (!SceneTransforms::Resolve(candidate,matrices,error)) return false;
         auto objects=objects_;
         if (objects.size()!=matrices.size()) return false;
         for (size_t index=0;index<objects.size();++index)
@@ -114,17 +114,7 @@ namespace SceneRuntime
             target.position=source.position; target.rotation=source.rotation; target.scale=source.scale;
             target.parentId=std::move(candidate.objects[index].parentId);
         }
-        layout_.transformSpace=candidate.transformSpace;
         objects_=std::move(objects);
-        return true;
-    }
-
-    bool SceneWorld::EnableParentTransforms(std::string& error)
-    {
-        SceneLayout candidate;
-        if (!SceneTransforms::ConvertToLocal(layout_,candidate,error)) return false;
-        if (!CommitTransforms(std::move(candidate))) { error="Could not apply converted transforms"; return false; }
-        error.clear();
         return true;
     }
 
@@ -140,15 +130,13 @@ namespace SceneRuntime
             if (!WorldMatrix(id,matrix)) throw std::runtime_error("World matrix is unavailable");
             found->parentId=std::move(parentId);
             static_cast<void>(candidate.Serialize());
-            if (candidate.transformSpace==TransformSpace::Local)
-            {
-                DirectX::XMFLOAT4X4 parent;
-                if (!found->parentId.empty() && (!WorldMatrix(found->parentId,parent) ||
-                    !SceneTransforms::WorldToLocal(matrix,parent,matrix))) throw std::runtime_error("Invalid parent transform");
-                auto reference=*found;
-                if (!SceneTransforms::ReadTransform(matrix,reference,*found))
-                    throw std::runtime_error("Parent change requires shear that cannot be stored as position, rotation and scale");
-            }
+            DirectX::XMFLOAT4X4 parent;
+            if (!found->parentId.empty() && (!WorldMatrix(found->parentId,parent) ||
+                !SceneTransforms::WorldToLocal(matrix,parent,matrix))) throw std::runtime_error("Invalid parent transform");
+            auto reference=*found;
+            if (!SceneTransforms::ReadTransform(matrix,reference,*found))
+                throw std::runtime_error("Parent change requires shear that cannot be stored as position, rotation and scale");
+
             if (!CommitTransforms(std::move(candidate))) throw std::runtime_error("Invalid inherited transform");
             error.clear();
             return true;
@@ -186,16 +174,7 @@ namespace SceneRuntime
         if (found==layout_.objects.end()) return false;
         auto placement=*found;
         placement.position=position; placement.rotation=rotation; placement.scale=scale;
-        if (layout_.transformSpace==TransformSpace::Local) return SetPlacementTransform(id,placement);
-        DirectX::XMFLOAT4X4 matrix;
-        if (!SceneTransforms::Compose(placement,matrix)) return false;
-        if (!placement.parentId.empty())
-        {
-            DirectX::XMFLOAT4X4 parent;
-            if (!WorldMatrix(placement.parentId,parent)) return false;
-            DirectX::XMStoreFloat4x4(&matrix,DirectX::XMLoadFloat4x4(&matrix)*DirectX::XMLoadFloat4x4(&parent));
-        }
-        return SetWorldTransform(id,matrix);
+        return SetPlacementTransform(id,placement);
     }
 
     bool SceneWorld::SetWorldTransform(std::string_view id, const std::array<float,3>& position,
@@ -205,14 +184,13 @@ namespace SceneRuntime
         placement.position=position; placement.rotation=rotation; placement.scale=scale;
         DirectX::XMFLOAT4X4 matrix;
         if (!SceneTransforms::Compose(placement,matrix)) return false;
-        if (layout_.transformSpace==TransformSpace::World) return SetPlacementTransform(id,placement);
         return SetWorldTransform(id,matrix);
     }
 
     bool SceneWorld::SetWorldTransform(std::string_view id, const DirectX::XMFLOAT4X4& matrix)
     {
         ScenePlacement placement;
-        if (!PlacementTransformFromWorld(id,matrix,placement)) return false;
+        if (!LocalTransformFromWorld(id,matrix,placement)) return false;
         return SetPlacementTransform(id,placement);
     }
 
@@ -227,15 +205,13 @@ namespace SceneRuntime
                 [&](const auto& placement) { return placement.id==id; });
             if (found==candidate.objects.end() || std::find(seen.begin(),seen.end(),id)!=seen.end()) return false;
             seen.push_back(id);
-            if (candidate.transformSpace==TransformSpace::Local)
-            {
-                if (HasSelectedAncestor(layout_,found->parentId,ids)) continue;
-            }
+            if (HasSelectedAncestor(layout_,found->parentId,ids)) continue;
+
             DirectX::XMFLOAT4X4 matrix;
             ScenePlacement translated;
             if (!WorldMatrix(id,matrix)) return false;
             matrix._41+=delta[0]; matrix._42+=delta[1]; matrix._43+=delta[2];
-            if (!PlacementTransformFromWorld(id,matrix,translated)) return false;
+            if (!LocalTransformFromWorld(id,matrix,translated)) return false;
             found->position=translated.position;
         }
         return CommitTransforms(std::move(candidate));
@@ -275,7 +251,7 @@ namespace SceneRuntime
             validation.objects.push_back(placement);
             static_cast<void>(validation.Serialize());
             std::vector<DirectX::XMFLOAT4X4> matrices;
-            if (!SceneTransforms::Resolve(validation,validation.transformSpace,matrices,error)) throw std::runtime_error(error);
+            if (!SceneTransforms::Resolve(validation,matrices,error)) throw std::runtime_error(error);
             Engine::Object3D object;
             if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
                 throw std::runtime_error("Invalid transform");
@@ -308,7 +284,7 @@ namespace SceneRuntime
         DirectX::XMFLOAT4X4 matrix;
         if (!WorldMatrix(id,matrix)) { error="World matrix is unavailable"; return false; }
         matrix._41+=offset[0]; matrix._42+=offset[1]; matrix._43+=offset[2];
-        if (!PlacementTransformFromWorld(id,matrix,placement)) { error="Invalid duplicate offset"; return false; }
+        if (!LocalTransformFromWorld(id,matrix,placement)) { error="Invalid duplicate offset"; return false; }
         placement.id = NewId();
         placement.name += " copy";
         if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
@@ -337,18 +313,16 @@ namespace SceneRuntime
         {
             if (placement.parentId!=removedId) continue;
             placement.parentId.clear();
-            if (candidate.transformSpace==TransformSpace::Local)
-            {
-                DirectX::XMFLOAT4X4 matrix;
-                auto reference=placement;
-                if (!WorldMatrix(placement.id,matrix) || !SceneTransforms::ReadTransform(matrix,reference,placement)) return false;
-            }
+            DirectX::XMFLOAT4X4 matrix;
+            auto reference=placement;
+            if (!WorldMatrix(placement.id,matrix) || !SceneTransforms::ReadTransform(matrix,reference,placement)) return false;
+
         }
         candidate.objects.erase(found);
         objects.erase(objects.begin()+static_cast<std::ptrdiff_t>(index));
         std::vector<DirectX::XMFLOAT4X4> matrices;
         std::string error;
-        if (!SceneTransforms::Resolve(candidate,candidate.transformSpace,matrices,error)) return false;
+        if (!SceneTransforms::Resolve(candidate,matrices,error)) return false;
         for (size_t item=0;item<objects.size();++item)
             if (!objects[item].SetWorldMatrix(matrices[item])) return false;
         layout_=std::move(candidate);
@@ -398,13 +372,13 @@ namespace SceneRuntime
         return true;
     }
 
-    bool SceneWorld::PlacementTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const
+    bool SceneWorld::LocalTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const
     {
         const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),
             [&](const auto& value) { return value.id==id; });
         if (found==layout_.objects.end()) return false;
         auto matrix=world;
-        if (layout_.transformSpace==TransformSpace::Local && !found->parentId.empty())
+        if (!found->parentId.empty())
         {
             DirectX::XMFLOAT4X4 parent;
             if (!WorldMatrix(found->parentId,parent) || !SceneTransforms::WorldToLocal(world,parent,matrix)) return false;

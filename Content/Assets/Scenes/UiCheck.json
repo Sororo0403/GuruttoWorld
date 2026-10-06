@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "objects": [
     {"id":"ground","name":"ground","model":"Assets/Models/Title/Surface/Roads/ground.obj","position":[-12.800000190734863,-0.11999999731779099,60],"rotation":[0,0,0],"scale":[160,4,180]},
     {"id":"road-00","name":"road-00","model":"Assets/Models/Title/Surface/Roads/road-straight.obj","position":[0,0,-8],"rotation":[0,1.5707963705062866,0],"scale":[4,4,4]},
@@ -76,7 +76,7 @@
     {"id":"sidewalk-23-right","name":"sidewalk-23-right","model":"Assets/Models/Title/Surface/Roads/sidewalk.obj","position":[2.7999999523162842,0.079999998211860657,84],"rotation":[0,0,0],"scale":[1.6000000238418579,4,4]},
     {"id":"street-building-1","name":"street-building-1","model":"Assets/Models/Title/Surface/Commercial/building-k.obj","position":[10,0.079999998211860657,3],"rotation":[0,1.5707963705062866,0],"scale":[4,4,4]},
     {"id":"street-building-2","name":"street-building-2","model":"Assets/Models/Title/Surface/Commercial/building-h.obj","position":[1.0358645915985107,1.8920198678970337,5],"rotation":[0,-1.5707963705062866,0],"scale":[4,4,4]},
-    {"id":"street-building-3","name":"street-building-3","parent":"ground","model":"Assets/Models/Title/Surface/Commercial/building-k.obj","position":[-5.5999999046325684,0.079999998211860657,12],"rotation":[0,-1.5707963705062866,0],"scale":[4,4,4]},
+    {"id":"street-building-3","name":"street-building-3","parent":"ground","model":"Assets/Models/Title/Surface/Commercial/building-k.obj","position":[0.04500000178813934,0.04999999888241291,-0.2666666666666667],"rotation":[0.0,-1.570796277373336,0.0],"scale":[0.02222222222222223,1.0,0.024999999999999994]},
     {"id":"street-building-4","name":"street-building-4","model":"Assets/Models/Title/Surface/Commercial/building-e.obj","position":[-4.8000001907348633,0.079999998211860657,27],"rotation":[0,-1.5707963705062866,0],"scale":[4,4,4]},
     {"id":"street-building-5","name":"street-building-5","model":"Assets/Models/Title/Surface/Commercial/building-c.obj","position":[4.8000001907348633,0.079999998211860657,34],"rotation":[0,1.5707963705062866,0],"scale":[4,4,4]},
     {"id":"street-building-6","name":"street-building-6","model":"Assets/Models/Title/Surface/Commercial/building-h.obj","position":[-4.8000001907348633,0.079999998211860657,35],"rotation":[0,-1.5707963705062866,0],"scale":[4,4,4]},

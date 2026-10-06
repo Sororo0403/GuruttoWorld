@@ -650,24 +650,7 @@ namespace
                 pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
             if (ImGui::MenuItem("Delete", "Delete", false, selected))
                 pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,editState.SelectedId(),{}, {}};
-            ImGui::Separator();
-            const bool inherited=world.Layout().transformSpace==SceneRuntime::TransformSpace::Local;
-            if (ImGui::MenuItem("Enable parent transforms", nullptr, inherited, enabled && !inherited))
-                EnableParentTransforms();
             ImGui::EndMenu();
-        }
-
-        void EnableParentTransforms()
-        {
-            history.Observe(Snapshot(world.Layout().Serialize()),false);
-            const bool success=editState.EnableParentTransforms(world,fileStatus);
-            if (success)
-            {
-                history.Observe(Snapshot(world.Layout().Serialize()),false);
-                editState.SetChanged(document.UnsavedNew() || history.Dirty(world.Layout().Serialize()));
-                fileStatus="Parent transforms enabled. World placement preserved. Save to keep this change.";
-            }
-            LogResult(success);
         }
 
         void DrawToolbar()

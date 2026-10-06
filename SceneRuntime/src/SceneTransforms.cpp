@@ -36,7 +36,7 @@ namespace
         });
     }
     void ResolveChain(size_t start, const std::vector<std::optional<size_t>>& parents,
-        SceneRuntime::TransformSpace space, std::vector<unsigned char>& visited, std::vector<Matrix>& matrices)
+        std::vector<unsigned char>& visited, std::vector<Matrix>& matrices)
     {
         std::vector<size_t> chain;
         std::optional<size_t> current=start;
@@ -50,7 +50,7 @@ namespace
         for (auto item=chain.rbegin();item!=chain.rend();++item)
         {
             const auto index=*item;
-            if (space==SceneRuntime::TransformSpace::Local && parents[index])
+            if (parents[index])
             {
                 DirectX::XMStoreFloat4x4(&matrices[index],DirectX::XMLoadFloat4x4(&matrices[index]) *
                     DirectX::XMLoadFloat4x4(&matrices[*parents[index]]));
@@ -110,41 +110,7 @@ namespace SceneRuntime
         return TransformMatrix::Read(matrix,basis,output);
     }
 
-    bool SceneTransforms::ConvertToLocal(const SceneLayout& source, SceneLayout& output, std::string& error)
-    {
-        try
-        {
-            auto candidate=source;
-            std::vector<DirectX::XMFLOAT4X4> worlds;
-            if (!Resolve(source,source.transformSpace,worlds,error)) return false;
-            if (source.transformSpace==TransformSpace::World)
-            {
-                const auto parents=ParentIndices(source);
-                for (size_t index=0;index<candidate.objects.size();++index)
-                {
-                    if (!parents[index]) continue;
-                    auto local=worlds[index];
-                    if (!WorldToLocal(worlds[index],worlds[*parents[index]],local))
-                        throw std::runtime_error(candidate.objects[index].id+": invalid parent transform");
-                    auto reference=candidate.objects[index];
-                    if (!ReadTransform(local,reference,candidate.objects[index]))
-                        throw std::runtime_error(candidate.objects[index].id+": local transform requires shear; adjust parent rotation or scale first");
-                }
-            }
-            candidate.transformSpace=TransformSpace::Local;
-            std::vector<DirectX::XMFLOAT4X4> rebuilt;
-            if (!Resolve(candidate,candidate.transformSpace,rebuilt,error)) return false;
-            for (size_t index=0;index<worlds.size();++index)
-                if (!TransformMatrix::Matches(worlds[index],rebuilt[index]))
-                    throw std::runtime_error(candidate.objects[index].id+": conversion would change the world transform");
-            output=std::move(candidate);
-            error.clear();
-            return true;
-        }
-        catch (const std::exception& exception) { error=exception.what(); return false; }
-    }
-
-    bool SceneTransforms::Resolve(const SceneLayout& layout, TransformSpace space,
+    bool SceneTransforms::Resolve(const SceneLayout& layout,
         std::vector<DirectX::XMFLOAT4X4>& output, std::string& error)
     {
         try
@@ -154,7 +120,7 @@ namespace SceneRuntime
             for (size_t index=0;index<layout.objects.size();++index)
                 if (!Compose(layout.objects[index],matrices[index])) throw std::runtime_error("Invalid transform: "+layout.objects[index].id);
             std::vector<unsigned char> visited(layout.objects.size(),0);
-            for (size_t index=0;index<layout.objects.size();++index) ResolveChain(index,parents,space,visited,matrices);
+            for (size_t index=0;index<layout.objects.size();++index) ResolveChain(index,parents,visited,matrices);
             output=std::move(matrices);
             error.clear();
             return true;

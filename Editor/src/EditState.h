@@ -35,13 +35,11 @@ namespace Editor
         void SetChanged(bool changed) { changed_ = changed; }
         void MarkSaved() { changed_ = false; }
         void Reloaded() { selection_.Select({}); changed_ = false; invalidTransform_ = false; }
-        bool SetInspectorTransform(SceneRuntime::SceneWorld& world, const std::string& id,
+        bool SetLocalTransform(SceneRuntime::SceneWorld& world, const std::string& id,
             const std::array<float, 3>& position, const std::array<float, 3>& rotation,
             const std::array<float, 3>& scale)
         {
-            if (world.Layout().transformSpace==SceneRuntime::TransformSpace::Local)
-                invalidTransform_=!world.SetLocalTransform(id,position,rotation,scale);
-            else invalidTransform_=!world.SetWorldTransform(id,position,rotation,scale);
+            invalidTransform_=!world.SetLocalTransform(id,position,rotation,scale);
             if (!invalidTransform_) changed_ = true;
             return !invalidTransform_;
         }
@@ -50,14 +48,6 @@ namespace Editor
             invalidTransform_=!world.TranslateObjectsWorld(SelectedIds(),delta);
             if (!invalidTransform_ && delta!=std::array<float,3>{}) changed_=true;
             return !invalidTransform_;
-        }
-        bool EnableParentTransforms(SceneRuntime::SceneWorld& world, std::string& error)
-        {
-            const bool changed=world.Layout().transformSpace==SceneRuntime::TransformSpace::World;
-            if (!world.EnableParentTransforms(error)) return false;
-            if (changed) changed_=true;
-            invalidTransform_=false;
-            return true;
         }
         bool SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId, std::string& error)
         {
@@ -76,7 +66,7 @@ namespace Editor
         }
         bool ResetTransform(SceneRuntime::SceneWorld& world, const std::string& id)
         {
-            return SetInspectorTransform(world, id, {0,0,0}, {0,0,0}, {1,1,1});
+            return SetLocalTransform(world, id, {0,0,0}, {0,0,0}, {1,1,1});
         }
         bool InvalidTransform() const { return invalidTransform_; }
         void Request(ObjectRequest request) { request_ = std::move(request); }

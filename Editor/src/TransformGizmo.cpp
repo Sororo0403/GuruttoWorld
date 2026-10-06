@@ -96,12 +96,12 @@ namespace Editor
             return;
         }
         auto transformed=current;
-        invalidTransform_=!world.PlacementTransformFromWorld(current.id,matrix,transformed);
+        invalidTransform_=!world.LocalTransformFromWorld(current.id,matrix,transformed);
         if (invalidTransform_) return;
         if (mode_==Mode::Rotate) { transformed.position=current.position; transformed.scale=current.scale; }
         if (mode_==Mode::Scale) { transformed.position=current.position; transformed.rotation=current.rotation; }
         if (transformed.position==current.position && transformed.rotation==current.rotation && transformed.scale==current.scale) return;
-        invalidTransform_=!state.SetInspectorTransform(world,current.id,transformed.position,transformed.rotation,transformed.scale);
+        invalidTransform_=!state.SetLocalTransform(world,current.id,transformed.position,transformed.rotation,transformed.scale);
         if (!invalidTransform_) state.ObjectChanged(current.id);
     }
 
