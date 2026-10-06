@@ -257,3 +257,11 @@ Playing／Paused中と編集操作中は更新を保留し、Editingへ戻って
 HierarchyのCreate emptyでTransformだけを持つオブジェクトを作成できます。親子付け・ギズモ・複数選択・複製・削除・Undo/Redo・保存に対応します。モデルを持たない対象はHierarchyで選択してください。選択枠とFフォーカスには原点付近の小さい境界を使います。
 version 3ではTransformを必須データとして持ち、任意のMeshRenderer／Rotatorをcomponents配列へ保存します。Componentにはオブジェクト内で一意なID、種類、enabledと型付きの設定を持たせます。TransformのIDはtransformとして予約します。未対応の種類・重複・不正なプロパティは読み込みを拒否し、黙って削除しません。
 旧version 2のmodelは読み込み時にMeshRendererへ移し、ローカルTransformと親子を維持します。保存するとversion 3になり、モデルの参照先はMeshRendererだけが保持します。version 1は従来の変換スクリプトでローカル座標へ変換してから開いてください。
+
+## Componentの編集と実行
+
+単体選択のInspectorでAdd ComponentからMeshRenderer／Rotatorを追加できます。同じ種類は一つずつです。MeshRendererはProjectにあるAssets/Models配下のOBJを選び、有効切り替え・参照先変更・削除ができます。Reset MeshRendererは有効状態を戻し、モデル参照とIDを保持します。
+RotatorはローカルX／Y／Zの角速度を度／秒で編集します。有効切り替え・リセット・削除にも対応します。Reset Rotatorは[0,90,0]とenabled=trueへ戻し、IDを保持します。有限値かつ各軸±100000度／秒以内に検証します。Componentの追加・削除・変更はUndo/Redoと未保存表示へ反映し、速度の一回のドラッグは一回のUndoになります。
+Transformは必須で削除できません。Component変更は描画の外で処理し、モデルの読み込み失敗時は直前の設定と履歴を維持します。複数選択中のComponent一括編集はこの段階の対象に含めません。
+RotatorはPlayの独立した実行用シーンでだけ更新します。Pauseで停止し、Stepで1/60秒、Resumeで継続します。Stopで実行用の回転を破棄し、編集中のTransform・設定・選択・履歴・保存先へ戻ります。空の親へ付けると子孫もTransform継承で回ります。
+`Assets/Scenes/ComponentDemo.json`を開いてPlayすると、空のSpinnerの子が周回し、Peerは静止します。編集する場合は別名保存してから操作してください。

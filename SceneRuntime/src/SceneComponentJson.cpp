@@ -2,6 +2,7 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <stdexcept>
 #include <unordered_set>
 #undef GetObject
@@ -13,9 +14,11 @@ namespace
     {
         const auto text=winrt::to_string(object.GetNamedString(L"model"));
         const auto path=std::filesystem::path(winrt::to_hstring(text).c_str());
-        if (path.is_absolute() || path.has_root_name() || !text.starts_with("Assets/Models/Title/") ||
-            path.extension()!=L".obj" || std::any_of(path.begin(),path.end(),[](const auto& part) { return part==L".."; }))
-            throw std::runtime_error("MeshRenderer model must be an OBJ relative to Assets/Models/Title");
+        auto extension=path.extension().string();
+        std::transform(extension.begin(),extension.end(),extension.begin(),[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (path.is_absolute() || path.has_root_name() || !text.starts_with("Assets/Models/") ||
+            extension!=".obj" || std::any_of(path.begin(),path.end(),[](const auto& part) { return part==L".."; }))
+            throw std::runtime_error("MeshRenderer model must be an OBJ relative to Assets/Models");
         return path;
     }
 

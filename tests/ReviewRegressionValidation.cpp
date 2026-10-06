@@ -1553,6 +1553,92 @@ namespace
         Check(session.Pause() && session.Stop(), "paused session can stop safely");
     }
 
+    void ValidateComponents(Engine::DirectX12Renderer& renderer)
+    {
+        const auto root=std::filesystem::absolute("Content");
+        auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/ComponentDemo.json");
+        SceneRuntime::SceneWorld world;
+        std::string error;
+        Check(world.Initialize(renderer,root,layout,root/"Shaders/TitleMesh.hlsl",&error), "component demo initializes");
+        const auto json=world.Layout().Serialize();
+        Editor::EditState state; state.Select("Spinner");
+        Editor::EditHistory history; history.Reset({json,"Spinner",state.SelectedIds()});
+        auto settings=layout.objects[1]; settings.rotator->angularVelocity={10,20,30};
+        state.RequestComponents(settings,"component/speed");
+        auto request=state.TakeRequest();
+        Check(request && request->action==Editor::ObjectAction::Components && request->id=="Spinner" &&
+            request->components && request->interaction=="component/speed", "Inspector queues typed settings with an interaction identity");
+        Check(world.SetComponents(request->id,*request->components,root,error), "Rotator property edit accepted");
+        history.Observe({world.Layout().Serialize(),"Spinner",state.SelectedIds()},request->interaction);
+        settings.rotator->angularVelocity={20,30,40}; settings.position={999,999,999}; settings.name="Ignored";
+        Check(world.SetComponents("Spinner",settings,root,error) && world.Layout().objects[1].position==layout.objects[1].position &&
+            world.Layout().objects[1].name==layout.objects[1].name, "component edits cannot overwrite Transform or object metadata");
+        history.Observe({world.Layout().Serialize(),"Spinner",state.SelectedIds()},"component/speed"); history.Commit();
+        const auto undo=history.Target(false);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(undo.json),root,error), "Undo restores component settings");
+        history.Applied(false);
+        Check(world.Layout().Serialize()==json && !history.CanUndo() && history.CanRedo(), "one Undo reverses an entire property drag");
+        auto invalid=layout.objects[1]; invalid.SetModel("Assets/Models/missing.obj");
+        Check(!world.SetComponents("Spinner",invalid,root,error) && world.Layout().Serialize()==json && state.SelectedId()=="Spinner",
+            "failed component model loading preserves object settings and selection");
+        history.Observe({world.Layout().Serialize(),"Spinner",state.SelectedIds()},{});
+        Check(history.CanRedo(), "failed component edit preserves redo history");
+        const auto redo=history.Target(true);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(redo.json),root,error) &&
+            world.Layout().objects[1].rotator->angularVelocity==std::array<float,3>{20,30,40},
+            "Redo reapplies typed Component settings after a failed edit");
+        history.Applied(true);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json),root,error), "component Undo after Redo");
+        history.Applied(false);
+        auto child=layout.objects[2]; child.meshRenderer->enabled=false;
+        Check(world.SetComponents(child.id,child,root,error) && !world.Layout().objects[2].meshRenderer->enabled,
+            "MeshRenderer enable state edits without removing Transform");
+        child.meshRenderer.reset();
+        Check(world.SetComponents(child.id,child,root,error) && !world.Layout().objects[2].meshRenderer,
+            "removing MeshRenderer leaves the object and parent intact");
+        Check(world.SetComponents(child.id,layout.objects[2],root,error), "MeshRenderer can be added back");
+        auto parent=layout.objects[1]; parent.rotator->enabled=false;
+        Check(world.SetComponents(parent.id,parent,root,error) && world.UpdateComponents(1) && world.Layout().objects[1].rotation==parent.rotation,
+            "disabled Rotator does not run");
+        parent.rotator.reset();
+        Check(world.SetComponents(parent.id,parent,root,error) && !world.Layout().objects[1].rotator, "Rotator can be removed");
+        Check(world.ReplaceLayout(layout,root,error), "runtime component fixture restored");
+        Check(!world.UpdateComponents(NAN) && !world.UpdateComponents(0) && world.Layout().Serialize()==json,
+            "invalid runtime ticks leave Transform and Component state intact");
+        Editor::PlaySnapshot snapshot(world,state,history,Editor::SceneDocument(root/"Assets/Scenes/ComponentDemo.json"));
+        Editor::GameSession session;
+        Check(session.Play(renderer,root,layout,error) && session.Update(1,true), "runtime starts and updates Rotator");
+        const auto* running=session.Runtime();
+        Engine::RenderTexture target;
+        Check(target.Resize(renderer,160,90), "component runtime render target");
+        Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float) {
+            Check(target.Begin(commands,{0,0,0,1}), "component runtime draw begins");
+            session.Draw(commands,target.GetWidth(),target.GetHeight());
+            Check(target.End(commands), "component runtime draw ends");
+        })!=Engine::RenderResult::Failed && renderer.WaitForIdle(), "component runtime renders inherited poses with GPU completion");
+        DirectX::XMFLOAT4X4 childWorld;
+        Check(running->World().WorldMatrix("OrbitingChild",childWorld) && std::abs(childWorld._41)<0.001f &&
+            std::abs(childWorld._43-7)<0.001f, "Rotator on an empty parent rotates the child once through inherited Transform");
+        const auto rotated=running->World().Layout().objects[1].rotation;
+        Check(session.Pause() && !session.Update(1,true) && running->World().Layout().objects[1].rotation==rotated,
+            "Pause freezes Component updates");
+        Check(session.Step() && std::abs(running->World().Layout().objects[1].rotation[1]-rotated[1]-DirectX::XM_PI/120)<0.001f,
+            "Step advances Rotator exactly 1/60 second");
+        Check(session.Play(renderer,root,layout,error) && session.Update(0.1,true), "Resume continues component runtime");
+        Check(renderer.WaitForIdle() && session.Stop() && world.Layout().Serialize()==json,
+            "Stop releases runtime without writing simulated transforms into the authoring scene");
+        Editor::SceneDocument document(root/"Assets/Scenes/ComponentDemo.json");
+        Check(snapshot.Restore(world,root,state,history,document,error) && world.Layout().Serialize()==json && state.SelectedId()=="Spinner",
+            "Component scene Stop snapshot preserves settings and selection");
+        std::vector<std::string> copies;
+        Check(world.DuplicateObjects({"Spinner","OrbitingChild"},{4,0,0},copies,error) &&
+            world.Layout().objects[4].rotator==layout.objects[1].rotator && world.Layout().objects[5].meshRenderer==layout.objects[2].meshRenderer,
+            "duplication preserves all component IDs and properties within copied owners");
+        const auto saved=std::filesystem::absolute("generated/tests/component-roundtrip.json");
+        world.Layout().Save(saved);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Load(saved),root,error), "component scene saves and reopens after duplication");
+    }
+
     void ValidateEmptyObjects(Engine::DirectX12Renderer& renderer)
     {
         const auto root=std::filesystem::absolute("Content");
@@ -1641,6 +1727,7 @@ namespace
             {
                 ValidateAssetReload(renderer);
                 ValidateEmptyObjects(renderer);
+                ValidateComponents(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
                 ValidateGameSession(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
@@ -2146,6 +2233,9 @@ void ValidateComponentSchema()
         bool failed=false; try { static_cast<void>(invalid.Serialize()); } catch (const std::exception&) { failed=true; }
         Check(failed, "invalid component settings cannot be saved");
     };
+    auto upper=restored; upper.objects[0].SetModel("Assets/Models/Custom.OBJ");
+    Check(SceneRuntime::SceneLayout::Parse(upper.Serialize()).objects[0].Model()==upper.objects[0].Model(),
+        "component model references accept Project-recognized uppercase OBJ extensions outside Title");
     auto invalid=restored; invalid.objects[0].rotator->id="custom-mesh"; reject(invalid);
     invalid=restored; invalid.objects[0].rotator->id="transform"; reject(invalid);
     invalid=restored; invalid.objects[0].rotator->angularVelocity[0]=NAN; reject(invalid);
@@ -2182,6 +2272,17 @@ void ValidateAssetChangeBatching()
     Check(!changes.TakeReady(true), "additional dependent changes restart batching");
     changes.Observe(files);
     Check(changes.TakeReady(true) && !changes.TakeReady(true), "stable batch applies once after returning to editing");
+    const auto root=std::filesystem::absolute("generated/tests/asset-watch");
+    std::filesystem::create_directories(root/"Assets/Scenes");
+    std::filesystem::create_directories(root/"Shaders");
+    for (const auto* name : {"scene.json","scene.JSON","scene.json.tmp"})
+    { std::ofstream file(root/"Assets/Scenes"/name); file << "{}"; }
+    { std::ofstream file(root/"Assets/shape.MTL"); file << "newmtl test"; }
+    { std::ofstream file(root/"Shaders/test.HLSL"); file << "source"; }
+    const auto captured=Editor::AssetChanges::Capture(root);
+    Check(!captured.contains(root/"Assets/Scenes/scene.JSON") && !captured.contains(root/"Assets/Scenes/scene.json.tmp") &&
+        captured.contains(root/"Assets/shape.MTL") && captured.contains(root/"Shaders/test.HLSL"),
+        "watching includes material and shader dependencies but ignores scenes and temporary saves case-insensitively");
     std::string error;
     Check(Editor::ValidateProjectShaders(std::filesystem::absolute("Content"),error), "project shader entry points compile");
 }

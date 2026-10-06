@@ -8,7 +8,7 @@
 
 namespace Editor
 {
-    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete };
+    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete, Components };
     struct ObjectRequest
     {
         ObjectAction action = ObjectAction::Add;
@@ -16,6 +16,8 @@ namespace Editor
         std::filesystem::path model;
         std::array<float, 3> position{};
         std::vector<std::string> ids{};
+        std::optional<SceneRuntime::ScenePlacement> components{};
+        std::string interaction{};
     };
 
     // Shared editing state and operations; independent of panels and ImGui.
@@ -139,6 +141,15 @@ namespace Editor
             return true;
         }
         bool InvalidTransform() const { return invalidTransform_; }
+        void RequestComponents(SceneRuntime::ScenePlacement placement, std::string interaction)
+        {
+            ObjectRequest request;
+            request.action=ObjectAction::Components;
+            request.id=placement.id;
+            request.components=std::move(placement);
+            request.interaction=std::move(interaction);
+            Request(std::move(request));
+        }
         void Request(ObjectRequest request) { request_ = std::move(request); }
         std::optional<ObjectRequest> TakeRequest()
         {

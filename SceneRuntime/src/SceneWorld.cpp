@@ -237,6 +237,52 @@ namespace SceneRuntime
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
 
+    bool SceneWorld::SetComponents(std::string_view id, const ScenePlacement& settings,
+        const std::filesystem::path& assetsRoot, std::string& error)
+    {
+        try
+        {
+            auto candidate=layout_;
+            const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
+                [&](const auto& placement) { return placement.id==id; });
+            if (found==candidate.objects.end()) throw std::runtime_error("Component owner no longer exists");
+            found->meshRenderer=settings.meshRenderer; found->rotator=settings.rotator;
+            static_cast<void>(candidate.Serialize());
+            const auto index=static_cast<size_t>(found-candidate.objects.begin());
+            if (found->meshRenderer==layout_.objects[index].meshRenderer)
+            {
+                layout_.objects[index].rotator=found->rotator;
+                error.clear();
+                return true;
+            }
+            return ReplaceLayout(std::move(candidate),assetsRoot,error);
+        }
+        catch (const std::exception& exception) { error=exception.what(); return false; }
+    }
+
+    bool SceneWorld::UpdateComponents(double seconds)
+    {
+        if (!std::isfinite(seconds) || seconds<=0) return false;
+        if (std::none_of(layout_.objects.begin(),layout_.objects.end(),
+            [](const auto& placement) { return placement.rotator && placement.rotator->enabled; })) return true;
+        auto candidate=layout_;
+        bool changed=false;
+        for (auto& placement : candidate.objects)
+        {
+            if (!placement.rotator || !placement.rotator->enabled) continue;
+            for (size_t axis=0;axis<3;++axis)
+            {
+                const double speed=placement.rotator->angularVelocity[axis];
+                if (speed==0) continue;
+                const double elapsed=std::remainder(seconds,360.0/std::abs(speed));
+                placement.rotation[axis]=static_cast<float>(std::remainder(static_cast<double>(placement.rotation[axis])+
+                    elapsed*speed*DirectX::XM_PI/180.0,static_cast<double>(DirectX::XM_2PI)));
+                changed=true;
+            }
+        }
+        return !changed || CommitTransforms(std::move(candidate));
+    }
+
     bool SceneWorld::RenameObject(std::string_view id, std::string name)
     {
         if (name.find_first_not_of(" \t\r\n")==std::string::npos || name.find('\0')!=std::string::npos) return false;

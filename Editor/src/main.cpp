@@ -78,13 +78,13 @@ namespace
     private:
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
         {
-            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer) || !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
+            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer)) return Engine::RenderResult::Failed;
+            if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             bool rendered = true;
             const auto result = renderer.Render({0.10f, 0.11f, 0.13f, 1},
                 [&](ID3D12GraphicsCommandList* commands, float aspect)
                 {
-                    rendered=projectPanel.RenderPreview(commands);
                     if (preview)
                     {
                         SceneRuntime::TitleView::SetProjection(previewCamera, aspect);
@@ -92,7 +92,8 @@ namespace
                     }
                     else
                     {
-                        if (sceneViewport.Valid()) rendered = DrawSceneTexture(commands);
+                        rendered=projectPanel.RenderPreview(commands);
+                        if (sceneViewport.Valid()) rendered = DrawSceneTexture(commands) && rendered;
                         if (gamePanel.Viewport().Valid()) rendered = DrawGameTexture(commands) && rendered;
                     }
                 }, [&]() { DrawUi(); });
@@ -216,39 +217,41 @@ namespace
             return true;
         }
 
+        bool ApplyObjectRequest(const Editor::ObjectRequest& request, std::string& createdId)
+        {
+            if (request.action==Editor::ObjectAction::Add || request.action==Editor::ObjectAction::AddEmpty)
+            {
+                SceneRuntime::ScenePlacement placement;
+                if (request.action==Editor::ObjectAction::Add) { placement.SetModel(request.model); placement.scale={4,4,4}; }
+                placement.position=request.position;
+                return world.AddObject(std::move(placement),root,createdId,fileStatus);
+            }
+            if (request.action==Editor::ObjectAction::Duplicate)
+                return editState.DuplicateObjects(world,request.ids,{4,0,0},fileStatus);
+            if (request.action==Editor::ObjectAction::Delete)
+                return editState.DeleteObjects(world,request.ids,fileStatus);
+            return request.components && world.SetComponents(request.id,*request.components,root,fileStatus);
+        }
+
         bool ApplyObject(Engine::DirectX12Renderer& renderer)
         {
-            if (pendingObject)
+            if (!pendingObject) return true;
+            if (!renderer.WaitForIdle()) return false;
+            auto request=std::move(*pendingObject);
+            pendingObject.reset();
+            if (request.action!=Editor::ObjectAction::Components || request.interaction.empty()) history.Commit();
+            std::string createdId;
+            const bool success=ApplyObjectRequest(request,createdId);
+            if (success)
             {
-                if (!renderer.WaitForIdle()) return false;
-                history.Commit();
-                auto request = std::move(*pendingObject);
-                pendingObject.reset();
-                std::string createdId;
-                bool success = false;
-                if (request.action == Editor::ObjectAction::Add || request.action == Editor::ObjectAction::AddEmpty)
-                {
-                    SceneRuntime::ScenePlacement placement;
-                    if (request.action==Editor::ObjectAction::Add) placement.SetModel(request.model);
-                    placement.position = request.position;
-                    if (request.action==Editor::ObjectAction::Add) placement.scale = { 4, 4, 4 };
-                    success = world.AddObject(std::move(placement), root, createdId, fileStatus);
-                }
-                else if (request.action == Editor::ObjectAction::Duplicate)
-                    success = editState.DuplicateObjects(world,request.ids,{4,0,0},fileStatus);
-                else
-                {
-                    success = editState.DeleteObjects(world,request.ids,fileStatus);
-                }
-                if (success)
-                {
-                    if (request.action==Editor::ObjectAction::Add || request.action==Editor::ObjectAction::AddEmpty) editState.ObjectChanged(createdId);
-                    fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
-                        request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
-                    history.Observe(Snapshot(world.Layout().Serialize()), {});
-                }
-                LogResult(success);
+                if (!createdId.empty()) editState.ObjectChanged(createdId);
+                fileStatus=request.action==Editor::ObjectAction::Delete ? "Deleted." :
+                    request.action==Editor::ObjectAction::Duplicate ? "Duplicated." :
+                    request.action==Editor::ObjectAction::Components ? "Component updated." : "Added.";
+                history.Observe(Snapshot(world.Layout().Serialize()),request.interaction);
+                editState.SetChanged(document.UnsavedNew() || history.Dirty(world.Layout().Serialize()));
             }
+            LogResult(success);
             return true;
         }
 
@@ -279,7 +282,7 @@ namespace
         {
             assetChanges.Poll(root,seconds);
             assetReloadRequested=projectPanel.TakeAssetReloadRequest() || assetReloadRequested;
-            projectPanel.SetReloadPending(assetReloadRequested || assetChanges.Pending());
+            projectPanel.SetReloadPending(assetReloadRequested || assetChanges.Pending(),assetChanges.Error());
             if (!CanReloadAssets()) return true;
             const bool changed=assetChanges.TakeReady(true);
             if (!assetReloadRequested && !changed) return true;
@@ -569,7 +572,7 @@ namespace
             const std::array<float, 3> suggested{ eye[0] + viewInverse._31 * 8.0f, 0.08f,
                 eye[2] + viewInverse._33 * 8.0f };
             projectPanel.Draw(editState, suggested, EditWidgetsEnabled() && !pendingObject && !pendingHistory);
-            objectPanel.Draw(world, editState, EditWidgetsEnabled());
+            objectPanel.Draw(world, editState, EditWidgetsEnabled(),&projectPanel.Catalog());
             projectPanel.DrawInspector(editState);
             if (auto request = editState.TakeRequest()) pendingObject = std::move(request);
             if (auto scene=projectPanel.TakeSceneRequest()) document.Request(root / *scene,false,editState.HasChanges());
@@ -688,7 +691,7 @@ namespace
             DrawEditMenu(enabled);
             if (ImGui::BeginMenu("View"))
             {
-                if (ImGui::MenuItem("Focus selected", "F", false, enabled && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
+                if (ImGui::MenuItem("Focus selected", "F", false, enabled && editState.InspectedAsset().empty() && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
                 if (ImGui::MenuItem("Console")) ImGui::SetWindowFocus("Console");
                 if (ImGui::MenuItem("Game tab", nullptr, false, enabled)) focusGame=true;
                 if (ImGui::MenuItem("Preview title composition", nullptr, false, enabled))

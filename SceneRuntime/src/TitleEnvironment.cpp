@@ -4,6 +4,7 @@
 #include <cmath>
 #include <utility>
 #include <stdexcept>
+#include <Engine/Core/Log.h>
 
 namespace SceneRuntime
 {
@@ -36,6 +37,8 @@ namespace SceneRuntime
 
     void TitleEnvironment::Update(double deltaSeconds, bool enabled, bool active, bool settingsSelected, bool exitSelected)
     {
+        if (active && std::isfinite(deltaSeconds) && deltaSeconds>0 && !world_.UpdateComponents(deltaSeconds))
+            Engine::Log::Warning("Component update rejected an invalid inherited transform.");
         motion_.Update(deltaSeconds, enabled, active, settingsSelected, exitSelected);
         camera_.SetPosition(motion_.CameraPosition());
         const auto rotation = motion_.CameraRotation();

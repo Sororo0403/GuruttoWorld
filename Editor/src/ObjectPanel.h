@@ -1,6 +1,7 @@
 #pragma once
 #include "EditState.h"
 #include "HierarchyRows.h"
+#include "ComponentPanel.h"
 #include <imgui.h>
 #include <string>
 #include <optional>
@@ -10,7 +11,7 @@ namespace Editor
     class ObjectPanel final
     {
     public:
-        void Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
+        void Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled, const ProjectCatalog* catalog = nullptr);
     private:
         void DrawObjects(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         std::vector<HierarchyRow> VisibleRows(const SceneRuntime::SceneLayout& layout) const;
@@ -22,6 +23,7 @@ namespace Editor
         std::unordered_set<std::string> collapsed_;
         std::string parentError_;
         bool editsEnabled_=false;
+        const ProjectCatalog* catalog_=nullptr;
         void DrawInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         static void DrawMultiInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         void DrawName(SceneRuntime::SceneWorld& world, EditState& state, const SceneRuntime::ScenePlacement& placement);

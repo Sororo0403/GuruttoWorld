@@ -36,7 +36,7 @@ namespace Editor
         }
         if (kind_!=AssetKind::Model) { image_.reset(); model_.SetModel({}); return true; }
         auto candidate=std::make_shared<Engine::ModelRenderer>();
-        if (!candidate->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),root/selected_,root/"Shaders/TitleMesh.hlsl")) return false;
+        if (!candidate->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),root/selected_,root/"Shaders/Mesh.hlsl")) return false;
         if (!target_.GetResource() && !target_.Resize(renderer,512,512)) return false;
         const auto id=renderer.SetSceneTexture(target_.GetShaderResourceView(),2).ptr;
         if (!id) return false;
@@ -71,6 +71,7 @@ namespace Editor
     void AssetPreview::Draw(const ProjectAsset& asset)
     {
         Request(asset);
+        if (requested_ && Ready()) ImGui::TextUnformatted("Preview update queued until editing.");
         if (!error_.empty()) ImGui::TextWrapped("%s",error_.c_str());
         if (!Ready()) { ImGui::TextUnformatted(error_.empty() ? "Loading preview..." : "Preview unavailable."); return; }
         if (asset.kind==AssetKind::Texture && image_)

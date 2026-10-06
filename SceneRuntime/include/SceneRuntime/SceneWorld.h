@@ -43,6 +43,11 @@ namespace SceneRuntime
             const DirectX::XMFLOAT4X4& axes, const std::array<float,3>& factors);
         bool SetParent(std::string_view id, std::string parentId, std::string& error);
         // 表示名だけを変更します。ID・描画リソースは維持します。
+        // Component changes are transactional. Call outside Render after GPU idle.
+        bool SetComponents(std::string_view id, const ScenePlacement& settings,
+            const std::filesystem::path& assetsRoot, std::string& error);
+        // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
+        bool UpdateComponents(double seconds);
         bool RenameObject(std::string_view id, std::string name);
         // GPU完了を待った後、描画の外で呼びます。
         bool AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,

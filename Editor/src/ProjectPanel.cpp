@@ -29,6 +29,7 @@ namespace Editor
             if (ImGui::Button("Refresh")) Scan(root_);
             ImGui::SameLine();
             if (ImGui::Button("Reload assets")) reloadAssets_=true;
+            if (!watchError_.empty()) ImGui::TextWrapped("Asset watch: %s",watchError_.c_str());
             if (reloadPending_) ImGui::TextUnformatted("Asset changes queued until editing is idle.");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(180);

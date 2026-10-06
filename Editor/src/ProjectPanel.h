@@ -14,7 +14,7 @@ namespace Editor
         { return preview_.Prepare(renderer,root); }
         bool RenderPreview(ID3D12GraphicsCommandList* commands) { return preview_.Render(commands); }
         bool TakeAssetReloadRequest();
-        void SetReloadPending(bool pending) { reloadPending_=pending; }
+        void SetReloadPending(bool pending, std::string error) { reloadPending_=pending; watchError_=std::move(error); }
         void InvalidatePreview() { preview_.Invalidate(); previewed_.clear(); info_.reset(); }
         void Scan(const std::filesystem::path& root);
         void Draw(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
@@ -42,6 +42,7 @@ namespace Editor
         std::array<float,3> addPosition_{};
         bool positionInitialized_=false;
         int type_=0;
+        std::string watchError_;
         bool reloadAssets_=false, reloadPending_=false;
     };
 }

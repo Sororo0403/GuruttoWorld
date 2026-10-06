@@ -1,4 +1,5 @@
 #pragma once
+#include "ProjectCatalog.h"
 #include <filesystem>
 #include <map>
 #include <string>
@@ -24,7 +25,7 @@ namespace Editor
             Files files;
             for (const auto& directory : {root/"Assets",root/"Shaders"})
                 for (const auto& entry : std::filesystem::recursive_directory_iterator(directory))
-                    if (entry.is_regular_file() && entry.path().extension()!=L".json")
+                    if (entry.is_regular_file() && Watched(entry.path().lexically_relative(root)))
                         files.emplace(entry.path(),Stamp{entry.last_write_time(),entry.file_size()});
             return files;
         }
@@ -51,7 +52,19 @@ namespace Editor
         }
         bool Pending() const { return pending_; }
         const std::string& Error() const { return error_; }
+        static bool IsShaderSource(const std::filesystem::path& path) { return Extension(path)==".hlsl"; }
     private:
+        static std::string Extension(const std::filesystem::path& path)
+        {
+            auto value=ProjectCatalog::Text(path.extension());
+            std::transform(value.begin(),value.end(),value.begin(),[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            return value;
+        }
+        static bool Watched(const std::filesystem::path& path)
+        {
+            const auto kind=ProjectCatalog::Kind(path);
+            return (kind && *kind!=AssetKind::Scene) || Extension(path)==".mtl";
+        }
         Files observed_;
         bool initialized_=false, pending_=false, stable_=false;
         double elapsed_=0;
@@ -64,7 +77,7 @@ namespace Editor
         {
             for (const auto& entry : std::filesystem::recursive_directory_iterator(root/"Shaders"))
             {
-                if (!entry.is_regular_file() || entry.path().extension()!=L".hlsl") continue;
+                if (!entry.is_regular_file() || !AssetChanges::IsShaderSource(entry.path())) continue;
                 Microsoft::WRL::ComPtr<ID3DBlob> vertex, pixel;
                 if (!Engine::CompileShader(entry.path(),"VSMain","vs_5_0",vertex) ||
                     !Engine::CompileShader(entry.path(),"PSMain","ps_5_0",pixel))

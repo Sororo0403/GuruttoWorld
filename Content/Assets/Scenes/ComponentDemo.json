@@ -1,0 +1,118 @@
+{
+  "version": 3,
+  "objects": [
+    {
+      "id": "Ground",
+      "name": "Ground",
+      "position": [
+        0,
+        -0.12,
+        12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        30,
+        1,
+        30
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Roads/ground.obj"
+        }
+      ]
+    },
+    {
+      "id": "Spinner",
+      "name": "Spinner (empty parent)",
+      "position": [
+        0,
+        0,
+        10
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "spin",
+          "type": "Rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            90,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OrbitingChild",
+      "name": "Orbiting child",
+      "parent": "Spinner",
+      "position": [
+        3,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        4,
+        4,
+        4
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-k.obj"
+        }
+      ]
+    },
+    {
+      "id": "Peer",
+      "name": "Static peer",
+      "position": [
+        6,
+        0,
+        15
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        4,
+        4,
+        4
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Surface/Commercial/building-h.obj"
+        }
+      ]
+    }
+  ]
+}

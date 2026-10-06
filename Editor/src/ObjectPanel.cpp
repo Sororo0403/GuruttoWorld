@@ -9,15 +9,16 @@ namespace
 {
     void TrackInspectorEdit(Editor::EditState& state)
     {
-        if (ImGui::IsItemActive()) state.SetInteraction("inspector/"+std::to_string(ImGui::GetItemID()));
+        if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("inspector/"+std::to_string(ImGui::GetItemID()));
     }
 }
 
 namespace Editor
 {
-    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
+    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled, const ProjectCatalog* catalog)
     {
         editsEnabled_=enabled;
+        catalog_=catalog;
         DrawObjects(world, state, enabled);
         if (state.InspectedAsset().empty()) DrawInspector(world, state, enabled);
     }
@@ -161,9 +162,9 @@ namespace Editor
                 DrawName(world, state, *found);
                 ImGui::Text("ID: %s", found->id.c_str());
                 DrawParent(world,state,*found);
-                ImGui::TextWrapped("Model: %s", found->Model().generic_string().c_str());
                 ImGui::Separator();
                 DrawTransform(world, state, *found);
+                ComponentPanel::Draw(state,*found,catalog_);
                 if (ImGui::Button("Duplicate")) state.Request(state.DuplicateSelectionRequest());
                 ImGui::SameLine();
                 if (ImGui::Button("Delete")) state.Request(state.DeleteSelectionRequest());

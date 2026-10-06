@@ -75,3 +75,21 @@
 
 例：`A OK、B OK、C NG（3で孫が消えた）、D 未確認、E OK、F OK、G OK、H OK`。
 NGには「操作した対象・手順番号・期待した結果・実際の結果」を添えてください。すべて未確認から開始し、画面を操作した項目だけOKにします。
+
+## I：Componentと実行
+
+1. ComponentDemo.jsonを開き、別名保存する。Spinnerを選び、Rotatorの速度とIDを確認する。
+2. 速度を一回ドラッグして変更し、Undo一回で戻ることを確認する。Enabledの切り替え・Reset Rotator・Remove Rotator・Add Component → RotatorもそれぞれUndo/Redoする。
+3. Create emptyで新しい親を作り、Add Component → MeshRendererでモデルを選ぶ。参照先変更・無効化・削除後もTransformと親子が残る。
+4. SpinnerをPlayし、子が周回してPeerが静止する。Pauseで止まり、Stepで一回ずつ進み、Resumeで続く。Stopで編集時の配置と設定・選択・履歴へ戻る。
+5. 親子を複製し、Componentの設定とコピー同士の親子を確認する。保存して開き直しても設定が戻る。
+
+## J：アセット更新
+
+1. 編集用のコピーのモデル・画像・シェーダーで確認する。ファイルを外部で変更し、編集が落ち着いた後に表示とプレビューが更新されることを確認する。
+2. 未保存の配置とRedo可能な履歴を作ってReload assets。配置・選択・未保存表示・履歴が維持される。
+3. 画像の破損やシェーダーの構文エラーで更新を失敗させる。Consoleに理由が出て以前の表示が保持される。ファイルを戻すと再更新できる。
+4. Play／Pause中にファイルを変更すると更新が保留され、Stop後に反映される。
+5. Scene JSONを外部で変更しても未保存の編集中シーンは置き換わらない。シーンを更新する場合は明示的なReloadを使う。
+
+I・JもOK／NG／未確認で報告してください。
