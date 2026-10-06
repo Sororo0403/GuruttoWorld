@@ -8,7 +8,7 @@ namespace Editor
     void ProjectPanel::Scan(const std::filesystem::path& root)
     {
         root_=root;
-        previewed_.clear(); info_.reset();
+        InvalidatePreview();
         if (!catalog_.Scan(root)) { Engine::Log::Error("Project scan: "+catalog_.Error()); return; }
         if (std::none_of(catalog_.Assets().begin(),catalog_.Assets().end(),
             [&](const auto& asset) { return asset.path==selected_; })) selected_.clear();
@@ -133,7 +133,7 @@ namespace Editor
                 ImGui::Text("%s asset",ProjectCatalog::Label(found->kind));
                 ImGui::TextWrapped("%s",ProjectCatalog::Text(selected).c_str());
                 if (!info_->error.empty()) ImGui::TextWrapped("%s",info_->error.c_str());
-                else DrawAssetInfo(*info_);
+                else { preview_.Draw(*found); DrawAssetInfo(*info_); }
             }
         }
         ImGui::End();

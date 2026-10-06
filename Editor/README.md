@@ -238,3 +238,9 @@ ProjectはModel/Scene/Texture/Audio/Shader/Fontを種類別に表示し、Assets
 ## 機能拡張前の画面確認
 
 [手動チェックリスト](ManualChecks.md)と`Content/Assets/Scenes/EditorAcceptance.json`を使用してください。親子・複数選択・Play・Inspector・保存・ドッキングの確認を項目別に進められます。自動テストの成功と画面確認の完了は別に記録します。
+
+## アセットの実表示プレビュー
+
+Projectで画像を選ぶとInspectorに画像寸法・拡張子とRGBA8プレビューを表示します。WIC対応画像の先頭フレームを読み込みます。未対応／破損画像はConsoleとInspectorへ理由を表示します。
+モデルは専用の512×512描画先で表示します。画像上の左ドラッグで周回、ホイールでズーム、Reset preview cameraで初期視点へ戻ります。Scene／Gameのカメラ・配置・履歴は変更しません。
+Refreshで情報とプレビューを再読み込みします。GPU完了後に候補を読み込み、成功した場合だけ差し替えます。同じアセットの更新に失敗した場合は直前のプレビューを保持します。

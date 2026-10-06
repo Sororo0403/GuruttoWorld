@@ -102,6 +102,8 @@
     <ClCompile Include="src\CameraPanel.cpp" />
     <ClCompile Include="src\ObjectPanel.cpp" />
     <ClCompile Include="src\ProjectPanel.cpp" />
+    <ClCompile Include="src\AssetPreview.cpp" />
+    <ClInclude Include="src\AssetPreview.h" />
     <ClInclude Include="src\ProjectPanel.h" />
     <ClInclude Include="src\ProjectCatalog.h" />
     <ClInclude Include="src\AssetInfo.h" />

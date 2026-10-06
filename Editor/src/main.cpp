@@ -77,12 +77,13 @@ namespace
     private:
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
         {
-            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer)) return Engine::RenderResult::Failed;
+            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer) || !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             bool rendered = true;
             const auto result = renderer.Render({0.10f, 0.11f, 0.13f, 1},
                 [&](ID3D12GraphicsCommandList* commands, float aspect)
                 {
+                    rendered=projectPanel.RenderPreview(commands);
                     if (preview)
                     {
                         SceneRuntime::TitleView::SetProjection(previewCamera, aspect);

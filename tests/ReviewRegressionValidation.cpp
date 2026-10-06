@@ -1107,7 +1107,12 @@ namespace
             Check(gameId && gameId!=textureId && (!stableGameId || gameId==stableGameId),
                 "Game descriptor is distinct from Scene and stable across resize");
             stableGameId=gameId;
-            Check(!renderer.SetSceneTexture(target.GetShaderResourceView(),2).ptr, "invalid preview slot is rejected");
+            const auto modelPreviewId=renderer.SetSceneTexture(target.GetShaderResourceView(),2).ptr;
+            const auto imagePreviewId=renderer.SetSceneTexture(gameTarget.GetShaderResourceView(),3).ptr;
+            Check(modelPreviewId && imagePreviewId && modelPreviewId!=imagePreviewId &&
+                modelPreviewId!=textureId && imagePreviewId!=gameId,
+                "asset previews use dedicated UI descriptors independent of Scene and Game");
+            Check(!renderer.SetSceneTexture(target.GetShaderResourceView(),4).ptr, "invalid preview slot is rejected");
 #endif
             auto* device = renderer.GetDevice();
             D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};

@@ -2,6 +2,7 @@
 #include "EditState.h"
 #include "ProjectCatalog.h"
 #include "AssetInfo.h"
+#include "AssetPreview.h"
 #include <imgui.h>
 
 namespace Editor
@@ -9,6 +10,10 @@ namespace Editor
     class ProjectPanel final
     {
     public:
+        bool PreparePreview(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
+        { return preview_.Prepare(renderer,root); }
+        bool RenderPreview(ID3D12GraphicsCommandList* commands) { return preview_.Render(commands); }
+        void InvalidatePreview() { preview_.Invalidate(); previewed_.clear(); info_.reset(); }
         void Scan(const std::filesystem::path& root);
         void Draw(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
         void DrawInspector(const EditState& state);
@@ -27,6 +32,7 @@ namespace Editor
         void DrawSelection(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
         std::filesystem::path root_, folder_="Assets", selected_;
         ProjectCatalog catalog_;
+        AssetPreview preview_;
         std::filesystem::path previewed_;
         std::optional<AssetInfo> info_;
         std::optional<std::filesystem::path> sceneRequest_;

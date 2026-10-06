@@ -53,6 +53,11 @@ namespace Engine
         /// <returns>SRV の GPU ハンドル。未初期化の場合は空のハンドル。</returns>
         D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const noexcept;
 
+        UINT GetWidth() const noexcept { return resource_ ? static_cast<UINT>(resource_->GetDesc().Width) : 0; }
+        UINT GetHeight() const noexcept { return resource_ ? resource_->GetDesc().Height : 0; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceView() const noexcept
+        { return descriptorHeap_ ? descriptorHeap_->GetCPUDescriptorHandleForHeapStart() : D3D12_CPU_DESCRIPTOR_HANDLE{}; }
+
     private:
         struct ImageData
         {
