@@ -41,6 +41,12 @@ namespace TitlePresentationValidation
         unsigned char* pixels=nullptr;
         const D3D12_RANGE range{0,static_cast<SIZE_T>(pitch)*height};
         Require(SUCCEEDED(readback->Map(0,&range,reinterpret_cast<void**>(&pixels))),"title capture maps");
+        if (name.starts_with("covered"))
+        {
+            for (const auto offset:std::array<SIZE_T,4>{0,(width-1)*4,(height-1)*pitch,(height-1)*pitch+(width-1)*4})
+                Require(pixels[offset]<20 && pixels[offset+1]<35 && pixels[offset+2]<45 && pixels[offset+3]==255,
+                    "start cover reaches all four corners at every aspect ratio");
+        }
         const auto directory=std::filesystem::absolute("generated/title-rebuild/previews");
         std::filesystem::create_directories(directory);
         std::ofstream output(directory/(name+".ppm"),std::ios::binary);
@@ -57,6 +63,13 @@ namespace TitlePresentationValidation
         SceneRuntime::SceneEnvironment scene; std::string error;
         Require(scene.Initialize(renderer,root,layout,error),"title presentation initializes");
         scene.SeekAnimation(3,3);
+        const auto firstCamera=scene.CameraPosition();
+        scene.SeekAnimation(8,8);
+        Require(scene.CameraPosition()!=firstCamera,"authored waiting motion changes camera pose");
+        const auto stopped=scene.CameraPosition();
+        scene.Update(0.1,false,true);
+        Require(scene.CameraPosition()==stopped,"background OFF freezes waiting animation and sway");
+        scene.SeekAnimation(3,3);
         const auto prompt=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& o){return o.id=="world-start";});
         Require(prompt!=layout.objects.end(),"title has an editable start prompt");
         for (const auto& size:std::array<std::array<UINT,2>,3>{{{1280,720},{1024,768},{720,1280}}})
@@ -72,10 +85,27 @@ namespace TitlePresentationValidation
         scene.Ui().values["transition"]=0.4375f;
         scene.Ui().values["transitionPink"]=0.546875f;
         Capture(renderer,scene,1280,720,"start");
-        scene.Ui().values["transition"]=1;
-        scene.Ui().values["transitionPink"]=1;
+        scene.SeekAnimation(3,3,0.8f);
+        for (const auto& size:std::array<std::array<UINT,2>,3>{{{1280,720},{1024,768},{720,1280}}})
+            Capture(renderer,scene,size[0],size[1],"covered-"+std::to_string(size[0])+"x"+std::to_string(size[1]));
         const auto pixel=EnvironmentValidation::Pixel(renderer,[&](ID3D12GraphicsCommandList* commands){scene.Draw(commands,64,32);});
         Require(pixel[0]<20 && pixel[1]<35 && pixel[2]<45,"start transition ends with opaque ink");
+        scene.SeekAnimation(3,3,-1);
+        Require(scene.Ui().Value("transition")==0 && scene.Ui().Value("transitionPink")==0,"rewinding start restores uncovered title");
+        if (GetEnvironmentVariableW(L"WP1_TITLE_PREVIEW",nullptr,0))
+        {
+            for (int frame=0;frame<64;++frame)
+            {
+                const float seconds=frame*0.05f;
+                scene.SeekAnimation(seconds,seconds);
+                Capture(renderer,scene,960,540,"frame-"+std::to_string(frame));
+            }
+            for (int frame=0;frame<17;++frame)
+            {
+                scene.SeekAnimation(3.2f,3.2f,frame*0.05f);
+                Capture(renderer,scene,960,540,"frame-"+std::to_string(frame+64));
+            }
+        }
         Require(SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json").Serialize()==layout.Serialize(),"preview preserves saved title");
     }
 }

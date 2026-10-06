@@ -184,3 +184,9 @@ AudioValidationは有限長音源をPauseしたまま本来の再生時間を超
 EditorのImGuiフォントはDebug回帰のEditorFontValidationで確認します。欠損時にアトラスが変わらないこと、初期化の重複防止、Fira MonoとM PLUS 1pの合成、ASCIIの等幅、ひらがな・カタカナ・半角カタカナ・漢字の字形とラスタライズ、UTF-8入力欄への日本語入力、DX12動的フォントテクスチャの描画を検証します。非表示の検証ウィンドウを使用します。ユーザーが操作中のEditor画面を制御しません。IME候補ウィンドウの位置と実際の変換操作はManualChecks Qで手動確認します。
 
 日本語UIでは、ドッキングの標準メニュー登録、旧英語ウィンドウ名と選択タブIDの移行、ドックノード保持、移行の再適用で変化しないことを同じ検証で確認します。PlayStateの表示名は編集中・再生中・一時停止中を検証します。画面上の文言とボタンの操作はManualChecks Rで手動確認します。
+
+
+TitlePresentationValidationはタイトルのGPU画像をgenerated/title-rebuild/previewsへ保存します。
+横長・4:3・縦長で開始案内の位置と最終遷移の四隅の被覆を検証し、待機OFF・巻き戻しを確認します。
+WP1_TITLE_PREVIEW=1を設定してReviewRegressionValidationを実行すると、登場・待機・開始の81フレームをPPMに保存します。
+生成画像は検証用で、通常ビルドや保存済みシーンには影響しません。

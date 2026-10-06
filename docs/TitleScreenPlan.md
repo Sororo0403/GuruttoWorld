@@ -24,7 +24,7 @@ P5Rのタイトル映像から、見上げる街の奥行き、大胆な斜め�
 エディターのHierarchy・Inspector・Scene・Gameで調整し、JSONを直接編集した場合も同じ形式で読み込む。
 Animation Componentに対象プロパティ・時計・補間・遅延・ループ・キーフレームを保存する。
 登場はsceneTime、待機はmotionTime、開始はstartTimeを使う。
-再生・一時停止・コマ送り、停止中の時刻指定で、カメラとUIを共通ランタイムで確認する。
+再生・一時停止・コマ送り、一時停止中の時刻指定で、カメラとUIを共通ランタイムで確認する。
 通常ビルドで制作スクリプトを自動実行しない。エディターで保存した配置を上書きしない。
 
 ## 検証とコミット
@@ -42,3 +42,14 @@ scripts/GenerateMorningTitleArt.ps1は同梱フォントとベクター図形か
 scripts/CreateMorningTitleScene.pyは初期構図を再生成するための明示的なリセット用スクリプト。
 通常はエディターでTitleStreet.jsonを編集する。制作スクリプトの再実行は現在の構図を上書きする。
 作業開始時に存在した未コミットのTitleStreet.jsonはgenerated/title-rebuild/TitleStreet.before.jsonへ退避した。
+
+## 実装済みの演出
+
+- 登場は2.2秒。カメラが右手前から通りの中央へ回り込み、ロゴ・副題・開始案内が時間差で飛び込む。
+- 待機は24秒のカメラループと小さなロゴ・開始案内の動き。motionTimeの時計で進み、背景演出OFFで停止する。
+- 開始は0.8秒。案内が反応し、ロゴを拡大しながらカメラが通りの奥へ加速。オレンジと紺の帯で全画面を覆う。
+- 任意ボタンによる開始は登場を先に着地点へ進める。再訪時も同じ着地点から表示する。
+- introDuration・startDurationはCanvasに保存し、開始演出の時計とAppの遷移待ち時間を一致させる。
+- scripts/AuthorTitleAnimation.pyは編集可能な初期キーフレームを付ける。通常はInspectorから調整する。
+- Debug・Development・ReleaseビルドとDebug／Release回帰検証に成功。
+- GPUプレビューはgenerated/title-rebuild/previews/title-motion.gif。静止画と動画フレームは実際の共通描画から取得する。

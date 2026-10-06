@@ -13,6 +13,29 @@
 
 namespace
 {
+    bool HasTransformAnimation(const SceneRuntime::ScenePlacement& placement)
+    {
+        return placement.animation && placement.animation->enabled &&
+            std::any_of(placement.animation->tracks.begin(),placement.animation->tracks.end(),[](const auto& track) {
+                return track.property=="position" || track.property=="rotation";
+            });
+    }
+    bool ApplyTransformAnimation(SceneRuntime::ScenePlacement& placement,const std::map<std::string,float>& clocks)
+    {
+        if (!HasTransformAnimation(placement)) return false;
+        const auto position=placement.position,rotation=placement.rotation;
+        for (const auto& track:placement.animation->tracks)
+        {
+            if (track.property!="position" && track.property!="rotation") continue;
+            const auto clock=clocks.find(track.clock);
+            if (clock==clocks.end() || clock->second<track.delay) continue;
+            const auto value=SceneRuntime::Animation::Sample(track,clocks);
+            if (!value) continue;
+            auto& target=track.property=="position" ? placement.position : placement.rotation;
+            target={(*value)[0],(*value)[1],(*value)[2]};
+        }
+        return position!=placement.position || rotation!=placement.rotation;
+    }
     bool IsRotation(const DirectX::XMFLOAT4X4& rotation)
     {
         if (!SceneRuntime::SceneTransforms::IsUsable(rotation)) return false;
@@ -82,28 +105,10 @@ namespace SceneRuntime
     }
     bool SceneWorld::Animate(const std::map<std::string, float>& clocks)
     {
-        if (std::none_of(layout_.objects.begin(),layout_.objects.end(),[](const auto& placement) {
-            return placement.animation && placement.animation->enabled &&
-                std::any_of(placement.animation->tracks.begin(),placement.animation->tracks.end(),[](const auto& track) {
-                    return track.property=="position" || track.property=="rotation";
-                });
-        })) return true;
+        if (std::none_of(layout_.objects.begin(),layout_.objects.end(),HasTransformAnimation)) return true;
         auto candidate=layout_;
         bool changed=false;
-        for (auto& placement:candidate.objects)
-        {
-            if (!placement.animation || !placement.animation->enabled) continue;
-            for (const auto& track:placement.animation->tracks)
-            {
-                if (track.property!="position" && track.property!="rotation") continue;
-                const auto value=Animation::Sample(track,clocks);
-                if (!value) continue;
-                auto& target=track.property=="position" ? placement.position : placement.rotation;
-                const std::array<float,3> vector{(*value)[0],(*value)[1],(*value)[2]};
-                changed=changed || target!=vector;
-                target=vector;
-            }
-        }
+        for (auto& placement:candidate.objects) changed=ApplyTransformAnimation(placement,clocks) || changed;
         return !changed || CommitTransforms(std::move(candidate));
     }
 

@@ -201,6 +201,16 @@ namespace
         Check(timed.IntroProgress() == 0, "negative time ignored");
         for (int i = 0; i < 7; ++i) timed.Update(input, 0.1);
         Check(timed.IntroProgress() == 1.0f && timed.GetSelected() == TitleMenuItem::Start, "intro completes without accidental held navigation");
+        TitleMenu authored(false,true);
+        authored.SetTransitionDuration(0.8f);
+        authored.SetTransitionDuration(NAN);
+        input={}; input.active=true; authored.Update(input);
+        input.anyButtonPressed=true; authored.Update(input);
+        input.anyButtonPressed=false;
+        for (int frame=0;frame<8;++frame)
+            Check(authored.Update(input,0.1)==TitleMenuAction::None,"authored transition waits for its complete cover");
+        Check(authored.TransitionProgress()==1 && authored.Update(input,0.1)==TitleMenuAction::Start &&
+            authored.Update(input,0.1)==TitleMenuAction::None,"authored duration ignores invalid configuration and emits once");
     }
 
     void ValidateSettings()
@@ -1443,6 +1453,7 @@ namespace
     void ValidateGameSession(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
+        for (auto& object:layout.objects) object.animation.reset(); // Animation has a separate deterministic clock fixture.
         layout.objects.back().name="Unsaved runtime name";
         layout.objects.back().position[0]+=3;
         const auto unsaved=layout.Serialize();
@@ -1504,6 +1515,7 @@ namespace
     {
         const auto root=std::filesystem::absolute("Content");
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
+        for (auto& object:layout.objects) object.animation.reset(); // Isolate CameraSway and ParticleEmitter invariants.
         SceneRuntime::SceneEnvironment environment; std::string error;
         Check(environment.Initialize(renderer,root,layout,error),"authored environment initializes");
         const auto original=environment.World().Layout().Serialize();

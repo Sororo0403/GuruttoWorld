@@ -32,7 +32,9 @@ namespace App
         /// <summary>選択時の強調量を返します。</summary>
         float SelectionPulse() const { return selectionSeconds_ / 0.16f; }
         /// <summary>画面遷移の進行率を返します。</summary>
-        float TransitionProgress() const { return transitionSeconds_ / 0.32f; }
+        float TransitionProgress() const { return transitionSeconds_ / transitionDuration_; }
+        /// <summary>シーンに保存した開始演出の長さを設定します。不正値は無視します。</summary>
+        void SetTransitionDuration(float seconds);
         /// <summary>
         /// 入力の立ち上がりで選択・決定します。初回・復帰・接続直後の押下は抑止します。
         /// </summary>
@@ -70,6 +72,7 @@ namespace App
         float introSeconds_ = 0.65f;
         float selectionSeconds_ = 0.0f;
         float transitionSeconds_ = 0.0f;
+        float transitionDuration_ = 0.32f;
         TitleMenuAction pending_ = TitleMenuAction::None;
         bool transitionEmitted_ = false;
         GameSettings saved_;

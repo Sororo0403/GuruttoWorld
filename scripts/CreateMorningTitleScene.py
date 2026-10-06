@@ -137,5 +137,7 @@ for name, volume, loop, awake in [("Bgm", 0.3, True, True), ("Select", 0.3, Fals
 layout = dict(version=4, settings=dict(background=[0.74, 0.86, 0.91, 1], mainCamera="scene-camera",
     fog=dict(enabled=True, color=[0.83, 0.9, 0.91], start=45, end=180, strength=0.5)), objects=objects)
 objects[0], objects[1] = objects[1], objects[0]
+from AuthorTitleAnimation import apply_animation
+apply_animation(layout)
 SCENE.write_bytes((json.dumps(layout, ensure_ascii=False, indent=2) + "\n").replace("\n", "\r\n").encode("utf-8"))
 print(f"Created editable title scene: {len(objects)} objects")

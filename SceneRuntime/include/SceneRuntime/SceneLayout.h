@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <algorithm>
 
 namespace SceneRuntime
 {
@@ -33,8 +34,10 @@ namespace SceneRuntime
         bool HasComponentId(const std::string& componentId) const
         {
             const auto matches=[&](const auto& component) { return component && component->id==componentId; };
-            return componentId=="transform" || matches(meshRenderer) || matches(rotator) || matches(camera) ||
-                matches(directionalLight) || matches(sky) || matches(particleEmitter) || matches(cameraSway) || matches(canvas) || matches(rectTransform) || matches(image) || matches(text) || matches(button) || matches(audioSource) || matches(animation);
+            const std::initializer_list<bool> found{componentId=="transform",matches(meshRenderer),matches(rotator),matches(camera),
+                matches(directionalLight),matches(sky),matches(particleEmitter),matches(cameraSway),matches(canvas),
+                matches(rectTransform),matches(image),matches(text),matches(button),matches(audioSource),matches(animation)};
+            return std::any_of(found.begin(),found.end(),[](bool value){return value;});
         }
         bool SameComponents(const ScenePlacement& other) const
         {

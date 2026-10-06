@@ -2,6 +2,9 @@
 #include "UiValidation.h"
 #include "../Editor/src/GameSession.h"
 #include <limits>
+#if defined(_DEBUG)
+#include "../Editor/src/AnimationPanel.h"
+#endif
 
 namespace AnimationValidation
 {
@@ -60,5 +63,17 @@ namespace AnimationValidation
         UiValidation::Require(session.Runtime()->CameraPosition()==std::array<float,3>{0,0,-10},"seeking backward restores camera pose");
         session.Stop();
         UiValidation::Require(layout.Serialize()==saved,"preview never changes authored scene");
+#if defined(_DEBUG)
+        Editor::EditState state;
+        auto candidate=layout.objects.back();
+        for (int frame=0;frame<2;++frame)
+            UiValidation::Require(renderer.Render({0,0,0,1},[](auto*,float){},[&] {
+                ImGui::SetNextWindowPos({20,20}); ImGui::SetNextWindowSize({550,600});
+                ImGui::Begin("Animation Inspector validation");
+                Editor::AnimationPanel::Draw(state,candidate);
+                ImGui::End();
+            })!=Engine::RenderResult::Failed,"animation Inspector renders consecutive frames without stack imbalance");
+        UiValidation::Require(renderer.WaitForIdle(),"animation Inspector resources complete");
+#endif
     }
 }

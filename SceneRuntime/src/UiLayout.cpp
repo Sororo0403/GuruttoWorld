@@ -58,6 +58,22 @@ UiRect Child(const UiRect& parent,const RectTransformComponent& c,const UiState&
         parent.position[1]+parent.size[1]*0.5f+center[0]*std::sin(parent.rotation)+center[1]*std::cos(parent.rotation)-r.size[1]*0.5f};
     r.opacity*=ease*state.Value(c.opacityBinding,1); return r;
 }
+void ApplyRectTrack(RectTransformComponent& rect,const AnimationTrack& track,const std::array<float,4>& value,float& opacity) {
+    if(track.property=="uiPosition") rect.position={value[0],value[1]};
+    else if(track.property=="uiSize") rect.size={std::max(0.0f,value[0]),std::max(0.0f,value[1])};
+    else if(track.property=="uiRotation") rect.rotation=value[0];
+    else if(track.property=="opacity") opacity=std::clamp(value[0],0.0f,1.0f);
+}
+RectTransformComponent AnimatedRect(const ScenePlacement& node,const UiState& state,float& opacity) {
+    auto rect=*node.rectTransform;
+    if(!node.animation || !node.animation->enabled) return rect;
+    for(const auto& track:node.animation->tracks) {
+        if(track.clock=="motionTime" && state.Value(track.clock,-1)<track.delay) continue;
+        const auto value=Animation::Sample(track,state.values);
+        if(value) ApplyRectTrack(rect,track,*value,opacity);
+    }
+    return rect;
+}
 }
 UiState SceneUi::Defaults(const SceneLayout& layout) {
     UiState state; for(const auto& p:layout.objects) if(p.canvas && p.canvas->enabled) for(const auto& [key,value]:p.canvas->stateDefaults) state.values.try_emplace(key,value); return state;
@@ -77,16 +93,8 @@ UiRect SceneUi::Resolve(const SceneLayout& layout,const ScenePlacement& object,u
             r.position={(width-r.size[0])*0.5f,(height-r.size[1])*0.5f}; r.visible=c.enabled;
         }
         if(node.rectTransform) {
-            auto rect=*node.rectTransform;
             float opacity=1;
-            if(node.animation && node.animation->enabled) for(const auto& track:node.animation->tracks) {
-                const auto value=Animation::Sample(track,effective.values);
-                if(!value) continue;
-                if(track.property=="uiPosition") rect.position={(*value)[0],(*value)[1]};
-                else if(track.property=="uiSize") rect.size={std::max(0.0f,(*value)[0]),std::max(0.0f,(*value)[1])};
-                else if(track.property=="uiRotation") rect.rotation=(*value)[0];
-                else if(track.property=="opacity") opacity=std::clamp((*value)[0],0.0f,1.0f);
-            }
+            const auto rect=AnimatedRect(node,effective,opacity);
             r=Child(r,rect,effective); r.opacity*=opacity;
         }
         const auto v=state.visibility.find(node.id); if(v!=state.visibility.end()) r.visible=r.visible && v->second;

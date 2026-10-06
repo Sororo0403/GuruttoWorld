@@ -3544,6 +3544,238 @@
             40,
             24
           ]
+        },
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "position",
+              "clock": "sceneTime",
+              "easing": "outCubic",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    4.8,
+                    2.0,
+                    -14,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    1.9,
+                    2.4,
+                    -11,
+                    0
+                  ]
+                },
+                {
+                  "time": 2.2,
+                  "value": [
+                    -0.8,
+                    2.2,
+                    -8,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "rotation",
+              "clock": "sceneTime",
+              "easing": "outCubic",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -0.025,
+                    -0.36,
+                    -0.12,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    -0.09,
+                    -0.15,
+                    -0.1,
+                    0
+                  ]
+                },
+                {
+                  "time": 2.2,
+                  "value": [
+                    -0.14,
+                    0.03,
+                    -0.065,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "position",
+              "clock": "motionTime",
+              "easing": "smooth",
+              "delay": 2.4,
+              "loop": true,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -0.8,
+                    2.2,
+                    -8,
+                    0
+                  ]
+                },
+                {
+                  "time": 8,
+                  "value": [
+                    -0.5,
+                    2.28,
+                    -8.25,
+                    0
+                  ]
+                },
+                {
+                  "time": 16,
+                  "value": [
+                    -1.05,
+                    2.15,
+                    -7.8,
+                    0
+                  ]
+                },
+                {
+                  "time": 24,
+                  "value": [
+                    -0.8,
+                    2.2,
+                    -8,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "rotation",
+              "clock": "motionTime",
+              "easing": "smooth",
+              "delay": 2.4,
+              "loop": true,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -0.14,
+                    0.03,
+                    -0.065,
+                    0
+                  ]
+                },
+                {
+                  "time": 8,
+                  "value": [
+                    -0.145,
+                    0.038,
+                    -0.06,
+                    0
+                  ]
+                },
+                {
+                  "time": 16,
+                  "value": [
+                    -0.135,
+                    0.02,
+                    -0.07,
+                    0
+                  ]
+                },
+                {
+                  "time": 24,
+                  "value": [
+                    -0.14,
+                    0.03,
+                    -0.065,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "position",
+              "clock": "startTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -0.8,
+                    2.2,
+                    -8,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.24,
+                  "value": [
+                    -0.8,
+                    2.2,
+                    -7.5,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.8,
+                  "value": [
+                    0.8,
+                    2.8,
+                    2,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "rotation",
+              "clock": "startTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -0.14,
+                    0.03,
+                    -0.065,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.8,
+                  "value": [
+                    -0.075,
+                    0.11,
+                    0.025,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -3759,11 +3991,12 @@
             "screen": 2,
             "intro": 1,
             "sceneTime": 3,
-            "motionTime": 0,
+            "motionTime": 3,
             "startTime": -1,
             "startRequested": 0,
             "startDuration": 0.8,
-            "musicVolume": 0.3
+            "musicVolume": 0.3,
+            "introDuration": 2.2
           }
         }
       ]
@@ -3837,6 +4070,292 @@
             1,
             1
           ]
+        },
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "uiPosition",
+              "clock": "sceneTime",
+              "easing": "outCubic",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1370,
+                    58,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.42,
+                  "value": [
+                    1370,
+                    58,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.12,
+                  "value": [
+                    674,
+                    58,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "uiRotation",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -0.16,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.42,
+                  "value": [
+                    -0.16,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.0,
+                  "value": [
+                    0.012,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.25,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "uiSize",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    620,
+                    332,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.42,
+                  "value": [
+                    620,
+                    332,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.1,
+                  "value": [
+                    532,
+                    285,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.3,
+                  "value": [
+                    540,
+                    289,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "opacity",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.42,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.55,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "uiRotation",
+              "clock": "motionTime",
+              "easing": "smooth",
+              "delay": 2.4,
+              "loop": true,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 3,
+                  "value": [
+                    0.004,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 6,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 9,
+                  "value": [
+                    -0.004,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 12,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "uiSize",
+              "clock": "startTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    540,
+                    289,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.16,
+                  "value": [
+                    564,
+                    302,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.8,
+                  "value": [
+                    680,
+                    364,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "uiPosition",
+              "clock": "startTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    674,
+                    58,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.8,
+                  "value": [
+                    590,
+                    -40,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -3908,6 +4427,112 @@
             0,
             1,
             1
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "uiPosition",
+              "clock": "sceneTime",
+              "easing": "outCubic",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1320,
+                    325,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    1320,
+                    325,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.4,
+                  "value": [
+                    638,
+                    325,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "opacity",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.1,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "opacity",
+              "clock": "startTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.2,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -4002,6 +4627,256 @@
             1,
             1
           ]
+        },
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "uiPosition",
+              "clock": "sceneTime",
+              "easing": "outCubic",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -520,
+                    590,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.25,
+                  "value": [
+                    -520,
+                    590,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.9,
+                  "value": [
+                    432,
+                    563,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "opacity",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.25,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.4,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "uiRotation",
+              "clock": "sceneTime",
+              "easing": "outCubic",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -0.12,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.25,
+                  "value": [
+                    -0.12,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.9,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "uiPosition",
+              "clock": "motionTime",
+              "easing": "smooth",
+              "delay": 2.4,
+              "loop": true,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    432,
+                    563,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.7,
+                  "value": [
+                    435,
+                    561,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.4,
+                  "value": [
+                    432,
+                    563,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 2.1,
+                  "value": [
+                    429,
+                    565,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 2.8,
+                  "value": [
+                    432,
+                    563,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "uiSize",
+              "clock": "startTime",
+              "easing": "outCubic",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    455,
+                    104,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.1,
+                  "value": [
+                    492,
+                    112,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.3,
+                  "value": [
+                    455,
+                    104,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "opacity",
+              "clock": "startTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.08,
+                  "value": [
+                    0.45,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.16,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -4070,6 +4945,76 @@
             0.956,
             1
           ]
+        },
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "opacity",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.65,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 2.1,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "opacity",
+              "clock": "startTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.15,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -4137,6 +5082,76 @@
             0.988,
             0.956,
             1
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "opacity",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 1.65,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 2.1,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "opacity",
+              "clock": "startTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.15,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]

@@ -28,7 +28,10 @@ namespace App
         std::string error;
         if (!environment_.Initialize(renderer,root_,root_/"Assets/Scenes/TitleStreet.json",error)) return false;
         environment_.Update(0.0, menu_.GetSettings().backgroundMotion, false);
-        environment_.Ui()=TitleUi::State(menu_);
+        menu_.SetTransitionDuration(environment_.Ui().Value("startDuration",0.32f));
+        if (menu_.IntroProgress()==1.0f)
+            environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),0);
+        SyncUi();
         return true;
     }
     TitleMenuInput TitleScene::ReadMenuInput(const Engine::Keyboard& keyboard) const
@@ -66,11 +69,17 @@ namespace App
         if(pointerAction!=TitleMenuAction::None) action=pointerAction;
         if(action==TitleMenuAction::SaveSettings) menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
         if(action==TitleMenuAction::Exit) PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
+        if (menu_.GetCue()==TitleMenuCue::Confirm && menu_.UsesPressAnyButton())
+        {
+            environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),
+                static_cast<float>(environment_.MotionSeconds()));
+            environment_.Ui().values["startRequested"]=1;
+        }
         SyncUi();
         environment_.Ui().hovered=hovered_; environment_.Ui().pressed=pressed_;
         audio_.Update(environment_,root_, menu_, keyboard.IsActive(), deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
-            keyboard.IsActive() && menu_.TransitionProgress() == 0.0f);
+            keyboard.IsActive());
         if (action == TitleMenuAction::Start) return "Game";
         if(!requestedScene_.empty()) return std::exchange(requestedScene_,{});
         return {};

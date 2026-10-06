@@ -2,6 +2,7 @@
 #include "EnvironmentJson.h"
 #include "UiJson.h"
 #include <algorithm>
+#include <iterator>
 #include <cmath>
 #include <cctype>
 #include <stdexcept>
@@ -83,11 +84,35 @@ namespace
         for (const auto& track : animation.tracks)
         {
             Json keys=Json::array();
-            for (const auto& key : track.keys) keys.push_back({{"time",key.time},{"value",key.value}});
+            std::transform(track.keys.begin(),track.keys.end(),std::back_inserter(keys),[](const auto& key) {
+                return Json{{"time",key.time},{"value",key.value}};
+            });
             object["tracks"].push_back({{"property",track.property},{"clock",track.clock},
                 {"easing",track.easing},{"delay",track.delay},{"loop",track.loop},{"keys",keys}});
         }
         return object;
+    }
+    bool ReadBasicComponent(const Json& component,SceneRuntime::ScenePlacement& placement,const std::string& type)
+    {
+        const auto id=component.at("id").get<std::string>();
+        const bool enabled=component.at("enabled").get<bool>();
+        if (type=="MeshRenderer")
+        {
+            if (placement.meshRenderer) throw std::runtime_error("Only one MeshRenderer is allowed");
+            placement.meshRenderer=SceneRuntime::MeshRendererComponent{id,enabled,ReadModel(component)};
+        }
+        else if (type=="Rotator")
+        {
+            if (placement.rotator) throw std::runtime_error("Only one Rotator is allowed");
+            placement.rotator=SceneRuntime::RotatorComponent{id,enabled,ReadVelocity(component)};
+        }
+        else if (type=="Animation")
+        {
+            if (placement.animation) throw std::runtime_error("Only one Animation is allowed");
+            placement.animation=ReadAnimation(component);
+        }
+        else return false;
+        return true;
     }
 }
 
@@ -110,23 +135,7 @@ namespace SceneRuntime
             if (id.empty() || id.find('\0')!=std::string::npos || !ids.insert(id).second)
                 throw std::runtime_error("Empty, duplicate or reserved component ID");
             const auto type=component.at("type").get<std::string>();
-            const bool enabled=component.at("enabled").get<bool>();
-            if (type=="MeshRenderer")
-            {
-                if (placement.meshRenderer) throw std::runtime_error("Only one MeshRenderer is allowed");
-                placement.meshRenderer=MeshRendererComponent{id,enabled,ReadModel(component)};
-            }
-            else if (type=="Rotator")
-            {
-                if (placement.rotator) throw std::runtime_error("Only one Rotator is allowed");
-                placement.rotator=RotatorComponent{id,enabled,ReadVelocity(component)};
-            }
-            else if (type=="Animation")
-            {
-                if (placement.animation) throw std::runtime_error("Only one Animation is allowed");
-                placement.animation=ReadAnimation(component);
-            }
-            else if (!ReadEnvironmentComponent(component,placement,type) &&
+            if (!ReadBasicComponent(component,placement,type) && !ReadEnvironmentComponent(component,placement,type) &&
                 !ReadUiComponent(component,placement,type))
                 throw std::runtime_error("Unsupported component type: "+type);
         }

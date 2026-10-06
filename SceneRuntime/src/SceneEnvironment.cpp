@@ -35,6 +35,13 @@ namespace SceneRuntime
         uiState_.values["sceneTime"]=sceneSeconds_;
         uiState_.values["motionTime"]=static_cast<float>(seconds_);
         uiState_.values["startTime"]=startSeconds_;
+        if (startSeconds_>=0)
+        {
+            const float duration=std::clamp(uiState_.Value("startDuration",0.32f),0.1f,10.0f);
+            const float progress=std::clamp(startSeconds_/duration,0.0f,1.0f);
+            uiState_.values["transition"]=progress;
+            uiState_.values["transitionPink"]=std::min(1.0f,progress*1.25f);
+        }
         if (!world_.Animate(uiState_.values)) Engine::Log::Warning("Animation rejected an invalid transform.");
     }
     void SceneEnvironment::SeekAnimation(float sceneSeconds,float motionSeconds,float startSeconds)
@@ -45,6 +52,10 @@ namespace SceneRuntime
         uiState_.values["sceneTime"]=sceneSeconds;
         uiState_.values["motionTime"]=motionSeconds;
         uiState_.values["startTime"]=startSeconds;
+        const float duration=std::clamp(uiState_.Value("startDuration",0.32f),0.1f,10.0f);
+        const float progress=std::clamp(startSeconds/duration,0.0f,1.0f);
+        uiState_.values["transition"]=progress;
+        uiState_.values["transitionPink"]=std::min(1.0f,progress*1.25f);
         world_.Animate(uiState_.values);
     }
     std::array<float,3> SceneEnvironment::CameraPosition() const

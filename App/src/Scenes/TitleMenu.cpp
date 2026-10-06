@@ -100,13 +100,18 @@ namespace App
 
     TitleMenuAction TitleMenu::UpdateTransition(float elapsed)
     {
-        if (transitionSeconds_ >= 0.32f && !transitionEmitted_)
+        if (transitionSeconds_ >= transitionDuration_ && !transitionEmitted_)
         {
             transitionEmitted_ = true;
             return pending_;
         }
-        transitionSeconds_ = std::min(0.32f, transitionSeconds_ + elapsed);
+        transitionSeconds_ = std::min(transitionDuration_, transitionSeconds_ + elapsed);
         return TitleMenuAction::None;
+    }
+    void TitleMenu::SetTransitionDuration(float seconds)
+    {
+        if (std::isfinite(seconds) && seconds>=0.1f && seconds<=10.0f && !finished_)
+            transitionDuration_=seconds;
     }
 
     void TitleMenu::MoveSelection(unsigned int direction)
