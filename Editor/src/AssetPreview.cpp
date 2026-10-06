@@ -11,7 +11,7 @@ namespace Editor
         if (!renderer.WaitForIdle()) return false;
         try
         {
-            if (!Load(renderer,root)) throw std::runtime_error("Preview could not be loaded. See Console for details.");
+            if (!Load(renderer,root)) throw std::runtime_error("プレビューを読み込めませんでした。コンソールで詳細を確認してください。");
             loaded_=selected_;
             error_.clear();
         }
@@ -70,12 +70,12 @@ namespace Editor
     void AssetPreview::Draw(const ProjectAsset& asset)
     {
         Request(asset);
-        if (requested_ && Ready()) ImGui::TextUnformatted("Preview update queued until editing.");
+        if (requested_ && Ready()) ImGui::TextUnformatted("編集へ戻るとプレビューを更新します。");
         if (!error_.empty()) ImGui::TextWrapped("%s",error_.c_str());
-        if (!Ready()) { ImGui::TextUnformatted(error_.empty() ? "Loading preview..." : "Preview unavailable."); return; }
+        if (!Ready()) { ImGui::TextUnformatted(error_.empty() ? "プレビューを読み込み中…" : "プレビューを表示できません。"); return; }
         if (asset.kind==AssetKind::Texture && image_)
         {
-            ImGui::Text("Image: %u x %u (%s, RGBA8 preview)",image_->GetWidth(),image_->GetHeight(),
+            ImGui::Text("画像：%u × %u（%s、RGBA8プレビュー）",image_->GetWidth(),image_->GetHeight(),
                 ProjectCatalog::Text(asset.path.extension()).c_str());
             const float width=std::max(1.0f,ImGui::GetContentRegionAvail().x);
             const float scale=std::min(width/static_cast<float>(image_->GetWidth()),320.0f/static_cast<float>(image_->GetHeight()));
@@ -96,7 +96,7 @@ namespace Editor
             zoom_=std::clamp(zoom_*std::exp(-input.MouseWheel*0.1f),0.5f,10.0f);
             UpdateCamera();
         }
-        ImGui::TextUnformatted("Drag to orbit / wheel to zoom");
-        if (ImGui::Button("Reset preview camera")) { yaw_=0.4f; pitch_=0.2f; zoom_=1.0f; UpdateCamera(); }
+        ImGui::TextUnformatted("ドラッグで回転・ホイールでズーム");
+        if (ImGui::Button("プレビューカメラをリセット###Reset preview camera")) { yaw_=0.4f; pitch_=0.2f; zoom_=1.0f; UpdateCamera(); }
     }
 }

@@ -18,7 +18,7 @@ namespace Editor
 {
     bool ComponentPanel::ChooseModel(std::filesystem::path& model, const ProjectCatalog* catalog)
     {
-        if (!catalog) { ImGui::TextUnformatted("Refresh Project to list models."); return false; }
+        if (!catalog) { ImGui::TextUnformatted("プロジェクトの一覧を更新するとモデルが表示されます。"); return false; }
         bool edited=false;
         for (const auto& asset : catalog->Assets())
         {
@@ -32,47 +32,47 @@ namespace Editor
 
     bool ComponentPanel::DrawMesh(SceneRuntime::ScenePlacement& candidate, const ProjectCatalog* catalog)
     {
-        if (!candidate.meshRenderer || !ImGui::CollapsingHeader("MeshRenderer",ImGuiTreeNodeFlags_DefaultOpen)) return false;
+        if (!candidate.meshRenderer || !ImGui::CollapsingHeader("メッシュ描画###MeshRenderer",ImGuiTreeNodeFlags_DefaultOpen)) return false;
         auto& mesh=*candidate.meshRenderer;
         ImGui::PushID(mesh.id.c_str());
-        ImGui::Text("Component ID: %s",mesh.id.c_str());
-        bool edited=ImGui::Checkbox("Enabled",&mesh.enabled);
+        ImGui::Text("コンポーネントID：%s",mesh.id.c_str());
+        bool edited=ImGui::Checkbox("有効###Enabled",&mesh.enabled);
         const auto text=ProjectCatalog::Text(mesh.model);
-        if (ImGui::BeginCombo("Model asset",ProjectCatalog::Text(mesh.model.filename()).c_str()))
+        if (ImGui::BeginCombo("モデルアセット###Model asset",ProjectCatalog::Text(mesh.model.filename()).c_str()))
         { edited=ChooseModel(mesh.model,catalog) || edited; ImGui::EndCombo(); }
         ImGui::TextWrapped("%s",text.c_str());
-        if (ImGui::Button("Reset MeshRenderer")) { mesh.enabled=true; edited=true; }
+        if (ImGui::Button("メッシュ描画をリセット###Reset MeshRenderer")) { mesh.enabled=true; edited=true; }
         ImGui::SameLine();
-        if (ImGui::Button("Remove MeshRenderer")) { candidate.meshRenderer.reset(); edited=true; }
+        if (ImGui::Button("メッシュ描画を削除###Remove MeshRenderer")) { candidate.meshRenderer.reset(); edited=true; }
         ImGui::PopID();
         return edited;
     }
 
     bool ComponentPanel::DrawRotator(EditState& state, SceneRuntime::ScenePlacement& candidate)
     {
-        if (!candidate.rotator || !ImGui::CollapsingHeader("Rotator",ImGuiTreeNodeFlags_DefaultOpen)) return false;
+        if (!candidate.rotator || !ImGui::CollapsingHeader("自動回転###Rotator",ImGuiTreeNodeFlags_DefaultOpen)) return false;
         auto& rotator=*candidate.rotator;
         ImGui::PushID(rotator.id.c_str());
-        ImGui::Text("Component ID: %s",rotator.id.c_str());
-        bool edited=ImGui::Checkbox("Enabled",&rotator.enabled);
-        edited=ImGui::DragFloat3("Angular velocity (deg/s)",rotator.angularVelocity.data(),0.5f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
+        ImGui::Text("コンポーネントID：%s",rotator.id.c_str());
+        bool edited=ImGui::Checkbox("有効###Enabled",&rotator.enabled);
+        edited=ImGui::DragFloat3("角速度（度/秒）###Angular velocity (deg/s)",rotator.angularVelocity.data(),0.5f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
         if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit())
             state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
-        ImGui::TextUnformatted("Local X / Y / Z rotation during Play");
-        if (ImGui::Button("Reset Rotator"))
+        ImGui::TextUnformatted("再生中にローカルX・Y・Z軸で回転します。");
+        if (ImGui::Button("自動回転をリセット###Reset Rotator"))
         { rotator.enabled=true; rotator.angularVelocity={0,90,0}; edited=true; }
         ImGui::SameLine();
-        if (ImGui::Button("Remove Rotator")) { candidate.rotator.reset(); edited=true; }
+        if (ImGui::Button("自動回転を削除###Remove Rotator")) { candidate.rotator.reset(); edited=true; }
         ImGui::PopID();
         return edited;
     }
 
     bool ComponentPanel::DrawAdd(SceneRuntime::ScenePlacement& candidate, const ProjectCatalog* catalog)
     {
-        if (ImGui::Button("Add Component")) ImGui::OpenPopup("Add component");
-        if (!ImGui::BeginPopup("Add component")) return false;
+        if (ImGui::Button("コンポーネントを追加###Add Component")) ImGui::OpenPopup("コンポーネントを選択###Add component");
+        if (!ImGui::BeginPopup("コンポーネントを選択###Add component")) return false;
         bool edited=false;
-        if (ImGui::BeginMenu("MeshRenderer",!candidate.meshRenderer))
+        if (ImGui::BeginMenu("メッシュ描画###MeshRenderer",!candidate.meshRenderer))
         {
             std::filesystem::path model;
             if (ChooseModel(model,catalog))
@@ -82,7 +82,7 @@ namespace Editor
             }
             ImGui::EndMenu();
         }
-        if (ImGui::MenuItem("Rotator",nullptr,false,!candidate.rotator))
+        if (ImGui::MenuItem("自動回転###Rotator",nullptr,false,!candidate.rotator))
         {
             candidate.rotator=SceneRuntime::RotatorComponent{NewComponentId(candidate,"rotator"),true,{0,90,0}};
             edited=true;

@@ -2894,17 +2894,17 @@ void ValidatePlayState()
         !state.CanPause() && !state.CanStop() && state.Elapsed()==0 && state.Updates()==0, "play state starts in editing");
     Check(!state.Pause() && !state.Stop() && !state.Advance(0.25), "editing cannot pause stop or advance game time");
     Check(state.Play() && !state.IsEditing() && !state.CanPlay() && state.CanPause() && state.CanStop() &&
-        std::string_view(state.Label())=="Playing", "Play enters playing and locks editing");
+        std::string_view(state.Label())=="再生中", "Play enters playing and locks editing");
     Check(state.Advance(0.25) && state.Elapsed()==0.25 && state.Updates()==1, "playing accepts a game tick");
     Check(!state.Play() && state.Elapsed()==0.25 && state.Updates()==1, "repeated Play does not reset active timing");
     Check(state.Pause() && state.Current()==Editor::PlayState::Mode::Paused && !state.IsEditing() &&
-        state.CanPlay() && !state.CanPause() && state.CanStop() && std::string_view(state.Label())=="Paused", "Pause freezes playing while keeping editing locked");
+        state.CanPlay() && !state.CanPause() && state.CanStop() && std::string_view(state.Label())=="一時停止中", "Pause freezes playing while keeping editing locked");
     Check(!state.Advance(0.5) && !state.Pause() && state.Elapsed()==0.25 && state.Updates()==1, "paused time and update count do not advance");
     Check(state.Play() && state.Advance(0.5) && state.Elapsed()==0.75 && state.Updates()==2, "Resume continues existing game time");
     Check(!state.Advance(0) && !state.Advance(-1) && !state.Advance(NAN) && !state.Advance(INFINITY) &&
         state.Elapsed()==0.75 && state.Updates()==2, "invalid deltas leave playback timing intact");
     Check(state.Stop() && state.IsEditing() && state.Elapsed()==0 && state.Updates()==0 &&
-        std::string_view(state.Label())=="Editing", "Stop from playing restores editing and resets timing");
+        std::string_view(state.Label())=="編集中", "Stop from playing restores editing and resets timing");
     Check(state.Play() && state.Advance(0.125) && state.Pause() && state.Stop() && state.IsEditing() &&
         state.Elapsed()==0 && state.Updates()==0, "Stop from paused resets the next session");
     Check(!state.Step() && state.Play() && !state.Step() && state.Pause() && state.Step() && state.Step() &&

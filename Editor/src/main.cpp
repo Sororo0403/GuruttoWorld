@@ -74,7 +74,7 @@ namespace
             };
             callbacks.draw = [&](Engine::DirectX12Renderer& renderer) { return Draw(renderer); };
             Engine::ApplicationSettings settings;
-            settings.title = L"WP1 Street Editor";
+            settings.title = L"WP1 エディター";
             Engine::Application application;
             return application.Run(settings, callbacks);
         }
@@ -129,7 +129,7 @@ namespace
             if (sceneTexture.GetWidth() == requestedSceneSize[0] && sceneTexture.GetHeight() == requestedSceneSize[1]) return true;
             if (!sceneTexture.Resize(renderer, requestedSceneSize[0], requestedSceneSize[1]))
             {
-                ReportStatus("Could not resize the Scene render texture.",false);
+                ReportStatus("シーンの描画テクスチャをリサイズできませんでした。",false);
                 return sceneTexture.GetResource() != nullptr;
             }
             sceneTextureId = renderer.SetSceneTexture(sceneTexture.GetShaderResourceView()).ptr;
@@ -142,7 +142,7 @@ namespace
             if (gameTexture.GetWidth()==requestedGameSize[0] && gameTexture.GetHeight()==requestedGameSize[1]) return true;
             if (!gameTexture.Resize(renderer,requestedGameSize[0],requestedGameSize[1]))
             {
-                ReportStatus("Could not resize the Game render texture.",false);
+                ReportStatus("ゲームの描画テクスチャをリサイズできませんでした。",false);
                 return gameTexture.GetResource()!=nullptr;
             }
             gameTextureId=renderer.SetSceneTexture(gameTexture.GetShaderResourceView(),1).ptr;
@@ -184,7 +184,7 @@ namespace
                     sceneLoaded = true;
                     editState.Reloaded();
                     history.Reset(Snapshot(world.Layout().Serialize()));
-                    fileStatus = "Reloaded.";
+                    fileStatus = "再読み込みしました。";
                     LogResult(true);
                 }
                 else LogResult(false);
@@ -203,7 +203,7 @@ namespace
                 history.Reset({world.Layout().Serialize(),{}});
                 editState.SetChanged(document.UnsavedNew());
                 cameraPanel.CancelDrag();
-                fileStatus=document.UnsavedNew() ? "New scene (not saved yet)." : "Scene opened.";
+                fileStatus=document.UnsavedNew() ? "新規シーンを作成しました（未保存）。" : "シーンを開きました。";
                 LogResult(true);
             }
             else LogResult(false);
@@ -228,7 +228,7 @@ namespace
                     history.Applied(redo);
                     editState.RestoreSelection(target.selections,target.selection);
                     editState.SetChanged(document.UnsavedNew() || history.Dirty(target.json));
-                    fileStatus=redo ? "Redone." : "Undone.";
+                    fileStatus=redo ? "やり直しました。" : "元に戻しました。";
                     LogResult(true);
                 }
                 else LogResult(false);
@@ -265,10 +265,10 @@ namespace
             if (success)
             {
                 if (!createdId.empty()) editState.ObjectChanged(createdId);
-                fileStatus=request.action==Editor::ObjectAction::Delete ? "Deleted." :
-                    request.action==Editor::ObjectAction::Duplicate ? "Duplicated." :
-                    request.action==Editor::ObjectAction::Components ? "Component updated." :
-                    request.action==Editor::ObjectAction::Settings ? "Scene settings updated." : "Added.";
+                fileStatus=request.action==Editor::ObjectAction::Delete ? "削除しました。" :
+                    request.action==Editor::ObjectAction::Duplicate ? "複製しました。" :
+                    request.action==Editor::ObjectAction::Components ? "コンポーネントを更新しました。" :
+                    request.action==Editor::ObjectAction::Settings ? "シーン設定を更新しました。" : "追加しました。";
                 history.Observe(Snapshot(world.Layout().Serialize()),request.interaction);
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(world.Layout().Serialize()));
             }
@@ -281,6 +281,7 @@ namespace
             if (!initialized)
             {
                 if(!Editor::EditorFonts::Initialize(root,fileStatus)) {LogResult(false); return false;}
+                Editor::Language::Initialize();
                 const auto settingsRoot = Engine::GetDiagnosticsRoot();
                 Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{} : settingsRoot / "Editor/layout.ini");
                 sceneLoaded = world.Initialize(renderer, root, document.Path(),
@@ -290,7 +291,7 @@ namespace
                 initialized = true;
                 if (sceneLoaded) history.Reset(Snapshot(world.Layout().Serialize()));
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
-                    sceneLoaded ? "Editor scene loaded." : fileStatus);
+                    sceneLoaded ? "エディターのシーンを読み込みました。" : fileStatus);
             }
             return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer) && ApplyPlay(renderer) && ApplyAssets(renderer);
         }
@@ -319,7 +320,7 @@ namespace
             {
                 presentation=std::move(candidate);
                 projectPanel.Scan(root);
-                fileStatus="Assets reloaded. Unsaved scene and history preserved.";
+                fileStatus="アセットを再読み込みしました。未保存のシーンと履歴を維持しています。";
             }
             LogResult(success);
             return true;
@@ -332,12 +333,12 @@ namespace
             pendingPlay.reset();
             if (command==Editor::GameSession::Command::Pause)
             {
-                if (gameSession.Pause()) ReportStatus("Game paused.",true);
+                if (gameSession.Pause()) ReportStatus("ゲームを一時停止しました。",true);
                 return true;
             }
             if (command==Editor::GameSession::Command::Step)
             {
-                if (gameSession.Step()) ReportStatus("Stepped one frame (1/60 s).",true);
+                if (gameSession.Step()) ReportStatus("1フレーム（1/60秒）進めました。",true);
                 return true;
             }
             if (!renderer.WaitForIdle()) return false;
@@ -360,7 +361,7 @@ namespace
             if (captured) playSnapshot=std::move(captured);
             focusGame=true;
             cameraPanel.CancelDrag();
-            ReportStatus("Playing.",true);
+            ReportStatus("再生を開始しました。",true);
         }
 
         void StopGame()
@@ -375,22 +376,22 @@ namespace
             if (gameSession.Stop())
             {
                 playSnapshot.reset();
-                ReportStatus("Returned to editing.",true);
+                ReportStatus("編集へ戻りました。",true);
             }
         }
 
         bool Save()
         {
-            if (!sceneLoaded) { fileStatus = "No scene is loaded to save."; LogResult(false); return false; }
+            if (!sceneLoaded) { fileStatus = "保存するシーンが読み込まれていません。"; LogResult(false); return false; }
             try
             {
                 document.Save(world.Layout());
-                SavedSuccessfully("Saved.");
+                SavedSuccessfully("保存しました。");
                 return true;
             }
             catch (const std::exception& error)
             {
-                fileStatus = std::string("Save failed: ") + error.what();
+                fileStatus = std::string("保存に失敗しました：") + error.what();
                 LogResult(false);
                 return false;
             }
@@ -411,12 +412,12 @@ namespace
             try
             {
                 document.SaveAs(world.Layout(),target,overwrite);
-                SavedSuccessfully("Saved as: "+Editor::ProjectCatalog::Text(document.Path().filename()));
+                SavedSuccessfully("別名で保存しました："+Editor::ProjectCatalog::Text(document.Path().filename()));
                 return true;
             }
             catch (const std::exception& error)
             {
-                fileStatus=std::string("Save as failed: ")+error.what();
+                fileStatus=std::string("別名保存に失敗しました：")+error.what();
                 LogResult(false);
                 return false;
             }
@@ -441,7 +442,7 @@ namespace
                 return;
             }
             if (focusGame) { ImGui::SetNextWindowFocus(); focusGame=false; }
-            gamePanel.Begin(gameTextureId,"Game###Game");
+            gamePanel.Begin(gameTextureId,"ゲーム###Game");
             requestedGameSize=gamePanel.RequestedSize();
             uiCanvasPanel.Draw(world,editState,gamePanel.Viewport(),SceneEditingEnabled());
             UpdateGamePointer();
@@ -521,27 +522,27 @@ namespace
             history.Observe(Snapshot(world.Layout().Serialize()), {});
             // 編集中のギズモを止め、確認中は配置を変更しません。
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport, false);
-            if (!ImGui::IsPopupOpen("Exit with unsaved changes?")) ImGui::OpenPopup("Exit with unsaved changes?");
-            if (ImGui::BeginPopupModal("Exit with unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            if (!ImGui::IsPopupOpen("未保存の変更があります：終了###Exit with unsaved changes?")) ImGui::OpenPopup("未保存の変更があります：終了###Exit with unsaved changes?");
+            if (ImGui::BeginPopupModal("未保存の変更があります：終了###Exit with unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
-                ImGui::TextUnformatted("The current scene has unsaved changes.");
-                if (ImGui::Button("Save and exit"))
+                ImGui::TextUnformatted("現在のシーンに未保存の変更があります。");
+                if (ImGui::Button("保存して終了###Save and exit"))
                 {
                     if (Save()) { closeConfirmed = true; ImGui::CloseCurrentPopup(); }
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Exit without saving"))
+                if (ImGui::Button("保存せず終了###Exit without saving"))
                 {
                     closeConfirmed = true;
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel"))
+                if (ImGui::Button("キャンセル###Cancel"))
                 {
                     closeRequested = false;
                     ImGui::CloseCurrentPopup();
                 }
-                if (!audioPreview.error.empty()) ImGui::TextWrapped("Audio: %s",audioPreview.error.c_str());
+                if (!audioPreview.error.empty()) ImGui::TextWrapped("音声：%s",audioPreview.error.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 ImGui::EndPopup();
             }
@@ -552,11 +553,11 @@ namespace
             if (keyboard && keyboard->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape,false)) preview=false;
             ImGui::SetNextWindowPos(ImVec2(20,20),ImGuiCond_Always);
             ImGui::SetNextWindowBgAlpha(0.8f);
-            if (ImGui::Begin("Game composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            if (ImGui::Begin("ゲーム画面の確認###Game composition", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
-                ImGui::TextUnformatted("Scene camera / lighting - current layout (including unsaved edits)");
-                ImGui::TextUnformatted("Scene camera, sky, lighting and particles - current unsaved layout.");
-                if (ImGui::Button("Back to editing (Escape)")) preview=false;
+                ImGui::TextUnformatted("シーンのカメラ・照明：未保存の編集を含む現在の配置");
+                ImGui::TextUnformatted("シーンのカメラ・空・照明・パーティクル：現在の編集中の配置");
+                if (ImGui::Button("編集へ戻る（Escape）###Back to editing (Escape)")) preview=false;
             }
             ImGui::End();
         }
@@ -600,7 +601,7 @@ namespace
                         cameraPanel.CancelDrag();
                         camera.GetCamera().SetPosition(*position);
                     }
-                    else fileStatus="Selection cannot fit within the camera range, or an object is unavailable.";
+                    else fileStatus="選択対象がカメラの範囲に収まらないか、対象のオブジェクトがありません。";
                 }
             }
         }
@@ -682,29 +683,29 @@ namespace
         void DrawCommands()
         {
             Editor::PanelLayout::Place(Editor::PanelLayout::Panel::Commands);
-            if (ImGui::Begin("Street Editor"))
+            if (ImGui::Begin("エディター###Street Editor"))
             {
-                ImGui::TextWrapped("Scene: %s",Editor::ProjectCatalog::Text(document.Path().filename()).c_str());
-                ImGui::Text("Objects: %zu", world.Layout().objects.size());
-                ImGui::Text("Game: %s / %.2f s",gameSession.State().Label(),gameSession.State().Elapsed());
+                ImGui::TextWrapped("シーン：%s",Editor::ProjectCatalog::Text(document.Path().filename()).c_str());
+                ImGui::Text("オブジェクト数：%zu", world.Layout().objects.size());
+                ImGui::Text("ゲーム：%s / %.2f秒",gameSession.State().Label(),gameSession.State().Elapsed());
                 if (!SceneRuntime::SceneView::CameraObject(world.Layout()) &&
                     std::any_of(world.Layout().objects.begin(),world.Layout().objects.end(),[](const auto& p){return p.meshRenderer || p.particleEmitter;}))
-                    ImGui::TextWrapped("No enabled Game camera. Create an empty object and add Camera.");
-                ImGui::TextUnformatted(editState.HasChanges() ? "Unsaved changes" : "Saved / unchanged");
+                    ImGui::TextWrapped("有効なゲームカメラがありません。空のオブジェクトを作成し、カメラを追加してください。");
+                ImGui::TextUnformatted(editState.HasChanges() ? "未保存の変更あり" : "保存済み・変更なし");
 
-                if (ImGui::CollapsingHeader("Help / Content"))
+                if (ImGui::CollapsingHeader("ヘルプ・コンテンツ###Help / Content"))
                 {
-                    ImGui::TextWrapped("Ctrl+S: Save / Ctrl+D: Duplicate / Delete: Remove / 1,2,3: Move,Rotate,Scale / F: Focus");
-                    ImGui::TextWrapped("Play runs the current scene and its environment Components. Pause freezes motion; Step advances one frame; Stop restores editing.");
-                    ImGui::TextWrapped("Content: %s",root.string().c_str());
+                    ImGui::TextWrapped("Ctrl+S：保存／Ctrl+D：複製／Delete：削除／1・2・3：移動・回転・拡縮／F：フォーカス");
+                    ImGui::TextWrapped("再生で現在のシーンを実行します。一時停止で動きを止め、コマ送りで1フレーム進め、停止で編集状態に戻ります。");
+                    ImGui::TextWrapped("コンテンツ：%s",Editor::ProjectCatalog::Text(root).c_str());
                 }
-                if (!audioPreview.error.empty()) ImGui::TextWrapped("Audio: %s",audioPreview.error.c_str());
+                if (!audioPreview.error.empty()) ImGui::TextWrapped("音声：%s",audioPreview.error.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
-                if (!Editor::PanelLayout::error.empty()) ImGui::TextWrapped("Layout: %s", Editor::PanelLayout::error.c_str());
+                if (!Editor::PanelLayout::error.empty()) ImGui::TextWrapped("パネル配置：%s", Editor::PanelLayout::error.c_str());
                 if (reloadConfirmRequested)
                 {
                     reloadConfirmRequested=false;
-                    ImGui::OpenPopup("Reload unsaved changes?");
+                    ImGui::OpenPopup("未保存の変更があります：再読み込み###Reload unsaved changes?");
                 }
                 DrawReloadPopup();
                 DrawSceneDialogs();
@@ -751,17 +752,17 @@ namespace
             if (!ImGui::BeginMainMenuBar()) return;
             DrawFileMenu(enabled);
             DrawEditMenu(enabled);
-            if (ImGui::BeginMenu("View"))
+            if (ImGui::BeginMenu("表示###View"))
             {
-                if (ImGui::MenuItem("Focus selected", "F", false, enabled && editState.InspectedAsset().empty() && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
-                if (ImGui::MenuItem("Console")) ImGui::SetWindowFocus("Console");
-                if (ImGui::MenuItem("Game tab", nullptr, false, enabled)) focusGame=true;
-                if (ImGui::MenuItem("Preview Game composition", nullptr, false, enabled))
+                if (ImGui::MenuItem("選択対象にフォーカス###Focus selected", "F", false, enabled && editState.InspectedAsset().empty() && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
+                if (ImGui::MenuItem("コンソール###Console")) ImGui::SetWindowFocus("コンソール###Console");
+                if (ImGui::MenuItem("ゲームタブ###Game tab", nullptr, false, enabled)) focusGame=true;
+                if (ImGui::MenuItem("ゲーム画面を確認###Preview Game composition", nullptr, false, enabled))
                 {
                     preview=true;
                     cameraPanel.CancelDrag();
                 }
-                if (ImGui::MenuItem("Reset panel layout", nullptr, false, !gizmo.IsDragging())) Editor::PanelLayout::Reset();
+                if (ImGui::MenuItem("パネル配置をリセット###Reset panel layout", nullptr, false, !gizmo.IsDragging())) Editor::PanelLayout::Reset();
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
@@ -769,21 +770,21 @@ namespace
 
         void DrawFileMenu(bool enabled)
         {
-            if (!ImGui::BeginMenu("File")) return;
-            if (ImGui::MenuItem("New scene", nullptr, false, CommandContextEnabled())) newScenePopupRequested=true;
+            if (!ImGui::BeginMenu("ファイル###File")) return;
+            if (ImGui::MenuItem("新規シーン###New scene", nullptr, false, CommandContextEnabled())) newScenePopupRequested=true;
             DrawOpenMenu(CommandContextEnabled());
-            if (ImGui::MenuItem("Save", "Ctrl+S", false, enabled)) Save();
-            if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S", false, enabled)) saveAsPanel.Request(document.Path());
-            if (ImGui::MenuItem("Reload", nullptr, false, enabled && !document.UnsavedNew())) RequestReload();
+            if (ImGui::MenuItem("保存###Save", "Ctrl+S", false, enabled)) Save();
+            if (ImGui::MenuItem("名前を付けて保存…###Save as...", "Ctrl+Shift+S", false, enabled)) saveAsPanel.Request(document.Path());
+            if (ImGui::MenuItem("再読み込み###Reload", nullptr, false, enabled && !document.UnsavedNew())) RequestReload();
             ImGui::Separator();
-            if (ImGui::MenuItem("Exit", nullptr, false, !gizmo.IsDragging())) closeRequested=true;
+            if (ImGui::MenuItem("終了###Exit", nullptr, false, !gizmo.IsDragging())) closeRequested=true;
             ImGui::EndMenu();
         }
 
         void DrawOpenMenu(bool enabled)
         {
-            if (!ImGui::BeginMenu("Open scene",enabled)) return;
-            if (ImGui::MenuItem("Refresh scene list")) projectPanel.Scan(root);
+            if (!ImGui::BeginMenu("シーンを開く###Open scene",enabled)) return;
+            if (ImGui::MenuItem("シーン一覧を更新###Refresh scene list")) projectPanel.Scan(root);
             ImGui::Separator();
             for (const auto& asset : projectPanel.Catalog().Assets())
             {
@@ -796,14 +797,14 @@ namespace
 
         void DrawEditMenu(bool enabled)
         {
-            if (!ImGui::BeginMenu("Edit")) return;
-            if (ImGui::MenuItem("Undo", "Ctrl+Z", false, enabled && history.CanUndo())) pendingHistory=false;
-            if (ImGui::MenuItem("Redo", "Ctrl+Y", false, enabled && history.CanRedo())) pendingHistory=true;
+            if (!ImGui::BeginMenu("編集###Edit")) return;
+            if (ImGui::MenuItem("元に戻す###Undo", "Ctrl+Z", false, enabled && history.CanUndo())) pendingHistory=false;
+            if (ImGui::MenuItem("やり直す###Redo", "Ctrl+Y", false, enabled && history.CanRedo())) pendingHistory=true;
             ImGui::Separator();
             const bool selected=enabled && editState.InspectedAsset().empty() && !editState.SelectedIds().empty();
-            if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, selected))
+            if (ImGui::MenuItem("複製###Duplicate", "Ctrl+D", false, selected))
                 pendingObject=editState.DuplicateSelectionRequest();
-            if (ImGui::MenuItem("Delete", "Delete", false, selected))
+            if (ImGui::MenuItem("削除###Delete", "Delete", false, selected))
                 pendingObject=editState.DeleteSelectionRequest();
             ImGui::EndMenu();
         }
@@ -814,20 +815,20 @@ namespace
                 !saveAsPanel.Requested() && !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
             ImGui::BeginDisabled(!enabled);
             ImGui::BeginDisabled(!gameSession.State().CanPlay());
-            if (ImGui::Button(gameSession.State().IsEditing() ? "Play###Play" : "Resume###Play"))
+            if (ImGui::Button(gameSession.State().IsEditing() ? "再生###Play" : "再開###Play"))
                 pendingPlay=Editor::GameSession::Command::Play;
             ImGui::EndDisabled();
             ImGui::SameLine();
             ImGui::BeginDisabled(!gameSession.State().CanPause());
-            if (ImGui::Button("Pause")) pendingPlay=Editor::GameSession::Command::Pause;
+            if (ImGui::Button("一時停止###Pause")) pendingPlay=Editor::GameSession::Command::Pause;
             ImGui::EndDisabled();
             ImGui::SameLine();
             ImGui::BeginDisabled(!gameSession.State().CanStop());
-            if (ImGui::Button("Stop")) pendingPlay=Editor::GameSession::Command::Stop;
+            if (ImGui::Button("停止###Stop")) pendingPlay=Editor::GameSession::Command::Stop;
             ImGui::EndDisabled();
             ImGui::SameLine();
             ImGui::BeginDisabled(!gameSession.State().CanStep());
-            if (ImGui::Button("Step")) pendingPlay=Editor::GameSession::Command::Step;
+            if (ImGui::Button("コマ送り###Step")) pendingPlay=Editor::GameSession::Command::Step;
             ImGui::EndDisabled();
             ImGui::EndDisabled();
             ImGui::SameLine();
@@ -845,14 +846,14 @@ namespace
                 const bool enabled=CommandsEnabled() &&
                     !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
                 ImGui::BeginDisabled(!enabled);
-                if (ImGui::Button("Save")) Save();
+                if (ImGui::Button("保存###Save")) Save();
                 ImGui::SameLine();
                 ImGui::BeginDisabled(!history.CanUndo());
-                if (ImGui::Button("Undo")) pendingHistory=false;
+                if (ImGui::Button("元に戻す###Undo")) pendingHistory=false;
                 ImGui::EndDisabled();
                 ImGui::SameLine();
                 ImGui::BeginDisabled(!history.CanRedo());
-                if (ImGui::Button("Redo")) pendingHistory=true;
+                if (ImGui::Button("やり直す###Redo")) pendingHistory=true;
                 ImGui::EndDisabled();
                 ImGui::EndDisabled();
                 ImGui::SameLine();
@@ -864,20 +865,20 @@ namespace
         void DrawSceneDialogs()
         {
             saveAsPanel.Draw(root,[&](const auto& path,bool overwrite) { return SaveAs(path,overwrite); },fileStatus);
-            if (newScenePopupRequested) { ImGui::OpenPopup("New scene"); newScenePopupRequested=false; }
-            if (ImGui::BeginPopupModal("New scene",nullptr,ImGuiWindowFlags_AlwaysAutoResize))
+            if (newScenePopupRequested) { ImGui::OpenPopup("新規シーン###New scene"); newScenePopupRequested=false; }
+            if (ImGui::BeginPopupModal("新規シーン###New scene",nullptr,ImGuiWindowFlags_AlwaysAutoResize))
             {
-                ImGui::TextUnformatted("Filename in Assets/Scenes (written on Save):");
-                ImGui::InputText("Filename",newSceneName.data(),newSceneName.size());
-                if (ImGui::Button("Create")) CreateSceneRequest();
+                ImGui::TextUnformatted("Assets/Scenes内のファイル名（保存時に作成）：");
+                ImGui::InputText("ファイル名###Filename",newSceneName.data(),newSceneName.size());
+                if (ImGui::Button("作成###Create")) CreateSceneRequest();
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
-                if (!audioPreview.error.empty()) ImGui::TextWrapped("Audio: %s",audioPreview.error.c_str());
+                if (ImGui::Button("キャンセル###Cancel")) ImGui::CloseCurrentPopup();
+                if (!audioPreview.error.empty()) ImGui::TextWrapped("音声：%s",audioPreview.error.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s",fileStatus.c_str());
                 ImGui::EndPopup();
             }
-            if (document.NeedsConfirmation() && !ImGui::IsPopupOpen("Switch scene with unsaved changes?"))
-                ImGui::OpenPopup("Switch scene with unsaved changes?");
+            if (document.NeedsConfirmation() && !ImGui::IsPopupOpen("未保存の変更があります：シーン切り替え###Switch scene with unsaved changes?"))
+                ImGui::OpenPopup("未保存の変更があります：シーン切り替え###Switch scene with unsaved changes?");
             DrawSceneSwitchPopup();
         }
 
@@ -894,38 +895,38 @@ namespace
 
         void DrawSceneSwitchPopup()
         {
-            if (!ImGui::BeginPopupModal("Switch scene with unsaved changes?",nullptr,ImGuiWindowFlags_AlwaysAutoResize)) return;
-            ImGui::TextUnformatted("The current scene has unsaved changes.");
-            if (ImGui::Button("Save and continue"))
+            if (!ImGui::BeginPopupModal("未保存の変更があります：シーン切り替え###Switch scene with unsaved changes?",nullptr,ImGuiWindowFlags_AlwaysAutoResize)) return;
+            ImGui::TextUnformatted("現在のシーンに未保存の変更があります。");
+            if (ImGui::Button("保存して続行###Save and continue"))
             {
                 if (Save()) { document.Confirm(); ImGui::CloseCurrentPopup(); }
             }
             ImGui::SameLine();
-            if (ImGui::Button("Discard and continue")) { document.Confirm(); ImGui::CloseCurrentPopup(); }
+            if (ImGui::Button("変更を破棄して続行###Discard and continue")) { document.Confirm(); ImGui::CloseCurrentPopup(); }
             ImGui::SameLine();
-            if (ImGui::Button("Cancel")) { document.Cancel(); ImGui::CloseCurrentPopup(); }
+            if (ImGui::Button("キャンセル###Cancel")) { document.Cancel(); ImGui::CloseCurrentPopup(); }
             if (!fileStatus.empty()) ImGui::TextWrapped("%s",fileStatus.c_str());
             ImGui::EndPopup();
         }
 
         void DrawReloadPopup()
         {
-            if (ImGui::BeginPopupModal("Reload unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+            if (ImGui::BeginPopupModal("未保存の変更があります：再読み込み###Reload unsaved changes?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
             {
-                ImGui::TextUnformatted("The current scene has unsaved changes.");
-                if (ImGui::Button("Save and reload"))
+                ImGui::TextUnformatted("現在のシーンに未保存の変更があります。");
+                if (ImGui::Button("保存して再読み込み###Save and reload"))
                 {
                     if (Save()) { reloadRequested = true; ImGui::CloseCurrentPopup(); }
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Discard and reload"))
+                if (ImGui::Button("変更を破棄して再読み込み###Discard and reload"))
                 {
                     reloadRequested = true;
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
-                if (!audioPreview.error.empty()) ImGui::TextWrapped("Audio: %s",audioPreview.error.c_str());
+                if (ImGui::Button("キャンセル###Cancel")) ImGui::CloseCurrentPopup();
+                if (!audioPreview.error.empty()) ImGui::TextWrapped("音声：%s",audioPreview.error.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 ImGui::EndPopup();
             }

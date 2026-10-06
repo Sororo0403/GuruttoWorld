@@ -19,21 +19,21 @@ ImFont* Load(ImFontAtlas& atlas,const std::filesystem::path& path,ImFontConfig c
 namespace Editor {
 bool EditorFonts::Initialize(const std::filesystem::path& root,std::string& error) {
     try {
-        if(!ImGui::GetCurrentContext()) {error="Editor fonts require an ImGui context"; return false;}
+        if(!ImGui::GetCurrentContext()) {error="フォントの初期化にはImGuiコンテキストが必要です"; return false;}
         auto& io=ImGui::GetIO();
         if(io.FontDefault && std::strcmp(io.FontDefault->GetDebugName(),FontName)==0) {error.clear(); return true;}
-        if(io.Fonts->Locked) {error="Initialize editor fonts before the ImGui frame"; return false;}
+        if(io.Fonts->Locked) {error="ImGuiフレームの開始前にフォントを初期化してください"; return false;}
         const auto latin=root/"Assets/Fonts/FiraMono/FiraMono-Regular.ttf";
         const auto japanese=root/"Assets/Fonts/MPlus1p/MPLUS1p-Regular.ttf";
         for(const auto& path:{latin,japanese}) if(!std::filesystem::is_regular_file(path)) {
-            error="Editor font is missing: "+Utf8(path); return false;
+            error="エディターのフォントがありません："+Utf8(path); return false;
         }
         auto* font=Load(*io.Fonts,latin,{},FontName);
-        if(!font) {error="Cannot load Fira Mono"; return false;}
+        if(!font) {error="Fira Monoを読み込めません"; return false;}
         ImFontConfig merge; merge.MergeMode=true; merge.DstFont=font;
         static constexpr ImWchar ExcludeLatin[]={0x0020,0x007e,0};
         merge.GlyphExcludeRanges=ExcludeLatin;
-        if(!Load(*io.Fonts,japanese,merge,"M PLUS 1p Japanese")) {error="Cannot load Japanese font"; return false;}
+        if(!Load(*io.Fonts,japanese,merge,"M PLUS 1p Japanese")) {error="日本語フォントを読み込めません"; return false;}
         io.FontDefault=font;
         ImGui::GetStyle().FontSizeBase=FontSize;
         error.clear(); return true;

@@ -27,15 +27,15 @@ namespace Editor
     {
         if (state.SelectedIds().empty()) anchorId_.clear();
         PanelLayout::Place(PanelLayout::Panel::Objects);
-        if (ImGui::Begin("Hierarchy###Objects"))
+        if (ImGui::Begin("ヒエラルキー###Objects"))
         {
-            filter_.Draw("Search",-1);
-            ImGui::Text("%zu objects / %zu selected",world.Layout().objects.size(),state.SelectedIds().size());
+            filter_.Draw("検索###Search",-1);
+            ImGui::Text("オブジェクト：%zu個／選択：%zu個",world.Layout().objects.size(),state.SelectedIds().size());
             ImGui::BeginDisabled(!enabled);
-            if (ImGui::Button("Create empty")) state.Request({ObjectAction::AddEmpty,{},{},{}});
+            if (ImGui::Button("空のオブジェクトを作成###Create empty")) state.Request({ObjectAction::AddEmpty,{},{},{}});
             ImGui::SameLine();
-            if (ImGui::Button("Scene settings")) state.Select({});
-            ImGui::Selectable("Drop here to make root",false);
+            if (ImGui::Button("シーン設定###Scene settings")) state.Select({});
+            ImGui::Selectable("ここにドロップして親を解除###Drop here to make root",false);
             DrawReparentTarget(world,state,{});
             if (!parentError_.empty()) ImGui::TextWrapped("%s",parentError_.c_str());
             if (ImGui::BeginChild("Object list",ImVec2(0,0))) DrawHierarchy(world,state,enabled);
@@ -119,10 +119,10 @@ namespace Editor
 
     void ObjectPanel::DrawParent(SceneRuntime::SceneWorld& world, EditState& state, const SceneRuntime::ScenePlacement& placement)
     {
-        const auto preview=placement.parentId.empty() ? std::string("<root>") : placement.parentId;
-        if (ImGui::BeginCombo("Parent",preview.c_str()))
+        const auto preview=placement.parentId.empty() ? std::string("〈親なし〉") : placement.parentId;
+        if (ImGui::BeginCombo("親###Parent",preview.c_str()))
         {
-            if (ImGui::Selectable("<root>",placement.parentId.empty())) ChangeParent(world,state,placement.id,{});
+            if (ImGui::Selectable("〈親なし〉",placement.parentId.empty())) ChangeParent(world,state,placement.id,{});
             for (const auto& candidate : world.Layout().objects)
             {
                 if (candidate.id==placement.id) continue;
@@ -148,7 +148,7 @@ namespace Editor
     {
         const auto& objects = world.Layout().objects;
         PanelLayout::Place(PanelLayout::Panel::Inspector);
-        if (ImGui::Begin("Inspector"))
+        if (ImGui::Begin("インスペクター###Inspector"))
         {
             const auto found = std::find_if(objects.begin(), objects.end(),
                 [&](const auto& object) { return object.id == state.SelectedId(); });
@@ -167,17 +167,17 @@ namespace Editor
                 ImGui::Separator();
                 DrawTransform(world, state, *found);
                 ComponentPanel::Draw(state,*found,catalog_);
-                if (ImGui::Button("Duplicate")) state.Request(state.DuplicateSelectionRequest());
+                if (ImGui::Button("複製###Duplicate")) state.Request(state.DuplicateSelectionRequest());
                 ImGui::SameLine();
-                if (ImGui::Button("Delete")) state.Request(state.DeleteSelectionRequest());
+                if (ImGui::Button("削除###Delete")) state.Request(state.DeleteSelectionRequest());
                 ImGui::EndDisabled();
                 ImGui::PopID();
                 if (state.InvalidTransform())
-                    ImGui::TextWrapped("Invalid transform. Use finite numbers and nonzero scale.");
+                    ImGui::TextWrapped("変換値が不正です。有限の数値とゼロ以外のスケールを指定してください。");
             }
             ImGui::Separator();
-            ImGui::TextWrapped(state.HasChanges() ? "Unsaved changes." :
-                "No unsaved changes.");
+            ImGui::TextWrapped(state.HasChanges() ? "未保存の変更があります。" :
+                "未保存の変更はありません。");
         }
         ImGui::End();
     }
@@ -185,14 +185,14 @@ namespace Editor
     void ObjectPanel::DrawSettings(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
         ImGui::BeginDisabled(!enabled);
-        ImGui::TextUnformatted("Scene settings");
+        ImGui::TextUnformatted("シーン設定");
         auto settings=world.Layout().settings;
-        bool settingsEdited=ImGui::ColorEdit4("Background",settings.background.data());
+        bool settingsEdited=ImGui::ColorEdit4("背景色###Background",settings.background.data());
         TrackInspectorEdit(state);
-        const auto label=settings.mainCamera.empty() ? std::string("First enabled Camera") : settings.mainCamera;
-        if (ImGui::BeginCombo("Game camera",label.c_str()))
+        const auto label=settings.mainCamera.empty() ? std::string("最初の有効なカメラ") : settings.mainCamera;
+        if (ImGui::BeginCombo("ゲームカメラ###Game camera",label.c_str()))
         {
-            if (ImGui::Selectable("First enabled Camera",settings.mainCamera.empty()))
+            if (ImGui::Selectable("最初の有効なカメラ",settings.mainCamera.empty()))
             { settings.mainCamera.clear(); settingsEdited=true; }
             for (const auto& object : world.Layout().objects)
             {
@@ -202,14 +202,14 @@ namespace Editor
             }
             ImGui::EndCombo();
         }
-        settingsEdited=ImGui::Checkbox("Fog enabled",&settings.fog.enabled) || settingsEdited;
-        settingsEdited=ImGui::ColorEdit3("Fog color",settings.fog.color.data()) || settingsEdited;
+        settingsEdited=ImGui::Checkbox("霧を有効化###Fog enabled",&settings.fog.enabled) || settingsEdited;
+        settingsEdited=ImGui::ColorEdit3("霧の色###Fog color",settings.fog.color.data()) || settingsEdited;
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::DragFloat("Fog start",&settings.fog.start,0.1f,0,settings.fog.end-0.001f,"%.2f",ImGuiSliderFlags_AlwaysClamp) || settingsEdited;
+        settingsEdited=ImGui::DragFloat("霧の開始距離###Fog start",&settings.fog.start,0.1f,0,settings.fog.end-0.001f,"%.2f",ImGuiSliderFlags_AlwaysClamp) || settingsEdited;
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::DragFloat("Fog end",&settings.fog.end,0.1f,settings.fog.start+0.001f,1000000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || settingsEdited;
+        settingsEdited=ImGui::DragFloat("霧の終了距離###Fog end",&settings.fog.end,0.1f,settings.fog.start+0.001f,1000000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || settingsEdited;
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("Fog strength",&settings.fog.strength,0,1) || settingsEdited;
+        settingsEdited=ImGui::SliderFloat("霧の強さ###Fog strength",&settings.fog.strength,0,1) || settingsEdited;
         TrackInspectorEdit(state);
         if (settingsEdited)
         {
@@ -226,8 +226,8 @@ namespace Editor
 
     void ObjectPanel::DrawMultiInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
-        ImGui::Text("%zu objects selected",state.SelectedIds().size());
-        ImGui::Text("Active ID: %s",state.SelectedId().c_str());
+        ImGui::Text("%zu個のオブジェクトを選択中",state.SelectedIds().size());
+        ImGui::Text("アクティブID：%s",state.SelectedId().c_str());
         const auto& objects=world.Layout().objects;
         const auto found=std::find_if(objects.begin(),objects.end(),[&](const auto& object) { return object.id==state.SelectedId(); });
         if (found==objects.end()) return;
@@ -237,19 +237,19 @@ namespace Editor
         auto position=previous;
         ImGui::PushID(found->id.c_str());
         ImGui::BeginDisabled(!enabled);
-        if (ImGui::DragFloat3("Active position",position.data(),0.05f,0,0,"%.3f") && position!=previous)
+        if (ImGui::DragFloat3("アクティブ対象の位置###Active position",position.data(),0.05f,0,0,"%.3f") && position!=previous)
         {
             const std::array<float,3> delta{position[0]-previous[0],position[1]-previous[1],position[2]-previous[2]};
             state.TranslateSelectionWorld(world,delta);
         }
         TrackInspectorEdit(state);
-        if (ImGui::Button("Duplicate selected")) state.Request(state.DuplicateSelectionRequest());
+        if (ImGui::Button("選択対象を複製###Duplicate selected")) state.Request(state.DuplicateSelectionRequest());
         ImGui::SameLine();
-        if (ImGui::Button("Delete selected")) state.Request(state.DeleteSelectionRequest());
+        if (ImGui::Button("選択対象を削除###Delete selected")) state.Request(state.DeleteSelectionRequest());
         ImGui::EndDisabled();
         ImGui::PopID();
-        ImGui::TextWrapped("Move, Rotate and Scale use the active object as pivot. Rotate and Scale use the Scene gizmo. Scale uses active local axes and changes spacing. Duplicate and delete use the selection.");
-        if (state.InvalidTransform()) ImGui::TextWrapped("Move rejected. Use finite positions within the supported range.");
+        ImGui::TextWrapped("移動・回転・拡縮の中心はアクティブ対象です。回転・拡縮はシーンのギズモで操作します。拡縮はアクティブ対象のローカル軸を使い、対象間の間隔も変えます。複製・削除は選択全体に適用します。");
+        if (state.InvalidTransform()) ImGui::TextWrapped("移動できません。対応範囲内の有限の座標を指定してください。");
     }
 
     void ObjectPanel::DrawName(SceneRuntime::SceneWorld& world, EditState& state,
@@ -263,7 +263,7 @@ namespace Editor
             nameBuffer_.resize(std::max(size_t{1024},placement.name.size()+256), '\0');
             invalidName_=false;
         }
-        if (ImGui::InputText("Name", nameBuffer_.data(), nameBuffer_.size()))
+        if (ImGui::InputText("名前###Name", nameBuffer_.data(), nameBuffer_.size()))
         {
             invalidName_=!state.Rename(world,placement.id,nameBuffer_.data());
             if (!invalidName_) observedName_=placement.name;
@@ -273,31 +273,31 @@ namespace Editor
         {
             observedName_.clear(); // Restore the last valid name on the next frame.
         }
-        if (invalidName_) ImGui::TextWrapped("Name must contain a non-whitespace character.");
+        if (invalidName_) ImGui::TextWrapped("名前には空白以外の文字を含めてください。");
     }
 
     void ObjectPanel::DrawTransform(SceneRuntime::SceneWorld& world, EditState& state,
         const SceneRuntime::ScenePlacement& placement)
     {
-        if (!ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) return;
-        ImGui::TextUnformatted("Coordinates: Local (relative to parent)");
+        if (!ImGui::CollapsingHeader("トランスフォーム###Transform", ImGuiTreeNodeFlags_DefaultOpen)) return;
+        ImGui::TextUnformatted("座標：ローカル（親からの相対値）");
         auto position=placement.position, rotation=placement.rotation, scale=placement.scale;
         constexpr float ToDegrees=180.0f/std::numbers::pi_v<float>;
         auto degrees=rotation;
         std::transform(degrees.begin(),degrees.end(),degrees.begin(), [](float value) { return value*ToDegrees; });
-        bool edited=ImGui::DragFloat3("Local position",position.data(),0.05f,0,0,"%.3f");
+        bool edited=ImGui::DragFloat3("ローカル位置###Local position",position.data(),0.05f,0,0,"%.3f");
         TrackInspectorEdit(state);
-        if (ImGui::DragFloat3("Local rotation (deg)",degrees.data(),0.5f,0,0,"%.2f"))
+        if (ImGui::DragFloat3("ローカル回転（度）###Local rotation (deg)",degrees.data(),0.5f,0,0,"%.2f"))
         {
             for (size_t i=0;i<3;++i) rotation[i]=degrees[i]/ToDegrees;
             edited=true;
         }
         TrackInspectorEdit(state);
-        edited |= ImGui::DragFloat3("Local scale",scale.data(),0.05f,0,0,"%.3f");
+        edited |= ImGui::DragFloat3("ローカルスケール###Local scale",scale.data(),0.05f,0,0,"%.3f");
         TrackInspectorEdit(state);
         if (edited && (position!=placement.position || rotation!=placement.rotation || scale!=placement.scale))
             state.SetLocalTransform(world,placement.id,position,rotation,scale);
-        if (ImGui::Button("Reset Transform")) state.ResetTransform(world,placement.id);
+        if (ImGui::Button("トランスフォームをリセット###Reset Transform")) state.ResetTransform(world,placement.id);
     }
 
 }

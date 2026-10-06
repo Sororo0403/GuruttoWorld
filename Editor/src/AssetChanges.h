@@ -81,7 +81,7 @@ namespace Editor
                 Microsoft::WRL::ComPtr<ID3DBlob> vertex, pixel;
                 if (!Engine::CompileShader(entry.path(),"VSMain","vs_5_0",vertex) ||
                     !Engine::CompileShader(entry.path(),"PSMain","ps_5_0",pixel))
-                { error="Shader reload failed: "+entry.path().filename().string()+" (see Console)"; return false; }
+                { error="シェーダーの再読み込みに失敗しました："+entry.path().filename().string()+"（コンソールを確認してください）"; return false; }
             }
             error.clear();
             return true;

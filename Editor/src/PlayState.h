@@ -22,11 +22,11 @@ namespace Editor
         {
             switch (mode_)
             {
-            case Mode::Editing: return "Editing";
-            case Mode::Playing: return "Playing";
-            case Mode::Paused: return "Paused";
+            case Mode::Editing: return "編集中";
+            case Mode::Playing: return "再生中";
+            case Mode::Paused: return "一時停止中";
             }
-            return "Editing";
+            return "編集中";
         }
         bool Play()
         {

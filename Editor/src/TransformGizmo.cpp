@@ -60,28 +60,28 @@ namespace Editor
     void TransformGizmo::DrawToolbar(bool enabled)
     {
         ImGui::BeginDisabled(!enabled || dragging_);
-        if (ImGui::RadioButton("Move", mode_==Mode::Move)) mode_=Mode::Move;
+        if (ImGui::RadioButton("移動###Move", mode_==Mode::Move)) mode_=Mode::Move;
         ImGui::SameLine();
-        if (ImGui::RadioButton("Rotate", mode_==Mode::Rotate)) mode_=Mode::Rotate;
+        if (ImGui::RadioButton("回転###Rotate", mode_==Mode::Rotate)) mode_=Mode::Rotate;
         ImGui::SameLine();
-        if (ImGui::RadioButton("Scale", mode_==Mode::Scale)) mode_=Mode::Scale;
+        if (ImGui::RadioButton("拡縮###Scale", mode_==Mode::Scale)) mode_=Mode::Scale;
         ImGui::SameLine();
         ImGui::BeginDisabled(mode_==Mode::Scale);
-        if (ImGui::Button(mode_==Mode::Scale ? "Local (scale)" : local_ ? "Local" : "World")) local_=!local_;
+        if (ImGui::Button(mode_==Mode::Scale ? "ローカル（拡縮）###Local (scale)" : local_ ? "ローカル###Local" : "ワールド###World")) local_=!local_;
         ImGui::EndDisabled();
         ImGui::SameLine();
-        ImGui::Checkbox("Snap", &snap_);
+        ImGui::Checkbox("スナップ###Snap", &snap_);
         ImGui::SameLine();
-        if (ImGui::Button("Snap settings")) ImGui::OpenPopup("Snap settings");
-        if (ImGui::BeginPopup("Snap settings"))
+        if (ImGui::Button("スナップ設定###Snap settings")) ImGui::OpenPopup("スナップ設定###Snap settings");
+        if (ImGui::BeginPopup("スナップ設定###Snap settings"))
         {
-            ImGui::DragFloat("Move step", &moveStep_, 0.1f, 0.01f, 100, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::DragFloat("Angle step (deg)", &angleStep_, 1, 1, 180, "%.0f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::DragFloat("Scale step", &scaleStep_, 0.05f, 0.01f, 10, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::DragFloat("移動間隔###Move step", &moveStep_, 0.1f, 0.01f, 100, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::DragFloat("角度間隔（度）###Angle step (deg)", &angleStep_, 1, 1, 180, "%.0f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::DragFloat("拡縮間隔###Scale step", &scaleStep_, 0.05f, 0.01f, 10, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             ImGui::EndPopup();
         }
         ImGui::EndDisabled();
-        if (invalidTransform_) { ImGui::SameLine(); ImGui::TextUnformatted("Transform rejected: invalid values or local shear cannot be stored"); }
+        if (invalidTransform_) { ImGui::SameLine(); ImGui::TextUnformatted("変換できません。不正な値やローカルのせん断は保存できません。"); }
     }
 
     void TransformGizmo::ApplyTransform(SceneRuntime::SceneWorld& world, EditState& state,

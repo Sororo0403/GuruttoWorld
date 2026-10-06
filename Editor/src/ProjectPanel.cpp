@@ -25,19 +25,19 @@ namespace Editor
     {
         if (!positionInitialized_) { addPosition_=suggestedPosition; positionInitialized_=true; }
         PanelLayout::Place(PanelLayout::Panel::Models);
-        if (ImGui::Begin("Project###Models"))
+        if (ImGui::Begin("プロジェクト###Models"))
         {
-            if (ImGui::Button("Refresh")) Scan(root_);
+            if (ImGui::Button("一覧を更新###Refresh")) Scan(root_);
             ImGui::SameLine();
-            if (ImGui::Button("Reload assets")) reloadAssets_=true;
-            if (!watchError_.empty()) ImGui::TextWrapped("Asset watch: %s",watchError_.c_str());
-            if (reloadPending_) ImGui::TextUnformatted("Asset changes queued until editing is idle.");
+            if (ImGui::Button("アセットを再読み込み###Reload assets")) reloadAssets_=true;
+            if (!watchError_.empty()) ImGui::TextWrapped("アセット監視：%s",watchError_.c_str());
+            if (reloadPending_) ImGui::TextUnformatted("操作が完了するとアセットの変更を反映します。");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(180);
-            ImGui::InputText("Search assets",search_.data(),search_.size());
+            ImGui::InputText("アセットを検索###Search assets",search_.data(),search_.size());
             ImGui::SameLine();
             ImGui::SetNextItemWidth(100);
-            ImGui::Combo("Type",&type_,"All\0Models\0Scenes\0Textures\0Audio\0Shaders\0Fonts\0");
+            ImGui::Combo("種類###Type",&type_,"すべて\0モデル\0シーン\0画像\0音声\0シェーダー\0フォント\0");
             if (!catalog_.Error().empty()) ImGui::TextWrapped("%s",catalog_.Error().c_str());
             const float listHeight=std::max(70.0f,ImGui::GetContentRegionAvail().y-130);
             if (ImGui::BeginChild("Folders",ImVec2(180,listHeight),ImGuiChildFlags_Borders))
@@ -75,7 +75,7 @@ namespace Editor
     }
     void ProjectPanel::DrawAssets(EditState& state, bool enabled)
     {
-        ImGui::TextUnformatted(search_[0] ? "Search results (all folders)" : ProjectCatalog::Text(folder_).c_str());
+        ImGui::TextUnformatted(search_[0] ? "検索結果（全フォルダー）" : ProjectCatalog::Text(folder_).c_str());
         size_t count=0;
         for (const auto& asset : catalog_.Assets())
         {
@@ -99,7 +99,7 @@ namespace Editor
             ImGui::PopID();
             ++count;
         }
-        if (!count) ImGui::TextUnformatted("No matching assets.");
+        if (!count) ImGui::TextUnformatted("一致するアセットはありません。");
     }
     void ProjectPanel::RequestDrop(EditState& state, const std::string& path, const std::array<float,3>& position) const
     {
@@ -111,21 +111,21 @@ namespace Editor
     {
         const auto found=std::find_if(catalog_.Assets().begin(),catalog_.Assets().end(),
             [&](const auto& asset) { return asset.path==selected_; });
-        if (found==catalog_.Assets().end()) { ImGui::TextUnformatted("Select an asset to inspect."); return; }
+        if (found==catalog_.Assets().end()) { ImGui::TextUnformatted("確認するアセットを選択してください。"); return; }
         ImGui::TextWrapped("%s: %s",ProjectCatalog::Label(found->kind),ProjectCatalog::Text(selected_).c_str());
         if (found->kind==AssetKind::Scene)
         {
             ImGui::BeginDisabled(!enabled);
-            if (ImGui::Button("Open selected scene")) sceneRequest_=found->path;
+            if (ImGui::Button("選択シーンを開く###Open selected scene")) sceneRequest_=found->path;
             ImGui::EndDisabled();
             return;
         }
         if (found->kind!=AssetKind::Model) return;
         ImGui::BeginDisabled(!enabled);
-        ImGui::DragFloat3("Add position",addPosition_.data(),0.1f);
-        if (ImGui::Button("Use camera front")) addPosition_=suggestedPosition;
+        ImGui::DragFloat3("追加位置###Add position",addPosition_.data(),0.1f);
+        if (ImGui::Button("カメラの前方に配置###Use camera front")) addPosition_=suggestedPosition;
         ImGui::SameLine();
-        if (ImGui::Button("Add selected model")) state.Request({ObjectAction::Add,{},selected_,addPosition_});
+        if (ImGui::Button("選択モデルを追加###Add selected model")) state.Request({ObjectAction::Add,{},selected_,addPosition_});
         ImGui::EndDisabled();
     }
     void ProjectPanel::DrawInspector(const EditState& state, bool enabled)
@@ -133,32 +133,32 @@ namespace Editor
         const auto& selected=state.InspectedAsset();
         if (selected.empty()) return;
         PanelLayout::Place(PanelLayout::Panel::Inspector);
-        if (ImGui::Begin("Inspector"))
+        if (ImGui::Begin("インスペクター###Inspector"))
         {
             const auto found=std::find_if(catalog_.Assets().begin(),catalog_.Assets().end(),
                 [&](const auto& asset) { return asset.path==selected; });
-            if (found==catalog_.Assets().end()) ImGui::TextUnformatted("Asset is no longer available. Refresh the Project list.");
+            if (found==catalog_.Assets().end()) ImGui::TextUnformatted("アセットが見つかりません。プロジェクトの一覧を更新してください。");
             else
             {
                 if (previewed_!=selected || !info_) { info_=AssetInfo::Read(root_,*found); previewed_=selected; }
-                ImGui::Text("%s asset",ProjectCatalog::Label(found->kind));
+                ImGui::Text("%sアセット",ProjectCatalog::Label(found->kind));
                 ImGui::TextWrapped("%s",ProjectCatalog::Text(selected).c_str());
                 if (!info_->error.empty()) ImGui::TextWrapped("%s",info_->error.c_str());
                 else { preview_.Draw(*found); DrawAssetInfo(*info_); }
-                if(found->kind==AssetKind::Audio) {ImGui::BeginDisabled(!enabled); if(ImGui::Button("Audition audio")) AudioPreview::Play(selected); ImGui::SameLine(); if(ImGui::Button("Stop audio")) AudioPreview::StopRequest(); ImGui::EndDisabled();}
+                if(found->kind==AssetKind::Audio) {ImGui::BeginDisabled(!enabled); if(ImGui::Button("音声を試聴###Audition audio")) AudioPreview::Play(selected); ImGui::SameLine(); if(ImGui::Button("音声を停止###Stop audio")) AudioPreview::StopRequest(); ImGui::EndDisabled();}
             }
         }
         ImGui::End();
     }
     void ProjectPanel::DrawAssetInfo(const AssetInfo& info)
     {
-        ImGui::Text("Size: %llu bytes",static_cast<unsigned long long>(info.bytes));
-        if (!info.text.empty() && ImGui::CollapsingHeader("Source preview",ImGuiTreeNodeFlags_DefaultOpen))
+        ImGui::Text("サイズ：%lluバイト",static_cast<unsigned long long>(info.bytes));
+        if (!info.text.empty() && ImGui::CollapsingHeader("ソースのプレビュー###Source preview",ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::BeginChild("Asset source",ImVec2(0,180),ImGuiChildFlags_Borders,ImGuiWindowFlags_HorizontalScrollbar);
             ImGui::TextUnformatted(info.text.c_str());
             ImGui::EndChild();
-            if (info.truncated) ImGui::TextUnformatted("Showing the first 8192 bytes.");
+            if (info.truncated) ImGui::TextUnformatted("先頭8192バイトを表示しています。");
         }
     }
 

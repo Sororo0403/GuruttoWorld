@@ -11,7 +11,7 @@ namespace Editor
     {
     public:
         // Keep the Scene window current while constructing its overlays; always pair with End.
-        bool Begin(std::uint64_t texture, const char* name = "Scene")
+        bool Begin(std::uint64_t texture, const char* name = "シーン###Scene")
         {
             viewport_ = {};
             hovered_ = false;

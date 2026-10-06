@@ -15,56 +15,64 @@ void Vector(Editor::EditState& state,const char* label,std::array<float,2>& valu
 void Color(Editor::EditState& state,const char* label,std::array<float,4>& value) {ImGui::ColorEdit4(label,value.data()); Track(state);}
 void Asset(std::filesystem::path& value,const Editor::ProjectCatalog* catalog,Editor::AssetKind kind) {
     if(!catalog) return;
-    if(ImGui::BeginCombo("Asset",Editor::ProjectCatalog::Text(value).c_str())) {
-        if(ImGui::Selectable("None",value.empty())) value.clear();
+    if(ImGui::BeginCombo("アセット###Asset",Editor::ProjectCatalog::Text(value).c_str())) {
+        if(ImGui::Selectable("なし###None",value.empty())) value.clear();
         for(const auto& a:catalog->Assets()) if(a.kind==kind && ImGui::Selectable(Editor::ProjectCatalog::Text(a.path).c_str(),a.path==value)) value=a.path;
         ImGui::EndCombo();
     }
 }
 template<class T,class Draw> void Component(std::optional<T>& c,const char* name,Draw draw) {
     if(!c || !ImGui::CollapsingHeader(name,ImGuiTreeNodeFlags_DefaultOpen)) return;
-    ImGui::PushID(c->id.c_str()); ImGui::Checkbox("Enabled",&c->enabled); draw(*c);
-    if(ImGui::Button("Reset")) {const auto id=c->id; c=T{}; c->id=id;}
-    ImGui::SameLine(); if(ImGui::Button("Remove")) c.reset(); ImGui::PopID();
+    ImGui::PushID(c->id.c_str()); ImGui::Checkbox("有効###Enabled",&c->enabled); draw(*c);
+    if(ImGui::Button("リセット###Reset")) {const auto id=c->id; c=T{}; c->id=id;}
+    ImGui::SameLine(); if(ImGui::Button("削除###Remove")) c.reset(); ImGui::PopID();
 }
 void Rect(Editor::EditState& state,SceneRuntime::RectTransformComponent& c) {
-    Vector(state,"Anchor min",c.anchorMin,0,1); Vector(state,"Anchor max",c.anchorMax,0,1);
+    Vector(state,"アンカー最小値###Anchor min",c.anchorMin,0,1); Vector(state,"アンカー最大値###Anchor max",c.anchorMax,0,1);
     for(size_t i=0;i<2;++i) c.anchorMax[i]=std::max(c.anchorMax[i],c.anchorMin[i]);
-    Vector(state,"Pivot",c.pivot,0,1); Vector(state,"UI position",c.position,-100000,100000); Vector(state,"UI size",c.size,0,100000);
-    ImGui::DragFloat("UI rotation (radians)",&c.rotation,0.01f); Track(state);
-    String(state,"Visible when (key=value&...)",c.visibleWhen); String(state,"X offset binding",c.offsetBinding); String(state,"Opacity binding",c.opacityBinding); String(state,"Width binding",c.widthBinding);
-    ImGui::DragFloat("Intro delay",&c.introDelay,0.01f,0,0.99f,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state);
-    ImGui::DragFloat("Intro X offset",&c.introOffset,1); Track(state);
+    Vector(state,"ピボット###Pivot",c.pivot,0,1); Vector(state,"UI位置###UI position",c.position,-100000,100000); Vector(state,"UIサイズ###UI size",c.size,0,100000);
+    ImGui::DragFloat("UI回転（ラジアン）###UI rotation (radians)",&c.rotation,0.01f); Track(state);
+    String(state,"表示条件（key=value&...）###Visible when (key=value&...)",c.visibleWhen); String(state,"X位置の状態キー###X offset binding",c.offsetBinding); String(state,"不透明度の状態キー###Opacity binding",c.opacityBinding); String(state,"幅の状態キー###Width binding",c.widthBinding);
+    ImGui::DragFloat("登場の遅延###Intro delay",&c.introDelay,0.01f,0,0.99f,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state);
+    ImGui::DragFloat("登場時のX移動量###Intro X offset",&c.introOffset,1); Track(state);
 }
 }
 namespace Editor {
 bool UiComponentPanel::Draw(EditState& state,SceneRuntime::ScenePlacement& p,const ProjectCatalog* catalog) {
     const auto before=p;
-    Component(p.canvas,"Canvas",[&](auto& c){Vector(state,"Reference resolution",c.referenceSize,1,8192); ImGui::Checkbox("Scale with screen",&c.scaleWithScreen);
+    Component(p.canvas,"キャンバス###Canvas",[&](auto& c){Vector(state,"基準解像度###Reference resolution",c.referenceSize,1,8192); ImGui::Checkbox("画面サイズに合わせて拡縮###Scale with screen",&c.scaleWithScreen);
         std::string eraseKey;
         for(auto& [key,value]:c.stateDefaults) {ImGui::PushID(key.c_str()); ImGui::DragFloat(key.c_str(),&value,0.1f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state); ImGui::SameLine(); if(ImGui::SmallButton("X")) eraseKey=key; ImGui::PopID();}
         if(!eraseKey.empty()) c.stateDefaults.erase(eraseKey);
-        static std::array<char,128> key{}; ImGui::InputText("New state key",key.data(),key.size());
-        if(ImGui::Button("Add state value") && key[0]) c.stateDefaults.try_emplace(key.data(),0.0f);});
-    Component(p.rectTransform,"RectTransform",[&](auto& c){Rect(state,c);});
-    Component(p.image,"Image",[&](auto& c){Asset(c.texture,catalog,AssetKind::Texture); Color(state,"Image tint",c.color); ImGui::DragFloat4("UV rect",c.uv.data(),0.001f,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp); Track(state); c.uv[2]=std::max(c.uv[0],c.uv[2]); c.uv[3]=std::max(c.uv[1],c.uv[3]);});
-    Component(p.text,"Text",[&](auto& c){String(state,"Content",c.text); String(state,"Font family",c.font); ImGui::DragFloat("Font size",&c.fontSize,1,1,512,"%.0f",ImGuiSliderFlags_AlwaysClamp); Track(state); Color(state,"Text color",c.color);});
-    Component(p.button,"Button",[&](auto& c){
-        if(ImGui::BeginCombo("Action",c.action.c_str())) {for(const auto* a:{"click","show","hide","toggle","playAudio","loadScene","quit","setState"}) if(ImGui::Selectable(a,c.action==a)) c.action=a; ImGui::EndCombo();}
-        String(state,"Target / state assignments",c.target); String(state,"Game event",c.event); String(state,"Click audio object",c.sound);
-        Color(state,"Hover tint",c.hoverColor); Color(state,"Pressed tint",c.pressedColor);
+        static std::array<char,128> key{}; ImGui::InputText("新しい状態キー###New state key",key.data(),key.size());
+        if(ImGui::Button("状態値を追加###Add state value") && key[0]) c.stateDefaults.try_emplace(key.data(),0.0f);});
+    Component(p.rectTransform,"UIトランスフォーム###RectTransform",[&](auto& c){Rect(state,c);});
+    Component(p.image,"画像###Image",[&](auto& c){Asset(c.texture,catalog,AssetKind::Texture); Color(state,"画像の色###Image tint",c.color); ImGui::DragFloat4("UV範囲###UV rect",c.uv.data(),0.001f,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp); Track(state); c.uv[2]=std::max(c.uv[0],c.uv[2]); c.uv[3]=std::max(c.uv[1],c.uv[3]);});
+    Component(p.text,"テキスト###Text",[&](auto& c){String(state,"テキスト内容###Content",c.text); String(state,"フォント名###Font family",c.font); ImGui::DragFloat("文字サイズ###Font size",&c.fontSize,1,1,512,"%.0f",ImGuiSliderFlags_AlwaysClamp); Track(state); Color(state,"文字色###Text color",c.color);});
+    Component(p.button,"ボタン###Button",[&](auto& c){
+        static constexpr const char* actions[]{"click","show","hide","toggle","playAudio","loadScene","quit","setState"};
+        static constexpr const char* labels[]{"クリック通知","表示","非表示","表示切り替え","音声再生","シーン切り替え","実行終了","状態値を設定"};
+        const auto found=std::find(std::begin(actions),std::end(actions),c.action);
+        const auto preview=found==std::end(actions) ? c.action.c_str() : labels[found-std::begin(actions)];
+        if(ImGui::BeginCombo("動作###Action",preview)) {
+            for(size_t index=0;index<std::size(actions);++index)
+                if(ImGui::Selectable(labels[index],c.action==actions[index])) c.action=actions[index];
+            ImGui::EndCombo();
+        }
+        String(state,"対象・状態値の設定###Target / state assignments",c.target); String(state,"ゲームイベント###Game event",c.event); String(state,"クリック時の音源オブジェクト###Click audio object",c.sound);
+        Color(state,"ホバー時の色###Hover tint",c.hoverColor); Color(state,"押下時の色###Pressed tint",c.pressedColor);
     });
-    Component(p.audioSource,"AudioSource",[&](auto& c){Asset(c.clip,catalog,AssetKind::Audio); ImGui::SliderFloat("Volume",&c.volume,0,1); Track(state); ImGui::Checkbox("Loop",&c.loop); ImGui::Checkbox("Play on awake",&c.playOnAwake); String(state,"Cue",c.cue); String(state,"Volume binding",c.volumeBinding); if(ImGui::Button("Audition")) AudioPreview::Play(c.clip,c.volume,c.loop); ImGui::SameLine(); if(ImGui::Button("Stop audition")) AudioPreview::StopRequest();});
+    Component(p.audioSource,"音源###AudioSource",[&](auto& c){Asset(c.clip,catalog,AssetKind::Audio); ImGui::SliderFloat("音量###Volume",&c.volume,0,1); Track(state); ImGui::Checkbox("ループ###Loop",&c.loop); ImGui::Checkbox("開始時に再生###Play on awake",&c.playOnAwake); String(state,"再生キュー名###Cue",c.cue); String(state,"音量の状態キー###Volume binding",c.volumeBinding); if(ImGui::Button("試聴###Audition")) AudioPreview::Play(c.clip,c.volume,c.loop); ImGui::SameLine(); if(ImGui::Button("試聴を停止###Stop audition")) AudioPreview::StopRequest();});
     return !p.SameComponents(before);
 }
 bool UiComponentPanel::Add(SceneRuntime::ScenePlacement& p) {
     bool edited=false;
-    if(ImGui::MenuItem("Canvas",nullptr,false,!p.canvas)) {const auto id=EnvironmentPanel::NewId(p,"canvas"); p.canvas.emplace(); p.canvas->id=id; edited=true;}
-    if(ImGui::MenuItem("RectTransform",nullptr,false,!p.rectTransform)) {const auto id=EnvironmentPanel::NewId(p,"rectTransform"); p.rectTransform.emplace(); p.rectTransform->id=id; edited=true;}
-    if(ImGui::MenuItem("Image",nullptr,false,!p.image)) {const auto id=EnvironmentPanel::NewId(p,"image"); p.image.emplace(); p.image->id=id; edited=true;}
-    if(ImGui::MenuItem("Text",nullptr,false,!p.text)) {const auto id=EnvironmentPanel::NewId(p,"text"); p.text.emplace(); p.text->id=id; edited=true;}
-    if(ImGui::MenuItem("Button",nullptr,false,!p.button)) {const auto id=EnvironmentPanel::NewId(p,"button"); p.button.emplace(); p.button->id=id; edited=true;}
-    if(ImGui::MenuItem("AudioSource",nullptr,false,!p.audioSource)) {const auto id=EnvironmentPanel::NewId(p,"audioSource"); p.audioSource.emplace(); p.audioSource->id=id; edited=true;}
+    if(ImGui::MenuItem("キャンバス###Canvas",nullptr,false,!p.canvas)) {const auto id=EnvironmentPanel::NewId(p,"canvas"); p.canvas.emplace(); p.canvas->id=id; edited=true;}
+    if(ImGui::MenuItem("UIトランスフォーム###RectTransform",nullptr,false,!p.rectTransform)) {const auto id=EnvironmentPanel::NewId(p,"rectTransform"); p.rectTransform.emplace(); p.rectTransform->id=id; edited=true;}
+    if(ImGui::MenuItem("画像###Image",nullptr,false,!p.image)) {const auto id=EnvironmentPanel::NewId(p,"image"); p.image.emplace(); p.image->id=id; edited=true;}
+    if(ImGui::MenuItem("テキスト###Text",nullptr,false,!p.text)) {const auto id=EnvironmentPanel::NewId(p,"text"); p.text.emplace(); p.text->id=id; edited=true;}
+    if(ImGui::MenuItem("ボタン###Button",nullptr,false,!p.button)) {const auto id=EnvironmentPanel::NewId(p,"button"); p.button.emplace(); p.button->id=id; edited=true;}
+    if(ImGui::MenuItem("音源###AudioSource",nullptr,false,!p.audioSource)) {const auto id=EnvironmentPanel::NewId(p,"audioSource"); p.audioSource.emplace(); p.audioSource->id=id; edited=true;}
     return edited;
 }
 }

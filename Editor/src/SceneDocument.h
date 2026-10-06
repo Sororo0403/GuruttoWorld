@@ -18,14 +18,14 @@ namespace Editor
         void Save(const SceneRuntime::SceneLayout& layout)
         {
             if (unsavedNew_ && std::filesystem::exists(path_))
-                throw std::runtime_error("The new scene destination now exists. Save was cancelled.");
+                throw std::runtime_error("新規シーンの保存先にファイルが作成されたため、保存を中止しました。");
             layout.Save(path_,!unsavedNew_);
             unsavedNew_=false;
         }
         void SaveAs(const SceneRuntime::SceneLayout& layout, std::filesystem::path target, bool overwrite)
         {
             if (!overwrite && std::filesystem::exists(target))
-                throw std::runtime_error("The destination exists. Confirm overwrite before saving.");
+                throw std::runtime_error("保存先が既に存在します。上書きを確認してください。");
             layout.Save(target,overwrite);
             path_=std::move(target);
             unsavedNew_=false;
@@ -50,13 +50,13 @@ namespace Editor
                 [](unsigned char value) { return static_cast<char>(std::tolower(value)); });
             if (name.empty() || filename!=filename.filename() || extension!=".json" ||
                 name.find_first_of("<>:\\|?*\"\r\n")!=std::string::npos || name.back()==' ')
-                throw std::runtime_error("Enter a .json filename without folders or reserved characters.");
+                throw std::runtime_error("フォルダーや予約文字を含まない.jsonファイル名を入力してください。");
             return root/"Assets/Scenes"/filename;
         }
         static std::filesystem::path NewTarget(const std::filesystem::path& root, const std::string& name)
         {
             const auto target=SaveTarget(root,name);
-            if (std::filesystem::exists(target)) throw std::runtime_error("That scene already exists. Choose another name.");
+            if (std::filesystem::exists(target)) throw std::runtime_error("そのシーンは既に存在します。別の名前を指定してください。");
             return target;
         }
         // Caller must wait for GPU idle and call outside Render. Failures preserve the active document and world.
@@ -68,7 +68,7 @@ namespace Editor
             try
             {
                 if (request.create && std::filesystem::exists(request.path))
-                    throw std::runtime_error("The new scene path now exists. Choose another name.");
+                    throw std::runtime_error("新規シーンの保存先が既に存在します。別の名前を指定してください。");
                 SceneRuntime::SceneLayout empty;
                 const bool success=request.create ? world.ReplaceLayout(std::move(empty),root,error) : world.Reload(root,request.path,error);
                 if (!success) return false;

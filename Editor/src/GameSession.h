@@ -17,7 +17,7 @@ namespace Editor
         bool Play(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             const SceneRuntime::SceneLayout& layout, std::string& error)
         {
-            if (!state_.CanPlay()) { error="Game is already playing"; return false; }
+            if (!state_.CanPlay()) { error="ゲームは既に再生中です"; return false; }
             if (state_.IsEditing())
             {
                 try
@@ -36,7 +36,7 @@ namespace Editor
         }
         bool LoadScene(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,const SceneRuntime::SceneLayout& layout,std::string& error)
         {
-            if(state_.IsEditing()) {error="LoadScene requires Play"; return false;}
+            if(state_.IsEditing()) {error="シーン切り替えには再生が必要です"; return false;}
             auto candidate=std::make_unique<SceneRuntime::SceneEnvironment>();
             if(!candidate->Initialize(renderer,root,layout,error)) return false;
             std::string audioError; if(!candidate->StartAudio(root,audioError)) Engine::Log::Warning(audioError);

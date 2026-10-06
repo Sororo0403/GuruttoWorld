@@ -14,17 +14,17 @@ namespace Editor
         if (allowMovement && viewport.Valid()) UpdateInput(camera, keyboard, deltaSeconds, viewport, sceneHovered);
         else CancelDrag();
         PanelLayout::Place(PanelLayout::Panel::Camera);
-        if (ImGui::Begin("Debug Camera"))
+        if (ImGui::Begin("シーンカメラ###Debug Camera"))
         {
             ImGui::BeginDisabled(!allowMovement);
-            ImGui::TextUnformatted("Hold RMB on scene: mouse look");
-            ImGui::TextUnformatted("RMB + WASD: move / Q,E: down,up");
-            ImGui::TextUnformatted("Shift: boost / R: reset");
+            ImGui::TextUnformatted("シーンで右ボタンを押したまま：視点を回転");
+            ImGui::TextUnformatted("右ボタン＋WASD：移動／Q・E：下降・上昇");
+            ImGui::TextUnformatted("Shift：加速／R：リセット");
             auto position = camera.GetPosition();
-            if (ImGui::DragFloat3("Position", position.data(), 0.05f)) camera.GetCamera().SetPosition(position);
+            if (ImGui::DragFloat3("位置###Position", position.data(), 0.05f)) camera.GetCamera().SetPosition(position);
             float speed = camera.GetMoveSpeed();
-            if (ImGui::SliderFloat("Move speed", &speed, 0.1f, 20.0f)) camera.SetMoveSpeed(speed);
-            if (ImGui::Button("Reset camera"))
+            if (ImGui::SliderFloat("移動速度###Move speed", &speed, 0.1f, 20.0f)) camera.SetMoveSpeed(speed);
+            if (ImGui::Button("カメラをリセット###Reset camera"))
             {
                 camera.Reset();
                 CancelDrag();

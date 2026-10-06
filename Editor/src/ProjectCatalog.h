@@ -56,14 +56,14 @@ namespace Editor
         {
             switch (kind)
             {
-            case AssetKind::Model: return "Model";
-            case AssetKind::Scene: return "Scene";
-            case AssetKind::Texture: return "Texture";
-            case AssetKind::Audio: return "Audio";
-            case AssetKind::Shader: return "Shader";
-            case AssetKind::Font: return "Font";
+            case AssetKind::Model: return "モデル";
+            case AssetKind::Scene: return "シーン";
+            case AssetKind::Texture: return "画像";
+            case AssetKind::Audio: return "音声";
+            case AssetKind::Shader: return "シェーダー";
+            case AssetKind::Font: return "フォント";
             }
-            return "Asset";
+            return "アセット";
         }
         static bool Matches(const ProjectAsset& asset, const std::filesystem::path& folder, const std::string& search)
         {

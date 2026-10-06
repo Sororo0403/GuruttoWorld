@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include "EditorLanguage.h"
 
 namespace Editor::PanelLayout
 {
@@ -21,7 +22,7 @@ namespace Editor::PanelLayout
         std::ifstream input(path, std::ios::binary);
         if (input)
         {
-            const std::string contents((std::istreambuf_iterator<char>(input)), {});
+            const auto contents=Language::MigrateLayout(std::string((std::istreambuf_iterator<char>(input)), {}));
             ImGui::LoadIniSettingsFromMemory(contents.c_str(), contents.size());
         }
     }
@@ -36,7 +37,7 @@ namespace Editor::PanelLayout
             std::ofstream output(settingsPath, std::ios::binary | std::ios::trunc);
             output.write(contents, static_cast<std::streamsize>(size));
             output.close();
-            if (!output) throw std::runtime_error("Could not save Editor layout.");
+            if (!output) throw std::runtime_error("エディターのパネル配置を保存できませんでした。");
             ImGui::GetIO().WantSaveIniSettings = false;
             error.clear();
             return true;
@@ -53,16 +54,16 @@ namespace Editor::PanelLayout
         ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.30f, &right, &center);
         ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.28f, &bottom, &center);
         ImGui::DockBuilderSplitNode(left, ImGuiDir_Up, 0.25f, &commands, &left);
-        ImGui::DockBuilderDockWindow("Street Editor", commands);
-        ImGui::DockBuilderDockWindow("Hierarchy###Objects", left);
-        ImGui::DockBuilderDockWindow("Inspector", right);
-        ImGui::DockBuilderDockWindow("Scene", center);
-        ImGui::DockBuilderDockWindow("Game (title composition)###Game", center);
-        ImGui::DockBuilderDockWindow("Project###Models", bottom);
-        ImGui::DockBuilderDockWindow("Debug Camera", bottom);
-        ImGui::DockBuilderDockWindow("Console", bottom);
+        ImGui::DockBuilderDockWindow("エディター###Street Editor", commands);
+        ImGui::DockBuilderDockWindow("ヒエラルキー###Objects", left);
+        ImGui::DockBuilderDockWindow("インスペクター###Inspector", right);
+        ImGui::DockBuilderDockWindow("シーン###Scene", center);
+        ImGui::DockBuilderDockWindow("ゲーム###Game", center);
+        ImGui::DockBuilderDockWindow("プロジェクト###Models", bottom);
+        ImGui::DockBuilderDockWindow("シーンカメラ###Debug Camera", bottom);
+        ImGui::DockBuilderDockWindow("コンソール###Console", bottom);
         ImGui::DockBuilderFinish(root);
-        if (auto* scene = ImGui::DockBuilderGetNode(center)) scene->SelectedTabId = ImHashStr("Scene");
+        if (auto* scene = ImGui::DockBuilderGetNode(center)) scene->SelectedTabId = ImHashStr("シーン###Scene");
     }
     inline void BeginFrame(bool preview = false)
     {
