@@ -1147,6 +1147,51 @@ void ValidateSceneViewport()
         "resized portrait scene keeps its center and aspect");
 }
 
+void ValidateMultiSelection()
+{
+    Editor::EditState state;
+    state.Select("a");
+    state.Select("b",true);
+    state.Select("c",true);
+    Check(state.SelectedIds()==std::vector<std::string>{"a","b","c"} && state.SelectedId()=="c" &&
+        !state.SingleSelection() && !state.HasChanges(), "Ctrl selection adds IDs and primary without changing scene");
+    state.Select("c",true);
+    Check(state.SelectedId()=="b" && !state.IsSelected("c"), "Ctrl deselection falls back to last remaining ID");
+    state.Select("",true);
+    Check(state.SelectedIds().size()==2, "modified empty Scene click preserves selection");
+    state.Select("a");
+    Check(state.SingleSelection() && state.SelectedId()=="a", "normal click replaces multi selection");
+    const std::vector<std::string> visible{"a","c","e","g"};
+    state.SelectRange(visible,"a","e",false);
+    Check(state.SelectedIds()==std::vector<std::string>{"a","c","e"}, "Shift range uses only filtered visible objects");
+    state.SelectRange(visible,"g","c",true);
+    Check(state.SelectedIds()==std::vector<std::string>{"a","e","g","c"} && state.SelectedId()=="c",
+        "Ctrl Shift extends reversed range without duplicates and makes clicked object primary");
+    state.SelectRange(visible,"hidden","g",false);
+    Check(state.SingleSelection() && state.SelectedId()=="g", "missing range anchor falls back to single selection");
+    state.RestoreSelection({"a","a","","c"},"c");
+    Check(state.SelectedIds()==std::vector<std::string>{"a","c"}, "selection restoration removes duplicates and empty IDs");
+    state.RestoreSelection(state.SelectedIds(),state.SelectedId());
+    Check(state.SelectedIds()==std::vector<std::string>{"a","c"}, "restoring current selection is alias-safe");
+    Editor::EditHistory history;
+    history.Reset({"initial","c",state.SelectedIds()});
+    state.Select("e",true);
+    history.Observe({"initial",state.SelectedId(),state.SelectedIds()},false);
+    Check(!history.CanUndo() && !history.Dirty("initial"), "selection-only change creates no Undo entry or dirty flag");
+    history.Observe({"changed","a",{"a"}},false);
+    const auto undo=history.Target(false);
+    state.RestoreSelection(undo.selections,undo.selection);
+    Check(state.SelectedIds()==std::vector<std::string>{"a","c","e"} && state.SelectedId()=="e",
+        "Undo snapshot restores full multi selection and primary");
+    state.SetChanged(true);
+    state.Select("");
+    Check(state.SelectedIds().empty() && state.SelectedId().empty() && state.HasChanges(),
+        "empty Scene click clears selection while preserving dirty state");
+    state.Select("a");
+    state.Reloaded();
+    Check(state.SelectedIds().empty() && !state.HasChanges(), "scene reload clears multi selection and dirty state");
+}
+
 void ValidateSaveAs()
 {
     const auto root=std::filesystem::absolute("generated/tests/scene-save-as");
@@ -1366,6 +1411,7 @@ int main()
         ValidateModelDrop();
         ValidateConsoleLog();
         ValidateSaveAs();
+        ValidateMultiSelection();
         ValidateEditHistory();
         ValidateFocusSelection();
         ValidateDeferredClose();

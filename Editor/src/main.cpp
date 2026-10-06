@@ -157,7 +157,7 @@ namespace
                 {
                     sceneLoaded = true;
                     editState.Reloaded();
-                    history.Reset({world.Layout().Serialize(), editState.SelectedId()});
+                    history.Reset(Snapshot(world.Layout().Serialize()));
                     fileStatus = "Reloaded.";
                     LogResult(true);
                 }
@@ -184,6 +184,11 @@ namespace
             return true;
         }
 
+        Editor::EditHistory::State Snapshot(const std::string& json) const
+        {
+            return {json,editState.SelectedId(),editState.SelectedIds()};
+        }
+
         bool ApplyHistory(Engine::DirectX12Renderer& renderer)
         {
             if (pendingHistory)
@@ -195,7 +200,7 @@ namespace
                 if (world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), root, fileStatus))
                 {
                     history.Applied(redo);
-                    editState.Select(target.selection);
+                    editState.RestoreSelection(target.selections,target.selection);
                     editState.SetChanged(document.UnsavedNew() || history.Dirty(target.json));
                     fileStatus=redo ? "Redone." : "Undone.";
                     LogResult(true);
@@ -234,7 +239,7 @@ namespace
                     editState.ObjectChanged(createdId);
                     fileStatus = request.action == Editor::ObjectAction::Delete ? "Deleted." :
                         request.action == Editor::ObjectAction::Duplicate ? "Duplicated." : "Added.";
-                    history.Observe({world.Layout().Serialize(), editState.SelectedId()}, false);
+                    history.Observe(Snapshot(world.Layout().Serialize()), false);
                 }
                 LogResult(success);
             }
@@ -250,7 +255,7 @@ namespace
                 sceneLoaded = world.Initialize(renderer, root, document.Path(),
                     root / "Shaders/TitleMesh.hlsl", &fileStatus);
                 initialized = true;
-                if (sceneLoaded) history.Reset({world.Layout().Serialize(), editState.SelectedId()});
+                if (sceneLoaded) history.Reset(Snapshot(world.Layout().Serialize()));
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
                     sceneLoaded ? "Editor scene loaded." : fileStatus);
             }
@@ -366,7 +371,7 @@ namespace
                 closeConfirmed = true;
                 return;
             }
-            history.Observe({world.Layout().Serialize(), editState.SelectedId()}, false);
+            history.Observe(Snapshot(world.Layout().Serialize()), false);
             // 編集中のギズモを止め、確認中は配置を変更しません。
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport, false);
             if (!ImGui::IsPopupOpen("Exit with unsaved changes?")) ImGui::OpenPopup("Exit with unsaved changes?");
@@ -440,7 +445,7 @@ namespace
                 !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_F,false)))
             {
                 focusRequested=false;
-                if (canFocus)
+                if (canFocus && editState.SingleSelection())
                 {
                     std::array<std::array<float,3>,8> corners;
                     if (world.WorldBounds(editState.SelectedId(),corners))
@@ -488,7 +493,7 @@ namespace
             if (sceneLoaded)
             {
                 const auto json=world.Layout().Serialize();
-                history.Observe({json, editState.SelectedId()}, gizmo.IsDragging() || ImGui::IsAnyItemActive());
+                history.Observe(Snapshot(json), gizmo.IsDragging() || ImGui::IsAnyItemActive());
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(json));
             }
         }
@@ -503,7 +508,7 @@ namespace
         {
             if (!CanUseShortcuts(historyEnabled)) return;
             if (ImGui::GetIO().KeyCtrl) UpdateControlShortcuts();
-            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && !editState.SelectedId().empty())
+            else if (ImGui::IsKeyPressed(ImGuiKey_Delete,false) && editState.SingleSelection())
                 pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Delete,editState.SelectedId(),{}, {}};
         }
 
@@ -526,7 +531,7 @@ namespace
             {
                 if (ImGui::GetIO().KeyShift) saveAsPanel.Request(document.Path()); else Save();
             }
-            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && !editState.SelectedId().empty())
+            else if (ImGui::IsKeyPressed(ImGuiKey_D,false) && editState.SingleSelection())
                 pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
         }
 
@@ -593,7 +598,7 @@ namespace
             DrawEditMenu(enabled);
             if (ImGui::BeginMenu("View"))
             {
-                if (ImGui::MenuItem("Focus selected", "F", false, enabled && sceneViewport.Valid() && !editState.SelectedId().empty())) focusRequested=true;
+                if (ImGui::MenuItem("Focus selected", "F", false, enabled && sceneViewport.Valid() && editState.SingleSelection())) focusRequested=true;
                 if (ImGui::MenuItem("Console")) ImGui::SetWindowFocus("Console");
                 if (ImGui::MenuItem("Game tab", nullptr, false, enabled)) focusGame=true;
                 if (ImGui::MenuItem("Preview title composition", nullptr, false, enabled))
@@ -640,7 +645,7 @@ namespace
             if (ImGui::MenuItem("Undo", "Ctrl+Z", false, enabled && history.CanUndo())) pendingHistory=false;
             if (ImGui::MenuItem("Redo", "Ctrl+Y", false, enabled && history.CanRedo())) pendingHistory=true;
             ImGui::Separator();
-            const bool selected=enabled && !editState.SelectedId().empty();
+            const bool selected=enabled && editState.SingleSelection();
             if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, selected))
                 pendingObject=Editor::ObjectRequest{Editor::ObjectAction::Duplicate,editState.SelectedId(),{}, {}};
             if (ImGui::MenuItem("Delete", "Delete", false, selected))

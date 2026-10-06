@@ -55,15 +55,22 @@ namespace Editor
         XMStoreFloat3(&direction, farPoint - nearPoint);
         const float distance = XMVectorGetX(XMVector3Length(farPoint - nearPoint));
         state.Select(world.PickRay({ origin.x, origin.y, origin.z },
-            { direction.x, direction.y, direction.z }, distance).value_or(""));
+            { direction.x, direction.y, direction.z }, distance).value_or(""),io.KeyCtrl || io.KeyShift);
         ImGui::SetWindowFocus(nullptr);
     }
 
     void SceneSelection::Draw(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
         const EditState& state, const SceneViewport& viewport)
     {
+        for (const auto& id : state.SelectedIds())
+            DrawObject(world,camera,id,viewport,id==state.SelectedId());
+    }
+
+    void SceneSelection::DrawObject(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
+        const std::string& id, const SceneViewport& viewport, bool primary)
+    {
         std::array<std::array<float, 3>, 8> corners;
-        if (!world.WorldBounds(state.SelectedId(), corners)) return;
+        if (!world.WorldBounds(id, corners)) return;
         if (!viewport.Valid()) return;
         std::array<DirectX::XMFLOAT4, 8> clip;
         const auto viewProjection = camera.GetViewMatrix() * camera.GetProjectionMatrix();
@@ -87,7 +94,7 @@ namespace Editor
                 const auto point = viewport.ToScreen(p.x / p.w, p.y / p.w);
                 return ImVec2(point[0], point[1]);
             };
-            draw->AddLine(screen(a), screen(b), IM_COL32(255, 210, 50, 255), 2.0f);
+            draw->AddLine(screen(a), screen(b), primary ? IM_COL32(255, 210, 50, 255) : IM_COL32(70, 200, 255, 255), 2.0f);
         }
         draw->PopClipRect();
     }

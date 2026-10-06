@@ -131,3 +131,9 @@ Street Editorに現在のシーン名を表示し、Save／Reloadはそのシー
 File → Save as...／Ctrl+Shift+SでAssets/Scenes内に別名保存できます。既存ファイルは保存先を表示して上書き確認します。
 保存成功時だけ現在のシーン名・Save／Reloadの保存先・未保存状態を更新し、Projectへ反映します。
 キャンセルや保存失敗時は配置・選択・保存先・Undo履歴を維持します。別名保存後もUndo／Redoを利用できます。
+
+HierarchyとSceneでCtrl＋クリックすると選択を追加／解除します。通常クリックは一つを選び、Sceneの空白クリックで全解除します。
+HierarchyのShift＋クリックは検索結果の表示順で範囲選択し、Ctrl＋Shiftは範囲を追加します。SceneではShiftも追加／解除です。
+複数選択はHierarchy・Inspector・Sceneで共有し、Sceneには全選択の枠を表示します。最後に選んだ対象が黄色、他は青です。
+選択変更は配置の変更やUndo操作として記録しません。配置のUndo／Redoには複数選択の状態も保存・復元します。
+複数選択中のTransform編集・ギズモ・複製・削除・Fによるフォーカスはこの段階では無効です。

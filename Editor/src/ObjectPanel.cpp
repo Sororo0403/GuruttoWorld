@@ -14,11 +14,15 @@ namespace Editor
     void ObjectPanel::DrawObjects(const SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
         const auto& objects = world.Layout().objects;
+        if (state.SelectedIds().empty()) anchorId_.clear();
         PanelLayout::Place(PanelLayout::Panel::Objects);
         if (ImGui::Begin("Hierarchy###Objects"))
         {
             filter_.Draw("Search", -1);
-            ImGui::Text("%zu objects", objects.size());
+            ImGui::Text("%zu objects / %zu selected", objects.size(),state.SelectedIds().size());
+            std::vector<std::string> visible;
+            for (const auto& object : objects)
+                if (filter_.PassFilter((object.name+" "+object.id+" "+object.model.generic_string()).c_str())) visible.push_back(object.id);
             if (ImGui::BeginChild("Object list", ImVec2(0, 0)))
             {
                 ImGui::BeginDisabled(!enabled);
@@ -28,9 +32,9 @@ namespace Editor
                     if (!filter_.PassFilter(searchable.c_str())) continue;
                     ImGui::PushID(object.id.c_str());
                     const auto textPosition=ImGui::GetCursorScreenPos();
-                    if (ImGui::Selectable("##object", state.SelectedId() == object.id, 0, ImVec2(0, ImGui::GetTextLineHeight())))
+                    if (ImGui::Selectable("##object", state.IsSelected(object.id), 0, ImVec2(0, ImGui::GetTextLineHeight())))
                     {
-                        state.Select(object.id);
+                        SelectObject(state,visible,object.id);
                     }
                     ImGui::GetWindowDrawList()->AddText(textPosition, ImGui::GetColorU32(ImGuiCol_Text), object.name.c_str());
                     ImGui::PopID();
@@ -42,6 +46,13 @@ namespace Editor
         ImGui::End();
     }
 
+    void ObjectPanel::SelectObject(EditState& state, const std::vector<std::string>& visible, const std::string& id)
+    {
+        const auto& io=ImGui::GetIO();
+        if (io.KeyShift) state.SelectRange(visible,anchorId_,id,io.KeyCtrl);
+        else { state.Select(id,io.KeyCtrl); anchorId_=id; }
+    }
+
     void ObjectPanel::DrawInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
     {
         const auto& objects = world.Layout().objects;
@@ -50,7 +61,13 @@ namespace Editor
         {
             const auto found = std::find_if(objects.begin(), objects.end(),
                 [&](const auto& object) { return object.id == state.SelectedId(); });
-            if (found == objects.end()) ImGui::TextUnformatted("Select an object in Hierarchy or Scene.");
+            if (state.SelectedIds().size()>1)
+            {
+                ImGui::Text("%zu objects selected",state.SelectedIds().size());
+                ImGui::Text("Active ID: %s",state.SelectedId().c_str());
+                ImGui::TextWrapped("Transform, duplicate and delete are available with one object selected.");
+            }
+            else if (found == objects.end()) ImGui::TextUnformatted("Select an object in Hierarchy or Scene.");
             else
             {
                 ImGui::PushID(found->id.c_str());

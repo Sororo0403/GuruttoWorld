@@ -16,7 +16,7 @@ namespace Editor
         const auto found=std::find_if(objects.begin(), objects.end(),
             [&](const auto& object) { return object.id==state.SelectedId(); });
         const auto& io=ImGui::GetIO();
-        if (!active || found==objects.end() || !viewport.Valid() ||
+        if (!active || !state.SingleSelection() || found==objects.end() || !viewport.Valid() ||
             (!dragging_ && !viewport.Contains(io.MousePos.x, io.MousePos.y)) ||
             (dragging_ && draggingId_!=state.SelectedId()))
         {

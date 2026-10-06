@@ -9,7 +9,7 @@ namespace Editor
     class EditHistory final
     {
     public:
-        struct State { std::string json; std::string selection; };
+        struct State { std::string json; std::string selection; std::vector<std::string> selections{}; };
         void Reset(State state) { states_={std::move(state)}; cursor_=0; pending_.reset(); saved_=states_[0].json; }
         void Observe(State state, bool editing)
         {
@@ -27,7 +27,11 @@ namespace Editor
                 if (states_.size()>101) states_.erase(states_.begin());
                 cursor_=states_.size()-1;
             }
-            else states_[cursor_].selection=pending_->selection;
+            else
+            {
+                states_[cursor_].selection=pending_->selection;
+                states_[cursor_].selections=pending_->selections;
+            }
             pending_.reset();
         }
         bool CanUndo() const { return cursor_>0; }
