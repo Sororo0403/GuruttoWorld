@@ -12,6 +12,7 @@
 #include "SceneDocument.h"
 #include "SaveAsPanel.h"
 #include "GameSession.h"
+#include "PlaySnapshot.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/TitleView.h>
 #include <SceneRuntime/SceneWorld.h>
@@ -281,17 +282,40 @@ namespace
                 return true;
             }
             if (!renderer.WaitForIdle()) return false;
-            if (command==Editor::GameSession::Command::Stop)
+            if (command==Editor::GameSession::Command::Stop) StopGame();
+            else StartGame(renderer);
+            return true;
+        }
+
+        void StartGame(Engine::DirectX12Renderer& renderer)
+        {
+            std::optional<Editor::PlaySnapshot> captured;
+            if (gameSession.State().IsEditing())
             {
-                if (gameSession.Stop()) ReportStatus("Returned to editing.",true);
-                return true;
+                history.Commit();
+                captured.emplace(world,editState,history,document);
             }
-            if (!gameSession.Play(renderer,root,world.Layout(),fileStatus)) { LogResult(false); return true; }
-            history.Commit();
+            if (!gameSession.Play(renderer,root,world.Layout(),fileStatus)) { LogResult(false); return; }
+            if (captured) playSnapshot=std::move(captured);
             focusGame=true;
             cameraPanel.CancelDrag();
             ReportStatus("Playing.",true);
-            return true;
+        }
+
+        void StopGame()
+        {
+            if (!gameSession.State().CanStop()) return;
+            if (playSnapshot && !playSnapshot->Restore(world,root,editState,history,document,fileStatus))
+            {
+                gameSession.Pause();
+                LogResult(false);
+                return;
+            }
+            if (gameSession.Stop())
+            {
+                playSnapshot.reset();
+                ReportStatus("Returned to editing.",true);
+            }
         }
 
         bool Save()
@@ -825,6 +849,7 @@ namespace
         Editor::SceneViewport sceneViewport;
         Editor::EditState editState;
         Editor::GameSession gameSession;
+        std::optional<Editor::PlaySnapshot> playSnapshot;
         std::optional<Editor::GameSession::Command> pendingPlay;
         Editor::ObjectPanel objectPanel;
         Editor::ProjectPanel projectPanel;

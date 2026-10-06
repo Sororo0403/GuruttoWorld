@@ -3,6 +3,7 @@
 #include "../Editor/src/EditState.h"
 #include "../Editor/src/PlayState.h"
 #include "../Editor/src/GameSession.h"
+#include "../Editor/src/PlaySnapshot.h"
 #include "../Editor/src/SceneViewport.h"
 #include "../Editor/src/ModelDrop.h"
 #include "../Editor/src/ConsoleFilter.h"
@@ -1417,6 +1418,49 @@ namespace
         Check(renderer.WaitForIdle(), "scene document destruction GPU completion");
     }
 
+    void ValidatePlaySnapshot(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
+    {
+        SceneRuntime::SceneWorld world;
+        std::string error;
+        Check(world.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",root/"Shaders/TitleMesh.hlsl"), "snapshot edit world");
+        Editor::EditState state;
+        const auto first=world.Layout().objects.front().id, last=world.Layout().objects.back().id;
+        state.RestoreSelection({first,last},last);
+        Editor::EditHistory history; const auto saved=world.Layout().Serialize();
+        history.Reset({saved,last,state.SelectedIds()});
+        Check(state.Rename(world,last,"First edit"), "snapshot first edit");
+        const auto edited=world.Layout().Serialize(); history.Observe({edited,last,state.SelectedIds()},{});
+        Check(state.Rename(world,last,"Redo edit"), "snapshot redo branch edit");
+        history.Observe({world.Layout().Serialize(),last,state.SelectedIds()},{});
+        const auto undo=history.Target(false);
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(undo.json),root,error), "snapshot establish redo branch");
+        history.Applied(false); state.SetChanged(history.Dirty(edited));
+        Editor::SceneDocument document(root/"Assets/Scenes/TitleStreet.json");
+        const auto originalPath=document.Path();
+        Editor::PlaySnapshot snapshot(world,state,history,document);
+        const auto redoJson=history.Target(true).json;
+        Check(state.Rename(world,last,"Temporary runtime mutation"), "simulate edit world mutation during play");
+        const auto changed=world.Layout().Serialize();
+        state.Select(first); state.MarkSaved(); history.Reset({changed,first});
+        document=Editor::SceneDocument(root/"Assets/Scenes/Temporary.json");
+        Check(!snapshot.Restore(world,root/"missing-assets",state,history,document,error) && !error.empty() &&
+            world.Layout().Serialize()==changed && state.SingleSelection() && state.SelectedId()==first && !state.HasChanges() &&
+            !history.CanUndo() && !history.CanRedo() && document.Path()!=originalPath, "failed Stop restoration leaves all current editor data intact");
+        Check(snapshot.Restore(world,root,state,history,document,error) && error.empty() && world.Layout().Serialize()==edited &&
+            state.SelectedIds()==std::vector<std::string>{first,last} && state.SelectedId()==last && state.HasChanges() &&
+            document.Path()==originalPath && history.CanUndo() && history.CanRedo() && history.Target(true).json==redoJson && history.Dirty(edited),
+            "Stop restores layout document selection dirty baseline and complete Undo Redo branch");
+        Check(snapshot.Restore(world,root/"missing-assets",state,history,document,error), "unchanged world restores metadata without asset reload");
+        Editor::SceneDocument fresh(root/"Assets/Scenes/PlaySnapshotNew.json");
+        fresh.Request(fresh.Path(),true,false);
+        Check(fresh.Apply(world,root,error) && fresh.UnsavedNew(), "unsaved new document snapshot fixture");
+        state.Reloaded(); state.SetChanged(true); history.Reset({world.Layout().Serialize(),{}});
+        Editor::PlaySnapshot newSnapshot(world,state,history,fresh);
+        fresh=Editor::SceneDocument(originalPath); state.MarkSaved();
+        Check(newSnapshot.Restore(world,root,state,history,fresh,error) && fresh.UnsavedNew() && state.HasChanges() &&
+            fresh.Path().filename()=="PlaySnapshotNew.json" && !std::filesystem::exists(fresh.Path()), "Stop restores unsaved new scene identity without writing a file");
+    }
+
     void ValidateGameSession(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
@@ -1489,6 +1533,7 @@ namespace
             Check(renderer.Initialize(window.GetHandle()), "title renderer");
             if (size==TitleSizes[0])
             {
+                ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
                 ValidateGameSession(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
                 ValidateInheritedRendering(renderer,std::filesystem::absolute("Content"));
