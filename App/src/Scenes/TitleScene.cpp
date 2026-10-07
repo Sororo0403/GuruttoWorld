@@ -20,7 +20,7 @@ namespace
 
 namespace App
 {
-    TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro, true) {}
+    TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro, false, true) {}
 
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)
     {
@@ -69,7 +69,8 @@ namespace App
         if(pointerAction!=TitleMenuAction::None) action=pointerAction;
         if(action==TitleMenuAction::SaveSettings) menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
         if(action==TitleMenuAction::Exit) PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
-        if (menu_.GetCue()==TitleMenuCue::Confirm && menu_.UsesPressAnyButton())
+        if (menu_.GetCue()==TitleMenuCue::Confirm && !menu_.IsSettingsOpen() &&
+            menu_.GetSelected()==TitleMenuItem::Start)
         {
             environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),
                 static_cast<float>(environment_.MotionSeconds()));
@@ -94,7 +95,12 @@ namespace App
         POINT cursor{}; GetCursorPos(&cursor); ScreenToClient(keyboard.WindowHandle(),&cursor);
         const bool down=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
         const auto& state=environment_.Ui();
+        const auto previousHover=hovered_;
         hovered_=SceneRuntime::SceneUi::Hit(environment_.World().Layout(),width_,height_,static_cast<float>(cursor.x),static_cast<float>(cursor.y),state);
+        if (hovered_!=previousHover) {
+            if (hovered_=="world-start") menu_.SelectUi(TitleMenuItem::Start);
+            if (hovered_=="world-config") menu_.SelectUi(TitleMenuItem::Settings);
+        }
         auto action=TitleMenuAction::None;
         if(mouseReady_ && down && !mouseDown_) pressed_=hovered_;
         if(mouseReady_ && !down && mouseDown_) {

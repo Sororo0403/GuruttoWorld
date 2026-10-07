@@ -42,13 +42,48 @@ namespace SceneRuntime
             uiState_.values["transition"]=progress;
             uiState_.values["transitionPink"]=std::min(1.0f,progress*1.25f);
         }
+        AnimateCameraFocus(elapsed);
+    }
+    void SceneEnvironment::AnimateCameraFocus(float elapsed)
+    {
+        const auto* camera=SceneView::CameraObject(world_.Layout());
+        const auto position=camera ? camera->position : std::array<float,3>{};
+        const auto rotation=camera ? camera->rotation : std::array<float,3>{};
+        const bool requested=uiState_.Value("cameraFocus")==1;
+        if (requested!=focusRequested_)
+        {
+            focusRequested_=requested; focusEngaged_=true; focusSeconds_=0;
+            focusPosition_=position; focusRotation_=rotation;
+        }
+        else focusSeconds_+=elapsed;
         if (!world_.Animate(uiState_.values)) Engine::Log::Warning("Animation rejected an invalid transform.");
+        if (!focusEngaged_ || startSeconds_>=0) return;
+        camera=SceneView::CameraObject(world_.Layout());
+        if (!camera || !camera->animation || !camera->animation->enabled) return;
+        auto targetPosition=camera->position,targetRotation=camera->rotation;
+        float duration=0;
+        const std::string clock=focusRequested_ ? "configFocusTime" : "homeFocusTime";
+        for (auto track:camera->animation->tracks)
+        {
+            if (track.clock!=clock || track.keys.size()<2) continue;
+            const auto& source=track.property=="position" ? focusPosition_ : focusRotation_;
+            track.keys.front().value={source[0],source[1],source[2],0};
+            const auto value=Animation::Sample(track,{{clock,focusSeconds_}});
+            if (!value) continue;
+            auto& target=track.property=="position" ? targetPosition : targetRotation;
+            target={(*value)[0],(*value)[1],(*value)[2]};
+            duration=std::max(duration,track.keys.back().time);
+        }
+        if (!world_.SetLocalTransform(camera->id,targetPosition,targetRotation,camera->scale))
+            Engine::Log::Warning("Camera focus rejected an invalid transform.");
+        if (!focusRequested_ && focusSeconds_>=duration) focusEngaged_=false;
     }
     void SceneEnvironment::SeekAnimation(float sceneSeconds,float motionSeconds,float startSeconds)
     {
         if (!std::isfinite(sceneSeconds) || !std::isfinite(motionSeconds) || !std::isfinite(startSeconds) ||
             sceneSeconds<0 || motionSeconds<0) return;
         sceneSeconds_=sceneSeconds; seconds_=motionSeconds; startSeconds_=startSeconds;
+        focusRequested_=false; focusEngaged_=false; focusSeconds_=0;
         uiState_.values["sceneTime"]=sceneSeconds;
         uiState_.values["motionTime"]=motionSeconds;
         uiState_.values["startTime"]=startSeconds;

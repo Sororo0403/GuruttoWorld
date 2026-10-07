@@ -98,6 +98,24 @@ namespace
     {
         using namespace App;
         TitleMenu menu;
+        TitleMenu streetMenu(false,false,true);
+        TitleMenuInput streetInput;
+        streetInput.active=true;
+        streetMenu.Update(streetInput);
+        streetInput.keyboardButtons=MenuUp;
+        streetMenu.Update(streetInput);
+        Check(streetMenu.GetSelected()==TitleMenuItem::Settings,"two-item title wraps START to CONFIG without EXIT");
+        streetInput.keyboardButtons=0; streetMenu.Update(streetInput);
+        streetInput.keyboardButtons=MenuDown; streetMenu.Update(streetInput);
+        Check(streetMenu.GetSelected()==TitleMenuItem::Start,"two-item title wraps CONFIG to START");
+        streetMenu.SelectUi(TitleMenuItem::Settings);
+        Check(streetMenu.GetSelected()==TitleMenuItem::Settings,"pointer hover selects CONFIG");
+        streetMenu.ActivateUi("menu:1");
+        Check(streetMenu.IsSettingsOpen(),"CONFIG opens existing editable settings");
+        streetMenu.SelectUi(TitleMenuItem::Start);
+        Check(streetMenu.GetSelected()==TitleMenuItem::Settings,"hover cannot change selection inside settings");
+        streetMenu.ActivateUi("back");
+        Check(!streetMenu.IsSettingsOpen(),"CONFIG can be cancelled");
         TitleMenuInput input;
         input.active = true;
         input.keyboardButtons = MenuConfirm;

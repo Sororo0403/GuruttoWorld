@@ -12,7 +12,11 @@ SceneRuntime::UiState TitleUi::State(const TitleMenu& menu) {
         {"selected",static_cast<float>(menu.GetSelected())},{"row",static_cast<float>(menu.GetSettingsRow())},
         {"gamepad",menu.UsesGamepad()?1.0f:0.0f},{"intro",menu.IntroProgress()},{"pulse",12*menu.SelectionPulse()},
         {"volume",static_cast<float>(menu.GetSettings().volume)},{"motion",menu.GetSettings().backgroundMotion?1.0f:0.0f},
-        {"saveFailed",menu.SaveFailed()?1.0f:0.0f},{"transition",menu.TransitionProgress()},
+        {"saveFailed",menu.SaveFailed()?1.0f:0.0f},
+        {"cameraFocus",menu.IsSettingsOpen() || menu.GetSelected()==TitleMenuItem::Settings ? 1.0f : 0.0f},
+        {"startEmphasis",menu.GetSelected()==TitleMenuItem::Start ? 1.0f : 0.6f},
+        {"configEmphasis",menu.GetSelected()==TitleMenuItem::Settings ? 1.0f : 0.6f},
+        {"transition",menu.TransitionProgress()},
         {"transitionPink",std::min(1.0f,menu.TransitionProgress()*1.25f)}};
     for(int i=0;i<3;++i) {
         state.values["inactive"+std::to_string(i)]=i!=static_cast<int>(menu.GetSelected())?1.0f:0.0f;

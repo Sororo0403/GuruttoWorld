@@ -89,13 +89,21 @@ namespace App
             draft_=saved_; settingsOpen_=false; saveFailed_=false; cue_=TitleMenuCue::Back; return TitleMenuAction::None;
         }
         if(event=="volume" && settingsOpen_) {draft_.volume=(draft_.volume+1)%11; cue_=TitleMenuCue::Select; return TitleMenuAction::None;}
-        if(const auto row=UiRow(event,"menu:"); row && !settingsOpen_) {
+        if(const auto row=UiRow(event,"menu:"); row && !settingsOpen_ && (!twoItems_ || *row<2)) {
             selected_=static_cast<TitleMenuItem>(*row); selectionSeconds_=0.16f; return UpdateMainMenu(MenuConfirm);
         }
         if(const auto row=UiRow(event,"settings:"); row && settingsOpen_) {
             settingsRow_=*row; selectionSeconds_=0.16f; return UpdateSettings(MenuConfirm);
         }
         return TitleMenuAction::None;
+    }
+
+    void TitleMenu::SelectUi(TitleMenuItem item)
+    {
+        if (finished_ || settingsOpen_ || (twoItems_ && item==TitleMenuItem::Exit) || selected_==item) return;
+        selected_=item;
+        selectionSeconds_=0.16f;
+        cue_=TitleMenuCue::Select;
     }
 
     TitleMenuAction TitleMenu::UpdateTransition(float elapsed)
@@ -122,7 +130,10 @@ namespace App
             selectionSeconds_ = 0.16f;
             const int step = direction == MenuDown ? 1 : 2;
             if (settingsOpen_) settingsRow_ = (settingsRow_ + step) % 3;
-            else selected_ = static_cast<TitleMenuItem>((static_cast<int>(selected_) + step) % 3);
+            else {
+                const int count=twoItems_ ? 2 : 3;
+                selected_ = static_cast<TitleMenuItem>((static_cast<int>(selected_) + (direction==MenuDown ? 1 : count-1)) % count);
+            }
         }
     }
 

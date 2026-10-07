@@ -24,8 +24,10 @@ namespace App
     {
     public:
         /// <summary>初回だけ登場演出を有効にします。</summary>
-        explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false)
-            : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton) {}
+        explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false, bool twoItems = false)
+            : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton), twoItems_(twoItems) {}
+        /// <summary>ポインターの選択を反映します。設定中・開始中は変更しません。</summary>
+        void SelectUi(TitleMenuItem item);
         bool UsesPressAnyButton() const { return pressAnyButton_; }
         /// <summary>登場演出の進行率を返します。</summary>
         float IntroProgress() const { return introSeconds_ / 0.65f; }
@@ -90,5 +92,6 @@ namespace App
         bool usesGamepad_ = false;
         bool finished_ = false;
         bool pressAnyButton_ = false;
+        bool twoItems_ = false;
     };
 }

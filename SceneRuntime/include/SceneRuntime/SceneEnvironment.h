@@ -27,6 +27,10 @@ namespace SceneRuntime
         void SeekAnimation(float sceneSeconds, float motionSeconds, float startSeconds = -1);
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height) const;
     private:
+        void AnimateCameraFocus(float elapsed);
+        std::array<float,3> focusPosition_{},focusRotation_{};
+        float focusSeconds_=0;
+        bool focusRequested_=false,focusEngaged_=false;
         UiState uiState_;
         SceneAudio audio_;
         SceneWorld world_;
