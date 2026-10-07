@@ -41,6 +41,7 @@ Texture2D<float4> meshTexture : register(t0);
 SamplerState textureSampler : register(s0);
 Texture2D<float> shadowDepth : register(t1);
 Texture2D<float4> normalTexture : register(t2);
+StructuredBuffer<float4> localLights : register(t3);
 SamplerComparisonState shadowSampler : register(s1);
 cbuffer ShadowTransform : register(b3)
 {
@@ -220,13 +221,47 @@ float4 PSMain(VertexOutput input) : SV_TARGET
             if (directionLengthSquared>1e-8)
                 color+=PbrLighting(baseColor,normal,toLight,SafeNormalize(cameraPosition-input.worldPosition),
                     -shininess,specularStrength)*lightColor*lightIntensity*visibility;
-            color=LinearToSrgb(color);
         }
         else
         {
             color = albedo.rgb * ambientIntensity;
             color += (albedo.rgb * diffuse + specular) * lightColor * lightIntensity * visibility;
         }
+        if ((flags & 8)!=0)
+        {
+            float3 baseColor=pbr ? SrgbToLinear(sampled.rgb)*SrgbToLinear(input.color.rgb) : albedo.rgb;
+            float3 toCamera=SafeNormalize(cameraPosition-input.worldPosition);
+            uint count=min((uint)localLights[0].x,32);
+            [loop] for (uint index=0;index<count;++index)
+            {
+                uint offset=1+index*4;
+                float4 positionRange=localLights[offset],directionSpot=localLights[offset+1];
+                float4 radiance=localLights[offset+2],cone=localLights[offset+3];
+                float3 difference=positionRange.xyz-input.worldPosition;
+                float distanceSquared=dot(difference,difference);
+                float normalizedDistanceSquared=distanceSquared/(positionRange.w*positionRange.w);
+                float window=saturate(1-normalizedDistanceSquared*normalizedDistanceSquared);
+                if (window<=0 || radiance.w<=0) continue;
+                // 逆二乗の減衰を到達距離で滑らかに切り、光源の中心は半径1cmとして扱います。
+                float attenuation=window*window/max(distanceSquared,1e-4);
+                float3 direction=SafeNormalize(difference);
+                if (directionSpot.w>.5)
+                {
+                    float angle=saturate((dot(SafeNormalize(directionSpot.xyz),-direction)-cone.y)/max(cone.x-cone.y,1e-6));
+                    attenuation*=angle*angle;
+                }
+                float3 contribution;
+                if (pbr) contribution=PbrLighting(baseColor,normal,direction,toCamera,-shininess,specularStrength);
+                else
+                {
+                    float diffuse=saturate(dot(normal,direction));
+                    float specular=diffuse>0 ? specularStrength*pow(saturate(dot(normal,SafeNormalize(direction+toCamera))),shininess) : 0;
+                    contribution=baseColor*diffuse+specular;
+                }
+                color+=contribution*radiance.rgb*radiance.w*attenuation;
+            }
+        }
+        if (pbr) color=LinearToSrgb(color);
     }
     float haze=smoothstep(fogStart,fogEnd,length(input.worldPosition-cameraPosition))*fogStrength;
     color=lerp(color,fogColor,haze);

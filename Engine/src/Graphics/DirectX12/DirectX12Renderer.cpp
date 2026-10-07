@@ -2,6 +2,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
 #include <Engine/Graphics/Resources/RenderTargetBinding.h>
+#include <Engine/Graphics/Resources/RenderFrameContext.h>
 
 #include <format>
 #include <chrono>
@@ -491,6 +492,7 @@ namespace Engine
     bool DirectX12Renderer::BeginFrame(UINT index, const std::array<float, 4>& clearColor,
         const std::function<void()>& debugUi)
     {
+        static_assert(BufferCount==RenderFrameContext::SlotCount);
 #if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
         (void)debugUi;
 #endif
@@ -500,6 +502,7 @@ namespace Engine
         {
             return false;
         }
+        RenderFrameContext{index,++recordingSerial_}.Record(commands_.Get());
         if (timestampReadback_ && timestampPending_[index]) {
             const SIZE_T offset=sizeof(UINT64)*index*2;
             const D3D12_RANGE read{offset,offset+sizeof(UINT64)*2}; void* mapped=nullptr;
@@ -561,6 +564,7 @@ namespace Engine
         {
             return RenderResult::Failed;
         }
+        commands_->SetPrivateData(RenderFrameContext::Key,0,nullptr);
         ID3D12CommandList* lists[] = { commands_.Get() };
         queue_->ExecuteCommandLists(1, lists);
         const HRESULT present = swapChain_->Present(1, 0);

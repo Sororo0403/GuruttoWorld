@@ -49,18 +49,45 @@ namespace SceneRuntime
         const auto found=std::find_if(objects.begin(),objects.end(),[](const auto& object) {
             return object.directionalLight && object.directionalLight->enabled;
         });
-        if (found==objects.end()) return result;
-        const auto& config=*found->directionalLight;
-        result.color=config.color; result.intensity=config.intensity; result.ambientIntensity=config.ambient;
-        result.specularStrength=config.specular; result.shininess=config.shininess;
-        result.shadowsEnabled=config.shadowsEnabled; result.shadowDistance=config.shadowDistance; result.shadowBias=config.shadowBias;
-        DirectX::XMFLOAT4X4 rotation;
-        if (world.WorldRotation(found->id,rotation))
+        if (found!=objects.end())
         {
-            DirectX::XMFLOAT3 direction;
-            DirectX::XMStoreFloat3(&direction,DirectX::XMVector3TransformNormal(
-                DirectX::XMVectorSet(config.direction[0],config.direction[1],config.direction[2],0),DirectX::XMLoadFloat4x4(&rotation)));
-            result.direction={direction.x,direction.y,direction.z};
+            const auto& config=*found->directionalLight;
+            result.color=config.color; result.intensity=config.intensity; result.ambientIntensity=config.ambient;
+            result.specularStrength=config.specular; result.shininess=config.shininess;
+            result.shadowsEnabled=config.shadowsEnabled; result.shadowDistance=config.shadowDistance; result.shadowBias=config.shadowBias;
+            DirectX::XMFLOAT4X4 rotation;
+            if (world.WorldRotation(found->id,rotation))
+            {
+                DirectX::XMFLOAT3 direction;
+                DirectX::XMStoreFloat3(&direction,DirectX::XMVector3TransformNormal(
+                    DirectX::XMVectorSet(config.direction[0],config.direction[1],config.direction[2],0),DirectX::XMLoadFloat4x4(&rotation)));
+                result.direction={direction.x,direction.y,direction.z};
+            }
+        }
+        for (const auto& object : objects)
+        {
+            const bool point=object.pointLight && object.pointLight->enabled;
+            const bool spot=object.spotLight && object.spotLight->enabled;
+            if (!point && !spot) continue;
+            DirectX::XMFLOAT4X4 transform;
+            if (!world.WorldMatrix(object.id,transform)) continue;
+            Engine::LocalLight light; light.position={transform._41,transform._42,transform._43};
+            if (point)
+            {
+                light.color=object.pointLight->color; light.intensity=object.pointLight->intensity; light.range=object.pointLight->range;
+                result.localLights.push_back(light);
+            }
+            if (spot)
+            {
+                DirectX::XMFLOAT4X4 rotation;
+                if (!world.WorldRotation(object.id,rotation)) continue;
+                light.direction={rotation._31,rotation._32,rotation._33}; light.spot=1;
+                light.color=object.spotLight->color; light.intensity=object.spotLight->intensity; light.range=object.spotLight->range;
+                constexpr float radians=std::numbers::pi_v<float>/360;
+                light.innerCosine=std::cos(object.spotLight->innerAngle*radians);
+                light.outerCosine=std::cos(object.spotLight->outerAngle*radians);
+                result.localLights.push_back(light);
+            }
         }
         return result;
     }

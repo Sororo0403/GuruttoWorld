@@ -29,6 +29,23 @@ namespace SceneRuntime
         float shadowDistance=70,shadowBias=.0001f;
         bool operator==(const DirectionalLightComponent&) const = default;
     };
+    struct PointLightComponent
+    {
+        std::string id="pointLight";
+        bool enabled=true;
+        std::array<float,3> color{1,1,1};
+        float intensity=5,range=10;
+        bool operator==(const PointLightComponent&) const = default;
+    };
+    struct SpotLightComponent
+    {
+        std::string id="spotLight";
+        bool enabled=true;
+        std::array<float,3> color{1,1,1};
+        float intensity=10,range=15;
+        float innerAngle=30,outerAngle=60;
+        bool operator==(const SpotLightComponent&) const = default;
+    };
     struct CloudBank
     {
         std::array<float,2> center{0.5f,0.25f};

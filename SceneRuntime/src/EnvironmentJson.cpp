@@ -78,6 +78,21 @@ namespace
         if (object.contains("shadowBias")) light.shadowBias=Number(object,"shadowBias",0,.01f);
         placement.directionalLight=std::move(light);
     }
+    void ReadPointLight(const Json& object, SceneRuntime::ScenePlacement& placement)
+    {
+        auto light=ReadBase(object,placement.pointLight);
+        light.color=Vector<3>(object,"color",0,1); light.intensity=Number(object,"intensity",0,10000);
+        light.range=Number(object,"range",.01f,100000); placement.pointLight=std::move(light);
+    }
+    void ReadSpotLight(const Json& object, SceneRuntime::ScenePlacement& placement)
+    {
+        auto light=ReadBase(object,placement.spotLight);
+        light.color=Vector<3>(object,"color",0,1); light.intensity=Number(object,"intensity",0,10000);
+        light.range=Number(object,"range",.01f,100000);
+        light.innerAngle=Number(object,"innerAngle",0,178); light.outerAngle=Number(object,"outerAngle",1,179);
+        if (light.innerAngle>=light.outerAngle) throw std::runtime_error("Spot inner angle must be smaller than outer angle");
+        placement.spotLight=std::move(light);
+    }
     void ReadSky(const Json& object, SceneRuntime::ScenePlacement& placement)
     {
         auto sky=ReadBase(object,placement.sky);
@@ -172,6 +187,8 @@ namespace SceneRuntime
     {
         if (type=="Camera") ReadCamera(object,placement);
         else if (type=="DirectionalLight") ReadLight(object,placement);
+        else if (type=="PointLight") ReadPointLight(object,placement);
+        else if (type=="SpotLight") ReadSpotLight(object,placement);
         else if (type=="Sky") ReadSky(object,placement);
         else if (type=="ParticleEmitter") ReadEmitter(object,placement);
         else if (type=="CameraSway") ReadSway(object,placement);
@@ -182,6 +199,18 @@ namespace SceneRuntime
     {
         if (placement.camera) WriteCamera(array,*placement.camera);
         if (placement.directionalLight) WriteLight(array,*placement.directionalLight);
+        if (placement.pointLight)
+        {
+            const auto& light=*placement.pointLight; auto object=WriteBase(light,"PointLight");
+            Put(object,"color",light.color); Put(object,"intensity",light.intensity); Put(object,"range",light.range);
+            array.push_back(object);
+        }
+        if (placement.spotLight)
+        {
+            const auto& light=*placement.spotLight; auto object=WriteBase(light,"SpotLight");
+            Put(object,"color",light.color); Put(object,"intensity",light.intensity); Put(object,"range",light.range);
+            Put(object,"innerAngle",light.innerAngle); Put(object,"outerAngle",light.outerAngle); array.push_back(object);
+        }
         if (placement.sky) WriteSky(array,*placement.sky);
         if (placement.particleEmitter) WriteEmitter(array,*placement.particleEmitter);
         if (placement.cameraSway) WriteSway(array,*placement.cameraSway);

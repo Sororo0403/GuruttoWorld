@@ -131,6 +131,13 @@ namespace SceneRuntime
             }
             ValidateParents(layout.objects);
             ValidateCamera(layout);
+            size_t localLights=0;
+            for (const auto& object : layout.objects)
+            {
+                if (object.pointLight && object.pointLight->enabled) ++localLights;
+                if (object.spotLight && object.spotLight->enabled) ++localLights;
+            }
+            if (localLights>32) throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
             return layout;
         }
         catch (const Json::exception& error)

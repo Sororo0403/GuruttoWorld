@@ -76,11 +76,11 @@ namespace Engine
         /// <summary>同じメッシュの実形状を光源視点の深度へ描画します。</summary>
         void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
     private:
-        /// <summary>色テクスチャと影深度の不変ディスクリプターを共有します。</summary>
+        /// <summary>色・法線・影・局所ライトの不変ディスクリプターを共有します。</summary>
         ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture,
-            const std::shared_ptr<const Texture2D>& normal) const;
+            const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights) const;
         struct Binding { Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap; std::shared_ptr<const Texture2D> texture,normal; };
-        mutable std::map<std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*>,Binding> bindings_;
+        mutable std::map<std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*,ID3D12Resource*>,Binding> bindings_;
         bool initialized_ = false;
         UINT indexCount_ = 0;
         std::shared_ptr<MeshResources> resources_;

@@ -2,6 +2,7 @@
 
 #include <Engine/Graphics/Resources/Texture2D.h>
 #include <Engine/Graphics/Models/MeshData.h>
+#include <Engine/Graphics/Resources/LocalLightBuffer.h>
 #include <map>
 #include <memory>
 
@@ -54,7 +55,11 @@ namespace Engine
         /// </summary>
         ID3D12PipelineState* GetPipelineState(bool mirrored = false,bool transparent = false) const noexcept;
 
+        /// <summary>現在の描画フレームへ局所ライトの不変データを準備します。</summary>
+        LocalLightView PrepareLights(ID3D12GraphicsCommandList* commands,std::span<const LocalLight> lights)
+        { return localLights_.Prepare(device_.Get(),commands,lights); }
     private:
+        LocalLightBuffer localLights_;
         struct PathLess
         {
             /// <summary>

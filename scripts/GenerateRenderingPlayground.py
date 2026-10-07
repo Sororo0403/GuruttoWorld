@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1] / "Content"
 def write(path, content):
     target = ROOT / path
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(content if isinstance(content, bytes) else content.encode("utf-8"))
+    target.write_bytes(content if isinstance(content, bytes) else content.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8"))
     meta = target.with_name(target.name + ".meta")
     if not meta.exists():
         identity = hashlib.sha256(("WP1/" + path).encode()).hexdigest()[:32]
@@ -59,6 +59,14 @@ def main():
     for name, color, roughness, metallic, normal in materials:
         write(f"Assets/Materials/{name}.mat", json.dumps(dict(color=color, roughness=roughness, metallic=metallic, physicallyBased=True, transparent=False, texture="", normalTexture="Assets/Textures/PbrRelief.bmp" if normal else "", normalFlipY=False), indent=2) + "\n")
     write("Assets/Scenes/RenderingPlayground.json", json.dumps(scene, indent=2) + "\n")
+    scene["objects"][1]["components"][0]["enabled"] = False
+    scene["objects"].extend([
+        obj("WarmPoint", [-3, 3, -2], [1, 1, 1], [component("PointLight", color=[1, .25, .08], intensity=20, range=10), component("Script", behaviour="Bob", parameters=dict(amplitude=1, frequency=.25))]),
+        obj("CoolPoint", [3, 3, 1], [1, 1, 1], [component("PointLight", color=[.08, .35, 1], intensity=25, range=10)]),
+        obj("CameraSpot", [0, 0, 0], [1, 1, 1], [component("SpotLight", color=[1, .9, .7], intensity=100, range=25, innerAngle=30, outerAngle=60)]),
+    ])
+    scene["objects"][-1]["parent"] = "Camera"
+    write("Assets/Scenes/LocalLightPlayground.json", json.dumps(scene, indent=2) + "\n")
 
 
 if __name__ == "__main__":

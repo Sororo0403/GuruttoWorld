@@ -1,10 +1,24 @@
 #pragma once
 
 #include <array>
+#include <vector>
 
 namespace Engine
 {
     class ShadowMap;
+    struct LocalLight
+    {
+        std::array<float,3> position{};
+        float range=10;
+        std::array<float,3> direction{0,0,1};
+        float spot=0;
+        std::array<float,3> color{1,1,1};
+        float intensity=1;
+        float innerCosine=.9659258f,outerCosine=.8660254f;
+        std::array<float,2> padding{};
+        bool operator==(const LocalLight&) const = default;
+    };
+    static_assert(sizeof(LocalLight)==64);
     struct DistanceFog
     {
         bool enabled=false;
@@ -28,5 +42,6 @@ namespace Engine
         bool shadowsEnabled=false;
         float shadowDistance=70,shadowBias=.0001f;
         const ShadowMap* shadow=nullptr;
+        std::vector<LocalLight> localLights;
     };
 }

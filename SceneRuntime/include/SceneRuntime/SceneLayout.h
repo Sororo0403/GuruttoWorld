@@ -27,6 +27,8 @@ namespace SceneRuntime
         std::vector<ScriptComponent> scripts;
         std::optional<CameraComponent> camera;
         std::optional<DirectionalLightComponent> directionalLight;
+        std::optional<PointLightComponent> pointLight;
+        std::optional<SpotLightComponent> spotLight;
         std::optional<SkyComponent> sky;
         std::optional<ParticleEmitterComponent> particleEmitter;
         std::optional<CameraSwayComponent> cameraSway;
@@ -42,7 +44,7 @@ namespace SceneRuntime
         {
             const auto matches=[&](const auto& component) { return component && component->id==componentId; };
             const std::initializer_list<bool> found{componentId=="transform",matches(meshRenderer),matches(rotator),matches(playerController),matches(boxCollider),matches(rigidBody),matches(camera),
-                matches(directionalLight),matches(sky),matches(particleEmitter),matches(cameraSway),matches(canvas),
+                matches(directionalLight),matches(pointLight),matches(spotLight),matches(sky),matches(particleEmitter),matches(cameraSway),matches(canvas),
                 matches(rectTransform),matches(image),matches(text),matches(button),matches(audioSource),matches(animation),matches(animator)};
             return std::any_of(found.begin(),found.end(),[](bool value){return value;}) ||
                 std::any_of(scripts.begin(),scripts.end(),[&](const auto& script) { return script.id==componentId; });
@@ -50,13 +52,14 @@ namespace SceneRuntime
         bool SameComponents(const ScenePlacement& other) const
         {
             return meshRenderer==other.meshRenderer && rotator==other.rotator && playerController==other.playerController && boxCollider==other.boxCollider && rigidBody==other.rigidBody && scripts==other.scripts && camera==other.camera &&
-                directionalLight==other.directionalLight && sky==other.sky && particleEmitter==other.particleEmitter &&
+                directionalLight==other.directionalLight && pointLight==other.pointLight && spotLight==other.spotLight && sky==other.sky && particleEmitter==other.particleEmitter &&
                 cameraSway==other.cameraSway && canvas==other.canvas && rectTransform==other.rectTransform && image==other.image && text==other.text && button==other.button && audioSource==other.audioSource && animation==other.animation && animator==other.animator;
         }
         void CopyComponents(const ScenePlacement& other)
         {
             meshRenderer=other.meshRenderer; rotator=other.rotator; playerController=other.playerController; boxCollider=other.boxCollider; rigidBody=other.rigidBody; scripts=other.scripts; camera=other.camera;
             directionalLight=other.directionalLight; sky=other.sky; particleEmitter=other.particleEmitter; cameraSway=other.cameraSway;
+            pointLight=other.pointLight; spotLight=other.spotLight;
             canvas=other.canvas; rectTransform=other.rectTransform; image=other.image; text=other.text; button=other.button; audioSource=other.audioSource;
             animation=other.animation; animator=other.animator;
         }

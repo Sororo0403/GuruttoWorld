@@ -237,6 +237,7 @@ namespace Engine
         UINT height_ = 0;
         UINT descriptorSize_ = 0;
         UINT64 fenceValue_ = 0;
+        UINT64 recordingSerial_ = 0;
         HANDLE fenceEvent_ = nullptr;
         bool ready_ = false;
         bool occluded_ = false;

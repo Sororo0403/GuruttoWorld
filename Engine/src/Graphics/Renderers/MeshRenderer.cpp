@@ -9,16 +9,16 @@
 namespace Engine
 {
     ID3D12DescriptorHeap* MeshRenderer::Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& overrideTexture,
-        const std::shared_ptr<const Texture2D>& normal) const
+        const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights) const
     {
         const std::shared_ptr<const Texture2D> texture=overrideTexture ? overrideTexture : texture_;
-        const auto key=std::tuple{shadow ? shadow->Resource() : nullptr,texture.get(),normal.get()};
+        const auto key=std::tuple{shadow ? shadow->Resource() : nullptr,texture.get(),normal.get(),lights.resource};
         if (const auto found=bindings_.find(key);found!=bindings_.end()) return found->second.heap.Get();
         Microsoft::WRL::ComPtr<ID3D12Device> device;
         if (FAILED(meshBuffer_->GetDevice(IID_PPV_ARGS(&device)))) return nullptr;
         D3D12_DESCRIPTOR_HEAP_DESC description{};
         description.Type=D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        description.Flags=D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; description.NumDescriptors=3;
+        description.Flags=D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; description.NumDescriptors=4;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap;
         if (FAILED(device->CreateDescriptorHeap(&description,IID_PPV_ARGS(&heap)))) return nullptr;
         auto handle=heap->GetCPUDescriptorHandleForHeapStart();
@@ -37,6 +37,14 @@ namespace Engine
             D3D12_SHADER_RESOURCE_VIEW_DESC view{};
             view.Format=DXGI_FORMAT_R8G8B8A8_UNORM; view.ViewDimension=D3D12_SRV_DIMENSION_TEXTURE2D;
             view.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; view.Texture2D.MipLevels=1;
+            device->CreateShaderResourceView(nullptr,&view,handle);
+        }
+        handle.ptr+=device->GetDescriptorHandleIncrementSize(description.Type);
+        if (lights.resource) device->CopyDescriptorsSimple(1,handle,lights.srv,description.Type);
+        else {
+            D3D12_SHADER_RESOURCE_VIEW_DESC view{}; view.ViewDimension=D3D12_SRV_DIMENSION_BUFFER;
+            view.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            view.Buffer.NumElements=1; view.Buffer.StructureByteStride=16;
             device->CreateShaderResourceView(nullptr,&view,handle);
         }
         // 各組み合わせを保持し、実行中のフレームが参照する SRV を書き換えません。
@@ -127,11 +135,18 @@ namespace Engine
                 lightConstants[11]=-roughness;
                 lightConstants[12]=std::clamp(material->metallic,0.0f,1.0f);
             }
-            // lightingEnabled は整数ビット列: 照明、法線画像、Y反転。
+            // lightingEnabled は整数ビット列: 照明、法線画像、Y反転、局所ライト。
             lightConstants[13]=static_cast<float>((light.enabled ? 1 : 0) |
                 (material->normalTexture ? 2 : 0) | (material->normalFlipY ? 4 : 0));
         }
-        auto* heap=Bindings(light.shadow,material ? material->texture : nullptr,material ? material->normalTexture : nullptr);
+        LocalLightView localLights;
+        if (!light.localLights.empty())
+        {
+            localLights=resources_->PrepareLights(commands,light.localLights);
+            if (!localLights.resource) { Log::Error("Cannot prepare local lights for the current render frame."); return; }
+            lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|8U);
+        }
+        auto* heap=Bindings(light.shadow,material ? material->texture : nullptr,material ? material->normalTexture : nullptr,localLights);
         if (!heap) { Log::Error("Cannot allocate mesh texture/shadow bindings."); return; }
         // Transform/tint 32 + lighting 26 + compact UV 5 + SRV table 1 = 64 DWORD.
         commands->SetPipelineState(resources_->GetPipelineState(mirrored,material && (material->transparent || material->color[3]<1)));

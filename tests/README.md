@@ -228,6 +228,8 @@ InputActionValidationはキー・パッド・スティックのAction値と押�
 MaterialValidationはMaterialとMeshRenderer参照の保存復元、不正値の保存失敗時の既存ファイル保持と、GPU読み戻しによる色・透明度・画像の上書きを確認します。D3D12のルート定数は64DWORD以内に収め、既存の鏡映・法線・影の回帰も継続します。`WP1_MATERIAL_ONLY=1`で単独実行できます。
 PBRの正面照明をGGXの解析値と比較し、金属の反射色・粗さの変化、法線マップとY反転、退化UV、照明OFFもGPU画素で検証します。旧Materialの互換読み込み、法線画像IDの改名追従、不正パスの拒否、RenderingPlaygroundのApp共通環境とEditor再生での描画・停止時の編集データ保持も含みます。
 
+`WP1_LIGHTS_ONLY=1`ではPoint/Spotの保存復元、Componentコピー・ID、不正値と32灯上限、GPU画素による逆二乗減衰・距離制限・表裏・円錐の内外とフェード・色の加算・32灯・PBR・照明OFF・極端に遠い光源での数値保持を検証します。同じフレームの後続アップロードが先の描画を上書きしないこと、複数フレームのリソース寿命、親のカメラに追従するSpot、動くPoint、App共通環境・Editor再生・Inspector・停止時の編集データ保持も含みます。
+
 AnimatorValidationはglTF読み込み、ボーン変形・法線、補間・ループ・状態遷移、GPU更新、複製・削除と不正クリップ時の保持を確認します。`WP1_ANIMATOR_ONLY=1`で単独実行します。AssetDatabaseValidationは参照ID保存、改名後の旧パス・ID解決、倍率・UV反転、上書き・パス逸脱・ID欠損の拒否を確認します。`WP1_ASSET_ONLY=1`で単独実行します。
 
 ProfilerValidationはCPU描画時間・フレーム数と、完了フェンスに同期したGPUタイムスタンプの読み戻しを確認します。`WP1_PROFILER_ONLY=1`で単独実行します。`scripts/BuildPlayer.ps1 -Configuration Release` は配布物を生成し、そのAppを `--validate-package` で起動して実際のリソース読み込み・描画を検証します。package.jsonに同梱ファイルのサイズ・SHA-256を記録します。

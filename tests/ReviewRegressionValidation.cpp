@@ -36,6 +36,7 @@
 #include "PrefabValidation.h"
 #include "InputActionValidation.h"
 #include "MaterialValidation.h"
+#include "LocalLightValidation.h"
 #include "TitlePresentationValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
@@ -1873,6 +1874,7 @@ namespace
                 ScriptValidation::Runtime(renderer);
                 PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
                 MaterialValidation::Rendering(renderer);
+                LocalLightValidation::Rendering(renderer); LocalLightValidation::Runtime(renderer);
                 AnimatorValidation::Runtime(renderer);
                 ProfilerValidation::Run(renderer);
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
@@ -3057,6 +3059,15 @@ int main()
         ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: skeletal import, skinning, normals, interpolation, state transitions and schema\n"; return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_LIGHTS_ONLY",nullptr,0)) {
+            LocalLightValidation::Schema();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden local light validation",64,32),"local light test window");
+            Check(renderer.Initialize(window.GetHandle()),"local light test renderer");
+            LocalLightValidation::Rendering(renderer); LocalLightValidation::Runtime(renderer);
+            CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: Point/Spot schema, attenuation, cones, PBR, frame lifetime and App/Editor playback\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_MATERIAL_ONLY",nullptr,0)) {
             MaterialValidation::Schema();
             Engine::Window window; Engine::DirectX12Renderer renderer;
@@ -3156,6 +3167,7 @@ int main()
         PrefabValidation::Run();
         InputActionValidation::Run();
         MaterialValidation::Schema();
+        LocalLightValidation::Schema();
         AnimatorValidation::Run();
         AssetDatabaseValidation::Run();
         phase="ValidateSceneLayout"; ValidateSceneLayout();

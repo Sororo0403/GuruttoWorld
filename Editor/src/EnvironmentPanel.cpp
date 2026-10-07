@@ -86,6 +86,20 @@ namespace
         Vector(state,"周期（秒）###Period (seconds)",sway.period,0.01f,100000);
         ImGui::TextWrapped("このオブジェクトにカメラを追加してください。再生中は保存したトランスフォームを変えずに視点を揺らします。");
     }
+    template<class T>
+    void LocalLight(Editor::EditState& state,T& light)
+    {
+        Color(state,"光の色###Local light color",light.color);
+        Scalar(state,"強度###Local light intensity",light.intensity,0,10000);
+        Scalar(state,"到達距離###Local light range",light.range,.01f,100000);
+    }
+    void Spot(Editor::EditState& state, SceneRuntime::SpotLightComponent& light)
+    {
+        LocalLight(state,light);
+        Scalar(state,"内側の角度（度）###Inner angle",light.innerAngle,0,light.outerAngle-.1f);
+        Scalar(state,"外側の角度（度）###Outer angle",light.outerAngle,std::max(1.0f,light.innerAngle+.1f),179);
+        ImGui::TextWrapped("トランスフォームのローカル+Z方向へ照射します。角度は円錐全体の開きです。");
+    }
     void Light(Editor::EditState& state, SceneRuntime::DirectionalLightComponent& light)
     {
         Vector(state,"ローカル方向###Local direction",light.direction,-100000,100000);
@@ -114,6 +128,8 @@ namespace Editor
         const auto before=placement;
         Component(state,placement.camera,"カメラ###Camera",[&](auto& value) { Camera(state,value); });
         Component(state,placement.directionalLight,"平行光源###DirectionalLight",[&](auto& value) { Light(state,value); });
+        Component(state,placement.pointLight,"点光源###PointLight",[&](auto& value) { LocalLight(state,value); });
+        Component(state,placement.spotLight,"スポットライト###SpotLight",[&](auto& value) { Spot(state,value); });
         Component(state,placement.sky,"空###Sky",[&](auto& value) { Sky(state,value); });
         Component(state,placement.particleEmitter,"パーティクル発生源###ParticleEmitter",[&](auto& value) { Emitter(state,value); });
         Component(state,placement.cameraSway,"カメラの揺れ###CameraSway",[&](auto& value) { Sway(state,value); });
@@ -126,6 +142,10 @@ namespace Editor
         { const auto id=NewId(placement,"camera"); placement.camera.emplace(); placement.camera->id=id; changed=true; }
         if (ImGui::MenuItem("平行光源###DirectionalLight",nullptr,false,!placement.directionalLight))
         { const auto id=NewId(placement,"light"); placement.directionalLight.emplace(); placement.directionalLight->id=id; changed=true; }
+        if (ImGui::MenuItem("点光源###PointLight",nullptr,false,!placement.pointLight))
+        { const auto id=NewId(placement,"pointLight"); placement.pointLight.emplace(); placement.pointLight->id=id; changed=true; }
+        if (ImGui::MenuItem("スポットライト###SpotLight",nullptr,false,!placement.spotLight))
+        { const auto id=NewId(placement,"spotLight"); placement.spotLight.emplace(); placement.spotLight->id=id; changed=true; }
         if (ImGui::MenuItem("空###Sky",nullptr,false,!placement.sky))
         { const auto id=NewId(placement,"sky"); placement.sky.emplace(); placement.sky->id=id; changed=true; }
         if (ImGui::MenuItem("パーティクル発生源###ParticleEmitter",nullptr,false,!placement.particleEmitter))
