@@ -234,6 +234,11 @@ namespace Engine
             LogSelectedAdapter(selectedDescription);
             return true;
         }
+        return CreateWarpDevice();
+    }
+
+    bool DirectX12Renderer::CreateWarpDevice()
+    {
         ComPtr<IDXGIAdapter> warp;
         if (!Check(factory_->EnumWarpAdapter(IID_PPV_ARGS(&warp)), "EnumWarpAdapter") ||
             !Check(D3D12CreateDevice(warp.Get(), D3D_FEATURE_LEVEL_11_0,

@@ -169,6 +169,12 @@ namespace Engine
         bool CreateDevice();
 
         /// <summary>
+        /// 対応するハードウェアがない場合に WARP ソフトウェアデバイスを生成します。
+        /// </summary>
+        /// <returns>生成に成功した場合は true、失敗した場合は false。</returns>
+        bool CreateWarpDevice();
+
+        /// <summary>
         /// 描画コマンドを GPU に送信するキューを生成します。
         /// </summary>
         /// <returns>生成に成功した場合は true、失敗した場合は false。</returns>
