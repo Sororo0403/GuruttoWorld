@@ -31,6 +31,7 @@
 #include "ScriptValidation.h"
 #include "PrefabValidation.h"
 #include "InputActionValidation.h"
+#include "MaterialValidation.h"
 #include "TitlePresentationValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
@@ -1865,6 +1866,7 @@ namespace
                 AnimationValidation::Runtime(renderer,TestContentRoot());
                 PhysicsValidation::Runtime(renderer,TestContentRoot());
                 PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
+                MaterialValidation::Rendering(renderer);
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
@@ -3027,6 +3029,16 @@ int main()
 {
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_MATERIAL_ONLY",nullptr,0)) {
+            MaterialValidation::Schema();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden material validation",64,32),"material test window");
+            Check(renderer.Initialize(window.GetHandle()),"material test renderer");
+            MaterialValidation::Rendering(renderer);
+            CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: material schema, tint, opacity, texture override and D3D12 root constants\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_INPUT_ONLY",nullptr,0)) {
             InputActionValidation::Run();
             std::cout<<"PASS: input action bindings, keyboard/gamepad/analog, rebind, activation and Button actions\n";
@@ -3089,6 +3101,7 @@ int main()
         ScriptValidation::Run();
         PrefabValidation::Run();
         InputActionValidation::Run();
+        MaterialValidation::Schema();
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
         ValidateAssetChangeBatching();

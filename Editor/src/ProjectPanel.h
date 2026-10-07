@@ -1,4 +1,5 @@
 #pragma once
+#include "MaterialPanel.h"
 #include "EditState.h"
 #include "ProjectCatalog.h"
 #include "AssetInfo.h"
@@ -33,6 +34,7 @@ namespace Editor
         void DrawAssets(EditState& state, bool enabled);
         void DrawSelection(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
         std::filesystem::path root_, folder_="Assets", selected_;
+        MaterialPanel materialPanel_;
         ProjectCatalog catalog_;
         AssetPreview preview_;
         std::filesystem::path previewed_;

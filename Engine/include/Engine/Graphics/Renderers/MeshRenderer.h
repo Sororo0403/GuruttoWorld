@@ -2,6 +2,7 @@
 
 #include <Engine/Graphics/Renderers/MeshResources.h>
 #include <Engine/Graphics/Materials/UvTransform.h>
+#include <Engine/Graphics/Materials/Material.h>
 #include <Engine/Graphics/Materials/DirectionalLight.h>
 #include <DirectXMath.h>
 #include <array>
@@ -69,14 +70,15 @@ namespace Engine
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
             const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
-            const UvTransform& uvTransform = {}) const;
+            const UvTransform& uvTransform = {},const Material* material=nullptr) const;
 
         /// <summary>同じメッシュの実形状を光源視点の深度へ描画します。</summary>
         void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
     private:
         /// <summary>色テクスチャと影深度の不変ディスクリプターを共有します。</summary>
-        ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow) const;
-        mutable std::map<ID3D12Resource*,Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> bindings_;
+        ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture) const;
+        struct Binding { Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap; std::shared_ptr<const Texture2D> texture; };
+        mutable std::map<std::pair<ID3D12Resource*,const Texture2D*>,Binding> bindings_;
         bool initialized_ = false;
         UINT indexCount_ = 0;
         std::shared_ptr<MeshResources> resources_;

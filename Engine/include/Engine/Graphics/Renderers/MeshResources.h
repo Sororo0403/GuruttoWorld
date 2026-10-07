@@ -52,7 +52,7 @@ namespace Engine
         /// <summary>
         /// 所有権を移譲せず共有 PSO を取得します。鏡映時は正面の巻き順を反転します。
         /// </summary>
-        ID3D12PipelineState* GetPipelineState(bool mirrored = false) const noexcept;
+        ID3D12PipelineState* GetPipelineState(bool mirrored = false,bool transparent = false) const noexcept;
 
     private:
         struct PathLess
@@ -82,6 +82,7 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> mirroredPipelineState_;
+        Microsoft::WRL::ComPtr<ID3D12PipelineState> transparentPipelineState_,transparentMirroredPipelineState_;
         std::map<std::filesystem::path, std::shared_ptr<Texture2D>, PathLess> textures_;
     };
 }

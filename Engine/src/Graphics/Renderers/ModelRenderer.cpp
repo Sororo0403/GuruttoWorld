@@ -51,11 +51,11 @@ namespace Engine
 
     void ModelRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
         const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
-        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform) const
+        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,const Material* material) const
     {
         for (const auto& mesh : meshes_)
         {
-            mesh->Draw(commands, world, viewProjection, light, cameraPosition, uvTransform);
+            mesh->Draw(commands, world, viewProjection, light, cameraPosition, uvTransform,material);
         }
     }
     bool ModelRenderer::IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction,

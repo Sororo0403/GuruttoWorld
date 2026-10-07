@@ -83,6 +83,6 @@ namespace Engine
     void Object3D::Draw(ID3D12GraphicsCommandList* commands, const Camera& camera,
         const DirectionalLight& light, const UvTransform& uvTransform) const
     {
-        if (model_) model_->Draw(commands, world_, camera.GetViewProjectionMatrix(), light, camera.GetPosition(), uvTransform);
+        if (model_) model_->Draw(commands, world_, camera.GetViewProjectionMatrix(), light, camera.GetPosition(), material_ ? material_->uv : uvTransform,material_.get());
     }
 }

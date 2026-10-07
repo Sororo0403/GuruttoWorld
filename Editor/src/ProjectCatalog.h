@@ -11,7 +11,7 @@
 
 namespace Editor
 {
-    enum class AssetKind { Model, Scene, Texture, Audio, Shader, Font, Prefab };
+    enum class AssetKind { Model, Scene, Texture, Audio, Shader, Font, Prefab, Material };
     struct ProjectAsset
     {
         std::filesystem::path path;
@@ -44,6 +44,7 @@ namespace Editor
         static std::optional<AssetKind> Kind(const std::filesystem::path& path)
         {
             const auto extension=Lower(Text(path.extension()));
+            if (extension==".mat" && Text(path).starts_with("Assets/Materials/")) return AssetKind::Material;
             if (extension==".prefab" && Text(path).starts_with("Assets/Prefabs/")) return AssetKind::Prefab;
             if (extension==".obj") return AssetKind::Model;
             if (extension==".json" && Text(path).starts_with("Assets/Scenes/")) return AssetKind::Scene;
@@ -64,6 +65,7 @@ namespace Editor
             case AssetKind::Shader: return "シェーダー";
             case AssetKind::Font: return "フォント";
             case AssetKind::Prefab: return "Prefab";
+            case AssetKind::Material: return "Material";
             }
             return "アセット";
         }

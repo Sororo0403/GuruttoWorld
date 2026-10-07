@@ -218,3 +218,5 @@ ScriptValidationは独自C++処理の登録、重複・不正なメタデータ�
 PrefabValidationは親子とIDの生成、リンクの保存復元、元データ変更の反映と個別編集の保持、新しい子の追加、ファイル欠損時のシーン保持、リンク解除、抽出と不正パスの拒否を検証します。Debug／Releaseの全回帰に含まれ、`WP1_PREFAB_ONLY=1`で単独実行できます。
 
 InputActionValidationはキー・パッド・スティックのAction値と押下、保持中の非反復、しきい値、非アクティブ時の解除、復帰時の押下抑止、再割り当て、不正キーの拒否、独自処理とButtonへのAction入力を検証します。ProjectSettingsValidationはAction設定の保存復元も確認します。`WP1_INPUT_ONLY=1`で単独実行できます。
+
+MaterialValidationはMaterialとMeshRenderer参照の保存復元、不正値の保存失敗時の既存ファイル保持と、GPU読み戻しによる色・透明度・画像の上書きを確認します。D3D12のルート定数は64DWORD以内に収め、既存の鏡映・法線・影の回帰も継続します。`WP1_MATERIAL_ONLY=1`で単独実行できます。

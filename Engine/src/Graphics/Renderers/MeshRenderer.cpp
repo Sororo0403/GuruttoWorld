@@ -8,10 +8,11 @@
 
 namespace Engine
 {
-    ID3D12DescriptorHeap* MeshRenderer::Bindings(const ShadowMap* shadow) const
+    ID3D12DescriptorHeap* MeshRenderer::Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& overrideTexture) const
     {
-        auto* key=shadow ? shadow->Resource() : nullptr;
-        if (const auto found=bindings_.find(key);found!=bindings_.end()) return found->second.Get();
+        const std::shared_ptr<const Texture2D> texture=overrideTexture ? overrideTexture : texture_;
+        const auto key=std::pair{shadow ? shadow->Resource() : nullptr,texture.get()};
+        if (const auto found=bindings_.find(key);found!=bindings_.end()) return found->second.heap.Get();
         Microsoft::WRL::ComPtr<ID3D12Device> device;
         if (FAILED(meshBuffer_->GetDevice(IID_PPV_ARGS(&device)))) return nullptr;
         D3D12_DESCRIPTOR_HEAP_DESC description{};
@@ -20,7 +21,7 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap;
         if (FAILED(device->CreateDescriptorHeap(&description,IID_PPV_ARGS(&heap)))) return nullptr;
         auto handle=heap->GetCPUDescriptorHandleForHeapStart();
-        device->CopyDescriptorsSimple(1,handle,texture_->GetShaderResourceView(),description.Type);
+        device->CopyDescriptorsSimple(1,handle,texture->GetShaderResourceView(),description.Type);
         handle.ptr+=device->GetDescriptorHandleIncrementSize(description.Type);
         if (shadow) device->CopyDescriptorsSimple(1,handle,shadow->View(),description.Type);
         else {
@@ -30,7 +31,7 @@ namespace Engine
             device->CreateShaderResourceView(nullptr,&view,handle);
         }
         // Immutable pairs are never rewritten while previous frames are using them.
-        return bindings_.emplace(key,std::move(heap)).first->second.Get();
+        return bindings_.emplace(key,Binding{std::move(heap),texture}).first->second.heap.Get();
     }
     void MeshRenderer::DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const
     {
@@ -71,7 +72,7 @@ namespace Engine
 
     void MeshRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
         const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
-        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform) const
+        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,const Material* material) const
     {
         if (!initialized_ || commands == nullptr)
         {
@@ -84,6 +85,7 @@ namespace Engine
         {
             XMFLOAT4X4 worldViewProjection;
             XMFLOAT4 worldRows[3];
+            std::array<float,4> color{1,1,1,1};
         } constants;
         const bool mirrored=XMVectorGetX(XMMatrixDeterminant(worldMatrix))<0;
         XMStoreFloat4x4(&constants.worldViewProjection, worldMatrix * XMLoadFloat4x4(&viewProjection));
@@ -92,7 +94,8 @@ namespace Engine
         {
             XMStoreFloat4(&constants.worldRows[row], transposedWorld.r[row]);
         }
-        static_assert(sizeof(constants) == sizeof(float) * 28);
+        if (material) constants.color=material->color;
+        static_assert(sizeof(constants) == sizeof(float) * 32);
         std::array<float, 26> lightConstants
         {
             light.direction[0], light.direction[1], light.direction[2], std::max(0.0f, light.intensity),
@@ -104,15 +107,21 @@ namespace Engine
             light.fog.enabled ? std::clamp(light.fog.strength,0.0f,1.0f) : 0.0f
         };
         if (light.shadow) std::copy(light.shadow->Constants().begin(),light.shadow->Constants().end(),lightConstants.begin()+20);
-        auto* heap=Bindings(light.shadow);
+        if (material)
+        {
+            const float roughness=std::clamp(material->roughness,0.04f,1.0f);
+            lightConstants[11]=std::clamp(2.0f/(roughness*roughness*roughness*roughness)-2.0f,1.0f,8192.0f);
+            lightConstants[12]=0.04f+std::clamp(material->metallic,0.0f,1.0f)*0.96f;
+        }
+        auto* heap=Bindings(light.shadow,material ? material->texture : std::shared_ptr<const Texture2D>{});
         if (!heap) { Log::Error("Cannot allocate mesh texture/shadow bindings."); return; }
-        // Transform 28 + lighting/fog/shadow 26 + UV 8 + SRV table 1 = 63 DWORD (limit 64).
-        commands->SetPipelineState(resources_->GetPipelineState(mirrored));
+        // Transform/tint 32 + lighting 26 + compact UV 5 + SRV table 1 = 64 DWORD.
+        commands->SetPipelineState(resources_->GetPipelineState(mirrored,material && (material->transparent || material->color[3]<1)));
         commands->SetGraphicsRootSignature(resources_->GetRootSignature());
-        commands->SetGraphicsRoot32BitConstants(0, 28, &constants, 0);
+        commands->SetGraphicsRoot32BitConstants(0, 32, &constants, 0);
         commands->SetGraphicsRoot32BitConstants(2, 26, lightConstants.data(), 0);
-        const auto uvConstants = uvTransform.GetConstants();
-        commands->SetGraphicsRoot32BitConstants(3, 8, uvConstants.data(), 0);
+        const std::array<float,5> uvConstants{uvTransform.scale[0],uvTransform.scale[1],uvTransform.rotation,uvTransform.translation[0],uvTransform.translation[1]};
+        commands->SetGraphicsRoot32BitConstants(3, 5, uvConstants.data(), 0);
         ID3D12DescriptorHeap* heaps[] = { heap };
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, heap->GetGPUDescriptorHandleForHeapStart());

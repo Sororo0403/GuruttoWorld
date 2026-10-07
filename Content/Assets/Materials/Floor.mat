@@ -1,0 +1,23 @@
+{
+  "color": [
+    0.15,
+    0.18,
+    0.22,
+    1
+  ],
+  "roughness": 0.85,
+  "metallic": 0,
+  "transparent": false,
+  "texture": "",
+  "uv": {
+    "scale": [
+      1,
+      1
+    ],
+    "rotation": 0,
+    "translation": [
+      0,
+      0
+    ]
+  }
+}

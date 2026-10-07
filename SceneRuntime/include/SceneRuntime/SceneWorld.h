@@ -93,6 +93,8 @@ namespace SceneRuntime
         std::map<std::string,bool> inputPressed_;
         ScriptRuntime scripts_;
         ScenePhysics::States physics_;
+        Microsoft::WRL::ComPtr<ID3D12Device> materialDevice_;
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> materialQueue_;
         bool modelsReady_ = false;
         mutable Engine::ShadowMap shadow_;
         SceneLayout layout_;

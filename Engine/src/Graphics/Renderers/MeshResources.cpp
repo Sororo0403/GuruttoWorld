@@ -74,8 +74,9 @@ namespace Engine
         return rootSignature_.Get();
     }
 
-    ID3D12PipelineState* MeshResources::GetPipelineState(bool mirrored) const noexcept
+    ID3D12PipelineState* MeshResources::GetPipelineState(bool mirrored,bool transparent) const noexcept
     {
+        if (transparent) return mirrored ? transparentMirroredPipelineState_.Get() : transparentPipelineState_.Get();
         return mirrored ? mirroredPipelineState_.Get() : pipelineState_.Get();
     }
 
@@ -94,7 +95,7 @@ namespace Engine
         D3D12_ROOT_PARAMETER parameters[4]{};
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
-        parameters[0].Constants.Num32BitValues = 28;
+        parameters[0].Constants.Num32BitValues = 32;
         parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
         parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
@@ -106,7 +107,7 @@ namespace Engine
         parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[3].Constants.ShaderRegister = 2;
-        parameters[3].Constants.Num32BitValues = 8;
+        parameters[3].Constants.Num32BitValues = 5;
         parameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -193,8 +194,13 @@ namespace Engine
         if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),
             "Create mesh pipeline state")) return false;
         description.RasterizerState.FrontCounterClockwise = TRUE;
-        return Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&mirroredPipelineState_)),
-            "Create mirrored mesh pipeline state");
+        if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&mirroredPipelineState_)),"Create mirrored mesh pipeline state")) return false;
+        blend.BlendEnable=TRUE; blend.SrcBlend=D3D12_BLEND_SRC_ALPHA; blend.DestBlend=D3D12_BLEND_INV_SRC_ALPHA;
+        blend.DestBlendAlpha=D3D12_BLEND_INV_SRC_ALPHA;
+        description.DepthStencilState.DepthWriteMask=D3D12_DEPTH_WRITE_MASK_ZERO;
+        if (!Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&transparentMirroredPipelineState_)),"Create transparent mirrored mesh pipeline")) return false;
+        description.RasterizerState.FrontCounterClockwise=FALSE;
+        return Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&transparentPipelineState_)),"Create transparent mesh pipeline");
     }
 
 }

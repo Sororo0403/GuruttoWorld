@@ -146,6 +146,7 @@
     <ClInclude Include="include\Engine\Graphics\Renderers\SphereRenderer.h" />
     <ClInclude Include="include\Engine\Graphics\Resources\IndexedMeshBuffer.h" />
     <ClInclude Include="include\Engine\Graphics\Materials\UvTransform.h" />
+    <ClInclude Include="include\Engine\Graphics\Materials\Material.h" />
     <ClInclude Include="include\Engine\Graphics\Materials\DirectionalLight.h" />
   </ItemGroup>
   <ItemGroup>

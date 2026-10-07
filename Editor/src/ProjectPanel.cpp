@@ -2,6 +2,7 @@
 #include "AudioPreview.h"
 #include "PanelLayout.h"
 #include "ModelDrop.h"
+#include "MaterialPanel.h"
 #include <Engine/Core/Log.h>
 
 namespace Editor
@@ -37,7 +38,29 @@ namespace Editor
             ImGui::InputText("アセットを検索###Search assets",search_.data(),search_.size());
             ImGui::SameLine();
             ImGui::SetNextItemWidth(100);
-            ImGui::Combo("種類###Type",&type_,"すべて\0モデル\0シーン\0画像\0音声\0シェーダー\0フォント\0Prefab\0");
+            ImGui::Combo("種類###Type",&type_,"すべて\0モデル\0シーン\0画像\0音声\0シェーダー\0フォント\0Prefab\0Material\0");
+            ImGui::BeginDisabled(!enabled);
+            if (ImGui::Button("Materialを作成###Create material")) ImGui::OpenPopup("新しいMaterial###New material");
+            if (ImGui::BeginPopup("新しいMaterial###New material"))
+            {
+                static std::array<char,129> name{};
+                ImGui::InputText("名前###Material name",name.data(),name.size());
+                if (ImGui::Button("作成###Create material asset") && name[0])
+                {
+                    try
+                    {
+                        const std::string value=name.data();
+                        if (value.find_first_of("/\\:<>|?*.")!=std::string::npos) throw std::runtime_error("Material名にはファイル名だけを指定してください");
+                        const auto file=std::filesystem::path(std::u8string(value.begin(),value.end())+u8".mat");
+                        const auto path=std::filesystem::path("Assets/Materials")/file;
+                        if (std::filesystem::exists(root_/path)) throw std::runtime_error("同じ名前のMaterialが存在します");
+                        SceneRuntime::MaterialAsset{}.Save(root_,path); Scan(root_); selected_=path; state.InspectAsset(path); name.fill(0); ImGui::CloseCurrentPopup();
+                    }
+                    catch (const std::exception& exception) { Engine::Log::Error(exception.what()); }
+                }
+                ImGui::EndPopup();
+            }
+            ImGui::EndDisabled();
             if (!catalog_.Error().empty()) ImGui::TextWrapped("%s",catalog_.Error().c_str());
             const float listHeight=std::max(70.0f,ImGui::GetContentRegionAvail().y-130);
             if (ImGui::BeginChild("Folders",ImVec2(180,listHeight),ImGuiChildFlags_Borders))
@@ -152,6 +175,7 @@ namespace Editor
                 ImGui::TextWrapped("%s",ProjectCatalog::Text(selected).c_str());
                 if (!info_->error.empty()) ImGui::TextWrapped("%s",info_->error.c_str());
                 else { preview_.Draw(*found); DrawAssetInfo(*info_); }
+                if(found->kind==AssetKind::Material) materialPanel_.Draw(root_,selected,catalog_,enabled);
                 if(found->kind==AssetKind::Audio) {ImGui::BeginDisabled(!enabled); if(ImGui::Button("音声を試聴###Audition audio")) AudioPreview::Play(selected); ImGui::SameLine(); if(ImGui::Button("音声を停止###Stop audio")) AudioPreview::StopRequest(); ImGui::EndDisabled();}
             }
         }

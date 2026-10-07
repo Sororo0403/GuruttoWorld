@@ -43,6 +43,14 @@ namespace Editor
         if (ImGui::BeginCombo("モデルアセット###Model asset",ProjectCatalog::Text(mesh.model.filename()).c_str()))
         { edited=ChooseModel(mesh.model,catalog) || edited; ImGui::EndCombo(); }
         ImGui::TextWrapped("%s",text.c_str());
+        const auto materialLabel=mesh.material.empty() ? std::string("モデルの設定") : ProjectCatalog::Text(mesh.material.filename());
+        if (ImGui::BeginCombo("Material###Material asset",materialLabel.c_str()))
+        {
+            if (ImGui::Selectable("モデルの設定",mesh.material.empty())) { mesh.material.clear(); edited=true; }
+            if (catalog) for (const auto& asset : catalog->Assets()) if (asset.kind==AssetKind::Material)
+            { if (ImGui::Selectable(ProjectCatalog::Text(asset.path).c_str(),asset.path==mesh.material)) { mesh.material=asset.path; edited=true; } }
+            ImGui::EndCombo();
+        }
         std::vector<char> condition(std::max(size_t(16385),mesh.visibleWhen.size()+1));
         std::copy(mesh.visibleWhen.begin(),mesh.visibleWhen.end(),condition.begin());
         if(ImGui::InputText("表示条件###Mesh visible when",condition.data(),condition.size()))

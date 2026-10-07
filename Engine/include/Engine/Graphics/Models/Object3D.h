@@ -2,6 +2,7 @@
 
 #include <Engine/Graphics/Materials/DirectionalLight.h>
 #include <Engine/Graphics/Materials/UvTransform.h>
+#include <Engine/Graphics/Materials/Material.h>
 #include <DirectXMath.h>
 #include <array>
 #include <memory>
@@ -26,6 +27,8 @@ namespace Engine
         /// 最後の参照を解放する前に GPU 処理を完了させるか、ModelManager に所有権を保持させてください。
         /// </summary>
         void SetModel(std::shared_ptr<const ModelRenderer> model);
+        void SetMaterial(std::shared_ptr<const Material> material) { material_=std::move(material); }
+        const std::shared_ptr<const Material>& GetMaterial() const { return material_; }
 
         /// <summary>
         /// 現在の共有モデルを取得します。
@@ -73,6 +76,7 @@ namespace Engine
 
     private:
         std::shared_ptr<const ModelRenderer> model_;
+        std::shared_ptr<const Material> material_;
         std::array<float, 3> position_{};
         std::array<float, 3> rotation_{};
         std::array<float, 3> scale_{ 1.0f, 1.0f, 1.0f };

@@ -391,3 +391,9 @@ Hierarchyで親オブジェクトを一つ選び「編集 → 選択をPrefabと
 
 「ファイル → プロジェクト設定 → 入力Action」で操作名ごとに最大4個のキー、パッドボタン、左スティックの方向としきい値を設定できます。標準のMoveLeft／MoveRight／MoveForward／MoveBack／Jump／Confirm／Cancelに加え、独自のActionを追加できます。保存するとEditorの再生へ反映し、Appには次のビルドで反映します。古いProject.jsonには標準設定を補います。
 PlayerControllerとタイトルメニューは共通のAction設定を使います。Buttonの「入力Action名」に名前を指定すると、そのActionの押下で動作します。従来のショートカットも維持します。独自のゲーム処理では`ScriptContext::Input(name)`で0〜1の値、`Pressed(name)`で押したフレームを取得できます。非アクティブ時とPause／Stepではゲーム処理へ入力を渡しません。
+
+## Materialの共有と編集
+
+Projectの「Materialを作成」で名前を指定し、Materialアセットを選ぶとInspectorで色・透明度・画像・UV拡縮／回転／移動・粗さ・金属感を編集できます。「Materialを保存」でファイルへ保存し、操作が終わるとシーンの共有Materialへ反映します。粗さと金属感は既存のハイライトを調整する簡易的な陰影で、PBRではありません。
+MeshRendererのMaterial欄でアセットを割り当てます。「モデルの設定」に戻すと元のモデルの色・画像を使います。同じMaterialを割り当てたオブジェクトは設定を共有し、異なるMaterialを使えば同じモデルでも外観を変えられます。色の透明度を下げると透明描画になり、不透明なものの後に距離順で描画します。透明面同士が交差する場合の完全な順序解決と透過した影は扱いません。
+`Assets/Scenes/MaterialPlayground.json`で共有した赤色Materialと透明な青色Materialを確認できます。Materialの変更はアセットへの保存なので、シーンのUndoとは別です。

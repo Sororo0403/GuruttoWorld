@@ -1,6 +1,7 @@
 #include "SceneComponentJson.h"
 #include "EnvironmentJson.h"
 #include "UiJson.h"
+#include <SceneRuntime/MaterialAsset.h>
 #include <SceneRuntime/SceneUi.h>
 #include <algorithm>
 #include <iterator>
@@ -102,6 +103,12 @@ namespace
             if (placement.meshRenderer) throw std::runtime_error("Only one MeshRenderer is allowed");
             placement.meshRenderer=SceneRuntime::MeshRendererComponent{id,enabled,ReadModel(component)};
             if (component.contains("visibleWhen")) placement.meshRenderer->visibleWhen=component.at("visibleWhen").get<std::string>();
+            if (component.contains("material"))
+            {
+                const auto text=component.at("material").get<std::string>();
+                placement.meshRenderer->material=std::filesystem::path(std::u8string(text.begin(),text.end()));
+                if (!placement.meshRenderer->material.empty() && !SceneRuntime::MaterialAsset::ValidPath(placement.meshRenderer->material)) throw std::runtime_error("Invalid mesh material path");
+            }
             SceneRuntime::UiState check;
             if (!check.Assign(placement.meshRenderer->visibleWhen)) throw std::runtime_error("Invalid mesh visibility expression");
         }
@@ -201,6 +208,7 @@ namespace SceneRuntime
             auto object=Component(mesh.id,"MeshRenderer",mesh.enabled);
             object["model"]=mesh.model;
             object["visibleWhen"]=mesh.visibleWhen;
+            object["material"]=mesh.material;
             components.push_back(object);
         }
         if (placement.rotator)

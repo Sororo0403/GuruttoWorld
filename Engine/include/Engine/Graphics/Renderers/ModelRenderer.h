@@ -2,6 +2,7 @@
 
 #include <Engine/Graphics/Renderers/MeshRenderer.h>
 #include <Engine/Graphics/Materials/UvTransform.h>
+#include <Engine/Graphics/Materials/Material.h>
 #include <Engine/Graphics/Materials/DirectionalLight.h>
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
@@ -58,7 +59,7 @@ namespace Engine
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
             const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
-            const UvTransform& uvTransform = {}) const;
+            const UvTransform& uvTransform = {},const Material* material=nullptr) const;
 
         const DirectX::BoundingBox& Bounds() const { return bounds_; }
         /// <summary>モデル内のすべてのメッシュを光源の深度へ描画します。</summary>

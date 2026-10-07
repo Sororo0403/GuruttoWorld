@@ -1,9 +1,20 @@
-#include "Common/UvTransform.hlsli"
+cbuffer UvConstants : register(b2)
+{
+    float4 uvScaleRotationOffsetX;
+    float uvOffsetY;
+};
+float2 TransformUv(float2 uv)
+{
+    float sine,cosine; sincos(uvScaleRotationOffsetX.z,sine,cosine);
+    float2 scaled=uv*uvScaleRotationOffsetX.xy;
+    return float2(scaled.x*cosine-scaled.y*sine,scaled.x*sine+scaled.y*cosine)+float2(uvScaleRotationOffsetX.w,uvOffsetY);
+}
 
 cbuffer MeshConstants : register(b0)
 {
     row_major float4x4 worldViewProjection;
     row_major float3x4 worldRows;
+    float4 materialColor;
 };
 
 cbuffer LightingConstants : register(b1)
@@ -72,7 +83,7 @@ VertexOutput VSMain(VertexInput input)
     output.position = mul(float4(input.position, 1.0f), worldViewProjection);
     output.normal = TransformNormal(input.normal);
     output.worldPosition = mul(worldRows, float4(input.position, 1.0f));
-    output.color = input.color;
+    output.color = input.color*materialColor;
     output.uv = TransformUv(input.uv);
     return output;
 }
