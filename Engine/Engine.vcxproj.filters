@@ -366,4 +366,9 @@
       <Filter>include\Engine\Core</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Graphics\Resources\RenderTargetBinding.h"><Filter>include\Engine\Graphics\Resources</Filter></ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Renderers\ShadowMap.h"><Filter>include\Engine\Graphics\Renderers</Filter></ClInclude>
+    <ClCompile Include="src\Graphics\Renderers\ShadowMap.cpp"><Filter>src\Graphics\Renderers</Filter></ClCompile>
+  </ItemGroup>
 </Project>

@@ -1,6 +1,7 @@
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
+#include <Engine/Graphics/Resources/RenderTargetBinding.h>
 
 #include <format>
 
@@ -497,11 +498,9 @@ namespace Engine
         commands_->ClearRenderTargetView(descriptor, clearColor.data(), 0, nullptr);
         const auto depthDescriptor = depthBuffers_[index].GetHandle();
         commands_->ClearDepthStencilView(depthDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-        commands_->OMSetRenderTargets(1, &descriptor, FALSE, &depthDescriptor);
         const D3D12_VIEWPORT viewport{ 0.0f, 0.0f, static_cast<float>(width_), static_cast<float>(height_), 0.0f, 1.0f };
         const D3D12_RECT scissor{ 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
-        commands_->RSSetViewports(1, &viewport);
-        commands_->RSSetScissorRects(1, &scissor);
+        RenderTargetBinding{descriptor,depthDescriptor,viewport,scissor}.Bind(commands_.Get());
         return true;
     }
 
@@ -511,11 +510,9 @@ namespace Engine
         // UI はシーンの深度に影響されないよう、深度バッファーを外して描画します。
         auto descriptor = renderTargetHeap_->GetCPUDescriptorHandleForHeapStart();
         descriptor.ptr += static_cast<SIZE_T>(index) * descriptorSize_;
-        commands_->OMSetRenderTargets(1, &descriptor, FALSE, nullptr);
         const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
         const D3D12_RECT scissor{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
-        commands_->RSSetViewports(1, &viewport);
-        commands_->RSSetScissorRects(1, &scissor);
+        RenderTargetBinding{descriptor,{},viewport,scissor}.Bind(commands_.Get());
         debugUi_.Render(commands_.Get());
 #endif
         D3D12_RESOURCE_BARRIER barrier{};

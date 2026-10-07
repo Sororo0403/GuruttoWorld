@@ -40,8 +40,6 @@ def author(scene):
     dest.mkdir(parents=True, exist_ok=True)
     for name in ("cog-a.obj", "cog-a.mtl"):
         shutil.copy2(source / "Models/OBJ format" / name, dest / name)
-    material=dest / "cog-a.mtl"
-    material.write_text(material.read_text(encoding="utf-8").replace("Kd 1 1 1","Kd 2.5 2.5 2.5"),encoding="utf-8")
     shutil.copy2(source / "License.txt", dest / "License.txt")
     (dest / "Textures").mkdir(exist_ok=True)
     shutil.copy2(source / "Models/OBJ format/Textures/colormap.png", dest / "Textures/colormap.png")
@@ -140,7 +138,8 @@ def author(scene):
     ui("config-save-error",[95,360],[600,28],text="保存できませんでした。もう一度お試しください。",condition="screen=1&saveFailed=1",font_size=18)
     ui("config-controls",[76,679],[500,24],text="↑↓ / W S 選択　ENTER / A 決定",condition="screen=0",font_size=16)
     light = component(nodes["scene-light"], "DirectionalLight")
-    light.update(ambient=.32,intensity=1.05,color=[1,.91,.74],direction=[-.55,-.8,-.28],specular=.12)
+    light.update(ambient=.28,intensity=1.15,color=[1,.93,.81],direction=[-.55,-.8,.28],specular=.12,
+                 shadowsEnabled=True,shadowDistance=70,shadowBias=.00008)
     scene["settings"]["fog"].update(start=28,end=130,strength=.67,color=[.73,.85,.92])
     return scene
 

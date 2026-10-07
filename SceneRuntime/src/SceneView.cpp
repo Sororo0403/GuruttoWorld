@@ -53,6 +53,7 @@ namespace SceneRuntime
         const auto& config=*found->directionalLight;
         result.color=config.color; result.intensity=config.intensity; result.ambientIntensity=config.ambient;
         result.specularStrength=config.specular; result.shininess=config.shininess;
+        result.shadowsEnabled=config.shadowsEnabled; result.shadowDistance=config.shadowDistance; result.shadowBias=config.shadowBias;
         DirectX::XMFLOAT4X4 rotation;
         if (world.WorldRotation(found->id,rotation))
         {

@@ -256,4 +256,9 @@
     <ClInclude Include="include\Engine\Graphics\Resources\RenderTexture.h" />
     <ClCompile Include="src\Graphics\Resources\RenderTexture.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Graphics\Resources\RenderTargetBinding.h" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\ShadowMap.h" />
+    <ClCompile Include="src\Graphics\Renderers\ShadowMap.cpp" />
+  </ItemGroup>
 </Project>

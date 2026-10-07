@@ -20,10 +20,20 @@ cbuffer LightingConstants : register(b1)
     float fogEnd;
     float3 fogColor;
     float fogStrength;
+    float3 shadowCenter;
+    float shadowRadius;
+    float shadowBias;
+    float shadowTexel;
 };
 
 Texture2D<float4> meshTexture : register(t0);
 SamplerState textureSampler : register(s0);
+Texture2D<float> shadowDepth : register(t1);
+SamplerComparisonState shadowSampler : register(s1);
+cbuffer ShadowTransform : register(b3)
+{
+    row_major float4x4 shadowWorldViewProjection;
+};
 
 struct VertexInput
 {
@@ -67,6 +77,46 @@ VertexOutput VSMain(VertexInput input)
     return output;
 }
 
+float4 VSShadow(float3 position : POSITION) : SV_POSITION
+{
+    return mul(float4(position,1),shadowWorldViewProjection);
+}
+
+float ShadowVisibility(float3 worldPosition,float3 normal)
+{
+    float visibility=1;
+    [branch] if (shadowRadius>0)
+    {
+        float3 z=normalize(lightDirection);
+        float3 reference=abs(z.y)>.95 ? float3(0,0,1) : float3(0,1,0);
+        float3 x=normalize(cross(reference,z));
+        float3 y=cross(z,x);
+        float3 offset=worldPosition+normal*(shadowTexel*shadowRadius)-shadowCenter;
+        float2 uv=float2(dot(offset,x),-dot(offset,y))/(2*shadowRadius)+.5;
+        float depth=(dot(offset,z)+2*shadowRadius)/(4*shadowRadius)-shadowBias;
+        // Compare each tap against the receiver plane at that tap, not a constant depth.
+        float2 dx=ddx(uv),dy=ddy(uv);
+        float dzdx=ddx(depth),dzdy=ddy(depth);
+        float determinant=dx.x*dy.y-dx.y*dy.x;
+        float2 gradient=0;
+        if (abs(determinant)>1e-12)
+            gradient=clamp(float2(dzdx*dy.y-dzdy*dx.y,dzdy*dx.x-dzdx*dy.x)/determinant,-4,4);
+        float filterBias=(abs(gradient.x)+abs(gradient.y))*shadowTexel*.8;
+        if (all(uv>=0) && all(uv<=1) && depth>0 && depth<1)
+        {
+            float amount=0;
+            [unroll] for (int row=-1;row<=1;++row)
+                [unroll] for (int column=-1;column<=1;++column)
+                {
+                    float2 tap=float2(column,row)*shadowTexel;
+                    amount+=shadowDepth.SampleCmpLevelZero(shadowSampler,uv+tap,depth+dot(gradient,tap)-filterBias);
+                }
+            visibility=amount/9;
+        }
+    }
+    return visibility;
+}
+
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
     float4 albedo = meshTexture.Sample(textureSampler, input.uv) * input.color;
@@ -89,7 +139,7 @@ float4 PSMain(VertexOutput input) : SV_TARGET
             specular = specularStrength * pow(saturate(dot(normal, halfway)), shininess);
         }
         color = albedo.rgb * ambientIntensity;
-        color += (albedo.rgb * diffuse + specular) * lightColor * lightIntensity;
+        color += (albedo.rgb * diffuse + specular) * lightColor * lightIntensity * ShadowVisibility(input.worldPosition,normal);
     }
     float haze=smoothstep(fogStart,fogEnd,length(input.worldPosition-cameraPosition))*fogStrength;
     color=lerp(color,fogColor,haze);

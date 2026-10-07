@@ -9,7 +9,9 @@ TitlePresentationValidationはCONFIG到着、途中反転の位置連続性、ST
 画像はgenerated/title-rebuild/previews/config-focus.ppm・config-settings-1280x720.ppmなどに保存します。
 WP1_TITLE_PRESENTATION_ONLY=1を設定すると、全回帰を省略してメニュー・タイトル演出とGPU画像だけを検証できます。
 これは全回帰検証の代わりではなく、画面調整時の短い反復用です。
-固定地面影の再生成にはscripts/BakeTitleGroundShadows.pyを使います。動的シャドウマップではありません。
+影は2048×2048の光源深度とPCFで毎フレーム計算します。地面の固定影素材は撤去しました。
+ShadowValidationは直射光の遮蔽・環境光の保持、親移動・光源変更への追従、鏡映・薄い形状・垂直面への影をGPU読み戻しで確認します。
+DebugではD3D12 InfoQueueで深度の書き込み／参照遷移と描画先復元も検証します。
 
 キーフレーム演出はReviewRegressionValidationのAnimationValidationで検証します。
 補間・ループ・未開始時計・不正値の拒否・JSON保存復元・Canvas拡縮下のクリック判定と、

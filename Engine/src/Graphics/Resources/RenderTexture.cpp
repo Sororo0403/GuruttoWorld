@@ -1,6 +1,7 @@
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Graphics/Resources/RenderTargetBinding.h>
 #include <algorithm>
 #include <cmath>
 #include <format>
@@ -100,11 +101,9 @@ namespace Engine
         const auto dsv = resources_->depth.GetHandle();
         commands->ClearRenderTargetView(rtv, clearColor.data(), 0, nullptr);
         commands->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
-        commands->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
         const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(resources_->width), static_cast<float>(resources_->height), 0, 1};
         const D3D12_RECT scissor{0, 0, static_cast<LONG>(resources_->width), static_cast<LONG>(resources_->height)};
-        commands->RSSetViewports(1, &viewport);
-        commands->RSSetScissorRects(1, &scissor);
+        RenderTargetBinding{rtv,dsv,viewport,scissor}.Bind(commands);
         recording_ = commands;
         return true;
     }
@@ -115,6 +114,7 @@ namespace Engine
         Transition(commands, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         // Unbind the target before sampling; the caller sets the next output target.
         commands->OMSetRenderTargets(0, nullptr, FALSE, nullptr);
+        commands->SetPrivateData(RenderTargetBinding::Key,0,nullptr);
         recording_ = nullptr;
         return true;
     }

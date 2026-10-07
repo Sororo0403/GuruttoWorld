@@ -94,6 +94,9 @@ namespace
         Scalar(state,"環境光の強度###Ambient intensity",light.ambient,0,100);
         Scalar(state,"鏡面反射の強さ###Specular strength",light.specular,0,100);
         Scalar(state,"光沢###Shininess",light.shininess,1,10000);
+        ImGui::Checkbox("リアルタイムの影###Realtime shadows",&light.shadowsEnabled); Track(state);
+        Scalar(state,"影の描画範囲###Shadow distance",light.shadowDistance,10,200);
+        ImGui::DragFloat("影の深度バイアス###Shadow bias",&light.shadowBias,.00001f,0,.01f,"%.5f",ImGuiSliderFlags_AlwaysClamp); Track(state);
         ImGui::TextWrapped("ヒエラルキーで最初の有効な平行光源がシーンを照らします。");
     }
 }

@@ -88,7 +88,7 @@ namespace Engine
     {
         D3D12_DESCRIPTOR_RANGE textureRange{};
         textureRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        textureRange.NumDescriptors = 1;
+        textureRange.NumDescriptors = 2;
         textureRange.BaseShaderRegister = 0;
         textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
         D3D12_ROOT_PARAMETER parameters[4]{};
@@ -102,7 +102,7 @@ namespace Engine
         parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[2].Constants.ShaderRegister = 1;
-        parameters[2].Constants.Num32BitValues = 20;
+        parameters[2].Constants.Num32BitValues = 26;
         parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[3].Constants.ShaderRegister = 2;
@@ -118,11 +118,18 @@ namespace Engine
         sampler.MaxLOD = D3D12_FLOAT32_MAX;
         sampler.ShaderRegister = 0;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        std::array<D3D12_STATIC_SAMPLER_DESC,2> samplers{sampler,sampler};
+        auto& comparison=samplers[1];
+        comparison.ShaderRegister=1;
+        comparison.Filter=D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+        comparison.AddressU=comparison.AddressV=comparison.AddressW=D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        comparison.BorderColor=D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+        comparison.ComparisonFunc=D3D12_COMPARISON_FUNC_LESS_EQUAL;
         D3D12_ROOT_SIGNATURE_DESC description{};
         description.NumParameters = 4;
         description.pParameters = parameters;
-        description.NumStaticSamplers = 1;
-        description.pStaticSamplers = &sampler;
+        description.NumStaticSamplers = 2;
+        description.pStaticSamplers = samplers.data();
         description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
         ComPtr<ID3DBlob> signature;
         ComPtr<ID3DBlob> errors;

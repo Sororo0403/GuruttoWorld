@@ -25,6 +25,8 @@ namespace SceneRuntime
         float ambient=0.2f;
         float specular=0.4f;
         float shininess=32;
+        bool shadowsEnabled=false;
+        float shadowDistance=70,shadowBias=.0001f;
         bool operator==(const DirectionalLightComponent&) const = default;
     };
     struct CloudBank

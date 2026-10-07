@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <span>
 #include <Engine/Graphics/Models/MeshData.h>
+#include <Engine/Graphics/Renderers/ShadowMap.h>
 
 namespace Engine
 {
@@ -70,7 +71,12 @@ namespace Engine
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
             const UvTransform& uvTransform = {}) const;
 
+        /// <summary>同じメッシュの実形状を光源視点の深度へ描画します。</summary>
+        void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
     private:
+        /// <summary>色テクスチャと影深度の不変ディスクリプターを共有します。</summary>
+        ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow) const;
+        mutable std::map<ID3D12Resource*,Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> bindings_;
         bool initialized_ = false;
         UINT indexCount_ = 0;
         std::shared_ptr<MeshResources> resources_;

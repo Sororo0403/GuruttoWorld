@@ -4,6 +4,7 @@
 
 namespace Engine
 {
+    class ShadowMap;
     struct DistanceFog
     {
         bool enabled=false;
@@ -24,5 +25,8 @@ namespace Engine
         bool enabled = true;
         // Scene-wide fog travels with lighting parameters to the mesh shader.
         DistanceFog fog;
+        bool shadowsEnabled=false;
+        float shadowDistance=70,shadowBias=.0001f;
+        const ShadowMap* shadow=nullptr;
     };
 }

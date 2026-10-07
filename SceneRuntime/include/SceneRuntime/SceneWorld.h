@@ -83,6 +83,7 @@ namespace SceneRuntime
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
         bool modelsReady_ = false;
+        mutable Engine::ShadowMap shadow_;
         SceneLayout layout_;
         Engine::ModelManager models_;
         std::vector<Engine::Object3D> objects_;

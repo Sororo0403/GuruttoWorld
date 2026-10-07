@@ -28,6 +28,7 @@
 #include "UiValidation.h"
 #include "AnimationValidation.h"
 #include "TitlePresentationValidation.h"
+#include "ShadowValidation.h"
 #include "EditorFontValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
@@ -1805,6 +1806,7 @@ namespace
                 ValidateAssetReload(renderer);
                 ValidateEmptyObjects(renderer);
                 EnvironmentValidation::Run(renderer);
+                ShadowValidation::Run(renderer);
                 ValidateEnvironmentMotion(renderer);
                 UiValidation::Rendering(renderer,TestContentRoot());
                 AnimationValidation::Runtime(renderer,TestContentRoot());
@@ -2978,6 +2980,7 @@ int main()
             Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden title presentation",1280,720),"focused title window");
             Check(renderer.Initialize(window.GetHandle()),"focused title renderer");
+            ShadowValidation::Run(renderer);
             TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
             Check(renderer.WaitForIdle(),"focused title GPU completion");
             CheckGpuMessages(renderer.GetDevice());

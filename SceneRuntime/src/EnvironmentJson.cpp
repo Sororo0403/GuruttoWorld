@@ -73,6 +73,9 @@ namespace
         light.ambient=Number(object,"ambient",0,100);
         light.specular=Number(object,"specular",0,100);
         light.shininess=Number(object,"shininess",1,10000);
+        if (object.contains("shadowsEnabled")) light.shadowsEnabled=object.at("shadowsEnabled").get<bool>();
+        if (object.contains("shadowDistance")) light.shadowDistance=Number(object,"shadowDistance",10,200);
+        if (object.contains("shadowBias")) light.shadowBias=Number(object,"shadowBias",0,.01f);
         placement.directionalLight=std::move(light);
     }
     void ReadSky(const Json& object, SceneRuntime::ScenePlacement& placement)
@@ -159,6 +162,7 @@ namespace
         Put(object,"direction",light.direction); Put(object,"color",light.color);
         Put(object,"intensity",light.intensity); Put(object,"ambient",light.ambient);
         Put(object,"specular",light.specular); Put(object,"shininess",light.shininess);
+        object["shadowsEnabled"]=light.shadowsEnabled; Put(object,"shadowDistance",light.shadowDistance); Put(object,"shadowBias",light.shadowBias);
         array.push_back(object);
     }
 }

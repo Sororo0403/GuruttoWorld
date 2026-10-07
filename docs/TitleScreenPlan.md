@@ -28,17 +28,19 @@ CONFIGを決定すると音量・背景演出・保存して戻るを表示す�
 建物は既存Kenney City Kit (Commercial)、歯車はKenney Factory Kit 3.0のcog-a.objを使用する。
 歯車のパレットをオレンジへ変更。CC0のライセンスと取得元をTitleScreenAssets.mdに記録する。
 環境光を抑え、暖かい直射光と青い遠景の霞で手前・奥の差をつける。
-建物・高層建築・街灯・歯車の形状を光の方向に投影し、道路・歩道のテクスチャへ影を焼き込む。
-地面の元のUV模様・白線と個別配置を維持し、影の重なりで二重に暗くしない。
-この影は固定タイトル用のベイク影。建物・地面・光の方向を編集したら再ベイクが必要。
+2048×2048の光源視点の深度を毎フレーム描き、画素の光源深度と比較して遮蔽を計算する。
+受光面の勾配を反映したPCFと深度・法線バイアスを使い、影では直射光と鏡面反射を遮断して環境光を残す。
+建物同士・歯車・地面・垂直面に同じ3D形状から影が落ちる。光源・親Transform・配置変更へ即時追従する。
+影領域のXYを光源空間のテクセルへ揃え、カメラ移動に伴う輪郭のちらつきを抑える。
+地面は元のモデルとUV模様・白線を使用する。固定投影のベイク画像・派生OBJ・制作スクリプトは撤去した。
+Editorの平行光源Inspectorから影の有効・描画範囲・深度バイアスを保存・調整する。
 
 ## 編集・再生成
 
 通常はContent/Assets/Scenes/TitleStreet.jsonをEditorで編集する。通常ビルドはアセットを再生成しない。
 scripts/AuthorTitleMenu.pyはメニュー・施設・初期カメラ移動を明示的に再設定する制作ツール。
 scripts/GenerateMorningTitleArt.ps1は同梱M PLUS 1p BlackからロゴとSTART／CONFIGの帯を生成する。
-scripts/BakeTitleGroundShadows.pyはNumPy／Pillowで固定影を再ベイクする。
-Shadows/GroundSources.jsonに元モデル参照を保持する。再ベイクは現在の各地面配置を使用する。
+影のための画像生成や再ベイクは不要。
 旧CreateMorningTitleScene.py／AuthorTitleAnimation.pyは初期制作の記録で、現行メニューを上書きするため通常は実行しない。
 
 ## 検証とコミット

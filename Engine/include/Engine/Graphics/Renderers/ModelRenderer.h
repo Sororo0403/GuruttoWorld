@@ -61,6 +61,8 @@ namespace Engine
             const UvTransform& uvTransform = {}) const;
 
         const DirectX::BoundingBox& Bounds() const { return bounds_; }
+        /// <summary>モデル内のすべてのメッシュを光源の深度へ描画します。</summary>
+        void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
         // ローカル空間の単位レイを三角形へ当て、最も近い交点距離を返します。
         bool IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const;
     private:

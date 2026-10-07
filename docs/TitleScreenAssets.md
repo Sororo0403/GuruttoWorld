@@ -1,6 +1,12 @@
 # タイトル画面の採用素材
 
-## START／CONFIGと影（2026-10-07）
+## リアルタイム影への置き換え（2026-10-07）
+
+- 地面は元のSurface/Roadsモデルへ復帰。Shadows以下のベイク素材とBakeTitleGroundShadows.pyを削除した。
+- Mesh.hlslと光源視点の深度パスで、毎フレーム実形状の遮蔽を計算する。影画像や新たな外部素材は使用しない。
+- 歯車の色変更は維持し、明るさを増幅していたKdを1へ戻した。光源の方向・色・強度から他のモデルと同じ照明を計算する。
+
+## 旧START／CONFIGとベイク影の制作記録（2026-10-07）
 
 - CONFIG施設の建物は既存Kenney City Kit (Commercial)のCC0 building-e.obj。
 - 歯車は[Kenney Factory Kit 3.0](https://kenney.nl/assets/factory-kit)のCC0 cog-a.objとcog-a.mtl。Factory/License.txtを同梱。パレットをオレンジに変更した派生素材。

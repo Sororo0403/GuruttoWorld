@@ -4,6 +4,10 @@
 
 namespace Engine
 {
+    void ModelRenderer::DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const
+    {
+        for (const auto& mesh:meshes_) mesh->DrawShadow(commands,world,shadow);
+    }
     bool ModelRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
         const std::filesystem::path& modelPath, const std::filesystem::path& shaderPath)
     {

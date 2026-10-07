@@ -95,7 +95,8 @@ namespace SceneRuntime
     bool SceneWorld::InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
         std::string* diagnostic)
     {
-        modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath);
+        modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath) &&
+            shadow_.Initialize(renderer.GetDevice(),shaderPath);
         if (!modelsReady_)
         {
             if (diagnostic) *diagnostic = "Scene renderer could not be initialized. Check shaders and restart.";
@@ -126,6 +127,7 @@ namespace SceneRuntime
         if (!candidate.Initialize(renderer,assetsRoot,layout_,shaderPath,&error)) return false;
         models_.Swap(candidate.models_);
         objects_.swap(candidate.objects_);
+        std::swap(shadow_,candidate.shadow_);
         error.clear();
         return true;
     }
@@ -174,9 +176,19 @@ namespace SceneRuntime
     void SceneWorld::Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
         const Engine::DirectionalLight& light) const
     {
+        auto lighting=light;
+        lighting.shadow=nullptr;
+        if (light.enabled && light.shadowsEnabled && shadow_.Begin(commands,camera,light))
+        {
+            for (size_t index=0;index<objects_.size();++index)
+                if (layout_.objects[index].meshRenderer && layout_.objects[index].meshRenderer->enabled && objects_[index].GetModel())
+                    objects_[index].GetModel()->DrawShadow(commands,objects_[index].GetWorldMatrix(),shadow_);
+            shadow_.End(commands);
+            lighting.shadow=&shadow_;
+        }
         for (size_t index=0;index<objects_.size();++index)
             if (layout_.objects[index].meshRenderer && layout_.objects[index].meshRenderer->enabled)
-                objects_[index].Draw(commands,camera,light);
+                objects_[index].Draw(commands,camera,lighting);
     }
 
     bool SceneWorld::PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error)
