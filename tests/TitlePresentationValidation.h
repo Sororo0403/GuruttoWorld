@@ -64,6 +64,12 @@ namespace TitlePresentationValidation
         const auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
         SceneRuntime::SceneEnvironment scene; std::string error;
         Require(scene.Initialize(renderer,root,layout,error),"title presentation initializes");
+        const auto startupCamera=scene.CameraPosition();
+        for(float seconds:{.435f,.85f,1.3f})
+        {
+            scene.SeekAnimation(seconds,0);
+            Require(scene.CameraPosition()==startupCamera,"startup keeps the overview camera without a two-stage entrance");
+        }
         scene.SeekAnimation(3,3);
         const auto firstCamera=scene.CameraPosition();
         scene.SeekAnimation(8,8);

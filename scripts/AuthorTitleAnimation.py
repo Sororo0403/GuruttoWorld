@@ -25,8 +25,6 @@ def apply_animation(layout):
     camera = nodes["scene-camera"]
     position, rotation = camera["position"], camera["rotation"]
     animate("scene-camera", [
-        track("position", "sceneTime", [(0, [4.8, 2.0, -14]), (0.75, [1.9, 2.4, -11]), (2.2, position)], "outCubic"),
-        track("rotation", "sceneTime", [(0, [-0.025, -0.36, -0.12]), (0.75, [-0.09, -0.15, -0.10]), (2.2, rotation)], "outCubic"),
         track("position", "motionTime", [(0, position), (8, [-0.5, 2.28, -8.25]), (16, [-1.05, 2.15, -7.8]), (24, position)], delay=2.4, loop=True),
         track("rotation", "motionTime", [(0, rotation), (8, [-0.145, 0.038, -0.06]), (16, [-0.135, 0.02, -0.07]), (24, rotation)], delay=2.4, loop=True),
         track("position", "startTime", [(0, position), (0.24, [-0.8, 2.2, -7.5]), (0.8, [0.8, 2.8, 2])], "smooth"),

@@ -57,8 +57,6 @@ def author(scene):
     camera = nodes["scene-camera"]
     tracks = component(camera, "Animation")["tracks"]
     tracks[:]=[t for t in tracks if t["clock"] not in ("configFocusTime","quitFocusTime","homeFocusTime","sceneTime")]
-    tracks[:0]=[track("position","sceneTime",[(0,[4.8,2,-14]),(.435,[1.9,2.4,-11]),(1.276,camera["position"])],"outBack"),
-                track("rotation","sceneTime",[(0,[-.025,-.36,-.12]),(.435,[-.09,-.15,-.10]),(1.276,camera["rotation"])],"outBack")]
     for t in tracks:
         if t["clock"] == "startTime":
             t["easing"] = "outCubic"

@@ -11,11 +11,11 @@
 
 ## カメラと設定
 
-登場カメラは約1.3秒。STARTは通りを見渡す構図、CONFIGは歯車付きの施設へ移動する。
+起動直後から通りを見渡す構図を表示し、二段階の登場カメラ移動は行わない。CONFIGは歯車付きの施設へ移動する。
 CONFIGへの移動は0.62秒のoutBack、STARTへの復帰は0.56秒のoutBack。
 選択変更時の現在位置・回転から補間するため、途中で反転してもカメラが飛ばない。
 移動先と補間はメインカメラのAnimation Componentに保存し、configFocusTime／homeFocusTimeで区別する。
-待機の揺れはmotionTime、登場はsceneTime、ゲーム開始はstartTimeを使う。
+待機の揺れはmotionTime、ロゴ・メニューの登場はsceneTime、ゲーム開始はstartTimeを使う。
 開始は0.8秒でカメラを奥へ動かし、オレンジ・紺の帯で全画面を覆う。
 
 CONFIGを決定すると音量・背景演出・保存して戻るを表示する。
