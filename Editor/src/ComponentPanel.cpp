@@ -2,6 +2,7 @@
 #include "EnvironmentPanel.h"
 #include "UiComponentPanel.h"
 #include "AnimationPanel.h"
+#include <SceneRuntime/ScriptRuntime.h>
 #include <imgui.h>
 
 namespace
@@ -96,6 +97,17 @@ namespace Editor
         { candidate.playerController=SceneRuntime::PlayerControllerComponent{NewComponentId(candidate,"player"),true,5}; edited=true; }
         if (ImGui::MenuItem("箱の衝突判定###BoxCollider",nullptr,false,!candidate.boxCollider))
         { candidate.boxCollider=SceneRuntime::BoxColliderComponent{}; candidate.boxCollider->id=NewComponentId(candidate,"collider"); edited=true; }
+        if (ImGui::BeginMenu("ゲーム処理###Script"))
+        {
+            for (const auto& [name,definition] : SceneRuntime::ScriptRegistry::Definitions())
+                if (ImGui::MenuItem(name.c_str(),nullptr,false,candidate.scripts.size()<32))
+                {
+                    SceneRuntime::ScriptComponent script; script.id=NewComponentId(candidate,"script"); script.behaviour=name;
+                    for (const auto& [key,field] : definition.fields) script.parameters[key]=field.initial;
+                    candidate.scripts.push_back(std::move(script)); edited=true;
+                }
+            ImGui::EndMenu();
+        }
         edited=EnvironmentPanel::Add(candidate) || edited;
         edited=UiComponentPanel::Add(candidate) || edited;
         if (ImGui::MenuItem("アニメーション###Animation",nullptr,false,!candidate.animation))
@@ -145,6 +157,40 @@ namespace Editor
             ImGui::SameLine();
             if (ImGui::Button("削除###Remove BoxCollider")) { candidate.boxCollider.reset(); edited=true; }
             ImGui::PopID();
+        }
+        for (size_t index=0;index<candidate.scripts.size();)
+        {
+            auto& script=candidate.scripts[index];
+            ImGui::PushID(script.id.c_str());
+            bool remove=false;
+            if (ImGui::CollapsingHeader(("ゲーム処理："+script.behaviour).c_str(),ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                edited=ImGui::Checkbox("有効###Enabled",&script.enabled) || edited;
+                const auto definition=SceneRuntime::ScriptRegistry::Definitions().find(script.behaviour);
+                if (definition==SceneRuntime::ScriptRegistry::Definitions().end()) ImGui::TextUnformatted("このゲーム処理は登録されていません。設定は保持されます。");
+                else
+                {
+                    for (const auto& [key,field] : definition->second.fields)
+                    {
+                        const auto found=script.parameters.find(key);
+                        float value=found==script.parameters.end() ? field.initial : found->second;
+                        if (ImGui::DragFloat(key.c_str(),&value,0.05f,field.minimum,field.maximum,"%.3f",ImGuiSliderFlags_AlwaysClamp))
+                        { script.parameters[key]=value; edited=true; }
+                        if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+                    }
+                    if (ImGui::Button("リセット###Reset Script"))
+                    {
+                        script.enabled=true; script.parameters.clear();
+                        for (const auto& [key,field] : definition->second.fields) script.parameters[key]=field.initial;
+                        edited=true;
+                    }
+                    ImGui::SameLine();
+                }
+                remove=ImGui::Button("削除###Remove Script");
+            }
+            ImGui::PopID();
+            if (remove) { candidate.scripts.erase(candidate.scripts.begin()+static_cast<std::ptrdiff_t>(index)); edited=true; }
+            else ++index;
         }
         edited=EnvironmentPanel::Draw(state,candidate) || edited;
         edited=UiComponentPanel::Draw(state,candidate,catalog) || edited;

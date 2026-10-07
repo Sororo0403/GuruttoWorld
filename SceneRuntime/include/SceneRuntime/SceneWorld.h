@@ -4,6 +4,7 @@
 #include <Engine/Graphics/Models/Object3D.h>
 #include <optional>
 #include <SceneRuntime/ScenePhysics.h>
+#include <SceneRuntime/ScriptRuntime.h>
 
 namespace Engine { class DirectX12Renderer; }
 namespace SceneRuntime { struct UiState; }
@@ -13,6 +14,7 @@ namespace SceneRuntime
     class SceneWorld final
     {
     public:
+        ~SceneWorld() { scripts_.Stop(layout_); }
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
             const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath, std::string* error = nullptr);
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
@@ -86,6 +88,7 @@ namespace SceneRuntime
         std::string NewId(size_t& nextCounter) const;
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
+        ScriptRuntime scripts_;
         ScenePhysics::States physics_;
         bool modelsReady_ = false;
         mutable Engine::ShadowMap shadow_;

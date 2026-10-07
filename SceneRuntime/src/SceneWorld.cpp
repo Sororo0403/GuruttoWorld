@@ -161,6 +161,7 @@ namespace SceneRuntime
                 if (!object.SetWorldMatrix(matrices[objects.size()])) throw std::runtime_error("Invalid world matrix");
                 objects.push_back(std::move(object));
             }
+            scripts_.Stop(layout_);
             layout_ = std::move(layout);
             physics_.clear();
             objects_ = std::move(objects);
@@ -340,8 +341,6 @@ namespace SceneRuntime
     bool SceneWorld::UpdateComponents(double seconds)
     {
         if (!std::isfinite(seconds) || seconds<=0) return false;
-        if (std::none_of(layout_.objects.begin(),layout_.objects.end(),
-            [](const auto& placement) { return placement.rotator && placement.rotator->enabled; })) return true;
         auto candidate=layout_;
         bool changed=false;
         for (auto& placement : candidate.objects)
@@ -357,7 +356,13 @@ namespace SceneRuntime
                 changed=true;
             }
         }
-        return !changed || CommitTransforms(std::move(candidate));
+        auto runtime=scripts_;
+        std::string error;
+        if (!runtime.Update(candidate,seconds,error)) { Engine::Log::Warning(error); return false; }
+        changed=changed || std::any_of(candidate.objects.begin(),candidate.objects.end(),[](const auto& placement) { return !placement.scripts.empty(); });
+        if (changed && !CommitTransforms(std::move(candidate))) return false;
+        scripts_=std::move(runtime);
+        return true;
     }
 
     bool SceneWorld::RenameObject(std::string_view id, std::string name)

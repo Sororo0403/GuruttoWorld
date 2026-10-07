@@ -2,6 +2,7 @@
 #include <array>
 #include <filesystem>
 #include <string>
+#include <map>
 
 namespace SceneRuntime
 {
@@ -31,6 +32,14 @@ namespace SceneRuntime
         std::array<float,3> center{};
         std::array<float,3> size{1,1,1};
         bool operator==(const BoxColliderComponent&) const = default;
+    };
+    struct ScriptComponent
+    {
+        std::string id="script";
+        bool enabled=true;
+        std::string behaviour="Bob";
+        std::map<std::string,float> parameters;
+        bool operator==(const ScriptComponent&) const = default;
     };
     struct RotatorComponent
     {

@@ -141,6 +141,22 @@ namespace
             }
             placement.boxCollider=collider;
         }
+        else if (type=="Script")
+        {
+            if (placement.scripts.size()>=32) throw std::runtime_error("Too many scripts");
+            SceneRuntime::ScriptComponent script; script.id=id; script.enabled=enabled;
+            script.behaviour=component.at("behaviour").get<std::string>();
+            if (script.behaviour.empty() || script.behaviour.size()>128 || script.behaviour.find('\0')!=std::string::npos) throw std::runtime_error("Invalid script behaviour");
+            for (const auto& [key,value] : JsonObject(component.at("parameters")).items())
+            {
+                const double number=JsonNumber(value);
+                if (key.empty() || key.size()>128 || key.find('\0')!=std::string::npos || !std::isfinite(number) || std::abs(number)>1000000)
+                    throw std::runtime_error("Invalid script parameter");
+                script.parameters[key]=static_cast<float>(number);
+            }
+            if (script.parameters.size()>64) throw std::runtime_error("Too many script parameters");
+            placement.scripts.push_back(std::move(script));
+        }
         else if (type=="Animation")
         {
             if (placement.animation) throw std::runtime_error("Only one Animation is allowed");
@@ -220,6 +236,12 @@ namespace SceneRuntime
                     throw std::runtime_error("Invalid BoxCollider bounds");
             auto object=Component(collider.id,"BoxCollider",collider.enabled);
             object["center"]=collider.center; object["size"]=collider.size;
+            components.push_back(object);
+        }
+        for (const auto& script : placement.scripts)
+        {
+            auto object=Component(script.id,"Script",script.enabled);
+            object["behaviour"]=script.behaviour; object["parameters"]=script.parameters;
             components.push_back(object);
         }
         WriteEnvironmentComponents(components,placement);

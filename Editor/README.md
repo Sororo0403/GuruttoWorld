@@ -371,3 +371,10 @@ Inspectorの「コンポーネントを追加 → プレイヤー操作」でPla
 Projectから`Assets/Scenes/PhysicsPlayground.json`を開き、PlayしてGame上へカーソルを置くとWASD／矢印キーでPlayerを移動、Spaceでジャンプできます。床・壁・台を配置した確認用シーンです。
 Inspectorの「箱の衝突判定」はローカルの中心・大きさを編集でき、親の移動・回転・拡縮を継承します。回転時はワールド軸の外接箱で判定するため、斜めの面や斜面を正確に歩く用途には対応しません。配置時に重なっている箱の押し出し、物体同士の反動、移動床への追従はありません。プレイヤーとその親子に属する箱は自己衝突から除外します。
 PlayerControllerの「重力を使用」「重力加速度」「ジャンプ速度」を調整できます。旧シーンの重力はOFFを維持します。再生中はGameからカーソルを外しても重力は進み、Pauseは停止、Stepは入力なしで1/60秒だけ進みます。Stopと再生し直しで落下速度もリセットされます。
+
+## 独自のゲーム処理
+
+Inspectorの「コンポーネントを追加 → ゲーム処理」で登録済みのC++処理を追加できます。Bob（上下運動）とSpin（回転）を同梱し、同じオブジェクトへ複数の処理を追加できます。パラメーター・有効状態はシーンに保存され、複製とUndo／Redoにも対応します。
+新しい処理はApp／EditorのPlay開始前に`SceneRuntime::ScriptRegistry::Register`へ名前と`ScriptDefinition`を登録します。`fields`はInspectorに出す数値の初期値・最小値・最大値、`start`／`update`／`stop`は開始・毎フレーム・無効化または終了のコールバックです。`ScriptContext`の`Value`で保存値を読み、`state`でインスタンス固有の数値を保持し、`object.position`／`rotation`／`scale`を変更できます。オブジェクトやComponentの配列そのものはコールバックから変更しません。Pause中は更新せず、Stepは1/60秒、再生し直しではstateを初期化します。C++処理の追加には再ビルドが必要です。
+
+`Assets/Scenes/ScriptPlayground.json`では、操作できるPlayerと上下運動・回転するFloatingCubeを同時に確認できます。

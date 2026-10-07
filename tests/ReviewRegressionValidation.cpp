@@ -28,6 +28,7 @@
 #include "UiValidation.h"
 #include "AnimationValidation.h"
 #include "PhysicsValidation.h"
+#include "ScriptValidation.h"
 #include "TitlePresentationValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
@@ -3023,6 +3024,11 @@ int main()
 {
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_SCRIPT_ONLY",nullptr,0)) {
+            ScriptValidation::Run();
+            std::cout<<"PASS: script registry, parameters, lifecycle, serialization and missing behaviours\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_PHYSICS_ONLY",nullptr,0)) {
             PhysicsValidation::Run();
             std::cout<<"PASS: collider schema, gravity, grounded jump, wall sweep, disabled components and parent transforms\n";
@@ -3067,6 +3073,7 @@ int main()
         UiValidation::SchemaAndLayout();
         AnimationValidation::Schema();
         PhysicsValidation::Run();
+        ScriptValidation::Run();
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
         ValidateAssetChangeBatching();

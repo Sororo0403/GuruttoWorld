@@ -212,3 +212,5 @@ QUITは選択だけでは終了せず、決定後にExitを一度だけ通知す
 PlayerControllerはAnimationValidationの再生検証でJSON保存復元、不正な速度の拒否、斜め移動の速度補正、不正な更新時間の拒否、長いフレームの移動量上限と編集データの保持を確認します。Debug／Releaseの全回帰検証に含まれます。
 
 PhysicsValidationはGPUなしでBoxColliderとPlayerControllerの保存復元、旧シーンの重力OFF、不正な箱サイズの拒否、落下・接地・ジャンプ・空中ジャンプの拒否、薄い壁のすり抜け防止、無効Component、親の拡縮と不正な時間・入力を検証します。Debug／Releaseの全回帰に含まれ、`WP1_PHYSICS_ONLY=1`で単独実行できます。PhysicsPlayground.jsonの操作はEditorで確認できます。
+
+ScriptValidationは独自C++処理の登録、重複・不正なメタデータの拒否、複数処理の保存復元、開始・更新・無効化・再有効化・終了、不明な処理の設定保持と実行エラーを確認します。Debug／Releaseの全回帰に含まれ、`WP1_SCRIPT_ONLY=1`で単独実行できます。
