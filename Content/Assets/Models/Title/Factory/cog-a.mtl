@@ -1,0 +1,6 @@
+# Created by Kenney (www.kenney.nl)
+
+newmtl colormap
+Kd 2.5 2.5 2.5
+map_Kd Textures/colormap.png
+

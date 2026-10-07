@@ -1,55 +1,50 @@
 # タイトル画面の制作仕様
 
-更新日：2026-10-06
+更新日：2026-10-07
 
-## 現在の方針
+## 現在の構成
 
-P5Rのタイトル映像から、見上げる街の奥行き、大胆な斜めのロゴ、素早く動いて止まる演出を参考にする。
-人物・キャラクター・群衆・シルエットは配置しない。背景は朝の青空とKenneyのCC0街モデルで構成する。
-2026-10-06の夜景・人物案は取り下げた。自作の夜景ビルと人物画像は採用しない。
-タイトル名は「ぐるっとワールド」。ロゴは同梱M PLUS 1p Blackの字形から生成した独自の部品を使用する。
-配色は白・濃い紺・水色・朝のオレンジ。実際のP5Rロゴ・人物・画像・音源は使用しない。
+「ぐるっとワールド」の朝のCC0街並み、大きな斜めロゴを維持する。
+開始案内をSTART／CONFIGの2項目へ変更し、人物は配置しない。
+上下キー・W/S・パッドで選択、Enter／Aで決定。ポインターの入場で選択し、クリックで決定する。
+押しっぱなし、フォーカス復帰、パッド接続直後の誤操作を抑止する。
 
-## 構図と操作
+## カメラと設定
 
-1280×720を基準に、街を見上げるカメラと少し傾けた画角を使う。
-画面右上に大きなロゴ、下部中央にPRESS ANY BUTTONを置く。
-任意のキーボードキー・ゲームパッドボタン、または開始案内のクリックで既存Gameへ進む。
-再訪時は長い登場演出を繰り返さない。初回フォーカスと押しっぱなしによる誤決定を抑止する。
-設定・終了メニューの復活は今回の対象に含めない。
+登場カメラは約1.3秒。STARTは通りを見渡す構図、CONFIGは歯車付きの施設へ移動する。
+CONFIGへの移動は0.62秒のoutBack、STARTへの復帰は0.56秒のoutBack。
+選択変更時の現在位置・回転から補間するため、途中で反転してもカメラが飛ばない。
+移動先と補間はメインカメラのAnimation Componentに保存し、configFocusTime／homeFocusTimeで区別する。
+待機の揺れはmotionTime、登場はsceneTime、ゲーム開始はstartTimeを使う。
+開始は0.8秒でカメラを奥へ動かし、オレンジ・紺の帯で全画面を覆う。
 
-## エディターと保存
+CONFIGを決定すると音量・背景演出・保存して戻るを表示する。
+左右で設定変更、Esc／Bで取消。設定保存失敗時は設定を開いたままエラーを表示する。
+設定中もCONFIGのカメラ位置を保持し、ロゴは小さく右上へ配置して歯車を隠さない。
+背景演出OFFは待機の揺れと粒を停止する。メニュー選択による移動は操作のフィードバックとして動く。
 
-街・カメラ・空・照明・粒子・ロゴ・案内・音源はContent/Assets/Scenes/TitleStreet.jsonに保存する。
-エディターのHierarchy・Inspector・Scene・Gameで調整し、JSONを直接編集した場合も同じ形式で読み込む。
-Animation Componentに対象プロパティ・時計・補間・遅延・ループ・キーフレームを保存する。
-登場はsceneTime、待機はmotionTime、開始はstartTimeを使う。
-再生・一時停止・コマ送り、一時停止中の時刻指定で、カメラとUIを共通ランタイムで確認する。
-通常ビルドで制作スクリプトを自動実行しない。エディターで保存した配置を上書きしない。
+## 街・光・影
+
+建物は既存Kenney City Kit (Commercial)、歯車はKenney Factory Kit 3.0のcog-a.objを使用する。
+歯車のパレットをオレンジへ変更。CC0のライセンスと取得元をTitleScreenAssets.mdに記録する。
+環境光を抑え、暖かい直射光と青い遠景の霞で手前・奥の差をつける。
+建物・高層建築・街灯・歯車の形状を光の方向に投影し、道路・歩道のテクスチャへ影を焼き込む。
+地面の元のUV模様・白線と個別配置を維持し、影の重なりで二重に暗くしない。
+この影は固定タイトル用のベイク影。建物・地面・光の方向を編集したら再ベイクが必要。
+
+## 編集・再生成
+
+通常はContent/Assets/Scenes/TitleStreet.jsonをEditorで編集する。通常ビルドはアセットを再生成しない。
+scripts/AuthorTitleMenu.pyはメニュー・施設・初期カメラ移動を明示的に再設定する制作ツール。
+scripts/GenerateMorningTitleArt.ps1は同梱M PLUS 1p BlackからロゴとSTART／CONFIGの帯を生成する。
+scripts/BakeTitleGroundShadows.pyはNumPy／Pillowで固定影を再ベイクする。
+Shadows/GroundSources.jsonに元モデル参照を保持する。再ベイクは現在の各地面配置を使用する。
+旧CreateMorningTitleScene.py／AuthorTitleAnimation.pyは初期制作の記録で、現行メニューを上書きするため通常は実行しない。
 
 ## 検証とコミット
 
-1. 演出編集基盤：JSON保存復元、補間、Pause・Step・巻き戻し、クリック判定を検証してコミット。
-2. 朝のCC0街と独自ロゴ：アセット参照・3画面比率のGPU描画・開始案内を検証してコミット。
-3. 登場・待機・開始演出：エディターとAppの時計、決定、再訪、背景演出OFF、遷移の全画面被覆を検証してコミット。
-共通コード変更はDebug・Development・Releaseでビルドする。
-GPU読み戻しの確認画像はgenerated/title-rebuild/previewsへ保存し、Gitには含めない。
-実機の画面操作と非表示GPU検証は区別して報告する。
-
-## 制作スクリプト
-
-scripts/GenerateMorningTitleArt.ps1は同梱フォントとベクター図形から独立したUI画像を生成する。
-scripts/CreateMorningTitleScene.pyは初期構図を再生成するための明示的なリセット用スクリプト。
-通常はエディターでTitleStreet.jsonを編集する。制作スクリプトの再実行は現在の構図を上書きする。
-作業開始時に存在した未コミットのTitleStreet.jsonはgenerated/title-rebuild/TitleStreet.before.jsonへ退避した。
-
-## 実装済みの演出
-
-- 登場は2.2秒。カメラが右手前から通りの中央へ回り込み、ロゴ・副題・開始案内が時間差で飛び込む。
-- 待機は24秒のカメラループと小さなロゴ・開始案内の動き。motionTimeの時計で進み、背景演出OFFで停止する。
-- 開始は0.8秒。案内が反応し、ロゴを拡大しながらカメラが通りの奥へ加速。オレンジと紺の帯で全画面を覆う。
-- 任意ボタンによる開始は登場を先に着地点へ進める。再訪時も同じ着地点から表示する。
-- introDuration・startDurationはCanvasに保存し、開始演出の時計とAppの遷移待ち時間を一致させる。
-- scripts/AuthorTitleAnimation.pyは編集可能な初期キーフレームを付ける。通常はInspectorから調整する。
-- Debug・Development・ReleaseビルドとDebug／Release回帰検証に成功。
-- GPUプレビューはgenerated/title-rebuild/previews/title-motion.gif。静止画と動画フレームは実際の共通描画から取得する。
+メニューと移動基盤、街・影・見た目、最終の演出検証を機能ごとにコミットする。
+Debug／Development／ReleaseのApp・共有コードをビルドし、Debug／Releaseの回帰検証を実行する。
+TitlePresentationValidationでCONFIG到着・途中反転・START復帰と3画面比率の開始UI・全画面被覆を確認する。
+GPU画像はgenerated/title-rebuild/previewsに保存し、Gitには含めない。
+非表示GPU検証と実機の画面操作は区別して報告する。

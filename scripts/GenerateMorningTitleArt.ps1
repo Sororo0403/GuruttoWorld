@@ -54,16 +54,13 @@ try {
         param($g)
         Morning-Polygon $g $morningBlue @(5,72,941,0,991,170,56,229)
         Morning-Polygon $g $morningCyan @(107,13,958,46,919,173,45,152)
-        Morning-Type $g 'PRESS ANY BUTTON' 90 80 816 54 $morningWhite -4
+        Morning-Type $g 'START' 210 78 560 80 $morningWhite -4
     }
-    New-MorningImage 'Slash' 1280 720 {
+    New-MorningImage 'ConfigBand' 1000 230 {
         param($g)
-        Morning-Polygon $g $morningRed @(0,642,1280,393,1280,460,0,720)
-        Morning-Polygon $g $morningWhite @(0,606,1280,356,1280,367,0,618)
-    }
-    New-MorningImage 'Caption' 900 100 {
-        param($g)
-        Morning-Type $g 'HELLO, NEW DAY.' 24 45 834 36 $morningWhite -4
+        Morning-Polygon $g $morningInk @(5,72,941,0,991,170,56,229)
+        Morning-Polygon $g $morningBlue @(107,13,958,46,919,173,45,152)
+        Morning-Type $g 'CONFIG' 170 80 660 74 $morningWhite -4
     }
 } finally {
     foreach($morningResource in @($morningFonts,$morningRed,$morningWhite,$morningInk,$morningBlue,$morningCyan)){$morningResource.Dispose()}

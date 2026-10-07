@@ -1,5 +1,15 @@
 # タイトル画面の採用素材
 
+## START／CONFIGと影（2026-10-07）
+
+- CONFIG施設の建物は既存Kenney City Kit (Commercial)のCC0 building-e.obj。
+- 歯車は[Kenney Factory Kit 3.0](https://kenney.nl/assets/factory-kit)のCC0 cog-a.objとcog-a.mtl。Factory/License.txtを同梱。パレットをオレンジに変更した派生素材。
+- 取得ZIP：https://kenney.nl/media/pages/assets/factory-kit/edaac9d4f6-1777639602/kenney_factory-kit_3.0.zip
+- START／CONFIGの帯は既存と同じ同梱M PLUS 1p Blackから生成した独自画像。ConfigBand.pngを追加。
+- Shadows以下は既存CC0地面の派生OBJ、道路・歩道の模様と投影影を合わせたGround.png、再ベイク用のGroundSources.json。
+- 影は固定シーン用。光源方向・建物配置変更後はscripts/BakeTitleGroundShadows.pyを明示的に実行する。通常ビルドは再ベイクしない。
+- 過去のPRESS ANY BUTTON構成はSTART／CONFIGへ更新した。旧記録は制作履歴として残す。
+
 ## 未使用素材の整理（2026-10-07）
 
 - 現存する全シーン、ゲーム・Editor・回帰検証の参照と、OBJからMTL・画像への依存関係を確認して未使用素材を削除。

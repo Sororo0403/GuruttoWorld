@@ -405,3 +405,4 @@ FodyWeavers.xsd
 
 # OBJ model assets are source data, not compiler outputs.
 !App/Assets/Models/**/*.obj
+!Content/Assets/Models/**/*.obj
