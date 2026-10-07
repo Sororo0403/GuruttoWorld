@@ -24,6 +24,8 @@ namespace SceneRuntime
         bool useGravity=false;
         float gravity=20;
         float jumpSpeed=7;
+        bool usePhysics=false;
+        float maxSlopeDegrees=45,stepHeight=0.3f;
         bool operator==(const PlayerControllerComponent&) const = default;
     };
     struct BoxColliderComponent
@@ -32,7 +34,20 @@ namespace SceneRuntime
         bool enabled=true;
         std::array<float,3> center{};
         std::array<float,3> size{1,1,1};
+        std::string shape="box";
+        float radius=0.5f,halfHeight=0.5f;
+        std::filesystem::path model;
+        bool isTrigger=false,convex=false;
+        unsigned int layer=0,mask=0xffffffffu;
         bool operator==(const BoxColliderComponent&) const = default;
+    };
+    struct RigidBodyComponent
+    {
+        std::string id="rigidbody",motion="dynamic";
+        bool enabled=true,continuous=true;
+        float mass=1,friction=0.5f,restitution=0,gravityScale=1,linearDamping=0.05f,angularDamping=0.05f;
+        std::array<float,3> velocity{},angularVelocity{};
+        bool operator==(const RigidBodyComponent&) const = default;
     };
     struct PrefabLink
     {

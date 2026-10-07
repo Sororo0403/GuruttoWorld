@@ -49,7 +49,9 @@ namespace
         for (size_t other=0;other<layout.objects.size();++other)
         {
             const auto& collider=layout.objects[other].boxCollider;
-            if (!collider || !collider->enabled || Related(layout,index,other)) continue;
+            if (!collider || !collider->enabled || collider->isTrigger || Related(layout,index,other)) continue;
+            const auto& own=*object.boxCollider;
+            if (!(own.mask&(1u<<collider->layer)) || !(collider->mask&(1u<<own.layer))) continue;
             const auto fixed=Box(*collider,matrices[other]);
             bool overlap=true;
             for (size_t side=0;side<3;++side)
@@ -98,6 +100,7 @@ namespace SceneRuntime
             for (size_t index=0;index<layout.objects.size();++index)
             {
                 const auto& controller=layout.objects[index].playerController;
+                if (controller && controller->enabled && controller->usePhysics) continue;
                 if (!controller || !controller->enabled) { states.erase(layout.objects[index].id); continue; }
                 auto& body=states[layout.objects[index].id];
                 const bool collider=layout.objects[index].boxCollider && layout.objects[index].boxCollider->enabled;

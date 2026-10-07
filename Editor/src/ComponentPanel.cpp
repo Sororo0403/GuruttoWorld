@@ -3,6 +3,7 @@
 #include "UiComponentPanel.h"
 #include "AnimationPanel.h"
 #include "AnimatorPanel.h"
+#include "PhysicsPanel.h"
 #include <SceneRuntime/ScriptRuntime.h>
 #include <imgui.h>
 
@@ -106,6 +107,12 @@ namespace Editor
         { candidate.playerController=SceneRuntime::PlayerControllerComponent{NewComponentId(candidate,"player"),true,5}; edited=true; }
         if (ImGui::MenuItem("箱の衝突判定###BoxCollider",nullptr,false,!candidate.boxCollider))
         { candidate.boxCollider=SceneRuntime::BoxColliderComponent{}; candidate.boxCollider->id=NewComponentId(candidate,"collider"); edited=true; }
+        if (ImGui::MenuItem("剛体###RigidBody",nullptr,false,!candidate.rigidBody && !candidate.playerController))
+        {
+            candidate.rigidBody.emplace(); candidate.rigidBody->id=NewComponentId(candidate,"rigidbody");
+            if (!candidate.boxCollider) { candidate.boxCollider.emplace(); candidate.boxCollider->id=NewComponentId(candidate,"collider"); }
+            edited=true;
+        }
         if (ImGui::BeginMenu("ゲーム処理###Script"))
         {
             for (const auto& [name,definition] : SceneRuntime::ScriptRegistry::Definitions())
@@ -141,6 +148,14 @@ namespace Editor
             edited=ImGui::DragFloat("移動速度###Move speed",&player.moveSpeed,0.1f,0,1000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
             if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
             edited=ImGui::Checkbox("重力を使用###Use gravity",&player.useGravity) || edited;
+            edited=ImGui::Checkbox("斜面・移動床対応の物理を使用###Use advanced physics",&player.usePhysics) || edited;
+            if (player.usePhysics)
+            {
+                edited=ImGui::SliderFloat("歩ける斜面角度###Max slope",&player.maxSlopeDegrees,0,89) || edited;
+                if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+                edited=ImGui::DragFloat("登れる段差###Step height",&player.stepHeight,0.01f,0,10,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited;
+                if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+            }
             for (const auto& field : {std::pair{"重力加速度###Gravity",&player.gravity},std::pair{"ジャンプ速度###Jump speed",&player.jumpSpeed}})
             {
                 edited=ImGui::DragFloat(field.first,field.second,0.1f,0,1000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
@@ -153,23 +168,7 @@ namespace Editor
             if (ImGui::Button("削除###Remove PlayerController")) { candidate.playerController.reset(); edited=true; }
             ImGui::PopID();
         }
-        if (candidate.boxCollider && ImGui::CollapsingHeader("箱の衝突判定###BoxCollider",ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            auto& collider=*candidate.boxCollider;
-            ImGui::PushID(collider.id.c_str());
-            edited=ImGui::Checkbox("有効###Enabled",&collider.enabled) || edited;
-            for (const auto& field : {std::pair{"中心###Collider center",&collider.center},std::pair{"大きさ###Collider size",&collider.size}})
-            {
-                const bool size=field.second==&collider.size;
-                edited=ImGui::DragFloat3(field.first,field.second->data(),0.05f,size ? 0.001f : -100000,100000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited;
-                if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
-            }
-            ImGui::TextUnformatted("親の変形を継承する箱です。回転時は外接箱で判定します。");
-            if (ImGui::Button("リセット###Reset BoxCollider")) { const auto id=collider.id; collider=SceneRuntime::BoxColliderComponent{}; collider.id=id; edited=true; }
-            ImGui::SameLine();
-            if (ImGui::Button("削除###Remove BoxCollider")) { candidate.boxCollider.reset(); edited=true; }
-            ImGui::PopID();
-        }
+        edited=DrawPhysics(state,candidate,catalog) || edited;
         for (size_t index=0;index<candidate.scripts.size();)
         {
             auto& script=candidate.scripts[index];

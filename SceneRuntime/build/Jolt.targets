@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <JoltConfiguration Condition="'$(Configuration)'=='Debug'">Debug</JoltConfiguration>
+    <JoltConfiguration Condition="'$(Configuration)'!='Debug'">Release</JoltConfiguration>
+    <JoltRoot>$(MSBuildThisFileDirectory)..\..\generated\</JoltRoot>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile><AdditionalIncludeDirectories>$(JoltRoot)dependencies\jolt-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories><PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">JPH_DEBUG;JPH_OBJECT_STREAM;%(PreprocessorDefinitions)</PreprocessorDefinitions><PreprocessorDefinitions Condition="'$(Configuration)'!='Debug'">JPH_OBJECT_STREAM;%(PreprocessorDefinitions)</PreprocessorDefinitions></ClCompile>
+    <Lib><AdditionalDependencies>$(JoltRoot)outputs\jolt\$(JoltConfiguration)\Jolt.lib;%(AdditionalDependencies)</AdditionalDependencies></Lib>
+  </ItemDefinitionGroup>
+  <Target Name="CheckJoltFiles" BeforeTargets="BuildJolt" Condition="!Exists('$(JoltRoot)outputs\jolt\$(JoltConfiguration)\Jolt.lib') Or !Exists('$(JoltRoot)dependencies\jolt-src\Jolt\Jolt.h')">
+    <Delete Files="$(JoltRoot)intermediate\jolt\$(JoltConfiguration).ready" />
+  </Target>
+  <Target Name="BuildJolt" BeforeTargets="ClCompile" Inputs="$(MSBuildThisFileDirectory)..\..\scripts\BuildJolt.ps1;$(MSBuildThisFileFullPath)" Outputs="$(JoltRoot)intermediate\jolt\$(JoltConfiguration).ready">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\scripts\BuildJolt.ps1&quot; -Configuration $(JoltConfiguration)" />
+  </Target>
+</Project>

@@ -28,6 +28,7 @@
 #include "UiValidation.h"
 #include "AnimationValidation.h"
 #include "PhysicsValidation.h"
+#include "RigidBodyValidation.h"
 #include "ScriptValidation.h"
 #include "AnimatorValidation.h"
 #include "AssetDatabaseValidation.h"
@@ -1868,6 +1869,7 @@ namespace
                 UiValidation::Rendering(renderer,TestContentRoot());
                 AnimationValidation::Runtime(renderer,TestContentRoot());
                 PhysicsValidation::Runtime(renderer,TestContentRoot());
+                RigidBodyValidation::Runtime(renderer);
                 ScriptValidation::Runtime(renderer);
                 PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
                 MaterialValidation::Rendering(renderer);
@@ -3091,6 +3093,20 @@ int main()
             std::cout<<"PASS: script registry, parameters, lifecycle, serialization and missing behaviours\n";
             return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_RIGID_ONLY",nullptr,0)) {
+            Check(Engine::Log::Initialize("generated/tests/rigid-bodies.log"),"rigid body diagnostic log");
+            RigidBodyValidation::Run();
+            std::cout<<"PASS: Jolt rigid bodies, CCD, layers, triggers, raycasts, capsule character, slopes, moving platforms and meshes\n"; return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_RIGID_RUNTIME_ONLY",nullptr,0)) {
+            Check(Engine::Log::Initialize("generated/tests/rigid-runtime.log"),"rigid runtime diagnostic log");
+            RigidBodyValidation::Run();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden rigid sample",640,360),"rigid runtime window");
+            Check(renderer.Initialize(window.GetHandle()),"rigid runtime renderer");
+            RigidBodyValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: rigid sample rendering, pause/step/restart, script raycast, impulses and physics events\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_PHYSICS_ONLY",nullptr,0)) {
             PhysicsValidation::Run();
             std::cout<<"PASS: collider schema, gravity, grounded jump, wall sweep, disabled components and parent transforms\n";
@@ -3135,6 +3151,7 @@ int main()
         UiValidation::SchemaAndLayout();
         AnimationValidation::Schema();
         PhysicsValidation::Run();
+        RigidBodyValidation::Run();
         ScriptValidation::Run();
         PrefabValidation::Run();
         InputActionValidation::Run();

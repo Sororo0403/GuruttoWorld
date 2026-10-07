@@ -132,6 +132,7 @@
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
   </ItemDefinitionGroup>
+  <Import Project="build\Jolt.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
@@ -166,6 +167,8 @@
     <ClInclude Include="include\SceneRuntime\MaterialAsset.h" />
     <ClCompile Include="src\SceneWorld.cpp" />
     <ClCompile Include="src\ScenePhysics.cpp" />
+    <ClCompile Include="src\PhysicsWorld.cpp" />
+    <ClInclude Include="include\SceneRuntime\PhysicsWorld.h" />
     <ClCompile Include="src\ScriptRuntime.cpp" />
     <ClCompile Include="src\Prefab.cpp" />
     <ClInclude Include="include\SceneRuntime\Prefab.h" />

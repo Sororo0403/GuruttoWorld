@@ -26,6 +26,7 @@ namespace SceneRuntime
         bool QueueScriptEvent(ScriptEvent event,std::string& error) { return world_.QueueScriptEvent(std::move(event),error); }
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { world_.SetInputActions(std::move(values),std::move(pressed)); }
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false) { return world_.MovePlayers(seconds,horizontal,vertical,jump); }
+        bool AddImpulse(const std::string& id,const std::array<float,3>& impulse) { return world_.AddImpulse(id,impulse); }
         /// <summary>時計を指定して演出をプレビューします。未開始の開始演出には負値を指定します。</summary>
         void SeekAnimation(float sceneSeconds, float motionSeconds, float startSeconds = -1);
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height) const;

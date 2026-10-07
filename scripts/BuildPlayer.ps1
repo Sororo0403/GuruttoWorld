@@ -1,4 +1,4 @@
-﻿param(
+param(
     [ValidateSet('Release','Development')][string]$Configuration='Release',
     [ValidatePattern('^[a-f0-9]{32}$')][string]$RunId=([Guid]::NewGuid().ToString('N')),
     [switch]$SkipBuild
@@ -28,6 +28,8 @@ try {
     if (Test-Path -LiteralPath $staging) { throw 'Staging destination already exists.' }
     New-Item -ItemType Directory -Path $staging | Out-Null
     Copy-Item -LiteralPath $executable -Destination (Join-Path $staging 'App.exe')
+    $licenseFolder=Join-Path (Split-Path $executable -Parent) 'Licenses'
+    if (Test-Path -LiteralPath $licenseFolder) { Copy-Item -LiteralPath $licenseFolder -Destination (Join-Path $staging 'Licenses') -Recurse }
     foreach ($folder in @('Assets','Shaders')) {
         $source=Join-Path $repoRoot "Content/$folder"
         foreach ($file in Get-ChildItem -LiteralPath $source -File -Recurse) {

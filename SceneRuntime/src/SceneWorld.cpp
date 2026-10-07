@@ -194,7 +194,7 @@ namespace SceneRuntime
             if (!preserveExecution) scripts_.Stop(layout_);
             layout_ = std::move(layout);
             assetsRoot_=assetsRoot;
-            if (!preserveExecution) physics_.clear();
+            if (!preserveExecution) { physics_.clear(); physicsWorld_.Reset(); }
             else std::erase_if(physics_,[&](const auto& pair) { return std::none_of(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==pair.first; }); });
             animatedModels_=std::move(animated); animatorStates_=std::move(animatorStates);
             objects_ = std::move(objects);
@@ -374,13 +374,37 @@ namespace SceneRuntime
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
 
+    bool SceneWorld::AddImpulse(const std::string& id,const std::array<float,3>& impulse)
+    {
+        const auto object=std::find_if(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==id; });
+        return object!=layout_.objects.end() && object->rigidBody && object->rigidBody->enabled && object->rigidBody->motion=="dynamic" && physicsWorld_.AddImpulse(id,impulse);
+    }
     bool SceneWorld::MovePlayers(double seconds, float horizontal, float vertical, bool jump)
     {
         auto candidate=layout_;
         auto states=physics_;
         if (!ScenePhysics::Advance(candidate,states,seconds,horizontal,vertical,jump)) return false;
+        std::string error;
+        if (!physicsWorld_.Advance(candidate,states,seconds,horizontal,vertical,jump,assetsRoot_,error))
+        { Engine::Log::Warning(error); return false; }
         if (!CommitTransforms(std::move(candidate))) return false;
         physics_=std::move(states);
+        std::set<std::string> listeners;
+        for (const auto& object : layout_.objects) for (const auto& script : object.scripts) if (script.enabled)
+        {
+            const auto definition=ScriptRegistry::Definitions().find(script.behaviour);
+            if (definition!=ScriptRegistry::Definitions().end() && definition->second.onEvent) listeners.insert(object.id);
+        }
+        for (const auto& contact : physicsWorld_.Events())
+        {
+            const auto name=std::string(contact.trigger ? "trigger" : "collision")+contact.phase;
+            try
+            {
+                if (listeners.contains(contact.second)) scripts_.QueueEvent({name,contact.first,contact.second,0});
+                if (listeners.contains(contact.first)) scripts_.QueueEvent({name,contact.second,contact.first,0});
+            }
+            catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); break; }
+        }
         return true;
     }
 
@@ -408,7 +432,7 @@ namespace SceneRuntime
         }
         auto runtime=scripts_;
         std::string error;
-        if (!runtime.Update(candidate,seconds,error,inputValues_,inputPressed_)) { Engine::Log::Warning(error); return false; }
+        if (!runtime.Update(candidate,seconds,error,inputValues_,inputPressed_,&physicsWorld_)) { Engine::Log::Warning(error); return false; }
         const bool rebuild=candidate.objects.size()!=layout_.objects.size() ||
             !std::equal(candidate.objects.begin(),candidate.objects.end(),layout_.objects.begin(),[](const auto& a,const auto& b) {
                 return a.id==b.id && a.meshRenderer==b.meshRenderer && a.animator==b.animator;
@@ -429,6 +453,7 @@ namespace SceneRuntime
             if (!CommitTransforms(candidate)) return false;
             layout_=std::move(candidate);
         }
+        for (const auto& [id,impulse] : runtime.Impulses()) physicsWorld_.AddImpulse(id,impulse);
         scripts_=std::move(runtime);
         for (const auto& placement : layout_.objects)
         {

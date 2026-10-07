@@ -213,6 +213,8 @@ PlayerControllerはAnimationValidationの再生検証でJSON保存復元、不�
 
 PhysicsValidationはGPUなしでBoxColliderとPlayerControllerの保存復元、旧シーンの重力OFF、不正な箱サイズの拒否、落下・接地・ジャンプ・空中ジャンプの拒否、薄い壁のすり抜け防止、無効Component、親の拡縮と不正な時間・入力を検証します。Debug／Releaseの全回帰に含まれ、`WP1_PHYSICS_ONLY=1`で単独実行できます。PhysicsPlayground.jsonの操作はEditorで確認できます。
 
+`WP1_RIGID_ONLY=1`ではJoltの剛体保存復元、落下・接地、質量付きインパルス、物体同士の反発、CCD、レイヤーの拒否、TriggerのEnter/Stay/Exit、Raycastの距離・法線・マスク・Trigger選択、カプセルのジャンプ・斜面・移動床、凹メッシュと動的凸包、不正設定時の保持を検証します。`WP1_RIGID_RUNTIME_ONLY=1`では上記と、実際のRigidBodyPlayground描画、Inspectorのスタック、Pause・Step・再開始、ScriptのRaycast・インパルス・衝突イベント、編集データ保持も確認します。
+
 ScriptValidationは独自C++処理の登録、重複・不正なメタデータの拒否、複数処理の保存復元、開始・更新・無効化・再有効化・終了、不明な処理の設定保持と実行エラーを確認します。Debug／Releaseの全回帰に含まれ、`WP1_SCRIPT_ONLY=1`で単独実行できます。
 
 ScriptValidationは検索・型付きComponent取得、順不同の親子複製、宛先付きイベントの次フレーム配信、子孫削除、不正生成時のシーン保持も確認します。`WP1_SCRIPT_RUNTIME_ONLY=1`ではGPUを使い、実行中のモデル生成・削除、UI準備、モデル読み込み失敗時の保持、Script内部stateの継続と失敗フレームの取消を検証します。

@@ -3,8 +3,10 @@
     <ItemGroup>
       <SharedAssets Include="$(MSBuildThisFileDirectory)Assets\**\*" />
       <SharedShaders Include="$(MSBuildThisFileDirectory)Shaders\**\*" />
+      <JoltLicense Include="$(MSBuildThisFileDirectory)..\generated\dependencies\jolt-src\LICENSE" Condition="Exists('$(MSBuildThisFileDirectory)..\generated\dependencies\jolt-src\LICENSE')" />
     </ItemGroup>
     <Copy SourceFiles="@(SharedAssets)" DestinationFiles="@(SharedAssets->'$(OutDir)Assets\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(SharedShaders)" DestinationFiles="@(SharedShaders->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(JoltLicense)" DestinationFiles="@(JoltLicense->'$(OutDir)Licenses\Jolt-LICENSE.txt')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

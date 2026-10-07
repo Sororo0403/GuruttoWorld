@@ -5,6 +5,7 @@
 #include <optional>
 #include <SceneRuntime/ScenePhysics.h>
 #include <SceneRuntime/ScriptRuntime.h>
+#include <SceneRuntime/PhysicsWorld.h>
 
 namespace Engine { class DirectX12Renderer; }
 namespace SceneRuntime { struct UiState; }
@@ -61,6 +62,9 @@ namespace SceneRuntime
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { inputValues_=std::move(values); inputPressed_=std::move(pressed); }
         // Normalized input moves controllers on their parent-local XZ plane.
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false);
+        bool AddImpulse(const std::string& id,const std::array<float,3>& impulse);
+        std::optional<PhysicsRayHit> PhysicsRaycast(const std::array<float,3>& origin,const std::array<float,3>& direction,float distance,
+            unsigned int mask=0xffffffffu,bool triggers=false,const std::string& ignore={}) const { return physicsWorld_.Raycast(origin,direction,distance,mask,triggers,ignore); }
         /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
         bool Animate(const std::map<std::string, float>& clocks);
         bool RenameObject(std::string_view id, std::string name);
@@ -103,6 +107,7 @@ namespace SceneRuntime
         std::map<std::string,AnimatorState> animatorStates_;
         ScriptRuntime scripts_;
         ScenePhysics::States physics_;
+        PhysicsWorld physicsWorld_;
         Microsoft::WRL::ComPtr<ID3D12Device> materialDevice_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> materialQueue_;
         bool modelsReady_ = false;

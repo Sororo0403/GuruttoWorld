@@ -102,6 +102,18 @@ namespace SceneRuntime
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events.push_back(std::move(event));
     }
+    void ScriptScene::AddImpulse(const std::string& id,const std::array<float,3>& impulse)
+    {
+        const auto* object=Find(id);
+        if (!object || !object->rigidBody || !object->rigidBody->enabled || object->rigidBody->motion!="dynamic") throw std::runtime_error("Impulse requires a dynamic rigid body");
+        auto amount=impulses[id];
+        for (size_t i=0;i<3;++i)
+        {
+            amount[i]+=impulse[i];
+            if (!std::isfinite(amount[i]) || std::abs(amount[i])>1000000) throw std::runtime_error("Invalid impulse");
+        }
+        impulses[id]=amount;
+    }
     void ScriptScene::Commit()
     {
         for (auto& item : layout_.objects)
@@ -142,22 +154,22 @@ namespace SceneRuntime
     { if (!input) return 0; const auto found=input->find(name); return found==input->end() ? 0 : found->second; }
     bool ScriptContext::Pressed(const std::string& name) const
     { if (!pressed) return false; const auto found=pressed->find(name); return found!=pressed->end() && found->second; }
-    bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed)
+    bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics)
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
-        { error.clear(); return true; }
+        { impulses_.clear(); error.clear(); return true; }
         auto candidate=layout;
         auto runtime=*this;
-        if (!runtime.Advance(candidate,seconds,error,input,pressed)) return false;
+        if (!runtime.Advance(candidate,seconds,error,input,pressed,physics)) return false;
         layout=std::move(candidate); *this=std::move(runtime); return true;
     }
-    bool ScriptRuntime::Advance(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed)
+    bool ScriptRuntime::Advance(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics)
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         try
         {
-            ScriptScene scene(layout,nextId_);
+            ScriptScene scene(layout,nextId_,physics);
             std::set<std::pair<std::string,std::string>> live;
             for (auto& object : layout.objects)
                 for (const auto& script : object.scripts)
@@ -219,6 +231,7 @@ namespace SceneRuntime
                     iterator=instances_.erase(iterator);
                 }
             events_=std::move(scene.events);
+            impulses_=std::move(scene.impulses);
             error.clear(); return true;
         }
         catch (const std::exception& exception) { error=exception.what(); return false; }
@@ -240,6 +253,6 @@ namespace SceneRuntime
             catch (...) { Engine::Log::Warning("Script stop callback failed"); }
         }
         instances_.clear();
-        events_.clear(); nextId_=1;
+        events_.clear(); impulses_.clear(); nextId_=1;
     }
 }

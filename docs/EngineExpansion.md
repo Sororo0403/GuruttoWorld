@@ -4,7 +4,7 @@
 検証が通った機能単位でコミットし、未完了項目は完了扱いにしない。
 
 - [x] ゲーム処理API: 検索、Component取得、生成・複製・削除、イベント
-- [ ] 物理: 動的剛体、Collider、Trigger、衝突イベント、Raycast、斜面・移動床
+- [x] 物理: 動的剛体、Collider、Trigger、衝突イベント、Raycast、斜面・移動床
 - [x] Prefab: プロパティ単位の上書き、適用・復元、入れ子、Variant
 - [ ] 描画: PBR、法線マップ、Point/Spot Light、ポストエフェクト
 - [ ] アニメーション: GPUスキニング、Blend Tree、イベント、IK、ルートモーション

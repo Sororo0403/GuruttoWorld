@@ -127,8 +127,13 @@ namespace
             if (component.contains("useGravity")) player.useGravity=component.at("useGravity").get<bool>();
             if (component.contains("gravity")) player.gravity=static_cast<float>(JsonNumber(component.at("gravity")));
             if (component.contains("jumpSpeed")) player.jumpSpeed=static_cast<float>(JsonNumber(component.at("jumpSpeed")));
+            player.usePhysics=component.value("usePhysics",false);
+            if (component.contains("maxSlopeDegrees")) player.maxSlopeDegrees=static_cast<float>(JsonNumber(component.at("maxSlopeDegrees")));
+            if (component.contains("stepHeight")) player.stepHeight=static_cast<float>(JsonNumber(component.at("stepHeight")));
             if (!std::isfinite(player.gravity) || player.gravity<0 || player.gravity>1000 ||
-                !std::isfinite(player.jumpSpeed) || player.jumpSpeed<0 || player.jumpSpeed>1000) throw std::runtime_error("Invalid player gravity or jump speed");
+                !std::isfinite(player.jumpSpeed) || player.jumpSpeed<0 || player.jumpSpeed>1000 ||
+                !std::isfinite(player.maxSlopeDegrees) || player.maxSlopeDegrees<0 || player.maxSlopeDegrees>89 ||
+                !std::isfinite(player.stepHeight) || player.stepHeight<0 || player.stepHeight>10) throw std::runtime_error("Invalid player gravity, jump or slope settings");
         }
         else if (type=="BoxCollider")
         {
@@ -146,7 +151,42 @@ namespace
                     (std::string_view(key)=="size" ? collider.size : collider.center)[axis]=static_cast<float>(number);
                 }
             }
+            collider.shape=component.value("shape",std::string("box"));
+            collider.isTrigger=component.value("isTrigger",false);
+            collider.convex=component.value("convex",false);
+            if (component.contains("radius")) collider.radius=static_cast<float>(JsonNumber(component.at("radius")));
+            if (component.contains("halfHeight")) collider.halfHeight=static_cast<float>(JsonNumber(component.at("halfHeight")));
+            for (const auto* key : {"layer","mask"}) if (component.contains(key))
+            {
+                const auto& value=component.at(key);
+                if (!value.is_number_integer() || JsonNumber(value)<0 || JsonNumber(value)>4294967295.0) throw std::runtime_error("Invalid collision layer or mask");
+                (std::string_view(key)=="layer" ? collider.layer : collider.mask)=value.get<unsigned int>();
+            }
+            if (collider.shape!="box" && collider.shape!="sphere" && collider.shape!="capsule" && collider.shape!="mesh") throw std::runtime_error("Invalid collider shape");
+            if (collider.layer>31 || !std::isfinite(collider.radius) || collider.radius<0.001f || collider.radius>100000 ||
+                !std::isfinite(collider.halfHeight) || collider.halfHeight<0 || collider.halfHeight>100000) throw std::runtime_error("Invalid collider radius, height or layer");
+            if (component.contains("model") && !component.at("model").get<std::string>().empty()) collider.model=ReadModel(component);
             placement.boxCollider=collider;
+        }
+        else if (type=="RigidBody")
+        {
+            if (placement.rigidBody) throw std::runtime_error("Only one RigidBody is allowed");
+            SceneRuntime::RigidBodyComponent body; body.id=id; body.enabled=enabled;
+            body.motion=component.value("motion",std::string("dynamic")); body.continuous=component.value("continuous",true);
+            const std::pair<const char*,float*> fields[]={{"mass",&body.mass},{"friction",&body.friction},{"restitution",&body.restitution},
+                {"gravityScale",&body.gravityScale},{"linearDamping",&body.linearDamping},{"angularDamping",&body.angularDamping}};
+            for (const auto& [key,target] : fields) if (component.contains(key)) *target=static_cast<float>(JsonNumber(component.at(key)));
+            for (const auto* key : {"velocity","angularVelocity"}) if (component.contains(key))
+            {
+                const auto values=component.at(key).get<std::array<float,3>>();
+                for (const auto value : values) if (!std::isfinite(value) || std::abs(value)>100000) throw std::runtime_error("Invalid rigid body velocity");
+                (std::string_view(key)=="velocity" ? body.velocity : body.angularVelocity)=values;
+            }
+            if ((body.motion!="dynamic" && body.motion!="kinematic") || !std::isfinite(body.mass) || body.mass<=0 || body.mass>100000 ||
+                !std::isfinite(body.friction) || body.friction<0 || body.friction>1 || !std::isfinite(body.restitution) || body.restitution<0 || body.restitution>1 ||
+                !std::isfinite(body.gravityScale) || body.gravityScale<0 || body.gravityScale>10 || !std::isfinite(body.linearDamping) || body.linearDamping<0 || body.linearDamping>10 ||
+                !std::isfinite(body.angularDamping) || body.angularDamping<0 || body.angularDamping>10) throw std::runtime_error("Invalid rigid body properties");
+            placement.rigidBody=body;
         }
         else if (type=="Script")
         {
@@ -245,6 +285,7 @@ namespace SceneRuntime
                 !std::isfinite(player.jumpSpeed) || player.jumpSpeed<0 || player.jumpSpeed>1000) throw std::runtime_error("Invalid player gravity or jump speed");
             object["moveSpeed"]=player.moveSpeed;
             object["useGravity"]=player.useGravity; object["gravity"]=player.gravity; object["jumpSpeed"]=player.jumpSpeed;
+            object["usePhysics"]=player.usePhysics; object["maxSlopeDegrees"]=player.maxSlopeDegrees; object["stepHeight"]=player.stepHeight;
             components.push_back(object);
         }
         if (placement.boxCollider)
@@ -256,6 +297,19 @@ namespace SceneRuntime
                     throw std::runtime_error("Invalid BoxCollider bounds");
             auto object=Component(collider.id,"BoxCollider",collider.enabled);
             object["center"]=collider.center; object["size"]=collider.size;
+            object["shape"]=collider.shape; object["radius"]=collider.radius; object["halfHeight"]=collider.halfHeight;
+            object["isTrigger"]=collider.isTrigger; object["layer"]=collider.layer; object["mask"]=collider.mask; object["model"]=collider.model;
+            object["convex"]=collider.convex;
+            components.push_back(object);
+        }
+        if (placement.rigidBody)
+        {
+            const auto& body=*placement.rigidBody;
+            auto object=Component(body.id,"RigidBody",body.enabled);
+            object["motion"]=body.motion; object["continuous"]=body.continuous;
+            object["mass"]=body.mass; object["friction"]=body.friction; object["restitution"]=body.restitution;
+            object["gravityScale"]=body.gravityScale; object["linearDamping"]=body.linearDamping; object["angularDamping"]=body.angularDamping;
+            object["velocity"]=body.velocity; object["angularVelocity"]=body.angularVelocity;
             components.push_back(object);
         }
         for (const auto& script : placement.scripts)
