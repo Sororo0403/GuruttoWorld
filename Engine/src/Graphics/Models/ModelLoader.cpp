@@ -1,5 +1,6 @@
 #include <Engine/Graphics/Models/ModelLoader.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Assets/AssetDatabase.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -36,6 +37,8 @@ namespace Engine
 {
     bool ModelLoader::Load(const std::filesystem::path& path, std::vector<MeshData>& meshes)
     {
+        AssetMetadata settings;
+        try { settings=AssetDatabase::Read(path); } catch (const std::exception& error) { Log::Error(error.what()); return false; }
         Assimp::Importer importer;
         const auto utf8Path = path.u8string();
         const aiScene* scene = importer.ReadFile(reinterpret_cast<const char*>(utf8Path.c_str()),
@@ -64,8 +67,8 @@ namespace Engine
                 const auto& position = source.mVertices[i];
                 const auto& normal = source.mNormals[i];
                 const aiVector3D uv = source.HasTextureCoords(0) ? source.mTextureCoords[0][i] : aiVector3D{};
-                mesh.vertices.push_back({ {position.x, position.y, position.z}, {normal.x, normal.y, normal.z},
-                    {uv.x, uv.y}, {diffuse.r, diffuse.g, diffuse.b, 1.0f} });
+                mesh.vertices.push_back({ {position.x*settings.scale, position.y*settings.scale, position.z*settings.scale}, {normal.x, normal.y, normal.z},
+                    {uv.x, settings.flipV ? 1-uv.y : uv.y}, {diffuse.r, diffuse.g, diffuse.b, 1.0f} });
             }
             mesh.indices.reserve(static_cast<size_t>(source.mNumFaces) * 3);
             for (unsigned int i = 0; i < source.mNumFaces; ++i)
@@ -89,6 +92,10 @@ namespace Engine
             return false;
         }
         Log::Info(std::format("OBJ loaded: {} meshes.", loaded.size()));
+        try {
+            const auto root=AssetDatabase::Root(path);
+            if (!root.empty()) { AssetDatabase database(root); for (auto& mesh : loaded) if (!mesh.texturePath.empty()) mesh.texturePath=root/database.Resolve(std::filesystem::absolute(mesh.texturePath).lexically_relative(root)); }
+        } catch (const std::exception& error) { Log::Error(error.what()); return false; }
         meshes = std::move(loaded);
         return true;
     }

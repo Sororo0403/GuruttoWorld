@@ -1,5 +1,6 @@
 #pragma once
 #include <Engine/Core/Json.h>
+#include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Input/InputActions.h>
 #include <filesystem>
 #include <fstream>
@@ -34,7 +35,7 @@ namespace SceneRuntime
             if(!std::filesystem::exists(path)) return {};
             std::ifstream input(path);
             if(!input) throw std::runtime_error("Cannot read project settings");
-            const auto json=Engine::Json::parse(input);
+            auto json=Engine::Json::parse(input); Engine::AssetDatabase(root).References(json);
             ProjectSettings result;
             result.title=json.at("title").get<std::string>();
             result.startupScene=json.at("startupScene").get<std::string>();
@@ -55,7 +56,8 @@ namespace SceneRuntime
             auto temporary=path; temporary+=".tmp."+std::to_string(GetCurrentProcessId())+"."+std::to_string(GetTickCount64());
             try {
                 std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
-                const Engine::Json json={{"title",title},{"startupScene",startupScene},{"width",width},{"height",height},{"inputActions",Engine::InputActions::Serialize(inputActions)}};
+                Engine::Json json={{"title",title},{"startupScene",startupScene},{"width",width},{"height",height},{"inputActions",Engine::InputActions::Serialize(inputActions)}};
+                Engine::AssetDatabase(root).References(json);
                 output<<json.dump(2)<<'\n'; output.close();
                 if(!output || !MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
                     throw std::runtime_error("Cannot save project settings");

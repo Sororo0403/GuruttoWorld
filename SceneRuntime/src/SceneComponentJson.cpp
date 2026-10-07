@@ -23,8 +23,8 @@ namespace
         auto extension=path.extension().string();
         std::transform(extension.begin(),extension.end(),extension.begin(),[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (path.is_absolute() || path.has_root_name() || !text.starts_with("Assets/Models/") ||
-            extension!=".obj" || std::any_of(path.begin(),path.end(),[](const auto& part) { return part==".."; }))
-            throw std::runtime_error("MeshRenderer model must be an OBJ relative to Assets/Models");
+            (extension!=".obj" && extension!=".gltf" && extension!=".glb") || std::any_of(path.begin(),path.end(),[](const auto& part) { return part==".."; }))
+            throw std::runtime_error("MeshRenderer model must be OBJ, glTF or GLB relative to Assets/Models");
         return path;
     }
 
@@ -164,6 +164,18 @@ namespace
             if (script.parameters.size()>64) throw std::runtime_error("Too many script parameters");
             placement.scripts.push_back(std::move(script));
         }
+        else if (type=="Animator")
+        {
+            if (placement.animator) throw std::runtime_error("Only one Animator is allowed");
+            SceneRuntime::AnimatorComponent animator; animator.id=id; animator.enabled=enabled;
+            animator.initialState=component.at("initialState").get<std::string>(); animator.states.clear();
+            for (const auto& state : JsonArray(component.at("states")))
+                animator.states.push_back({state.at("name").get<std::string>(),state.at("clip").get<std::string>(),static_cast<float>(JsonNumber(state.at("speed"))),state.at("loop").get<bool>()});
+            for (const auto& transition : JsonArray(component.at("transitions")))
+                animator.transitions.push_back({transition.at("from").get<std::string>(),transition.at("to").get<std::string>(),transition.at("parameter").get<std::string>(),
+                    transition.at("comparison").get<std::string>(),static_cast<float>(JsonNumber(transition.at("value"))),static_cast<float>(JsonNumber(transition.at("blendSeconds"))),static_cast<float>(JsonNumber(transition.at("exitTime")))});
+            SceneRuntime::Animator::Validate(animator); placement.animator=std::move(animator);
+        }
         else if (type=="Animation")
         {
             if (placement.animation) throw std::runtime_error("Only one Animation is allowed");
@@ -250,6 +262,16 @@ namespace SceneRuntime
         {
             auto object=Component(script.id,"Script",script.enabled);
             object["behaviour"]=script.behaviour; object["parameters"]=script.parameters;
+            components.push_back(object);
+        }
+        if (placement.animator)
+        {
+            const auto& animator=*placement.animator; SceneRuntime::Animator::Validate(animator);
+            auto object=Component(animator.id,"Animator",animator.enabled); object["initialState"]=animator.initialState;
+            object["states"]=Json::array(); object["transitions"]=Json::array();
+            for (const auto& state : animator.states) object["states"].push_back({{"name",state.name},{"clip",state.clip},{"speed",state.speed},{"loop",state.loop}});
+            for (const auto& transition : animator.transitions) object["transitions"].push_back({{"from",transition.from},{"to",transition.to},{"parameter",transition.parameter},
+                {"comparison",transition.comparison},{"value",transition.value},{"blendSeconds",transition.blendSeconds},{"exitTime",transition.exitTime}});
             components.push_back(object);
         }
         WriteEnvironmentComponents(components,placement);

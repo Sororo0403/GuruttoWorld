@@ -36,7 +36,7 @@ namespace SceneRuntime
     bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
         const std::filesystem::path& scenePath, std::string& error)
     {
-        try { return Initialize(renderer,root,SceneLayout::Load(scenePath),error); }
+        try { return Initialize(renderer,root,SceneLayout::Load(scenePath,root),error); }
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
     bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,

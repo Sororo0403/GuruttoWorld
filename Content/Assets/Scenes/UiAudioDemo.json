@@ -15,5 +15,6 @@
     {"id":"stop-label","name":"Playを終了 Text","components":[{"id":"rect","type":"RectTransform","enabled":true,"anchorMin":[0,0],"anchorMax":[0,0],"pivot":[0,0],"position":[18,18],"size":[225,40],"rotation":0,"introDelay":0,"introOffset":0,"visibleWhen":"","offsetBinding":"","opacityBinding":""},{"id":"text","type":"Text","enabled":true,"text":"Playを終了","font":"Yu Gothic UI","fontSize":26,"color":[1,1,1,1]}],"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1],"parent":"stop"},
     {"id":"music","name":"BGM","components":[{"id":"audio","type":"AudioSource","enabled":true,"clip":"Assets/Audio/Title/Bgm.wav","volume":0.12,"loop":true,"playOnAwake":true,"cue":"","volumeBinding":""}],"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]},
     {"id":"effect","name":"クリック効果音","components":[{"id":"audio","type":"AudioSource","enabled":true,"clip":"Assets/Audio/Title/Confirm.wav","volume":0.25,"loop":false,"playOnAwake":false,"cue":"","volumeBinding":""}],"position":[0,0,0],"rotation":[0,0,0],"scale":[1,1,1]}
-  ]
+  ],
+  "assetReferences": {"Assets/Audio/Title/Bgm.wav": "0d724a5f913e43a7baed1c0a2e81514d", "Assets/Audio/Title/Confirm.wav": "8f7e09781053422db588784ee7cfefe1"}
 }

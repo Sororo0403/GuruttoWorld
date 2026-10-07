@@ -220,3 +220,7 @@ PrefabValidationは親子とIDの生成、リンクの保存復元、元デー�
 InputActionValidationはキー・パッド・スティックのAction値と押下、保持中の非反復、しきい値、非アクティブ時の解除、復帰時の押下抑止、再割り当て、不正キーの拒否、独自処理とButtonへのAction入力を検証します。ProjectSettingsValidationはAction設定の保存復元も確認します。`WP1_INPUT_ONLY=1`で単独実行できます。
 
 MaterialValidationはMaterialとMeshRenderer参照の保存復元、不正値の保存失敗時の既存ファイル保持と、GPU読み戻しによる色・透明度・画像の上書きを確認します。D3D12のルート定数は64DWORD以内に収め、既存の鏡映・法線・影の回帰も継続します。`WP1_MATERIAL_ONLY=1`で単独実行できます。
+
+AnimatorValidationはglTF読み込み、ボーン変形・法線、補間・ループ・状態遷移、GPU更新、複製・削除と不正クリップ時の保持を確認します。`WP1_ANIMATOR_ONLY=1`で単独実行します。AssetDatabaseValidationは参照ID保存、改名後の旧パス・ID解決、倍率・UV反転、上書き・パス逸脱・ID欠損の拒否を確認します。`WP1_ASSET_ONLY=1`で単独実行します。
+
+ProfilerValidationはCPU描画時間・フレーム数と、完了フェンスに同期したGPUタイムスタンプの読み戻しを確認します。`WP1_PROFILER_ONLY=1`で単独実行します。`scripts/BuildPlayer.ps1 -Configuration Release` は配布物を生成し、そのAppを `--validate-package` で起動して実際のリソース読み込み・描画を検証します。package.jsonに同梱ファイルのサイズ・SHA-256を記録します。

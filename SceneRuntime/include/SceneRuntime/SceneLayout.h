@@ -3,6 +3,7 @@
 #include <SceneRuntime/EnvironmentComponents.h>
 #include <SceneRuntime/UiComponents.h>
 #include <SceneRuntime/Animation.h>
+#include <SceneRuntime/Animator.h>
 #include <optional>
 #include <array>
 #include <filesystem>
@@ -35,12 +36,13 @@ namespace SceneRuntime
         std::optional<ButtonComponent> button;
         std::optional<AudioSourceComponent> audioSource;
         std::optional<AnimationComponent> animation;
+        std::optional<AnimatorComponent> animator;
         bool HasComponentId(const std::string& componentId) const
         {
             const auto matches=[&](const auto& component) { return component && component->id==componentId; };
             const std::initializer_list<bool> found{componentId=="transform",matches(meshRenderer),matches(rotator),matches(playerController),matches(boxCollider),matches(camera),
                 matches(directionalLight),matches(sky),matches(particleEmitter),matches(cameraSway),matches(canvas),
-                matches(rectTransform),matches(image),matches(text),matches(button),matches(audioSource),matches(animation)};
+                matches(rectTransform),matches(image),matches(text),matches(button),matches(audioSource),matches(animation),matches(animator)};
             return std::any_of(found.begin(),found.end(),[](bool value){return value;}) ||
                 std::any_of(scripts.begin(),scripts.end(),[&](const auto& script) { return script.id==componentId; });
         }
@@ -48,14 +50,14 @@ namespace SceneRuntime
         {
             return meshRenderer==other.meshRenderer && rotator==other.rotator && playerController==other.playerController && boxCollider==other.boxCollider && scripts==other.scripts && camera==other.camera &&
                 directionalLight==other.directionalLight && sky==other.sky && particleEmitter==other.particleEmitter &&
-                cameraSway==other.cameraSway && canvas==other.canvas && rectTransform==other.rectTransform && image==other.image && text==other.text && button==other.button && audioSource==other.audioSource && animation==other.animation;
+                cameraSway==other.cameraSway && canvas==other.canvas && rectTransform==other.rectTransform && image==other.image && text==other.text && button==other.button && audioSource==other.audioSource && animation==other.animation && animator==other.animator;
         }
         void CopyComponents(const ScenePlacement& other)
         {
             meshRenderer=other.meshRenderer; rotator=other.rotator; playerController=other.playerController; boxCollider=other.boxCollider; scripts=other.scripts; camera=other.camera;
             directionalLight=other.directionalLight; sky=other.sky; particleEmitter=other.particleEmitter; cameraSway=other.cameraSway;
             canvas=other.canvas; rectTransform=other.rectTransform; image=other.image; text=other.text; button=other.button; audioSource=other.audioSource;
-            animation=other.animation;
+            animation=other.animation; animator=other.animator;
         }
         const std::filesystem::path& Model() const
         {
@@ -92,11 +94,13 @@ namespace SceneRuntime
     {
         std::vector<ScenePlacement> objects;
         SceneSettings settings;
+        std::map<std::string,std::string> assetReferences;
+        void ResolveAssets(const std::filesystem::path& root);
         // 読み込み・検証に失敗した場合は例外。呼び出し元の配置は変更しません。
         static SceneLayout Parse(std::string_view json);
         std::string Serialize() const;
         // With overwrite=false, the final atomic commit also refuses an existing destination.
         void Save(const std::filesystem::path& path, bool overwrite = true) const;
-        static SceneLayout Load(const std::filesystem::path& path);
+        static SceneLayout Load(const std::filesystem::path& path,const std::filesystem::path& assetsRoot={});
     };
 }

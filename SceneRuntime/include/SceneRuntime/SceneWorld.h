@@ -11,6 +11,7 @@ namespace SceneRuntime { struct UiState; }
 namespace SceneRuntime
 {
     // 描画と配置データだけを共有します。ゲーム入力・編集UI・演出を持ちません。
+    struct MeshTelemetry { size_t draws=0,triangles=0; };
     class SceneWorld final
     {
     public:
@@ -27,6 +28,7 @@ namespace SceneRuntime
         bool ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error);
         void Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
             const Engine::DirectionalLight& light, const UiState* state=nullptr) const;
+        const MeshTelemetry& Telemetry() const { return meshTelemetry_; }
         const SceneLayout& Layout() const { return layout_; }
         // 配置と描画用の変換を同時に更新します。失敗した場合は直前の状態を維持します。
         // Local values are always relative to the parent.
@@ -53,6 +55,7 @@ namespace SceneRuntime
             const std::filesystem::path& assetsRoot, std::string& error);
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
         bool UpdateComponents(double seconds);
+        std::string AnimatorStateName(const std::string& id) const { const auto found=animatorStates_.find(id); return found==animatorStates_.end() ? std::string{} : found->second.current; }
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { inputValues_=std::move(values); inputPressed_=std::move(pressed); }
         // Normalized input moves controllers on their parent-local XZ plane.
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false);
@@ -78,6 +81,7 @@ namespace SceneRuntime
         bool LocalTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
     private:
+        mutable MeshTelemetry meshTelemetry_;
         bool InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
             std::string* error);
         bool ReparentPlacement(ScenePlacement& placement, std::string parentId, std::string& error) const;
@@ -91,6 +95,8 @@ namespace SceneRuntime
         void Append(ScenePlacement placement, Engine::Object3D object);
         std::map<std::string,float> inputValues_;
         std::map<std::string,bool> inputPressed_;
+        std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animatedModels_;
+        std::map<std::string,AnimatorState> animatorStates_;
         ScriptRuntime scripts_;
         ScenePhysics::States physics_;
         Microsoft::WRL::ComPtr<ID3D12Device> materialDevice_;

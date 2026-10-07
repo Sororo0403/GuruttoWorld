@@ -107,7 +107,7 @@ namespace SceneRuntime
             auto root=std::find_if(candidate.objects.begin(),candidate.objects.end(),[&](const auto& object) { return object.id==rootId; });
             if (root==candidate.objects.end() || !root->prefab) { Unpack(candidate,rootId); continue; }
             if (!ValidPath(path)) throw std::runtime_error("Invalid prefab path");
-            const auto source=SceneLayout::Load(assetsRoot/path); const auto sourceRoot=Root(source);
+            const auto source=SceneLayout::Load(assetsRoot/path,assetsRoot); const auto sourceRoot=Root(source);
             std::map<std::string,std::string> ids;
             for (const auto& object : candidate.objects) if (object.prefab && object.prefab->rootId==rootId)
             {

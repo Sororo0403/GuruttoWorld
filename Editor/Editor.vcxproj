@@ -112,6 +112,10 @@
     <ClCompile Include="src\UiComponentPanel.cpp" />
     <ClInclude Include="src\UiComponentPanel.h" />
     <ClInclude Include="src\AnimationPanel.h" />
+    <ClInclude Include="src\AnimatorPanel.h" />
+    <ClInclude Include="src\AssetManagementPanel.h" />
+    <ClInclude Include="src\BuildPanel.h" />
+    <ClInclude Include="src\ProfilerPanel.h" />
     <ClInclude Include="src\ComponentPanel.h" />
     <ClCompile Include="src\ProjectPanel.cpp" />
     <ClCompile Include="src\AssetPreview.cpp" />

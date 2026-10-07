@@ -21,6 +21,8 @@ namespace Engine
         Failed
     };
 
+    struct FrameTelemetry { double cpuRenderMilliseconds=0,gpuMilliseconds=0; UINT64 frames=0; bool gpuSample=false; };
+
     class DirectX12Renderer final
     {
     public:
@@ -91,6 +93,7 @@ namespace Engine
         /// 描画呼び出しの外で GPU 完了を待機します。シーンのリソースを解放する前に使用します。
         /// </summary>
         bool WaitForIdle();
+        const FrameTelemetry& Telemetry() const { return telemetry_; }
 
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         // Call outside Render after GPU idle; the returned handle stays stable across Scene resizes.
@@ -215,6 +218,13 @@ namespace Engine
         /// </summary>
         /// <returns>すべての生成に成功した場合は true。</returns>
         bool CreateDepthBuffers();
+
+        void InitializeTelemetry();
+        FrameTelemetry telemetry_;
+        Microsoft::WRL::ComPtr<ID3D12QueryHeap> timestampQueries_;
+        Microsoft::WRL::ComPtr<ID3D12Resource> timestampReadback_;
+        UINT64 timestampFrequency_=0;
+        std::array<bool,2> timestampPending_{};
 
         static constexpr UINT BufferCount = 2;
         static constexpr DXGI_FORMAT BufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/Renderers/MeshRenderer.h>
+#include <Engine/Animation/Skeleton.h>
 #include <Engine/Graphics/Materials/UvTransform.h>
 #include <Engine/Graphics/Materials/Material.h>
 #include <Engine/Graphics/Materials/DirectionalLight.h>
@@ -61,12 +62,24 @@ namespace Engine
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
             const UvTransform& uvTransform = {},const Material* material=nullptr) const;
 
+        size_t MeshCount() const { return meshes_.size(); }
+        size_t TriangleCount() const { return trianglePositions_.size()/3; }
         const DirectX::BoundingBox& Bounds() const { return bounds_; }
+        const std::shared_ptr<const SkeletonData>& Rig() const { return rig_; }
+        const std::vector<BonePose>& Pose() const { return pose_; }
+        std::shared_ptr<ModelRenderer> AnimatedCopy(ID3D12Device* device,ID3D12CommandQueue* queue) const;
+        bool ApplyPose(const std::vector<BonePose>& pose);
         /// <summary>モデル内のすべてのメッシュを光源の深度へ描画します。</summary>
         void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
         // ローカル空間の単位レイを三角形へ当て、最も近い交点距離を返します。
         bool IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const;
     private:
+        bool Rebuild(const std::vector<MeshData>& data);
+        std::shared_ptr<const SkeletonData> rig_;
+        std::vector<BonePose> pose_;
+        std::shared_ptr<MeshResources> resources_;
+        Microsoft::WRL::ComPtr<ID3D12Device> device_;
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_;
         DirectX::BoundingBox bounds_{};
         std::vector<DirectX::XMFLOAT3> trianglePositions_;
         std::vector<std::unique_ptr<MeshRenderer>> meshes_;

@@ -264,5 +264,6 @@
         }
       ]
     }
-  ]
+  ],
+  "assetReferences": {"Assets/Models/Cube.obj": "d08e9c24bfa343e0890b07fa7e70d7d8"}
 }

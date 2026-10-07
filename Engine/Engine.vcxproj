@@ -195,6 +195,10 @@
     <ClCompile Include="src\Graphics\Models\ModelLoader.cpp" />
     <ClInclude Include="include\Engine\Graphics\Models\ModelLoader.h" />
     <ClCompile Include="src\Graphics\Renderers\ModelRenderer.cpp" />
+    <ClInclude Include="include\Engine\Animation\Skeleton.h" />
+    <ClInclude Include="include\Engine\Assets\AssetDatabase.h" />
+    <ClCompile Include="src\Animation\Skeleton.cpp" />
+    <ClCompile Include="src\Animation\SkeletonLoader.cpp" />
     <ClInclude Include="include\Engine\Graphics\Renderers\ModelRenderer.h" />
     <ClInclude Include="include\Engine\Graphics\Models\MeshData.h" />
   </ItemGroup>

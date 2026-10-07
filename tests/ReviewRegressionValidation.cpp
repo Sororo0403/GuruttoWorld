@@ -29,6 +29,9 @@
 #include "AnimationValidation.h"
 #include "PhysicsValidation.h"
 #include "ScriptValidation.h"
+#include "AnimatorValidation.h"
+#include "AssetDatabaseValidation.h"
+#include "ProfilerValidation.h"
 #include "PrefabValidation.h"
 #include "InputActionValidation.h"
 #include "MaterialValidation.h"
@@ -1867,6 +1870,8 @@ namespace
                 PhysicsValidation::Runtime(renderer,TestContentRoot());
                 PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
                 MaterialValidation::Rendering(renderer);
+                AnimatorValidation::Runtime(renderer);
+                ProfilerValidation::Run(renderer);
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
@@ -3027,14 +3032,36 @@ void ValidateDeferredClose()
 }
 int main()
 {
+    std::string phase="focused validation";
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_PROFILER_ONLY",nullptr,0)) {
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden profiler validation",64,32),"profiler test window");
+            Check(renderer.Initialize(window.GetHandle()),"profiler renderer");
+            ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: CPU timing, fenced GPU timestamps and frame counters\n"; return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_ASSET_ONLY",nullptr,0)) {
+            AssetDatabaseValidation::Run(); std::cout<<"PASS: stable asset IDs, scene references, rename, import settings and invalid operations\n"; return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_ANIMATOR_ONLY",nullptr,0)) {
+            AnimatorValidation::Run();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden skeletal validation",64,32),"skeletal test window");
+            Check(renderer.Initialize(window.GetHandle()),"skeletal renderer");
+            AnimatorValidation::Runtime(renderer);
+        ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: skeletal import, skinning, normals, interpolation, state transitions and schema\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_MATERIAL_ONLY",nullptr,0)) {
             MaterialValidation::Schema();
             Engine::Window window; Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden material validation",64,32),"material test window");
             Check(renderer.Initialize(window.GetHandle()),"material test renderer");
             MaterialValidation::Rendering(renderer);
+        AnimatorValidation::Runtime(renderer);
+        ProfilerValidation::Run(renderer);
             CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: material schema, tint, opacity, texture override and D3D12 root constants\n";
             return 0;
@@ -3083,18 +3110,18 @@ int main()
             std::cout << "PASS: START/CONFIG/QUIT menu, camera overshoot/reversal and three-aspect title presentation\n";
             return 0;
         }
-        ValidateTransformDecomposition();
-        ValidateSceneViewport();
-        ValidateProjectCatalog();
-        ValidateModelDrop();
-        ValidateConsoleLog();
-        ValidateSaveAs();
-        ValidateMultiSelection();
-        ValidateEditHistory();
-        ValidateFocusSelection();
-        ValidatePlayState();
-        ValidateDeferredClose();
-        ValidateEditorCamera();
+        phase="ValidateTransformDecomposition"; ValidateTransformDecomposition();
+        phase="ValidateSceneViewport"; ValidateSceneViewport();
+        phase="ValidateProjectCatalog"; ValidateProjectCatalog();
+        phase="ValidateModelDrop"; ValidateModelDrop();
+        phase="ValidateConsoleLog"; ValidateConsoleLog();
+        phase="ValidateSaveAs"; ValidateSaveAs();
+        phase="ValidateMultiSelection"; ValidateMultiSelection();
+        phase="ValidateEditHistory"; ValidateEditHistory();
+        phase="ValidateFocusSelection"; ValidateFocusSelection();
+        phase="ValidatePlayState"; ValidatePlayState();
+        phase="ValidateDeferredClose"; ValidateDeferredClose();
+        phase="ValidateEditorCamera"; ValidateEditorCamera();
         UiValidation::SchemaAndLayout();
         AnimationValidation::Schema();
         PhysicsValidation::Run();
@@ -3102,27 +3129,29 @@ int main()
         PrefabValidation::Run();
         InputActionValidation::Run();
         MaterialValidation::Schema();
-        ValidateSceneLayout();
-        ValidateEditorAcceptanceScene();
-        ValidateAssetChangeBatching();
-        ValidateComponentSchema();
-        ValidateParentData();
-        ValidateHierarchyRows();
-        ValidateSceneTransforms();
-        ValidateSceneFiles();
-        ValidateDiagnostics();
-        ValidateTitleMenu();
-        ValidateTitleAuthoring();
+        AnimatorValidation::Run();
+        AssetDatabaseValidation::Run();
+        phase="ValidateSceneLayout"; ValidateSceneLayout();
+        phase="ValidateEditorAcceptanceScene"; ValidateEditorAcceptanceScene();
+        phase="ValidateAssetChangeBatching"; ValidateAssetChangeBatching();
+        phase="ValidateComponentSchema"; ValidateComponentSchema();
+        phase="ValidateParentData"; ValidateParentData();
+        phase="ValidateHierarchyRows"; ValidateHierarchyRows();
+        phase="ValidateSceneTransforms"; ValidateSceneTransforms();
+        phase="ValidateSceneFiles"; ValidateSceneFiles();
+        phase="ValidateDiagnostics"; ValidateDiagnostics();
+        phase="ValidateTitleMenu"; ValidateTitleMenu();
+        phase="ValidateTitleAuthoring"; ValidateTitleAuthoring();
         ProjectSettingsValidation::Run();
-        ValidateTitleAnimation();
-        ValidateSettings();
-        ValidatePressAnyTitle();
-        ValidateTitleAudio();
-        ValidateRenderTexture();
-        ValidateTitle();
-        ValidateMirroredMesh();
+        phase="ValidateTitleAnimation"; ValidateTitleAnimation();
+        phase="ValidateSettings"; ValidateSettings();
+        phase="ValidatePressAnyTitle"; ValidatePressAnyTitle();
+        phase="ValidateTitleAudio"; ValidateTitleAudio();
+        phase="ValidateRenderTexture"; ValidateRenderTexture();
+        phase="ValidateTitle"; ValidateTitle();
+        phase="ValidateMirroredMesh"; ValidateMirroredMesh();
         std::cout << "PASS: diagnostics location/overrides, title menu/settings/rendering, mirrored mesh visibility and backface culling\n";
         return 0;
     }
-    catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
+    catch (const std::exception& error) { std::cerr << phase << ": " << error.what() << '\n'; return 1; }
 }

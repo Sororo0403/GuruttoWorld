@@ -350,5 +350,6 @@
         }
       ]
     }
-  ]
+  ],
+  "assetReferences": {"Assets/Models/Cube.obj": "d08e9c24bfa343e0890b07fa7e70d7d8", "Assets/Materials/Floor.mat": "953a6b7850ec47759832602e87a7bf27", "Assets/Materials/Red.mat": "387c997df04c48eab09bdb448e7f9c61", "Assets/Materials/BlueGlass.mat": "84aa069f22a44e4eaf1070c3832f7bca"}
 }

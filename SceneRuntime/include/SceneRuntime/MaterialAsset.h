@@ -1,6 +1,7 @@
 #pragma once
 #include <Engine/Graphics/Materials/Material.h>
 #include <Engine/Core/Json.h>
+#include <Engine/Assets/AssetDatabase.h>
 #include <fstream>
 #include <Engine/Platform/Window.h>
 #include <filesystem>
@@ -34,7 +35,7 @@ namespace SceneRuntime
         {
             if (!ValidPath(path)) throw std::runtime_error("Invalid material path");
             std::ifstream stream(root/path); if (!stream) throw std::runtime_error("Cannot open material");
-            const auto json=Engine::Json::parse(stream); MaterialAsset asset;
+            auto json=Engine::Json::parse(stream); Engine::AssetDatabase(root).References(json); MaterialAsset asset;
             const auto& color=Engine::JsonArray(json.at("color")); if (color.size()!=4) throw std::runtime_error("Material color needs four channels");
             for (size_t index=0;index<4;++index) asset.values.color[index]=static_cast<float>(Engine::JsonNumber(color[index]));
             asset.values.roughness=static_cast<float>(Engine::JsonNumber(json.at("roughness")));
@@ -60,9 +61,10 @@ namespace SceneRuntime
             if (!ValidPath(path)) throw std::runtime_error("Invalid material path");
             std::filesystem::create_directories((root/path).parent_path());
             const auto text=texture.generic_u8string();
-            const Engine::Json json={{"color",values.color},{"roughness",values.roughness},{"metallic",values.metallic},
+            Engine::Json json={{"color",values.color},{"roughness",values.roughness},{"metallic",values.metallic},
                 {"transparent",values.transparent},{"texture",std::string(text.begin(),text.end())},
                 {"uv",{{"scale",values.uv.scale},{"rotation",values.uv.rotation},{"translation",values.uv.translation}}}};
+            Engine::AssetDatabase(root).References(json);
             auto temporary=root/path; temporary+=".tmp";
             std::ofstream output(temporary,std::ios::binary|std::ios::trunc); output<<json.dump(2)<<'\n'; output.close();
             if (!output || !MoveFileExW(temporary.c_str(),(root/path).c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))

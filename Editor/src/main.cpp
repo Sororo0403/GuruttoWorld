@@ -1,6 +1,9 @@
 #include "CameraPanel.h"
 #include "ObjectPanel.h"
 #include "ProjectPanel.h"
+#include "BuildPanel.h"
+#include "ProfilerPanel.h"
+#include <chrono>
 #include "AssetChanges.h"
 #include "ModelDrop.h"
 #include "SceneSelection.h"
@@ -86,6 +89,8 @@ namespace
     private:
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
         {
+            const auto updateStart=std::chrono::steady_clock::now();
+            buildPanel.Poll(root);
             if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer)) return Engine::RenderResult::Failed;
             if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
             ApplyUiEvent(renderer);
@@ -109,6 +114,7 @@ namespace
                     input && playerInputs.Pressed("Jump"));
             }
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
+            profilerPanel.Update(renderer,DisplayedWorld(),seconds,std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-updateStart).count());
             bool rendered = true;
             const auto result = renderer.Render(preview ? world.Layout().settings.background : std::array<float,4>{0.10f,0.11f,0.13f,1},
                 [&](ID3D12GraphicsCommandList* commands, float aspect)
@@ -364,8 +370,10 @@ namespace
             assetReloadRequested=false;
             if (!renderer.WaitForIdle()) return false;
             auto candidate=std::make_unique<SceneRuntime::ScenePresentation>();
+            auto resolved=world.Layout();
+            try { resolved.ResolveAssets(root); } catch (const std::exception& exception) { fileStatus=exception.what(); LogResult(false); return true; }
             const bool success=Editor::ValidateProjectShaders(root,fileStatus) && candidate->Initialize(renderer,root,fileStatus) &&
-                candidate->PrepareUi(renderer,root,world.Layout(),fileStatus) && world.ReloadAssets(renderer,root,root/"Shaders/Mesh.hlsl",fileStatus);
+                candidate->PrepareUi(renderer,root,resolved,fileStatus) && world.ReloadAssets(renderer,root,root/"Shaders/Mesh.hlsl",fileStatus);
             if (success)
             {
                 presentation=std::move(candidate);
@@ -489,7 +497,9 @@ namespace
                 DrawToolbar();
             }
             Editor::PanelLayout::BeginFrame(preview);
-            if (!preview) consolePanel.Draw();
+            if (!preview) {
+                consolePanel.Draw(); buildPanel.Draw(root,!editState.HasChanges() && !document.UnsavedNew()); profilerPanel.Draw(root);
+            }
             Editor::TransformGizmo::BeginFrame();
             sceneViewport = {};
             if (preview)
@@ -823,9 +833,11 @@ namespace
             if (!ImGui::BeginMainMenuBar()) return;
             DrawFileMenu(enabled);
             DrawEditMenu(enabled);
+            if (ImGui::MenuItem("ビルド###Build player")) buildPanel.open=true;
             if (ImGui::BeginMenu("表示###View"))
             {
                 if (ImGui::MenuItem("選択対象にフォーカス###Focus selected", "F", false, enabled && editState.InspectedAsset().empty() && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
+                ImGui::MenuItem("性能計測###Profiler",nullptr,&profilerPanel.open);
                 if (ImGui::MenuItem("コンソール###Console")) ImGui::SetWindowFocus("コンソール###Console");
                 if (ImGui::MenuItem("ゲームタブ###Game tab", nullptr, false, enabled)) focusGame=true;
                 if (ImGui::MenuItem("ゲーム画面を確認###Preview Game composition", nullptr, false, enabled))
@@ -1059,6 +1071,8 @@ namespace
         std::optional<Editor::GameSession::Command> pendingPlay;
         Editor::ObjectPanel objectPanel;
         Editor::ProjectPanel projectPanel;
+        Editor::BuildPanel buildPanel;
+        Editor::ProfilerPanel profilerPanel;
         Editor::AssetChanges assetChanges;
         bool assetReloadRequested=false;
         Editor::TransformGizmo gizmo;

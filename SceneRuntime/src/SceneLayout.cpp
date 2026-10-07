@@ -2,6 +2,7 @@
 #include "SceneComponentJson.h"
 #include "SceneSettingsJson.h"
 #include <SceneRuntime/Prefab.h>
+#include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Core/Json.h>
 #include <Windows.h>
 #include <cmath>
@@ -90,6 +91,8 @@ namespace SceneRuntime
             if (version!=2.0 && version!=3.0 && version!=4.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
+            if (document.contains("assetReferences")) layout.assetReferences=document.at("assetReferences").get<std::map<std::string,std::string>>();
+            for (const auto& [path,id] : layout.assetReferences) if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id)) throw std::runtime_error("Invalid asset reference metadata");
             if (version==4.0) layout.settings=ReadSceneSettings(JsonObject(document.at("settings")));
             if (document.contains("transformSpace")) throw std::runtime_error("Scenes always use local transforms");
             std::unordered_set<std::string> ids;
@@ -150,14 +153,17 @@ namespace SceneRuntime
                     throw std::runtime_error("Cannot save nonfinite transform");
             json+="    "+object.dump()+(i+1==objects.size()?"\n":",\n");
         }
-        json+="  ]\n}\n";
+        json+="  ],\n  \"assetReferences\": "+Json(assetReferences).dump()+"\n}\n";
         static_cast<void>(Parse(json));
         return json;
     }
 
     void SceneLayout::Save(const std::filesystem::path& path, bool overwrite) const
     {
-        const auto json = Serialize();
+        auto document=Json::parse(Serialize());
+        const auto root=Engine::AssetDatabase::Root(path);
+        if (!root.empty()) Engine::AssetDatabase(root).References(document,true,false);
+        const auto json = document.dump(2)+"\n";
         static std::atomic<unsigned long long> sequence{ 0 };
         auto temporary = path;
         temporary += L"." + std::to_wstring(GetCurrentProcessId()) + L"." +
@@ -191,7 +197,11 @@ namespace SceneRuntime
         }
     }
 
-    SceneLayout SceneLayout::Load(const std::filesystem::path& path)
+    void SceneLayout::ResolveAssets(const std::filesystem::path& root) {
+        auto document=Json::parse(Serialize()); Engine::AssetDatabase(root).References(document);
+        *this=Parse(document.dump());
+    }
+    SceneLayout SceneLayout::Load(const std::filesystem::path& path,const std::filesystem::path& assetsRoot)
     {
         std::ifstream stream(path, std::ios::binary);
         if (!stream) throw std::runtime_error("Cannot open layout: " + path.string());
@@ -199,6 +209,8 @@ namespace SceneRuntime
         if (stream.bad()) throw std::runtime_error("Cannot read layout: " + path.string());
         // 一般的なテキストエディターが付けるUTF-8 BOMを許可します。
         if (json.starts_with("\xEF\xBB\xBF")) json.erase(0, 3);
-        return Parse(json);
+        auto layout=Parse(json);
+        if (!assetsRoot.empty()) layout.ResolveAssets(assetsRoot);
+        return layout;
     }
 }

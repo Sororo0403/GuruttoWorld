@@ -397,3 +397,21 @@ PlayerControllerとタイトルメニューは共通のAction設定を使いま�
 Projectの「Materialを作成」で名前を指定し、Materialアセットを選ぶとInspectorで色・透明度・画像・UV拡縮／回転／移動・粗さ・金属感を編集できます。「Materialを保存」でファイルへ保存し、操作が終わるとシーンの共有Materialへ反映します。粗さと金属感は既存のハイライトを調整する簡易的な陰影で、PBRではありません。
 MeshRendererのMaterial欄でアセットを割り当てます。「モデルの設定」に戻すと元のモデルの色・画像を使います。同じMaterialを割り当てたオブジェクトは設定を共有し、異なるMaterialを使えば同じモデルでも外観を変えられます。色の透明度を下げると透明描画になり、不透明なものの後に距離順で描画します。透明面同士が交差する場合の完全な順序解決と透過した影は扱いません。
 `Assets/Scenes/MaterialPlayground.json`で共有した赤色Materialと透明な青色Materialを確認できます。Materialの変更はアセットへの保存なので、シーンのUndoとは別です。
+
+### 骨格アニメーション
+
+`Assets/Scenes/AnimatorPlayground.json` は `AnimatedBox.gltf` の Idle / Walk / Jump を入力と接地状態で切り替えます。MeshRendererへglTF/GLBを割り当て、Animatorを追加するとInspectorでクリップ・状態・条件・ブレンド時間を編集できます。状態名の変更は遷移も更新します。`speed`、`grounded`、入力Action名、`pressed:Action名` を条件に使用できます。Pauseでは時計を停止し、Stepは1フレーム進めます。
+
+現段階はCPUスキニングと毎フレームのバッファ更新です。最大512ノード・メッシュごと256ボーン、頂点ごと強い4ウェイトを正規化して使用します。埋め込み画像は未対応なので外部画像として書き出してください。多数のキャラクターを扱うGPUスキニング・IK・ルートモーションは今後の拡張です。
+
+### アセットIDとインポート
+
+Projectの一覧更新時にアセットの隣へ `.meta` を作成し、32桁のIDを維持します。Inspectorで移動・改名するとメタデータも移動し、以前のパスを記録します。保存するシーン・Prefab・Material・Project設定には参照IDを記録し、読み込み時に現在のパスへ解決します。ID欠損・重複はエラーとして扱います。`.meta` もGitと配布物に含めてください。外部ツールで改名する場合も本体と `.meta` を一緒に移動します。
+
+モデルの倍率とV座標反転をInspectorで保存すると再インポートします。移動先は同じ種類のAssetsフォルダー内です。OBJのmtllibとglTFの外部URIは、モデルの移動に合わせて相対位置を更新します。Dependenciesにはシーン・Prefab・Materialの参照とOBJ/glTFの外部ファイルを表示します。全形式の推移的依存グラフや画像圧縮設定は未対応です。
+
+### ビルドと性能計測
+
+メニューの「ビルド」でRelease / Developmentを選択し、保存済みContentからAppをビルドします。Visual Studio/MSBuildを検出して非表示の別プロセスで実行し、`generated/builds` にログ・結果JSON・配布用フォルダーを出力します。既存の配布物は上書きしません。App.exe、Assets、Shaders、メタデータ、x64 MSVC CRTとSHA-256一覧のpackage.jsonを同梱します。配布物内のAppを `--validate-package` で起動し、起動シーン・モデル・シェーダー・UIを実際に描画できた場合に成功とします。ソースやVisual Studioがない環境ではEditorからのビルドはできません。
+
+「表示 → 性能計測」ではフレーム時間、CPUの更新・準備と描画・Present待ち、フェンス完了後のGPUタイムスタンプ、メッシュ描画数・三角形数（影を含む）、プロセスのWorking set / Privateメモリ、GPUローカルメモリと予算を表示します。描画数はSceneWorldのメッシュが対象で、UI・粒子は含みません。GPUは数フレーム前に完了した測定値です。直近600サンプルを記録停止でき、`generated/profiler` へCSV出力できます。詳細な関数別CPU計測・GPUパス別計測は今後の拡張です。

@@ -4,6 +4,7 @@
 #include <Engine/Graphics/Resources/RenderTargetBinding.h>
 
 #include <format>
+#include <chrono>
 
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "DXGI.lib")
@@ -62,6 +63,7 @@ namespace Engine
             CloseHandle(fenceEvent_);
             fenceEvent_ = nullptr;
         }
+        timestampQueries_.Reset(); timestampReadback_.Reset(); timestampFrequency_=0; timestampPending_.fill(false); telemetry_={};
         commands_.Reset();
         for (auto& allocator : allocators_)
         {
@@ -362,9 +364,24 @@ namespace Engine
             return false;
         }
 #endif
+        InitializeTelemetry();
         ready_ = true;
         Log::Info("DirectX 12 renderer initialized.");
         return true;
+    }
+
+    void DirectX12Renderer::InitializeTelemetry() {
+        D3D12_QUERY_HEAP_DESC queries{}; queries.Type=D3D12_QUERY_HEAP_TYPE_TIMESTAMP; queries.Count=BufferCount*2;
+        D3D12_HEAP_PROPERTIES heap{}; heap.Type=D3D12_HEAP_TYPE_READBACK;
+        D3D12_RESOURCE_DESC resource{}; resource.Dimension=D3D12_RESOURCE_DIMENSION_BUFFER;
+        resource.Width=sizeof(UINT64)*BufferCount*2; resource.Height=1; resource.DepthOrArraySize=1; resource.MipLevels=1;
+        resource.SampleDesc.Count=1; resource.Layout=D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        if (FAILED(queue_->GetTimestampFrequency(&timestampFrequency_)) || timestampFrequency_==0 ||
+            FAILED(device_->CreateQueryHeap(&queries,IID_PPV_ARGS(&timestampQueries_))) ||
+            FAILED(device_->CreateCommittedResource(&heap,D3D12_HEAP_FLAG_NONE,&resource,D3D12_RESOURCE_STATE_COPY_DEST,nullptr,IID_PPV_ARGS(&timestampReadback_)))) {
+            timestampQueries_.Reset(); timestampReadback_.Reset(); timestampFrequency_=0;
+            Log::Warning("GPU timestamp telemetry is unavailable.");
+        }
     }
 
     ID3D12Device* DirectX12Renderer::GetDevice() const noexcept
@@ -391,6 +408,7 @@ namespace Engine
         const std::function<void(ID3D12GraphicsCommandList*, float)>& draw,
         const std::function<void()>& debugUi)
     {
+        const auto cpuStart=std::chrono::steady_clock::now();
         if (!ready_)
         {
             return RenderResult::Failed;
@@ -433,7 +451,10 @@ namespace Engine
         {
             draw(commands_.Get(), static_cast<float>(width_) / static_cast<float>(height_));
         }
-        return EndFrame(index);
+        const auto result=EndFrame(index);
+        telemetry_.cpuRenderMilliseconds=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-cpuStart).count();
+        if (result==RenderResult::Presented) ++telemetry_.frames;
+        return result;
     }
 
     bool DirectX12Renderer::Resize(UINT newWidth, UINT newHeight)
@@ -479,6 +500,16 @@ namespace Engine
         {
             return false;
         }
+        if (timestampReadback_ && timestampPending_[index]) {
+            const SIZE_T offset=sizeof(UINT64)*index*2;
+            const D3D12_RANGE read{offset,offset+sizeof(UINT64)*2}; void* mapped=nullptr;
+            if (SUCCEEDED(timestampReadback_->Map(0,&read,&mapped))) {
+                const auto* values=reinterpret_cast<const UINT64*>(static_cast<const unsigned char*>(mapped)+offset);
+                if (values[1]>=values[0]) { telemetry_.gpuMilliseconds=static_cast<double>(values[1]-values[0])*1000.0/static_cast<double>(timestampFrequency_); telemetry_.gpuSample=true; }
+                const D3D12_RANGE written{0,0}; timestampReadback_->Unmap(0,&written);
+            } timestampPending_[index]=false;
+        }
+        if (timestampQueries_) commands_->EndQuery(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,index*2);
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         debugUi_.BeginFrame();
         if (debugUi)
@@ -522,6 +553,10 @@ namespace Engine
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
         commands_->ResourceBarrier(1, &barrier);
+        if (timestampQueries_) {
+            commands_->EndQuery(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,index*2+1);
+            commands_->ResolveQueryData(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,index*2,2,timestampReadback_.Get(),sizeof(UINT64)*index*2);
+        }
         if (!Check(commands_->Close(), "Close command list"))
         {
             return RenderResult::Failed;
@@ -536,6 +571,7 @@ namespace Engine
             return RenderResult::Failed;
         }
         frameFenceValues_[index] = submittedFence;
+        timestampPending_[index]=timestampQueries_!=nullptr;
         if (!Check(present, "Present"))
         {
             return RenderResult::Failed;

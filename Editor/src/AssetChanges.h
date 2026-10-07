@@ -63,7 +63,7 @@ namespace Editor
         static bool Watched(const std::filesystem::path& path)
         {
             const auto kind=ProjectCatalog::Kind(path);
-            return (kind && *kind!=AssetKind::Scene) || Extension(path)==".mtl";
+            return (kind && *kind!=AssetKind::Scene) || Extension(path)==".mtl" || Extension(path)==".meta" || Extension(path)==".bin";
         }
         Files observed_;
         bool initialized_=false, pending_=false, stable_=false;

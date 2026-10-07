@@ -2,6 +2,7 @@
 #include "EnvironmentPanel.h"
 #include "UiComponentPanel.h"
 #include "AnimationPanel.h"
+#include "AnimatorPanel.h"
 #include <SceneRuntime/ScriptRuntime.h>
 #include <imgui.h>
 
@@ -57,7 +58,7 @@ namespace Editor
         { mesh.visibleWhen=condition.data(); edited=true; }
         if (ImGui::Button("メッシュ描画をリセット###Reset MeshRenderer")) { mesh.enabled=true; edited=true; }
         ImGui::SameLine();
-        if (ImGui::Button("メッシュ描画を削除###Remove MeshRenderer")) { candidate.meshRenderer.reset(); edited=true; }
+        if (ImGui::Button("メッシュ描画を削除###Remove MeshRenderer")) { candidate.meshRenderer.reset(); candidate.animator.reset(); edited=true; }
         ImGui::PopID();
         return edited;
     }
@@ -116,6 +117,8 @@ namespace Editor
                 }
             ImGui::EndMenu();
         }
+        if (ImGui::MenuItem("骨格アニメーション###Animator",nullptr,false,!candidate.animator && candidate.meshRenderer && (candidate.Model().extension()==".gltf" || candidate.Model().extension()==".glb")))
+        { candidate.animator=SceneRuntime::AnimatorComponent{}; candidate.animator->id=NewComponentId(candidate,"animator"); edited=true; }
         edited=EnvironmentPanel::Add(candidate) || edited;
         edited=UiComponentPanel::Add(candidate) || edited;
         if (ImGui::MenuItem("アニメーション###Animation",nullptr,false,!candidate.animation))
@@ -129,6 +132,7 @@ namespace Editor
         auto candidate=placement;
         bool edited=DrawMesh(candidate,catalog);
         edited=DrawRotator(state,candidate) || edited;
+        edited=AnimatorPanel::Draw(candidate,catalog) || edited;
         if (candidate.playerController && ImGui::CollapsingHeader("プレイヤー操作###PlayerController",ImGuiTreeNodeFlags_DefaultOpen))
         {
             auto& player=*candidate.playerController;

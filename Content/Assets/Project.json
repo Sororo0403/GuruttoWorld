@@ -2,5 +2,6 @@
   "title": "ぐるっとワールド",
   "startupScene": "Assets/Scenes/TitleStreet.json",
   "width": 1280,
-  "height": 720
+  "height": 720,
+  "assetReferences": {"Assets/Scenes/TitleStreet.json": "1f0e809df9d447e8b2eab18c11c18317"}
 }

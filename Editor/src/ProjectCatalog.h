@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <Engine/Assets/AssetDatabase.h>
 #include <cctype>
 #include <filesystem>
 #include <set>
@@ -34,7 +35,8 @@ namespace Editor
                 ScanFolder(root,"Assets",assets,folders);
                 if (std::filesystem::is_directory(root/"Shaders")) ScanFolder(root,"Shaders",assets,folders);
                 std::sort(assets.begin(),assets.end(), [](const auto& a,const auto& b) { return a.path<b.path; });
-                assets_=std::move(assets);
+                static_cast<void>(Engine::AssetDatabase(root));
+                root_=root; assets_=std::move(assets);
                 folders_={folders.begin(),folders.end()};
                 error_.clear();
                 return true;
@@ -46,7 +48,7 @@ namespace Editor
             const auto extension=Lower(Text(path.extension()));
             if (extension==".mat" && Text(path).starts_with("Assets/Materials/")) return AssetKind::Material;
             if (extension==".prefab" && Text(path).starts_with("Assets/Prefabs/")) return AssetKind::Prefab;
-            if (extension==".obj") return AssetKind::Model;
+            if (extension==".obj" || extension==".gltf" || extension==".glb") return AssetKind::Model;
             if (extension==".json" && Text(path).starts_with("Assets/Scenes/")) return AssetKind::Scene;
             if (HasExtension(extension,{".png",".jpg",".jpeg",".bmp",".tif",".tiff",".dds"})) return AssetKind::Texture;
             if (HasExtension(extension,{".wav",".mp3",".aac",".m4a",".ogg",".flac"})) return AssetKind::Audio;
@@ -74,6 +76,7 @@ namespace Editor
             if (search.empty()) return asset.path.parent_path()==folder;
             return Lower(Text(asset.path)).find(Lower(search))!=std::string::npos;
         }
+        const std::filesystem::path& Root() const { return root_; }
         const std::vector<ProjectAsset>& Assets() const { return assets_; }
         const std::vector<std::filesystem::path>& Folders() const { return folders_; }
         const std::string& Error() const { return error_; }
@@ -90,6 +93,7 @@ namespace Editor
                 const auto relative=entry.path().lexically_relative(root);
                 const auto kind=Kind(relative);
                 if (!kind) continue;
+                Engine::AssetDatabase::Ensure(entry.path());
                 assets.push_back({relative,*kind});
                 for (auto parent=relative.parent_path(); !parent.empty(); parent=parent.parent_path()) folders.insert(parent);
             }
@@ -99,6 +103,7 @@ namespace Editor
             std::transform(value.begin(),value.end(),value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             return value;
         }
+        std::filesystem::path root_;
         std::vector<ProjectAsset> assets_;
         std::vector<std::filesystem::path> folders_;
         std::string error_;

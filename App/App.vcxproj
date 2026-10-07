@@ -250,6 +250,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Game.h" />
+    <ClInclude Include="src\PackageValidation.h" />
     <ClCompile Include="src\Game.cpp" />
     <ClInclude Include="src\Scenes\GameScene.h" />
     <ClCompile Include="src\Scenes\GameScene.cpp" />
