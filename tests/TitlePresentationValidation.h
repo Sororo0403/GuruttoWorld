@@ -41,6 +41,8 @@ namespace TitlePresentationValidation
         unsigned char* pixels=nullptr;
         const D3D12_RANGE range{0,static_cast<SIZE_T>(pitch)*height};
         Require(SUCCEEDED(readback->Map(0,&range,reinterpret_cast<void**>(&pixels))),"title capture maps");
+        if(name=="quit-focus")
+            Require(pixels[0]+pixels[1]+pixels[2]>60,"QUIT selection keeps the scene visible before confirmation");
         if (name.starts_with("covered"))
         {
             for (const auto offset:std::array<SIZE_T,4>{0,(width-1)*4,(height-1)*pitch,(height-1)*pitch+(width-1)*4})
@@ -71,6 +73,7 @@ namespace TitlePresentationValidation
         Require(scene.CameraPosition()==stopped,"background OFF freezes waiting animation and sway");
         scene.SeekAnimation(3,3);
         scene.Ui().values["cameraFocus"]=1;
+        scene.Ui().values["focusView"]=1;
         scene.Ui().values["selected"]=1;
         scene.Ui().values["startEmphasis"]=.6f;
         scene.Ui().values["configEmphasis"]=1;
@@ -103,15 +106,37 @@ namespace TitlePresentationValidation
         scene.Ui().values["cameraFocus"]=0;
         scene.Update(.1,true,true);
         Require(std::abs(scene.CameraPosition()[0]-interrupted[0])<.2f,"rapid selection reverses from the in-flight pose");
+        scene.Ui().values["cameraFocus"]=2;
+        scene.Ui().values["selected"]=2;
+        scene.Ui().values["focusView"]=1;
+        scene.Ui().values["quitEmphasis"]=1;
+        const auto beforeQuit=scene.CameraPosition();
+        scene.Update(.1,true,true);
+        Require(std::abs(scene.CameraPosition()[0]-beforeQuit[0])<.2f,"QUIT starts from the interrupted camera pose");
+        for(int frame=0;frame<8;++frame) scene.Update(.1,true,true);
+        Require(std::abs(scene.CameraPosition()[0]+1.5f)<.2f && scene.CameraPosition()[1]>5.0f,"QUIT camera reaches the left building sign");
+        Capture(renderer,scene,1280,720,"quit-focus");
+        scene.Ui().values["quitTransition"]=1;
+        Capture(renderer,scene,1280,720,"covered-quit");
+        scene.Ui().values["quitTransition"]=0;
         scene.Ui().values["cameraFocus"]=0;
+        scene.Ui().values["focusView"]=0;
         scene.SeekAnimation(3,3);
         scene.Ui().values["selected"]=0;
         scene.Ui().values["startEmphasis"]=1;
         scene.Ui().values["configEmphasis"]=.6f;
+        scene.Ui().values["quitEmphasis"]=.6f;
         const auto prompt=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& o){return o.id=="world-start";});
         Require(prompt!=layout.objects.end(),"title has an editable start prompt");
         for (const auto& size:std::array<std::array<UINT,2>,3>{{{1280,720},{1024,768},{720,1280}}})
         {
+            for(const auto& id:{"world-start","world-config","world-quit"})
+            {
+                const auto button=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& o){return o.id==id;});
+                Require(button!=layout.objects.end() && button->text && !button->image,"main menu uses plain text buttons");
+                const auto bounds=SceneRuntime::SceneUi::Resolve(layout,*button,size[0],size[1],scene.Ui());
+                Require(bounds.visible && bounds.position[1]+bounds.size[1]<=size[1],"all three menu buttons fit each aspect ratio");
+            }
             const auto rect=SceneRuntime::SceneUi::Resolve(layout,*prompt,size[0],size[1],scene.Ui());
             Require(rect.visible && rect.position[0]>=0 && rect.position[1]>=0 &&
                 rect.position[0]+rect.size[0]<=size[0] && rect.position[1]+rect.size[1]<=size[1],"start prompt fits every window aspect");

@@ -76,7 +76,8 @@ namespace SceneRuntime
         const auto* camera=SceneView::CameraObject(world_.Layout());
         const auto position=camera ? camera->position : std::array<float,3>{};
         const auto rotation=camera ? camera->rotation : std::array<float,3>{};
-        const bool requested=uiState_.Value("cameraFocus")==1;
+        const float focus=uiState_.Value("cameraFocus");
+        const int requested=focus==2 ? 2 : focus==1 ? 1 : 0;
         if (requested!=focusRequested_)
         {
             focusRequested_=requested; focusEngaged_=true; focusSeconds_=0;
@@ -87,7 +88,8 @@ namespace SceneRuntime
         if (!focusEngaged_ || startSeconds_>=0) return;
         camera=SceneView::CameraObject(world_.Layout());
         if (!camera || !camera->animation || !camera->animation->enabled) return;
-        const std::string clock=focusRequested_ ? "configFocusTime" : "homeFocusTime";
+        const std::array<std::string,3> focusClocks{"homeFocusTime","configFocusTime","quitFocusTime"};
+        const auto& clock=focusClocks[focusRequested_];
         const auto pose=SampleCameraFocus(*camera,clock,focusSeconds_,focusPosition_,focusRotation_);
         if (!world_.SetLocalTransform(camera->id,pose.position,pose.rotation,camera->scale))
             Engine::Log::Warning("Camera focus rejected an invalid transform.");
@@ -98,7 +100,7 @@ namespace SceneRuntime
         if (!std::isfinite(sceneSeconds) || !std::isfinite(motionSeconds) || !std::isfinite(startSeconds) ||
             sceneSeconds<0 || motionSeconds<0) return;
         sceneSeconds_=sceneSeconds; seconds_=motionSeconds; startSeconds_=startSeconds;
-        focusRequested_=false; focusEngaged_=false; focusSeconds_=0;
+        focusRequested_=0; focusEngaged_=false; focusSeconds_=0;
         uiState_.values["sceneTime"]=sceneSeconds;
         uiState_.values["motionTime"]=motionSeconds;
         uiState_.values["startTime"]=startSeconds;

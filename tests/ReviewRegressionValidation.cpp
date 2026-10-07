@@ -99,6 +99,16 @@ namespace
     {
         using namespace App;
         TitleMenu menu;
+        TitleMenu quitMenu;
+        TitleMenuInput quitInput; quitInput.active=true;
+        quitMenu.Update(quitInput);
+        quitMenu.SelectUi(TitleMenuItem::Exit);
+        Check(quitMenu.GetSelected()==TitleMenuItem::Exit && quitMenu.TransitionProgress()==0,"QUIT hover selects without closing");
+        quitMenu.ActivateUi("menu:2");
+        for(int frame=0;frame<4;++frame)
+            Check(quitMenu.Update(quitInput,.1)==TitleMenuAction::None,"QUIT waits for normal fade");
+        Check(quitMenu.Update(quitInput,.1)==TitleMenuAction::Exit &&
+            quitMenu.Update(quitInput,.1)==TitleMenuAction::None,"QUIT emits ordinary exit exactly once");
         TitleMenu streetMenu(false,false,true);
         TitleMenuInput streetInput;
         streetInput.active=true;
@@ -2984,7 +2994,7 @@ int main()
             TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
             Check(renderer.WaitForIdle(),"focused title GPU completion");
             CheckGpuMessages(renderer.GetDevice());
-            std::cout << "PASS: START/CONFIG menu, camera overshoot/reversal and three-aspect title presentation\n";
+            std::cout << "PASS: START/CONFIG/QUIT menu, camera overshoot/reversal and three-aspect title presentation\n";
             return 0;
         }
         ValidateTransformDecomposition();

@@ -23,7 +23,7 @@ def save_scene(scene):
 
 
 def author(scene):
-    scene["objects"]=[n for n in scene["objects"] if not n["id"].startswith(("config-","menu-selection-")) and n["id"]!="world-config"]
+    scene["objects"]=[n for n in scene["objects"] if not n["id"].startswith(("config-","quit-","menu-selection-","menu-shadow-")) and n["id"] not in ("world-config","world-quit")]
     nodes = {o["id"]: o for o in scene["objects"]}
     def component(node, kind):
         return next(c for c in node["components"] if c["type"] == kind)
@@ -51,10 +51,12 @@ def author(scene):
     # The cog lies in XZ in its source file. Stand it upright on the street-facing facade.
     add("config-cog", "Assets/Models/Title/Factory/cog-a.obj",
         (9, 5.6, 15.65), (3.2, 3.2, 3.2), (1.5707963, 0, 0))["name"] = "CONFIG / Kenney CC0の歯車看板"
+    add("quit-sign", "Assets/Models/Title/EmergencyExit/Sign.obj",
+        (-7.2, 7.4, -2.8), (1, 1, 1))["name"] = "QUIT / 左のビル上部のCC0避難口看板"
 
     camera = nodes["scene-camera"]
     tracks = component(camera, "Animation")["tracks"]
-    tracks[:]=[t for t in tracks if t["clock"] not in ("configFocusTime","homeFocusTime","sceneTime")]
+    tracks[:]=[t for t in tracks if t["clock"] not in ("configFocusTime","quitFocusTime","homeFocusTime","sceneTime")]
     tracks[:0]=[track("position","sceneTime",[(0,[4.8,2,-14]),(.435,[1.9,2.4,-11]),(1.276,camera["position"])],"outBack"),
                 track("rotation","sceneTime",[(0,[-.025,-.36,-.12]),(.435,[-.09,-.15,-.10]),(1.276,camera["rotation"])],"outBack")]
     for t in tracks:
@@ -64,43 +66,64 @@ def author(scene):
                                ("rotation", camera["rotation"], [-.19, .12, -.025])):
         tracks += [track(prop, "configFocusTime", [(0, home), (.62, target)], "outBack"),
                    track(prop, "homeFocusTime", [(0, target), (.56, home)], "outBack")]
+    for prop, home, target in (("position",camera["position"],[-1.5,5.2,-11]),
+                               ("rotation",camera["rotation"],[-.22,-.61,0])):
+        tracks.append(track(prop,"quitFocusTime",[(0,home),(.58,target)],"outBack"))
 
     defaults = component(nodes["title-canvas"], "Canvas")["stateDefaults"]
     defaults.update(screen=0, selected=0, cameraFocus=0, configFocusTime=-1, homeFocusTime=-1,
+                    quitFocusTime=-1,focusView=0,quitEmphasis=.6,quitTransition=0,
                     volume=7, motion=1, row=0, saveFailed=0, introDuration=1.3,startEmphasis=1,configEmphasis=.6)
     component(nodes["world-logo"],"RectTransform")["visibleWhen"]="cameraFocus=0"
     small_logo=copy.deepcopy(nodes["world-logo"])
     small_logo.update(id="config-logo",name="CONFIG / 小さなタイトルロゴ")
     small_logo["components"]=[c for c in small_logo["components"] if c["type"]!="Animation"]
-    component(small_logo,"RectTransform").update(position=[900,42],size=[300,160],visibleWhen="cameraFocus=1")
+    component(small_logo,"RectTransform").update(position=[900,42],size=[300,160],visibleWhen="focusView=1")
     scene["objects"].append(small_logo)
     start = nodes["world-start"]
     start["name"] = "START / ゲーム開始"
     start["components"] = [c for c in start["components"] if c["type"] != "Animation"]
     rect = component(start, "RectTransform")
-    rect.update(position=[66, 487], size=[310, 82], visibleWhen="screen=0",opacityBinding="startEmphasis")
-    component(start, "Button").update(action="click", target="", event="menu:0", sound="")
+    start["components"]=[c for c in start["components"] if c["type"] not in ("Image","Text")]
+    start["components"].append(dict(type="Text",id="text",enabled=True,text="START",font="Segoe UI",fontSize=34,color=[1,1,1,1]))
+    rect.update(position=[88, 450], size=[270, 58], rotation=0,visibleWhen="screen=0",opacityBinding="startEmphasis")
+    component(start, "Button").update(action="click", target="", event="menu:0", sound="",hoverColor=[1,1,1,1],pressedColor=[.7,.7,.7,1])
     config = copy.deepcopy(start)
     config.update(id="world-config", name="CONFIG / 設定施設へ")
-    component(config, "RectTransform")["position"] = [82, 581]
+    component(config, "RectTransform")["position"] = [88, 518]
     component(config, "RectTransform")["opacityBinding"] = "configEmphasis"
-    component(config, "Image")["texture"] = "Assets/Textures/Title/Morning/ConfigBand.png"
+    component(config, "Text")["text"] = "CONFIG"
     component(config, "Button")["event"] = "menu:1"
     scene["objects"].append(config)
-    for node, index in ((start, 0), (config, 1)):
+    quit_button=copy.deepcopy(config)
+    quit_button.update(id="world-quit",name="QUIT / ゲーム終了")
+    component(quit_button,"RectTransform").update(position=[88,586],opacityBinding="quitEmphasis")
+    component(quit_button,"Text")["text"]="QUIT"
+    component(quit_button,"Button")["event"]="menu:2"
+    scene["objects"].append(quit_button)
+    for node, index in ((start, 0), (config, 1), (quit_button,2)):
         pos = component(node, "RectTransform")["position"]
         node["components"].append(dict(type="Animation", id="animation", enabled=True, tracks=[
             track("uiPosition", "sceneTime", [(0, [-380, pos[1]]), (.55+index*.1, [-380, pos[1]]),
                   (1.12+index*.1, pos)], "outBack"),
             track("opacity", "startTime", [(0, 1), (.18, 0)])]))
-        # Orange bracket follows keyboard selection as well as pointer selection.
+        shadow=copy.deepcopy(node)
+        shadow.update(id=f"menu-shadow-{index}",name=f"文字の可読性 / {index}")
+        shadow["components"]=[c for c in shadow["components"] if c["type"]!="Button"]
+        component(shadow,"RectTransform")["position"]=[pos[0]+2,pos[1]+2]
+        component(shadow,"Text")["color"]=[0,0,0,.7]
+        for key in component(shadow,"Animation")["tracks"][0]["keys"]:
+            key["value"][0]+=2
+            key["value"][1]+=2
+        scene["objects"].insert(scene["objects"].index(node),shadow)
+        # A small neutral dot follows keyboard and pointer selection.
         marker = copy.deepcopy(node)
         marker.update(id=f"menu-selection-{index}", name=f"選択 / {index}")
         marker["components"] = [copy.deepcopy(component(node, "RectTransform")),
                                 dict(type="Image", id="image", enabled=True, texture="", uv=[0,0,1,1],
-                                     color=[1,.40,.17,1])]
-        component(marker, "RectTransform").update(position=[pos[0]-17,pos[1]+14], size=[7,53],
-                                                  rotation=-.09, opacityBinding="",visibleWhen=f"screen=0&selected={index}")
+                                     color=[1,1,1,1])]
+        component(marker, "RectTransform").update(position=[pos[0]-21,pos[1]+23], size=[6,6],
+                                                  rotation=0, opacityBinding="",visibleWhen=f"screen=0&selected={index}")
         scene["objects"].append(marker)
 
     # Existing saved UI nodes vary between authored versions; remove obsolete instructions only.
@@ -110,6 +133,13 @@ def author(scene):
                 if c["type"] == "Text":
                     c["text"] = "↑↓ 選択   ENTER 決定"
     template = copy.deepcopy(rect)
+    for identifier in ("title-transition", "title-transitionPink"):
+        component(nodes[identifier],"RectTransform")["visibleWhen"]="selected=0"
+    fade=copy.deepcopy(nodes["title-transition"])
+    fade.update(id="quit-fade",name="QUIT / 通常の暗転")
+    component(fade,"RectTransform").update(widthBinding="",opacityBinding="quitTransition",visibleWhen="selected=2")
+    component(fade,"Image")["color"]=[0,0,0,1]
+    scene["objects"].append(fade)
     def ui(identifier, pos, size, text=None, color=None, condition="screen=1", event=None, font_size=28):
         r = copy.deepcopy(template)
         r.update(position=pos, size=size, rotation=0, opacityBinding="",visibleWhen=condition)
@@ -121,7 +151,7 @@ def author(scene):
                               color=[1,.98,.94,1]))
         if event:
             parts.append(dict(type="Button",id="button",enabled=True,action="click",target="",event=event,sound="",
-                              hoverColor=[1,.8,.5,1],pressedColor=[.4,.8,1,1]))
+                              hoverColor=[1,1,1,1],pressedColor=[.7,.7,.7,1]))
         scene["objects"].append(dict(id=identifier,name=identifier,parent="title-canvas",
                                      position=[0,0,0],rotation=[0,0,0],scale=[1,1,1],components=parts))
     ui("config-panel",[64,390],[410,282],color=[.025,.065,.11,.94])

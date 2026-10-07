@@ -5,7 +5,7 @@
 ## 現在の構成
 
 「ぐるっとワールド」の朝のCC0街並み、大きな斜めロゴを維持する。
-開始案内をSTART／CONFIGの2項目へ変更し、人物は配置しない。
+開始案内をSTART／CONFIG／QUITの3項目へ変更し、人物は配置しない。
 上下キー・W/S・パッドで選択、Enter／Aで決定。ポインターの入場で選択し、クリックで決定する。
 押しっぱなし、フォーカス復帰、パッド接続直後の誤操作を抑止する。
 
@@ -39,7 +39,7 @@ Editorの平行光源Inspectorから影の有効・描画範囲・深度バイ�
 
 通常はContent/Assets/Scenes/TitleStreet.jsonをEditorで編集する。通常ビルドはアセットを再生成しない。
 scripts/AuthorTitleMenu.pyはメニュー・施設・初期カメラ移動を明示的に再設定する制作ツール。
-scripts/GenerateMorningTitleArt.ps1は同梱M PLUS 1p BlackからロゴとSTART／CONFIGの帯を生成する。
+scripts/GenerateMorningTitleArt.ps1は同梱M PLUS 1p Blackからロゴを生成する。メニューは装飾帯を使わない白いテキスト。
 影のための画像生成や再ベイクは不要。
 旧CreateMorningTitleScene.py／AuthorTitleAnimation.pyは初期制作の記録で、現行メニューを上書きするため通常は実行しない。
 
@@ -50,3 +50,6 @@ Debug／Development／ReleaseのApp・共有コードをビルドし、Debug／R
 TitlePresentationValidationでCONFIG到着・途中反転・START復帰と3画面比率の開始UI・全画面被覆を確認する。
 GPU画像はgenerated/title-rebuild/previewsに保存し、Gitには含めない。
 非表示GPU検証と実機の画面操作は区別して報告する。
+
+QUIT選択は0.58秒のoutBackで左のビル上部の緑色EXIT看板へ移動する。決定すると通常の暗転後にWM_CLOSEで終了する。
+看板はOpenclipartのCC0避難口サインを立体の枠・支柱に貼った派生素材。主メニューは白文字と小さな選択点のみ。

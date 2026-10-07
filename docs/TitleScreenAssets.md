@@ -1,3 +1,11 @@
+# QUIT / CC0避難口サイン（2026-10-07）
+
+- Openclipart「security」by yves_guillou: https://openclipart.org/detail/92155/security-by-yves_guillou-92155
+- CC0公開方針: https://openclipart.org/share
+- Content/Assets/Models/Title/EmergencyExit に原SVG・PNG、出典とライセンス、EXIT文字を加えた看板素材を保存。
+- 枠・支柱は自作の3D形状。scripts/AuthorEmergencyExit.pyで再生成（明示実行のみ）。
+- 青／水色のSTART／CONFIG帯を撤去。3ボタンは白い通常テキストに変更。
+
 # タイトル画面の採用素材
 
 ## リアルタイム影への置き換え（2026-10-07）

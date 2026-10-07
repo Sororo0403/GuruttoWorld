@@ -1,4 +1,4 @@
-# 朝のタイトルUI。図形と同梱フォントから独自のロゴ・帯・文字部品を生成します。
+# 朝のタイトルUI。図形と同梱フォントから独自のロゴを生成します。
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $morningRoot = Split-Path $PSScriptRoot -Parent
@@ -9,8 +9,6 @@ $morningFonts.AddFontFile((Join-Path $morningRoot 'App/Assets/Fonts/MPlus1p/MPLU
 $morningRed = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 255, 114, 74))
 $morningWhite = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 255, 252, 244))
 $morningInk = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 11, 27, 44))
-$morningBlue = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 25, 103, 172))
-$morningCyan = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 108, 229, 239))
 function New-MorningImage {
     param([string]$Name,[int]$Width,[int]$Height,[scriptblock]$Draw)
     $morningBitmap=[System.Drawing.Bitmap]::new($Width,$Height)
@@ -50,18 +48,6 @@ try {
         Morning-Type $g 'ワールド' 89 295 977 200 $morningWhite -8
         Morning-Type $g 'GURUTTO WORLD' 186 526 724 33 $morningWhite -8
     }
-    New-MorningImage 'StartBand' 1000 230 {
-        param($g)
-        Morning-Polygon $g $morningBlue @(5,72,941,0,991,170,56,229)
-        Morning-Polygon $g $morningCyan @(107,13,958,46,919,173,45,152)
-        Morning-Type $g 'START' 210 78 560 80 $morningWhite -4
-    }
-    New-MorningImage 'ConfigBand' 1000 230 {
-        param($g)
-        Morning-Polygon $g $morningInk @(5,72,941,0,991,170,56,229)
-        Morning-Polygon $g $morningBlue @(107,13,958,46,919,173,45,152)
-        Morning-Type $g 'CONFIG' 170 80 660 74 $morningWhite -4
-    }
 } finally {
-    foreach($morningResource in @($morningFonts,$morningRed,$morningWhite,$morningInk,$morningBlue,$morningCyan)){$morningResource.Dispose()}
+    foreach($morningResource in @($morningFonts,$morningRed,$morningWhite,$morningInk)){$morningResource.Dispose()}
 }

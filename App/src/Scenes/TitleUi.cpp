@@ -1,5 +1,10 @@
 #include "TitleUi.h"
 #include <algorithm>
+namespace {
+float SelectionOpacity(const App::TitleMenu& menu,App::TitleMenuItem item) {
+    return menu.GetSelected()==item ? 1.0f : .6f;
+}
+}
 namespace App {
 bool TitleUi::Initialize(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root) {
     layout_=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
@@ -13,9 +18,12 @@ SceneRuntime::UiState TitleUi::State(const TitleMenu& menu) {
         {"gamepad",menu.UsesGamepad()?1.0f:0.0f},{"intro",menu.IntroProgress()},{"pulse",12*menu.SelectionPulse()},
         {"volume",static_cast<float>(menu.GetSettings().volume)},{"motion",menu.GetSettings().backgroundMotion?1.0f:0.0f},
         {"saveFailed",menu.SaveFailed()?1.0f:0.0f},
-        {"cameraFocus",menu.IsSettingsOpen() || menu.GetSelected()==TitleMenuItem::Settings ? 1.0f : 0.0f},
-        {"startEmphasis",menu.GetSelected()==TitleMenuItem::Start ? 1.0f : 0.6f},
-        {"configEmphasis",menu.GetSelected()==TitleMenuItem::Settings ? 1.0f : 0.6f},
+        {"cameraFocus",menu.IsSettingsOpen() ? 1.0f : static_cast<float>(menu.GetSelected())},
+        {"focusView",menu.IsSettingsOpen() || menu.GetSelected()!=TitleMenuItem::Start ? 1.0f : 0.0f},
+        {"startEmphasis",SelectionOpacity(menu,TitleMenuItem::Start)},
+        {"configEmphasis",SelectionOpacity(menu,TitleMenuItem::Settings)},
+        {"quitEmphasis",SelectionOpacity(menu,TitleMenuItem::Exit)},
+        {"quitTransition",menu.GetSelected()==TitleMenuItem::Exit ? menu.TransitionProgress() : 0.0f},
         {"transition",menu.TransitionProgress()},
         {"transitionPink",std::min(1.0f,menu.TransitionProgress()*1.25f)}};
     for(int i=0;i<3;++i) {

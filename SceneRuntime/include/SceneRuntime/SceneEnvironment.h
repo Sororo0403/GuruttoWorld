@@ -31,7 +31,8 @@ namespace SceneRuntime
         void AnimateCameraFocus(float elapsed);
         std::array<float,3> focusPosition_{},focusRotation_{};
         float focusSeconds_=0;
-        bool focusRequested_=false,focusEngaged_=false;
+        int focusRequested_=0;
+        bool focusEngaged_=false;
         UiState uiState_;
         SceneAudio audio_;
         SceneWorld world_;

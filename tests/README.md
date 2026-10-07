@@ -1,10 +1,10 @@
 # カメラ・パーティクルの検証
 
-## START／CONFIGタイトル（2026-10-07）
+## START／CONFIG／QUITタイトル（2026-10-07）
 
-現行タイトルは上下／W・S／パッドでSTART・CONFIGを選び、Enter／Aまたはクリックで決定します。
+現行タイトルは上下／W・S／パッドでSTART・CONFIG・QUITを選び、Enter／Aまたはクリックで決定します。
 CONFIG選択だけで歯車付き施設へ移動し、決定すると音量・背景演出・保存の設定を開きます。
-Esc／Bで取消、START選択で通りへ復帰します。従来の3項目と任意ボタン方式は互換回帰の対象にのみ残っています。
+Esc／Bで取消、START選択で通りへ復帰します。従来の2項目と任意ボタン方式は互換回帰の対象にのみ残っています。
 TitlePresentationValidationはCONFIG到着、途中反転の位置連続性、START復帰と設定パネルをGPUで確認します。
 画像はgenerated/title-rebuild/previews/config-focus.ppm・config-settings-1280x720.ppmなどに保存します。
 WP1_TITLE_PRESENTATION_ONLY=1を設定すると、全回帰を省略してメニュー・タイトル演出とGPU画像だけを検証できます。
@@ -203,3 +203,5 @@ TitlePresentationValidationはタイトルのGPU画像をgenerated/title-rebuild
 横長・4:3・縦長で開始案内の位置と最終遷移の四隅の被覆を検証し、待機OFF・巻き戻しを確認します。
 WP1_TITLE_PREVIEW=1を設定してReviewRegressionValidationを実行すると、登場・待機・開始の81フレームをPPMに保存します。
 生成画像は検証用で、通常ビルドや保存済みシーンには影響しません。
+
+QUITは選択だけでは終了せず、決定後にExitを一度だけ通知することを検証。QUITへの途中切替・左ビル到着と3画面比率で全ボタンの収まりも確認します。

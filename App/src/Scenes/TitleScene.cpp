@@ -20,7 +20,7 @@ namespace
 
 namespace App
 {
-    TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro, false, true) {}
+    TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro, false, false) {}
 
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)
     {
@@ -116,6 +116,7 @@ namespace App
         if (hovered_==previousHover) return;
         if (hovered_=="world-start") menu_.SelectUi(TitleMenuItem::Start);
         if (hovered_=="world-config") menu_.SelectUi(TitleMenuItem::Settings);
+        if (hovered_=="world-quit") menu_.SelectUi(TitleMenuItem::Exit);
     }
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)
     {
