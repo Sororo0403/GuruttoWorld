@@ -162,6 +162,7 @@ namespace SceneRuntime
                 objects.push_back(std::move(object));
             }
             layout_ = std::move(layout);
+            physics_.clear();
             objects_ = std::move(objects);
             error.clear();
             return true;
@@ -326,24 +327,14 @@ namespace SceneRuntime
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
 
-    bool SceneWorld::MovePlayers(double seconds, float horizontal, float vertical)
+    bool SceneWorld::MovePlayers(double seconds, float horizontal, float vertical, bool jump)
     {
-        if (!std::isfinite(seconds) || seconds<=0 || !std::isfinite(horizontal) || !std::isfinite(vertical)) return false;
-        horizontal=std::clamp(horizontal,-1.0f,1.0f);
-        vertical=std::clamp(vertical,-1.0f,1.0f);
-        const float length=std::max(1.0f,std::hypot(horizontal,vertical));
-        if (horizontal==0 && vertical==0) return true;
         auto candidate=layout_;
-        bool changed=false;
-        for (auto& object : candidate.objects)
-        {
-            if (!object.playerController || !object.playerController->enabled || object.playerController->moveSpeed==0) continue;
-            const float distance=object.playerController->moveSpeed*static_cast<float>(std::min(seconds,0.1));
-            object.position[0]+=horizontal/length*distance;
-            object.position[2]+=vertical/length*distance;
-            changed=true;
-        }
-        return !changed || CommitTransforms(std::move(candidate));
+        auto states=physics_;
+        if (!ScenePhysics::Advance(candidate,states,seconds,horizontal,vertical,jump)) return false;
+        if (!CommitTransforms(std::move(candidate))) return false;
+        physics_=std::move(states);
+        return true;
     }
 
     bool SceneWorld::UpdateComponents(double seconds)

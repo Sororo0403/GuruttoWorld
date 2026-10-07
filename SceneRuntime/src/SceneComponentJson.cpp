@@ -116,6 +116,30 @@ namespace
             const double speed=JsonNumber(component.at("moveSpeed"));
             if (!std::isfinite(speed) || speed<0 || speed>1000) throw std::runtime_error("Invalid PlayerController speed");
             placement.playerController=SceneRuntime::PlayerControllerComponent{id,enabled,static_cast<float>(speed)};
+            auto& player=*placement.playerController;
+            if (component.contains("useGravity")) player.useGravity=component.at("useGravity").get<bool>();
+            if (component.contains("gravity")) player.gravity=static_cast<float>(JsonNumber(component.at("gravity")));
+            if (component.contains("jumpSpeed")) player.jumpSpeed=static_cast<float>(JsonNumber(component.at("jumpSpeed")));
+            if (!std::isfinite(player.gravity) || player.gravity<0 || player.gravity>1000 ||
+                !std::isfinite(player.jumpSpeed) || player.jumpSpeed<0 || player.jumpSpeed>1000) throw std::runtime_error("Invalid player gravity or jump speed");
+        }
+        else if (type=="BoxCollider")
+        {
+            if (placement.boxCollider) throw std::runtime_error("Only one BoxCollider is allowed");
+            SceneRuntime::BoxColliderComponent collider; collider.id=id; collider.enabled=enabled;
+            for (const auto* key : {"center","size"})
+            {
+                const auto& values=JsonArray(component.at(key));
+                if (values.size()!=3) throw std::runtime_error("BoxCollider requires three components");
+                for (size_t axis=0;axis<3;++axis)
+                {
+                    const double number=JsonNumber(values.at(axis));
+                    if (!std::isfinite(number) || std::abs(number)>100000 || (std::string_view(key)=="size" && number<0.001))
+                        throw std::runtime_error("Invalid BoxCollider bounds");
+                    (std::string_view(key)=="size" ? collider.size : collider.center)[axis]=static_cast<float>(number);
+                }
+            }
+            placement.boxCollider=collider;
         }
         else if (type=="Animation")
         {
@@ -181,7 +205,21 @@ namespace SceneRuntime
             const auto& player=*placement.playerController;
             if (!std::isfinite(player.moveSpeed) || player.moveSpeed<0 || player.moveSpeed>1000) throw std::runtime_error("Invalid PlayerController speed");
             auto object=Component(player.id,"PlayerController",player.enabled);
+            if (!std::isfinite(player.gravity) || player.gravity<0 || player.gravity>1000 ||
+                !std::isfinite(player.jumpSpeed) || player.jumpSpeed<0 || player.jumpSpeed>1000) throw std::runtime_error("Invalid player gravity or jump speed");
             object["moveSpeed"]=player.moveSpeed;
+            object["useGravity"]=player.useGravity; object["gravity"]=player.gravity; object["jumpSpeed"]=player.jumpSpeed;
+            components.push_back(object);
+        }
+        if (placement.boxCollider)
+        {
+            const auto& collider=*placement.boxCollider;
+            for (size_t axis=0;axis<3;++axis)
+                if (!std::isfinite(collider.center[axis]) || std::abs(collider.center[axis])>100000 ||
+                    !std::isfinite(collider.size[axis]) || collider.size[axis]<0.001f || collider.size[axis]>100000)
+                    throw std::runtime_error("Invalid BoxCollider bounds");
+            auto object=Component(collider.id,"BoxCollider",collider.enabled);
+            object["center"]=collider.center; object["size"]=collider.size;
             components.push_back(object);
         }
         WriteEnvironmentComponents(components,placement);

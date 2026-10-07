@@ -162,6 +162,8 @@
     <ClInclude Include="src\SceneComponentJson.h" />
     <ClInclude Include="include\SceneRuntime\SceneComponents.h" />
     <ClCompile Include="src\SceneWorld.cpp" />
+    <ClCompile Include="src\ScenePhysics.cpp" />
+    <ClInclude Include="include\SceneRuntime\ScenePhysics.h" />
     <ClCompile Include="src\SceneTransforms.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneTransforms.h" />
     <ClInclude Include="include\SceneRuntime\SceneLayout.h" />

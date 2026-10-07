@@ -19,7 +19,18 @@ namespace SceneRuntime
         std::string id="player";
         bool enabled=true;
         float moveSpeed=5;
+        bool useGravity=false;
+        float gravity=20;
+        float jumpSpeed=7;
         bool operator==(const PlayerControllerComponent&) const = default;
+    };
+    struct BoxColliderComponent
+    {
+        std::string id="collider";
+        bool enabled=true;
+        std::array<float,3> center{};
+        std::array<float,3> size{1,1,1};
+        bool operator==(const BoxColliderComponent&) const = default;
     };
     struct RotatorComponent
     {

@@ -59,6 +59,7 @@ namespace Editor
         bool Step()
         {
             if (!runtime_ || !state_.Step()) return false;
+            runtime_->MovePlayers(PlayState::StepSeconds,0,0);
             runtime_->Update(PlayState::StepSeconds,true,true);
             return true;
         }

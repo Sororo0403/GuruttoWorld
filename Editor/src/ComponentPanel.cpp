@@ -94,6 +94,8 @@ namespace Editor
         }
         if (ImGui::MenuItem("プレイヤー操作###PlayerController",nullptr,false,!candidate.playerController))
         { candidate.playerController=SceneRuntime::PlayerControllerComponent{NewComponentId(candidate,"player"),true,5}; edited=true; }
+        if (ImGui::MenuItem("箱の衝突判定###BoxCollider",nullptr,false,!candidate.boxCollider))
+        { candidate.boxCollider=SceneRuntime::BoxColliderComponent{}; candidate.boxCollider->id=NewComponentId(candidate,"collider"); edited=true; }
         edited=EnvironmentPanel::Add(candidate) || edited;
         edited=UiComponentPanel::Add(candidate) || edited;
         if (ImGui::MenuItem("アニメーション###Animation",nullptr,false,!candidate.animation))
@@ -114,10 +116,34 @@ namespace Editor
             edited=ImGui::Checkbox("有効###Enabled",&player.enabled) || edited;
             edited=ImGui::DragFloat("移動速度###Move speed",&player.moveSpeed,0.1f,0,1000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
             if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
-            ImGui::TextUnformatted("WASD / 矢印キー：親のローカルXZ平面で移動（衝突なし）");
-            if (ImGui::Button("リセット###Reset PlayerController")) { player.enabled=true; player.moveSpeed=5; edited=true; }
+            edited=ImGui::Checkbox("重力を使用###Use gravity",&player.useGravity) || edited;
+            for (const auto& field : {std::pair{"重力加速度###Gravity",&player.gravity},std::pair{"ジャンプ速度###Jump speed",&player.jumpSpeed}})
+            {
+                edited=ImGui::DragFloat(field.first,field.second,0.1f,0,1000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
+                if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+            }
+            ImGui::TextUnformatted("WASD / 矢印キー：移動、Space：接地中にジャンプ");
+            if (!candidate.boxCollider || !candidate.boxCollider->enabled) ImGui::TextUnformatted("床や壁で止めるには有効な箱の衝突判定が必要です。");
+            if (ImGui::Button("リセット###Reset PlayerController")) { const auto id=player.id; player=SceneRuntime::PlayerControllerComponent{}; player.id=id; edited=true; }
             ImGui::SameLine();
             if (ImGui::Button("削除###Remove PlayerController")) { candidate.playerController.reset(); edited=true; }
+            ImGui::PopID();
+        }
+        if (candidate.boxCollider && ImGui::CollapsingHeader("箱の衝突判定###BoxCollider",ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            auto& collider=*candidate.boxCollider;
+            ImGui::PushID(collider.id.c_str());
+            edited=ImGui::Checkbox("有効###Enabled",&collider.enabled) || edited;
+            for (const auto& field : {std::pair{"中心###Collider center",&collider.center},std::pair{"大きさ###Collider size",&collider.size}})
+            {
+                const bool size=field.second==&collider.size;
+                edited=ImGui::DragFloat3(field.first,field.second->data(),0.05f,size ? 0.001f : -100000,100000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited;
+                if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+            }
+            ImGui::TextUnformatted("親の変形を継承する箱です。回転時は外接箱で判定します。");
+            if (ImGui::Button("リセット###Reset BoxCollider")) { const auto id=collider.id; collider=SceneRuntime::BoxColliderComponent{}; collider.id=id; edited=true; }
+            ImGui::SameLine();
+            if (ImGui::Button("削除###Remove BoxCollider")) { candidate.boxCollider.reset(); edited=true; }
             ImGui::PopID();
         }
         edited=EnvironmentPanel::Draw(state,candidate) || edited;

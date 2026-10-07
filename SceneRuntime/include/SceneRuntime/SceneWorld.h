@@ -3,6 +3,7 @@
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
 #include <optional>
+#include <SceneRuntime/ScenePhysics.h>
 
 namespace Engine { class DirectX12Renderer; }
 namespace SceneRuntime { struct UiState; }
@@ -51,7 +52,7 @@ namespace SceneRuntime
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
         bool UpdateComponents(double seconds);
         // Normalized input moves controllers on their parent-local XZ plane.
-        bool MovePlayers(double seconds, float horizontal, float vertical);
+        bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false);
         /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
         bool Animate(const std::map<std::string, float>& clocks);
         bool RenameObject(std::string_view id, std::string name);
@@ -85,6 +86,7 @@ namespace SceneRuntime
         std::string NewId(size_t& nextCounter) const;
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
+        ScenePhysics::States physics_;
         bool modelsReady_ = false;
         mutable Engine::ShadowMap shadow_;
         SceneLayout layout_;

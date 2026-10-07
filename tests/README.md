@@ -210,3 +210,5 @@ WP1_TITLE_PREVIEW=1を設定してReviewRegressionValidationを実行すると�
 QUITは選択だけでは終了せず、決定後にExitを一度だけ通知することを検証。QUITへの途中切替・左ビル到着と3画面比率で全ボタンの収まりも確認します。
 
 PlayerControllerはAnimationValidationの再生検証でJSON保存復元、不正な速度の拒否、斜め移動の速度補正、不正な更新時間の拒否、長いフレームの移動量上限と編集データの保持を確認します。Debug／Releaseの全回帰検証に含まれます。
+
+PhysicsValidationはGPUなしでBoxColliderとPlayerControllerの保存復元、旧シーンの重力OFF、不正な箱サイズの拒否、落下・接地・ジャンプ・空中ジャンプの拒否、薄い壁のすり抜け防止、無効Component、親の拡縮と不正な時間・入力を検証します。Debug／Releaseの全回帰に含まれ、`WP1_PHYSICS_ONLY=1`で単独実行できます。PhysicsPlayground.jsonの操作はEditorで確認できます。

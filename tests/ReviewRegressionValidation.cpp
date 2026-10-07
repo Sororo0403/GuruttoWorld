@@ -27,6 +27,7 @@
 #include "EnvironmentValidation.h"
 #include "UiValidation.h"
 #include "AnimationValidation.h"
+#include "PhysicsValidation.h"
 #include "TitlePresentationValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
@@ -1859,6 +1860,7 @@ namespace
                 ValidateEnvironmentMotion(renderer);
                 UiValidation::Rendering(renderer,TestContentRoot());
                 AnimationValidation::Runtime(renderer,TestContentRoot());
+                PhysicsValidation::Runtime(renderer,TestContentRoot());
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
@@ -3021,6 +3023,11 @@ int main()
 {
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_PHYSICS_ONLY",nullptr,0)) {
+            PhysicsValidation::Run();
+            std::cout<<"PASS: collider schema, gravity, grounded jump, wall sweep, disabled components and parent transforms\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_AUTHORING_ONLY",nullptr,0)) {
             UiValidation::SchemaAndLayout();
             ValidateTitleAuthoring();
@@ -3059,6 +3066,7 @@ int main()
         ValidateEditorCamera();
         UiValidation::SchemaAndLayout();
         AnimationValidation::Schema();
+        PhysicsValidation::Run();
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
         ValidateAssetChangeBatching();
