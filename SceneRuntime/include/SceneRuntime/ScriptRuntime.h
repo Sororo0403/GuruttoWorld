@@ -12,6 +12,10 @@ namespace SceneRuntime
         const std::map<std::string,float>& parameters;
         std::map<std::string,float>& state;
         double seconds=0;
+        const std::map<std::string,float>* input=nullptr;
+        const std::map<std::string,bool>* pressed=nullptr;
+        float Input(const std::string& name) const;
+        bool Pressed(const std::string& name) const;
         float Value(const std::string& name,float fallback=0) const;
     };
     struct ScriptDefinition
@@ -30,7 +34,8 @@ namespace SceneRuntime
     {
     public:
         // Update only changes transforms; callbacks may keep numeric per-instance state.
-        bool Update(SceneLayout& layout,double seconds,std::string& error);
+        bool Update(SceneLayout& layout,double seconds,std::string& error,
+            const std::map<std::string,float>& input={},const std::map<std::string,bool>& pressed={});
         void Stop(SceneLayout& layout) noexcept;
     private:
         struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; };

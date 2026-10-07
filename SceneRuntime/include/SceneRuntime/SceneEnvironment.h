@@ -23,6 +23,7 @@ namespace SceneRuntime
         void PauseAudio(bool paused) { audio_.Pause(paused); }
         UiEvent Click(const std::string& object);
         void Update(double deltaSeconds, bool enabled, bool active);
+        void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { world_.SetInputActions(std::move(values),std::move(pressed)); }
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false) { return world_.MovePlayers(seconds,horizontal,vertical,jump); }
         /// <summary>時計を指定して演出をプレビューします。未開始の開始演出には負値を指定します。</summary>
         void SeekAnimation(float sceneSeconds, float motionSeconds, float startSeconds = -1);

@@ -386,3 +386,8 @@ Hierarchyで親オブジェクトを一つ選び「編集 → 選択をPrefabと
 外部で元ファイルを変更した場合は「編集 → Prefabの変更を反映」を使います。シーンを開く際とAppの起動時にも反映します。元ファイルがない場合はエラーを表示して現在のシーンを保持します。「Prefabのリンクを解除」で通常の親子オブジェクトに戻せます。配置・変更反映・リンク解除はUndo／Redoに対応します。
 
 `Assets/Scenes/PrefabPlayground.json`には同じFloatingCube Prefabを三つ配置しています。元Prefabを一つのインスタンスから変更して、他の配置にも反映されることを確認できます。
+
+## 入力Action
+
+「ファイル → プロジェクト設定 → 入力Action」で操作名ごとに最大4個のキー、パッドボタン、左スティックの方向としきい値を設定できます。標準のMoveLeft／MoveRight／MoveForward／MoveBack／Jump／Confirm／Cancelに加え、独自のActionを追加できます。保存するとEditorの再生へ反映し、Appには次のビルドで反映します。古いProject.jsonには標準設定を補います。
+PlayerControllerとタイトルメニューは共通のAction設定を使います。Buttonの「入力Action名」に名前を指定すると、そのActionの押下で動作します。従来のショートカットも維持します。独自のゲーム処理では`ScriptContext::Input(name)`で0〜1の値、`Pressed(name)`で押したフレームを取得できます。非アクティブ時とPause／Stepではゲーム処理へ入力を渡しません。

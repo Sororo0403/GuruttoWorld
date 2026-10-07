@@ -49,7 +49,11 @@ namespace SceneRuntime
         return Registry().emplace(std::move(name),std::move(definition)).second;
     }
     const std::map<std::string,ScriptDefinition>& ScriptRegistry::Definitions() { return Registry(); }
-    bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error)
+    float ScriptContext::Input(const std::string& name) const
+    { if (!input) return 0; const auto found=input->find(name); return found==input->end() ? 0 : found->second; }
+    bool ScriptContext::Pressed(const std::string& name) const
+    { if (!pressed) return false; const auto found=pressed->find(name); return found!=pressed->end() && found->second; }
+    bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed)
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         try
@@ -76,12 +80,12 @@ namespace SceneRuntime
                     {
                         Instance instance{object.id,script.id,script.behaviour,{},script.parameters};
                         auto& created=instances_.emplace(key,std::move(instance)).first->second;
-                        ScriptContext context{object,created.parameters,created.state,0};
+                        ScriptContext context{object,created.parameters,created.state,0,&input,&pressed};
                         if (definition->second.start) definition->second.start(context);
                         found=instances_.find(key);
                     }
                     auto& instance=found->second; instance.parameters=script.parameters;
-                    ScriptContext context{object,instance.parameters,instance.state,std::min(seconds,0.1)};
+                    ScriptContext context{object,instance.parameters,instance.state,std::min(seconds,0.1),&input,&pressed};
                     definition->second.update(context);
                 }
             for (auto iterator=instances_.begin();iterator!=instances_.end();)

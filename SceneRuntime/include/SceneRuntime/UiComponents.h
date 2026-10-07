@@ -40,7 +40,7 @@ namespace SceneRuntime
     {
         std::string id="button"; bool enabled=true;
         std::string action="click", target, sound, event;
-        std::string shortcut;
+        std::string shortcut,inputAction;
         std::array<float,4> hoverColor{1,0.85f,0.8f,1}, pressedColor{0.7f,0.7f,0.7f,1};
         bool operator==(const ButtonComponent&) const = default;
     };

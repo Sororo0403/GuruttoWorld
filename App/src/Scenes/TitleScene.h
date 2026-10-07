@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Input/InputActions.h>
 #include <Engine/Scenes/IScene.h>
 #include "TitleUi.h"
 #include "TitleMenu.h"
@@ -40,6 +41,7 @@ namespace App
         std::filesystem::path root_;
         TitleMenu menu_;
         Engine::Gamepad gamepad_;
+        Engine::InputActions input_;
         SceneRuntime::SceneEnvironment environment_;
         TitleAudio audio_;
     };

@@ -42,7 +42,7 @@ std::string SceneUi::Shortcut(const SceneLayout& layout,const std::string& key,u
 {
     if(key.empty()) return {};
     for(const auto& object:layout.objects)
-        if(object.rectTransform && object.button && object.button->enabled && object.button->shortcut==key &&
+        if(object.rectTransform && object.button && object.button->enabled && (key.starts_with("action:") ? object.button->inputAction==key.substr(7) : object.button->shortcut==key) &&
             Resolve(layout,object,width,height,state).visible) return object.id;
     return {};
 }

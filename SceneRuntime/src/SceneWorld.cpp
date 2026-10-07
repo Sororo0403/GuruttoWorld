@@ -361,7 +361,7 @@ namespace SceneRuntime
         }
         auto runtime=scripts_;
         std::string error;
-        if (!runtime.Update(candidate,seconds,error)) { Engine::Log::Warning(error); return false; }
+        if (!runtime.Update(candidate,seconds,error,inputValues_,inputPressed_)) { Engine::Log::Warning(error); return false; }
         changed=changed || std::any_of(candidate.objects.begin(),candidate.objects.end(),[](const auto& placement) { return !placement.scripts.empty(); });
         if (changed && !CommitTransforms(std::move(candidate))) return false;
         scripts_=std::move(runtime);

@@ -61,6 +61,8 @@ namespace
             camera.GetCamera().SetPerspective(DirectX::XM_PIDIV4,16.0f/9.0f,0.1f,1000);
             camera.SetMoveSpeed(8.0f);
             projectPanel.Scan(root);
+            try { playerInputs.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions); }
+            catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); }
             Engine::ApplicationCallbacks callbacks;
             callbacks.closeRequested = [&]() { closeRequested = true; };
             callbacks.shouldClose = [&]()
@@ -88,14 +90,23 @@ namespace
             if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
             ApplyUiEvent(renderer);
             audioPreview.Process(root);
+            if (projectSettingsPanel.TakeSaved())
+            {
+                try { playerInputs.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions); }
+                catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); }
+            }
+            gamepad.Update(keyboard && keyboard->IsActive() && gameSession.State().CanPause());
+            if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard,&gamepad));
             if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
             if (gameSession.State().CanPause() && gameSession.Runtime() && keyboard && keyboard->IsActive() && !closeRequested)
             {
                 const bool input=gamePanel.Hovered() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive();
+                if (input) gameSession.Runtime()->SetInputActions(playerInputs.Values(),playerInputs.PressedValues());
+                else gameSession.Runtime()->SetInputActions({},{});
                 gameSession.Runtime()->MovePlayers(seconds,
-                    input ? float(keyboard->IsDown(DIK_D) || keyboard->IsDown(DIK_RIGHT))-float(keyboard->IsDown(DIK_A) || keyboard->IsDown(DIK_LEFT)) : 0,
-                    input ? float(keyboard->IsDown(DIK_W) || keyboard->IsDown(DIK_UP))-float(keyboard->IsDown(DIK_S) || keyboard->IsDown(DIK_DOWN)) : 0,
-                    input && keyboard->IsPressed(DIK_SPACE));
+                    input ? playerInputs.Value("MoveRight")-playerInputs.Value("MoveLeft") : 0,
+                    input ? playerInputs.Value("MoveForward")-playerInputs.Value("MoveBack") : 0,
+                    input && playerInputs.Pressed("Jump"));
             }
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             bool rendered = true;
@@ -391,6 +402,13 @@ namespace
             std::optional<Editor::PlaySnapshot> captured;
             Editor::AudioPreview::StopRequest();
             audioPreview.Process(root);
+            if (projectSettingsPanel.TakeSaved())
+            {
+                try { playerInputs.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions); }
+                catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); }
+            }
+            gamepad.Update(keyboard && keyboard->IsActive() && gameSession.State().CanPause());
+            if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard,&gamepad));
             if (gameSession.State().IsEditing())
             {
                 history.Commit();
@@ -523,8 +541,14 @@ namespace
             const auto& v=gamePanel.Viewport(); if(!v.Valid()) return;
             auto& ui=runtime->Ui(); const auto mouse=ImGui::GetIO().MousePos;
             if(gamePanel.Hovered() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
+                for (const auto& [name,binding] : playerInputs.GetBindings()) {
+                    static_cast<void>(binding);
+                    if (!playerInputs.Pressed(name)) continue;
+                    const auto object=SceneRuntime::SceneUi::Shortcut(runtime->World().Layout(),"action:"+name,static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),ui);
+                    if (!object.empty()) { pendingUiEvent=runtime->Click(object); break; }
+                }
                 const std::pair<const char*,ImGuiKey> shortcuts[]={{"space",ImGuiKey_Space},{"escape",ImGuiKey_Escape},{"1",ImGuiKey_1},{"2",ImGuiKey_2}};
-                for(const auto& [key,input]:shortcuts) if(ImGui::IsKeyPressed(input,false)) {
+                for(const auto& [key,input]:shortcuts) if(!pendingUiEvent && ImGui::IsKeyPressed(input,false)) {
                     const auto object=SceneRuntime::SceneUi::Shortcut(runtime->World().Layout(),key,static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),ui);
                     if(!object.empty()) {pendingUiEvent=runtime->Click(object); break;}
                 }
@@ -1042,6 +1066,8 @@ namespace
         Editor::ConsolePanel consolePanel;
         Editor::SaveAsPanel saveAsPanel;
         Editor::ProjectSettingsPanel projectSettingsPanel;
+        Engine::InputActions playerInputs;
+        Engine::Gamepad gamepad;
         std::unique_ptr<SceneRuntime::ScenePresentation> presentation;
         bool preview = false;
         bool focusRequested = false;

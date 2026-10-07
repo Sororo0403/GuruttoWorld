@@ -1,5 +1,6 @@
 #pragma once
 #include <Engine/Core/Json.h>
+#include <Engine/Input/InputActions.h>
 #include <filesystem>
 #include <fstream>
 #include <Engine/Platform/Window.h>
@@ -11,6 +12,7 @@ namespace SceneRuntime
         std::string title="ぐるっとワールド";
         std::string startupScene="Assets/Scenes/TitleStreet.json";
         int width=1280,height=720;
+        Engine::InputActions::Bindings inputActions=Engine::InputActions::Defaults();
 
         static bool ScenePath(const std::string& value)
         {
@@ -21,6 +23,7 @@ namespace SceneRuntime
         }
         void Validate() const
         {
+            Engine::InputActions::Validate(inputActions);
             if(title.empty() || title.size()>1024 || title.find('\0')!=std::string::npos ||
                 !ScenePath(startupScene) || width<320 || width>8192 || height<240 || height>8192)
                 throw std::runtime_error("Invalid project settings");
@@ -40,6 +43,7 @@ namespace SceneRuntime
                     throw std::runtime_error("Project dimensions must be integers within range");
             }
             result.width=json.at("width").get<int>(); result.height=json.at("height").get<int>();
+            if (json.contains("inputActions")) result.inputActions=Engine::InputActions::Parse(json.at("inputActions"));
             result.Validate(); return result;
         }
         void Save(const std::filesystem::path& root) const
@@ -51,7 +55,7 @@ namespace SceneRuntime
             auto temporary=path; temporary+=".tmp."+std::to_string(GetCurrentProcessId())+"."+std::to_string(GetTickCount64());
             try {
                 std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
-                const Engine::Json json={{"title",title},{"startupScene",startupScene},{"width",width},{"height",height}};
+                const Engine::Json json={{"title",title},{"startupScene",startupScene},{"width",width},{"height",height},{"inputActions",Engine::InputActions::Serialize(inputActions)}};
                 output<<json.dump(2)<<'\n'; output.close();
                 if(!output || !MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
                     throw std::runtime_error("Cannot save project settings");

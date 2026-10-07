@@ -13,10 +13,11 @@ namespace ProjectSettingsValidation
         std::ofstream(root/"Assets/Scenes/Custom.json")<<"{}";
         ProjectSettings settings;
         settings.title="編集したゲーム"; settings.startupScene="Assets/Scenes/Custom.json";
+        settings.inputActions["Jump"].keys={DIK_J};
         settings.width=1600; settings.height=900; settings.Save(root);
         const auto loaded=ProjectSettings::Load(root);
         require(loaded.title==settings.title && loaded.startupScene==settings.startupScene &&
-            loaded.width==1600 && loaded.height==900,"editor project settings survive save and App load");
+            loaded.width==1600 && loaded.height==900 && loaded.inputActions==settings.inputActions,"editor project settings survive save and App load");
         settings.width=0;
         bool rejected=false;
         try {settings.Save(root);} catch(const std::exception&) {rejected=true;}

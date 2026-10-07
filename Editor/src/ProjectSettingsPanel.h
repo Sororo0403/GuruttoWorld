@@ -1,5 +1,6 @@
 #pragma once
 #include "ProjectCatalog.h"
+#include "InputBindingsPanel.h"
 #include <SceneRuntime/ProjectSettings.h>
 #include <imgui.h>
 
@@ -8,6 +9,7 @@ namespace Editor
     class ProjectSettingsPanel
     {
     public:
+        bool TakeSaved() { const bool result=saved_; saved_=false; return result; }
         void Open(const std::filesystem::path& root)
         {
             try { settings_=SceneRuntime::ProjectSettings::Load(root); error_.clear(); }
@@ -29,10 +31,11 @@ namespace Editor
             }
             ImGui::InputInt("幅###Window width",&settings_.width);
             ImGui::InputInt("高さ###Window height",&settings_.height);
-            ImGui::TextUnformatted("保存後にビルドすると、次回のApp起動に反映されます。");
+            InputBindingsPanel::Draw(settings_.inputActions);
+            ImGui::TextUnformatted("入力設定はEditorの再生へ即時反映し、Appはビルド後の起動に反映します。");
             if(!error_.empty()) ImGui::TextWrapped("%s",error_.c_str());
             if(ImGui::Button("保存###Save project settings")) {
-                try { settings_.title=title_.data(); settings_.Save(root); ImGui::CloseCurrentPopup(); }
+                try { settings_.title=title_.data(); settings_.Save(root); saved_=true; ImGui::CloseCurrentPopup(); }
                 catch(const std::exception& exception) { error_=exception.what(); }
             }
             ImGui::SameLine(); if(ImGui::Button("キャンセル###Cancel project settings")) ImGui::CloseCurrentPopup();
@@ -42,6 +45,6 @@ namespace Editor
         SceneRuntime::ProjectSettings settings_;
         std::array<char,1025> title_{};
         std::string error_;
-        bool requested_=false;
+        bool requested_=false,saved_=false;
     };
 }

@@ -42,7 +42,7 @@ namespace Editor
             std::string audioError; if(!candidate->StartAudio(root,audioError)) Engine::Log::Warning(audioError);
             runtime_=std::move(candidate); state_.Stop(); return state_.Play();
         }
-        bool Pause() { const bool result=state_.Pause(); if(result && runtime_) {runtime_->PauseAudio(true); runtime_->Ui().pressed.clear(); runtime_->Ui().hovered.clear();} return result; }
+        bool Pause() { const bool result=state_.Pause(); if(result && runtime_) {runtime_->PauseAudio(true); runtime_->SetInputActions({},{}); runtime_->Ui().pressed.clear(); runtime_->Ui().hovered.clear();} return result; }
         bool Stop()
         {
             if (!state_.CanStop()) return false;
@@ -59,6 +59,7 @@ namespace Editor
         bool Step()
         {
             if (!runtime_ || !state_.Step()) return false;
+            runtime_->SetInputActions({},{});
             runtime_->MovePlayers(PlayState::StepSeconds,0,0);
             runtime_->Update(PlayState::StepSeconds,true,true);
             return true;

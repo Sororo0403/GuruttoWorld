@@ -53,6 +53,7 @@ namespace SceneRuntime
             const std::filesystem::path& assetsRoot, std::string& error);
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
         bool UpdateComponents(double seconds);
+        void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { inputValues_=std::move(values); inputPressed_=std::move(pressed); }
         // Normalized input moves controllers on their parent-local XZ plane.
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false);
         /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
@@ -88,6 +89,8 @@ namespace SceneRuntime
         std::string NewId(size_t& nextCounter) const;
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
+        std::map<std::string,float> inputValues_;
+        std::map<std::string,bool> inputPressed_;
         ScriptRuntime scripts_;
         ScenePhysics::States physics_;
         bool modelsReady_ = false;

@@ -127,6 +127,8 @@ void ReadButton(const Json& o,SceneRuntime::ScenePlacement& p) {
     c.target=String(o,"target");
     if(o.contains("event")) c.event=String(o,"event");
     if(o.contains("shortcut")) c.shortcut=String(o,"shortcut");
+    if(o.contains("inputAction")) c.inputAction=String(o,"inputAction");
+    if(c.inputAction.size()>128 || c.inputAction.find('\0')!=std::string::npos) throw std::runtime_error("Invalid button input action");
     const std::array<std::string_view,5> shortcuts{"","space","escape","1","2"};
     if(std::find(shortcuts.begin(),shortcuts.end(),c.shortcut)==shortcuts.end()) throw std::runtime_error("Unsupported button shortcut");
     c.sound=String(o,"sound");
@@ -144,6 +146,7 @@ void WriteButton(Json& a,const SceneRuntime::ButtonComponent& c) {
     Put(o,"target",c.target);
     Put(o,"event",c.event);
     Put(o,"shortcut",c.shortcut);
+    Put(o,"inputAction",c.inputAction);
     Put(o,"sound",c.sound);
     Put(o,"hoverColor",c.hoverColor);
     Put(o,"pressedColor",c.pressedColor);

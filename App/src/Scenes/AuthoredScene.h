@@ -2,6 +2,7 @@
 #include <Engine/Scenes/IScene.h>
 #include <SceneRuntime/SceneEnvironment.h>
 #include <Engine/Input/Gamepad.h>
+#include <Engine/Input/InputActions.h>
 namespace App {
 class AuthoredScene final:public Engine::IScene {
 public:
@@ -13,6 +14,7 @@ private:
     std::filesystem::path root_,scene_;
     SceneRuntime::SceneEnvironment environment_;
     Engine::Gamepad gamepad_;
+    Engine::InputActions input_;
     unsigned int width_=0,height_=0;
     bool down_=false,ready_=false;
 };

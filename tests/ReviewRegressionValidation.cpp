@@ -30,6 +30,7 @@
 #include "PhysicsValidation.h"
 #include "ScriptValidation.h"
 #include "PrefabValidation.h"
+#include "InputActionValidation.h"
 #include "TitlePresentationValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
@@ -3026,6 +3027,11 @@ int main()
 {
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_INPUT_ONLY",nullptr,0)) {
+            InputActionValidation::Run();
+            std::cout<<"PASS: input action bindings, keyboard/gamepad/analog, rebind, activation and Button actions\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_PREFAB_ONLY",nullptr,0)) {
             PrefabValidation::Run();
             std::cout<<"PASS: prefab hierarchy, links, source updates, overrides, unpack and failed refresh preservation\n";
@@ -3082,6 +3088,7 @@ int main()
         PhysicsValidation::Run();
         ScriptValidation::Run();
         PrefabValidation::Run();
+        InputActionValidation::Run();
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
         ValidateAssetChangeBatching();
