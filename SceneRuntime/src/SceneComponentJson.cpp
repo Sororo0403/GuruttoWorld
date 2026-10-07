@@ -110,6 +110,13 @@ namespace
             if (placement.rotator) throw std::runtime_error("Only one Rotator is allowed");
             placement.rotator=SceneRuntime::RotatorComponent{id,enabled,ReadVelocity(component)};
         }
+        else if (type=="PlayerController")
+        {
+            if (placement.playerController) throw std::runtime_error("Only one PlayerController is allowed");
+            const double speed=JsonNumber(component.at("moveSpeed"));
+            if (!std::isfinite(speed) || speed<0 || speed>1000) throw std::runtime_error("Invalid PlayerController speed");
+            placement.playerController=SceneRuntime::PlayerControllerComponent{id,enabled,static_cast<float>(speed)};
+        }
         else if (type=="Animation")
         {
             if (placement.animation) throw std::runtime_error("Only one Animation is allowed");
@@ -167,6 +174,14 @@ namespace SceneRuntime
                 velocity.push_back(value);
             }
             object["angularVelocity"]=velocity;
+            components.push_back(object);
+        }
+        if (placement.playerController)
+        {
+            const auto& player=*placement.playerController;
+            if (!std::isfinite(player.moveSpeed) || player.moveSpeed<0 || player.moveSpeed>1000) throw std::runtime_error("Invalid PlayerController speed");
+            auto object=Component(player.id,"PlayerController",player.enabled);
+            object["moveSpeed"]=player.moveSpeed;
             components.push_back(object);
         }
         WriteEnvironmentComponents(components,placement);

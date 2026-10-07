@@ -14,6 +14,13 @@ namespace SceneRuntime
         std::string visibleWhen;
         bool operator==(const MeshRendererComponent&) const = default;
     };
+    struct PlayerControllerComponent
+    {
+        std::string id="player";
+        bool enabled=true;
+        float moveSpeed=5;
+        bool operator==(const PlayerControllerComponent&) const = default;
+    };
     struct RotatorComponent
     {
         std::string id="rotator";

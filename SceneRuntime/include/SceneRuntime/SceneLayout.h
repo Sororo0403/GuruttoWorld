@@ -19,6 +19,7 @@ namespace SceneRuntime
         std::string name;
         std::optional<MeshRendererComponent> meshRenderer;
         std::optional<RotatorComponent> rotator;
+        std::optional<PlayerControllerComponent> playerController;
         std::optional<CameraComponent> camera;
         std::optional<DirectionalLightComponent> directionalLight;
         std::optional<SkyComponent> sky;
@@ -34,20 +35,20 @@ namespace SceneRuntime
         bool HasComponentId(const std::string& componentId) const
         {
             const auto matches=[&](const auto& component) { return component && component->id==componentId; };
-            const std::initializer_list<bool> found{componentId=="transform",matches(meshRenderer),matches(rotator),matches(camera),
+            const std::initializer_list<bool> found{componentId=="transform",matches(meshRenderer),matches(rotator),matches(playerController),matches(camera),
                 matches(directionalLight),matches(sky),matches(particleEmitter),matches(cameraSway),matches(canvas),
                 matches(rectTransform),matches(image),matches(text),matches(button),matches(audioSource),matches(animation)};
             return std::any_of(found.begin(),found.end(),[](bool value){return value;});
         }
         bool SameComponents(const ScenePlacement& other) const
         {
-            return meshRenderer==other.meshRenderer && rotator==other.rotator && camera==other.camera &&
+            return meshRenderer==other.meshRenderer && rotator==other.rotator && playerController==other.playerController && camera==other.camera &&
                 directionalLight==other.directionalLight && sky==other.sky && particleEmitter==other.particleEmitter &&
                 cameraSway==other.cameraSway && canvas==other.canvas && rectTransform==other.rectTransform && image==other.image && text==other.text && button==other.button && audioSource==other.audioSource && animation==other.animation;
         }
         void CopyComponents(const ScenePlacement& other)
         {
-            meshRenderer=other.meshRenderer; rotator=other.rotator; camera=other.camera;
+            meshRenderer=other.meshRenderer; rotator=other.rotator; playerController=other.playerController; camera=other.camera;
             directionalLight=other.directionalLight; sky=other.sky; particleEmitter=other.particleEmitter; cameraSway=other.cameraSway;
             canvas=other.canvas; rectTransform=other.rectTransform; image=other.image; text=other.text; button=other.button; audioSource=other.audioSource;
             animation=other.animation;

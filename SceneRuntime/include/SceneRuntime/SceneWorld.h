@@ -50,6 +50,8 @@ namespace SceneRuntime
             const std::filesystem::path& assetsRoot, std::string& error);
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
         bool UpdateComponents(double seconds);
+        // Normalized input moves controllers on their parent-local XZ plane.
+        bool MovePlayers(double seconds, float horizontal, float vertical);
         /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
         bool Animate(const std::map<std::string, float>& clocks);
         bool RenameObject(std::string_view id, std::string name);

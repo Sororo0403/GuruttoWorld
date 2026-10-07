@@ -14,6 +14,9 @@ bool AuthoredScene::Initialize(Engine::DirectX12Renderer& renderer) {
 std::string AuthoredScene::Update(double seconds,const Engine::Keyboard& keyboard) {
     const bool active=keyboard.IsActive();
     gamepad_.Update(active);
+    if(active) environment_.MovePlayers(seconds,
+        float(keyboard.IsDown(DIK_D) || keyboard.IsDown(DIK_RIGHT))-float(keyboard.IsDown(DIK_A) || keyboard.IsDown(DIK_LEFT)),
+        float(keyboard.IsDown(DIK_W) || keyboard.IsDown(DIK_UP))-float(keyboard.IsDown(DIK_S) || keyboard.IsDown(DIK_DOWN)));
     environment_.Update(seconds,true,active); environment_.UpdateAudio(active);
     auto& ui=environment_.Ui();
     if(!active) {ready_=false; down_=false; ui.pressed.clear(); ui.hovered.clear(); return {};}

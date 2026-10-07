@@ -92,6 +92,8 @@ namespace Editor
             candidate.rotator=SceneRuntime::RotatorComponent{NewComponentId(candidate,"rotator"),true,{0,90,0}};
             edited=true;
         }
+        if (ImGui::MenuItem("プレイヤー操作###PlayerController",nullptr,false,!candidate.playerController))
+        { candidate.playerController=SceneRuntime::PlayerControllerComponent{NewComponentId(candidate,"player"),true,5}; edited=true; }
         edited=EnvironmentPanel::Add(candidate) || edited;
         edited=UiComponentPanel::Add(candidate) || edited;
         if (ImGui::MenuItem("アニメーション###Animation",nullptr,false,!candidate.animation))
@@ -105,6 +107,19 @@ namespace Editor
         auto candidate=placement;
         bool edited=DrawMesh(candidate,catalog);
         edited=DrawRotator(state,candidate) || edited;
+        if (candidate.playerController && ImGui::CollapsingHeader("プレイヤー操作###PlayerController",ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            auto& player=*candidate.playerController;
+            ImGui::PushID(player.id.c_str());
+            edited=ImGui::Checkbox("有効###Enabled",&player.enabled) || edited;
+            edited=ImGui::DragFloat("移動速度###Move speed",&player.moveSpeed,0.1f,0,1000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
+            if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+            ImGui::TextUnformatted("WASD / 矢印キー：親のローカルXZ平面で移動（衝突なし）");
+            if (ImGui::Button("リセット###Reset PlayerController")) { player.enabled=true; player.moveSpeed=5; edited=true; }
+            ImGui::SameLine();
+            if (ImGui::Button("削除###Remove PlayerController")) { candidate.playerController.reset(); edited=true; }
+            ImGui::PopID();
+        }
         edited=EnvironmentPanel::Draw(state,candidate) || edited;
         edited=UiComponentPanel::Draw(state,candidate,catalog) || edited;
         edited=AnimationPanel::Draw(state,candidate) || edited;

@@ -88,6 +88,11 @@ namespace
             ApplyUiEvent(renderer);
             audioPreview.Process(root);
             if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
+            if (gameSession.State().CanPause() && gameSession.Runtime() && keyboard && keyboard->IsActive() &&
+                !closeRequested && gamePanel.Hovered() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive())
+                gameSession.Runtime()->MovePlayers(seconds,
+                    float(keyboard->IsDown(DIK_D) || keyboard->IsDown(DIK_RIGHT))-float(keyboard->IsDown(DIK_A) || keyboard->IsDown(DIK_LEFT)),
+                    float(keyboard->IsDown(DIK_W) || keyboard->IsDown(DIK_UP))-float(keyboard->IsDown(DIK_S) || keyboard->IsDown(DIK_DOWN)));
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             bool rendered = true;
             const auto result = renderer.Render(preview ? world.Layout().settings.background : std::array<float,4>{0.10f,0.11f,0.13f,1},
