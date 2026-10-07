@@ -28,7 +28,8 @@ namespace Engine
         const auto key = std::filesystem::weakly_canonical(path, error);
         if (error)
         {
-            Log::Error("Cannot resolve the model cache path.");
+            const auto utf8=path.generic_u8string();
+            Log::Error("Cannot resolve the model cache path: "+std::string(utf8.begin(),utf8.end())+" ("+error.message()+")");
             return {};
         }
         if (const auto found = models_.find(key); found != models_.end())

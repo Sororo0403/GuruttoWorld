@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
+#include <Engine/Graphics/DirectX12/GpuSynchronization.h>
 
 namespace
 {
@@ -138,7 +139,7 @@ namespace SceneRuntime
         return true;
     }
 
-    bool SceneWorld::ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error)
+    bool SceneWorld::ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,bool preserveExecution)
     {
         if (!modelsReady_)
         {
@@ -169,8 +170,11 @@ namespace SceneRuntime
                     {
                         if (!model->Rig()) throw std::runtime_error("Animator needs a glTF or GLB model");
                         Animator::Validate(*placement.animator,model->Rig().get());
-                        auto instance=model->AnimatedCopy(materialDevice_.Get(),materialQueue_.Get());
-                        if (!instance || !instance->ApplyPose(Animator::Advance(*placement.animator,animatorStates[placement.id],*model->Rig(),0,{}))) throw std::runtime_error("Animator initialization failed");
+                        const auto old=std::find_if(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==placement.id; });
+                        const bool reuse=preserveExecution && old!=layout_.objects.end() && old->meshRenderer==placement.meshRenderer && old->animator==placement.animator && animatedModels_.contains(placement.id);
+                        auto instance=reuse ? animatedModels_.at(placement.id) : model->AnimatedCopy(materialDevice_.Get(),materialQueue_.Get());
+                        if (reuse) animatorStates[placement.id]=animatorStates_.at(placement.id);
+                        if (!instance || (!reuse && !instance->ApplyPose(Animator::Advance(*placement.animator,animatorStates[placement.id],*model->Rig(),0,{})))) throw std::runtime_error("Animator initialization failed");
                         object.SetModel(instance); animated[placement.id]=std::move(instance);
                     }
                     const auto& material=placement.meshRenderer->material;
@@ -186,9 +190,13 @@ namespace SceneRuntime
                 if (!object.SetWorldMatrix(matrices[objects.size()])) throw std::runtime_error("Invalid world matrix");
                 objects.push_back(std::move(object));
             }
-            scripts_.Stop(layout_);
+            if (preserveExecution && prepareRuntime_ && !prepareRuntime_(layout,error)) return false;
+            if (!preserveExecution) scripts_.Stop(layout_);
             layout_ = std::move(layout);
-            physics_.clear(); animatedModels_=std::move(animated); animatorStates_=std::move(animatorStates);
+            assetsRoot_=assetsRoot;
+            if (!preserveExecution) physics_.clear();
+            else std::erase_if(physics_,[&](const auto& pair) { return std::none_of(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==pair.first; }); });
+            animatedModels_=std::move(animated); animatorStates_=std::move(animatorStates);
             objects_ = std::move(objects);
             error.clear();
             return true;
@@ -376,11 +384,16 @@ namespace SceneRuntime
         return true;
     }
 
+    bool SceneWorld::QueueScriptEvent(ScriptEvent event,std::string& error)
+    {
+        try { scripts_.QueueEvent(std::move(event)); error.clear(); return true; }
+        catch (const std::exception& exception) { error=exception.what(); return false; }
+    }
+
     bool SceneWorld::UpdateComponents(double seconds)
     {
         if (!std::isfinite(seconds) || seconds<=0) return false;
         auto candidate=layout_;
-        bool changed=false;
         for (auto& placement : candidate.objects)
         {
             if (!placement.rotator || !placement.rotator->enabled) continue;
@@ -391,14 +404,31 @@ namespace SceneRuntime
                 const double elapsed=std::remainder(seconds,360.0/std::abs(speed));
                 placement.rotation[axis]=static_cast<float>(std::remainder(static_cast<double>(placement.rotation[axis])+
                     elapsed*speed*DirectX::XM_PI/180.0,static_cast<double>(DirectX::XM_2PI)));
-                changed=true;
             }
         }
         auto runtime=scripts_;
         std::string error;
         if (!runtime.Update(candidate,seconds,error,inputValues_,inputPressed_)) { Engine::Log::Warning(error); return false; }
-        changed=changed || std::any_of(candidate.objects.begin(),candidate.objects.end(),[](const auto& placement) { return !placement.scripts.empty(); });
-        if (changed && !CommitTransforms(std::move(candidate))) return false;
+        const bool rebuild=candidate.objects.size()!=layout_.objects.size() ||
+            !std::equal(candidate.objects.begin(),candidate.objects.end(),layout_.objects.begin(),[](const auto& a,const auto& b) {
+                return a.id==b.id && a.meshRenderer==b.meshRenderer && a.animator==b.animator;
+            });
+        if (rebuild)
+        {
+            Microsoft::WRL::ComPtr<ID3D12Fence> fence;
+            if (FAILED(materialDevice_->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&fence))) ||
+                !Engine::SignalGpuFence(materialDevice_.Get(),materialQueue_.Get(),fence.Get(),1) ||
+                !Engine::WaitForGpuFence(materialDevice_.Get(),fence.Get(),1,nullptr)) return false;
+            if (!ReplaceLayout(std::move(candidate),assetsRoot_,error,true)) { Engine::Log::Warning(error); return false; }
+        }
+        else
+        {
+            std::vector<DirectX::XMFLOAT4X4> matrices;
+            if (!SceneTransforms::Resolve(candidate,matrices,error)) return false;
+            if (prepareRuntime_ && !prepareRuntime_(candidate,error)) { Engine::Log::Warning(error); return false; }
+            if (!CommitTransforms(candidate)) return false;
+            layout_=std::move(candidate);
+        }
         scripts_=std::move(runtime);
         for (const auto& placement : layout_.objects)
         {

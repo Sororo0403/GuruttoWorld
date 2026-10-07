@@ -45,6 +45,9 @@ namespace SceneRuntime
         if (!presentation_.Initialize(renderer,root,error) ||
             !world_.Initialize(renderer,root,std::move(layout),root/"Shaders/Mesh.hlsl",&error) || !presentation_.PrepareUi(renderer,root,world_.Layout(),error)) return false;
         seconds_=0; motionEnabled_=true; uiState_=SceneUi::Defaults(world_.Layout());
+        world_.SetRuntimePreparation([this,&renderer,root](const SceneLayout& candidate,std::string& diagnostic) {
+            return presentation_.PrepareUi(renderer,root,candidate,diagnostic);
+        });
         SeekAnimation(0,0);
         error.clear();
         return true;

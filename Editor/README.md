@@ -377,6 +377,10 @@ PlayerControllerの「重力を使用」「重力加速度」「ジャンプ速�
 Inspectorの「コンポーネントを追加 → ゲーム処理」で登録済みのC++処理を追加できます。Bob（上下運動）とSpin（回転）を同梱し、同じオブジェクトへ複数の処理を追加できます。パラメーター・有効状態はシーンに保存され、複製とUndo／Redoにも対応します。
 新しい処理はApp／EditorのPlay開始前に`SceneRuntime::ScriptRegistry::Register`へ名前と`ScriptDefinition`を登録します。`fields`はInspectorに出す数値の初期値・最小値・最大値、`start`／`update`／`stop`は開始・毎フレーム・無効化または終了のコールバックです。`ScriptContext`の`Value`で保存値を読み、`state`でインスタンス固有の数値を保持し、`object.position`／`rotation`／`scale`を変更できます。オブジェクトやComponentの配列そのものはコールバックから変更しません。Pause中は更新せず、Stepは1/60秒、再生し直しではstateを初期化します。C++処理の追加には再ビルドが必要です。
 
+`start`／`update`／`onEvent`では`context.scene`から`Find(id)`／`FindByName(name)`、`GetComponent(id, &ScenePlacement::boxCollider)`で現在のオブジェクトとComponentを参照できます。参照の有効期間はコールバック中だけです。`Spawn(placement)`は新規IDを返し、`Instantiate(id, position)`は対象とその子孫を参照IDごと複製します。`Destroy(id)`は子孫も削除し、`SetComponents(id, placement)`はComponentを置き換えます。これらは全コールバックが終わってから反映され、新しいScriptは次のフレームに開始します。
+
+`Emit({name, sender, target, value})`は次のフレームに`onEvent`へ届きます。空のtargetは全Script宛て、指定したtargetはそのオブジェクト宛てです。外部からは`ScriptRuntime::QueueEvent`で予約できます。生成とイベントには各フレーム4096件の上限があります。検証・モデル読み込み・UI準備の失敗ではシーンと内部state、ID採番、未処理イベントを保持します。コールバックが外部へ行った副作用は取り消せないため、状態はcontext.stateとシーンAPIで管理してください。`stop`では構造変更APIを使いません。生成したモデル・UI・音源はAppとEditorの再生で反映され、Stopで編集シーンに戻ります。
+
 `Assets/Scenes/ScriptPlayground.json`では、操作できるPlayerと上下運動・回転するFloatingCubeを同時に確認できます。
 
 ## Prefab

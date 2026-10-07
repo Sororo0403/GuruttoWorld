@@ -25,7 +25,7 @@ namespace SceneRuntime
         // Rebuild resources from the current unsaved layout; failure preserves every live resource.
         bool ReloadAssets(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
             const std::filesystem::path& shaderPath, std::string& error);
-        bool ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error);
+        bool ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,bool preserveExecution=false);
         void Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
             const Engine::DirectionalLight& light, const UiState* state=nullptr) const;
         const MeshTelemetry& Telemetry() const { return meshTelemetry_; }
@@ -55,6 +55,8 @@ namespace SceneRuntime
             const std::filesystem::path& assetsRoot, std::string& error);
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
         bool UpdateComponents(double seconds);
+        bool QueueScriptEvent(ScriptEvent event,std::string& error);
+        void SetRuntimePreparation(std::function<bool(const SceneLayout&,std::string&)> prepare) { prepareRuntime_=std::move(prepare); }
         std::string AnimatorStateName(const std::string& id) const { const auto found=animatorStates_.find(id); return found==animatorStates_.end() ? std::string{} : found->second.current; }
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { inputValues_=std::move(values); inputPressed_=std::move(pressed); }
         // Normalized input moves controllers on their parent-local XZ plane.
@@ -82,6 +84,8 @@ namespace SceneRuntime
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
     private:
         mutable MeshTelemetry meshTelemetry_;
+        std::filesystem::path assetsRoot_;
+        std::function<bool(const SceneLayout&,std::string&)> prepareRuntime_;
         bool InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
             std::string* error);
         bool ReparentPlacement(ScenePlacement& placement, std::string parentId, std::string& error) const;

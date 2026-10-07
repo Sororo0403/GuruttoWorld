@@ -38,6 +38,95 @@ namespace
 }
 namespace SceneRuntime
 {
+    const ScenePlacement* ScriptScene::Find(const std::string& id) const
+    {
+        const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==id; });
+        return found==layout_.objects.end() ? nullptr : &*found;
+    }
+    std::vector<std::string> ScriptScene::FindByName(const std::string& name) const
+    {
+        std::vector<std::string> result;
+        for (const auto& item : layout_.objects) if (item.name==name) result.push_back(item.id);
+        return result;
+    }
+    std::string ScriptScene::Spawn(ScenePlacement object)
+    {
+        if (spawned_.size()>=4096) throw std::runtime_error("Script spawn limit exceeded");
+        do { object.id="runtime-"+std::to_string(nextId_++); }
+        while (Find(object.id) || std::any_of(spawned_.begin(),spawned_.end(),[&](const auto& item) { return item.id==object.id; }));
+        object.prefab.reset();
+        const auto id=object.id; spawned_.push_back(std::move(object)); return id;
+    }
+    std::string ScriptScene::Instantiate(const std::string& id,const std::array<float,3>& position)
+    {
+        const auto* source=Find(id);
+        if (!source) throw std::runtime_error("Instantiate source missing: "+id);
+        std::set<std::string> selected{id};
+        bool changed=true;
+        while (changed)
+        {
+            changed=false;
+            for (const auto& item : layout_.objects)
+                if (selected.contains(item.parentId) && selected.insert(item.id).second) changed=true;
+        }
+        std::map<std::string,std::string> ids;
+        const auto begin=spawned_.size();
+        for (auto item : layout_.objects) if (selected.contains(item.id))
+        {
+            const auto original=item.id;
+            if (original==id) item.position=position;
+            ids[original]=Spawn(std::move(item));
+        }
+        for (size_t i=begin;i<spawned_.size();++i)
+        {
+            auto& item=spawned_[i];
+            const auto remap=[&](std::string& value) { const auto found=ids.find(value); if (found!=ids.end()) value=found->second; };
+            remap(item.parentId);
+            if (item.button)
+            {
+                if (item.button->action!="loadScene" && item.button->action!="setState") remap(item.button->target);
+                remap(item.button->sound);
+            }
+        }
+        return ids.at(id);
+    }
+    void ScriptScene::Destroy(const std::string& id) { destroyed_.insert(id); }
+    void ScriptScene::SetComponents(const std::string& id,const ScenePlacement& components)
+    {
+        if (!Find(id)) throw std::runtime_error("Component owner missing: "+id);
+        components_[id]=components;
+    }
+    void ScriptScene::Emit(ScriptEvent event)
+    {
+        if (events.size()>=4096 || event.name.empty() || event.name.size()>128 || !std::isfinite(event.value))
+            throw std::runtime_error("Invalid script event or event limit exceeded");
+        events.push_back(std::move(event));
+    }
+    void ScriptScene::Commit()
+    {
+        for (auto& item : layout_.objects)
+        {
+            const auto found=components_.find(item.id);
+            if (found!=components_.end()) item.CopyComponents(found->second);
+        }
+        for (auto& item : spawned_) layout_.objects.push_back(std::move(item));
+        bool changed=true;
+        while (changed)
+        {
+            changed=false;
+            for (const auto& item : layout_.objects)
+                if (destroyed_.contains(item.parentId) && destroyed_.insert(item.id).second) changed=true;
+        }
+        std::erase_if(layout_.objects,[&](const auto& item) { return destroyed_.contains(item.id); });
+        if (destroyed_.contains(layout_.settings.mainCamera)) layout_.settings.mainCamera.clear();
+        static_cast<void>(layout_.Serialize());
+    }
+    void ScriptRuntime::QueueEvent(ScriptEvent event)
+    {
+        if (events_.size()>=4096 || event.name.empty() || event.name.size()>128 || !std::isfinite(event.value))
+            throw std::runtime_error("Invalid script event or event limit exceeded");
+        events_.push_back(std::move(event));
+    }
     float ScriptContext::Value(const std::string& name,float fallback) const
     { const auto found=parameters.find(name); return found==parameters.end() ? fallback : found->second; }
     bool ScriptRegistry::Register(std::string name,ScriptDefinition definition)
@@ -56,8 +145,19 @@ namespace SceneRuntime
     bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed)
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
+        if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
+        { error.clear(); return true; }
+        auto candidate=layout;
+        auto runtime=*this;
+        if (!runtime.Advance(candidate,seconds,error,input,pressed)) return false;
+        layout=std::move(candidate); *this=std::move(runtime); return true;
+    }
+    bool ScriptRuntime::Advance(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed)
+    {
+        if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         try
         {
+            ScriptScene scene(layout,nextId_);
             std::set<std::pair<std::string,std::string>> live;
             for (auto& object : layout.objects)
                 for (const auto& script : object.scripts)
@@ -80,12 +180,16 @@ namespace SceneRuntime
                     {
                         Instance instance{object.id,script.id,script.behaviour,{},script.parameters};
                         auto& created=instances_.emplace(key,std::move(instance)).first->second;
-                        ScriptContext context{object,created.parameters,created.state,0,&input,&pressed};
+                        ScriptContext context{object,created.parameters,created.state,0,&input,&pressed,&scene};
                         if (definition->second.start) definition->second.start(context);
                         found=instances_.find(key);
                     }
                     auto& instance=found->second; instance.parameters=script.parameters;
-                    ScriptContext context{object,instance.parameters,instance.state,std::min(seconds,0.1),&input,&pressed};
+                    ScriptContext context{object,instance.parameters,instance.state,std::min(seconds,0.1),&input,&pressed,&scene};
+                    if (definition->second.onEvent)
+                        for (const auto& event : events_) if (event.target.empty() || event.target==object.id)
+                        { context.event=&event; definition->second.onEvent(context); }
+                    context.event=nullptr;
                     definition->second.update(context);
                 }
             for (auto iterator=instances_.begin();iterator!=instances_.end();)
@@ -101,6 +205,20 @@ namespace SceneRuntime
                 }
                 iterator=instances_.erase(iterator);
             }
+            auto previous=layout;
+            scene.Commit();
+            for (auto iterator=instances_.begin();iterator!=instances_.end();)
+                if (scene.Find(iterator->second.owner)) ++iterator;
+                else
+                {
+                    auto& instance=iterator->second;
+                    const auto owner=std::find_if(previous.objects.begin(),previous.objects.end(),[&](const auto& item) { return item.id==instance.owner; });
+                    const auto& definition=Registry().at(instance.behaviour);
+                    if (owner!=previous.objects.end() && definition.stop)
+                    { ScriptContext context{*owner,instance.parameters,instance.state,0}; definition.stop(context); }
+                    iterator=instances_.erase(iterator);
+                }
+            events_=std::move(scene.events);
             error.clear(); return true;
         }
         catch (const std::exception& exception) { error=exception.what(); return false; }
@@ -122,5 +240,6 @@ namespace SceneRuntime
             catch (...) { Engine::Log::Warning("Script stop callback failed"); }
         }
         instances_.clear();
+        events_.clear(); nextId_=1;
     }
 }

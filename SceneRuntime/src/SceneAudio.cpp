@@ -1,21 +1,44 @@
 #include <SceneRuntime/SceneAudio.h>
 #include <algorithm>
+#include <Engine/Core/Log.h>
 namespace SceneRuntime {
 bool SceneAudio::Initialize(const std::filesystem::path& root,const SceneLayout& layout,std::string& error) {
-    Stop(); audio_.Shutdown(); sources_.clear(); cues_.clear(); paused_=false;
+    Stop(); audio_.Shutdown(); sources_.clear(); cues_.clear(); paused_=false; initialized_=false; root_=root;
+    return Refresh(layout,error);
+}
+bool SceneAudio::Refresh(const SceneLayout& layout,std::string& error) {
     bool needed=false; for(const auto& p:layout.objects) needed|=p.audioSource && p.audioSource->enabled && !p.audioSource->clip.empty();
-    if(!needed) {error.clear(); return true;}
-    if(!audio_.Initialize()) {error="Audio output unavailable"; return false;}
+    if(needed && !initialized_) {
+        if(!audio_.Initialize()) {error="Audio output unavailable"; return false;}
+        initialized_=true;
+    }
+    std::map<std::string,Source> pending;
+    std::map<std::string,std::string> cues;
+    std::vector<Engine::SoundHandle> loaded;
     for(const auto& p:layout.objects) {
         if(!p.audioSource || !p.audioSource->enabled || p.audioSource->clip.empty()) continue;
-        const auto& c=*p.audioSource; const auto h=audio_.Load(root/c.clip);
-        if(!h) {error="Cannot load audio: "+p.id; Stop(); audio_.Shutdown(); sources_.clear(); return false;}
-        audio_.SetVolume(h,c.volume); sources_[p.id]={h,c.loop,c.playOnAwake,false};
-        if(!c.cue.empty()) cues_.try_emplace(c.cue,p.id);
+        const auto& c=*p.audioSource;
+        const auto old=sources_.find(p.id);
+        if(old!=sources_.end() && old->second.clip==c.clip && old->second.loop==c.loop) pending[p.id]=old->second;
+        else {
+            const auto h=audio_.Load(root_/c.clip);
+            if(!h) {for(const auto handle:loaded) audio_.Unload(handle); error="Cannot load audio: "+p.id; return false;}
+            loaded.push_back(h); audio_.SetVolume(h,c.volume);
+            pending[p.id]={h,c.loop,c.playOnAwake,false,c.clip};
+        }
+        pending[p.id].awake=c.playOnAwake;
+        if(!c.cue.empty()) cues.try_emplace(c.cue,p.id);
     }
+    for(const auto& [id,s]:sources_) {
+        const auto replacement=pending.find(id);
+        if(replacement==pending.end() || replacement->second.handle!=s.handle) audio_.Unload(s.handle);
+    }
+    sources_=std::move(pending); cues_=std::move(cues);
     error.clear(); return true;
 }
 void SceneAudio::Update(const SceneLayout& layout,const UiState& state,bool active) {
+    std::string error;
+    if(!Refresh(layout,error)) Engine::Log::Warning(error);
     Pause(!active); if(!active) return;
     for(const auto& p:layout.objects) {
         const auto i=sources_.find(p.id); if(i==sources_.end() || !p.audioSource) continue;

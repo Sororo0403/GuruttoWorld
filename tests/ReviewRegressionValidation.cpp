@@ -1868,6 +1868,7 @@ namespace
                 UiValidation::Rendering(renderer,TestContentRoot());
                 AnimationValidation::Runtime(renderer,TestContentRoot());
                 PhysicsValidation::Runtime(renderer,TestContentRoot());
+                ScriptValidation::Runtime(renderer);
                 PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
                 MaterialValidation::Rendering(renderer);
                 AnimatorValidation::Runtime(renderer);
@@ -3075,6 +3076,15 @@ int main()
             PrefabValidation::Run();
             std::cout<<"PASS: prefab hierarchy, links, source updates, overrides, unpack and failed refresh preservation\n";
             return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_SCRIPT_RUNTIME_ONLY",nullptr,0)) {
+            Check(Engine::Log::Initialize("generated/tests/dynamic-scripts.log"),"dynamic script log");
+            ScriptValidation::Run();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden dynamic script validation",64,32),"dynamic script test window");
+            Check(renderer.Initialize(window.GetHandle()),"dynamic script renderer");
+            ScriptValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: transactional script scene API, events, dynamic meshes and runtime UI\n"; return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_SCRIPT_ONLY",nullptr,0)) {
             ScriptValidation::Run();

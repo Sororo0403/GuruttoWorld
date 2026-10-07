@@ -215,6 +215,8 @@ PhysicsValidationはGPUなしでBoxColliderとPlayerControllerの保存復元、
 
 ScriptValidationは独自C++処理の登録、重複・不正なメタデータの拒否、複数処理の保存復元、開始・更新・無効化・再有効化・終了、不明な処理の設定保持と実行エラーを確認します。Debug／Releaseの全回帰に含まれ、`WP1_SCRIPT_ONLY=1`で単独実行できます。
 
+ScriptValidationは検索・型付きComponent取得、順不同の親子複製、宛先付きイベントの次フレーム配信、子孫削除、不正生成時のシーン保持も確認します。`WP1_SCRIPT_RUNTIME_ONLY=1`ではGPUを使い、実行中のモデル生成・削除、UI準備、モデル読み込み失敗時の保持、Script内部stateの継続と失敗フレームの取消を検証します。
+
 PrefabValidationは親子とIDの生成、リンクの保存復元、元データ変更の反映と個別編集の保持、新しい子の追加、ファイル欠損時のシーン保持、リンク解除、抽出と不正パスの拒否を検証します。Debug／Releaseの全回帰に含まれ、`WP1_PREFAB_ONLY=1`で単独実行できます。
 
 InputActionValidationはキー・パッド・スティックのAction値と押下、保持中の非反復、しきい値、非アクティブ時の解除、復帰時の押下抑止、再割り当て、不正キーの拒否、独自処理とButtonへのAction入力を検証します。ProjectSettingsValidationはAction設定の保存復元も確認します。`WP1_INPUT_ONLY=1`で単独実行できます。
