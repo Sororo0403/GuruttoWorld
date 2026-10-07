@@ -11,6 +11,7 @@ namespace SceneRuntime
         std::string id="mesh";
         bool enabled=true;
         std::filesystem::path model;
+        std::string visibleWhen;
         bool operator==(const MeshRendererComponent&) const = default;
     };
     struct RotatorComponent

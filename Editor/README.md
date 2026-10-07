@@ -1,5 +1,13 @@
 # 街の配置エディター
 
+## ゲームシーンの編集
+
+`Assets/Scenes/Game.json`が通常のゲーム開始先です。モデル・Transform・Rotator・Camera・照明・粒子・Image・音源をエディターで編集して保存できます。従来のエンジン機能デモは`EngineDemo`として残しています。
+タイトルのSTARTボタンのTargetで開始先のJSONを変更します。Game eventを`menu:0`にするとAppでは開始演出後にTargetへ遷移し、EditorではButtonの`loadScene`動作で同じシーンを開きます。
+MeshRendererの表示条件には`model=0`のような状態条件を設定できます。Canvasの初期状態とButtonの状態値設定でモデルの表示を切り替えられます。非表示モデルは影も描画しません。
+ButtonのショートカットはSpace・Escape・1・2から選択します。無効・非表示のボタンは反応しません。AppではパッドAもSpaceに対応します。Editorでは再生中にGameへカーソルを置いて操作します。
+
+
 `WP1.slnx` の Debug または Development をビルドし、
 `generated/outputs/x64/<構成>/Editor/Editor.exe` を起動します。
 Release のソリューションビルドはゲームを対象とし、Editor は除外します。

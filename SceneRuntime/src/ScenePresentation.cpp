@@ -102,7 +102,7 @@ namespace SceneRuntime
         if (!sceneCamera && !SceneView::Camera(world,float(width)/height,seconds,gameCamera))
         { DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{}); return; }
         const auto& camera=sceneCamera ? *sceneCamera : gameCamera;
-        world.Draw(commands,camera,SceneView::Light(world));
+        world.Draw(commands,camera,SceneView::Light(world),uiState);
         if (motionEnabled) DrawParticles(commands,world,camera,seconds);
         if (!sceneCamera) DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{});
     }

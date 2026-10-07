@@ -27,6 +27,7 @@ public:
     static UiRect Resolve(const SceneLayout&,const ScenePlacement&,unsigned int width,unsigned int height,const UiState& state={});
     static std::string Hit(const SceneLayout&,unsigned int width,unsigned int height,float x,float y,const UiState& state={},bool buttonsOnly=true);
     static UiEvent Activate(const SceneLayout&,const std::string& object,UiState& state);
+    static std::string Shortcut(const SceneLayout&,const std::string& key,unsigned int width,unsigned int height,const UiState& state);
 private:
     struct Resource {std::string signature; std::shared_ptr<Engine::SpriteRenderer> sprite;};
     void Prune(const Engine::DirectX12Renderer&,const SceneLayout&);

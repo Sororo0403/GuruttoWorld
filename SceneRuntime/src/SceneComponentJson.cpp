@@ -1,6 +1,7 @@
 #include "SceneComponentJson.h"
 #include "EnvironmentJson.h"
 #include "UiJson.h"
+#include <SceneRuntime/SceneUi.h>
 #include <algorithm>
 #include <iterator>
 #include <cmath>
@@ -100,6 +101,9 @@ namespace
         {
             if (placement.meshRenderer) throw std::runtime_error("Only one MeshRenderer is allowed");
             placement.meshRenderer=SceneRuntime::MeshRendererComponent{id,enabled,ReadModel(component)};
+            if (component.contains("visibleWhen")) placement.meshRenderer->visibleWhen=component.at("visibleWhen").get<std::string>();
+            SceneRuntime::UiState check;
+            if (!check.Assign(placement.meshRenderer->visibleWhen)) throw std::runtime_error("Invalid mesh visibility expression");
         }
         else if (type=="Rotator")
         {
@@ -149,6 +153,7 @@ namespace SceneRuntime
             const auto& mesh=*placement.meshRenderer;
             auto object=Component(mesh.id,"MeshRenderer",mesh.enabled);
             object["model"]=mesh.model;
+            object["visibleWhen"]=mesh.visibleWhen;
             components.push_back(object);
         }
         if (placement.rotator)

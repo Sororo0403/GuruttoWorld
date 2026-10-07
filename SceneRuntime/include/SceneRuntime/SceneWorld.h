@@ -5,6 +5,7 @@
 #include <optional>
 
 namespace Engine { class DirectX12Renderer; }
+namespace SceneRuntime { struct UiState; }
 namespace SceneRuntime
 {
     // 描画と配置データだけを共有します。ゲーム入力・編集UI・演出を持ちません。
@@ -22,7 +23,7 @@ namespace SceneRuntime
             const std::filesystem::path& shaderPath, std::string& error);
         bool ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error);
         void Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
-            const Engine::DirectionalLight& light) const;
+            const Engine::DirectionalLight& light, const UiState* state=nullptr) const;
         const SceneLayout& Layout() const { return layout_; }
         // 配置と描画用の変換を同時に更新します。失敗した場合は直前の状態を維持します。
         // Local values are always relative to the parent.

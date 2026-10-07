@@ -81,7 +81,13 @@ namespace App
         audio_.Update(environment_,root_, menu_, keyboard.IsActive(), deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
             keyboard.IsActive());
-        if (action == TitleMenuAction::Start) return "Game";
+        if (action == TitleMenuAction::Start) {
+            for(const auto& object:environment_.World().Layout().objects)
+                if(object.button && object.button->enabled &&
+                    (object.button->event=="menu:0" || object.button->event=="start") &&
+                    !object.button->target.empty()) return object.button->target;
+            return "Game";
+        }
         if(!requestedScene_.empty()) return std::exchange(requestedScene_,{});
         return {};
     }

@@ -15,7 +15,9 @@ namespace App
             titleVisited_ = true;
             return title;
         }
-        if (name == "Game") return std::make_unique<GameScene>(root_);
+        if (name == "Game") return std::make_unique<AuthoredScene>(root_,"Assets/Scenes/Game.json");
+        if (name == "EngineDemo") return std::make_unique<GameScene>(root_);
+        if (name == "Assets/Scenes/TitleStreet.json") return Create("Title");
         if(name.starts_with("Assets/Scenes/") && name.ends_with(".json") && name.find("..") == std::string_view::npos)
             return std::make_unique<AuthoredScene>(root_,std::filesystem::path(std::u8string(name.begin(),name.end())));
         return {};
