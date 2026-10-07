@@ -414,9 +414,11 @@ PlayerControllerとタイトルメニューは共通のAction設定を使いま�
 
 ## Materialの共有と編集
 
-Projectの「Materialを作成」で名前を指定し、Materialアセットを選ぶとInspectorで色・透明度・画像・UV拡縮／回転／移動・粗さ・金属感を編集できます。「Materialを保存」でファイルへ保存し、操作が終わるとシーンの共有Materialへ反映します。粗さと金属感は既存のハイライトを調整する簡易的な陰影で、PBRではありません。
+Projectの「Materialを作成」で名前を指定し、Materialアセットを選ぶとInspectorで色・透明度・画像・UV拡縮／回転／移動・粗さ・金属感を編集できます。「Materialを保存」でファイルへ保存し、操作が終わるとシーンの共有Materialへ反映します。「物理ベースの照明（PBR）」を有効にするとGGX・Smith・Schlickによる反射を使い、金属ではベース色を反射色にして拡散光を減らします。ベース色はsRGBから線形へ変換して照明を計算します。古いMaterialとモデルの設定は従来のハイライトを維持します。環境光は一定色で、環境マップによるIBLは未対応です。
+「法線マップ」で接線空間のRGB画像を指定できます。線形の画像値を使い、UVとワールド位置の微分から接線を作るため、OBJに接線属性は不要です。UVのない面は幾何法線を使用します。異なるY軸規約の画像には「法線マップのYを反転」を使います。画像参照はメタデータIDを保持し、Projectからの改名後も追従します。
 MeshRendererのMaterial欄でアセットを割り当てます。「モデルの設定」に戻すと元のモデルの色・画像を使います。同じMaterialを割り当てたオブジェクトは設定を共有し、異なるMaterialを使えば同じモデルでも外観を変えられます。色の透明度を下げると透明描画になり、不透明なものの後に距離順で描画します。透明面同士が交差する場合の完全な順序解決と透過した影は扱いません。
 `Assets/Scenes/MaterialPlayground.json`で共有した赤色Materialと透明な青色Materialを確認できます。Materialの変更はアセットへの保存なので、シーンのUndoとは別です。
+`Assets/Scenes/RenderingPlayground.json`では粗さの異なる非金属・金属球と、法線マップの有無を比較できます。Appの起動シーンにも指定できます。素材と法線画像はリポジトリで作成したもので、`python scripts/GenerateRenderingPlayground.py`で再生成します。
 
 ### 骨格アニメーション
 

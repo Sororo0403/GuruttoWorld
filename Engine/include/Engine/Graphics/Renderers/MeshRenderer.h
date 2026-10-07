@@ -8,6 +8,7 @@
 #include <array>
 #include <cstdint>
 #include <span>
+#include <tuple>
 #include <Engine/Graphics/Models/MeshData.h>
 #include <Engine/Graphics/Renderers/ShadowMap.h>
 
@@ -76,9 +77,10 @@ namespace Engine
         void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
     private:
         /// <summary>色テクスチャと影深度の不変ディスクリプターを共有します。</summary>
-        ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture) const;
-        struct Binding { Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap; std::shared_ptr<const Texture2D> texture; };
-        mutable std::map<std::pair<ID3D12Resource*,const Texture2D*>,Binding> bindings_;
+        ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture,
+            const std::shared_ptr<const Texture2D>& normal) const;
+        struct Binding { Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap; std::shared_ptr<const Texture2D> texture,normal; };
+        mutable std::map<std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*>,Binding> bindings_;
         bool initialized_ = false;
         UINT indexCount_ = 0;
         std::shared_ptr<MeshResources> resources_;

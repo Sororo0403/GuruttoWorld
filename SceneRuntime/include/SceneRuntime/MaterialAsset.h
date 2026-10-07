@@ -14,6 +14,7 @@ namespace SceneRuntime
     {
         Engine::Material values;
         std::filesystem::path texture;
+        std::filesystem::path normalTexture;
         static bool ValidPath(const std::filesystem::path& path)
         {
             const auto utf8=path.generic_u8string(); const std::string value(utf8.begin(),utf8.end());
@@ -25,9 +26,12 @@ namespace SceneRuntime
             for (const float channel : values.color) if (!std::isfinite(channel) || channel<0 || channel>1) throw std::runtime_error("Invalid material color");
             if (!std::isfinite(values.roughness) || values.roughness<0.04f || values.roughness>1 ||
                 !std::isfinite(values.metallic) || values.metallic<0 || values.metallic>1) throw std::runtime_error("Invalid material surface");
-            const auto text=texture.generic_u8string(); const std::string path(text.begin(),text.end());
-            if (!texture.empty() && (texture.is_absolute() || texture.has_root_name() || !path.starts_with("Assets/Textures/") ||
-                std::any_of(texture.begin(),texture.end(),[](const auto& part) { return part==".."; }))) throw std::runtime_error("Invalid material texture path");
+            for (const auto& image : {texture,normalTexture})
+            {
+                const auto text=image.generic_u8string(); const std::string path(text.begin(),text.end());
+                if (!image.empty() && (image.is_absolute() || image.has_root_name() || !path.starts_with("Assets/Textures/") ||
+                    std::any_of(image.begin(),image.end(),[](const auto& part) { return part==".."; }))) throw std::runtime_error("Invalid material texture path");
+            }
             for (const auto value : {values.uv.scale[0],values.uv.scale[1],values.uv.rotation,values.uv.translation[0],values.uv.translation[1]})
                 if (!std::isfinite(value) || std::abs(value)>100000) throw std::runtime_error("Invalid material UV transform");
         }
@@ -42,6 +46,10 @@ namespace SceneRuntime
             asset.values.metallic=static_cast<float>(Engine::JsonNumber(json.at("metallic")));
             asset.values.transparent=json.at("transparent").get<bool>();
             const auto texture=json.at("texture").get<std::string>(); asset.texture=std::filesystem::path(std::u8string(texture.begin(),texture.end()));
+            asset.values.physicallyBased=json.value("physicallyBased",false);
+            asset.values.normalFlipY=json.value("normalFlipY",false);
+            const auto normal=json.value("normalTexture",std::string{});
+            asset.normalTexture=std::filesystem::path(std::u8string(normal.begin(),normal.end()));
             if (json.contains("uv"))
             {
                 const auto& uv=json.at("uv");
@@ -57,12 +65,17 @@ namespace SceneRuntime
         }
         void Save(const std::filesystem::path& root,const std::filesystem::path& path) const
         {
-            Validate(); if (!texture.empty() && !std::filesystem::is_regular_file(root/texture)) throw std::runtime_error("Material texture does not exist");
+            Validate();
+            for (const auto& image : {texture,normalTexture})
+                if (!image.empty() && !std::filesystem::is_regular_file(root/image)) throw std::runtime_error("Material texture does not exist");
             if (!ValidPath(path)) throw std::runtime_error("Invalid material path");
             std::filesystem::create_directories((root/path).parent_path());
             const auto text=texture.generic_u8string();
+            const auto normal=normalTexture.generic_u8string();
             Engine::Json json={{"color",values.color},{"roughness",values.roughness},{"metallic",values.metallic},
                 {"transparent",values.transparent},{"texture",std::string(text.begin(),text.end())},
+                {"physicallyBased",values.physicallyBased},{"normalFlipY",values.normalFlipY},
+                {"normalTexture",std::string(normal.begin(),normal.end())},
                 {"uv",{{"scale",values.uv.scale},{"rotation",values.uv.rotation},{"translation",values.uv.translation}}}};
             Engine::AssetDatabase(root).References(json);
             auto temporary=root/path; temporary+=".tmp";
@@ -78,6 +91,12 @@ namespace SceneRuntime
                 auto image=std::make_shared<Engine::Texture2D>();
                 if (!image->Initialize(device,queue,root/texture)) throw std::runtime_error("Cannot load material texture");
                 result->texture=std::move(image);
+            }
+            if (!normalTexture.empty())
+            {
+                auto image=std::make_shared<Engine::Texture2D>();
+                if (!image->Initialize(device,queue,root/normalTexture)) throw std::runtime_error("Cannot load material normal texture");
+                result->normalTexture=std::move(image);
             }
             return result;
         }

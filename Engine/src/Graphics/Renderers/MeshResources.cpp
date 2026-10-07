@@ -89,7 +89,7 @@ namespace Engine
     {
         D3D12_DESCRIPTOR_RANGE textureRange{};
         textureRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        textureRange.NumDescriptors = 2;
+        textureRange.NumDescriptors = 3;
         textureRange.BaseShaderRegister = 0;
         textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
         D3D12_ROOT_PARAMETER parameters[4]{};

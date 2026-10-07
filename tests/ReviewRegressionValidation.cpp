@@ -3066,7 +3066,7 @@ int main()
         AnimatorValidation::Runtime(renderer);
         ProfilerValidation::Run(renderer);
             CheckGpuMessages(renderer.GetDevice());
-            std::cout<<"PASS: material schema, tint, opacity, texture override and D3D12 root constants\n";
+            std::cout<<"PASS: material compatibility, PBR/sRGB, normal maps, GUID references and App/Editor rendering\n";
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_INPUT_ONLY",nullptr,0)) {

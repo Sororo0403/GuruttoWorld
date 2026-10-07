@@ -40,6 +40,7 @@ cbuffer LightingConstants : register(b1)
 Texture2D<float4> meshTexture : register(t0);
 SamplerState textureSampler : register(s0);
 Texture2D<float> shadowDepth : register(t1);
+Texture2D<float4> normalTexture : register(t2);
 SamplerComparisonState shadowSampler : register(s1);
 cbuffer ShadowTransform : register(b3)
 {
@@ -128,20 +129,82 @@ float ShadowVisibility(float3 worldPosition,float3 normal)
     return visibility;
 }
 
+float3 SafeNormalize(float3 value)
+{
+    return value*rsqrt(max(dot(value,value),1e-20));
+}
+
+float3 SurfaceNormal(VertexOutput input,uint flags)
+{
+    float3 magnitude=abs(input.normal);
+    float scale=max(max(magnitude.x,magnitude.y),max(magnitude.z,1e-30));
+    float3 normal=SafeNormalize(input.normal/scale);
+    // UVと位置の微分から接線を作るため、既存のOBJにも接線属性は不要です。
+    float3 dx=ddx(input.worldPosition),dy=ddy(input.worldPosition);
+    float2 ux=ddx(input.uv),uy=ddy(input.uv);
+    float determinant=ux.x*uy.y-ux.y*uy.x;
+    if ((flags & 2)!=0 && abs(determinant)>=1e-12)
+    {
+        float3 tangent=(dx*uy.y-dy*ux.y)/determinant;
+        float3 bitangent=(dy*ux.x-dx*uy.x)/determinant;
+        tangent-=normal*dot(normal,tangent);
+        if (dot(tangent,tangent)>=1e-20)
+        {
+            tangent=SafeNormalize(tangent);
+            float3 perpendicular=cross(normal,tangent);
+            bitangent=perpendicular*(dot(perpendicular,bitangent)<0 ? -1 : 1);
+            float3 mapped=normalTexture.Sample(textureSampler,input.uv).xyz*2-1;
+            if ((flags & 4)!=0) mapped.y=-mapped.y;
+            normal=SafeNormalize(tangent*mapped.x+bitangent*mapped.y+normal*mapped.z);
+        }
+    }
+    return normal;
+}
+
+float3 SrgbToLinear(float3 value)
+{
+    return lerp(value/12.92,pow(max((value+.055)/1.055,0),2.4),step(.04045,value));
+}
+float3 LinearToSrgb(float3 value)
+{
+    value=max(value,0);
+    return lerp(value*12.92,1.055*pow(value,1/2.4)-.055,step(.0031308,value));
+}
+
+// GGX分布、Smithの高さ相関可視性、Schlick Fresnelによる金属度ワークフロー。
+// https://google.github.io/filament/main/filament.html
+float3 PbrLighting(float3 baseColor,float3 normal,float3 toLight,float3 toCamera,float roughness,float metallic)
+{
+    const float pi=3.14159265359;
+    float3 halfway=SafeNormalize(toLight+toCamera);
+    float NoL=saturate(dot(normal,toLight)),NoV=max(saturate(dot(normal,toCamera)),1e-5);
+    float NoH=saturate(dot(normal,halfway)),VoH=saturate(dot(toCamera,halfway));
+    float alpha=roughness*roughness,alphaSquared=alpha*alpha;
+    float denominator=(1-NoH*NoH)+NoH*NoH*alphaSquared;
+    float distribution=alphaSquared/(pi*max(denominator*denominator,1e-12));
+    float visibility=.5/max(NoL*sqrt(NoV*NoV*(1-alphaSquared)+alphaSquared)+
+        NoV*sqrt(NoL*NoL*(1-alphaSquared)+alphaSquared),1e-8);
+    float3 f0=lerp(.04,baseColor,metallic);
+    float3 fresnel=f0+(1-f0)*pow(1-VoH,5);
+    float3 diffuse=(1-fresnel)*(1-metallic)*baseColor/pi;
+    return (diffuse+distribution*visibility*fresnel)*NoL;
+}
+
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
-    float4 albedo = meshTexture.Sample(textureSampler, input.uv) * input.color;
+    float4 sampled = meshTexture.Sample(textureSampler, input.uv);
+    float4 albedo = sampled * input.color;
     float3 color=albedo.rgb;
-    if (lightingEnabled >= 0.5f)
+    uint flags=(uint)lightingEnabled;
+    bool pbr=shininess<0;
+    if ((flags & 1)!=0)
     {
-        float3 magnitude=abs(input.normal);
-        float normalScale=max(max(magnitude.x,magnitude.y),max(magnitude.z,1e-30f));
-        float3 normal = normalize(input.normal/normalScale);
+        float3 normal=SurfaceNormal(input,flags);
         float directionLengthSquared = dot(lightDirection, lightDirection);
         float3 toLight = -lightDirection * rsqrt(max(directionLengthSquared, 0.00000001f));
         float diffuse = saturate(dot(normal, toLight));
         float specular = 0.0f;
-        if (directionLengthSquared > 0.00000001f && diffuse > 0.0f)
+        if (!pbr && directionLengthSquared > 0.00000001f && diffuse > 0.0f)
         {
             float3 toCamera = cameraPosition - input.worldPosition;
             toCamera *= rsqrt(max(dot(toCamera, toCamera), 0.00000001f));
@@ -149,8 +212,21 @@ float4 PSMain(VertexOutput input) : SV_TARGET
             halfway *= rsqrt(max(dot(halfway, halfway), 0.00000001f));
             specular = specularStrength * pow(saturate(dot(normal, halfway)), shininess);
         }
-        color = albedo.rgb * ambientIntensity;
-        color += (albedo.rgb * diffuse + specular) * lightColor * lightIntensity * ShadowVisibility(input.worldPosition,normal);
+        float visibility=ShadowVisibility(input.worldPosition,normal);
+        if (pbr)
+        {
+            float3 baseColor=SrgbToLinear(sampled.rgb)*SrgbToLinear(input.color.rgb);
+            color=baseColor*ambientIntensity;
+            if (directionLengthSquared>1e-8)
+                color+=PbrLighting(baseColor,normal,toLight,SafeNormalize(cameraPosition-input.worldPosition),
+                    -shininess,specularStrength)*lightColor*lightIntensity*visibility;
+            color=LinearToSrgb(color);
+        }
+        else
+        {
+            color = albedo.rgb * ambientIntensity;
+            color += (albedo.rgb * diffuse + specular) * lightColor * lightIntensity * visibility;
+        }
     }
     float haze=smoothstep(fogStart,fogEnd,length(input.worldPosition-cameraPosition))*fogStrength;
     color=lerp(color,fogColor,haze);

@@ -1,0 +1,15 @@
+{
+  "color": [
+    0.3,
+    0.55,
+    0.75,
+    1
+  ],
+  "roughness": 0.65,
+  "metallic": 0,
+  "physicallyBased": true,
+  "transparent": false,
+  "texture": "",
+  "normalTexture": "",
+  "normalFlipY": false
+}
