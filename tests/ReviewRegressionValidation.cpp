@@ -2970,6 +2970,20 @@ int main()
 {
     try
     {
+        if (GetEnvironmentVariableW(L"WP1_TITLE_PRESENTATION_ONLY",nullptr,0))
+        {
+            Check(Engine::Log::Initialize("generated/tests/title-focused.log"),"focused title diagnostic log");
+            ValidateTitleMenu();
+            Engine::Window window;
+            Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden title presentation",1280,720),"focused title window");
+            Check(renderer.Initialize(window.GetHandle()),"focused title renderer");
+            TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
+            Check(renderer.WaitForIdle(),"focused title GPU completion");
+            CheckGpuMessages(renderer.GetDevice());
+            std::cout << "PASS: START/CONFIG menu, camera overshoot/reversal and three-aspect title presentation\n";
+            return 0;
+        }
         ValidateTransformDecomposition();
         ValidateSceneViewport();
         ValidateProjectCatalog();

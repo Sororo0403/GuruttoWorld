@@ -31,6 +31,8 @@ namespace App
         void SyncUi();
         std::string requestedScene_;
         TitleMenuAction UpdatePointer(const Engine::Keyboard& keyboard);
+        /// <summary>ポインターが入ったメニュー項目を選択します。</summary>
+        void SelectHovered(const std::string& previousHover);
         unsigned int width_=0,height_=0;
         bool mouseDown_=false,mouseReady_=false;
         std::string pressed_,hovered_;

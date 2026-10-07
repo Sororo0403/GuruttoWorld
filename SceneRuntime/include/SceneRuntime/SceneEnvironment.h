@@ -27,6 +27,7 @@ namespace SceneRuntime
         void SeekAnimation(float sceneSeconds, float motionSeconds, float startSeconds = -1);
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height) const;
     private:
+        /// <summary>保存した移動クリップを現在位置から評価し、メニュー選択へ追従します。</summary>
         void AnimateCameraFocus(float elapsed);
         std::array<float,3> focusPosition_{},focusRotation_{};
         float focusSeconds_=0;

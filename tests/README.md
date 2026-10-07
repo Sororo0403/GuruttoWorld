@@ -1,5 +1,16 @@
 # カメラ・パーティクルの検証
 
+## START／CONFIGタイトル（2026-10-07）
+
+現行タイトルは上下／W・S／パッドでSTART・CONFIGを選び、Enter／Aまたはクリックで決定します。
+CONFIG選択だけで歯車付き施設へ移動し、決定すると音量・背景演出・保存の設定を開きます。
+Esc／Bで取消、START選択で通りへ復帰します。従来の3項目と任意ボタン方式は互換回帰の対象にのみ残っています。
+TitlePresentationValidationはCONFIG到着、途中反転の位置連続性、START復帰と設定パネルをGPUで確認します。
+画像はgenerated/title-rebuild/previews/config-focus.ppm・config-settings-1280x720.ppmなどに保存します。
+WP1_TITLE_PRESENTATION_ONLY=1を設定すると、全回帰を省略してメニュー・タイトル演出とGPU画像だけを検証できます。
+これは全回帰検証の代わりではなく、画面調整時の短い反復用です。
+固定地面影の再生成にはscripts/BakeTitleGroundShadows.pyを使います。動的シャドウマップではありません。
+
 キーフレーム演出はReviewRegressionValidationのAnimationValidationで検証します。
 補間・ループ・未開始時計・不正値の拒否・JSON保存復元・Canvas拡縮下のクリック判定と、
 Editorのカメラプレビュー・Pause・Step・開始時計・巻き戻し・編集データの保持を確認します。

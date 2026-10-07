@@ -97,10 +97,7 @@ namespace App
         const auto& state=environment_.Ui();
         const auto previousHover=hovered_;
         hovered_=SceneRuntime::SceneUi::Hit(environment_.World().Layout(),width_,height_,static_cast<float>(cursor.x),static_cast<float>(cursor.y),state);
-        if (hovered_!=previousHover) {
-            if (hovered_=="world-start") menu_.SelectUi(TitleMenuItem::Start);
-            if (hovered_=="world-config") menu_.SelectUi(TitleMenuItem::Settings);
-        }
+        SelectHovered(previousHover);
         auto action=TitleMenuAction::None;
         if(mouseReady_ && down && !mouseDown_) pressed_=hovered_;
         if(mouseReady_ && !down && mouseDown_) {
@@ -113,6 +110,12 @@ namespace App
             pressed_.clear();
         }
         mouseDown_=down; mouseReady_=true; return action;
+    }
+    void TitleScene::SelectHovered(const std::string& previousHover)
+    {
+        if (hovered_==previousHover) return;
+        if (hovered_=="world-start") menu_.SelectUi(TitleMenuItem::Start);
+        if (hovered_=="world-config") menu_.SelectUi(TitleMenuItem::Settings);
     }
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)
     {
