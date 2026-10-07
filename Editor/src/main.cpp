@@ -483,6 +483,13 @@ namespace
             if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {runtime->Ui().pressed.clear(); runtime->Ui().hovered.clear(); return;}
             const auto& v=gamePanel.Viewport(); if(!v.Valid()) return;
             auto& ui=runtime->Ui(); const auto mouse=ImGui::GetIO().MousePos;
+            if(gamePanel.Hovered() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
+                const std::pair<const char*,ImGuiKey> shortcuts[]={{"space",ImGuiKey_Space},{"escape",ImGuiKey_Escape},{"1",ImGuiKey_1},{"2",ImGuiKey_2}};
+                for(const auto& [key,input]:shortcuts) if(ImGui::IsKeyPressed(input,false)) {
+                    const auto object=SceneRuntime::SceneUi::Shortcut(runtime->World().Layout(),key,static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),ui);
+                    if(!object.empty()) {pendingUiEvent=runtime->Click(object); break;}
+                }
+            }
             ui.hovered=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered()?SceneRuntime::SceneUi::Hit(runtime->World().Layout(),static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),mouse.x-v.x,mouse.y-v.y,ui):std::string{};
             if(ImGui::IsMouseClicked(ImGuiMouseButton_Left)) ui.pressed=ui.hovered;
             if(ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {

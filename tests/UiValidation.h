@@ -16,6 +16,20 @@ inline SceneLayout Layout() {
     layout.objects={canvas,panel,audio}; return layout;
 }
 inline void SchemaAndLayout() {
+    auto authored=SceneLayout::Load("Content/Assets/Scenes/Game.json");
+    const auto authoredRoundtrip=SceneLayout::Parse(authored.Serialize());
+    Require(authoredRoundtrip.objects.size()==authored.objects.size(),"Game scene survives editor serialization");
+    auto defaults=SceneUi::Defaults(authored);
+    const auto shortcut=SceneUi::Shortcut(authored,"2",1280,720,defaults);
+    Require(!shortcut.empty(),"authored model shortcut resolves");
+    SceneUi::Activate(authored,shortcut,defaults);
+    Require(defaults.Value("model")==1,"authored shortcut switches mesh visibility state");
+    for(auto& object:authored.objects) if(object.id==shortcut) {object.id="renamed-choice"; object.button->enabled=false;}
+    Require(SceneUi::Shortcut(authored,"2",1280,720,defaults).empty(),"disabled shortcut cannot activate");
+    bool meshRejected=false;
+    authored.objects.front().meshRenderer=MeshRendererComponent{"mesh",true,"Assets/Models/Cube.obj","broken"};
+    try {static_cast<void>(authored.Serialize());} catch(const std::exception&) {meshRejected=true;}
+    Require(meshRejected,"invalid mesh visibility cannot be saved");
     Require(Editor::ProjectCatalog::Kind("Assets/Audio/sample.m4a")==Editor::AssetKind::Audio && Editor::ProjectCatalog::Kind("Assets/Audio/sample.aac")==Editor::AssetKind::Audio,"Project exposes decoder-supported AAC assets");
     auto layout=Layout(); layout.objects[1].text.emplace(); layout.objects[1].text->text="日本語 UI";
     const auto restored=SceneLayout::Parse(layout.Serialize());
@@ -91,5 +105,8 @@ inline void Rendering(Engine::DirectX12Renderer& renderer,const std::filesystem:
     App::AuthoredScene appScene(root,"Assets/Scenes/UiAudioDemo.json");
     Require(appScene.Initialize(renderer),"App initializes an authored UI scene");
     Require(appScene.Draw(renderer)!=Engine::RenderResult::Failed && renderer.WaitForIdle(),"App renders authored UI through the shared runtime");
+    App::AuthoredScene game(root,"Assets/Scenes/Game.json");
+    Require(game.Initialize(renderer),"App loads editor-authored Game scene");
+    Require(game.Draw(renderer)!=Engine::RenderResult::Failed && renderer.WaitForIdle(),"authored Game meshes, particles, images and UI render together");
 }
 }

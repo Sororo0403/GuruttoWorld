@@ -126,6 +126,9 @@ void ReadButton(const Json& o,SceneRuntime::ScenePlacement& p) {
     c.action=String(o,"action");
     c.target=String(o,"target");
     if(o.contains("event")) c.event=String(o,"event");
+    if(o.contains("shortcut")) c.shortcut=String(o,"shortcut");
+    const std::array<std::string_view,5> shortcuts{"","space","escape","1","2"};
+    if(std::find(shortcuts.begin(),shortcuts.end(),c.shortcut)==shortcuts.end()) throw std::runtime_error("Unsupported button shortcut");
     c.sound=String(o,"sound");
     c.hoverColor=Vector<4>(o,"hoverColor",0.0f,1.0f);
     c.pressedColor=Vector<4>(o,"pressedColor",0.0f,1.0f);
@@ -140,6 +143,7 @@ void WriteButton(Json& a,const SceneRuntime::ButtonComponent& c) {
     Put(o,"action",c.action);
     Put(o,"target",c.target);
     Put(o,"event",c.event);
+    Put(o,"shortcut",c.shortcut);
     Put(o,"sound",c.sound);
     Put(o,"hoverColor",c.hoverColor);
     Put(o,"pressedColor",c.pressedColor);

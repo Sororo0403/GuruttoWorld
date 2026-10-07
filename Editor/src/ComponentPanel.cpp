@@ -42,6 +42,10 @@ namespace Editor
         if (ImGui::BeginCombo("モデルアセット###Model asset",ProjectCatalog::Text(mesh.model.filename()).c_str()))
         { edited=ChooseModel(mesh.model,catalog) || edited; ImGui::EndCombo(); }
         ImGui::TextWrapped("%s",text.c_str());
+        std::vector<char> condition(std::max(size_t(16385),mesh.visibleWhen.size()+1));
+        std::copy(mesh.visibleWhen.begin(),mesh.visibleWhen.end(),condition.begin());
+        if(ImGui::InputText("表示条件###Mesh visible when",condition.data(),condition.size()))
+        { mesh.visibleWhen=condition.data(); edited=true; }
         if (ImGui::Button("メッシュ描画をリセット###Reset MeshRenderer")) { mesh.enabled=true; edited=true; }
         ImGui::SameLine();
         if (ImGui::Button("メッシュ描画を削除###Remove MeshRenderer")) { candidate.meshRenderer.reset(); edited=true; }

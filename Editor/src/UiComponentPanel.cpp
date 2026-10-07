@@ -60,6 +60,11 @@ bool UiComponentPanel::Draw(EditState& state,SceneRuntime::ScenePlacement& p,con
             ImGui::EndCombo();
         }
         String(state,"対象・状態値の設定###Target / state assignments",c.target); String(state,"ゲームイベント###Game event",c.event); String(state,"クリック時の音源オブジェクト###Click audio object",c.sound);
+        if(ImGui::BeginCombo("ショートカット###Shortcut",c.shortcut.empty()?"なし":c.shortcut.c_str())) {
+            for(const char* key:{"","space","escape","1","2"})
+                if(ImGui::Selectable(key[0]?key:"なし",c.shortcut==key)) c.shortcut=key;
+            ImGui::EndCombo();
+        }
         Color(state,"ホバー時の色###Hover tint",c.hoverColor); Color(state,"押下時の色###Pressed tint",c.pressedColor);
     });
     Component(p.audioSource,"音源###AudioSource",[&](auto& c){Asset(c.clip,catalog,AssetKind::Audio); ImGui::SliderFloat("音量###Volume",&c.volume,0,1); Track(state); ImGui::Checkbox("ループ###Loop",&c.loop); ImGui::Checkbox("開始時に再生###Play on awake",&c.playOnAwake); String(state,"再生キュー名###Cue",c.cue); String(state,"音量の状態キー###Volume binding",c.volumeBinding); if(ImGui::Button("試聴###Audition")) AudioPreview::Play(c.clip,c.volume,c.loop); ImGui::SameLine(); if(ImGui::Button("試聴を停止###Stop audition")) AudioPreview::StopRequest();});

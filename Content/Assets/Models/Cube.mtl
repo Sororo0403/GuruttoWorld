@@ -1,0 +1,6 @@
+newmtl Checker
+Kd 1 1 1
+map_Kd ../Textures/Checker.png
+
+newmtl Blue
+Kd 0.2 0.55 0.95

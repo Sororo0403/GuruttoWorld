@@ -1,5 +1,6 @@
 #include <SceneRuntime/SceneWorld.h>
 #include <SceneRuntime/SceneTransforms.h>
+#include <SceneRuntime/SceneUi.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Core/Log.h>
 #include <format>
@@ -174,20 +175,26 @@ namespace SceneRuntime
     }
 
     void SceneWorld::Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
-        const Engine::DirectionalLight& light) const
+        const Engine::DirectionalLight& light, const UiState* state) const
     {
+        const auto defaults=state ? UiState{} : SceneUi::Defaults(layout_);
+        const auto& values=state ? *state : defaults;
+        const auto visible=[&](size_t index) {
+            const auto& mesh=layout_.objects[index].meshRenderer;
+            return mesh && mesh->enabled && values.Matches(mesh->visibleWhen);
+        };
         auto lighting=light;
         lighting.shadow=nullptr;
         if (light.enabled && light.shadowsEnabled && shadow_.Begin(commands,camera,light))
         {
             for (size_t index=0;index<objects_.size();++index)
-                if (layout_.objects[index].meshRenderer && layout_.objects[index].meshRenderer->enabled && objects_[index].GetModel())
+                if (visible(index) && objects_[index].GetModel())
                     objects_[index].GetModel()->DrawShadow(commands,objects_[index].GetWorldMatrix(),shadow_);
             shadow_.End(commands);
             lighting.shadow=&shadow_;
         }
         for (size_t index=0;index<objects_.size();++index)
-            if (layout_.objects[index].meshRenderer && layout_.objects[index].meshRenderer->enabled)
+            if (visible(index))
                 objects_[index].Draw(commands,camera,lighting);
     }
 

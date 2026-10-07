@@ -1,0 +1,870 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [
+      0.08,
+      0.2,
+      0.4,
+      1
+    ],
+    "mainCamera": "Camera"
+  },
+  "objects": [
+    {
+      "id": "Camera",
+      "name": "Camera",
+      "position": [
+        0,
+        0,
+        -3.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "camera",
+          "type": "Camera",
+          "enabled": true,
+          "verticalFov": 45,
+          "nearClip": 0.1,
+          "farClip": 100,
+          "referenceAspect": 1.7777777777777777,
+          "preserveHorizontal": false
+        }
+      ]
+    },
+    {
+      "id": "Light",
+      "name": "Light",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "directionallight",
+          "type": "DirectionalLight",
+          "enabled": true,
+          "direction": [
+            0.4,
+            -0.7,
+            1
+          ],
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "intensity": 0.8,
+          "ambient": 0.2,
+          "specular": 0.4,
+          "shininess": 32
+        }
+      ]
+    },
+    {
+      "id": "Cube",
+      "name": "Cube",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        -0.3,
+        0,
+        0
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        0.75
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj",
+          "visibleWhen": "model=0"
+        },
+        {
+          "id": "rotator",
+          "type": "Rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            90,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Pyramid",
+      "name": "Pyramid",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        -0.3,
+        0,
+        0
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        0.75
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Pyramid.obj",
+          "visibleWhen": "model=1"
+        },
+        {
+          "id": "rotator",
+          "type": "Rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            90,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Second cube",
+      "name": "Second cube",
+      "position": [
+        1.25,
+        -0.65,
+        0.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.35,
+        0.35,
+        0.35
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj"
+        },
+        {
+          "id": "rotator",
+          "type": "Rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            -90,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "game-canvas",
+      "name": "game-canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "canvas",
+          "type": "Canvas",
+          "enabled": true,
+          "referenceSize": [
+            1280,
+            720
+          ],
+          "scaleWithScreen": true,
+          "stateDefaults": {
+            "model": 0,
+            "volumeGain": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "Sample audio",
+      "name": "Sample audio",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "audiosource",
+          "type": "AudioSource",
+          "enabled": true,
+          "clip": "Assets/Audio/Sample.wav",
+          "volume": 0.3,
+          "loop": false,
+          "playOnAwake": false,
+          "cue": "Sample",
+          "volumeBinding": "volumeGain"
+        }
+      ]
+    },
+    {
+      "id": "Play sample",
+      "name": "Play sample",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "game-canvas",
+      "components": [
+        {
+          "id": "recttransform",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            24,
+            24
+          ],
+          "size": [
+            240,
+            40
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "音声を再生 [Space / A]",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "button",
+          "type": "Button",
+          "enabled": true,
+          "action": "playAudio",
+          "target": "Sample audio",
+          "sound": "",
+          "event": "",
+          "shortcut": "space",
+          "hoverColor": [
+            1,
+            0.85,
+            0.8,
+            1
+          ],
+          "pressedColor": [
+            0.7,
+            0.7,
+            0.7,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Choose cube",
+      "name": "Choose cube",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "game-canvas",
+      "components": [
+        {
+          "id": "recttransform",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            24,
+            68
+          ],
+          "size": [
+            240,
+            40
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Cube [1]",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "button",
+          "type": "Button",
+          "enabled": true,
+          "action": "setState",
+          "target": "model=0",
+          "sound": "",
+          "event": "",
+          "shortcut": "1",
+          "hoverColor": [
+            1,
+            0.85,
+            0.8,
+            1
+          ],
+          "pressedColor": [
+            0.7,
+            0.7,
+            0.7,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Choose pyramid",
+      "name": "Choose pyramid",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "game-canvas",
+      "components": [
+        {
+          "id": "recttransform",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            24,
+            112
+          ],
+          "size": [
+            240,
+            40
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Pyramid [2]",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "button",
+          "type": "Button",
+          "enabled": true,
+          "action": "setState",
+          "target": "model=1",
+          "sound": "",
+          "event": "",
+          "shortcut": "2",
+          "hoverColor": [
+            1,
+            0.85,
+            0.8,
+            1
+          ],
+          "pressedColor": [
+            0.7,
+            0.7,
+            0.7,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Return to title",
+      "name": "Return to title",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "game-canvas",
+      "components": [
+        {
+          "id": "recttransform",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            24,
+            156
+          ],
+          "size": [
+            240,
+            40
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "タイトルへ [Esc]",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "button",
+          "type": "Button",
+          "enabled": true,
+          "action": "loadScene",
+          "target": "Assets/Scenes/TitleStreet.json",
+          "sound": "",
+          "event": "",
+          "shortcut": "escape",
+          "hoverColor": [
+            1,
+            0.85,
+            0.8,
+            1
+          ],
+          "pressedColor": [
+            0.7,
+            0.7,
+            0.7,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Blue particles",
+      "name": "Blue particles",
+      "position": [
+        -1.1,
+        -0.6,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "particleemitter",
+          "type": "ParticleEmitter",
+          "enabled": true,
+          "count": 19,
+          "color": [
+            0.3,
+            0.7,
+            1,
+            0.8
+          ],
+          "size": 0.1,
+          "extent": [
+            0,
+            0,
+            0
+          ],
+          "travel": [
+            0,
+            0.975,
+            0
+          ],
+          "cycle": 1.5,
+          "drift": 0.18
+        }
+      ]
+    },
+    {
+      "id": "Orange particles",
+      "name": "Orange particles",
+      "position": [
+        0.7,
+        -0.5,
+        -0.8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "particleemitter",
+          "type": "ParticleEmitter",
+          "enabled": true,
+          "count": 19,
+          "color": [
+            1,
+            0.4,
+            0.1,
+            0.65
+          ],
+          "size": 0.1,
+          "extent": [
+            0,
+            0,
+            0
+          ],
+          "travel": [
+            0,
+            0.975,
+            0
+          ],
+          "cycle": 1.5,
+          "drift": 0.18
+        }
+      ]
+    },
+    {
+      "id": "Checker",
+      "name": "Checker",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "game-canvas",
+      "components": [
+        {
+          "id": "recttransform",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            1,
+            0
+          ],
+          "anchorMax": [
+            1,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            -192,
+            32
+          ],
+          "size": [
+            160,
+            160
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "Assets/Textures/Checker.png",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            1,
+            1,
+            1,
+            0.8
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Cropped checker",
+      "name": "Cropped checker",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "game-canvas",
+      "components": [
+        {
+          "id": "recttransform",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            1,
+            0
+          ],
+          "anchorMax": [
+            1,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            -336,
+            32
+          ],
+          "size": [
+            128,
+            128
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "Assets/Textures/Checker.png",
+          "uv": [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          "color": [
+            1,
+            1,
+            1,
+            0.8
+          ]
+        }
+      ]
+    }
+  ]
+}
