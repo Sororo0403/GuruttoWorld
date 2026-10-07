@@ -1,6 +1,7 @@
 #pragma once
 #include "GameSettings.h"
 #include <string_view>
+#include <vector>
 
 namespace App
 {
@@ -25,18 +26,21 @@ namespace App
     public:
         /// <summary>初回だけ登場演出を有効にします。</summary>
         explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false, bool twoItems = false)
-            : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton), twoItems_(twoItems) {}
+            : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton)
+        { if(twoItems) items_.pop_back(); }
         /// <summary>ポインターの選択を反映します。設定中・開始中は変更しません。</summary>
         void SelectUi(TitleMenuItem item);
         bool UsesPressAnyButton() const { return pressAnyButton_; }
         /// <summary>登場演出の進行率を返します。</summary>
-        float IntroProgress() const { return introSeconds_ / 0.65f; }
+        float IntroProgress() const { return introSeconds_ / introDuration_; }
         /// <summary>選択時の強調量を返します。</summary>
-        float SelectionPulse() const { return selectionSeconds_ / 0.16f; }
+        float SelectionPulse() const { return selectionSeconds_ / selectionDuration_; }
         /// <summary>画面遷移の進行率を返します。</summary>
         float TransitionProgress() const { return transitionSeconds_ / transitionDuration_; }
         /// <summary>シーンに保存した開始演出の長さを設定します。不正値は無視します。</summary>
         void SetTransitionDuration(float seconds);
+        void SetPresentationDurations(float intro, float selection);
+        void SetItems(std::vector<TitleMenuItem> items);
         /// <summary>
         /// 入力の立ち上がりで選択・決定します。初回・復帰・接続直後の押下は抑止します。
         /// </summary>
@@ -72,6 +76,7 @@ namespace App
         TitleMenuAction UpdateMainMenu(unsigned int pressed);
         TitleMenuCue cue_ = TitleMenuCue::None;
         float introSeconds_ = 0.65f;
+        float introDuration_=0.65f, selectionDuration_=0.16f;
         float selectionSeconds_ = 0.0f;
         float transitionSeconds_ = 0.0f;
         float transitionDuration_ = 0.32f;
@@ -92,6 +97,6 @@ namespace App
         bool usesGamepad_ = false;
         bool finished_ = false;
         bool pressAnyButton_ = false;
-        bool twoItems_ = false;
+        std::vector<TitleMenuItem> items_{TitleMenuItem::Start,TitleMenuItem::Settings,TitleMenuItem::Exit};
     };
 }

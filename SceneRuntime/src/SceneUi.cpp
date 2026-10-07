@@ -40,8 +40,9 @@ std::string Signature(const SceneRuntime::ScenePlacement& p,bool text) {
 namespace SceneRuntime {
 std::string SceneUi::Shortcut(const SceneLayout& layout,const std::string& key,unsigned int width,unsigned int height,const UiState& state)
 {
+    if(key.empty()) return {};
     for(const auto& object:layout.objects)
-        if(object.button && object.button->enabled && object.button->shortcut==key &&
+        if(object.rectTransform && object.button && object.button->enabled && object.button->shortcut==key &&
             Resolve(layout,object,width,height,state).visible) return object.id;
     return {};
 }

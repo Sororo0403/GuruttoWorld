@@ -165,6 +165,7 @@
     <ClCompile Include="src\SceneTransforms.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneTransforms.h" />
     <ClInclude Include="include\SceneRuntime\SceneLayout.h" />
+    <ClInclude Include="include\SceneRuntime\ProjectSettings.h" />
     <ClInclude Include="include\SceneRuntime\SceneWorld.h" />
     <ProjectReference Include="..\Engine\Engine.vcxproj">
       <Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project>

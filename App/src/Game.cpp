@@ -3,6 +3,9 @@
 #include <Engine/Scenes/SceneManager.h>
 #include <Engine/Core/Application.h>
 #include <Windows.h>
+#include <SceneRuntime/ProjectSettings.h>
+#include <Engine/Core/Log.h>
+#include <winrt/base.h>
 
 namespace App
 {
@@ -12,11 +15,19 @@ namespace App
         const DWORD length = GetModuleFileNameW(nullptr, executable.data(), static_cast<DWORD>(executable.size()));
         if (length == 0 || length >= executable.size()) return 1;
         executable.resize(length);
-        SceneFactory factory(std::filesystem::path(executable).parent_path());
+        const auto root=std::filesystem::path(executable).parent_path();
+        SceneRuntime::ProjectSettings project;
+        try { project=SceneRuntime::ProjectSettings::Load(root); }
+        catch(const std::exception& exception) {
+            MessageBoxW(nullptr,winrt::to_hstring(exception.what()).c_str(),L"プロジェクト設定エラー",MB_OK|MB_ICONERROR);
+            return 1;
+        }
+        SceneFactory factory(root);
         Engine::SceneManager scenes(factory);
-        scenes.RequestChange("Title");
+        scenes.RequestChange(project.startupScene);
         Engine::ApplicationSettings settings;
-        settings.title = L"ぐるっとワールド";
+        settings.title = winrt::to_hstring(project.title).c_str();
+        settings.width=project.width; settings.height=project.height;
         Engine::ApplicationCallbacks callbacks;
         callbacks.update = [&](double deltaSeconds, const Engine::Keyboard& keyboard) { scenes.Update(deltaSeconds, keyboard); };
         callbacks.draw = [&](Engine::DirectX12Renderer& renderer) { return scenes.Draw(renderer); };

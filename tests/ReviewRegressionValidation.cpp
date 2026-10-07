@@ -30,6 +30,7 @@
 #include "TitlePresentationValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
+#include "ProjectSettingsValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -40,6 +41,7 @@
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include "../App/src/Scenes/TitleScene.h"
 #include "../App/src/Scenes/TitleMenu.h"
+#include "../App/src/Scenes/TitleBindings.h"
 #include <ShlObj.h>
 #include <d3d12sdklayers.h>
 #include <fstream>
@@ -188,6 +190,43 @@ namespace
         input.keyboardButtons = MenuUp | MenuDown;
         directions.Update(input);
         Check(directions.GetSelected() == TitleMenuItem::Start, "opposing directions cancel");
+    }
+
+    void ValidateTitleAuthoring()
+    {
+        using namespace App;
+        auto layout=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+        Check(TitleBindings::StartScene(layout)=="Assets/Scenes/Game.json","START follows authored target");
+        auto items=TitleBindings::Items(layout);
+        Check(items.size()==3,"authored menu exposes three roles");
+        for(auto& object:layout.objects) if(TitleBindings::Item(object)==TitleMenuItem::Settings) {
+            object.id="renamed-settings";
+            Check(TitleBindings::Item(object)==TitleMenuItem::Settings,"renaming preserves menu binding");
+            object.button->enabled=false;
+        }
+        items=TitleBindings::Items(layout);
+        Check(items==std::vector<TitleMenuItem>{TitleMenuItem::Start,TitleMenuItem::Exit},"disabled item leaves keyboard navigation");
+        TitleMenu menu; menu.SetItems({TitleMenuItem::Exit,TitleMenuItem::Start});
+        TitleMenuInput input; input.active=true; menu.Update(input);
+        input.keyboardButtons=MenuDown; menu.Update(input);
+        Check(menu.GetSelected()==TitleMenuItem::Exit,"keyboard follows authored order");
+        menu.SelectUi(TitleMenuItem::Settings);
+        Check(menu.GetSelected()==TitleMenuItem::Exit,"removed role cannot be hovered or activated");
+        Check(menu.ActivateUi("menu:1")==TitleMenuAction::None && !menu.IsSettingsOpen(),"disabled settings event is ignored");
+        menu.SetItems({});
+        Check(menu.ActivateUi("menu:0")==TitleMenuAction::None,"empty menu cannot start");
+        TitleMenu intro(true); intro.SetPresentationDurations(1.3f,.4f);
+        input.keyboardButtons=0;
+        for(int i=0;i<8;++i) intro.Update(input,.1);
+        Check(intro.IntroProgress()<1,"authored intro duration governs input wait");
+        Check(intro.ActivateUi("menu:0")==TitleMenuAction::None && intro.IntroProgress()==1 && intro.TransitionProgress()==0,
+            "pointer skips intro without starting the game");
+        intro.ActivateUi("menu:1");
+        SceneRuntime::UiState settings; settings.values={{"inactiveOpacity",.25f},{"selectionOffset",30.0f}};
+        const auto state=TitleUi::State(intro,settings);
+        Check(state.Value("startEmphasis")==.25f && state.Value("pulse")==30,"authored opacity and pulse reach presentation");
+        intro.SetPresentationDurations(std::numeric_limits<float>::quiet_NaN(),0);
+        Check(std::isfinite(intro.IntroProgress()) && std::isfinite(intro.SelectionPulse()),"invalid durations preserve valid progress");
     }
 
     void ValidateTitleAnimation()
@@ -2982,10 +3021,19 @@ int main()
 {
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_AUTHORING_ONLY",nullptr,0)) {
+            UiValidation::SchemaAndLayout();
+            ValidateTitleAuthoring();
+            ProjectSettingsValidation::Run();
+            std::cout<<"PASS: authored Game schema/shortcuts, title bindings/presentation and project settings\n";
+            return 0;
+        }
         if (GetEnvironmentVariableW(L"WP1_TITLE_PRESENTATION_ONLY",nullptr,0))
         {
             Check(Engine::Log::Initialize("generated/tests/title-focused.log"),"focused title diagnostic log");
             ValidateTitleMenu();
+            ValidateTitleAuthoring();
+            ProjectSettingsValidation::Run();
             Engine::Window window;
             Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden title presentation",1280,720),"focused title window");
@@ -3021,6 +3069,8 @@ int main()
         ValidateSceneFiles();
         ValidateDiagnostics();
         ValidateTitleMenu();
+        ValidateTitleAuthoring();
+        ProjectSettingsValidation::Run();
         ValidateTitleAnimation();
         ValidateSettings();
         ValidatePressAnyTitle();

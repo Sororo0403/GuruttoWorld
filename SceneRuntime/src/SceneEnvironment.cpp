@@ -67,7 +67,7 @@ namespace SceneRuntime
             const float duration=std::clamp(uiState_.Value("startDuration",0.32f),0.1f,10.0f);
             const float progress=std::clamp(startSeconds_/duration,0.0f,1.0f);
             uiState_.values["transition"]=progress;
-            uiState_.values["transitionPink"]=std::min(1.0f,progress*1.25f);
+            uiState_.values["transitionPink"]=std::min(1.0f,progress*uiState_.Value("transitionPinkScale",1.25f));
         }
         AnimateCameraFocus(elapsed);
     }

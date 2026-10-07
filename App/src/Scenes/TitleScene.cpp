@@ -1,4 +1,6 @@
 #include "TitleScene.h"
+#include "TitleBindings.h"
+#include <Engine/Core/Log.h>
 #include <Engine/Input/Keyboard.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <utility>
@@ -29,6 +31,8 @@ namespace App
         if (!environment_.Initialize(renderer,root_,root_/"Assets/Scenes/TitleStreet.json",error)) return false;
         environment_.Update(0.0, menu_.GetSettings().backgroundMotion, false);
         menu_.SetTransitionDuration(environment_.Ui().Value("startDuration",0.32f));
+        menu_.SetPresentationDurations(environment_.Ui().Value("introDuration",0.65f),environment_.Ui().Value("selectionDuration",0.16f));
+        menu_.SetItems(TitleBindings::Items(environment_.World().Layout()));
         if (menu_.IntroProgress()==1.0f)
             environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),0);
         SyncUi();
@@ -63,9 +67,12 @@ namespace App
     {
         gamepad_.Update(keyboard.IsActive());
         const auto input = ReadMenuInput(keyboard);
+        const float previousIntro=menu_.IntroProgress();
         auto action = menu_.Update(input, deltaSeconds);
         SyncUi();
         const auto pointerAction=UpdatePointer(keyboard);
+        if(previousIntro<1 && menu_.IntroProgress()==1)
+            environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),static_cast<float>(environment_.MotionSeconds()));
         if(pointerAction!=TitleMenuAction::None) action=pointerAction;
         if(action==TitleMenuAction::SaveSettings) menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
         if(action==TitleMenuAction::Exit) PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
@@ -82,18 +89,16 @@ namespace App
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
             keyboard.IsActive());
         if (action == TitleMenuAction::Start) {
-            for(const auto& object:environment_.World().Layout().objects)
-                if(object.button && object.button->enabled &&
-                    (object.button->event=="menu:0" || object.button->event=="start") &&
-                    !object.button->target.empty()) return object.button->target;
-            return "Game";
+            const auto scene=TitleBindings::StartScene(environment_.World().Layout());
+            if(scene.empty()) Engine::Log::Warning("START has no scene target. Set its Button Target in the editor.");
+            return scene;
         }
         if(!requestedScene_.empty()) return std::exchange(requestedScene_,{});
         return {};
     }
     void TitleScene::SyncUi()
     {
-        for(const auto& [key,value]:TitleUi::State(menu_).values) environment_.Ui().values[key]=value;
+        for(const auto& [key,value]:TitleUi::State(menu_,environment_.Ui()).values) environment_.Ui().values[key]=value;
     }
     TitleMenuAction TitleScene::UpdatePointer(const Engine::Keyboard& keyboard)
     {
@@ -120,9 +125,8 @@ namespace App
     void TitleScene::SelectHovered(const std::string& previousHover)
     {
         if (hovered_==previousHover) return;
-        if (hovered_=="world-start") menu_.SelectUi(TitleMenuItem::Start);
-        if (hovered_=="world-config") menu_.SelectUi(TitleMenuItem::Settings);
-        if (hovered_=="world-quit") menu_.SelectUi(TitleMenuItem::Exit);
+        for(const auto& object:environment_.World().Layout().objects) if(object.id==hovered_)
+            if(const auto item=TitleBindings::Item(object)) menu_.SelectUi(*item);
     }
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)
     {

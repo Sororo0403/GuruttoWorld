@@ -32,9 +32,9 @@ namespace App
             ready_ = false;
             return TitleMenuAction::None;
         }
-        const bool entering = introSeconds_ < 0.65f;
+        const bool entering = introSeconds_ < introDuration_;
         const float elapsed = std::isfinite(deltaSeconds) ? static_cast<float>(std::clamp(deltaSeconds, 0.0, 0.1)) : 0.0f;
-        introSeconds_ = std::min(0.65f, introSeconds_ + elapsed);
+        introSeconds_ = std::min(introDuration_, introSeconds_ + elapsed);
         selectionSeconds_ = std::max(0.0f, selectionSeconds_ - elapsed);
         // 覆い切ったフレームを描いてから次の更新で遷移を通知します。
         if (finished_)
@@ -47,7 +47,7 @@ namespace App
         {
             if (wasReady && input.anyButtonPressed)
             {
-                introSeconds_ = 0.65f;
+                introSeconds_ = introDuration_;
                 cue_ = TitleMenuCue::Confirm;
                 finished_ = true;
                 pending_ = TitleMenuAction::Start;
@@ -56,7 +56,7 @@ namespace App
         }
         if (entering)
         {
-            if (pressed != 0) introSeconds_ = 0.65f;
+            if (pressed != 0) introSeconds_ = introDuration_;
             return TitleMenuAction::None;
         }
         if (settingsOpen_ && (pressed & MenuBack))
@@ -81,7 +81,7 @@ namespace App
     TitleMenuAction TitleMenu::ActivateUi(std::string_view event)
     {
         if(finished_) return TitleMenuAction::None;
-        introSeconds_=0.65f;
+        if(introSeconds_<introDuration_) {introSeconds_=introDuration_; return TitleMenuAction::None;}
         if(pressAnyButton_ && event=="start") {
             cue_=TitleMenuCue::Confirm; finished_=true; pending_=TitleMenuAction::Start; return TitleMenuAction::None;
         }
@@ -89,20 +89,22 @@ namespace App
             draft_=saved_; settingsOpen_=false; saveFailed_=false; cue_=TitleMenuCue::Back; return TitleMenuAction::None;
         }
         if(event=="volume" && settingsOpen_) {draft_.volume=(draft_.volume+1)%11; cue_=TitleMenuCue::Select; return TitleMenuAction::None;}
-        if(const auto row=UiRow(event,"menu:"); row && !settingsOpen_ && (!twoItems_ || *row<2)) {
-            selected_=static_cast<TitleMenuItem>(*row); selectionSeconds_=0.16f; return UpdateMainMenu(MenuConfirm);
+        if(const auto row=UiRow(event,"menu:"); row && !settingsOpen_ &&
+            std::find(items_.begin(),items_.end(),static_cast<TitleMenuItem>(*row))!=items_.end()) {
+            selected_=static_cast<TitleMenuItem>(*row); selectionSeconds_=selectionDuration_; return UpdateMainMenu(MenuConfirm);
         }
         if(const auto row=UiRow(event,"settings:"); row && settingsOpen_) {
-            settingsRow_=*row; selectionSeconds_=0.16f; return UpdateSettings(MenuConfirm);
+            settingsRow_=*row; selectionSeconds_=selectionDuration_; return UpdateSettings(MenuConfirm);
         }
         return TitleMenuAction::None;
     }
 
     void TitleMenu::SelectUi(TitleMenuItem item)
     {
-        if (finished_ || settingsOpen_ || (twoItems_ && item==TitleMenuItem::Exit) || selected_==item) return;
+        if (finished_ || settingsOpen_ || introSeconds_<introDuration_ ||
+            std::find(items_.begin(),items_.end(),item)==items_.end() || selected_==item) return;
         selected_=item;
-        selectionSeconds_=0.16f;
+        selectionSeconds_=selectionDuration_;
         cue_=TitleMenuCue::Select;
     }
 
@@ -121,18 +123,39 @@ namespace App
         if (std::isfinite(seconds) && seconds>=0.1f && seconds<=10.0f && !finished_)
             transitionDuration_=seconds;
     }
+    void TitleMenu::SetPresentationDurations(float intro,float selection)
+    {
+        if(finished_) return;
+        const float progress=IntroProgress();
+        if(std::isfinite(intro) && intro>=0.01f && intro<=10) introDuration_=intro;
+        if(std::isfinite(selection) && selection>=0.01f && selection<=10) selectionDuration_=selection;
+        introSeconds_=progress*introDuration_;
+        selectionSeconds_=std::min(selectionSeconds_,selectionDuration_);
+    }
+    void TitleMenu::SetItems(std::vector<TitleMenuItem> items)
+    {
+        std::vector<TitleMenuItem> unique;
+        for(const auto item:items)
+            if(item>=TitleMenuItem::Start && item<=TitleMenuItem::Exit &&
+                std::find(unique.begin(),unique.end(),item)==unique.end()) unique.push_back(item);
+        items_=std::move(unique);
+        if(!items_.empty() && std::find(items_.begin(),items_.end(),selected_)==items_.end()) selected_=items_.front();
+    }
 
     void TitleMenu::MoveSelection(unsigned int direction)
     {
         if (direction != (MenuUp | MenuDown))
         {
             cue_ = TitleMenuCue::Select;
-            selectionSeconds_ = 0.16f;
+            selectionSeconds_ = selectionDuration_;
             const int step = direction == MenuDown ? 1 : 2;
             if (settingsOpen_) settingsRow_ = (settingsRow_ + step) % 3;
             else {
-                const int count=twoItems_ ? 2 : 3;
-                selected_ = static_cast<TitleMenuItem>((static_cast<int>(selected_) + (direction==MenuDown ? 1 : count-1)) % count);
+                if(items_.empty()) return;
+                const auto current=std::find(items_.begin(),items_.end(),selected_);
+                const auto index=static_cast<size_t>(current-items_.begin());
+                const auto offset=direction==MenuDown ? size_t(1) : items_.size()-1;
+                selected_=items_[(index+offset)%items_.size()];
             }
         }
     }
@@ -186,7 +209,7 @@ namespace App
 
     TitleMenuAction TitleMenu::UpdateMainMenu(unsigned int pressed)
     {
-        if ((pressed & MenuConfirm) != 0)
+        if ((pressed & MenuConfirm) != 0 && !items_.empty())
         {
             cue_ = TitleMenuCue::Confirm;
             if (selected_ == TitleMenuItem::Settings)
@@ -199,7 +222,7 @@ namespace App
             }
             finished_ = true;
             pending_ = selected_ == TitleMenuItem::Start ? TitleMenuAction::Start : TitleMenuAction::Exit;
-            selectionSeconds_ = 0.16f;
+            selectionSeconds_ = selectionDuration_;
             return TitleMenuAction::None;
         }
         return TitleMenuAction::None;

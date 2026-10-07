@@ -22,6 +22,7 @@ inline void SchemaAndLayout() {
     auto defaults=SceneUi::Defaults(authored);
     const auto shortcut=SceneUi::Shortcut(authored,"2",1280,720,defaults);
     Require(!shortcut.empty(),"authored model shortcut resolves");
+    Require(SceneUi::Shortcut(authored,"",1280,720,defaults).empty(),"empty shortcut cannot activate unbound buttons");
     SceneUi::Activate(authored,shortcut,defaults);
     Require(defaults.Value("model")==1,"authored shortcut switches mesh visibility state");
     for(auto& object:authored.objects) if(object.id==shortcut) {object.id="renamed-choice"; object.button->enabled=false;}

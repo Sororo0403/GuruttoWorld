@@ -12,7 +12,8 @@ void TitleAudio::Update(SceneRuntime::SceneEnvironment& environment,const std::f
         if(!environment.StartAudio(root,error)) Engine::Log::Warning(error);
     }
     const float elapsed=std::isfinite(seconds)?static_cast<float>(std::clamp(seconds,0.0,0.1)):0;
-    if(active) fade_=std::min(1.0f,fade_+elapsed/0.4f);
+    const float fadeDuration=std::clamp(environment.Ui().Value("musicFadeDuration",0.4f),0.01f,10.0f);
+    if(active) fade_=std::min(1.0f,fade_+elapsed/fadeDuration);
     const float gain=menu.GetSettings().volume/10.0f;
     environment.Ui().values["volumeGain"]=gain;
     environment.Ui().values["musicVolume"]=gain*fade_*(1-menu.TransitionProgress());

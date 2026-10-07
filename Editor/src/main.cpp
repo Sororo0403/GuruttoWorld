@@ -17,6 +17,7 @@
 #include "AudioPreview.h"
 #include "EditorFonts.h"
 #include "PlaySnapshot.h"
+#include "ProjectSettingsPanel.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/ScenePresentation.h>
 #include <SceneRuntime/SceneView.h>
@@ -718,6 +719,7 @@ namespace
                 DrawSceneDialogs();
             }
             ImGui::End();
+            projectSettingsPanel.Draw(root,projectPanel.Catalog());
         }
 
         static bool EditingField()
@@ -780,6 +782,7 @@ namespace
             if (!ImGui::BeginMenu("ファイル###File")) return;
             if (ImGui::MenuItem("新規シーン###New scene", nullptr, false, CommandContextEnabled())) newScenePopupRequested=true;
             DrawOpenMenu(CommandContextEnabled());
+            if(ImGui::MenuItem("プロジェクト設定…###Project settings",nullptr,false,CommandContextEnabled())) projectSettingsPanel.Open(root);
             if (ImGui::MenuItem("保存###Save", "Ctrl+S", false, enabled)) Save();
             if (ImGui::MenuItem("名前を付けて保存…###Save as...", "Ctrl+Shift+S", false, enabled)) saveAsPanel.Request(document.Path());
             if (ImGui::MenuItem("再読み込み###Reload", nullptr, false, enabled && !document.UnsavedNew())) RequestReload();
@@ -978,6 +981,7 @@ namespace
         Editor::EditHistory history;
         Editor::ConsolePanel consolePanel;
         Editor::SaveAsPanel saveAsPanel;
+        Editor::ProjectSettingsPanel projectSettingsPanel;
         std::unique_ptr<SceneRuntime::ScenePresentation> presentation;
         bool preview = false;
         bool focusRequested = false;

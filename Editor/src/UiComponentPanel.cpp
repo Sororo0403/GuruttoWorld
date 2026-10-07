@@ -13,6 +13,23 @@ void Vector(Editor::EditState& state,const char* label,std::array<float,2>& valu
     ImGui::DragFloat2(label,value.data(),1,low,high,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state);
 }
 void Color(Editor::EditState& state,const char* label,std::array<float,4>& value) {ImGui::ColorEdit4(label,value.data()); Track(state);}
+void TitleSettings(Editor::EditState& state,SceneRuntime::CanvasComponent& canvas) {
+    if(!canvas.stateDefaults.contains("introDuration") || !ImGui::TreeNode("タイトル演出の設定###Title presentation settings")) return;
+    const auto field=[&](const char* key,const char* label,float fallback,float low,float high) {
+        const auto found=canvas.stateDefaults.find(key);
+        float value=found==canvas.stateDefaults.end()?fallback:found->second;
+        if(ImGui::DragFloat(label,&value,0.01f,low,high,"%.2f",ImGuiSliderFlags_AlwaysClamp)) canvas.stateDefaults[key]=value;
+        Track(state);
+    };
+    field("introDuration","登場・入力待ち時間（秒）###Intro duration",.65f,.01f,10);
+    field("startDuration","開始時の遷移時間（秒）###Start duration",.32f,.1f,10);
+    field("selectionDuration","選択演出の時間（秒）###Selection duration",.16f,.01f,10);
+    field("selectionOffset","選択時の移動量###Selection offset",12,-1000,1000);
+    field("inactiveOpacity","非選択項目の不透明度###Inactive opacity",.6f,0,1);
+    field("musicFadeDuration","BGMフェード時間（秒）###Music fade duration",.4f,.01f,10);
+    field("transitionPinkScale","遷移帯の進行倍率###Transition band scale",1.25f,.01f,10);
+    ImGui::TreePop();
+}
 void Asset(std::filesystem::path& value,const Editor::ProjectCatalog* catalog,Editor::AssetKind kind) {
     if(!catalog) return;
     if(ImGui::BeginCombo("アセット###Asset",Editor::ProjectCatalog::Text(value).c_str())) {
@@ -41,6 +58,7 @@ namespace Editor {
 bool UiComponentPanel::Draw(EditState& state,SceneRuntime::ScenePlacement& p,const ProjectCatalog* catalog) {
     const auto before=p;
     Component(p.canvas,"キャンバス###Canvas",[&](auto& c){Vector(state,"基準解像度###Reference resolution",c.referenceSize,1,8192); ImGui::Checkbox("画面サイズに合わせて拡縮###Scale with screen",&c.scaleWithScreen);
+        TitleSettings(state,c);
         std::string eraseKey;
         for(auto& [key,value]:c.stateDefaults) {ImGui::PushID(key.c_str()); ImGui::DragFloat(key.c_str(),&value,0.1f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state); ImGui::SameLine(); if(ImGui::SmallButton("X")) eraseKey=key; ImGui::PopID();}
         if(!eraseKey.empty()) c.stateDefaults.erase(eraseKey);

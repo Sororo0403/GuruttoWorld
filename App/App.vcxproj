@@ -265,6 +265,7 @@
     <ClInclude Include="src\Scenes\TitleAudio.h" />
     <ClInclude Include="src\Scenes\GameSettings.h" />
     <ClInclude Include="src\Scenes\TitleUi.h" />
+    <ClInclude Include="src\Scenes\TitleBindings.h" />
     <None Include="..\Content\Assets\Scenes\TitleStreet.json" />
     <ClInclude Include="src\Scenes\SceneFactory.h" />
     <ClCompile Include="src\Scenes\SceneFactory.cpp" />
