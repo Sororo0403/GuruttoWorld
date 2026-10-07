@@ -272,29 +272,42 @@ namespace
                 placement.position=request.position;
                 return world.AddObject(std::move(placement),root,createdId,fileStatus);
             }
-            if (request.action==Editor::ObjectAction::AddPrefab || request.action==Editor::ObjectAction::RefreshPrefabs || request.action==Editor::ObjectAction::UnpackPrefab)
+            if (request.action==Editor::ObjectAction::AddPrefab || request.action==Editor::ObjectAction::RefreshPrefabs || request.action==Editor::ObjectAction::UnpackPrefab ||
+                request.action==Editor::ObjectAction::RevertPrefab || request.action==Editor::ObjectAction::RevertPrefabProperty || request.action==Editor::ObjectAction::ApplyPrefabProperty)
             {
                 try
                 {
                     auto candidate=world.Layout();
                     if (request.action==Editor::ObjectAction::AddPrefab)
-                        createdId=SceneRuntime::Prefab::Instantiate(candidate,SceneRuntime::SceneLayout::Load(root/request.model),request.model,request.position);
+                    {
+                        auto asset=SceneRuntime::SceneLayout::Load(root/request.model,root);
+                        SceneRuntime::Prefab::Refresh(asset,root);
+                        createdId=SceneRuntime::Prefab::Instantiate(candidate,asset,request.model,request.position);
+                    }
                     else if (request.action==Editor::ObjectAction::RefreshPrefabs) SceneRuntime::Prefab::Refresh(candidate,root);
+                    else if (request.action==Editor::ObjectAction::RevertPrefab) SceneRuntime::Prefab::RevertInstance(candidate,request.id,root);
+                    else if (request.action==Editor::ObjectAction::RevertPrefabProperty) SceneRuntime::Prefab::RevertOverride(candidate,request.id,request.property);
+                    else if (request.action==Editor::ObjectAction::ApplyPrefabProperty)
+                    {
+                        SceneRuntime::Prefab::ApplyOverride(candidate,request.id,request.property,root);
+                        SceneRuntime::Prefab::Refresh(candidate,root);
+                    }
                     else SceneRuntime::Prefab::Unpack(candidate,request.id);
                     return world.ReplaceLayout(std::move(candidate),root,fileStatus);
                 }
                 catch (const std::exception& exception) { fileStatus=exception.what(); return false; }
             }
-            if (request.action==Editor::ObjectAction::SavePrefab || request.action==Editor::ObjectAction::ApplyPrefab)
+            if (request.action==Editor::ObjectAction::SavePrefab || request.action==Editor::ObjectAction::ApplyPrefab || request.action==Editor::ObjectAction::SavePrefabVariant)
             {
                 try
                 {
                     if (!SceneRuntime::Prefab::ValidPath(request.model)) throw std::runtime_error("Prefabの保存先が不正です");
                     std::filesystem::create_directories((root/request.model).parent_path());
-                    SceneRuntime::Prefab::Extract(world.Layout(),request.id).Save(root/request.model,request.action==Editor::ObjectAction::ApplyPrefab);
+                    const auto asset=request.action==Editor::ObjectAction::SavePrefabVariant ? SceneRuntime::Prefab::Variant(world.Layout(),request.id) : SceneRuntime::Prefab::Extract(world.Layout(),request.id);
+                    asset.Save(root/request.model,request.action==Editor::ObjectAction::ApplyPrefab);
                     auto candidate=world.Layout();
                     SceneRuntime::Prefab::Bind(candidate,request.id,request.model);
-                    if (request.action==Editor::ObjectAction::ApplyPrefab) SceneRuntime::Prefab::Refresh(candidate,root);
+                    if (request.action==Editor::ObjectAction::ApplyPrefab || request.action==Editor::ObjectAction::SavePrefabVariant) SceneRuntime::Prefab::Refresh(candidate,root);
                     if (!world.ReplaceLayout(std::move(candidate),root,fileStatus)) return false;
                     projectPanel.Scan(root); fileStatus="Prefabを保存しました。"; return true;
                 }
@@ -320,8 +333,9 @@ namespace
             if (success)
             {
                 if (!createdId.empty()) editState.ObjectChanged(createdId);
-                if (request.action!=Editor::ObjectAction::SavePrefab && request.action!=Editor::ObjectAction::ApplyPrefab)
-                fileStatus=request.action==Editor::ObjectAction::Delete ? "削除しました。" :
+                if (request.action!=Editor::ObjectAction::SavePrefab && request.action!=Editor::ObjectAction::ApplyPrefab && request.action!=Editor::ObjectAction::SavePrefabVariant)
+                fileStatus=request.action==Editor::ObjectAction::RevertPrefab || request.action==Editor::ObjectAction::RevertPrefabProperty || request.action==Editor::ObjectAction::ApplyPrefabProperty ? "Prefabを更新しました。" :
+                      request.action==Editor::ObjectAction::Delete ? "削除しました。" :
                     request.action==Editor::ObjectAction::Duplicate ? "複製しました。" :
                     request.action==Editor::ObjectAction::Components ? "コンポーネントを更新しました。" :
                     request.action==Editor::ObjectAction::Settings ? "シーン設定を更新しました。" : "追加しました。";
@@ -906,6 +920,11 @@ namespace
                 {
                     if (ImGui::MenuItem("選択の変更を元Prefabへ適用###Apply prefab"))
                         pendingObject=Editor::ObjectRequest{Editor::ObjectAction::ApplyPrefab,found->prefab->rootId,found->prefab->asset};
+                    if (ImGui::MenuItem("Prefabの上書きをすべて戻す###Revert prefab"))
+                        pendingObject=Editor::ObjectRequest{Editor::ObjectAction::RevertPrefab,found->prefab->rootId};
+                    if (ImGui::MenuItem("Prefab Variantとして保存###Save prefab variant"))
+                        pendingObject=Editor::ObjectRequest{Editor::ObjectAction::SavePrefabVariant,found->prefab->rootId,
+                            found->prefab->asset.parent_path()/(found->prefab->asset.stem().string()+"Variant.prefab")};
                     if (ImGui::MenuItem("Prefabのリンクを解除###Unpack prefab"))
                         pendingObject=Editor::ObjectRequest{Editor::ObjectAction::UnpackPrefab,found->prefab->rootId};
                 }

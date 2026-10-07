@@ -145,6 +145,7 @@
     <ClInclude Include="src\ProjectSettingsPanel.h" />
     <ClInclude Include="src\InputBindingsPanel.h" />
     <ClInclude Include="src\MaterialPanel.h" />
+    <ClInclude Include="src\PrefabPanel.h" />
     <ClInclude Include="src\FocusSelection.h" />
     <ClInclude Include="src\PanelLayout.h" />
     <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">

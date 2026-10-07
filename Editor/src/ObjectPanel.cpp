@@ -1,4 +1,5 @@
 #include "ObjectPanel.h"
+#include "PrefabPanel.h"
 #include "PanelLayout.h"
 #include <algorithm>
 #include <numbers>
@@ -167,6 +168,7 @@ namespace Editor
                 ImGui::Separator();
                 DrawTransform(world, state, *found);
                 ComponentPanel::Draw(state,*found,catalog_);
+                DrawPrefabOverrides(state,world.Layout(),*found);
                 if (ImGui::Button("複製###Duplicate")) state.Request(state.DuplicateSelectionRequest());
                 ImGui::SameLine();
                 if (ImGui::Button("削除###Delete")) state.Request(state.DeleteSelectionRequest());

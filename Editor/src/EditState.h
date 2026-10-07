@@ -8,7 +8,7 @@
 
 namespace Editor
 {
-    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete, Components, Settings, AddPrefab, SavePrefab, ApplyPrefab, RefreshPrefabs, UnpackPrefab };
+    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete, Components, Settings, AddPrefab, SavePrefab, ApplyPrefab, RefreshPrefabs, UnpackPrefab, RevertPrefab, RevertPrefabProperty, ApplyPrefabProperty, SavePrefabVariant };
     struct ObjectRequest
     {
         ObjectAction action = ObjectAction::Add;
@@ -19,6 +19,7 @@ namespace Editor
         std::optional<SceneRuntime::ScenePlacement> components{};
         std::string interaction{};
         std::optional<SceneRuntime::SceneSettings> settings{};
+        std::string property{};
     };
 
     // Shared editing state and operations; independent of panels and ImGui.

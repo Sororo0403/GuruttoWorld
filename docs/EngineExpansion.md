@@ -5,7 +5,7 @@
 
 - [x] ゲーム処理API: 検索、Component取得、生成・複製・削除、イベント
 - [ ] 物理: 動的剛体、Collider、Trigger、衝突イベント、Raycast、斜面・移動床
-- [ ] Prefab: プロパティ単位の上書き、適用・復元、入れ子、Variant
+- [x] Prefab: プロパティ単位の上書き、適用・復元、入れ子、Variant
 - [ ] 描画: PBR、法線マップ、Point/Spot Light、ポストエフェクト
 - [ ] アニメーション: GPUスキニング、Blend Tree、イベント、IK、ルートモーション
 - [ ] アセット・性能: 画像圧縮・Mip設定、CPUスコープ・GPUパス別計測

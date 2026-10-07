@@ -3,6 +3,7 @@
 #include <map>
 #include <set>
 #include <stdexcept>
+#include "SceneComponentJson.h"
 
 namespace
 {
@@ -39,7 +40,7 @@ namespace
     }
     std::string Baseline(ScenePlacement object)
     {
-        object.parentId.clear(); object.prefab.reset();
+        object.parentId.clear();
         SceneLayout layout; layout.objects.push_back(std::move(object)); return layout.Serialize();
     }
     bool Modified(const ScenePlacement& object,const ScenePlacement& baseline,bool root)
@@ -47,6 +48,99 @@ namespace
         return object.name!=baseline.name || !object.SameComponents(baseline) || (!root &&
             (object.position!=baseline.position || object.rotation!=baseline.rotation || object.scale!=baseline.scale));
     }
+    using Engine::Json;
+    Json MergeProperty(const Json& old,const Json& current,const Json& source)
+    {
+        if (current==old) return source;
+        if (!old.is_object() || !current.is_object() || !source.is_object()) return current;
+        if (old.contains("type") && current.contains("type") && source.contains("type") &&
+            (old.at("type")!=current.at("type") || old.at("type")!=source.at("type"))) return current;
+        Json result=source;
+        for (const auto& [key,value] : current.items())
+        {
+            if (!old.contains(key)) result[key]=value;
+            else if (!source.contains(key)) { if (value!=old.at(key)) result[key]=value; }
+            else result[key]=MergeProperty(old.at(key),value,source.at(key));
+        }
+        for (const auto& [key,value] : old.items())
+        { static_cast<void>(value); if (!current.contains(key)) result.erase(key); }
+        return result;
+    }
+    Json ComponentMap(const ScenePlacement& object)
+    {
+        Json result=Json::object();
+        for (const auto& component : WriteSceneComponents(object)) result[component.at("id").get<std::string>()]=component;
+        return result;
+    }
+    void MergeComponents(ScenePlacement& current,const ScenePlacement& old,const ScenePlacement& source)
+    {
+        const auto merged=MergeProperty(ComponentMap(old),ComponentMap(current),ComponentMap(source));
+        Json array=Json::array();
+        for (const auto& [id,component] : merged.items()) { static_cast<void>(id); array.push_back(component); }
+        ScenePlacement result;
+        ReadSceneComponents(Json{{"components",array}},result,false);
+        current.CopyComponents(result);
+    }
+    Json Properties(const ScenePlacement& object,bool root)
+    {
+        Json value{{"name",object.name},{"components",ComponentMap(object)}};
+        if (!root) { value["position"]=object.position; value["rotation"]=object.rotation; value["scale"]=object.scale; }
+        return value;
+    }
+    ScenePlacement BaselineInScene(const SceneLayout& scene,const ScenePlacement& object)
+    {
+        if (!object.prefab) throw std::runtime_error("Object is not a prefab instance");
+        auto baseline=SceneLayout::Parse(object.prefab->baseline).objects.at(0);
+        std::map<std::string,std::string> ids;
+        for (const auto& item : scene.objects) if (item.prefab && item.prefab->rootId==object.prefab->rootId)
+            ids[item.prefab->sourceId]=item.id;
+        Remap(baseline,ids); return baseline;
+    }
+    std::string EscapePointer(const std::string& key)
+    {
+        std::string escaped;
+        for (const auto c : key) escaped+=c=='~' ? "~0" : c=='/' ? "~1" : std::string(1,c);
+        return escaped;
+    }
+    void Differences(const Json& current,const Json& source,const std::string& path,std::vector<PrefabOverride>& result)
+    {
+        if (current==source) return;
+        if (current.is_object() && source.is_object())
+        {
+            std::set<std::string> keys;
+            for (const auto& [key,value] : current.items()) { static_cast<void>(value); keys.insert(key); }
+            for (const auto& [key,value] : source.items()) { static_cast<void>(value); keys.insert(key); }
+            for (const auto& key : keys)
+            {
+                const auto property=path+"/"+EscapePointer(key);
+                if (!current.contains(key) || !source.contains(key)) result.push_back({property,current.contains(key) ? current.at(key).dump() : "",source.contains(key) ? source.at(key).dump() : ""});
+                else Differences(current.at(key),source.at(key),property,result);
+            }
+        }
+        else result.push_back({path,current.dump(),source.dump()});
+    }
+    void SetProperties(ScenePlacement& object,const Json& properties)
+    {
+        object.name=properties.at("name").get<std::string>();
+        if (properties.contains("position")) object.position=properties.at("position").get<std::array<float,3>>();
+        if (properties.contains("rotation")) object.rotation=properties.at("rotation").get<std::array<float,3>>();
+        if (properties.contains("scale")) object.scale=properties.at("scale").get<std::array<float,3>>();
+        Json array=Json::array();
+        for (const auto& [id,value] : properties.at("components").items()) { static_cast<void>(id); array.push_back(value); }
+        ScenePlacement components;
+        ReadSceneComponents(Json{{"components",array}},components,false); object.CopyComponents(components);
+    }
+    std::set<std::filesystem::path>& ActivePrefabs()
+    { static thread_local std::set<std::filesystem::path> active; return active; }
+    struct RefreshScope
+    {
+        std::filesystem::path path;
+        explicit RefreshScope(const std::filesystem::path& file) : path(std::filesystem::weakly_canonical(file))
+        {
+            if (ActivePrefabs().size()>=64 || !ActivePrefabs().insert(path).second) throw std::runtime_error("Cyclic or excessively nested prefab dependency");
+        }
+        ~RefreshScope() { ActivePrefabs().erase(path); }
+    };
 }
 namespace SceneRuntime
 {
@@ -74,7 +168,12 @@ namespace SceneRuntime
         for (auto object : scene.objects) if (selected.contains(object.id))
         {
             const bool isRoot=object.id==rootId;
-            Remap(object,remap); object.id=remap.at(object.id); object.prefab.reset();
+            std::optional<PrefabLink> nested;
+            if (object.prefab && object.prefab->rootId==rootId)
+                nested=SceneLayout::Parse(object.prefab->baseline).objects.at(0).prefab;
+            else if (object.prefab) nested=object.prefab;
+            Remap(object,remap); object.id=remap.at(object.id); object.prefab=std::move(nested);
+            if (object.prefab && remap.contains(object.prefab->rootId)) object.prefab->rootId=remap.at(object.prefab->rootId);
             if (isRoot) { object.parentId.clear(); object.position={0,0,0}; }
             asset.objects.push_back(std::move(object));
         }
@@ -107,7 +206,10 @@ namespace SceneRuntime
             auto root=std::find_if(candidate.objects.begin(),candidate.objects.end(),[&](const auto& object) { return object.id==rootId; });
             if (root==candidate.objects.end() || !root->prefab) { Unpack(candidate,rootId); continue; }
             if (!ValidPath(path)) throw std::runtime_error("Invalid prefab path");
-            const auto source=SceneLayout::Load(assetsRoot/path,assetsRoot); const auto sourceRoot=Root(source);
+            RefreshScope scope(assetsRoot/path);
+            auto source=SceneLayout::Load(assetsRoot/path,assetsRoot);
+            Refresh(source,assetsRoot);
+            const auto sourceRoot=Root(source);
             std::map<std::string,std::string> ids;
             for (const auto& object : candidate.objects) if (object.prefab && object.prefab->rootId==rootId)
             {
@@ -127,7 +229,7 @@ namespace SceneRuntime
                 auto old=SceneLayout::Parse(found->prefab->baseline).objects.at(0); Remap(old,ids);
                 const bool isRoot=found->id==rootId;
                 if (found->name==old.name) found->name=object.name;
-                if (found->SameComponents(old)) found->CopyComponents(object);
+                MergeComponents(*found,old,object);
                 if (!isRoot)
                 {
                     if (found->position==old.position) found->position=object.position;
@@ -165,4 +267,78 @@ namespace SceneRuntime
     }
     void Prefab::Unpack(SceneLayout& scene,const std::string& rootId)
     { for (auto& object : scene.objects) if (object.prefab && object.prefab->rootId==rootId) object.prefab.reset(); }
+    std::vector<PrefabOverride> Prefab::Overrides(const SceneLayout& scene,const std::string& objectId)
+    {
+        auto copy=scene; const auto& object=Find(copy,objectId);
+        const auto baseline=BaselineInScene(scene,object);
+        std::vector<PrefabOverride> result;
+        Differences(Properties(object,objectId==object.prefab->rootId),Properties(baseline,objectId==object.prefab->rootId),"",result);
+        return result;
+    }
+    void Prefab::RevertOverride(SceneLayout& scene,const std::string& objectId,const std::string& property)
+    {
+        auto candidate=scene; auto& object=Find(candidate,objectId);
+        const auto differences=Overrides(candidate,objectId);
+        const auto found=std::find_if(differences.begin(),differences.end(),[&](const auto& item) { return item.path==property; });
+        if (found==differences.end()) throw std::runtime_error("Prefab property is not overridden");
+        auto properties=Properties(object,objectId==object.prefab->rootId);
+        const Json::json_pointer pointer(property);
+        if (found->source.empty()) properties=properties.patch(Json::array({Json{{"op","remove"},{"path",property}}}));
+        else properties[pointer]=Json::parse(found->source);
+        SetProperties(object,properties);
+        if (!object.camera && candidate.settings.mainCamera==object.id) candidate.settings.mainCamera.clear();
+        static_cast<void>(candidate.Serialize()); scene=std::move(candidate);
+    }
+    void Prefab::RevertInstance(SceneLayout& scene,const std::string& rootId,const std::filesystem::path& assetsRoot)
+    {
+        auto candidate=scene;
+        const auto& root=Find(candidate,rootId);
+        if (!root.prefab || root.prefab->rootId!=rootId) throw std::runtime_error("Revert requires a prefab root");
+        Refresh(candidate,assetsRoot);
+        for (auto& object : candidate.objects) if (object.prefab && object.prefab->rootId==rootId)
+        {
+            const auto source=BaselineInScene(candidate,object);
+            SetProperties(object,Properties(source,object.id==rootId));
+        }
+        if (!candidate.settings.mainCamera.empty() && std::none_of(candidate.objects.begin(),candidate.objects.end(),[&](const auto& object) {
+            return object.id==candidate.settings.mainCamera && object.camera;
+        })) candidate.settings.mainCamera.clear();
+        static_cast<void>(candidate.Serialize()); scene=std::move(candidate);
+    }
+    void Prefab::ApplyOverride(const SceneLayout& scene,const std::string& objectId,const std::string& property,const std::filesystem::path& assetsRoot)
+    {
+        auto copy=scene; auto object=Find(copy,objectId);
+        const auto overrides=Overrides(scene,objectId);
+        if (std::none_of(overrides.begin(),overrides.end(),[&](const auto& item) { return item.path==property; }))
+            throw std::runtime_error("Prefab property is not overridden");
+        const auto path=object.prefab->asset; const auto sourceId=object.prefab->sourceId;
+        auto asset=SceneLayout::Load(assetsRoot/path,assetsRoot);
+        Refresh(asset,assetsRoot);
+        auto& source=Find(asset,sourceId);
+        std::map<std::string,std::string> ids;
+        for (const auto& item : scene.objects) if (item.prefab && item.prefab->rootId==object.prefab->rootId) ids[item.id]=item.prefab->sourceId;
+        Remap(object,ids);
+        const bool root=objectId==object.prefab->rootId;
+        const auto current=Properties(object,root);
+        auto properties=Properties(source,root);
+        const Json::json_pointer pointer(property);
+        if (current.contains(pointer)) properties[pointer]=current.at(pointer);
+        else properties=properties.patch(Json::array({Json{{"op","remove"},{"path",property}}}));
+        SetProperties(source,properties);
+        asset.Save(assetsRoot/path);
+    }
+    SceneLayout Prefab::Variant(const SceneLayout& scene,const std::string& rootId)
+    {
+        auto copy=scene; const auto& root=Find(copy,rootId);
+        if (!root.prefab || root.prefab->rootId!=rootId) throw std::runtime_error("Variant requires a prefab root");
+        auto variant=Extract(scene,rootId);
+        for (auto& source : variant.objects)
+        {
+            const auto found=std::find_if(scene.objects.begin(),scene.objects.end(),[&](const auto& item) {
+                return item.prefab && item.prefab->rootId==rootId && item.prefab->sourceId==source.id;
+            });
+            if (found!=scene.objects.end()) { source.prefab=found->prefab; source.prefab->rootId=root.prefab->sourceId; }
+        }
+        static_cast<void>(variant.Serialize()); return variant;
+    }
 }
