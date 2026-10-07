@@ -214,3 +214,5 @@ PlayerControllerはAnimationValidationの再生検証でJSON保存復元、不�
 PhysicsValidationはGPUなしでBoxColliderとPlayerControllerの保存復元、旧シーンの重力OFF、不正な箱サイズの拒否、落下・接地・ジャンプ・空中ジャンプの拒否、薄い壁のすり抜け防止、無効Component、親の拡縮と不正な時間・入力を検証します。Debug／Releaseの全回帰に含まれ、`WP1_PHYSICS_ONLY=1`で単独実行できます。PhysicsPlayground.jsonの操作はEditorで確認できます。
 
 ScriptValidationは独自C++処理の登録、重複・不正なメタデータの拒否、複数処理の保存復元、開始・更新・無効化・再有効化・終了、不明な処理の設定保持と実行エラーを確認します。Debug／Releaseの全回帰に含まれ、`WP1_SCRIPT_ONLY=1`で単独実行できます。
+
+PrefabValidationは親子とIDの生成、リンクの保存復元、元データ変更の反映と個別編集の保持、新しい子の追加、ファイル欠損時のシーン保持、リンク解除、抽出と不正パスの拒否を検証します。Debug／Releaseの全回帰に含まれ、`WP1_PREFAB_ONLY=1`で単独実行できます。

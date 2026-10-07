@@ -33,6 +33,12 @@ namespace SceneRuntime
         std::array<float,3> size{1,1,1};
         bool operator==(const BoxColliderComponent&) const = default;
     };
+    struct PrefabLink
+    {
+        std::filesystem::path asset;
+        std::string sourceId,rootId,baseline;
+        bool operator==(const PrefabLink&) const = default;
+    };
     struct ScriptComponent
     {
         std::string id="script";

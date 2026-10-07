@@ -164,6 +164,8 @@
     <ClCompile Include="src\SceneWorld.cpp" />
     <ClCompile Include="src\ScenePhysics.cpp" />
     <ClCompile Include="src\ScriptRuntime.cpp" />
+    <ClCompile Include="src\Prefab.cpp" />
+    <ClInclude Include="include\SceneRuntime\Prefab.h" />
     <ClInclude Include="include\SceneRuntime\ScriptRuntime.h" />
     <ClInclude Include="include\SceneRuntime\ScenePhysics.h" />
     <ClCompile Include="src\SceneTransforms.cpp" />

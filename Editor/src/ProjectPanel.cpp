@@ -37,7 +37,7 @@ namespace Editor
             ImGui::InputText("アセットを検索###Search assets",search_.data(),search_.size());
             ImGui::SameLine();
             ImGui::SetNextItemWidth(100);
-            ImGui::Combo("種類###Type",&type_,"すべて\0モデル\0シーン\0画像\0音声\0シェーダー\0フォント\0");
+            ImGui::Combo("種類###Type",&type_,"すべて\0モデル\0シーン\0画像\0音声\0シェーダー\0フォント\0Prefab\0");
             if (!catalog_.Error().empty()) ImGui::TextWrapped("%s",catalog_.Error().c_str());
             const float listHeight=std::max(70.0f,ImGui::GetContentRegionAvail().y-130);
             if (ImGui::BeginChild("Folders",ImVec2(180,listHeight),ImGuiChildFlags_Borders))
@@ -119,6 +119,13 @@ namespace Editor
             if (ImGui::Button("選択シーンを開く###Open selected scene")) sceneRequest_=found->path;
             ImGui::EndDisabled();
             return;
+        }
+        if (found->kind==AssetKind::Prefab)
+        {
+            ImGui::BeginDisabled(!enabled);
+            ImGui::DragFloat3("追加位置###Prefab position",addPosition_.data(),0.1f);
+            if (ImGui::Button("Prefabを配置###Add prefab")) state.Request({ObjectAction::AddPrefab,{},selected_,addPosition_});
+            ImGui::EndDisabled(); return;
         }
         if (found->kind!=AssetKind::Model) return;
         ImGui::BeginDisabled(!enabled);

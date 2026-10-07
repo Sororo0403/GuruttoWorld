@@ -1,6 +1,7 @@
 #include <SceneRuntime/SceneWorld.h>
 #include <SceneRuntime/SceneTransforms.h>
 #include <SceneRuntime/SceneUi.h>
+#include <SceneRuntime/Prefab.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Core/Log.h>
 #include <format>
@@ -88,7 +89,9 @@ namespace SceneRuntime
     {
         if (!InitializeModels(renderer,shaderPath,diagnostic)) return false;
         std::string error;
-        const bool loaded=ReplaceLayout(std::move(layout),assetsRoot,error);
+        bool loaded=false;
+        try { Prefab::Refresh(layout,assetsRoot); loaded=ReplaceLayout(std::move(layout),assetsRoot,error); }
+        catch (const std::exception& exception) { error=exception.what(); }
         if (diagnostic) *diagnostic=error;
         return loaded;
     }
@@ -117,7 +120,7 @@ namespace SceneRuntime
     bool SceneWorld::Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath,
         std::string& error)
     {
-        try { return ReplaceLayout(SceneLayout::Load(layoutPath), assetsRoot, error); }
+        try { auto layout=SceneLayout::Load(layoutPath); Prefab::Refresh(layout,assetsRoot); return ReplaceLayout(std::move(layout), assetsRoot, error); }
         catch (const std::exception& exception) { error = exception.what(); return false; }
     }
 
@@ -125,7 +128,7 @@ namespace SceneRuntime
         const std::filesystem::path& shaderPath, std::string& error)
     {
         SceneWorld candidate;
-        if (!candidate.Initialize(renderer,assetsRoot,layout_,shaderPath,&error)) return false;
+        if (!candidate.InitializeModels(renderer,shaderPath,&error) || !candidate.ReplaceLayout(layout_,assetsRoot,error)) return false;
         models_.Swap(candidate.models_);
         objects_.swap(candidate.objects_);
         std::swap(shadow_,candidate.shadow_);
@@ -591,6 +594,12 @@ namespace SceneRuntime
                 if(placement.button->action!="loadScene" && placement.button->action!="setState") remap(placement.button->target);
                 remap(placement.button->sound);
             }
+            if (placement.prefab)
+            {
+                const auto root=copies.find(placement.prefab->rootId);
+                if (root!=copies.end()) placement.prefab->rootId=root->second;
+                else placement.prefab.reset();
+            }
             placement.id=copies.at(placement.id); placement.name+=" copy";
             candidate.objects.push_back(std::move(placement));
             objects.push_back(objects_[index]);
@@ -620,6 +629,7 @@ namespace SceneRuntime
         {
             auto placement=layout_.objects[index];
             if (removed.contains(placement.id)) continue;
+            if (placement.prefab && removed.contains(placement.prefab->rootId)) placement.prefab.reset();
             if (removed.contains(placement.parentId) && !ReparentPlacement(placement,{},error)) return false;
             candidate.objects.push_back(std::move(placement));
             objects.push_back(objects_[index]);

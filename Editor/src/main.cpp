@@ -13,6 +13,7 @@
 #include "SceneDocument.h"
 #include "SaveAsPanel.h"
 #include "GameSession.h"
+#include <SceneRuntime/Prefab.h>
 #include "UiCanvasPanel.h"
 #include "AudioPreview.h"
 #include "EditorFonts.h"
@@ -254,6 +255,34 @@ namespace
                 placement.position=request.position;
                 return world.AddObject(std::move(placement),root,createdId,fileStatus);
             }
+            if (request.action==Editor::ObjectAction::AddPrefab || request.action==Editor::ObjectAction::RefreshPrefabs || request.action==Editor::ObjectAction::UnpackPrefab)
+            {
+                try
+                {
+                    auto candidate=world.Layout();
+                    if (request.action==Editor::ObjectAction::AddPrefab)
+                        createdId=SceneRuntime::Prefab::Instantiate(candidate,SceneRuntime::SceneLayout::Load(root/request.model),request.model,request.position);
+                    else if (request.action==Editor::ObjectAction::RefreshPrefabs) SceneRuntime::Prefab::Refresh(candidate,root);
+                    else SceneRuntime::Prefab::Unpack(candidate,request.id);
+                    return world.ReplaceLayout(std::move(candidate),root,fileStatus);
+                }
+                catch (const std::exception& exception) { fileStatus=exception.what(); return false; }
+            }
+            if (request.action==Editor::ObjectAction::SavePrefab || request.action==Editor::ObjectAction::ApplyPrefab)
+            {
+                try
+                {
+                    if (!SceneRuntime::Prefab::ValidPath(request.model)) throw std::runtime_error("Prefabの保存先が不正です");
+                    std::filesystem::create_directories((root/request.model).parent_path());
+                    SceneRuntime::Prefab::Extract(world.Layout(),request.id).Save(root/request.model,request.action==Editor::ObjectAction::ApplyPrefab);
+                    auto candidate=world.Layout();
+                    SceneRuntime::Prefab::Bind(candidate,request.id,request.model);
+                    if (request.action==Editor::ObjectAction::ApplyPrefab) SceneRuntime::Prefab::Refresh(candidate,root);
+                    if (!world.ReplaceLayout(std::move(candidate),root,fileStatus)) return false;
+                    projectPanel.Scan(root); fileStatus="Prefabを保存しました。"; return true;
+                }
+                catch (const std::exception& exception) { fileStatus=exception.what(); return false; }
+            }
             if (request.action==Editor::ObjectAction::Duplicate)
                 return editState.DuplicateObjects(world,request.ids,{4,0,0},fileStatus);
             if (request.action==Editor::ObjectAction::Delete)
@@ -274,6 +303,7 @@ namespace
             if (success)
             {
                 if (!createdId.empty()) editState.ObjectChanged(createdId);
+                if (request.action!=Editor::ObjectAction::SavePrefab && request.action!=Editor::ObjectAction::ApplyPrefab)
                 fileStatus=request.action==Editor::ObjectAction::Delete ? "削除しました。" :
                     request.action==Editor::ObjectAction::Duplicate ? "複製しました。" :
                     request.action==Editor::ObjectAction::Components ? "コンポーネントを更新しました。" :
@@ -824,6 +854,28 @@ namespace
                 pendingObject=editState.DuplicateSelectionRequest();
             if (ImGui::MenuItem("削除###Delete", "Delete", false, selected))
                 pendingObject=editState.DeleteSelectionRequest();
+            ImGui::Separator();
+            if (ImGui::MenuItem("選択をPrefabとして保存###Save selection as prefab",nullptr,false,selected && editState.SingleSelection()))
+            {
+                const auto id=editState.SelectedId();
+                std::string filename=id;
+                for (auto& character : filename) if (!std::isalnum(static_cast<unsigned char>(character)) && character!='-' && character!='_') character='_';
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::SavePrefab,id,std::filesystem::path("Assets/Prefabs")/(filename+".prefab")};
+            }
+            if (selected && editState.SingleSelection())
+            {
+                const auto& objects=world.Layout().objects;
+                const auto found=std::find_if(objects.begin(),objects.end(),[&](const auto& object) { return object.id==editState.SelectedId(); });
+                if (found!=objects.end() && found->prefab)
+                {
+                    if (ImGui::MenuItem("選択の変更を元Prefabへ適用###Apply prefab"))
+                        pendingObject=Editor::ObjectRequest{Editor::ObjectAction::ApplyPrefab,found->prefab->rootId,found->prefab->asset};
+                    if (ImGui::MenuItem("Prefabのリンクを解除###Unpack prefab"))
+                        pendingObject=Editor::ObjectRequest{Editor::ObjectAction::UnpackPrefab,found->prefab->rootId};
+                }
+            }
+            if (ImGui::MenuItem("Prefabの変更を反映###Refresh prefabs",nullptr,false,enabled))
+                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::RefreshPrefabs};
             ImGui::EndMenu();
         }
 

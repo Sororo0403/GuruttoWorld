@@ -1,6 +1,7 @@
 #include <SceneRuntime/SceneLayout.h>
 #include "SceneComponentJson.h"
 #include "SceneSettingsJson.h"
+#include <SceneRuntime/Prefab.h>
 #include <Engine/Core/Json.h>
 #include <Windows.h>
 #include <cmath>
@@ -104,6 +105,17 @@ namespace SceneRuntime
                     placement.name = object.at("name").get<std::string>();
                     if (object.contains("parent")) placement.parentId = object.at("parent").get<std::string>();
                     ReadSceneComponents(object,placement,version==2.0);
+                    if (object.contains("prefab"))
+                    {
+                        const auto& prefabValue=JsonObject(object.at("prefab"));
+                        const auto asset=prefabValue.at("asset").get<std::string>();
+                        PrefabLink link; link.asset=std::filesystem::path(std::u8string(asset.begin(),asset.end()));
+                        link.sourceId=prefabValue.at("source").get<std::string>(); link.rootId=prefabValue.at("root").get<std::string>();
+                        link.baseline=prefabValue.at("baseline").get<std::string>();
+                        if (!Prefab::ValidPath(link.asset) || link.sourceId.empty() || link.rootId.empty() || link.baseline.empty() || link.baseline.size()>1048576)
+                            throw std::runtime_error("Invalid prefab link");
+                        placement.prefab=std::move(link);
+                    }
                     placement.position = ReadVector(object, "position");
                     placement.rotation = ReadVector(object, "rotation");
                     placement.scale = ReadVector(object, "scale", true);
@@ -130,8 +142,9 @@ namespace SceneRuntime
         std::string json="{\n  \"version\": 4,\n  \"settings\": "+settingsObject.dump()+",\n  \"objects\": [\n";
         for(size_t i=0;i<objects.size();++i) {
             const auto& p=objects[i];
-            const Json object={{"id",p.id},{"name",p.name},{"parent",p.parentId},
+            Json object={{"id",p.id},{"name",p.name},{"parent",p.parentId},
                 {"components",WriteSceneComponents(p)},{"position",p.position},{"rotation",p.rotation},{"scale",p.scale}};
+            if (p.prefab) object["prefab"]={{"asset",p.prefab->asset},{"source",p.prefab->sourceId},{"root",p.prefab->rootId},{"baseline",p.prefab->baseline}};
             for(const auto& vector:{p.position,p.rotation,p.scale})
                 if(std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);}))
                     throw std::runtime_error("Cannot save nonfinite transform");

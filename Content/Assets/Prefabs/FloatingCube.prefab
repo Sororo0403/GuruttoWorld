@@ -1,0 +1,61 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "mainCamera": ""
+  },
+  "objects": [
+    {
+      "id": "FloatingCube",
+      "name": "FloatingCube",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj"
+        },
+        {
+          "id": "bob",
+          "type": "Script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.5,
+            "frequency": 0.5
+          }
+        },
+        {
+          "id": "spin",
+          "type": "Script",
+          "enabled": true,
+          "behaviour": "Spin",
+          "parameters": {
+            "speed": 45
+          }
+        }
+      ]
+    }
+  ]
+}

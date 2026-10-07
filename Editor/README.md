@@ -378,3 +378,11 @@ Inspectorの「コンポーネントを追加 → ゲーム処理」で登録済
 新しい処理はApp／EditorのPlay開始前に`SceneRuntime::ScriptRegistry::Register`へ名前と`ScriptDefinition`を登録します。`fields`はInspectorに出す数値の初期値・最小値・最大値、`start`／`update`／`stop`は開始・毎フレーム・無効化または終了のコールバックです。`ScriptContext`の`Value`で保存値を読み、`state`でインスタンス固有の数値を保持し、`object.position`／`rotation`／`scale`を変更できます。オブジェクトやComponentの配列そのものはコールバックから変更しません。Pause中は更新せず、Stepは1/60秒、再生し直しではstateを初期化します。C++処理の追加には再ビルドが必要です。
 
 `Assets/Scenes/ScriptPlayground.json`では、操作できるPlayerと上下運動・回転するFloatingCubeを同時に確認できます。
+
+## Prefab
+
+Hierarchyで親オブジェクトを一つ選び「編集 → 選択をPrefabとして保存」を使うと、その親子を`Assets/Prefabs/<ID>.prefab`へ保存してリンクします。既存ファイルは新規保存では上書きしません。ProjectのPrefabを選んで追加位置を指定し「Prefabを配置」で複数のインスタンスを配置できます。
+配置済みのインスタンスを編集し「選択の変更を元Prefabへ適用」で元ファイルを更新します。他のインスタンスには変更を反映し、個別に編集した名前・子の位置／回転／拡縮・Componentセットは保持します。インスタンスのルートの位置・回転・拡縮は配置値として常に保持します。親子構造と新しい子は元データに従います。Componentはセット単位の上書き判定で、Component内の個別プロパティのマージやPrefab Variant／入れ子はまだ扱いません。
+外部で元ファイルを変更した場合は「編集 → Prefabの変更を反映」を使います。シーンを開く際とAppの起動時にも反映します。元ファイルがない場合はエラーを表示して現在のシーンを保持します。「Prefabのリンクを解除」で通常の親子オブジェクトに戻せます。配置・変更反映・リンク解除はUndo／Redoに対応します。
+
+`Assets/Scenes/PrefabPlayground.json`には同じFloatingCube Prefabを三つ配置しています。元Prefabを一つのインスタンスから変更して、他の配置にも反映されることを確認できます。

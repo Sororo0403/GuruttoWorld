@@ -17,6 +17,7 @@ namespace SceneRuntime
     {
         std::string id;
         std::string name;
+        std::optional<PrefabLink> prefab;
         std::optional<MeshRendererComponent> meshRenderer;
         std::optional<RotatorComponent> rotator;
         std::optional<PlayerControllerComponent> playerController;

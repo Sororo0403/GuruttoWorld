@@ -29,6 +29,7 @@
 #include "AnimationValidation.h"
 #include "PhysicsValidation.h"
 #include "ScriptValidation.h"
+#include "PrefabValidation.h"
 #include "TitlePresentationValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
@@ -1862,6 +1863,7 @@ namespace
                 UiValidation::Rendering(renderer,TestContentRoot());
                 AnimationValidation::Runtime(renderer,TestContentRoot());
                 PhysicsValidation::Runtime(renderer,TestContentRoot());
+                PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
@@ -3024,6 +3026,11 @@ int main()
 {
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_PREFAB_ONLY",nullptr,0)) {
+            PrefabValidation::Run();
+            std::cout<<"PASS: prefab hierarchy, links, source updates, overrides, unpack and failed refresh preservation\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_SCRIPT_ONLY",nullptr,0)) {
             ScriptValidation::Run();
             std::cout<<"PASS: script registry, parameters, lifecycle, serialization and missing behaviours\n";
@@ -3074,6 +3081,7 @@ int main()
         AnimationValidation::Schema();
         PhysicsValidation::Run();
         ScriptValidation::Run();
+        PrefabValidation::Run();
         ValidateSceneLayout();
         ValidateEditorAcceptanceScene();
         ValidateAssetChangeBatching();
