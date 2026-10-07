@@ -1,5 +1,12 @@
 # タイトル画面の採用素材
 
+## 未使用素材の整理（2026-10-07）
+
+- 現存する全シーン、ゲーム・Editor・回帰検証の参照と、OBJからMTL・画像への依存関係を確認して未使用素材を削除。
+- Forest、Furniture、MiniWorld、Nature、Night、PaperTheater、RoyalStudy、Settings、Exitの旧モデルと付属素材を削除。現在使用するCommercial・Roads・Surfaceとそのライセンス、Surface再生成用の元モデルは保持。
+- 旧Title.png・UiAtlas.pngと、現在のシーンで使わないMorning/Caption.png・Slash.pngを削除。Morning/Logo.png・StartBand.png、タイトル音源、Editor用フォントとライセンスは保持。
+- 以下の過去の記録には、削除済みの素材の取得元や試作内容も含まれる。
+
 ## 朝のタイトルへの作り直し（2026-10-06）
 
 - 現行の構図はTitleScreenPlan.mdを参照。以下の過去の記録にある夜景・人物・設定施設は現在の採用内容を表すものではない。

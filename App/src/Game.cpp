@@ -16,7 +16,7 @@ namespace App
         Engine::SceneManager scenes(factory);
         scenes.RequestChange("Title");
         Engine::ApplicationSettings settings;
-        settings.title = L"WP1 - Enter: Game / Escape: Title";
+        settings.title = L"ぐるっとワールド";
         Engine::ApplicationCallbacks callbacks;
         callbacks.update = [&](double deltaSeconds, const Engine::Keyboard& keyboard) { scenes.Update(deltaSeconds, keyboard); };
         callbacks.draw = [&](Engine::DirectX12Renderer& renderer) { return scenes.Draw(renderer); };

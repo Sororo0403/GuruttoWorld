@@ -21,6 +21,18 @@ namespace
         }
         return true;
     }
+
+    void LogSelectedAdapter(const DXGI_ADAPTER_DESC1& description)
+    {
+        std::array<char, 512> name{};
+        const int length = WideCharToMultiByte(CP_UTF8, 0, description.Description, -1,
+            name.data(), static_cast<int>(name.size()), nullptr, nullptr);
+        Engine::Log::Info(std::format(
+            "DirectX 12 GPU: {} (dedicated VRAM: {} MiB, vendor: {:04X}, device: {:04X}, LUID: {:08X}:{:08X}).",
+            length > 0 ? name.data() : "Unknown GPU",
+            description.DedicatedVideoMemory / (1024 * 1024), description.VendorId, description.DeviceId,
+            static_cast<unsigned int>(description.AdapterLuid.HighPart), description.AdapterLuid.LowPart));
+    }
 }
 
 namespace Engine
@@ -170,15 +182,25 @@ namespace Engine
 
     bool DirectX12Renderer::CreateDevice()
     {
+        ComPtr<IDXGIFactory6> preferredFactory;
+        const bool useGpuPreference = SUCCEEDED(factory_.As(&preferredFactory));
+        DXGI_ADAPTER_DESC1 selectedDescription{};
+        if (!useGpuPreference)
+        {
+            Log::Warning("DXGI GPU preference is unavailable; selecting the compatible GPU with the most dedicated VRAM.");
+        }
         for (UINT index = 0; ; ++index)
         {
             ComPtr<IDXGIAdapter1> adapter;
-            const HRESULT result = factory_->EnumAdapters1(index, &adapter);
+            const HRESULT result = useGpuPreference
+                ? preferredFactory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                    IID_PPV_ARGS(&adapter))
+                : factory_->EnumAdapters1(index, &adapter);
             if (result == DXGI_ERROR_NOT_FOUND)
             {
                 break;
             }
-            if (!Check(result, "EnumAdapters1"))
+            if (!Check(result, useGpuPreference ? "EnumAdapterByGpuPreference" : "EnumAdapters1"))
             {
                 return false;
             }
@@ -187,24 +209,39 @@ namespace Engine
             {
                 return false;
             }
-            if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
-                SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0,
-                    IID_PPV_ARGS(&device_))))
+            if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
+            {
+                continue;
+            }
+            ComPtr<ID3D12Device> candidate;
+            if (FAILED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0,
+                IID_PPV_ARGS(&candidate))))
+            {
+                continue;
+            }
+            if (!device_ || description.DedicatedVideoMemory > selectedDescription.DedicatedVideoMemory)
+            {
+                device_ = candidate;
+                selectedDescription = description;
+            }
+            if (useGpuPreference)
             {
                 break;
             }
         }
-        if (!device_)
+        if (device_)
         {
-            ComPtr<IDXGIAdapter> warp;
-            if (!Check(factory_->EnumWarpAdapter(IID_PPV_ARGS(&warp)), "EnumWarpAdapter") ||
-                !Check(D3D12CreateDevice(warp.Get(), D3D_FEATURE_LEVEL_11_0,
-                    IID_PPV_ARGS(&device_)), "D3D12CreateDevice"))
-            {
-                return false;
-            }
-            Log::Warning("DirectX 12 is using the WARP software adapter.");
+            LogSelectedAdapter(selectedDescription);
+            return true;
         }
+        ComPtr<IDXGIAdapter> warp;
+        if (!Check(factory_->EnumWarpAdapter(IID_PPV_ARGS(&warp)), "EnumWarpAdapter") ||
+            !Check(D3D12CreateDevice(warp.Get(), D3D_FEATURE_LEVEL_11_0,
+                IID_PPV_ARGS(&device_)), "D3D12CreateDevice"))
+        {
+            return false;
+        }
+        Log::Warning("DirectX 12 is using the WARP software adapter.");
 
         return true;
     }

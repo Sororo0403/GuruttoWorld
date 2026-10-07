@@ -11,7 +11,6 @@
       <UniqueIdentifier>{8D7E6AB5-2435-5763-A1D1-7E4132AA6251}</UniqueIdentifier>
     </Filter>
     <Filter Include="Assets\Models\Title" />
-    <Filter Include="Assets\Models\Title\Nature" />
     <Filter Include="Assets\Models\Title\Roads" />
     <Filter Include="Assets\Models\Title\Roads\Textures" />
     <Filter Include="Assets\Models\Title\Commercial" />
@@ -104,33 +103,6 @@
     </None>
     <None Include="..\Content\Assets\Models\Title\Roads\License.txt">
       <Filter>Assets\Models\Title\Roads</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\grass_large.obj">
-      <Filter>Assets\Models\Title\Nature</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\grass_large.mtl">
-      <Filter>Assets\Models\Title\Nature</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\flower_yellowA.obj">
-      <Filter>Assets\Models\Title\Nature</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\flower_yellowA.mtl">
-      <Filter>Assets\Models\Title\Nature</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\tree_small.obj">
-      <Filter>Assets\Models\Title\Nature</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\tree_small.mtl">
-      <Filter>Assets\Models\Title\Nature</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\plant_bush.obj">
-      <Filter>Assets\Models\Title\Nature</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\plant_bush.mtl">
-      <Filter>Assets\Models\Title\Nature</Filter>
-    </None>
-    <None Include="..\Content\Assets\Models\Title\Nature\License.txt">
-      <Filter>Assets\Models\Title\Nature</Filter>
     </None>
     <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.obj">
       <Filter>Assets\Models\Title\Roads</Filter>
@@ -273,17 +245,11 @@
     <Filter Include="Assets\Textures\Title" />
     <Filter Include="Assets\Fonts" />
     <Filter Include="Assets\Fonts\MPlus1p" />
-    <None Include="Assets\Textures\Title\UiAtlas.png">
-      <Filter>Assets\Textures\Title</Filter>
-    </None>
     <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf">
       <Filter>Assets\Fonts\MPlus1p</Filter>
     </None>
     <None Include="Assets\Fonts\MPlus1p\OFL.txt">
       <Filter>Assets\Fonts\MPlus1p</Filter>
-    </None>
-    <None Include="Assets\Textures\Title.png">
-      <Filter>Assets\Textures</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

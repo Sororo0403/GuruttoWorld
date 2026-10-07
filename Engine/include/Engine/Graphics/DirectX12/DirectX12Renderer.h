@@ -161,7 +161,9 @@ namespace Engine
         bool CreateFactory();
 
         /// <summary>
-        /// 対応するハードウェアデバイスを生成し、見つからない場合は WARP を使用します。
+        /// 高性能 GPU を優先して対応するハードウェアデバイスを生成します。
+        /// GPU 優先度の列挙に非対応の場合は専用 VRAM が最も多い対応 GPU を選びます。
+        /// 対応するハードウェアが見つからない場合は WARP を使用します。
         /// </summary>
         /// <returns>生成に成功した場合は true、失敗した場合は false。</returns>
         bool CreateDevice();

@@ -1,8 +1,0 @@
-# Created by Kenney (www.kenney.nl)
-
-newmtl grass
-Kd 0.28 0.58 0.16
-
-newmtl colorYellow
-Kd 0.9960784 0.6941177 0.2784314
-

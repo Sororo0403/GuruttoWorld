@@ -55,7 +55,7 @@ Release でも実行してください。診断保存先が LocalAppData/WP1 に
 
 WARP 上のオクルージョンクエリで、通常の三角形と X／XY 鏡映した三角形が同じサンプル数を描画すること、裏向きの面は引き続き除去されることを確認します。Debug では利用可能な D3D12 InfoQueue のエラーも確認します。音量の取得・ミュート・再初期化後の状態は AudioValidation で検証します。
 
-タイトルUIは全構成で Content/Assets/Textures/Title/UiAtlas.png を使用します。再生成する場合のみ PowerShell 7で scripts/GenerateTitleUi.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。以前の Title.png は現在のタイトルでは使用しません。
+タイトルUIは全構成で Content/Assets/Textures/Title/Morning の Logo.png と StartBand.png を使用します。再生成する場合のみ PowerShell 7で scripts/GenerateMorningTitleArt.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。未使用になった Title.png・UiAtlas.png・Caption.png・Slash.png は削除済みです。
 
 タイトルの回帰検証では1280×720、1024×768、720×1280の非表示ウィンドウで初期化と描画を確認します。
 

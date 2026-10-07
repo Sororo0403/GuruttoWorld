@@ -165,15 +165,6 @@
     <None Include="..\Content\Assets\Models\Title\Roads\tile-low.mtl" />
     <None Include="..\Content\Assets\Models\Title\Roads\Textures\colormap.png" />
     <None Include="..\Content\Assets\Models\Title\Roads\License.txt" />
-    <None Include="..\Content\Assets\Models\Title\Nature\grass_large.obj" />
-    <None Include="..\Content\Assets\Models\Title\Nature\grass_large.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Nature\flower_yellowA.obj" />
-    <None Include="..\Content\Assets\Models\Title\Nature\flower_yellowA.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Nature\tree_small.obj" />
-    <None Include="..\Content\Assets\Models\Title\Nature\tree_small.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Nature\plant_bush.obj" />
-    <None Include="..\Content\Assets\Models\Title\Nature\plant_bush.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Nature\License.txt" />
     <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.obj" />
     <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.mtl" />
     <None Include="..\Content\Assets\Models\Title\Roads\road-sign-empty.obj" />
@@ -187,8 +178,6 @@
     <None Include="Assets\Models\Cube.mtl" />
     <None Include="..\Content\Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
-    <None Include="Assets\Textures\Title.png" />
-    <None Include="..\Content\Assets\Textures\Title\UiAtlas.png" />
     <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf" />
     <None Include="Assets\Fonts\MPlus1p\OFL.txt" />
   </ItemGroup>
