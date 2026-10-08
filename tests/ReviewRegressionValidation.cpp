@@ -3042,6 +3042,9 @@ int main()
     std::string phase="focused validation";
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_ROOT_MOTION_ONLY",nullptr,0)) {
+            RootMotionValidation::Run(); std::cout<<"PASS: continuous root translation/rotation, loop deltas, rigid accumulation and validation\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_IK_ONLY",nullptr,0)) {
             IkValidation::Run(); std::cout<<"PASS: two-bone IK targets, hints, reach, weights and transformed ancestors\n"; return 0;
         }

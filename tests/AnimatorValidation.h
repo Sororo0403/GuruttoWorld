@@ -9,9 +9,11 @@
 #include "AnimationEventValidation.h"
 #include "IkValidation.h"
 #include "IkPlaybackValidation.h"
+#include "RootMotionValidation.h"
 namespace AnimatorValidation {
 inline void Require(bool value,const char* message) { if (!value) throw std::runtime_error(message); }
 inline void Run() {
+    RootMotionValidation::Run();
     IkValidation::Run();
     BlendTreeValidation::Schema();
     AnimationEventValidation::Schema();
