@@ -232,7 +232,7 @@ namespace SceneRuntime
                 const auto& placement=layout.objects[index];
                 if (!placement.animator) continue;
                 const auto model=models.find(placement.id); if (model==models.end()) throw std::runtime_error("Animator model missing");
-                AnimatorFrame frame; frame.id=placement.id; frame.model=model->second; frame.state=states.at(placement.id);
+                AnimatorFrame frame; frame.id=placement.id; frame.index=index; frame.model=model->second; frame.state=states.at(placement.id);
                 if (const auto changes=scripts.AnimatorParameters().find(placement.id);changes!=scripts.AnimatorParameters().end())
                     for (const auto& [name,value] : changes->second) frame.state.parameterOverrides[name]=value;
                 Animator::ValidateParameters(frame.state.parameterOverrides);
@@ -505,6 +505,7 @@ namespace SceneRuntime
         std::vector<AnimatorFrame> frames;
         if (!PrepareAnimators(prepared.layout,seconds,rebuild ? prepared.animated : animatedModels_,rebuild ? prepared.states : animatorStates_,runtime,frames,error))
         { Engine::Log::Warning(error); return false; }
+        if (!PrepareRootMotion(prepared,frames,error)) { Engine::Log::Warning(error); return false; }
         if (prepareRuntime_ && !prepareRuntime_(prepared.layout,error)) { Engine::Log::Warning(error); return false; }
         if (rebuild) CommitLayout(std::move(prepared),true);
         else { layout_=std::move(prepared.layout); objects_=std::move(prepared.objects); }
@@ -518,6 +519,38 @@ namespace SceneRuntime
         return true;
     }
 
+    bool SceneWorld::PrepareRootMotion(PreparedLayout& prepared,std::vector<AnimatorFrame>& frames,std::string& error) const
+    {
+        try
+        {
+            bool moved=false;
+            for (const auto& frame : frames)
+            {
+                auto& placement=prepared.layout.objects.at(frame.index);
+                if (!frame.applyPose || !placement.animator->rootMotion) continue;
+                if (frame.state.rootDelta.position==std::array<float,3>{} && frame.state.rootDelta.rotation==std::array<float,4>{0,0,0,1}) continue;
+                const auto delta=Animator::RootDeltaMatrix(*placement.animator,frame.state,*frame.model->Rig());
+                DirectX::XMFLOAT4X4 local,changed;
+                if (!SceneTransforms::Compose(placement,local)) throw std::runtime_error("Invalid root motion object transform");
+                DirectX::XMStoreFloat4x4(&changed,DirectX::XMLoadFloat4x4(&delta)*DirectX::XMLoadFloat4x4(&local));
+                ScenePlacement result;
+                if (!SceneTransforms::ReadTransform(changed,placement,result)) throw std::runtime_error("Root motion cannot be represented by object SRT");
+                placement.position=result.position; placement.rotation=result.rotation; placement.scale=result.scale; moved=true;
+            }
+            if (!moved) return true;
+            if (!PrepareTransforms(prepared.layout,prepared.objects,error)) return false;
+            std::vector<DirectX::XMFLOAT4X4> matrices;
+            if (!SceneTransforms::Resolve(prepared.layout,matrices,error)) return false;
+            for (auto& frame : frames) if (frame.applyPose)
+            {
+                const auto& placement=prepared.layout.objects.at(frame.index);
+                frame.state.pose=Animator::Constrain(*placement.animator,frame.state,*frame.model->Rig(),&matrices[frame.index]);
+                if (!frame.model->PreparePose(frame.state.pose,frame.pose)) throw std::runtime_error("Root motion constraint pose failed");
+            }
+            error.clear(); return true;
+        }
+        catch (const std::exception& exception) { error=exception.what(); return false; }
+    }
     bool SceneWorld::SetAnimatorParameter(const std::string& id,const std::string& name,float value)
     {
         const auto found=animatorStates_.find(id); if (found==animatorStates_.end()) return false;

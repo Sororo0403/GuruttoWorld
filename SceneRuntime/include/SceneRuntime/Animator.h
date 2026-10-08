@@ -76,6 +76,11 @@ namespace SceneRuntime
         /// <summary>保存値・個体ごとの上書きパラメーターの名前・値・最大64件を検証します。</summary>
         static void ValidateParameters(const std::map<std::string,float>& parameters);
         static void ValidateIkTarget(const AnimatorIkTarget& target);
+        /// <summary>ルート差分をモデルのローカル空間へ変換します。Scaleは抽出しません。</summary>
+        static DirectX::XMFLOAT4X4 RootDeltaMatrix(const AnimatorComponent& component,const AnimatorState& state,const Engine::SkeletonData& rig);
+        /// <summary>時計を進めず、保存されたIK前の姿勢へ現在の制約を適用します。</summary>
+        static std::vector<Engine::BonePose> Constrain(const AnimatorComponent& component,const AnimatorState& state,
+            const Engine::SkeletonData& rig,const DirectX::XMFLOAT4X4* modelWorld=nullptr);
         /// <summary>状態と同期したBlend Treeを進めます。評価に失敗した場合は実行状態を保持します。</summary>
         static std::vector<Engine::BonePose> Advance(const AnimatorComponent& component,AnimatorState& state,
             const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters,

@@ -104,6 +104,7 @@ namespace SceneRuntime
         struct AnimatorFrame
         {
             std::string id;
+            size_t index=0;
             std::shared_ptr<Engine::ModelRenderer> model;
             AnimatorState state;
             Engine::ModelRenderer::PreparedPose pose;
@@ -113,6 +114,7 @@ namespace SceneRuntime
         bool PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result);
         /// <summary>準備した配置とリソースをシーンへ反映します。</summary>
         void CommitLayout(PreparedLayout&& prepared,bool preserveExecution);
+        bool PrepareRootMotion(PreparedLayout& prepared,std::vector<AnimatorFrame>& frames,std::string& error) const;
         /// <summary>全個体の姿勢とイベントを検証し、Scriptの候補キューへ予約します。</summary>
         bool PrepareAnimators(const SceneLayout& layout,double seconds,const std::map<std::string,std::shared_ptr<Engine::ModelRenderer>>& models,
             const std::map<std::string,AnimatorState>& states,ScriptRuntime& scripts,std::vector<AnimatorFrame>& result,std::string& error) const;

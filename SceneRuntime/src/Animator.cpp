@@ -14,7 +14,7 @@ namespace
         std::vector<Engine::BonePose> blended; double total=0;
         for (const auto& motion : motions) if (motion.weight>0)
         {
-            const auto matrix=Engine::RootMotion::Delta(rig,bone,motion.clip,from,to,loop);
+            const auto matrix=Engine::RootMotion::Delta(rig,bone,motion.clip,from,to,loop,true);
             DirectX::XMVECTOR scale,rotation,position;
             if (!DirectX::XMMatrixDecompose(&scale,&rotation,&position,DirectX::XMLoadFloat4x4(&matrix))) throw std::runtime_error("Invalid root motion delta");
             DirectX::XMFLOAT3 translation; DirectX::XMFLOAT4 quaternion;
@@ -95,6 +95,41 @@ namespace
 }
 namespace SceneRuntime
 {
+    DirectX::XMFLOAT4X4 Animator::RootDeltaMatrix(const AnimatorComponent& component,const AnimatorState& state,const Engine::SkeletonData& rig)
+    {
+        using namespace DirectX;
+        XMFLOAT4X4 result; XMStoreFloat4x4(&result,XMMatrixIdentity());
+        if (!component.rootMotion || !component.enabled || (state.rootDelta.position==std::array<float,3>{} && state.rootDelta.rotation==std::array<float,4>{0,0,0,1})) return result;
+        const auto bone=Bone(rig,component.rootBone);
+        const auto rest=Engine::RootMotion::Sample(rig,bone,"",0,false,true);
+        auto reference=XMLoadFloat4x4(&rest);
+        if (!std::isfinite(rig.importScale) || rig.importScale<=0) throw std::runtime_error("Invalid root motion import scale");
+        reference=reference*XMLoadFloat4x4(&rig.inverseRoot)*XMMatrixScaling(rig.importScale,rig.importScale,rig.importScale);
+        XMFLOAT4X4 referenceMatrix; XMStoreFloat4x4(&referenceMatrix,reference);
+        if (!SceneTransforms::IsUsable(referenceMatrix)) throw std::runtime_error("Invalid root motion reference transform");
+        const auto& rotation=state.rootDelta.rotation; const auto& position=state.rootDelta.position;
+        const auto quaternion=XMVectorSet(rotation[0],rotation[1],rotation[2],rotation[3]);
+        const float norm=XMVectorGetX(XMVector4LengthSq(quaternion));
+        if (!std::isfinite(norm) || norm<1e-12f) throw std::runtime_error("Invalid root motion delta rotation");
+        const auto delta=XMMatrixRotationQuaternion(XMQuaternionNormalize(quaternion))*XMMatrixTranslation(position[0],position[1],position[2]);
+        XMStoreFloat4x4(&result,XMMatrixInverse(nullptr,reference)*delta*reference);
+        if (!SceneTransforms::IsUsable(result)) throw std::runtime_error("Invalid root motion model delta");
+        return result;
+    }
+    std::vector<Engine::BonePose> Animator::Constrain(const AnimatorComponent& component,const AnimatorState& state,const Engine::SkeletonData& rig,const DirectX::XMFLOAT4X4* modelWorld)
+    {
+        Validate(component,&rig);
+        if (state.basePose.size()!=rig.nodes.size() || state.ikOverrides.size()>16) throw std::runtime_error("Invalid constraint pose");
+        auto effective=component;
+        for (const auto& [name,target] : state.ikOverrides)
+        {
+            ValidateIkTarget(target);
+            const auto found=std::ranges::find_if(effective.ik,[&](const auto& item) { return item.name==name; });
+            if (found==effective.ik.end()) throw std::runtime_error("IK override constraint missing: "+name);
+            found->target=target.target; found->hint=target.hint; found->weight=target.weight; found->worldSpace=target.worldSpace;
+        }
+        return SolveIk(effective,rig,state.basePose,modelWorld);
+    }
     void Animator::ValidateIkTarget(const AnimatorIkTarget& target)
     {
         if (!std::isfinite(target.weight) || target.weight<0 || target.weight>1) throw std::runtime_error("Invalid IK target weight");
@@ -179,7 +214,20 @@ namespace SceneRuntime
         const auto& before=State(component,next.current);
         const auto StripRoot=[&](std::vector<Engine::BonePose>& pose) {
             if (!component.rootMotion) return;
-            const auto bone=Bone(rig,component.rootBone); pose.at(bone).position=rig.nodes[bone].rest.position; pose.at(bone).rotation=rig.nodes[bone].rest.rotation;
+            using namespace DirectX;
+            const auto bone=Bone(rig,component.rootBone);
+            const auto current=Engine::RootMotion::PoseFrame(rig,pose,bone),rest=Engine::RootMotion::Sample(rig,bone,"",0,false,true);
+            const auto normalization=XMMatrixInverse(nullptr,XMLoadFloat4x4(&current))*XMLoadFloat4x4(&rest);
+            XMVECTOR scale,rotation,position;
+            if (!XMMatrixDecompose(&scale,&rotation,&position,normalization)) throw std::runtime_error("Invalid root normalization");
+            for (size_t index=0;index<pose.size();++index) if (rig.nodes[index].parent==-1)
+            {
+                auto& value=pose[index]; XMFLOAT3 translated; XMFLOAT4 oriented;
+                XMStoreFloat3(&translated,XMVector3TransformCoord(XMVectorSet(value.position[0],value.position[1],value.position[2],1),normalization));
+                XMStoreFloat4(&oriented,XMQuaternionNormalize(XMQuaternionMultiply(XMVectorSet(value.rotation[0],value.rotation[1],value.rotation[2],value.rotation[3]),rotation)));
+                value.position={translated.x,translated.y,translated.z}; value.rotation={oriented.x,oriented.y,oriented.z,oriented.w};
+            }
+            if (rig.nodes[bone].parent==-1) { pose[bone].position=rig.nodes[bone].rest.position; pose[bone].rotation=rig.nodes[bone].rest.rotation; }
         };
         if (!component.enabled)
         {

@@ -80,5 +80,26 @@ namespace RootMotionValidation
         const auto validTime=blended.time; const auto validDelta=blended.rootDelta.position; animator.rootBone="missing"; bool invalidBone=false;
         try { Animator::Advance(animator,blended,rig,.1,{}); } catch (const std::exception&) { invalidBone=true; }
         Require(invalidBone && blended.time==validTime && blended.rootDelta.position==validDelta,"failed root extraction preserves Animator state");
+        animator.rootBone="root"; rig.nodes[0].rest.scale={7,7,7}; rig.importScale=3;
+        XMStoreFloat4x4(&rig.inverseRoot,XMMatrixIdentity()); AnimatorState displacement; displacement.rootDelta.position={.1f,0,0};
+        const auto modelDelta=Animator::RootDeltaMatrix(animator,displacement,rig);
+        Require(std::abs(modelDelta._41-.3f)<.0001f,"root model delta applies import scale without applying root bone scale twice");
+        SkeletonData hierarchy; hierarchy.nodes={{"parent",-1,{}},{"root",0,{}}};
+        hierarchy.nodes[1].rest.position={0,1,0};
+        XMStoreFloat4x4(&hierarchy.inverseRoot,XMMatrixIdentity());
+        SkeletalClip parentMotion; parentMotion.name="Parent"; parentMotion.duration=1;
+        parentMotion.tracks[0].positions={{0,{0,0,0}},{1,{1,0,0}}};
+        parentMotion.tracks[0].rotations={{0,{0,0,0,1}},{1,{0,0,std::sin(XM_PIDIV4),std::cos(XM_PIDIV4)}}};
+        parentMotion.tracks[0].scales={{0,{1,1,1}},{1,{2,2,2}}}; hierarchy.clips={parentMotion};
+        Require(Near(RootMotion::Delta(hierarchy,1,"Parent",0,.1,true),identity),"local root delta excludes animated ancestor");
+        AnimatorComponent inherited; inherited.rootMotion=true; inherited.rootBone="root"; inherited.states[0].clip="Parent";
+        AnimatorState inheritedState; Animator::Advance(inherited,inheritedState,hierarchy,.1,{});
+        const auto normalized=RootMotion::PoseFrame(hierarchy,inheritedState.pose,1);
+        Require(Near(normalized,RootMotion::Sample(hierarchy,1,"",0,false,true)),"global root normalization includes animated ancestor position and rotation");
+        const auto raw=Skeleton::Matrices(hierarchy,Skeleton::Sample(hierarchy,"Parent",.1,true));
+        auto inPlace=Skeleton::Matrices(hierarchy,inheritedState.pose);
+        const auto inheritedDelta=Animator::RootDeltaMatrix(inherited,inheritedState,hierarchy);
+        XMFLOAT4X4 reconstructed; XMStoreFloat4x4(&reconstructed,XMLoadFloat4x4(&inPlace[1])*XMLoadFloat4x4(&inheritedDelta));
+        Require(Near(reconstructed,raw[1]) && std::abs(inheritedState.pose[0].scale[0]-1.1f)<.0001f,"actor delta reconstructs animated ancestor geometry while retaining scale");
     }
 }

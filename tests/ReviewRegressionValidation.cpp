@@ -3045,6 +3045,12 @@ int main()
         if(GetEnvironmentVariableW(L"WP1_ROOT_MOTION_ONLY",nullptr,0)) {
             RootMotionValidation::Run(); std::cout<<"PASS: continuous root translation/rotation, loop deltas, rigid accumulation and validation\n"; return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_ROOT_PLAYBACK_ONLY",nullptr,0)) {
+            RootMotionValidation::Run(); Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden root motion validation",64,32),"root motion window"); Check(renderer.Initialize(window.GetHandle()),"root motion renderer");
+            RootMotionPlaybackValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: root object translation/rotation, hierarchy, IK, rollback and App/Editor playback\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_IK_ONLY",nullptr,0)) {
             IkValidation::Run(); std::cout<<"PASS: two-bone IK targets, hints, reach, weights and transformed ancestors\n"; return 0;
         }
