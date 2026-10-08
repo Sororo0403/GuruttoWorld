@@ -25,6 +25,9 @@ namespace SceneRuntime
             const std::filesystem::path& root,std::string& error);
         /// <summary>次回の物理更新で適用するワールド空間のインパルスを予約します。</summary>
         bool AddImpulse(const std::string& object,const std::array<float,3>& impulse);
+        /// <summary>ルート移動を一時的な衝突ワールドで制限します。物理時計・速度・接触履歴は変更しません。</summary>
+        bool ConstrainRootMotion(const SceneLayout& before,SceneLayout& candidate,const std::vector<size_t>& actors,
+            const std::filesystem::path& root,std::string& error) const;
         /// <summary>レイヤー・Trigger・除外IDを考慮し、最も近いColliderの交点を返します。</summary>
         std::optional<PhysicsRayHit> Raycast(const std::array<float,3>& origin,const std::array<float,3>& direction,float distance,
             unsigned int mask=0xffffffffu,bool includeTriggers=false,const std::string& ignore={}) const;

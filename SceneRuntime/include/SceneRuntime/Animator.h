@@ -2,6 +2,7 @@
 #include <Engine/Animation/Skeleton.h>
 #include <SceneRuntime/BlendTree.h>
 #include <SceneRuntime/AnimationEvents.h>
+#include <optional>
 
 namespace SceneRuntime
 {
@@ -60,6 +61,7 @@ namespace SceneRuntime
         std::vector<AnimatorMotionSample> motions;
         std::map<std::string,float> parameterOverrides;
         std::map<std::string,AnimatorIkTarget> ikOverrides;
+        std::optional<bool> rootMotionOverride;
         bool eventsAtStart=true;
         std::vector<AnimatorEventOccurrence> events;
         Engine::BonePose rootDelta;

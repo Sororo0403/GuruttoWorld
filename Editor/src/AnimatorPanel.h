@@ -28,6 +28,13 @@ public:
         }
         auto& animator=*object.animator; ImGui::PushID(animator.id.c_str());
         bool edited=ImGui::Checkbox("有効###Enabled",&animator.enabled);
+        edited=ImGui::Checkbox("ルートモーション###Root motion",&animator.rootMotion) || edited;
+        if (rig && ImGui::BeginCombo("移動ボーン###Root bone",animator.rootBone.c_str())) {
+            for (const auto& node : rig->nodes) if (ImGui::Selectable(node.name.c_str(),node.name==animator.rootBone)) { animator.rootBone=node.name; edited=true; }
+            ImGui::EndCombo();
+        }
+        if (!rig) edited=Text("移動ボーン###Root bone",animator.rootBone) || edited;
+        if (animator.rootMotion && animator.rootBone.empty() && rig && !rig->nodes.empty()) { animator.rootBone=rig->nodes.front().name; edited=true; }
         edited=BlendTreePanel::Parameters(animator) || edited;
         if (ImGui::BeginCombo("初期状態###Initial state",animator.initialState.c_str())) {
             for (const auto& state : animator.states) if (ImGui::Selectable(state.name.c_str(),state.name==animator.initialState)) { animator.initialState=state.name; edited=true; }

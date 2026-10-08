@@ -233,6 +233,7 @@ namespace SceneRuntime
                 if (!placement.animator) continue;
                 const auto model=models.find(placement.id); if (model==models.end()) throw std::runtime_error("Animator model missing");
                 AnimatorFrame frame; frame.id=placement.id; frame.index=index; frame.model=model->second; frame.state=states.at(placement.id);
+                if (const auto change=scripts.RootMotions().find(placement.id);change!=scripts.RootMotions().end()) frame.state.rootMotionOverride=change->second;
                 if (const auto changes=scripts.AnimatorParameters().find(placement.id);changes!=scripts.AnimatorParameters().end())
                     for (const auto& [name,value] : changes->second) frame.state.parameterOverrides[name]=value;
                 Animator::ValidateParameters(frame.state.parameterOverrides);
@@ -434,11 +435,14 @@ namespace SceneRuntime
     {
         auto candidate=layout_;
         auto states=physics_;
+        for (auto& object : candidate.objects) if (object.animator)
+            if (const auto state=animatorStates_.find(object.id);state!=animatorStates_.end()) object.animator->rootMotion=state->second.rootMotionOverride.value_or(object.animator->rootMotion);
         if (!ScenePhysics::Advance(candidate,states,seconds,horizontal,vertical,jump)) return false;
         std::string error;
         if (!physicsWorld_.Advance(candidate,states,seconds,horizontal,vertical,jump,assetsRoot_,error))
         { Engine::Log::Warning(error); return false; }
         if (!CommitTransforms(std::move(candidate))) return false;
+        // CommitTransforms only applies Transform values; saved Animator settings stay unchanged.
         physics_=std::move(states);
         std::set<std::string> listeners;
         for (const auto& object : layout_.objects) for (const auto& script : object.scripts) if (script.enabled)
@@ -524,10 +528,11 @@ namespace SceneRuntime
         try
         {
             bool moved=false;
+            const auto before=prepared.layout; std::vector<size_t> actors;
             for (const auto& frame : frames)
             {
                 auto& placement=prepared.layout.objects.at(frame.index);
-                if (!frame.applyPose || !placement.animator->rootMotion) continue;
+                if (!frame.applyPose || !frame.state.rootMotionOverride.value_or(placement.animator->rootMotion)) continue;
                 if (frame.state.rootDelta.position==std::array<float,3>{} && frame.state.rootDelta.rotation==std::array<float,4>{0,0,0,1}) continue;
                 const auto delta=Animator::RootDeltaMatrix(*placement.animator,frame.state,*frame.model->Rig());
                 DirectX::XMFLOAT4X4 local,changed;
@@ -536,8 +541,10 @@ namespace SceneRuntime
                 ScenePlacement result;
                 if (!SceneTransforms::ReadTransform(changed,placement,result)) throw std::runtime_error("Root motion cannot be represented by object SRT");
                 placement.position=result.position; placement.rotation=result.rotation; placement.scale=result.scale; moved=true;
+                actors.push_back(frame.index);
             }
             if (!moved) return true;
+            if (!physicsWorld_.ConstrainRootMotion(before,prepared.layout,actors,assetsRoot_,error)) return false;
             if (!PrepareTransforms(prepared.layout,prepared.objects,error)) return false;
             std::vector<DirectX::XMFLOAT4X4> matrices;
             if (!SceneTransforms::Resolve(prepared.layout,matrices,error)) return false;

@@ -53,8 +53,26 @@ namespace RootMotionPlaybackValidation
         SceneWorld slow; Require(slow.Initialize(renderer,content,tiny,content/"Shaders/Mesh.hlsl",&error) && slow.UpdateComponents(.1),error.c_str());
         Require(slow.Layout().objects[4].position[0]>0 && slow.Layout().objects[4].position[0]<.00002f,"tiny root motion is not discarded by transform tolerance");
         auto failing=scene; failing.objects[5].scale={2,1,1}; SceneWorld atomic;
+        failing.objects[4].scripts={{"root-control",true,"RootMotionControl",{{"enabled",1.0f}}}};
         Require(atomic.Initialize(renderer,content,failing,content/"Shaders/Mesh.hlsl",&error),error.c_str()); const auto original=atomic.Layout().Serialize();
         Require(!atomic.UpdateComponents(.1) && atomic.Layout().Serialize()==original && atomic.AnimatorStatus("Root1")->time==0,"unrepresentable late root rotation preserves earlier object movement and clocks");
+        Require(!atomic.AnimatorStatus("Root1")->rootMotionOverride,"late root failure rolls back Script override");
+        auto collision=scene; collision.objects[4].boxCollider=BoxColliderComponent{}; collision.objects[4].boxCollider->size={.5f,.5f,.5f};
+        collision.objects[4].playerController=PlayerControllerComponent{}; collision.objects[4].playerController->usePhysics=true;
+        ScenePlacement wall; wall.id="wall"; wall.position={1,0,0}; wall.boxCollider=BoxColliderComponent{}; wall.boxCollider->size={.1f,4,4}; collision.objects.push_back(wall);
+        SceneWorld blocked; Require(blocked.Initialize(renderer,content,collision,content/"Shaders/Mesh.hlsl",&error),error.c_str());
+        for (int frame=0;frame<20;++frame) Require(blocked.UpdateComponents(.1) && blocked.MovePlayers(.1,1,0,false),"root movement collision and physics input update");
+        Require(blocked.Layout().objects[4].position[0]>.5f && blocked.Layout().objects[4].position[0]<.71f,"root controller cannot tunnel through wall or double apply player input");
+        if (!ScriptRegistry::Definitions().contains("RootToggleTest")) {
+            ScriptDefinition toggle; toggle.update=[](ScriptContext& context) {
+                context.state["calls"]+=1;
+                context.scene->SetRootMotion(context.object.id,context.state["calls"]==1 ? std::optional<bool>(false) : std::nullopt);
+            }; Require(ScriptRegistry::Register("RootToggleTest",std::move(toggle)),"root toggle test registers");
+        }
+        auto controlled=scene; controlled.objects[4].scripts={{"toggle",true,"RootToggleTest",{}}};
+        SceneWorld scripted; Require(scripted.Initialize(renderer,content,controlled,content/"Shaders/Mesh.hlsl",&error) && scripted.UpdateComponents(.1),error.c_str());
+        Require(scripted.Layout().objects[4].position[0]==0 && scripted.AnimatorStatus("Root1")->time>.09 && scripted.Layout().objects[4].animator->rootMotion,"Script disables root movement while preserving clock and authored setting");
+        Require(scripted.UpdateComponents(.1) && scripted.Layout().objects[4].position[0]>.09f && !scripted.AnimatorStatus("Root1")->rootMotionOverride && scripted.AnimatorStatus("Root1")->time>.19,"Script restores root setting without resetting animation");
         SceneEnvironment app; Require(app.Initialize(renderer,content,scene,error),error.c_str()); app.Update(.1,true,true);
         Require(app.World().Layout().objects[4].position[0]>.09f,"App applies root object movement");
         Require(renderer.Render({0,0,0,1},[&](auto* commands,float) { app.Draw(commands,64,32); })!=RenderResult::Failed && renderer.WaitForIdle(),"App renders moving roots");

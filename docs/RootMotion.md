@@ -24,4 +24,6 @@ SceneWorldはRestフレーム・inverseRoot・importScaleを使って差分を�
 
 `RootMotionPlayground.json`はその場再生・直進・回転移動を比較する。`scripts/GenerateRootMotionPlayground.py`でモデルとシーンを再生成できる。`WP1_ROOT_PLAYBACK_ONLY=1`はObject移動、ループ、親Transform、移動後のWorld IK、失敗時の保持、App／EditorのPlay・Pause・Step・Stopを検証する。回転移動のGPU画像を、移動を抽出しない元の姿勢の描画と比較する。祖先アニメーションの変換再構築も数学検証に含める。
 
-物理との衝突・移動制御、Scriptのルートモーション制御、Inspector編集は引き続き実装する。ルートモーション全体はまだ完了扱いにしない。
+有効な固体Colliderを持つルート移動は、一時的なJoltワールドのCharacterVirtualで衝突・滑りを解決してから反映する。衝突レイヤー・Mask・Trigger除外・親子除外を使用し、移動ColliderはConvexを必要とする。通常の物理時計・重力・速度は進めず、次の物理更新で配置と接触を同期する。Playerの入力による移動はルート移動が有効な間停止し、重力とジャンプは継続する。
+
+ScriptScene::SetRootMotion(id,enabled)は個体ごとの実行時設定を変更し、nulloptで保存設定へ戻す。RootMotionControlのenabledは1で有効、0で無効、-1で復元する。再生時計と保存設定を維持し、更新失敗時には上書きも反映しない。Inspectorでルート移動と抽出ボーンを編集できる。壁への連続移動、Player入力の重複防止、Script切り替えと復元を再生検証に含める。

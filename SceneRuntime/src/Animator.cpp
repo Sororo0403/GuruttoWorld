@@ -99,7 +99,7 @@ namespace SceneRuntime
     {
         using namespace DirectX;
         XMFLOAT4X4 result; XMStoreFloat4x4(&result,XMMatrixIdentity());
-        if (!component.rootMotion || !component.enabled || (state.rootDelta.position==std::array<float,3>{} && state.rootDelta.rotation==std::array<float,4>{0,0,0,1})) return result;
+        if (!state.rootMotionOverride.value_or(component.rootMotion) || !component.enabled || (state.rootDelta.position==std::array<float,3>{} && state.rootDelta.rotation==std::array<float,4>{0,0,0,1})) return result;
         const auto bone=Bone(rig,component.rootBone);
         const auto rest=Engine::RootMotion::Sample(rig,bone,"",0,false,true);
         auto reference=XMLoadFloat4x4(&rest);
@@ -187,10 +187,11 @@ namespace SceneRuntime
                 !std::isfinite(transition.exitTime) || transition.exitTime<-1 || transition.exitTime>100) throw std::runtime_error("Invalid Animator transition");
         }
     }
-    std::vector<Engine::BonePose> Animator::Advance(const AnimatorComponent& component,AnimatorState& state,
+    std::vector<Engine::BonePose> Animator::Advance(const AnimatorComponent& authored,AnimatorState& state,
         const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters,const DirectX::XMFLOAT4X4* modelWorld)
     {
         if (!std::isfinite(seconds) || seconds<0) throw std::runtime_error("Invalid Animator time");
+        auto component=authored; component.rootMotion=state.rootMotionOverride.value_or(authored.rootMotion);
         Validate(component,&rig);
         auto next=state;
         next.rootDelta={};

@@ -386,7 +386,8 @@ namespace SceneRuntime
                         parent=DirectX::XMLoadFloat4x4(&matrices[static_cast<size_t>(found-layout.objects.begin())]);
                     }
                     DirectX::XMFLOAT3 movement;
-                    DirectX::XMStoreFloat3(&movement,DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(horizontal/magnitude*controller.moveSpeed,0,vertical/magnitude*controller.moveSpeed,0),parent));
+                    const float inputSpeed=object.animator && object.animator->enabled && object.animator->rootMotion ? 0.0f : controller.moveSpeed;
+                    DirectX::XMStoreFloat3(&movement,DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(horizontal/magnitude*inputSpeed,0,vertical/magnitude*inputSpeed,0),parent));
                     character.SetLinearVelocity({movement.x+ground.GetX(),vy+movement.y,movement.z+ground.GetZ()});
                     JPH::CharacterVirtual::ExtendedUpdateSettings settings;
                     settings.mWalkStairsStepUp={0,controller.stepHeight,0}; settings.mStickToFloorStepDown={0,controller.useGravity ? -0.05f : 0,0};
@@ -430,6 +431,60 @@ namespace SceneRuntime
     PhysicsWorld::PhysicsWorld() { Register(); }
     PhysicsWorld::~PhysicsWorld()=default;
     void PhysicsWorld::Reset() { impl_.reset(); impulses_.clear(); events_.clear(); }
+    bool PhysicsWorld::ConstrainRootMotion(const SceneLayout& before,SceneLayout& candidate,const std::vector<size_t>& actors,
+        const std::filesystem::path& root,std::string& error) const
+    {
+        try
+        {
+            const auto solid=[&](size_t index) { const auto& c=candidate.objects.at(index).boxCollider; return c && c->enabled && !c->isTrigger; };
+            if (std::none_of(actors.begin(),actors.end(),solid)) { error.clear(); return true; }
+            std::vector<Matrix> start,desired;
+            if (!SceneTransforms::Resolve(before,start,error) || !SceneTransforms::Resolve(candidate,desired,error)) return false;
+            Impl world(before); world.Build(start,root,nullptr,{});
+            auto resolved=candidate;
+            for (const auto index : actors) if (solid(index))
+            {
+                const auto& object=candidate.objects.at(index);
+                if (object.boxCollider->shape=="mesh" && !object.boxCollider->convex) throw std::runtime_error("Root motion requires a convex moving collider");
+                const auto from=ReadPose(start.at(index)),to=ReadPose(desired.at(index));
+                const auto shape=Shape(object,from,root);
+                JPH::CharacterVirtualSettings settings; settings.mShape=shape;
+                settings.mCharacterPadding=0.001f; settings.mPredictiveContactDistance=0.02f;
+                JPH::CharacterVirtual character(&settings,from.position,from.rotation,index,&world.system);
+                const auto velocity=(to.position-from.position)/0.1f;
+                JPH::CharacterVirtual::ExtendedUpdateSettings update; update.mWalkStairsStepUp=JPH::Vec3::sZero(); update.mStickToFloorStepDown=JPH::Vec3::sZero();
+                for (int step=0;step<12;++step)
+                {
+                    DirectX::XMFLOAT4 rotation;
+                    DirectX::XMStoreFloat4(&rotation,DirectX::XMQuaternionSlerp(
+                        DirectX::XMVectorSet(from.rotation.GetX(),from.rotation.GetY(),from.rotation.GetZ(),from.rotation.GetW()),
+                        DirectX::XMVectorSet(to.rotation.GetX(),to.rotation.GetY(),to.rotation.GetZ(),to.rotation.GetW()),float(step+1)/12));
+                    character.SetRotation({rotation.x,rotation.y,rotation.z,rotation.w});
+                    character.SetLinearVelocity(velocity);
+                    character.ExtendedUpdate(0.1f/12,JPH::Vec3::sZero(),update,world.system.GetDefaultBroadPhaseLayerFilter(1),
+                        world.system.GetDefaultLayerFilter(1),Impl::Filter(world,index,0xffffffffu,false,object.id),{},world.temporary);
+                }
+                auto actual=to; actual.position=JPH::Vec3(character.GetPosition());
+                Matrix local=WorldMatrix(actual);
+                if (!object.parentId.empty())
+                {
+                    std::vector<Matrix> parents; if (!SceneTransforms::Resolve(resolved,parents,error)) return false;
+                    const auto parent=std::find_if(resolved.objects.begin(),resolved.objects.end(),[&](const auto& item) { return item.id==object.parentId; });
+                    if (parent==resolved.objects.end() || !SceneTransforms::WorldToLocal(local,parents[size_t(parent-resolved.objects.begin())],local)) throw std::runtime_error("Root collision parent conversion failed");
+                }
+                ScenePlacement placement;
+                if (!SceneTransforms::ReadTransform(local,object,placement)) throw std::runtime_error("Root collision transform cannot be represented");
+                auto& result=resolved.objects[index]; result.position=placement.position; result.rotation=placement.rotation; result.scale=placement.scale;
+                if (const auto entry=world.entries.find(object.id);entry!=world.entries.end())
+                {
+                    if (entry->second.character) entry->second.character->SetPosition(actual.position);
+                    else world.system.GetBodyInterface().SetPositionAndRotation(entry->second.body,actual.position,actual.rotation,JPH::EActivation::Activate);
+                }
+            }
+            candidate=std::move(resolved); error.clear(); return true;
+        }
+        catch (const std::exception& exception) { error=exception.what(); return false; }
+    }
     bool PhysicsWorld::AddImpulse(const std::string& id,const std::array<float,3>& impulse)
     {
         if (!Finite(impulse) || (!impulses_.contains(id) && impulses_.size()>=4096)) return false;

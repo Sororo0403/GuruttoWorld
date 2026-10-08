@@ -107,8 +107,9 @@ namespace SceneRuntime
                 body.grounded=collider && Sweep(layout,matrices,index,1,-0.001f)>-0.001f;
                 if (controller->useGravity && step==0 && jump && body.grounded) { body.verticalSpeed=controller->jumpSpeed; body.grounded=false; }
                 DirectX::XMFLOAT3 movement;
+                const float inputSpeed=layout.objects[index].animator && layout.objects[index].animator->enabled && layout.objects[index].animator->rootMotion ? 0.0f : controller->moveSpeed;
                 DirectX::XMStoreFloat3(&movement,DirectX::XMVector3TransformNormal(
-                    DirectX::XMVectorSet(horizontal/length*controller->moveSpeed*tick,0,vertical/length*controller->moveSpeed*tick,0),Parent(layout,matrices,index)));
+                    DirectX::XMVectorSet(horizontal/length*inputSpeed*tick,0,vertical/length*inputSpeed*tick,0),Parent(layout,matrices,index)));
                 for (const auto axis : {size_t(0),size_t(2)})
                 {
                     const float distance=axis==0 ? movement.x : movement.z;

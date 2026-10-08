@@ -47,6 +47,13 @@ namespace
                 context.scene->SetIkTarget(context.object.id,item.name,target);
             };
             result.emplace("IkOrbit",std::move(orbit));
+            ScriptDefinition rootMotion; rootMotion.fields={{"enabled",{1,-1,1}}};
+            rootMotion.update=[](ScriptContext& context) {
+                if (!context.scene || !context.object.animator) return;
+                const float enabled=context.Value("enabled",1);
+                context.scene->SetRootMotion(context.object.id,enabled<0 ? std::nullopt : std::optional<bool>(enabled>0));
+            };
+            result.emplace("RootMotionControl",std::move(rootMotion));
             return result;
         }();
         return definitions;
@@ -168,6 +175,13 @@ namespace SceneRuntime
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events_.push_back(std::move(event));
     }
+    void ScriptScene::SetRootMotion(const std::string& id,std::optional<bool> enabled)
+    {
+        const auto* object=Find(id);
+        if (!object || !object->animator) throw std::runtime_error("Root motion owner missing: "+id);
+        if (enabled.value_or(false) && object->animator->rootBone.empty()) throw std::runtime_error("Root motion bone missing: "+id);
+        rootMotions[id]=enabled;
+    }
     void ScriptScene::SetAnimatorParameter(const std::string& id,const std::string& name,float value)
     {
         const auto* object=Find(id); if (!object || !object->animator) throw std::runtime_error("Animator parameter owner missing: "+id);
@@ -206,7 +220,7 @@ namespace SceneRuntime
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
-        { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); error.clear(); return true; }
+        { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); error.clear(); return true; }
         auto candidate=layout;
         auto runtime=*this;
         if (!runtime.Advance(candidate,seconds,error,input,pressed,physics)) return false;
@@ -282,6 +296,7 @@ namespace SceneRuntime
             impulses_=std::move(scene.impulses);
             animatorParameters_=std::move(scene.animatorParameters);
             ikTargets_=std::move(scene.ikTargets);
+            rootMotions_=std::move(scene.rootMotions);
             error.clear(); return true;
         }
         catch (const std::exception& exception) { error=exception.what(); return false; }
@@ -303,6 +318,6 @@ namespace SceneRuntime
             catch (...) { Engine::Log::Warning("Script stop callback failed"); }
         }
         instances_.clear();
-        events_.clear(); impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); nextId_=1;
+        events_.clear(); impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); nextId_=1;
     }
 }
