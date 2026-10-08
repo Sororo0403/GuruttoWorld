@@ -76,6 +76,12 @@ namespace
 }
 namespace SceneRuntime
 {
+    void Animator::ValidateIkTarget(const AnimatorIkTarget& target)
+    {
+        if (!std::isfinite(target.weight) || target.weight<0 || target.weight>1) throw std::runtime_error("Invalid IK target weight");
+        for (const auto& point : {target.target,target.hint})
+            if (std::ranges::any_of(point,[](float value) { return !std::isfinite(value) || std::abs(value)>1000000; })) throw std::runtime_error("Invalid IK target point");
+    }
     void Animator::ValidateParameters(const std::map<std::string,float>& parameters)
     {
         if (parameters.size()>64) throw std::runtime_error("Too many Animator parameters");
@@ -131,6 +137,15 @@ namespace SceneRuntime
         if (!std::isfinite(seconds) || seconds<0) throw std::runtime_error("Invalid Animator time");
         Validate(component,&rig);
         auto next=state;
+        auto effective=component;
+        if (next.ikOverrides.size()>16) throw std::runtime_error("Too many IK overrides");
+        for (const auto& [name,target] : next.ikOverrides)
+        {
+            ValidateIkTarget(target);
+            const auto found=std::ranges::find_if(effective.ik,[&](const auto& item) { return item.name==name; });
+            if (found==effective.ik.end()) throw std::runtime_error("IK override constraint missing: "+name);
+            found->target=target.target; found->hint=target.hint; found->weight=target.weight; found->worldSpace=target.worldSpace;
+        }
         next.events.clear();
         ValidateParameters(next.parameterOverrides);
         auto values=component.parameters;
@@ -142,7 +157,7 @@ namespace SceneRuntime
         const auto& before=State(component,next.current);
         if (!component.enabled)
         {
-            if (next.pose.empty()) { next.basePose=Sample(component,before,next,rig,values); next.pose=SolveIk(component,rig,next.basePose,modelWorld); next.motions=Motions(component,before,values); }
+            if (next.pose.empty()) { next.basePose=Sample(component,before,next,rig,values); next.pose=SolveIk(effective,rig,next.basePose,modelWorld); next.motions=Motions(component,before,values); }
             auto pose=next.pose; state=std::move(next); return pose;
         }
         const double duration=BlendTree::Duration(Motions(component,before,values),rig);
@@ -174,7 +189,7 @@ namespace SceneRuntime
         const float toWeight=next.previousPose.empty() || next.blendDuration<=0 ? 1 : std::clamp(next.blendElapsed/next.blendDuration,0.0f,1.0f);
         next.events=AnimationEvents::Collect(component.events,rig,next.current,next.motions,from,next.normalizedTime,definition.loop,next.eventsAtStart,fromWeight,toWeight);
         if (next.normalizedTime>from) next.eventsAtStart=false;
-        next.basePose=pose; pose=SolveIk(component,rig,std::move(pose),modelWorld);
+        next.basePose=pose; pose=SolveIk(effective,rig,std::move(pose),modelWorld);
         next.pose=pose; state=std::move(next); return pose;
     }
 }

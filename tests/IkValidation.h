@@ -1,6 +1,7 @@
 #pragma once
 #include <Engine/Animation/TwoBoneIk.h>
 #include <SceneRuntime/Animator.h>
+#include <SceneRuntime/ScriptRuntime.h>
 #include "../SceneRuntime/src/AnimatorJson.h"
 #include <cmath>
 #include <limits>
@@ -127,5 +128,42 @@ namespace IkValidation
         try { Animator::Advance(animator,worldState,rig,.1,{},&projective); } catch (const std::exception&) { badWorld=true; }
         Require(badWorld && worldState.time==worldTime,"world IK rejects projective transform transactionally");
         Require(ReadAnimator(WriteAnimator(animator),animator.id,true)==animator,"world IK setting roundtrip");
+        animator.ik[0]=definition; AnimatorState overridden;
+        AnimatorIkTarget runtimeTarget; runtimeTarget.target={-1,1,0}; runtimeTarget.hint={0,1,0};
+        overridden.ikOverrides[definition.name]=runtimeTarget;
+        Animator::Advance(animator,overridden,rig,.1,{});
+        Require(Distance(Position(rig,overridden.pose,3),runtimeTarget.target)<.0001f && animator.ik[0]==definition,"IK runtime override keeps authored settings");
+        const auto overrideTime=overridden.time; overridden.ikOverrides.clear(); Animator::Advance(animator,overridden,rig,.1,{});
+        Require(overridden.time>overrideTime && Distance(Position(rig,overridden.pose,3),definition.target)<.0001f,"clearing IK override restores authored target without clock reset");
+        SceneLayout layout; ScenePlacement owner; owner.id="actor"; owner.animator=animator; layout.objects.push_back(owner);
+        size_t nextId=1; ScriptScene commands(layout,nextId);
+        commands.SetIkTarget("actor",definition.name,runtimeTarget);
+        Require(commands.ikTargets.at("actor").at(definition.name)==runtimeTarget,"Script queues typed IK target");
+        commands.ClearIkTarget("actor",definition.name);
+        Require(!commands.ikTargets.at("actor").at(definition.name),"Script queues IK override clear");
+        auto malformed=runtimeTarget; malformed.weight=-1; bool badTarget=false;
+        try { commands.SetIkTarget("actor",definition.name,malformed); } catch (const std::exception&) { badTarget=true; }
+        Require(badTarget && !commands.ikTargets.at("actor").at(definition.name),"invalid Script IK target preserves pending command");
+        if (!ScriptRegistry::Definitions().contains("IkValidationDriver"))
+        {
+            ScriptDefinition driver; driver.fields={{"mode",{0,0,2}}};
+            driver.update=[](ScriptContext& context) {
+                const auto& constraint=context.object.animator->ik.front();
+                if (context.Value("mode")==1) context.scene->ClearIkTarget(context.object.id,constraint.name);
+                else { AnimatorIkTarget target; target.target={-1,1,0}; context.scene->SetIkTarget(context.object.id,constraint.name,target); }
+                if (context.Value("mode")==2) context.scene->Destroy(context.object.id);
+            };
+            Require(ScriptRegistry::Register("IkValidationDriver",std::move(driver)),"register IK driver");
+        }
+        layout.objects[0].scripts.push_back({"driver",true,"IkValidationDriver",{}});
+        ScriptRuntime scriptRuntime; std::string scriptError;
+        Require(scriptRuntime.Update(layout,.1,scriptError),scriptError.c_str());
+        Require(scriptRuntime.IkTargets().at("actor").at(definition.name).has_value(),"Script callback delivers IK target command");
+        layout.objects[0].scripts[0].parameters["mode"]=1;
+        Require(scriptRuntime.Update(layout,.1,scriptError),scriptError.c_str());
+        Require(!scriptRuntime.IkTargets().at("actor").at(definition.name),"Script callback delivers IK clear command");
+        layout.objects[0].scripts[0].parameters["mode"]=2;
+        Require(scriptRuntime.Update(layout,.1,scriptError),scriptError.c_str());
+        Require(layout.objects.empty() && scriptRuntime.IkTargets().empty(),"destroyed actor cancels IK commands");
     }
 }

@@ -236,6 +236,9 @@ namespace SceneRuntime
                 if (const auto changes=scripts.AnimatorParameters().find(placement.id);changes!=scripts.AnimatorParameters().end())
                     for (const auto& [name,value] : changes->second) frame.state.parameterOverrides[name]=value;
                 Animator::ValidateParameters(frame.state.parameterOverrides);
+                if (const auto changes=scripts.IkTargets().find(placement.id);changes!=scripts.IkTargets().end())
+                    for (const auto& [name,target] : changes->second)
+                    { if (target) frame.state.ikOverrides[name]=*target; else frame.state.ikOverrides.erase(name); }
                 auto parameters=inputValues_;
                 const auto input=[&](const char* name) { const auto found=inputValues_.find(name); return found==inputValues_.end() ? 0.0f : found->second; };
                 parameters["moveX"]=input("MoveRight")-input("MoveLeft"); parameters["moveY"]=input("MoveForward")-input("MoveBack");

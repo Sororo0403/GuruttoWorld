@@ -20,4 +20,8 @@ Animatorはクリップ／Blend Treeとクロスフェードの後に、制約�
 
 `worldSpace=true`なら目標と補助点をWorld座標として解釈する。SceneWorldは初期化・生成・通常更新の各経路で、親子階層を含む候補シーンのObject行列を渡す。SkeletonからWorldへの変換は`inverseRoot × importScale × ObjectWorld`であり、その逆行列で目標を変換する。Object側の非一様Scaleや階層由来のshearも完全な行列として扱う。これはSkeleton内部の非一様Scaleとは別であり、内部チェーンの正の一様Scale制約は引き続き適用する。単独で`Animator::Advance`を使う場合はWorld行列を渡す必要がある。欠落・特異・非アフィンの行列は失敗として扱い、状態を保持する。
 
-Scriptによる目標操作、App／Editor再生の描画検証、比較シーンは引き続き実装する。IK全体はまだ完了扱いにしない。
+`ScriptScene::SetIkTarget(id,name,target)`で名前付き制約の実行時目標・補助点・重み・座標系を予約する。`AnimatorIkTarget`を使い、設定した値は個体の`AnimatorState::ikOverrides`に保持する。保存設定やボーンの時計は変更しない。`ClearIkTarget(id,name)`で上書きを解除し、保存設定へ戻す。制約が無効なら上書きも適用しない。
+
+Script更新の予約結果をSceneWorldの候補状態に取り込み、すべての個体の姿勢計算に成功してから反映する。削除された個体の予約は取り消す。不正な目標や存在しない制約は失敗とし、予約済みの値を保持する。実行時上書きはシーンJSONへ保存しない。
+
+App／Editor再生のIK描画検証と比較シーンは引き続き実装する。IK全体はまだ完了扱いにしない。

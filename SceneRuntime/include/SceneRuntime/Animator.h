@@ -5,6 +5,13 @@
 
 namespace SceneRuntime
 {
+    struct AnimatorIkTarget
+    {
+        std::array<float,3> target{},hint{0,0,1};
+        float weight=1;
+        bool worldSpace=false;
+        bool operator==(const AnimatorIkTarget&) const = default;
+    };
     struct AnimatorIkConstraint
     {
         std::string name="IK",root,middle,tip;
@@ -50,6 +57,7 @@ namespace SceneRuntime
         std::vector<Engine::BonePose> basePose;
         std::vector<AnimatorMotionSample> motions;
         std::map<std::string,float> parameterOverrides;
+        std::map<std::string,AnimatorIkTarget> ikOverrides;
         bool eventsAtStart=true;
         std::vector<AnimatorEventOccurrence> events;
     };
@@ -60,6 +68,7 @@ namespace SceneRuntime
         static void Validate(const AnimatorComponent& component,const Engine::SkeletonData* rig=nullptr);
         /// <summary>保存値・個体ごとの上書きパラメーターの名前・値・最大64件を検証します。</summary>
         static void ValidateParameters(const std::map<std::string,float>& parameters);
+        static void ValidateIkTarget(const AnimatorIkTarget& target);
         /// <summary>状態と同期したBlend Treeを進めます。評価に失敗した場合は実行状態を保持します。</summary>
         static std::vector<Engine::BonePose> Advance(const AnimatorComponent& component,AnimatorState& state,
             const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters,

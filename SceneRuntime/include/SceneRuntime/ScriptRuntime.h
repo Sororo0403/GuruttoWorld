@@ -42,6 +42,10 @@ namespace SceneRuntime
         void AddImpulse(const std::string& id,const std::array<float,3>& impulse);
         /// <summary>個体のAnimatorパラメーター変更を予約します。骨格の時計や保存データを作り直しません。</summary>
         void SetAnimatorParameter(const std::string& id,const std::string& name,float value);
+        /// <summary>名前付きIK制約の実行時目標を予約します。時計・保存設定を保持します。</summary>
+        void SetIkTarget(const std::string& id,const std::string& name,const AnimatorIkTarget& target);
+        /// <summary>実行時目標を解除して保存設定へ戻します。</summary>
+        void ClearIkTarget(const std::string& id,const std::string& name);
         /// <summary>実行中の物理ワールドから最も近いColliderの交点を取得します。</summary>
         std::optional<PhysicsRayHit> Raycast(const std::array<float,3>& origin,const std::array<float,3>& direction,float distance,
             unsigned int mask=0xffffffffu,bool triggers=false,const std::string& ignore={}) const
@@ -51,6 +55,7 @@ namespace SceneRuntime
         std::vector<ScriptEvent> events;
         std::map<std::string,std::array<float,3>> impulses;
         std::map<std::string,std::map<std::string,float>> animatorParameters;
+        std::map<std::string,std::map<std::string,std::optional<AnimatorIkTarget>>> ikTargets;
     private:
         SceneLayout& layout_;
         size_t& nextId_;
@@ -103,6 +108,7 @@ namespace SceneRuntime
         const std::map<std::string,std::array<float,3>>& Impulses() const { return impulses_; }
         /// <summary>成功した更新で予約された個体ごとのAnimatorパラメーターを取得します。</summary>
         const std::map<std::string,std::map<std::string,float>>& AnimatorParameters() const { return animatorParameters_; }
+        const std::map<std::string,std::map<std::string,std::optional<AnimatorIkTarget>>>& IkTargets() const { return ikTargets_; }
     private:
         bool Advance(SceneLayout& layout,double seconds,std::string& error,
             const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics);
@@ -112,5 +118,6 @@ namespace SceneRuntime
         std::vector<ScriptEvent> events_;
         std::map<std::string,std::array<float,3>> impulses_;
         std::map<std::string,std::map<std::string,float>> animatorParameters_;
+        std::map<std::string,std::map<std::string,std::optional<AnimatorIkTarget>>> ikTargets_;
     };
 }
