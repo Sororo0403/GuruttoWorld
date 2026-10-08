@@ -70,7 +70,25 @@ namespace Editor
             ImGui::EndCombo();
         }
         if (!material.asset.empty() && ImGui::Button("Materialアセットを編集###Edit material asset")) state.InspectAsset(material.asset);
-        if (ImGui::Button("割り当てを初期化###Reset material binding")) {material.enabled=true; material.asset.clear(); edited=true;}
+        if(ImGui::TreeNode("メッシュごとの割り当て###Material slots")) {
+            ImGui::TextWrapped("スロット番号は読み込まれたメッシュの順序です。空欄は共通の割り当てを使用します。モデルを差し替えると対応する順序が変わることがあります。");
+            for(size_t index=0;index<material.slots.size();++index) {
+                ImGui::PushID(static_cast<int>(index));
+                const auto slotLabel=material.slots[index].empty()?std::string("共通の割り当て"):ProjectCatalog::Text(material.slots[index]);
+                if(ImGui::BeginCombo(("メッシュ "+std::to_string(index)+"###Slot").c_str(),slotLabel.c_str())) {
+                    if(ImGui::Selectable("共通の割り当て",material.slots[index].empty())) {material.slots[index].clear();edited=true;}
+                    if(catalog) for(const auto& asset:catalog->Assets()) if(asset.kind==AssetKind::Material)
+                        if(ImGui::Selectable(ProjectCatalog::Text(asset.path).c_str(),asset.path==material.slots[index])) {material.slots[index]=asset.path;edited=true;}
+                    ImGui::EndCombo();
+                }
+                if(!material.slots[index].empty() && ImGui::SmallButton("アセットを編集###Edit slot asset")) state.InspectAsset(material.slots[index]);
+                ImGui::PopID();
+            }
+            if(material.slots.size()<4096 && ImGui::Button("スロットを追加###Add material slot")) {material.slots.emplace_back();edited=true;}
+            ImGui::SameLine();if(!material.slots.empty() && ImGui::Button("末尾のスロットを削除###Remove last material slot")) {material.slots.pop_back();edited=true;}
+            ImGui::TreePop();
+        }
+        if (ImGui::Button("割り当てを初期化###Reset material binding")) {material.enabled=true; material.asset.clear();material.slots.clear(); edited=true;}
         ImGui::SameLine();
         if (ImGui::Button("割り当てを削除###Remove material binding")) {candidate.material.reset(); edited=true;}
         if (!candidate.meshRenderer) ImGui::TextWrapped("メッシュ描画を追加すると、この割り当てで描画します。");

@@ -18,6 +18,20 @@
 
 namespace
 {
+    Engine::MaterialSlots PrepareMaterialSlots(const SceneRuntime::ScenePlacement& placement,size_t meshes,
+        ID3D12Device* device,ID3D12CommandQueue* queue,const std::filesystem::path& root,
+        std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>>& cache)
+    {
+        Engine::MaterialSlots result;
+        if(!placement.material || !placement.material->enabled) return result;
+        const auto& paths=placement.material->slots;result.resize(std::min(meshes,paths.size()));
+        for(size_t i=0;i<result.size();++i) if(!paths[i].empty()) {
+            auto found=cache.find(paths[i]);
+            if(found==cache.end()) found=cache.emplace(paths[i],SceneRuntime::MaterialAsset::Load(root,paths[i]).Prepare(device,queue,root)).first;
+            result[i]=found->second;
+        }
+        return result;
+    }
     bool HasTransformAnimation(const SceneRuntime::ScenePlacement& placement)
     {
         return placement.animation && placement.animation->enabled &&
@@ -192,6 +206,7 @@ namespace SceneRuntime
                         if (found==materials.end()) found=materials.emplace(material,MaterialAsset::Load(assetsRoot,material).Prepare(materialDevice_.Get(),materialQueue_.Get(),assetsRoot)).first;
                         object.SetMaterial(found->second);
                     }
+                    object.SetMaterialSlots(PrepareMaterialSlots(placement,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot,materials));
                 }
                 if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
                     throw std::runtime_error("Invalid transform: " + placement.id);
@@ -266,22 +281,26 @@ namespace SceneRuntime
         const Engine::DirectionalLight& light, const UiState* state) const
     {
         meshTelemetry_={};
-        const auto count=[&](size_t index) { const auto& model=objects_[index].GetModel(); if (model) { meshTelemetry_.draws+=model->MeshCount(); meshTelemetry_.triangles+=model->TriangleCount(); } };
+        const auto count=[&](size_t index,Engine::MaterialPass pass) {
+            const auto& model=objects_[index].GetModel();
+            if(model) for(size_t mesh=0;mesh<model->MeshCount();++mesh) if(Engine::MatchesMaterialPass(objects_[index].MaterialForMesh(mesh),pass)) {
+                ++meshTelemetry_.draws;meshTelemetry_.triangles+=model->MeshTriangleCount(mesh);
+            }
+        };
         const auto defaults=state ? UiState{} : SceneUi::Defaults(layout_);
         const auto& values=state ? *state : defaults;
         const auto visible=[&](size_t index) {
             const auto& mesh=layout_.objects[index].meshRenderer;
             return mesh && mesh->enabled && values.Matches(mesh->visibleWhen);
         };
-        const auto transparent=[&](size_t index) { const auto& material=objects_[index].GetMaterial(); return material && (material->transparent || material->color[3]<1); };
         auto lighting=light;
         lighting.shadow=nullptr;
         if (light.enabled && light.shadowsEnabled && shadow_.Begin(commands,camera,light))
         {
             Engine::GpuScope gpu(commands,"Shadows"); Engine::CpuScope cpu("Shadows");
             for (size_t index=0;index<objects_.size();++index)
-                if (visible(index) && !transparent(index) && objects_[index].GetModel())
-                    { count(index); objects_[index].GetModel()->DrawShadow(commands,objects_[index].GetWorldMatrix(),shadow_); }
+                if (visible(index) && objects_[index].HasMaterialPass(Engine::MaterialPass::Opaque))
+                    { count(index,Engine::MaterialPass::Opaque); objects_[index].GetModel()->DrawShadow(commands,objects_[index].GetWorldMatrix(),shadow_,objects_[index].GetMaterial().get(),objects_[index].GetMaterialSlots()); }
             shadow_.End(commands);
             lighting.shadow=&shadow_;
         }
@@ -291,8 +310,10 @@ namespace SceneRuntime
         for (size_t index=0;index<objects_.size();++index)
             if (visible(index))
             {
-                if (transparent(index)) blended.push_back(index);
-                else { count(index); objects_[index].Draw(commands,camera,lighting); }
+                if (objects_[index].HasMaterialPass(Engine::MaterialPass::Transparent)) blended.push_back(index);
+                if(objects_[index].HasMaterialPass(Engine::MaterialPass::Opaque)) {
+                    count(index,Engine::MaterialPass::Opaque);objects_[index].Draw(commands,camera,lighting,{},Engine::MaterialPass::Opaque);
+                }
             }
         }
         Engine::GpuScope gpu(commands,"Transparent meshes"); Engine::CpuScope cpu("Transparent meshes");
@@ -301,7 +322,7 @@ namespace SceneRuntime
             const float x=world._41-eye[0],y=world._42-eye[1],z=world._43-eye[2]; return x*x+y*y+z*z;
         };
         std::stable_sort(blended.begin(),blended.end(),[&](size_t first,size_t second) { return distance(first)>distance(second); });
-        for (const auto index : blended) { count(index); objects_[index].Draw(commands,camera,lighting); }
+        for (const auto index : blended) { count(index,Engine::MaterialPass::Transparent); objects_[index].Draw(commands,camera,lighting,{},Engine::MaterialPass::Transparent); }
     }
 
     bool SceneWorld::PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error)
@@ -770,6 +791,8 @@ namespace SceneRuntime
                     object.SetModel(animated);
                 }
                 if (!placement.Material().empty()) object.SetMaterial(MaterialAsset::Load(assetsRoot,placement.Material()).Prepare(materialDevice_.Get(),materialQueue_.Get(),assetsRoot));
+                std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>> materials;
+                object.SetMaterialSlots(PrepareMaterialSlots(placement,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot,materials));
             }
             const auto id = placement.id;
             Append(std::move(placement), std::move(object));

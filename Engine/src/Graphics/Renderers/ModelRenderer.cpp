@@ -9,9 +9,11 @@
 
 namespace Engine
 {
-    void ModelRenderer::DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const
+    void ModelRenderer::DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,
+        const Material* material,std::span<const std::shared_ptr<const Material>> slots) const
     {
         for (size_t index=0;index<meshes_.size();++index)
+            if(MatchesMaterialPass(MaterialForSlot(index,material,slots),MaterialPass::Opaque))
             meshes_[index]->DrawShadow(commands,world,shadow,rig_ ? std::span<const SkinMatrix>(palettes_[index]) : std::span<const SkinMatrix>{});
     }
     bool ModelRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
@@ -169,11 +171,14 @@ namespace Engine
 
     void ModelRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
         const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
-        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,const Material* material) const
+        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,const Material* material,
+        std::span<const std::shared_ptr<const Material>> slots,MaterialPass pass) const
     {
         for (size_t index=0;index<meshes_.size();++index)
         {
-            meshes_[index]->Draw(commands, world, viewProjection, light, cameraPosition, uvTransform,material,
+            const auto* selected=MaterialForSlot(index,material,slots);
+            if(!MatchesMaterialPass(selected,pass)) continue;
+            meshes_[index]->Draw(commands, world, viewProjection, light, cameraPosition, selected?selected->uv:uvTransform,selected,
                 rig_ ? std::span<const SkinMatrix>(palettes_[index]) : std::span<const SkinMatrix>{});
         }
     }

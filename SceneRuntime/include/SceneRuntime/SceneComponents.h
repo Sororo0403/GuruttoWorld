@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <map>
+#include <vector>
 
 namespace SceneRuntime
 {
@@ -20,6 +21,7 @@ namespace SceneRuntime
         std::string id="material";
         bool enabled=true;
         std::filesystem::path asset;
+        std::vector<std::filesystem::path> slots;
         bool operator==(const MaterialComponent&) const = default;
     };
     struct PlayerControllerComponent

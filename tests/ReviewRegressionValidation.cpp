@@ -4,6 +4,7 @@
 #include "../Editor/src/EditState.h"
 #include "../Editor/src/PlayState.h"
 #include "../Editor/src/GameSession.h"
+#include "../Editor/src/GamePointerCapture.h"
 #include "../Editor/src/PlaySnapshot.h"
 #include "../Editor/src/SceneViewport.h"
 #include "../Editor/src/ModelDrop.h"
@@ -3056,6 +3057,13 @@ void ValidateUiCanvasInteraction()
 
 void ValidateEditorIntegrity()
 {
+    const Editor::SceneViewport pointerViewport{10,20,400,300};
+    Check(Editor::GamePointerCapture::Allowed(true,true,true,true,false,pointerViewport) &&
+        !Editor::GamePointerCapture::Allowed(true,false,true,true,false,pointerViewport) &&
+        !Editor::GamePointerCapture::Allowed(true,true,false,true,false,pointerViewport) &&
+        !Editor::GamePointerCapture::Allowed(true,true,true,false,false,pointerViewport) &&
+        !Editor::GamePointerCapture::Allowed(true,true,true,true,true,pointerViewport),
+        "Game pointer capture releases for Pause, lost app focus, another panel or modal");
     SceneRuntime::BoxColliderComponent guideCollider;guideCollider.center={2,3,4};guideCollider.size={4,6,8};
     const auto boxGuides=Editor::ComponentGuideGeometry::Collider(guideCollider);
     Check(boxGuides.size()==12 && boxGuides[0][0]==std::array<float,3>{0,0,0},"collider guide uses authored center and size");

@@ -77,6 +77,7 @@ namespace Engine
         void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,std::span<const SkinMatrix> palette={}) const;
         /// <summary>不変の頂点領域を取得し、姿勢変更時に再作成しないことを確認します。</summary>
         ID3D12Resource* GeometryResource() const noexcept { return meshBuffer_.Get(); }
+        size_t TriangleCount() const noexcept {return indexCount_/3;}
     private:
         /// <summary>色・法線・影・局所ライトの不変ディスクリプターを共有します。</summary>
         ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture,

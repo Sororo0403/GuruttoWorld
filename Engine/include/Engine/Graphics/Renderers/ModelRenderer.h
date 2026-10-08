@@ -83,10 +83,12 @@ namespace Engine
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
             const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
-            const UvTransform& uvTransform = {},const Material* material=nullptr) const;
+            const UvTransform& uvTransform = {},const Material* material=nullptr,
+            std::span<const std::shared_ptr<const Material>> slots={},MaterialPass pass=MaterialPass::All) const;
 
         size_t MeshCount() const { return meshes_.size(); }
         size_t TriangleCount() const { return triangleCount_; }
+        size_t MeshTriangleCount(size_t index) const {return meshes_.at(index)->TriangleCount();}
         /// <summary>指定メッシュの共有頂点領域を取得します。</summary>
         ID3D12Resource* GeometryResource(size_t index) const { return meshes_.at(index)->GeometryResource(); }
         const DirectX::BoundingBox& Bounds() const { return bounds_; }
@@ -100,7 +102,8 @@ namespace Engine
         /// <summary>このモデルで準備した候補を割り当てなしで反映します。候補は1度だけ使用できます。</summary>
         bool ApplyPreparedPose(PreparedPose&& pose) noexcept;
         /// <summary>モデル内のすべてのメッシュを光源の深度へ描画します。</summary>
-        void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
+        void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,
+            const Material* material=nullptr,std::span<const std::shared_ptr<const Material>> slots={}) const;
         // ローカル空間の単位レイを三角形へ当て、最も近い交点距離を返します。
         bool IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const;
     private:

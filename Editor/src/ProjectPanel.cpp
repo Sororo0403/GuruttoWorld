@@ -200,7 +200,8 @@ namespace Editor
         ImGui::TextWrapped("共有アセット：編集・保存すると、このMaterialを参照するすべてのオブジェクトに反映します。");
         if(layout && ImGui::CollapsingHeader("このシーンの使用箇所###Material usages")) {
             size_t count=0;
-            for(const auto& object:layout->objects) if(object.material && object.material->asset==path) {
+            for(const auto& object:layout->objects) if(object.material && (object.material->asset==path ||
+                std::find(object.material->slots.begin(),object.material->slots.end(),path)!=object.material->slots.end())) {
                 ImGui::PushID(object.id.c_str());
                 if(ImGui::Selectable(object.name.c_str())) state.Select(object.id);
                 if(!object.material->enabled) {ImGui::SameLine();ImGui::TextDisabled("割り当て無効");}

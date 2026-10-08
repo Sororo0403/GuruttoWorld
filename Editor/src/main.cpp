@@ -19,6 +19,7 @@
 #include "AssetFileTransaction.h"
 #include "SaveAsPanel.h"
 #include "GameSession.h"
+#include "GamePointerCapture.h"
 #include <SceneRuntime/Prefab.h>
 #include "UiCanvasPanel.h"
 #include "UiEditorPanel.h"
@@ -89,7 +90,7 @@ namespace
             {
                 keyboard = &input;
                 seconds = dt;
-                if (!input.IsActive()) cameraPanel.CancelDrag();
+                if (!input.IsActive()) {cameraPanel.CancelDrag();pointerCapture.Release();}
             };
             callbacks.draw = [&](Engine::DirectX12Renderer& renderer) { return Draw(renderer); };
             Engine::ApplicationSettings settings;
@@ -571,6 +572,7 @@ namespace
 
         void DrawUi()
         {
+            if(preview || closeRequested) pointerCapture.Release();
             editState.BeginFrame();
             if (!preview)
             {
@@ -593,6 +595,10 @@ namespace
             if (focusGame) { ImGui::SetNextWindowFocus(); focusGame=false; }
             gamePanel.Begin(gameTextureId,"ゲーム###Game");
             requestedGameSize=gamePanel.RequestedSize();
+            if(ImGui::IsKeyPressed(ImGuiKey_Escape,false)) captureGamePointer=false;
+            const bool pointerAllowed=Editor::GamePointerCapture::Allowed(captureGamePointer,gameSession.State().CanPause(),
+                keyboard && keyboard->IsActive(),gamePanel.Focused(),closeRequested || ImGui::GetTopMostPopupModal()!=nullptr,gamePanel.Viewport());
+            if(pointerCapture.Update(keyboard?keyboard->WindowHandle():nullptr,gamePanel.Viewport(),pointerAllowed)) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
             uiCanvasPanel.Draw(world,editState,gamePanel.Viewport(),SceneEditingEnabled());
             UpdateGamePointer();
             Editor::ScenePanel::End();
@@ -1064,6 +1070,10 @@ namespace
             ImGui::EndDisabled();
             ImGui::SameLine();
             ImGui::TextUnformatted(gameSession.State().Label());
+            ImGui::SameLine();ImGui::BeginDisabled(!gameSession.State().CanStop());
+            ImGui::Checkbox("マウス捕捉###Capture Game pointer",&captureGamePointer);
+            if(ImGui::IsItemHovered()) ImGui::SetTooltip("Gameにフォーカスするとマウスを表示領域内に捕捉します。Escapeで解除します。");
+            ImGui::EndDisabled();
             if (auto* runtime=gameSession.Runtime(); runtime && gameSession.State().CanStep())
             {
                 float time=runtime->Ui().Value("sceneTime");
@@ -1195,6 +1205,8 @@ namespace
         Engine::RenderTexture uiTexture;
         UINT64 uiTextureId=0;
         Editor::GameSession gameSession;
+        Editor::GamePointerCapture pointerCapture;
+        bool captureGamePointer=false;
         std::optional<Editor::PlaySnapshot> playSnapshot;
         std::optional<Editor::GameSession::Command> pendingPlay;
         Editor::ObjectPanel objectPanel;

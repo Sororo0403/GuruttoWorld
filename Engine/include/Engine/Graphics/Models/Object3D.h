@@ -29,6 +29,10 @@ namespace Engine
         void SetModel(std::shared_ptr<const ModelRenderer> model);
         void SetMaterial(std::shared_ptr<const Material> material) { material_=std::move(material); }
         const std::shared_ptr<const Material>& GetMaterial() const { return material_; }
+        void SetMaterialSlots(MaterialSlots slots) {materialSlots_=std::move(slots);}
+        const MaterialSlots& GetMaterialSlots() const {return materialSlots_;}
+        const Material* MaterialForMesh(size_t index) const {return MaterialForSlot(index,material_.get(),materialSlots_);}
+        bool HasMaterialPass(MaterialPass pass) const;
 
         /// <summary>
         /// 現在の共有モデルを取得します。
@@ -72,11 +76,12 @@ namespace Engine
         /// </summary>
         void Draw(ID3D12GraphicsCommandList* commands, const Camera& camera,
             const DirectionalLight& light = {},
-            const UvTransform& uvTransform = {}) const;
+            const UvTransform& uvTransform = {},MaterialPass pass=MaterialPass::All) const;
 
     private:
         std::shared_ptr<const ModelRenderer> model_;
         std::shared_ptr<const Material> material_;
+        MaterialSlots materialSlots_;
         std::array<float, 3> position_{};
         std::array<float, 3> rotation_{};
         std::array<float, 3> scale_{ 1.0f, 1.0f, 1.0f };

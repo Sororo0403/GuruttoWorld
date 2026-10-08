@@ -114,6 +114,15 @@ namespace
             const auto path=std::filesystem::path(std::u8string(text.begin(),text.end()));
             if (!path.empty() && !SceneRuntime::MaterialAsset::ValidPath(path)) throw std::runtime_error("Invalid material asset path");
             placement.material=SceneRuntime::MaterialComponent{id,enabled,path};
+            if(component.contains("slots")) {
+                const auto& slots=Engine::JsonArray(component.at("slots"));
+                if(slots.size()>4096) throw std::runtime_error("Too many Material slots");
+                for(const auto& value:slots) {
+                    const auto slotText=value.get<std::string>();const auto slot=std::filesystem::path(std::u8string(slotText.begin(),slotText.end()));
+                    if(!slot.empty() && !SceneRuntime::MaterialAsset::ValidPath(slot)) throw std::runtime_error("Invalid Material slot asset path");
+                    placement.material->slots.push_back(slot);
+                }
+            }
         }
         else if (type=="Rotator")
         {
@@ -274,7 +283,9 @@ namespace SceneRuntime
         {
             const auto& material=*placement.material;
             auto object=Component(material.id,"Material",material.enabled);
-            object["asset"]=material.asset; components.push_back(std::move(object));
+            object["asset"]=material.asset;
+            if(!material.slots.empty()) object["slots"]=material.slots;
+            components.push_back(std::move(object));
         }
         if (placement.rotator)
         {

@@ -43,6 +43,13 @@ namespace MaterialValidation
         SceneRuntime::ScenePlacement object; object.id="mesh"; object.SetModel("Assets/Models/Cube.obj"); object.material=SceneRuntime::MaterialComponent{"material",true,path};
         SceneRuntime::SceneLayout scene; scene.objects={object};
         Require(SceneRuntime::SceneLayout::Parse(scene.Serialize()).objects[0].Material()==path,"Independent material component reference roundtrip");
+        object.material->slots={path,{},"Assets/Materials/Legacy.mat"};scene.objects[0]=object;
+        Require(SceneRuntime::SceneLayout::Parse(scene.Serialize()).objects[0].material->slots==object.material->slots,"per-mesh material slots roundtrip with empty fallback");
+        const auto invalidSlots=Engine::Json::parse(scene.Serialize());auto malformedSlots=invalidSlots;
+        malformedSlots["objects"][0]["components"][1]["slots"]={"Assets/Materials/../invalid.mat"};
+        bool badSlot=false;try {SceneRuntime::SceneLayout::Parse(malformedSlots.dump());}catch(...) {badSlot=true;}
+        Require(badSlot,"material slot rejects traversal");
+        object.material->slots.clear();scene.objects[0]=object;
         const auto serialized=Engine::Json::parse(scene.Serialize());
         auto legacyScene=serialized;
         legacyScene["objects"][0]["components"].erase(legacyScene["objects"][0]["components"].begin()+1);
@@ -69,6 +76,20 @@ namespace MaterialValidation
         DirectX::XMFLOAT4X4 identity; DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());
         Engine::Material material; material.color={1,0,0,1};
         const auto sample=[&] { return EnvironmentValidation::Pixel(renderer,[&](auto* commands) { mesh.Draw(commands,identity,identity,light,{0,0,-3.5f},material.uv,&material); }); };
+        const auto slotRoot=std::filesystem::absolute("generated/tests/material-slots");std::filesystem::create_directories(slotRoot);
+        {std::ofstream file(slotRoot/"Slots.mtl");file<<"newmtl First\nKd 1 1 1\nnewmtl Second\nKd 1 1 1\n";}
+        {std::ofstream file(slotRoot/"Slots.obj");file<<"mtllib Slots.mtl\nv -1 -1 -0.3\nv 0 1 -0.3\nv 1 -1 -0.3\nv -1 -1 -0.5\nv 0 1 -0.5\nv 1 -1 -0.5\nvn 0 0 1\no First\nusemtl First\nf 1//1 3//1 2//1\no Second\nusemtl Second\nf 4//1 6//1 5//1\n";}
+        auto slotModel=std::make_shared<Engine::ModelRenderer>();
+        Require(slotModel->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),slotRoot/"Slots.obj",std::filesystem::absolute("Content/Shaders/Mesh.hlsl")) && slotModel->MeshCount()==2,"two-mesh material-slot fixture initializes");
+        auto fallback=std::make_shared<Engine::Material>();fallback->color={1,0,0,1};
+        auto slotOverride=std::make_shared<Engine::Material>();slotOverride->color={0,1,0,1};slotOverride->transparent=true;
+        Engine::MaterialSlots slots{nullptr,slotOverride};
+        const auto slotSample=[&](Engine::MaterialPass pass) {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){slotModel->Draw(commands,identity,identity,light,{0,0,-3.5f},{},fallback.get(),slots,pass);});};
+        Require(slotSample(Engine::MaterialPass::Opaque)==std::array<unsigned char,4>{255,0,0,255},"opaque pass renders default material and excludes transparent slot");
+        Require(slotSample(Engine::MaterialPass::Transparent)==std::array<unsigned char,4>{0,255,0,255},"transparent pass renders only the per-mesh override");
+        Engine::Object3D first;first.SetModel(slotModel);first.SetMaterial(fallback);first.SetMaterialSlots(slots);
+        Engine::Object3D independent;independent.SetModel(slotModel);independent.SetMaterial(fallback);
+        Require(first.MaterialForMesh(1)==slotOverride.get() && independent.MaterialForMesh(1)==fallback.get() && first.HasMaterialPass(Engine::MaterialPass::Opaque) && first.HasMaterialPass(Engine::MaterialPass::Transparent),"slot overrides belong to the instance without mutating shared model");
         Require(sample()==std::array<unsigned char,4>{255,0,0,255},"material tint reaches GPU without affecting shared geometry");
         material.color[3]=0.5f; material.transparent=true;
         const auto blended=sample();
