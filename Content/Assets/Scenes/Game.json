@@ -343,6 +343,7 @@
           "sound": "",
           "event": "",
           "shortcut": "space",
+          "inputAction": "Jump",
           "hoverColor": [
             1,
             0.85,
@@ -613,6 +614,7 @@
           "sound": "",
           "event": "",
           "shortcut": "escape",
+          "inputAction": "Cancel",
           "hoverColor": [
             1,
             0.85,

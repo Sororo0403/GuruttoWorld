@@ -10,6 +10,7 @@
 #include "../Editor/src/ConsoleFilter.h"
 #include "../Editor/src/SceneDocument.h"
 #include "../Editor/src/MaterialDocument.h"
+#include "../Editor/src/UiCanvasPanel.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetInfo.h"
@@ -2869,6 +2870,77 @@ void ValidateMaterialDocuments()
         "explicit reload resolves material conflict and subsequent save clears dirty state");
 }
 
+void ValidateEditorTitlePreview()
+{
+    const auto layout=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Content/Assets/Scenes/TitleStreet.json"));
+    auto state=SceneRuntime::SceneUi::Defaults(layout);
+    Editor::TitlePreview title;
+    title.Initialize(layout,state);
+    Check(title.Active() && state.Value("screen",-1)==0,"editor title initializes shared menu state");
+    SceneRuntime::UiEvent event; event.event="menu:1";
+    Check(title.Activate(event,state) && state.Value("screen",-1)==1,"editor CONFIG click opens settings");
+    event.event="back"; title.Activate(event,state);
+    Check(state.Value("screen",-1)==0,"editor settings back returns to title");
+    Engine::InputActions actions; Engine::InputSnapshot input; input.active=true;
+    actions.Update(input); title.Update(actions,true,0,state);
+    actions.Update(input); title.Update(actions,true,0,state);
+    input.down[DIK_DOWN]=true; input.pressed[DIK_DOWN]=true;
+    actions.Update(input); title.Update(actions,true,0,state);
+    Check(state.Value("selected",-1)==2,"editor direction key moves title selection");
+    input.down.fill(false); input.pressed.fill(false); actions.Update(input); title.Update(actions,true,0,state);
+    input.gamepadConnected=true; input.buttons=XINPUT_GAMEPAD_A; input.pressedButtons=XINPUT_GAMEPAD_A;
+    actions.Update(input);
+    std::optional<SceneRuntime::UiEvent> result;
+    for(int i=0;i<10 && !result;++i) result=title.Update(actions,true,0.1,state);
+    Check(result && result->action=="quit","editor gamepad Confirm activates QUIT after transition");
+    title.Initialize(layout,state); event.event="menu:0"; title.Activate(event,state);
+    input.buttons=0; input.pressedButtons=0; actions.Update(input);
+    result.reset();
+    for(int i=0;i<10 && !result;++i) result=title.Update(actions,true,0.1,state);
+    Check(result && result->action=="loadScene" && result->target=="Assets/Scenes/Game.json",
+        "editor START follows authored scene target");
+    const auto game=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Content/Assets/Scenes/Game.json"));
+    Check(!SceneRuntime::SceneUi::Shortcut(game,"action:Jump",1280,720,{}).empty() &&
+        !SceneRuntime::SceneUi::Shortcut(game,"action:Cancel",1280,720,{}).empty(),
+        "sample Game connects gamepad actions to authored UI buttons");
+}
+
+void ValidateUiCanvasInteraction()
+{
+    ImGui::CreateContext();
+    auto& io=ImGui::GetIO(); io.IniFilename=nullptr; io.DisplaySize={640,480}; io.DeltaTime=1.0f/60;
+    io.Fonts->Build();
+    SceneRuntime::SceneLayout layout;
+    SceneRuntime::ScenePlacement canvas; canvas.id="canvas"; canvas.canvas.emplace(); canvas.canvas->referenceSize={400,300};
+    layout.objects.push_back(canvas);
+    SceneRuntime::ScenePlacement lower; lower.id="lower"; lower.parentId="canvas"; lower.rectTransform.emplace();
+    lower.rectTransform->position={20,20}; lower.rectTransform->size={200,100}; lower.image.emplace();
+    layout.objects.push_back(lower);
+    auto upper=lower; upper.id="upper"; upper.rectTransform->size={100,60}; layout.objects.push_back(upper);
+    Editor::EditState state; state.Select("lower"); Editor::UiCanvasPanel panel;
+    const Editor::SceneViewport viewport{50,50,400,300};
+    const auto frame=[&](float x,float y,bool down) {
+        io.AddMousePosEvent(x,y); io.AddMouseButtonEvent(0,down);
+        ImGui::NewFrame(); ImGui::SetNextWindowPos({0,0}); ImGui::SetNextWindowSize({640,480});
+        ImGui::Begin("Canvas interaction",nullptr,ImGuiWindowFlags_NoTitleBar);
+        state.BeginFrame(); panel.DrawLayout(layout,state,viewport,true); ImGui::End(); ImGui::Render();
+    };
+    frame(90,90,false); frame(90,90,false); frame(90,90,true);
+    Check(state.SelectedId()=="upper" && panel.IsDragging(),"first UI press selects topmost object and begins drag immediately");
+    frame(110,90,true);
+    const auto request=state.TakeRequest();
+    Check(request && request->components && request->components->id=="upper" &&
+        request->components->rectTransform->position[0]==40,"first UI drag moves selected object in the same gesture");
+    frame(110,90,false);
+    Check(!panel.IsDragging(),"UI drag ends on release");
+    frame(90,90,false); io.AddKeyEvent(ImGuiMod_Ctrl,true); frame(90,90,true);
+    Check(!panel.IsDragging(),"Ctrl selection does not start UI drag");
+    io.AddKeyEvent(ImGuiMod_Ctrl,false); frame(90,90,false);
+    state.Select("lower"); frame(450,170,false); frame(450,170,true);
+    Check(!panel.IsDragging(),"UI drag does not start outside viewport");
+    ImGui::DestroyContext();
+}
+
 void ValidateConsoleLog()
 {
     Engine::Log::ClearRecent();
@@ -3110,6 +3182,16 @@ int main()
             std::cout<<"PASS: editor scene conflicts/moves, material drafts/conflicts, GLB and asset folders\n";
             return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_EDITOR_PLAY_ONLY",nullptr,0)) {
+            ValidateEditorTitlePreview();
+            std::cout<<"PASS: Editor title CONFIG/QUIT/START, keyboard navigation and gamepad actions\n";
+            return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_EDITOR_UI_ONLY",nullptr,0)) {
+            ValidateUiCanvasInteraction();
+            std::cout<<"PASS: UI first-gesture dragging, overlapping selection, Ctrl selection and viewport bounds\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_TEXTURE_IMPORT_ONLY",nullptr,0)) {
             Engine::Window window; Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden texture import validation",64,32),"texture import window"); Check(renderer.Initialize(window.GetHandle()),"texture import renderer");
@@ -3272,6 +3354,8 @@ int main()
         phase="ValidateConsoleLog"; ValidateConsoleLog();
         phase="ValidateSaveAs"; ValidateSaveAs();
         phase="ValidateMaterialDocuments"; ValidateMaterialDocuments();
+        phase="ValidateEditorTitlePreview"; ValidateEditorTitlePreview();
+        phase="ValidateUiCanvasInteraction"; ValidateUiCanvasInteraction();
         phase="ValidateMultiSelection"; ValidateMultiSelection();
         phase="ValidateEditHistory"; ValidateEditHistory();
         phase="ValidateFocusSelection"; ValidateFocusSelection();

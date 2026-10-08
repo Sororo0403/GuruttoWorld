@@ -15,8 +15,10 @@ namespace Editor
         {
             viewport_ = {};
             hovered_ = false;
+            focused_ = false;
             PanelLayout::Place(PanelLayout::Panel::Scene);
             if (!ImGui::Begin(name, nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) return false;
+            focused_=ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
             const auto size = ImGui::GetContentRegionAvail();
             if (size.x < 1 || size.y < 1 || !texture) return false;
             const auto position = ImGui::GetCursorScreenPos();
@@ -28,6 +30,7 @@ namespace Editor
         static void End() { ImGui::End(); }
         const SceneViewport& Viewport() const { return viewport_; }
         bool Hovered() const { return hovered_; }
+        bool Focused() const { return focused_; }
         std::array<unsigned int, 2> RequestedSize() const
         {
             if (!viewport_.Valid()) return {};
@@ -37,5 +40,6 @@ namespace Editor
     private:
         SceneViewport viewport_;
         bool hovered_ = false;
+        bool focused_ = false;
     };
 }

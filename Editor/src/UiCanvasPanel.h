@@ -6,6 +6,8 @@ namespace Editor {
 class UiCanvasPanel final {
 public:
     void Draw(const SceneRuntime::SceneWorld&,EditState&,const SceneViewport&,bool enabled);
+    void DrawLayout(const SceneRuntime::SceneLayout&,EditState&,const SceneViewport&,bool enabled);
+    bool IsDragging() const { return start_.has_value(); }
 private:
     void UpdateDrag(EditState&,const std::array<float,2>& mouse);
     void SelectAndBegin(const SceneRuntime::SceneLayout&,EditState&,const SceneViewport&);

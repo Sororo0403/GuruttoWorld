@@ -19,15 +19,24 @@ void UiCanvasPanel::SelectAndBegin(const SceneRuntime::SceneLayout& layout,EditS
         draw->AddQuad(a,b,c,d,IM_COL32(255,190,40,255),2.0f);
         draw->AddRectFilled({c.x-6,c.y-6},{c.x+6,c.y+6},IM_COL32(255,190,40,255));
         const bool handle=std::abs(mouse.x-c.x)<9 && std::abs(mouse.y-c.y)<9;
-        if(ImGui::IsMouseClicked(ImGuiMouseButton_Left) && (handle || rect.Contains(mouse.x-viewport.x,mouse.y-viewport.y))) {
-            state.Select(selected->id);
+        if(ImGui::IsWindowHovered() && viewport.Contains(mouse.x,mouse.y) && !ImGui::GetIO().KeyCtrl &&
+            ImGui::IsMouseClicked(ImGuiMouseButton_Left) && handle) {
             start_=*selected; mouse_={mouse.x,mouse.y}; scale_=rect.scale;
-            rotation_=rect.rotation-selected->rectTransform->rotation; resize_=handle;
+            rotation_=rect.rotation-selected->rectTransform->rotation; resize_=true;
         }
     }
-    if(!start_ && viewport.Contains(mouse.x,mouse.y) && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+    if(!start_ && ImGui::IsWindowHovered() && viewport.Contains(mouse.x,mouse.y) && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         const auto hit=SceneRuntime::SceneUi::Hit(layout,static_cast<unsigned int>(viewport.width),static_cast<unsigned int>(viewport.height),mouse.x-viewport.x,mouse.y-viewport.y,{},false);
-        if(!hit.empty()) state.Select(hit,ImGui::GetIO().KeyCtrl);
+        if(!hit.empty()) {
+            const auto object=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& item){return item.id==hit;});
+            if (ImGui::GetIO().KeyCtrl) { state.Select(hit,true); return; }
+            if (std::find(state.SelectedIds().begin(),state.SelectedIds().end(),hit)==state.SelectedIds().end()) state.Select(hit);
+            if (object!=layout.objects.end() && object->rectTransform) {
+                const auto rect=SceneRuntime::SceneUi::Resolve(layout,*object,static_cast<unsigned int>(viewport.width),static_cast<unsigned int>(viewport.height));
+                start_=*object; mouse_={mouse.x,mouse.y}; scale_=rect.scale;
+                rotation_=rect.rotation-object->rectTransform->rotation; resize_=false;
+            }
+        }
     }
 }
 void UiCanvasPanel::UpdateDrag(EditState& state,const std::array<float,2>& mouse) {
@@ -46,12 +55,15 @@ void UiCanvasPanel::UpdateDrag(EditState& state,const std::array<float,2>& mouse
         c.position[1]=std::clamp(c.position[1]+dy,-100000.0f,100000.0f);
     }
     state.SetInteraction("ui/drag/"+start_->id);
-    state.RequestComponents(std::move(candidate),state.Interaction());
+    if (!candidate.SameComponents(*start_)) state.RequestComponents(std::move(candidate),state.Interaction());
     if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) start_.reset();
 }
 void UiCanvasPanel::Draw(const SceneRuntime::SceneWorld& world,EditState& state,const SceneViewport& viewport,bool enabled) {
+    DrawLayout(world.Layout(),state,viewport,enabled);
+}
+void UiCanvasPanel::DrawLayout(const SceneRuntime::SceneLayout& layout,EditState& state,const SceneViewport& viewport,bool enabled) {
     if(!enabled || !viewport.Valid()) {start_.reset(); return;}
-    if(!start_) SelectAndBegin(world.Layout(),state,viewport);
+    if(!start_) SelectAndBegin(layout,state,viewport);
     if(start_) {const auto mouse=ImGui::GetIO().MousePos; UpdateDrag(state,{mouse.x,mouse.y});}
 }
 }

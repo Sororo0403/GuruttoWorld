@@ -1,5 +1,6 @@
 #pragma once
 #include "PlayState.h"
+#include "TitlePreview.h"
 #include <Engine/Core/Log.h>
 #include <SceneRuntime/SceneEnvironment.h>
 #include <memory>
@@ -13,6 +14,7 @@ namespace Editor
         enum class Command { Play, Pause, Stop, Step };
         const PlayState& State() const { return state_; }
         SceneRuntime::SceneEnvironment* Runtime() const { return runtime_.get(); }
+        TitlePreview& Title() { return title_; }
         // Create and release resources outside Render after GPU idle.
         bool Play(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             const SceneRuntime::SceneLayout& layout, std::string& error)
@@ -27,6 +29,7 @@ namespace Editor
                     std::string audioError;
                     if(!candidate->StartAudio(root,audioError)) Engine::Log::Warning(audioError);
                     runtime_=std::move(candidate);
+                    title_.Initialize(runtime_->World().Layout(),runtime_->Ui());
                 }
                 catch (const std::exception& exception) { error=exception.what(); return false; }
             }
@@ -40,7 +43,7 @@ namespace Editor
             auto candidate=std::make_unique<SceneRuntime::SceneEnvironment>();
             if(!candidate->Initialize(renderer,root,layout,error)) return false;
             std::string audioError; if(!candidate->StartAudio(root,audioError)) Engine::Log::Warning(audioError);
-            runtime_=std::move(candidate); state_.Stop(); return state_.Play();
+            runtime_=std::move(candidate); title_.Initialize(runtime_->World().Layout(),runtime_->Ui()); state_.Stop(); return state_.Play();
         }
         bool Pause() { const bool result=state_.Pause(); if(result && runtime_) {runtime_->PauseAudio(true); runtime_->SetInputActions({},{}); runtime_->Ui().pressed.clear(); runtime_->Ui().hovered.clear();} return result; }
         bool Stop()
@@ -53,7 +56,7 @@ namespace Editor
         {
             if(runtime_) runtime_->UpdateAudio(active && state_.CanPause());
             if (!active || !runtime_ || !state_.Advance(seconds)) return false;
-            runtime_->Update(seconds,true,true);
+            runtime_->Update(seconds,title_.BackgroundMotion(),true);
             return true;
         }
         bool Step()
@@ -70,6 +73,7 @@ namespace Editor
         }
     private:
         PlayState state_;
+        TitlePreview title_;
         std::unique_ptr<SceneRuntime::SceneEnvironment> runtime_;
     };
 }

@@ -105,7 +105,9 @@ namespace
             if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
             if (gameSession.State().CanPause() && gameSession.Runtime() && keyboard && keyboard->IsActive() && !closeRequested)
             {
-                const bool input=gamePanel.Hovered() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive();
+                const bool input=gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive();
+                if (const auto event=gameSession.Title().Update(playerInputs,input,seconds,gameSession.Runtime()->Ui()))
+                    pendingUiEvent=*event;
                 if (input) gameSession.Runtime()->SetInputActions(playerInputs.Values(),playerInputs.PressedValues());
                 else gameSession.Runtime()->SetInputActions({},{});
                 gameSession.Runtime()->MovePlayers(seconds,
@@ -553,6 +555,7 @@ namespace
             if(!pendingUiEvent) return;
             if(!renderer.WaitForIdle()) return;
             const auto event=std::move(*pendingUiEvent); pendingUiEvent.reset();
+            if (gameSession.Runtime() && gameSession.Title().Activate(event,gameSession.Runtime()->Ui())) return;
             if(event.action=="quit") { StopGame(); return; }
             if(event.action!="loadScene") return;
             try {
@@ -567,7 +570,7 @@ namespace
             if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {runtime->Ui().pressed.clear(); runtime->Ui().hovered.clear(); return;}
             const auto& v=gamePanel.Viewport(); if(!v.Valid()) return;
             auto& ui=runtime->Ui(); const auto mouse=ImGui::GetIO().MousePos;
-            if(gamePanel.Hovered() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
+            if(gamePanel.Focused() && !gameSession.Title().Active() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
                 for (const auto& [name,binding] : playerInputs.GetBindings()) {
                     static_cast<void>(binding);
                     if (!playerInputs.Pressed(name)) continue;
