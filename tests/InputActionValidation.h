@@ -32,6 +32,27 @@ namespace InputActionValidation
         auto bad=InputActions::Serialize(bindings); bad["Jump"]["keys"]={256};
         bool rejected=false; try { InputActions::Parse(bad); } catch(const std::exception&) {rejected=true;}
         Require(rejected,"out of range key rejected");
+        auto extended=InputActions::Defaults();
+        extended["LookRight"].axis=3;extended["LookLeft"].axis=-3;extended["LookUp"].axis=4;
+        extended["LeftTrigger"].axis=5;extended["RightTrigger"].axis=6;
+        extended["MouseFire"].mouseButtons=1;extended["MouseChord"].mouseButtons=3;
+        Require(InputActions::Parse(InputActions::Serialize(extended))==extended,"mouse, right-stick and trigger bindings roundtrip");
+        auto legacy=InputActions::Serialize(InputActions::Defaults());for(auto& entry:legacy) entry.erase("mouseButtons");
+        Require(InputActions::Parse(legacy)==InputActions::Defaults(),"existing projects without mouse bindings remain compatible");
+        input.SetBindings(extended);snapshot={};snapshot.active=true;snapshot.gamepadConnected=true;input.Update(snapshot);
+        snapshot.rightStick={.75f,.6f};snapshot.triggers={.8f,.9f};snapshot.mouseButtons=1;input.Update(snapshot);
+        Require(input.Value("LookRight")==.75f && input.Value("LookUp")==.6f && !input.Down("LookLeft") &&
+            input.Value("LeftTrigger")==.8f && input.Value("RightTrigger")==.9f && input.Pressed("MouseFire") && !input.Down("MouseChord"),
+            "right stick, trigger amounts and mouse edge feed named actions");
+        input.Update(snapshot);Require(!input.Pressed("MouseFire") && !input.Pressed("LookRight"),"held mouse and right stick do not repeat presses");
+        snapshot.mouseButtons=3;input.Update(snapshot);Require(input.Pressed("MouseChord"),"mouse chord activates only when all buttons are down");
+        snapshot.active=false;input.Update(snapshot);snapshot.active=true;input.Update(snapshot);
+        Require(!input.Pressed("MouseFire") && !input.Pressed("MouseChord"),"focus return suppresses synthetic mouse edges");
+        snapshot.rightStick={-.7f,NAN};snapshot.triggers={0,0};input.Update(snapshot);
+        Require(input.Value("LookLeft")==.7f && !input.Down("LookUp"),"negative right stick maps to opposite action and non-finite input is ignored");
+        auto invalidMouse=InputActions::Serialize(extended);invalidMouse["MouseFire"]["mouseButtons"]=32;
+        rejected=false;try {InputActions::Parse(invalidMouse);}catch(...) {rejected=true;}
+        Require(rejected,"unsupported mouse button bits are rejected");
         SceneRuntime::ScenePlacement actor; actor.id="input-actor"; actor.name="Actor";
         actor.scripts.push_back({"script",true,"ValidationInput",{}});
         SceneRuntime::ScriptDefinition definition;

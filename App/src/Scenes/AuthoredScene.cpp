@@ -16,7 +16,7 @@ bool AuthoredScene::Initialize(Engine::DirectX12Renderer& renderer) {
 std::string AuthoredScene::Update(double seconds,const Engine::Keyboard& keyboard) {
     const bool active=keyboard.IsActive();
     gamepad_.Update(active);
-    input_.Update(Engine::InputActions::Capture(keyboard,&gamepad_));
+    input_.Update(Engine::InputActions::Capture(keyboard,&gamepad_,true));
     environment_.SetInputActions(input_.Values(),input_.PressedValues());
     if(active) environment_.MovePlayers(seconds,
         input_.Value("MoveRight")-input_.Value("MoveLeft"),

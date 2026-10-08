@@ -3402,6 +3402,7 @@ int main()
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_EDITOR_PLAY_ONLY",nullptr,0)) {
+            InputActionValidation::Run();
             ValidateEditorTitlePreview();
             std::cout<<"PASS: Editor title CONFIG/QUIT/START, keyboard navigation and gamepad actions\n";
             return 0;

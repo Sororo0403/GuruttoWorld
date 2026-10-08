@@ -10,7 +10,7 @@ namespace Editor
         static void Draw(Engine::InputActions::Bindings& bindings)
         {
             if (!ImGui::CollapsingHeader("入力Action###Input actions")) return;
-            ImGui::TextUnformatted("ゲーム操作のキー・パッド・左スティックを設定します。");
+            ImGui::TextUnformatted("ゲーム操作のキー・マウス・パッド・左右スティック・トリガーを設定します。");
             ImGui::BeginChild("Input binding entries",ImVec2(620,320),ImGuiChildFlags_Borders);
             for (auto iterator=bindings.begin();iterator!=bindings.end();)
             {
@@ -36,9 +36,13 @@ namespace Editor
                     for (const auto& [name,mask] : buttons) if (mask==binding.buttons) label=name;
                     if (ImGui::BeginCombo("パッドボタン###Gamepad button",label))
                     { for (const auto& [name,mask] : buttons) if (ImGui::Selectable(name,mask==binding.buttons)) binding.buttons=mask; ImGui::EndCombo(); }
-                    const std::pair<const char*,int> axes[]={{"なし",0},{"左スティック右",1},{"左スティック左",-1},{"左スティック上",2},{"左スティック下",-2}};
+                    const std::pair<const char*,unsigned int> mouse[]={{"左",1},{"右",2},{"中",4},{"X1",8},{"X2",16}};
+                    ImGui::TextUnformatted("マウスボタン（複数選択は同時押し）");
+                    for(const auto& [name,mask]:mouse) {ImGui::CheckboxFlags(name,&binding.mouseButtons,mask);ImGui::SameLine();} ImGui::NewLine();
+                    const std::pair<const char*,int> axes[]={{"なし",0},{"左スティック右",1},{"左スティック左",-1},{"左スティック上",2},{"左スティック下",-2},
+                        {"右スティック右",3},{"右スティック左",-3},{"右スティック上",4},{"右スティック下",-4},{"左トリガー",5},{"右トリガー",6}};
                     label="なし"; for (const auto& [name,axis] : axes) if (axis==binding.axis) label=name;
-                    if (ImGui::BeginCombo("スティック###Stick axis",label))
+                    if (ImGui::BeginCombo("スティック・トリガー###Stick axis",label))
                     { for (const auto& [name,axis] : axes) if (ImGui::Selectable(name,axis==binding.axis)) binding.axis=axis; ImGui::EndCombo(); }
                     if (binding.axis) ImGui::SliderFloat("反応するしきい値###Threshold",&binding.threshold,0.05f,1,"%.2f");
                     remove=ImGui::SmallButton("Actionを削除###Remove action");

@@ -113,7 +113,8 @@ namespace
                 catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); }
             }
             gamepad.Update(keyboard && keyboard->IsActive() && gameSession.State().CanPause());
-            if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard,&gamepad));
+            if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard,&gamepad,
+                gamePanel.Focused() && gamePanel.Hovered() && !ImGui::IsAnyItemActive()));
             if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
             if (gameSession.State().CanPause() && gameSession.Runtime() && keyboard && keyboard->IsActive() && !closeRequested)
             {
