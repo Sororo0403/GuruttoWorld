@@ -81,6 +81,46 @@ namespace Engine
         }
         return matrices;
     }
+    MeshData Skeleton::BindMesh(const RiggedMesh& mesh)
+    {
+        if (mesh.weights.size()!=mesh.mesh.vertices.size() || mesh.joints.size()>256) throw std::runtime_error("Invalid GPU skin weights");
+        auto result=mesh.mesh;
+        for (size_t vertex=0;vertex<result.vertices.size();++vertex)
+        {
+            const auto& source=mesh.weights[vertex]; auto& target=result.vertices[vertex]; float total=0;
+            for (size_t influence=0;influence<4;++influence)
+            {
+                const float weight=source.weights[influence];
+                if (!std::isfinite(weight) || weight<0 || (weight>0 && source.joints[influence]>=mesh.joints.size())) throw std::runtime_error("Invalid GPU bone influence");
+                total+=weight;
+            }
+            if (!std::isfinite(total)) throw std::runtime_error("Invalid GPU total weight");
+            target.joints=source.joints;
+            for (size_t influence=0;influence<4;++influence) target.weights[influence]=total>0 ? source.weights[influence]/total : 0;
+        }
+        return result;
+    }
+    std::vector<SkinMatrix> Skeleton::Palette(const SkeletonData& rig,const RiggedMesh& mesh,const std::vector<DirectX::XMFLOAT4X4>& matrices)
+    {
+        if (mesh.joints.size()!=mesh.inverseBind.size() || mesh.joints.size()>256 || !std::isfinite(rig.importScale) || rig.importScale<=0)
+            throw std::runtime_error("Invalid GPU skin palette");
+        std::vector<SkinMatrix> palette(mesh.joints.size()+1);
+        const auto root=DirectX::XMLoadFloat4x4(&rig.inverseRoot);
+        const auto scale=DirectX::XMMatrixScaling(rig.importScale,rig.importScale,rig.importScale);
+        for (size_t index=0;index<palette.size();++index)
+        {
+            auto matrix=index==0 ? DirectX::XMLoadFloat4x4(&matrices.at(mesh.node))*root :
+                DirectX::XMLoadFloat4x4(&mesh.inverseBind[index-1])*DirectX::XMLoadFloat4x4(&matrices.at(mesh.joints[index-1]))*root;
+            const auto determinant=DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(matrix));
+            if (!std::isfinite(determinant) || determinant==0) throw std::runtime_error("Singular skin transform");
+            DirectX::XMStoreFloat4x4(&palette[index].position,matrix*scale);
+            DirectX::XMStoreFloat4x4(&palette[index].normal,DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr,matrix)));
+            for (const auto* value : {&palette[index].position,&palette[index].normal})
+                for (const auto& row : value->m) for (const float entry : row)
+                    if (!std::isfinite(entry)) throw std::runtime_error("Nonfinite GPU skin matrix");
+        }
+        return palette;
+    }
     MeshData Skeleton::Skin(const SkeletonData& rig,const RiggedMesh& mesh,const std::vector<DirectX::XMFLOAT4X4>& matrices)
     {
         if (mesh.weights.size()!=mesh.mesh.vertices.size() || mesh.joints.size()!=mesh.inverseBind.size()) throw std::runtime_error("Invalid skin weights");

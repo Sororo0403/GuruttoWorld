@@ -4,6 +4,7 @@
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <cmath>
+#include "SkinningValidation.h"
 namespace AnimatorValidation {
 inline void Require(bool value,const char* message) { if (!value) throw std::runtime_error(message); }
 inline void Run() {
@@ -42,6 +43,8 @@ inline void Run() {
     Require(restored.objects.back().animator==scene.objects.back().animator,"Animator schema roundtrip");
 }
 inline void Runtime(Engine::DirectX12Renderer& renderer) {
+    SkinningValidation::Rendering(renderer);
+    SkinningValidation::Model(renderer);
     using namespace SceneRuntime;
     const auto content=std::filesystem::absolute("Content");
     auto scene=SceneLayout::Load(content/"Assets/Scenes/AnimatorPlayground.json"); std::string error;
@@ -56,6 +59,17 @@ inline void Runtime(Engine::DirectX12Renderer& renderer) {
     Require(world.RemoveObjects({copy},error) && world.AnimatorStateName(copy).empty(),"remove releases animation state");
     auto bad=world.Layout(); bad.objects.back().animator->states[0].clip="missing";
     Require(!world.ReplaceLayout(bad,content,error) && world.AnimatorStateName("Player")=="Idle","invalid clips preserve runtime");
+    scene.settings.postEffects.enabled=true;
+    for (auto& object : scene.objects) if (object.directionalLight) object.directionalLight->shadowsEnabled=true;
+    const auto authored=scene.Serialize();
+    Editor::GameSession session; Require(session.Play(renderer,content,scene,error),"GPU animation enters Editor playback");
+    Require(session.Update(.1,true),"Editor animation advances");
+    Require(renderer.Render({0,0,0,1},[&](auto* commands,float) { session.Draw(commands,64,32); })!=Engine::RenderResult::Failed,"Editor draws GPU animation with HDR and shadows");
+    Require(session.Pause() && !session.Update(.1,true) && session.Step(),"GPU animation supports pause and step");
+    Require(renderer.WaitForIdle() && session.Stop() && scene.Serialize()==authored,"animation Stop preserves authored snapshot");
+    SceneEnvironment app; Require(app.Initialize(renderer,content,scene,error),"App GPU animation environment prepares");
+    app.Update(.1,true,true);
+    Require(renderer.Render({0,0,0,1},[&](auto* commands,float) { app.Draw(commands,64,32); })!=Engine::RenderResult::Failed,"App draws GPU animation with HDR and shadows");
     Require(renderer.WaitForIdle(),"skeletal uploads complete");
 }
 }

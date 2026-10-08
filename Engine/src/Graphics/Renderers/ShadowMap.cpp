@@ -1,6 +1,7 @@
 #include <Engine/Graphics/Renderers/ShadowMap.h>
 #include <Engine/Graphics/ShaderCompiler.h>
 #include <Engine/Graphics/Models/MeshData.h>
+#include <Engine/Animation/SkinMatrix.h>
 #include <Engine/Core/Log.h>
 #include <format>
 #include <d3d12sdklayers.h>
@@ -53,21 +54,27 @@ namespace Engine
     }
     bool ShadowMap::CreatePipeline(ID3D12Device* device,const std::filesystem::path& shader)
     {
-        D3D12_ROOT_PARAMETER parameter{}; parameter.ParameterType=D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        parameter.Constants.ShaderRegister=3;
+        D3D12_ROOT_PARAMETER parameters[2]{}; auto& parameter=parameters[0];
+        parameter.ParameterType=D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS; parameter.Constants.ShaderRegister=3;
         parameter.Constants.Num32BitValues=16; parameter.ShaderVisibility=D3D12_SHADER_VISIBILITY_VERTEX;
+        D3D12_DESCRIPTOR_RANGE range{}; range.RangeType=D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        range.NumDescriptors=1; range.BaseShaderRegister=4;
+        parameters[1].ParameterType=D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; parameters[1].DescriptorTable={1,&range};
+        parameters[1].ShaderVisibility=D3D12_SHADER_VISIBILITY_VERTEX;
         D3D12_ROOT_SIGNATURE_DESC signature{};
-        signature.NumParameters=1; signature.pParameters=&parameter;
+        signature.NumParameters=2; signature.pParameters=parameters;
         signature.Flags=D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
         Microsoft::WRL::ComPtr<ID3DBlob> bytes,errors,vertex;
         if (FAILED(D3D12SerializeRootSignature(&signature,D3D_ROOT_SIGNATURE_VERSION_1,&bytes,&errors)) ||
             FAILED(device->CreateRootSignature(0,bytes->GetBufferPointer(),bytes->GetBufferSize(),IID_PPV_ARGS(&root_))) ||
             !CompileShader(shader,"VSShadow","vs_5_0",vertex)) return false;
-        const D3D12_INPUT_ELEMENT_DESC element{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,
-            static_cast<UINT>(offsetof(MeshVertex,position)),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0};
+        const D3D12_INPUT_ELEMENT_DESC elements[]{
+            {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,static_cast<UINT>(offsetof(MeshVertex,position)),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+            {"BLENDINDICES",0,DXGI_FORMAT_R32G32B32A32_UINT,0,static_cast<UINT>(offsetof(MeshVertex,joints)),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+            {"BLENDWEIGHT",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,static_cast<UINT>(offsetof(MeshVertex,weights)),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0}};
         D3D12_GRAPHICS_PIPELINE_STATE_DESC description{};
         description.pRootSignature=root_.Get(); description.VS={vertex->GetBufferPointer(),vertex->GetBufferSize()};
-        description.InputLayout={&element,1};
+        description.InputLayout={elements,3};
         description.RasterizerState.FillMode=D3D12_FILL_MODE_SOLID;
         // Both sides cast shadows, including mirrored transforms and thin CC0 sign geometry.
         description.RasterizerState.CullMode=D3D12_CULL_MODE_NONE;
@@ -92,7 +99,14 @@ namespace Engine
         blend.RenderTargetWriteMask=D3D12_COLOR_WRITE_ENABLE_ALL;
         const auto result=device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&pipeline_));
         if (FAILED(result)) ReportPipelineFailure(device,result);
-        return SUCCEEDED(result);
+        if (FAILED(result)) return false;
+        D3D12_DESCRIPTOR_HEAP_DESC descriptors{}; descriptors.Type=D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        descriptors.NumDescriptors=1; descriptors.Flags=D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        if (FAILED(device->CreateDescriptorHeap(&descriptors,IID_PPV_ARGS(&emptyPalette_)))) return false;
+        D3D12_SHADER_RESOURCE_VIEW_DESC view{}; view.ViewDimension=D3D12_SRV_DIMENSION_BUFFER;
+        view.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        view.Buffer.NumElements=1; view.Buffer.StructureByteStride=sizeof(SkinMatrix);
+        device->CreateShaderResourceView(nullptr,&view,emptyPalette_->GetCPUDescriptorHandleForHeapStart()); return true;
     }
     bool ShadowMap::Initialize(ID3D12Device* device,const std::filesystem::path& shader)
     {
@@ -138,12 +152,14 @@ namespace Engine
         previous_.Bind(commands);
     }
     void ShadowMap::Draw(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,
-        const D3D12_VERTEX_BUFFER_VIEW& vertices,const D3D12_INDEX_BUFFER_VIEW& indices,UINT count) const
+        const D3D12_VERTEX_BUFFER_VIEW& vertices,const D3D12_INDEX_BUFFER_VIEW& indices,UINT count,D3D12_GPU_DESCRIPTOR_HANDLE palette) const
     {
         using namespace DirectX;
         XMFLOAT4X4 matrix; XMStoreFloat4x4(&matrix,XMLoadFloat4x4(&world)*XMLoadFloat4x4(&viewProjection_));
         commands->SetPipelineState(pipeline_.Get()); commands->SetGraphicsRootSignature(root_.Get());
         commands->SetGraphicsRoot32BitConstants(0,16,&matrix,0);
+        if (!palette.ptr) { auto* heap=emptyPalette_.Get(); commands->SetDescriptorHeaps(1,&heap); palette=heap->GetGPUDescriptorHandleForHeapStart(); }
+        commands->SetGraphicsRootDescriptorTable(1,palette);
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commands->IASetVertexBuffers(0,1,&vertices); commands->IASetIndexBuffer(&indices);
         commands->DrawIndexedInstanced(count,1,0,0,0);

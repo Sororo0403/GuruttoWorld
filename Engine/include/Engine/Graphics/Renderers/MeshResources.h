@@ -3,6 +3,7 @@
 #include <Engine/Graphics/Resources/Texture2D.h>
 #include <Engine/Graphics/Models/MeshData.h>
 #include <Engine/Graphics/Resources/LocalLightBuffer.h>
+#include <Engine/Graphics/Resources/SkinPaletteBuffer.h>
 #include <map>
 #include <memory>
 
@@ -58,8 +59,12 @@ namespace Engine
         /// <summary>現在の描画フレームへ局所ライトの不変データを準備します。</summary>
         LocalLightView PrepareLights(ID3D12GraphicsCommandList* commands,std::span<const LocalLight> lights)
         { return localLights_.Prepare(device_.Get(),commands,lights); }
+        /// <summary>現在のフレームへスキニングの行列を準備します。</summary>
+        SkinPaletteView PrepareSkin(ID3D12GraphicsCommandList* commands,std::span<const SkinMatrix> palette)
+        { return skinPalettes_.Prepare(device_.Get(),commands,palette); }
     private:
         LocalLightBuffer localLights_;
+        SkinPaletteBuffer skinPalettes_;
         struct PathLess
         {
             /// <summary>

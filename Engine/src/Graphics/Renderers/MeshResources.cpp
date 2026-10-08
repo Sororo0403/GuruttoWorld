@@ -90,7 +90,7 @@ namespace Engine
     {
         D3D12_DESCRIPTOR_RANGE textureRange{};
         textureRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        textureRange.NumDescriptors = 4;
+        textureRange.NumDescriptors = 5;
         textureRange.BaseShaderRegister = 0;
         textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
         D3D12_ROOT_PARAMETER parameters[4]{};
@@ -101,7 +101,7 @@ namespace Engine
         parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
         parameters[1].DescriptorTable.pDescriptorRanges = &textureRange;
-        parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
         parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[2].Constants.ShaderRegister = 1;
         parameters[2].Constants.Num32BitValues = 26;
@@ -163,13 +163,15 @@ namespace Engine
             { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, color)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, position)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, normal)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, uv)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, uv)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "BLENDINDICES",0,DXGI_FORMAT_R32G32B32A32_UINT,0,static_cast<UINT>(offsetof(MeshVertex,joints)),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
+            { "BLENDWEIGHT",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,static_cast<UINT>(offsetof(MeshVertex,weights)),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 }
         };
         D3D12_GRAPHICS_PIPELINE_STATE_DESC description{};
         description.pRootSignature = rootSignature_.Get();
         description.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
         description.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
-        description.InputLayout = { elements, 4 };
+        description.InputLayout = { elements, 6 };
         description.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
         description.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
         description.RasterizerState.DepthClipEnable = TRUE;

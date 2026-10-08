@@ -19,7 +19,7 @@ namespace Engine
         void End(ID3D12GraphicsCommandList* commands);
         /// <summary>入力済みの頂点・インデックスを深度専用で描画します。</summary>
         void Draw(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,
-            const D3D12_VERTEX_BUFFER_VIEW& vertices,const D3D12_INDEX_BUFFER_VIEW& indices,UINT count) const;
+            const D3D12_VERTEX_BUFFER_VIEW& vertices,const D3D12_INDEX_BUFFER_VIEW& indices,UINT count,D3D12_GPU_DESCRIPTOR_HANDLE palette={}) const;
         /// <summary>影の参照用CPUディスクリプターを取得します。</summary>
         D3D12_CPU_DESCRIPTOR_HANDLE View() const { return srv_->GetCPUDescriptorHandleForHeapStart(); }
         /// <summary>参照する深度リソースを取得します。</summary>
@@ -36,6 +36,7 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12Resource> depth_;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsv_,srv_;
         Microsoft::WRL::ComPtr<ID3D12RootSignature> root_;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> emptyPalette_;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> pipeline_;
         DirectX::XMFLOAT4X4 viewProjection_{};
         std::array<float,6> constants_{};

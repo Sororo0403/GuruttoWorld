@@ -1,5 +1,6 @@
 #pragma once
 #include <Engine/Graphics/Models/MeshData.h>
+#include <Engine/Animation/SkinMatrix.h>
 #include <DirectXMath.h>
 #include <map>
 #include <memory>
@@ -40,6 +41,10 @@ namespace Engine
         static std::vector<BonePose> Blend(const std::vector<BonePose>& first,const std::vector<BonePose>& second,float amount);
         static std::vector<DirectX::XMFLOAT4X4> Matrices(const SkeletonData& rig,const std::vector<BonePose>& pose);
         static MeshData Skin(const SkeletonData& rig,const RiggedMesh& mesh,const std::vector<DirectX::XMFLOAT4X4>& matrices);
+        /// <summary>静的な頂点へ正規化したボーン番号とウェイトを設定します。</summary>
+        static MeshData BindMesh(const RiggedMesh& mesh);
+        /// <summary>GPUとCPUで共有する位置・逆転置法線行列を計算します。先頭は剛体ノード用です。</summary>
+        static std::vector<SkinMatrix> Palette(const SkeletonData& rig,const RiggedMesh& mesh,const std::vector<DirectX::XMFLOAT4X4>& matrices);
         static std::shared_ptr<const SkeletonData> Load(const std::filesystem::path& path,std::string& error);
     };
 }

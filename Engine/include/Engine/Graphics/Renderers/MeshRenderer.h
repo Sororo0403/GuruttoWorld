@@ -71,16 +71,19 @@ namespace Engine
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
             const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
-            const UvTransform& uvTransform = {},const Material* material=nullptr) const;
+            const UvTransform& uvTransform = {},const Material* material=nullptr,std::span<const SkinMatrix> palette={}) const;
 
         /// <summary>同じメッシュの実形状を光源視点の深度へ描画します。</summary>
-        void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
+        void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,std::span<const SkinMatrix> palette={}) const;
+        /// <summary>不変の頂点領域を取得し、姿勢変更時に再作成しないことを確認します。</summary>
+        ID3D12Resource* GeometryResource() const noexcept { return meshBuffer_.Get(); }
     private:
         /// <summary>色・法線・影・局所ライトの不変ディスクリプターを共有します。</summary>
         ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture,
-            const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights) const;
+            const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights,const SkinPaletteView& palette) const;
         struct Binding { Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap; std::shared_ptr<const Texture2D> texture,normal; };
-        mutable std::map<std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*,ID3D12Resource*>,Binding> bindings_;
+        mutable std::map<std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*,ID3D12Resource*,ID3D12Resource*>,Binding> bindings_;
+        size_t requiredPaletteSize_=1;
         bool initialized_ = false;
         UINT indexCount_ = 0;
         std::shared_ptr<MeshResources> resources_;

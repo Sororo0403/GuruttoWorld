@@ -13,6 +13,8 @@ namespace Engine
         std::array<float, 3> normal{};
         std::array<float, 2> uv{};
         std::array<float, 4> color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        std::array<unsigned int,4> joints{};
+        std::array<float,4> weights{};
     };
 
     struct MeshData

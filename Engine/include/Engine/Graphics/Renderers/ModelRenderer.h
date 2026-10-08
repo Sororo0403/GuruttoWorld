@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <optional>
 
 namespace Engine
 {
@@ -63,7 +64,9 @@ namespace Engine
             const UvTransform& uvTransform = {},const Material* material=nullptr) const;
 
         size_t MeshCount() const { return meshes_.size(); }
-        size_t TriangleCount() const { return trianglePositions_.size()/3; }
+        size_t TriangleCount() const { return triangleCount_; }
+        /// <summary>指定メッシュの共有頂点領域を取得します。</summary>
+        ID3D12Resource* GeometryResource(size_t index) const { return meshes_.at(index)->GeometryResource(); }
         const DirectX::BoundingBox& Bounds() const { return bounds_; }
         const std::shared_ptr<const SkeletonData>& Rig() const { return rig_; }
         const std::vector<BonePose>& Pose() const { return pose_; }
@@ -75,13 +78,22 @@ namespace Engine
         bool IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const;
     private:
         bool Rebuild(const std::vector<MeshData>& data);
+        /// <summary>ボーンごとの頂点領域を一度だけ集計します。</summary>
+        void PrepareSkinBounds(const std::vector<MeshData>& data);
+        /// <summary>選択判定のため、現在の姿勢の三角形を必要時に生成します。</summary>
+        void PreparePickGeometry() const;
         std::shared_ptr<const SkeletonData> rig_;
         std::vector<BonePose> pose_;
         std::shared_ptr<MeshResources> resources_;
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_;
         DirectX::BoundingBox bounds_{};
-        std::vector<DirectX::XMFLOAT3> trianglePositions_;
-        std::vector<std::unique_ptr<MeshRenderer>> meshes_;
+        size_t triangleCount_=0;
+        mutable bool pickDirty_=false;
+        mutable std::vector<DirectX::XMFLOAT3> trianglePositions_;
+        std::vector<std::vector<std::optional<DirectX::BoundingBox>>> skinBounds_;
+        std::vector<std::vector<SkinMatrix>> palettes_;
+        std::vector<DirectX::XMFLOAT4X4> nodeMatrices_;
+        std::vector<std::shared_ptr<MeshRenderer>> meshes_;
     };
 }

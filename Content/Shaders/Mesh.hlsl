@@ -42,6 +42,8 @@ SamplerState textureSampler : register(s0);
 Texture2D<float> shadowDepth : register(t1);
 Texture2D<float4> normalTexture : register(t2);
 StructuredBuffer<float4> localLights : register(t3);
+struct SkinMatrix { row_major float4x4 position; row_major float4x4 normal; };
+StructuredBuffer<SkinMatrix> skinPalette : register(t4);
 SamplerComparisonState shadowSampler : register(s1);
 cbuffer ShadowTransform : register(b3)
 {
@@ -54,6 +56,8 @@ struct VertexInput
     float3 position : POSITION;
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
+    uint4 joints : BLENDINDICES;
+    float4 weights : BLENDWEIGHT;
 };
 
 struct VertexOutput
@@ -79,20 +83,55 @@ float3 TransformNormal(float3 normal)
     return (normal.x*(cofactor0/scale)+normal.y*(cofactor1/scale)+normal.z*(cofactor2/scale))*sign(dot(row0,cofactor0));
 }
 
+float3 SkinPosition(float3 position,uint4 joints,float4 weights)
+{
+    float3 result=position;
+    if (skinPalette[0].position[3][3]!=0)
+    {
+        float total=dot(weights,1);
+        if (total<=0) result=mul(float4(position,1),skinPalette[0].position).xyz;
+        else
+        {
+            result=0;
+            [unroll] for (uint influence=0;influence<4;++influence)
+                if (weights[influence]>0) result+=mul(float4(position,1),skinPalette[joints[influence]+1].position).xyz*weights[influence]/total;
+        }
+    }
+    return result;
+}
+float3 SkinNormal(float3 normal,uint4 joints,float4 weights)
+{
+    float3 result=normal;
+    if (skinPalette[0].position[3][3]!=0)
+    {
+        float total=dot(weights,1);
+        if (total<=0) result=mul(float4(normal,0),skinPalette[0].normal).xyz;
+        else
+        {
+            result=0;
+            [unroll] for (uint influence=0;influence<4;++influence)
+                if (weights[influence]>0) result+=mul(float4(normal,0),skinPalette[joints[influence]+1].normal).xyz*weights[influence];
+        }
+        float3 absolute=abs(result); float scale=max(max(absolute.x,absolute.y),max(absolute.z,1e-30));
+        result/=scale; result*=rsqrt(max(dot(result,result),1e-20));
+    }
+    return result;
+}
 VertexOutput VSMain(VertexInput input)
 {
     VertexOutput output;
-    output.position = mul(float4(input.position, 1.0f), worldViewProjection);
-    output.normal = TransformNormal(input.normal);
-    output.worldPosition = mul(worldRows, float4(input.position, 1.0f));
+    float3 position=SkinPosition(input.position,input.joints,input.weights);
+    output.position = mul(float4(position, 1.0f), worldViewProjection);
+    output.normal = TransformNormal(SkinNormal(input.normal,input.joints,input.weights));
+    output.worldPosition = mul(worldRows, float4(position, 1.0f));
     output.color = input.color*materialColor;
     output.uv = TransformUv(input.uv);
     return output;
 }
 
-float4 VSShadow(float3 position : POSITION) : SV_POSITION
+float4 VSShadow(float3 position : POSITION,uint4 joints : BLENDINDICES,float4 weights : BLENDWEIGHT) : SV_POSITION
 {
-    return mul(float4(position,1),shadowWorldViewProjection);
+    return mul(float4(SkinPosition(position,joints,weights),1),shadowWorldViewProjection);
 }
 
 float ShadowVisibility(float3 worldPosition,float3 normal)
