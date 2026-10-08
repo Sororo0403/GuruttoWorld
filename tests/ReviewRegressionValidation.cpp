@@ -19,6 +19,8 @@
 #include "../Editor/src/UiLayoutTools.h"
 #include "../Editor/src/MultiComponentPanel.h"
 #include "../Editor/src/MaterialWorkflow.h"
+#include "../Editor/src/AnimationTimeline.h"
+#include "../Editor/src/ComponentGuideGeometry.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetDependencies.h"
@@ -3054,6 +3056,31 @@ void ValidateUiCanvasInteraction()
 
 void ValidateEditorIntegrity()
 {
+    SceneRuntime::BoxColliderComponent guideCollider;guideCollider.center={2,3,4};guideCollider.size={4,6,8};
+    const auto boxGuides=Editor::ComponentGuideGeometry::Collider(guideCollider);
+    Check(boxGuides.size()==12 && boxGuides[0][0]==std::array<float,3>{0,0,0},"collider guide uses authored center and size");
+    guideCollider.shape="sphere";guideCollider.radius=2;guideCollider.center={};
+    const auto sphereGuides=Editor::ComponentGuideGeometry::Collider(guideCollider,{2,3,4});
+    for(const auto& line:sphereGuides) for(const auto& point:line) {
+        const float length=std::sqrt(point[0]*point[0]*4+point[1]*point[1]*9+point[2]*point[2]*16);
+        Check(std::abs(length-8)<.001f,"sphere collider guide matches maximum-axis physics scaling");
+    }
+    SceneRuntime::CameraComponent guideCamera;guideCamera.nearClip=.5f;guideCamera.farClip=20;
+    const auto cameraGuides=Editor::ComponentGuideGeometry::Camera(guideCamera);
+    Check(cameraGuides.size()==12 && cameraGuides[0][0][2]==.5f && cameraGuides[1][0][2]==20,"camera guide includes authored near and far planes");
+    SceneRuntime::SpotLightComponent guideSpot;guideSpot.range=10;
+    for(const auto& line:Editor::ComponentGuideGeometry::Spot(guideSpot)) {
+        const auto& point=line[1];
+        Check(std::abs(std::sqrt(point[0]*point[0]+point[1]*point[1]+point[2]*point[2])-10)<.001f,"spot guide cone ends at spherical attenuation range");
+    }
+    SceneRuntime::AnimationTrack timeline;timeline.keys={{0,{0,0,0,0}},{1,{10,20,0,0}},{2,{30,40,0,0}}};
+    Check(Editor::AnimationTimeline::MoveKey(timeline,1,3,25,0) && timeline.keys[1].time<timeline.keys[2].time && timeline.keys[1].time>timeline.keys[0].time &&
+        timeline.keys[1].value[0]==25 && timeline.keys[1].value[1]==20 && SceneRuntime::Animation::Valid(timeline),
+        "timeline drag preserves key ordering and other channels");
+    const auto unchangedTimeline=timeline;
+    Check(!Editor::AnimationTimeline::MoveKey(timeline,1,NAN,2,0) && timeline==unchangedTimeline,"invalid timeline drag is transactional");
+    timeline.property="opacity";timeline.keys={{0,{0,0,0,0}},{1,{1,0,0,0}}};
+    Check(Editor::AnimationTimeline::MoveKey(timeline,0,0,-5,0) && timeline.keys[0].value[0]==0,"opacity curve drag keeps value in valid range");
     SceneRuntime::SceneLayout layout; SceneRuntime::ScenePlacement object; object.id="root"; layout.objects.push_back(object);
     const auto recoveryRoot=std::filesystem::absolute("generated/tests/recovery");
     std::filesystem::create_directories(recoveryRoot);

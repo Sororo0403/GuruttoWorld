@@ -1,5 +1,6 @@
 #pragma once
 #include "EditState.h"
+#include "AnimationTimeline.h"
 #include <imgui.h>
 
 namespace Editor
@@ -60,6 +61,7 @@ namespace Editor
                 {"等速","滑らか","素早く動いて減速","少し行き過ぎて止まる"}) || edited;
             edited=ImGui::DragFloat("遅延（秒）###Delay",&track.delay,0.01f,0,600,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited; Track(state);
             edited=ImGui::Checkbox("ループ###Loop",&track.loop) || edited;
+            edited=AnimationTimeline::Draw(state,track) || edited;
             edited=DrawKeys(state,track) || edited;
             if (!SceneRuntime::Animation::Valid(track)) ImGui::TextUnformatted("時刻は昇順、サイズは0以上、不透明度は0〜1にしてください。");
             return edited;
