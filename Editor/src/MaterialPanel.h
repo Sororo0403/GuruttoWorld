@@ -12,6 +12,11 @@ namespace Editor
     public:
         bool HasChanges() const
         { return std::any_of(documents_.begin(),documents_.end(),[](const auto& item) { return item.second.Dirty(); }); }
+        SceneRuntime::MaterialAsset Draft(const std::filesystem::path& root,const std::filesystem::path& path) {
+            auto& document=documents_[path];document.Refresh(root,path,true);
+            if(!document.Loaded()) throw std::runtime_error("Materialを読み込めません");
+            return document.Asset();
+        }
         void SaveAll(const std::filesystem::path& root)
         { for (auto& [path,document] : documents_) if (document.Dirty()) document.Save(root,path); }
         void AssetMoved(const std::filesystem::path& source,const std::filesystem::path& destination)

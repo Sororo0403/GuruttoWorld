@@ -3,6 +3,7 @@
 #include "PanelLayout.h"
 #include "ModelDrop.h"
 #include "MaterialPanel.h"
+#include "MaterialWorkflow.h"
 #include <Engine/Core/Log.h>
 
 namespace Editor
@@ -163,9 +164,9 @@ namespace Editor
         if (ImGui::Button("選択モデルを追加###Add selected model")) state.Request({ObjectAction::Add,{},selected_,addPosition_});
         ImGui::EndDisabled();
     }
-    void ProjectPanel::DrawInspector(EditState& state, bool enabled)
+    void ProjectPanel::DrawInspector(EditState& state, bool enabled,const SceneRuntime::SceneLayout* layout)
     {
-        const auto& selected=state.InspectedAsset();
+        const auto selected=state.InspectedAsset();
         if (selected.empty()) return;
         PanelLayout::Place(PanelLayout::Panel::Inspector);
         if (ImGui::Begin("インスペクター###Inspector"))
@@ -180,7 +181,10 @@ namespace Editor
                 ImGui::TextWrapped("%s",ProjectCatalog::Text(selected).c_str());
                 if (!info_->error.empty()) ImGui::TextWrapped("%s",info_->error.c_str());
                 else { preview_.Draw(*found); DrawAssetInfo(*info_); }
-                if(found->kind==AssetKind::Material) materialPanel_.Draw(root_,selected,catalog_,enabled);
+                if(found->kind==AssetKind::Material) {
+                    materialPanel_.Draw(root_,selected,catalog_,enabled);
+                    if(DrawMaterialWorkflow(state,selected,layout,enabled)) {ImGui::End();return;}
+                }
                 if(found->kind==AssetKind::Audio) {ImGui::BeginDisabled(!enabled); if(ImGui::Button("音声を試聴###Audition audio")) AudioPreview::Play(selected); ImGui::SameLine(); if(ImGui::Button("音声を停止###Stop audio")) AudioPreview::StopRequest(); ImGui::EndDisabled();}
                 if (const auto moved=assetManagement_.Draw(root_,*found,enabled)) {
                     assetMove_=std::pair{found->path,*moved};
@@ -190,6 +194,44 @@ namespace Editor
             }
         }
         ImGui::End();
+    }
+    bool ProjectPanel::DrawMaterialWorkflow(EditState& state,const std::filesystem::path& path,const SceneRuntime::SceneLayout* layout,bool enabled)
+    {
+        ImGui::TextWrapped("共有アセット：編集・保存すると、このMaterialを参照するすべてのオブジェクトに反映します。");
+        if(layout && ImGui::CollapsingHeader("このシーンの使用箇所###Material usages")) {
+            size_t count=0;
+            for(const auto& object:layout->objects) if(object.material && object.material->asset==path) {
+                ImGui::PushID(object.id.c_str());
+                if(ImGui::Selectable(object.name.c_str())) state.Select(object.id);
+                if(!object.material->enabled) {ImGui::SameLine();ImGui::TextDisabled("割り当て無効");}
+                ImGui::PopID();++count;
+            }
+            if(!count) ImGui::TextUnformatted("このシーンでの使用箇所はありません。");
+        }
+        ImGui::BeginDisabled(!enabled);
+        if(ImGui::Button("複製して別のMaterialにする###Duplicate material")) {materialName_.fill(0);materialError_.clear();ImGui::OpenPopup("Materialを複製###Duplicate material dialog");}
+        bool changed=false;
+        if(ImGui::BeginPopup("Materialを複製###Duplicate material dialog")) {
+            ImGui::InputText("複製名###Duplicate name",materialName_.data(),materialName_.size());
+            const auto clone=[&](bool assign) {
+                try {
+                    const auto destination=MaterialWorkflow::Target(materialName_.data());
+                    const auto draft=materialPanel_.Draft(root_,path);
+                    const auto assignments=assign && layout ? MaterialWorkflow::Assign(*layout,state.SelectedIds(),destination) : std::vector<SceneRuntime::ScenePlacement>{};
+                    MaterialWorkflow::Duplicate(root_,draft,destination);
+                    if(assign) state.RequestComponentBatch(assignments,"material/duplicate-assign");
+                    selected_=destination;state.InspectAsset(destination);Scan(root_);reloadAssets_=true;changed=true;
+                    ImGui::CloseCurrentPopup();
+                } catch(const std::exception& e) {materialError_=e.what();}
+            };
+            if(ImGui::Button("複製のみ###Duplicate only")) clone(false);
+            ImGui::BeginDisabled(!layout || state.SelectedIds().empty());
+            if(ImGui::Button("複製して選択対象に割り当て###Duplicate and assign")) clone(true);
+            ImGui::EndDisabled();
+            if(!materialError_.empty()) ImGui::TextWrapped("%s",materialError_.c_str());
+            ImGui::EndPopup();
+        }
+        ImGui::EndDisabled();return changed;
     }
     void ProjectPanel::DrawAssetInfo(const AssetInfo& info)
     {

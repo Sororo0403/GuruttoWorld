@@ -17,6 +17,8 @@
 #include "../Editor/src/BlendTreePanel.h"
 #include "../Editor/src/UiCanvasTransform.h"
 #include "../Editor/src/UiLayoutTools.h"
+#include "../Editor/src/MultiComponentPanel.h"
+#include "../Editor/src/MaterialWorkflow.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetDependencies.h"
@@ -3072,6 +3074,33 @@ void ValidateEditorIntegrity()
     Check(rejected && Editor::SceneRecovery::Read(recoveryRoot/"backups",sceneFile).objects[0].name=="recovered","invalid checkpoint preserves last valid recovery");
     recovery.Clear(recoveryRoot/"backups",sceneFile);
     Check(!recovery.Available() && !std::filesystem::exists(Editor::SceneRecovery::Path(recoveryRoot/"backups",sceneFile)),"successful save or explicit discard removes checkpoint");
+    auto second=object;second.id="second";second.rotator.emplace();second.rotator->id="different-id";second.rotator->enabled=false;
+    object.rotator.emplace();object.rotator->id="material";
+    std::vector<SceneRuntime::ScenePlacement> shared{object,second};
+    Check(Editor::MultiComponentPanel::Apply(shared,&SceneRuntime::ScenePlacement::rotator,&SceneRuntime::RotatorComponent::angularVelocity,std::array<float,3>{1,2,3}) &&
+        shared[0].rotator->id=="material" && shared[1].rotator->id=="different-id" && !shared[1].rotator->enabled,
+        "common-property editing preserves per-object component IDs and unrelated values");
+    const auto preserved=shared;
+    Check(!Editor::MultiComponentPanel::Apply(shared,&SceneRuntime::ScenePlacement::material,&SceneRuntime::MaterialComponent::enabled,false) && shared[0].SameComponents(preserved[0]),
+        "common-property editing rejects absent components without partial changes");
+    const auto materialRoot=std::filesystem::absolute("generated/tests/material-workflow");
+    SceneRuntime::MaterialAsset draft;draft.values.color={.1f,.2f,.3f,1};
+    const auto originalMaterial=Editor::MaterialWorkflow::Target("Original");draft.Save(materialRoot,originalMaterial);
+    const auto originalId=Engine::AssetDatabase::Ensure(materialRoot/originalMaterial).id;
+    const auto duplicateMaterial=Editor::MaterialWorkflow::Target("Copy-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    draft.values.roughness=.75f;
+    Editor::MaterialWorkflow::Duplicate(materialRoot,draft,duplicateMaterial);
+    Check(SceneRuntime::MaterialAsset::Load(materialRoot,duplicateMaterial).values.roughness==.75f &&
+        Engine::AssetDatabase::Ensure(materialRoot/duplicateMaterial).id!=originalId,"Material duplicate copies current draft into an independent asset ID");
+    bool duplicateRejected=false;try {Editor::MaterialWorkflow::Duplicate(materialRoot,SceneRuntime::MaterialAsset{},duplicateMaterial);} catch(...) {duplicateRejected=true;}
+    Check(duplicateRejected && SceneRuntime::MaterialAsset::Load(materialRoot,duplicateMaterial).values.roughness==.75f,"Material duplicate cannot overwrite existing asset");
+    SceneRuntime::SceneLayout materialLayout;materialLayout.objects=shared;
+    const auto assigned=Editor::MaterialWorkflow::Assign(materialLayout,{object.id,second.id},duplicateMaterial);
+    Check(assigned.size()==2 && assigned[0].material->id=="material-2" && assigned[0].material->asset==duplicateMaterial &&
+        assigned[1].rotator->id=="different-id" && !materialLayout.objects[0].material,"Material assignment creates collision-free component IDs and leaves source layout intact");
+    bool invalidName=false;try {Editor::MaterialWorkflow::Target("../escape");} catch(...) {invalidName=true;}
+    Check(invalidName,"Material duplicate rejects path traversal names");
+    object.rotator.reset();
     Editor::SceneSnapshotCache snapshots;
     const auto initial=snapshots.Get(layout);
     for(int frame=0;frame<100;++frame) Check(snapshots.Get(layout)==initial,"unchanged scene snapshot remains stable");

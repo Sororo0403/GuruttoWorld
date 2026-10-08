@@ -20,7 +20,7 @@ namespace Editor
         void InvalidatePreview() { preview_.Invalidate(); previewed_.clear(); info_.reset(); }
         void Scan(const std::filesystem::path& root);
         void Draw(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
-        void DrawInspector(EditState& state, bool enabled=true);
+        void DrawInspector(EditState& state, bool enabled=true,const SceneRuntime::SceneLayout* layout=nullptr);
         void RequestDrop(EditState& state, const std::string& path, const std::array<float,3>& position) const;
         const ProjectCatalog& Catalog() const { return catalog_; }
         bool HasMaterialChanges() const { return materialPanel_.HasChanges(); }
@@ -39,6 +39,7 @@ namespace Editor
         }
     private:
         static void DrawAssetInfo(const AssetInfo& info);
+        bool DrawMaterialWorkflow(EditState&,const std::filesystem::path&,const SceneRuntime::SceneLayout*,bool);
         void DrawFolder(const std::filesystem::path& folder);
         void DrawAssets(EditState& state, bool enabled);
         void DrawSelection(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled);
@@ -52,6 +53,8 @@ namespace Editor
         std::optional<std::filesystem::path> sceneRequest_;
         std::optional<std::pair<std::filesystem::path,std::filesystem::path>> assetMove_;
         std::array<char,256> search_{};
+        std::array<char,129> materialName_{};
+        std::string materialError_;
         std::array<float,3> addPosition_{};
         bool positionInitialized_=false;
         int type_=0;

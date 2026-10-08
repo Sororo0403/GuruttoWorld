@@ -1,5 +1,6 @@
 #include "ObjectPanel.h"
 #include "PrefabPanel.h"
+#include "MultiComponentPanel.h"
 #include "PanelLayout.h"
 #include <algorithm>
 #include <numbers>
@@ -270,6 +271,7 @@ namespace Editor
         if (ImGui::Button("選択対象を複製###Duplicate selected")) state.Request(state.DuplicateSelectionRequest());
         ImGui::SameLine();
         if (ImGui::Button("選択対象を削除###Delete selected")) state.Request(state.DeleteSelectionRequest());
+        MultiComponentPanel::Draw(state,world.Layout(),catalog_);
         ImGui::EndDisabled();
         ImGui::PopID();
         ImGui::TextWrapped("移動・回転・拡縮の中心はアクティブ対象です。回転・拡縮はシーンのギズモで操作します。拡縮はアクティブ対象のローカル軸を使い、対象間の間隔も変えます。複製・削除は選択全体に適用します。");

@@ -825,7 +825,7 @@ namespace
                 runtimeObjectPanel.Draw(runtime->World(),runtimeEditState,false,&projectPanel.Catalog(),true);
             else {
                 objectPanel.Draw(world, editState, EditWidgetsEnabled(),&projectPanel.Catalog());
-                projectPanel.DrawInspector(editState,EditWidgetsEnabled());
+                projectPanel.DrawInspector(editState,EditWidgetsEnabled(),&world.Layout());
             }
             if (const auto moved=projectPanel.TakeAssetMove())
             {
