@@ -6,6 +6,7 @@
 
 #include <format>
 #include <chrono>
+#include <algorithm>
 
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "DXGI.lib")
@@ -372,10 +373,10 @@ namespace Engine
     }
 
     void DirectX12Renderer::InitializeTelemetry() {
-        D3D12_QUERY_HEAP_DESC queries{}; queries.Type=D3D12_QUERY_HEAP_TYPE_TIMESTAMP; queries.Count=BufferCount*2;
+        D3D12_QUERY_HEAP_DESC queries{}; queries.Type=D3D12_QUERY_HEAP_TYPE_TIMESTAMP; queries.Count=BufferCount*GpuProfileContext::Queries;
         D3D12_HEAP_PROPERTIES heap{}; heap.Type=D3D12_HEAP_TYPE_READBACK;
         D3D12_RESOURCE_DESC resource{}; resource.Dimension=D3D12_RESOURCE_DIMENSION_BUFFER;
-        resource.Width=sizeof(UINT64)*BufferCount*2; resource.Height=1; resource.DepthOrArraySize=1; resource.MipLevels=1;
+        resource.Width=sizeof(UINT64)*BufferCount*GpuProfileContext::Queries; resource.Height=1; resource.DepthOrArraySize=1; resource.MipLevels=1;
         resource.SampleDesc.Count=1; resource.Layout=D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
         if (FAILED(queue_->GetTimestampFrequency(&timestampFrequency_)) || timestampFrequency_==0 ||
             FAILED(device_->CreateQueryHeap(&queries,IID_PPV_ARGS(&timestampQueries_))) ||
@@ -454,6 +455,7 @@ namespace Engine
         }
         const auto result=EndFrame(index);
         telemetry_.cpuRenderMilliseconds=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-cpuStart).count();
+        telemetry_.cpuScopes=CpuProfiler::Take();
         if (result==RenderResult::Presented) ++telemetry_.frames;
         return result;
     }
@@ -504,15 +506,27 @@ namespace Engine
         }
         RenderFrameContext{index,++recordingSerial_}.Record(commands_.Get());
         if (timestampReadback_ && timestampPending_[index]) {
-            const SIZE_T offset=sizeof(UINT64)*index*2;
-            const D3D12_RANGE read{offset,offset+sizeof(UINT64)*2}; void* mapped=nullptr;
+            telemetry_.gpuSample=false; telemetry_.gpuPasses.clear();
+            const SIZE_T offset=sizeof(UINT64)*index*GpuProfileContext::Queries;
+            const D3D12_RANGE read{offset,offset+sizeof(UINT64)*GpuProfileContext::Queries}; void* mapped=nullptr;
             if (SUCCEEDED(timestampReadback_->Map(0,&read,&mapped))) {
                 const auto* values=reinterpret_cast<const UINT64*>(static_cast<const unsigned char*>(mapped)+offset);
                 if (values[1]>=values[0]) { telemetry_.gpuMilliseconds=static_cast<double>(values[1]-values[0])*1000.0/static_cast<double>(timestampFrequency_); telemetry_.gpuSample=true; }
+                for (const auto& record : gpuRecords_[index]) {
+                    const UINT query=record.query-index*GpuProfileContext::Queries;
+                    if (values[query+1]<values[query]) continue;
+                    const double elapsed=static_cast<double>(values[query+1]-values[query])*1000.0/static_cast<double>(timestampFrequency_);
+                    auto found=std::find_if(telemetry_.gpuPasses.begin(),telemetry_.gpuPasses.end(),[&](const auto& sample){return sample.name==record.name;});
+                    if(found==telemetry_.gpuPasses.end()) telemetry_.gpuPasses.push_back({record.name,elapsed,1});
+                    else { found->milliseconds+=elapsed; ++found->calls; }
+                }
                 const D3D12_RANGE written{0,0}; timestampReadback_->Unmap(0,&written);
             } timestampPending_[index]=false;
         }
-        if (timestampQueries_) commands_->EndQuery(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,index*2);
+        gpuRecords_[index].clear();
+        const GpuProfileContext profiling{timestampQueries_.Get(),index*GpuProfileContext::Queries,&gpuRecords_[index]};
+        commands_->SetPrivateData(GpuScope::Key,sizeof(profiling),&profiling);
+        if (timestampQueries_) commands_->EndQuery(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,index*GpuProfileContext::Queries);
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         debugUi_.BeginFrame();
         if (debugUi)
@@ -547,7 +561,7 @@ namespace Engine
         const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
         const D3D12_RECT scissor{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
         RenderTargetBinding{descriptor,{},viewport,scissor}.Bind(commands_.Get());
-        debugUi_.Render(commands_.Get());
+        { GpuScope gpu(commands_.Get(),"Editor UI"); CpuScope cpu("Editor UI"); debugUi_.Render(commands_.Get()); }
 #endif
         D3D12_RESOURCE_BARRIER barrier{};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -557,14 +571,16 @@ namespace Engine
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
         commands_->ResourceBarrier(1, &barrier);
         if (timestampQueries_) {
-            commands_->EndQuery(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,index*2+1);
-            commands_->ResolveQueryData(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,index*2,2,timestampReadback_.Get(),sizeof(UINT64)*index*2);
+            const UINT base=index*GpuProfileContext::Queries;
+            commands_->EndQuery(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,base+1);
+            commands_->ResolveQueryData(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,base,2+static_cast<UINT>(gpuRecords_[index].size())*2,timestampReadback_.Get(),sizeof(UINT64)*base);
         }
         if (!Check(commands_->Close(), "Close command list"))
         {
             return RenderResult::Failed;
         }
         commands_->SetPrivateData(RenderFrameContext::Key,0,nullptr);
+        commands_->SetPrivateData(GpuScope::Key,0,nullptr);
         ID3D12CommandList* lists[] = { commands_.Get() };
         queue_->ExecuteCommandLists(1, lists);
         const HRESULT present = swapChain_->Present(1, 0);

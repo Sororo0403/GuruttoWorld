@@ -7,7 +7,7 @@
 #include <chrono>
 namespace Editor {
 class ProfilerPanel final {
-    struct Sample { double frame=0,update=0,render=0,gpu=0; size_t draws=0,triangles=0; SIZE_T workingSet=0,privateBytes=0; UINT64 video=0,budget=0; bool gpuValid=false,videoValid=false; };
+    struct Sample { double frame=0,update=0,render=0,gpu=0; size_t draws=0,triangles=0; SIZE_T workingSet=0,privateBytes=0; UINT64 video=0,budget=0; bool gpuValid=false,videoValid=false; std::vector<Engine::ProfileSample> cpuScopes,gpuPasses; };
     Sample sample_;
     std::vector<Sample> samples_;
     Microsoft::WRL::ComPtr<IDXGIAdapter3> adapter_;
@@ -23,6 +23,7 @@ public:
         if (!capture_) return;
         sample_={}; sample_.frame=elapsed; sample_.update=updateMilliseconds;
         const auto& telemetry=renderer.Telemetry(); sample_.render=telemetry.cpuRenderMilliseconds; sample_.gpu=telemetry.gpuMilliseconds; sample_.gpuValid=telemetry.gpuSample;
+        sample_.cpuScopes=telemetry.cpuScopes; sample_.gpuPasses=telemetry.gpuPasses;
         sample_.draws=world.Telemetry().draws; sample_.triangles=world.Telemetry().triangles;
         PROCESS_MEMORY_COUNTERS_EX memory{}; memory.cb=sizeof(memory);
         if (K32GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory),sizeof(memory))) { sample_.workingSet=memory.WorkingSetSize; sample_.privateBytes=memory.PrivateUsage; }
@@ -43,6 +44,15 @@ public:
             ImGui::Text("CPU 描画・Present待ち: %.3f ms",sample_.render);
             if (sample_.gpuValid) ImGui::Text("GPU 描画（完了済みフレーム）: %.3f ms",sample_.gpu);
             else ImGui::TextUnformatted("GPU: 計測待ち、または未対応");
+            if (ImGui::TreeNode("CPU処理区間###CPU scopes")) {
+                ImGui::TextUnformatted("包含時間です。親区間と子区間の値は重複します。");
+                for(const auto& scope:sample_.cpuScopes) ImGui::Text("%s: %.3f ms (%u回)",scope.name.c_str(),scope.milliseconds,scope.calls);
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNode("GPU描画パス###GPU passes")) {
+                for(const auto& pass:sample_.gpuPasses) ImGui::Text("%s: %.3f ms (%u回)",pass.name.c_str(),pass.milliseconds,pass.calls);
+                ImGui::TreePop();
+            }
             ImGui::Text("メッシュ描画: %zu / 三角形: %zu（影を含む）",sample_.draws,sample_.triangles);
             ImGui::Text("Working set: %.1f MiB / Private: %.1f MiB",static_cast<double>(sample_.workingSet)/1048576,static_cast<double>(sample_.privateBytes)/1048576);
             if (sample_.videoValid) ImGui::Text("GPUローカルメモリ: %.1f / %.1f MiB",static_cast<double>(sample_.video)/1048576,static_cast<double>(sample_.budget)/1048576);
@@ -54,6 +64,11 @@ public:
                 output<<"frame_ms,cpu_update_ms,cpu_render_present_ms,gpu_ms,gpu_valid,mesh_draws,triangles,working_set_bytes,private_bytes,local_video_bytes,video_budget_bytes,video_valid\n";
                 for (const auto& sample : samples_) output<<sample.frame<<','<<sample.update<<','<<sample.render<<','<<sample.gpu<<','<<sample.gpuValid<<','<<sample.draws<<','<<sample.triangles<<','<<sample.workingSet<<','<<sample.privateBytes<<','<<sample.video<<','<<sample.budget<<','<<sample.videoValid<<'\n';
                 output.close(); if (!output) throw std::runtime_error("Cannot write profiler CSV"); status_=Engine::AssetDatabase::Text(path);
+                auto detail=path; detail.replace_filename(path.stem().string()+"-scopes.csv"); std::ofstream scopes(detail);
+                scopes<<"sample,processor,scope,inclusive_ms,calls\n";
+                for(size_t index=0;index<samples_.size();++index) for(const auto& group:{std::pair{"CPU",&samples_[index].cpuScopes},std::pair{"GPU",&samples_[index].gpuPasses}})
+                    for(const auto& scope:*group.second) { std::string name; for(const char c:scope.name){name+=c;if(c=='"')name+='"';} scopes<<index<<','<<group.first<<",\""<<name<<"\","<<scope.milliseconds<<','<<scope.calls<<'\n'; }
+                scopes.close(); if(!scopes) throw std::runtime_error("Cannot write profiler scope CSV");
             } catch (const std::exception& error) { status_=error.what(); }
             if (!status_.empty()) ImGui::TextWrapped("%s",status_.c_str());
         } ImGui::End();

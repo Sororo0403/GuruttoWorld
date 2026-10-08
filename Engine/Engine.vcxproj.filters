@@ -369,6 +369,7 @@
   <ItemGroup>
     <ClInclude Include="include\Engine\Graphics\Resources\RenderTargetBinding.h"><Filter>include\Engine\Graphics\Resources</Filter></ClInclude>
     <ClInclude Include="include\Engine\Graphics\Resources\RenderFrameContext.h"><Filter>include\Engine\Graphics\Resources</Filter></ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Resources\GpuProfiler.h"><Filter>include\Engine\Graphics\Resources</Filter></ClInclude>
     <ClInclude Include="include\Engine\Graphics\Resources\LocalLightBuffer.h"><Filter>include\Engine\Graphics\Resources</Filter></ClInclude>
     <ClInclude Include="include\Engine\Animation\SkinMatrix.h"><Filter>include\Engine\Animation</Filter></ClInclude>
     <ClInclude Include="include\Engine\Graphics\Resources\SkinPaletteBuffer.h"><Filter>include\Engine\Graphics\Resources</Filter></ClInclude>

@@ -1,4 +1,5 @@
 #include <SceneRuntime/PhysicsWorld.h>
+#include <Engine/Core/Profiler.h>
 #include <SceneRuntime/SceneTransforms.h>
 #include <Engine/Graphics/Models/ModelLoader.h>
 #include <Engine/Core/Log.h>
@@ -434,6 +435,7 @@ namespace SceneRuntime
     bool PhysicsWorld::ConstrainRootMotion(const SceneLayout& before,SceneLayout& candidate,const std::vector<size_t>& actors,
         const std::filesystem::path& root,std::string& error) const
     {
+        Engine::CpuScope scope("Root collision queries");
         try
         {
             const auto solid=[&](size_t index) { const auto& c=candidate.objects.at(index).boxCollider; return c && c->enabled && !c->isTrigger; };
@@ -442,10 +444,14 @@ namespace SceneRuntime
             if (!SceneTransforms::Resolve(before,start,error) || !SceneTransforms::Resolve(candidate,desired,error)) return false;
             Impl world(before); world.Build(start,root,nullptr,{});
             auto resolved=candidate;
-            for (const auto index : actors) if (solid(index))
+            auto ordered=actors;
+            const auto depth=[&](size_t index) { size_t count=0; auto parent=before.objects.at(index).parentId; while(!parent.empty()) { const auto found=std::find_if(before.objects.begin(),before.objects.end(),[&](const auto& object){return object.id==parent;}); if(found==before.objects.end()) break; parent=found->parentId; ++count; } return count; };
+            std::stable_sort(ordered.begin(),ordered.end(),[&](size_t first,size_t second){return depth(first)<depth(second);});
+            for (const auto index : ordered) if (solid(index))
             {
                 const auto& object=candidate.objects.at(index);
                 if (object.boxCollider->shape=="mesh" && !object.boxCollider->convex) throw std::runtime_error("Root motion requires a convex moving collider");
+                if(!SceneTransforms::Resolve(resolved,desired,error)) return false;
                 const auto from=ReadPose(start.at(index)),to=ReadPose(desired.at(index));
                 const auto shape=Shape(object,from,root);
                 JPH::CharacterVirtualSettings settings; settings.mShape=shape;

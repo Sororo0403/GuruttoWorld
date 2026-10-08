@@ -1,5 +1,6 @@
 #include <SceneRuntime/ScriptRuntime.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/Profiler.h>
 #include <algorithm>
 #include <cmath>
 #include <set>
@@ -165,6 +166,7 @@ namespace SceneRuntime
         std::erase_if(layout_.objects,[&](const auto& item) { return destroyed_.contains(item.id); });
         std::erase_if(animatorParameters,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         std::erase_if(ikTargets,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
+        std::erase_if(rootMotions,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         if (destroyed_.contains(layout_.settings.mainCamera)) layout_.settings.mainCamera.clear();
         static_cast<void>(layout_.Serialize());
     }
@@ -218,6 +220,7 @@ namespace SceneRuntime
     { if (!pressed) return false; const auto found=pressed->find(name); return found!=pressed->end() && found->second; }
     bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics)
     {
+        Engine::CpuScope scope("Scripts");
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
         { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); error.clear(); return true; }

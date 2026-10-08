@@ -8,7 +8,7 @@
 - [x] Prefab: プロパティ単位の上書き、適用・復元、入れ子、Variant
 - [x] 描画: PBR、法線マップ、Point/Spot Light、ポストエフェクト
 - [x] アニメーション: GPUスキニング、Blend Tree、イベント、IK、ルートモーション
-- [ ] アセット・性能: 画像圧縮・Mip設定、CPUスコープ・GPUパス別計測
+- [x] アセット・性能: 画像圧縮・Mip設定、CPUスコープ・GPUパス別計測
 
 描画: PBR（GGX・金属度・sRGB変換）と接線空間の法線マップ、Material編集・保存、Point/Spot Light（32灯、距離・角度減衰、親子とScript追従）、線形FP16 HDR、露出・Reinhard/ACES近似・ブルーム、比較シーンを追加。UIはポストエフェクトの後で描画する。
 
@@ -20,3 +20,9 @@ IK: 二関節の解析解と目標・曲げ方向・重み、Animatorの制約�
 
 既存のシーン形式・再生停止時の編集データ復元・失敗時のデータ保持を維持する。
 新機能はAppとEditorの再生双方へ接続し、APIだけの追加で終わらせない。
+
+画像インポート: BC3圧縮、1×1までのMip生成、最大サイズ、sRGBでのMip計算とInspector保存を追加。メッシュ・Material・スプライト・プレビューへ接続し、画像と.metaの変更でキャッシュを更新する。以前の.metaの既定値と実行中の古い共有リソースを保持する。寸法条件と圧縮の品質はTextureImport.mdに記載する。
+
+性能計測: Component・Script・Animator・IK・衝突・物理などのCPU区間、Shadow・Opaque・Transparent・Sky・Particle・Post Effects・UIのGPUパスを追加。完了済みフレームのフェンス付きReadback、容量制限、同名区間の集計、Editor表示とCSV明細を追加。包含時間とGPUの遅延はProfiling.mdに記載する。
+
+2026-10-08 最終検証: Debug・Development・Releaseのソリューションビルド、Debug／Releaseの全体回帰テスト、BC3の透過・Mip末端のGPU画素比較、設定保存後の再読み込み、CPU集計・GPUパスの容量と古いサンプル除去、静的解析が通過。上記の実装予定はすべて完了。

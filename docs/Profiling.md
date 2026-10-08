@@ -1,0 +1,11 @@
+# 処理区間と描画パスの計測
+
+Editorの「性能計測」でCPU処理区間とGPU描画パスを展開して確認する。記録の停止は表示と履歴を固定する。CSVを書き出すと、従来のフレーム統計と、同じ名前に-scopesを付けた処理区間の明細を保存する。明細にはサンプル番号、CPU/GPU、名前、包含時間、呼び出し回数を出力する。
+
+CPUはsteady_clockでRAII区間を計測し、同じ名前の呼び出しを集計する。Component更新、Script、Animator、ルート移動・IK、衝突判定、物理移動と描画準備を計測する。包含時間なので親と子の値は重複し、足し合わせても全体時間にはならない。スレッドごとに最大128種類を保持し、描画終了時に回収する。表示は直前の回収結果となる。
+
+GPUはShadow、Opaque、Transparent、Sky、Particle、Post Effects、Game UI、Editor UIのコマンド区間をTimestampで計測する。フレームスロットごとにQueryと名前を保存し、そのスロットのフェンス完了後にのみReadbackを読む。CPUの現在フレームとGPUの完了済みフレームには遅延がある。複数ビューによる同名パスは時間と回数を集計する。最大64区間を記録し、超えた区間はQueryを発行しない。計測未対応の場合も描画を継続する。
+
+新しいCPU区間はEngine::CpuScope、GPU区間はEngine::GpuScope(commands,name)を使用する。CPU名は区間終了まで有効な文字列を渡す。GPU区間はRendererの描画コールバック内で開始・終了する。
+
+WP1_PROFILER_ONLY=1でCPU集計と回収、実際のシーンのGPUパス、Query容量、フェンス付きTimestamp、描画がなくなったパスの古いサンプル除去を検証する。

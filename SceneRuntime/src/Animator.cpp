@@ -1,4 +1,5 @@
 #include <SceneRuntime/Animator.h>
+#include <Engine/Core/Profiler.h>
 #include <Engine/Animation/TwoBoneIk.h>
 #include <Engine/Animation/RootMotion.h>
 #include <SceneRuntime/SceneTransforms.h>
@@ -191,6 +192,7 @@ namespace SceneRuntime
         const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters,const DirectX::XMFLOAT4X4* modelWorld)
     {
         if (!std::isfinite(seconds) || seconds<0) throw std::runtime_error("Invalid Animator time");
+        Engine::CpuScope scope("Animator evaluation");
         auto component=authored; component.rootMotion=state.rootMotionOverride.value_or(authored.rootMotion);
         Validate(component,&rig);
         auto next=state;

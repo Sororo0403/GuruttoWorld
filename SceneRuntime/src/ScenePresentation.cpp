@@ -1,4 +1,5 @@
 #include <SceneRuntime/ScenePresentation.h>
+#include <Engine/Graphics/Resources/GpuProfiler.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <algorithm>
 #include <cmath>
@@ -114,15 +115,15 @@ namespace SceneRuntime
             processing=PrepareEffects(world.Layout(),error) && postEffects_.Begin(commands,width,height,clear);
             if (!processing) Engine::Log::Warning(error.empty() ? "Post effect target could not be prepared" : error);
         }
-        DrawSky(commands,world.Layout(),width,height,seconds);
+        { Engine::GpuScope gpu(commands,"Sky"); Engine::CpuScope cpu("Sky"); DrawSky(commands,world.Layout(),width,height,seconds); }
         Engine::Camera gameCamera;
         if (sceneCamera || SceneView::Camera(world,float(width)/height,seconds,gameCamera))
         {
             const auto& camera=sceneCamera ? *sceneCamera : gameCamera;
             world.Draw(commands,camera,SceneView::Light(world),uiState);
-            if (motionEnabled) DrawParticles(commands,world,camera,seconds);
+            if (motionEnabled) { Engine::GpuScope gpu(commands,"Particles"); Engine::CpuScope cpu("Particles"); DrawParticles(commands,world,camera,seconds); }
         }
-        if (processing && !postEffects_.End(commands,world.Layout().settings.postEffects)) Engine::Log::Warning("Post effect rendering failed");
-        if (!sceneCamera) DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{});
+        if (processing) { Engine::GpuScope gpu(commands,"Post effects"); Engine::CpuScope cpu("Post effects"); if (!postEffects_.End(commands,world.Layout().settings.postEffects)) Engine::Log::Warning("Post effect rendering failed"); }
+        if (!sceneCamera) { Engine::GpuScope gpu(commands,"Game UI"); Engine::CpuScope cpu("Game UI"); DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{}); }
     }
 }

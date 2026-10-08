@@ -2,6 +2,7 @@
 
 #include <Engine/Platform/Window.h>
 #include <Engine/Graphics/Resources/DepthBuffer.h>
+#include <Engine/Graphics/Resources/GpuProfiler.h>
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 #include <Engine/DevTools/ImGuiLayer.h>
 #endif
@@ -21,7 +22,7 @@ namespace Engine
         Failed
     };
 
-    struct FrameTelemetry { double cpuRenderMilliseconds=0,gpuMilliseconds=0; UINT64 frames=0; bool gpuSample=false; };
+    struct FrameTelemetry { double cpuRenderMilliseconds=0,gpuMilliseconds=0; UINT64 frames=0; bool gpuSample=false; std::vector<ProfileSample> cpuScopes,gpuPasses; };
 
     class DirectX12Renderer final
     {
@@ -225,6 +226,7 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12Resource> timestampReadback_;
         UINT64 timestampFrequency_=0;
         std::array<bool,2> timestampPending_{};
+        std::array<std::vector<GpuProfileRecord>,2> gpuRecords_;
 
         static constexpr UINT BufferCount = 2;
         static constexpr DXGI_FORMAT BufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;

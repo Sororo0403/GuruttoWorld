@@ -1,4 +1,5 @@
 #include <SceneRuntime/SceneWorld.h>
+#include <Engine/Graphics/Resources/GpuProfiler.h>
 #include <SceneRuntime/SceneTransforms.h>
 #include <SceneRuntime/SceneUi.h>
 #include <SceneRuntime/Prefab.h>
@@ -277,6 +278,7 @@ namespace SceneRuntime
         lighting.shadow=nullptr;
         if (light.enabled && light.shadowsEnabled && shadow_.Begin(commands,camera,light))
         {
+            Engine::GpuScope gpu(commands,"Shadows"); Engine::CpuScope cpu("Shadows");
             for (size_t index=0;index<objects_.size();++index)
                 if (visible(index) && !transparent(index) && objects_[index].GetModel())
                     { count(index); objects_[index].GetModel()->DrawShadow(commands,objects_[index].GetWorldMatrix(),shadow_); }
@@ -284,12 +286,16 @@ namespace SceneRuntime
             lighting.shadow=&shadow_;
         }
         std::vector<size_t> blended;
+        {
+        Engine::GpuScope gpu(commands,"Opaque meshes"); Engine::CpuScope cpu("Opaque meshes");
         for (size_t index=0;index<objects_.size();++index)
             if (visible(index))
             {
                 if (transparent(index)) blended.push_back(index);
                 else { count(index); objects_[index].Draw(commands,camera,lighting); }
             }
+        }
+        Engine::GpuScope gpu(commands,"Transparent meshes"); Engine::CpuScope cpu("Transparent meshes");
         const auto distance=[&](size_t index) {
             const auto& world=objects_[index].GetWorldMatrix(); const auto& eye=camera.GetPosition();
             const float x=world._41-eye[0],y=world._42-eye[1],z=world._43-eye[2]; return x*x+y*y+z*z;
@@ -433,6 +439,7 @@ namespace SceneRuntime
     }
     bool SceneWorld::MovePlayers(double seconds, float horizontal, float vertical, bool jump)
     {
+        Engine::CpuScope scope("Physics and player movement");
         auto candidate=layout_;
         auto states=physics_;
         for (auto& object : candidate.objects) if (object.animator)
@@ -471,6 +478,7 @@ namespace SceneRuntime
 
     bool SceneWorld::UpdateComponents(double seconds)
     {
+        Engine::CpuScope scope("Components update");
         if (!std::isfinite(seconds) || seconds<=0) return false;
         auto candidate=layout_;
         for (auto& placement : candidate.objects)
@@ -525,6 +533,7 @@ namespace SceneRuntime
 
     bool SceneWorld::PrepareRootMotion(PreparedLayout& prepared,std::vector<AnimatorFrame>& frames,std::string& error) const
     {
+        Engine::CpuScope scope("Root motion and IK");
         try
         {
             bool moved=false;

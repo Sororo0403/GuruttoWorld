@@ -201,6 +201,9 @@
     <ClCompile Include="src\Animation\RootMotion.cpp" />
     <ClCompile Include="src\Animation\TwoBoneIk.cpp" />
     <ClInclude Include="include\Engine\Assets\AssetDatabase.h" />
+    <ClInclude Include="include\Engine\Assets\TextureImport.h" />
+    <ClInclude Include="include\Engine\Core\Profiler.h" />
+    <ClInclude Include="include\Engine\Graphics\Resources\GpuProfiler.h" />
     <ClCompile Include="src\Animation\Skeleton.cpp" />
     <ClCompile Include="src\Animation\SkeletonLoader.cpp" />
     <ClInclude Include="include\Engine\Graphics\Renderers\ModelRenderer.h" />
