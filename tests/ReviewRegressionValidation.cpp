@@ -19,6 +19,8 @@
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetInfo.h"
 #include "../Editor/src/AssetChanges.h"
+#include <thread>
+#include <chrono>
 #include "../Editor/src/FocusSelection.h"
 #if defined(_DEBUG)
 #include <Engine/DevTools/DebugCamera.h>
@@ -2460,6 +2462,25 @@ void ValidateAssetChangeBatching()
         "watching includes material and shader dependencies but ignores scenes and temporary saves case-insensitively");
     std::string error;
     Check(Editor::ValidateProjectShaders(std::filesystem::absolute("Content"),error), "project shader entry points compile");
+    Editor::AssetChanges background;
+    const auto pump=[&](const auto& condition) {
+        const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
+        while (std::chrono::steady_clock::now()<deadline) {
+            if (condition()) return;
+            background.Poll(root,0.5);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        Check(false, "background asset scan completes within deadline");
+    };
+    // An invalid root proves worker failures are delivered without throwing from Poll.
+    background.Poll(root/"missing",0.5);
+    pump([&] { return !background.Error().empty(); });
+    pump([&] { return background.Error().empty(); });
+    { std::ofstream file(root/"Assets/shape.MTL",std::ios::app); file << "\nnewmtl changed"; }
+    pump([&] { return background.Pending(); });
+    Check(!background.TakeReady(false), "background reload remains queued during Play");
+    pump([&] { return background.TakeReady(true); });
+    Check(!background.TakeReady(true), "background stable batch is consumed once");
 }
 
 void ValidateEditorAcceptanceScene()
@@ -3277,6 +3298,11 @@ int main()
         if(GetEnvironmentVariableW(L"WP1_EDITOR_INTEGRITY_ONLY",nullptr,0)) {
             ValidateEditorIntegrity();
             std::cout<<"PASS: scene snapshot cache, animator parameter references and prefab rollback\n";
+            return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_EDITOR_WATCH_ONLY",nullptr,0)) {
+            ValidateAssetChangeBatching();
+            std::cout<<"PASS: background asset scanning, error recovery and stable reload batching\n";
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_EDITOR_MATERIAL_ONLY",nullptr,0)) {

@@ -5,6 +5,8 @@
 #include <string>
 #include <algorithm>
 #include <cmath>
+#include <future>
+#include <chrono>
 #include <Engine/Graphics/ShaderCompiler.h>
 
 namespace Editor
@@ -37,11 +39,17 @@ namespace Editor
         }
         void Poll(const std::filesystem::path& root, double seconds)
         {
+            // Only completed scans touch editor state. Never wait for disk I/O in a frame.
+            if (scan_.valid() && scan_.wait_for(std::chrono::seconds(0))==std::future_status::ready)
+            {
+                try { Observe(scan_.get()); error_.clear(); }
+                catch (const std::exception& exception) { error_=exception.what(); }
+            }
             if (!std::isfinite(seconds) || seconds<=0) return;
             elapsed_+=std::min(seconds,1.0);
-            if (elapsed_<0.5) return;
+            if (elapsed_<0.5 || scan_.valid()) return;
             elapsed_=0;
-            try { Observe(Capture(root)); error_.clear(); }
+            try { scan_=std::async(std::launch::async,[root] { return Capture(root); }); }
             catch (const std::exception& exception) { error_=exception.what(); }
         }
         bool TakeReady(bool editing)
@@ -66,6 +74,7 @@ namespace Editor
             return (kind && *kind!=AssetKind::Scene) || Extension(path)==".mtl" || Extension(path)==".meta" || Extension(path)==".bin";
         }
         Files observed_;
+        std::future<Files> scan_;
         bool initialized_=false, pending_=false, stable_=false;
         double elapsed_=0;
         std::string error_;
