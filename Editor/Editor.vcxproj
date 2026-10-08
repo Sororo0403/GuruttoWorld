@@ -119,6 +119,7 @@
     <ClInclude Include="src\UiCanvasTransform.h" />
     <ClInclude Include="src\UiEditorPanel.h" />
     <ClInclude Include="src\TitlePreview.h" />
+    <ClInclude Include="src\MenuPanel.h" />
     <ClCompile Include="..\App\src\Scenes\TitleMenu.cpp" />
     <ClCompile Include="..\App\src\Scenes\TitleUi.cpp" />
     <ClCompile Include="..\App\src\Scenes\GameSettings.cpp" />

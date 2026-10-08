@@ -198,12 +198,6 @@
     <ClCompile Include="src\Game.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClInclude Include="src\Scenes\GameScene.h">
-      <Filter>src\Scenes</Filter>
-    </ClInclude>
-    <ClCompile Include="src\Scenes\GameScene.cpp">
-      <Filter>src\Scenes</Filter>
-    </ClCompile>
     <ClInclude Include="src\Scenes\TitleScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>

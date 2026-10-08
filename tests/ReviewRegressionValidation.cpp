@@ -62,6 +62,7 @@
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
 #include "ProjectSettingsValidation.h"
+#include "MenuAuthoringValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -1918,6 +1919,7 @@ namespace
                 AnimatorValidation::Runtime(renderer);
                 TextureImportValidation::Run(renderer); ProfilerValidation::Run(renderer);
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
+            MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
@@ -3730,6 +3732,7 @@ int main()
         if(GetEnvironmentVariableW(L"WP1_AUTHORING_ONLY",nullptr,0)) {
             UiValidation::SchemaAndLayout();
             ValidateTitleAuthoring();
+            MenuAuthoringValidation::Run();
             ProjectSettingsValidation::Run();
             std::cout<<"PASS: authored Game schema/shortcuts, title bindings/presentation and project settings\n";
             return 0;
@@ -3739,6 +3742,7 @@ int main()
             Check(Engine::Log::Initialize("generated/tests/title-focused.log"),"focused title diagnostic log");
             ValidateTitleMenu();
             ValidateTitleAuthoring();
+            MenuAuthoringValidation::Run();
             ProjectSettingsValidation::Run();
             Engine::Window window;
             Engine::DirectX12Renderer renderer;
@@ -3746,11 +3750,13 @@ int main()
             Check(renderer.Initialize(window.GetHandle()),"focused title renderer");
             ShadowValidation::Run(renderer);
             TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
+            MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Content"));
             Check(renderer.WaitForIdle(),"focused title GPU completion");
             CheckGpuMessages(renderer.GetDevice());
             std::cout << "PASS: START/CONFIG/QUIT menu, camera overshoot/reversal and three-aspect title presentation\n";
             return 0;
         }
+        phase="MenuAuthoringValidation"; MenuAuthoringValidation::Run();
         phase="ValidateTransformDecomposition"; ValidateTransformDecomposition();
         phase="ValidateSceneViewport"; ValidateSceneViewport();
         phase="ValidateProjectCatalog"; ValidateProjectCatalog();

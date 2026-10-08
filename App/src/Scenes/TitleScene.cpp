@@ -8,14 +8,16 @@
 
 namespace App
 {
-    TitleScene::TitleScene(std::filesystem::path root, bool playIntro) : root_(std::move(root)), menu_(playIntro, false, false) {}
+    TitleScene::TitleScene(std::filesystem::path root, bool playIntro,std::filesystem::path scene) : root_(std::move(root)), scene_(std::move(scene)), menu_(playIntro, false, false) {}
 
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)
     {
         input_.SetBindings(SceneRuntime::ProjectSettings::Load(root_).inputActions);
-        menu_.LoadSettings(GameSettings::Load(GameSettings::UserPath()));
         std::string error;
-        if (!environment_.Initialize(renderer,root_,root_/"Assets/Scenes/TitleStreet.json",error)) return false;
+        if (!environment_.Initialize(renderer,root_,root_/scene_,error)) return false;
+        menu_.Configure(TitleBindings::EffectiveConfiguration(environment_.World().Layout()));
+        const auto settings=GameSettings::Load(GameSettings::UserPath());
+        if(settings.loaded) menu_.LoadSettings(settings);
         environment_.Update(0.0, menu_.GetSettings().backgroundMotion, false);
         menu_.SetTransitionDuration(environment_.Ui().Value("startDuration",0.32f));
         menu_.SetPresentationDurations(environment_.Ui().Value("introDuration",0.65f),environment_.Ui().Value("selectionDuration",0.16f));
@@ -25,31 +27,11 @@ namespace App
         SyncUi();
         return true;
     }
-    TitleMenuInput TitleScene::ReadMenuInput(const Engine::Keyboard& keyboard) const
+    TitleMenuInput TitleScene::ReadMenuInput(const Engine::Keyboard& keyboard)
     {
-        TitleMenuInput input;
-        input.active = keyboard.IsActive();
-        input.gamepadConnected = gamepad_.IsConnected();
-        const std::pair<const char*,unsigned int> actions[]={{"MoveForward",MenuUp},{"MoveBack",MenuDown},{"MoveLeft",MenuLeft},{"MoveRight",MenuRight},{"Confirm",MenuConfirm},{"Cancel",MenuBack}};
-        const auto stick=gamepad_.GetLeftStick();
-        for (const auto& [name,button] : actions)
-        {
-            const auto found=input_.GetBindings().find(name);
-            if (found==input_.GetBindings().end()) continue;
-            const auto& binding=found->second;
-            for (const auto key : binding.keys) if (keyboard.IsDown(key)) input.keyboardButtons|=button;
-            if (binding.buttons && gamepad_.IsDown(static_cast<WORD>(binding.buttons))) input.gamepadButtons|=button;
-            float value=0;
-            if (binding.axis) value=std::max(0.0f,stick[static_cast<size_t>(std::abs(binding.axis)-1)]*(binding.axis>0 ? 1.0f : -1.0f));
-            if (value>=binding.threshold)
-            {
-                if (button==MenuUp) input.stickY+=value;
-                else if (button==MenuDown) input.stickY-=value;
-                else if (button==MenuRight) input.stickX+=value;
-                else if (button==MenuLeft) input.stickX-=value;
-                else input.gamepadButtons|=button;
-            }
-        }
+        input_.Update(Engine::InputActions::Capture(keyboard,&gamepad_,true));
+        auto input=TitleBindings::Input(menu_.Configuration(),input_,keyboard.IsActive());
+        input.gamepadConnected=gamepad_.IsConnected();
         for (unsigned int key = 0; key < 256; ++key)
             input.anyButtonPressed |= keyboard.IsPressed(key);
         constexpr unsigned int PadButtons = XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_DOWN |
@@ -75,20 +57,21 @@ namespace App
         if(action==TitleMenuAction::SaveSettings) menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
         if(action==TitleMenuAction::Exit) PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
         if (menu_.GetCue()==TitleMenuCue::Confirm && !menu_.IsSettingsOpen() &&
-            menu_.GetSelected()==TitleMenuItem::Start)
+            menu_.SelectedEntry() && menu_.SelectedEntry()->action=="loadScene")
         {
             environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),
                 static_cast<float>(environment_.MotionSeconds()));
             environment_.Ui().values["startRequested"]=1;
         }
+        std::string assignments; if(menu_.TakeAssignments(assignments)) environment_.Ui().Assign(assignments);
         SyncUi();
         environment_.Ui().hovered=hovered_; environment_.Ui().pressed=pressed_;
         audio_.Update(environment_,root_, menu_, keyboard.IsActive(), deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
             keyboard.IsActive());
         if (action == TitleMenuAction::Start) {
-            const auto scene=TitleBindings::StartScene(environment_.World().Layout());
-            if(scene.empty()) Engine::Log::Warning("START has no scene target. Set its Button Target in the editor.");
+            const auto scene=menu_.PendingTarget();
+            if(scene.empty()) Engine::Log::Warning("Menu entry has no scene target. Set the target in Canvas > Menu configuration.");
             return scene;
         }
         if(!requestedScene_.empty()) return std::exchange(requestedScene_,{});

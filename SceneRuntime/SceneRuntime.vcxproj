@@ -148,6 +148,7 @@
     <ClCompile Include="src\AnimatorJson.cpp" />
     <ClInclude Include="src\AnimatorJson.h" />
     <ClInclude Include="include\SceneRuntime\UiComponents.h" />
+    <ClInclude Include="include\SceneRuntime\MenuConfiguration.h" />
     <ClInclude Include="include\SceneRuntime\SceneAudio.h" />
     <ClCompile Include="src\SceneAudio.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneUi.h" />

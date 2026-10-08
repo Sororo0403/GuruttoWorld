@@ -3,6 +3,8 @@
 #include <string>
 #include <filesystem>
 #include <map>
+#include <optional>
+#include <SceneRuntime/MenuConfiguration.h>
 namespace SceneRuntime
 {
     struct CanvasComponent
@@ -11,6 +13,7 @@ namespace SceneRuntime
         std::array<float,2> referenceSize{1280,720};
         bool scaleWithScreen=true;
         std::map<std::string,float> stateDefaults;
+        std::optional<MenuConfiguration> menu;
         bool operator==(const CanvasComponent&) const = default;
     };
     struct RectTransformComponent

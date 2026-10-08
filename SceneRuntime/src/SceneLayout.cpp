@@ -131,6 +131,9 @@ namespace SceneRuntime
             }
             ValidateParents(layout.objects);
             ValidateCamera(layout);
+            size_t menus=0;
+            for(const auto& object:layout.objects) if(object.canvas && object.canvas->enabled && object.canvas->menu) ++menus;
+            if(menus>1) throw std::runtime_error("At most one enabled menu Canvas is supported");
             size_t localLights=0;
             for (const auto& object : layout.objects)
             {

@@ -2,6 +2,8 @@
 #include "GameSettings.h"
 #include <string_view>
 #include <vector>
+#include <SceneRuntime/MenuConfiguration.h>
+#include <map>
 
 namespace App
 {
@@ -27,7 +29,7 @@ namespace App
         /// <summary>初回だけ登場演出を有効にします。</summary>
         explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false, bool twoItems = false)
             : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton)
-        { if(twoItems) items_.pop_back(); }
+        { if(twoItems) items_.pop_back(); LoadSettings({}); }
         /// <summary>ポインターの選択を反映します。設定中・開始中は変更しません。</summary>
         void SelectUi(TitleMenuItem item);
         bool UsesPressAnyButton() const { return pressAnyButton_; }
@@ -41,6 +43,13 @@ namespace App
         void SetTransitionDuration(float seconds);
         void SetPresentationDurations(float intro, float selection);
         void SetItems(std::vector<TitleMenuItem> items);
+        void Configure(SceneRuntime::MenuConfiguration configuration);
+        const SceneRuntime::MenuConfiguration& Configuration() const { return configuration_; }
+        const SceneRuntime::MenuEntry* SelectedEntry() const;
+        const std::map<std::string,float>& SettingValues() const { return draft_.values; }
+        const std::string& PendingTarget() const { return pendingTarget_; }
+        bool TakeAssignments(std::string& result) { result=std::move(assignments_); assignments_.clear(); return !result.empty(); }
+        void LoadSettings(const GameSettings& settings);
         /// <summary>
         /// 入力の立ち上がりで選択・決定します。初回・復帰・接続直後の押下は抑止します。
         /// </summary>
@@ -63,12 +72,14 @@ namespace App
         /// <summary>この更新で発生した操作音を返します。</summary>
         TitleMenuCue GetCue() const { return cue_; }
         /// <summary>保存済み設定を読み込みます。</summary>
-        void LoadSettings(const GameSettings& settings) { saved_ = draft_ = settings; }
         /// <summary>保存成功時だけ設定画面を閉じます。</summary>
         void CompleteSave(bool success) { cue_ = success ? TitleMenuCue::Confirm : TitleMenuCue::Error; saveFailed_ = !success; if (success) { saved_ = draft_; settingsOpen_ = false; } }
         /// <summary>保存に失敗したか返します。</summary>
         bool SaveFailed() const { return saveFailed_; }
     private:
+        SceneRuntime::MenuConfiguration configuration_=SceneRuntime::DefaultMenuConfiguration();
+        std::string pendingTarget_, assignments_;
+        void ChangeSetting(int direction, bool confirm);
         TitleMenuAction UpdateTransition(float elapsed);
         void MoveSelection(unsigned int direction);
         unsigned int ReadPressedButtons(const TitleMenuInput& input);

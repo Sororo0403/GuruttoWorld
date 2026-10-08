@@ -2,13 +2,18 @@
 
 ## ゲームシーンの編集
 
-`Assets/Scenes/Game.json`が通常のゲーム開始先です。モデル・Transform・Rotator・Camera・照明・粒子・Image・音源をエディターで編集して保存できます。従来のエンジン機能デモは`EngineDemo`として残しています。
-タイトルのSTARTボタンのTargetで開始先のJSONを変更します。Game eventを`menu:0`にするとAppでは開始演出後にTargetへ遷移し、EditorではButtonの`loadScene`動作で同じシーンを開きます。
+`Assets/Scenes/Game.json`が通常のゲーム開始先です。モデル・Transform・Rotator・Camera・照明・粒子・Image・音源をエディターで編集して保存できます。`EngineDemo`という旧名も同じ編集可能なGameシーンを開きます。C++による別の配置・描画経路は削除しました。
+タイトルCanvasの「メニュー設定 → 項目・遷移先」で開始先のJSONを変更します。ButtonのGame event `menu:番号` はメニュー項目を呼び出し、Canvas側で指定した動作・遷移先をAppとEditor Playの両方で使用します。メニュー以外の直接遷移はButtonの`loadScene`とTargetを使います。
 MeshRendererの表示条件には`model=0`のような状態条件を設定できます。Canvasの初期状態とButtonの状態値設定でモデルの表示を切り替えられます。非表示モデルは影も描画しません。
-ButtonのショートカットはSpace・Escape・1・2から選択します。無効・非表示のボタンは反応しません。AppではパッドAもSpaceに対応します。Editorでは再生中にGameへカーソルを置いて操作します。
+Buttonの入力Action名と「ファイル → プロジェクト設定 → 入力Action」でキー・パッド・スティック・トリガー・マウスを割り当てます。旧Space／Escape／1／2はJump／Cancel／SelectModel1／SelectModel2へ読み込み時に移行します。無効・非表示のボタンは反応しません。Editorでは再生中にGameへフォーカスを置いて操作します。
 
 タイトルCanvasの「タイトル演出の設定」で登場・入力待ち時間、開始遷移、選択演出の時間と移動量、非選択項目の不透明度、BGMフェード時間、遷移帯の進行倍率を編集できます。数値はCanvasの初期状態として保存され、Undo／Redoに対応します。登場中のクリックは演出のスキップだけを行い、改めて押すと決定します。
-Appのメニュー順はHierarchyのオブジェクト順に従います。ButtonのGame event `menu:0`／`menu:1`／`menu:2`が開始／設定／終了の役割を表し、オブジェクトIDを変えても役割は維持されます。無効または初期メニューで非表示の項目はキーボード・パッドの選択対象から外れます。同じ役割の複製は一項目として扱います。設定値の保存などのゲーム処理はAppが担当します。
+Canvasの「メニューを使用」を有効にすると、そのシーンはAppでもメニューとして動きます。シーンの複製・改名・起動シーンの変更に専用のコード変更は不要です。有効なメニューCanvasはシーンに一つだけ配置します。
+「項目・遷移先」で0〜127の番号とloadScene／settings／quit／setStateを設定し、対応するButtonのイベントを`menu:番号`にします。上下移動はHierarchyのButton順です。無効・初期メニューで非表示のButtonは選択から外れます。カメラの焦点値・ビュー値・移動Animationの時計も各項目で変更できます。
+「設定画面の項目」ではnumber／toggle／save、保存キー、範囲、刻み、初期値を設定します。Buttonの`settings:行番号`で操作し、`back`で取消します。volumeは指定範囲を0〜1の音量に換算し、motionは背景演出を切り替えます。独自キーもユーザー設定へ保存されます。Editor Playでは設定の保存・取消を実行シーン内で試せます。
+「入力Action・操作音」で上下左右・決定・取消のAction名と選択／決定／取消／保存失敗時のAudioSourceキューを変更します。「状態値の出力」では実行時のselected／row／intro／transition／setting:保存キーなどをUIやAnimationの状態キーへ割り当て、比較・倍率・加算・上下限を編集できます。emphasisは比較一致時に1、非一致時に倍率キーの値を出力します。編集はシーンの保存・Undo／Redoに含まれます。
+
+タイトル生成スクリプトは通常ビルドでは実行しません。手動実行時も`generated/authoring`に下書きを作り、編集中のTitleStreet.jsonは上書きしません。配置・UI・Animation・音源・メニューの通常の変更はエディターから行います。
 
 ファイル → プロジェクト設定で、Appの起動シーン・ウィンドウタイトル・幅・高さを編集できます。保存先は`Content/Assets/Project.json`で、次回のビルドでAppへコピーされます。保存は現在のシーンの保存と独立しています。存在しない起動シーン、不正なサイズ、保存失敗はエラーを表示し、以前の設定ファイルを保持します。
 

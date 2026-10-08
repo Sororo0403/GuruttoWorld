@@ -15,7 +15,7 @@ namespace App
         /// <summary>
         /// タイトル画像とシェーダーの基準フォルダーを受け取ります。
         /// </summary>
-        explicit TitleScene(std::filesystem::path root, bool playIntro = true);
+        explicit TitleScene(std::filesystem::path root, bool playIntro = true, std::filesystem::path scene="Assets/Scenes/TitleStreet.json");
         /// <summary>
         /// タイトル画像と CC0 モデルの街並みを初期化します。
         /// </summary>
@@ -37,8 +37,8 @@ namespace App
         unsigned int width_=0,height_=0;
         bool mouseDown_=false,mouseReady_=false;
         std::string pressed_,hovered_;
-        TitleMenuInput ReadMenuInput(const Engine::Keyboard& keyboard) const;
-        std::filesystem::path root_;
+        TitleMenuInput ReadMenuInput(const Engine::Keyboard& keyboard);
+        std::filesystem::path root_,scene_;
         TitleMenu menu_;
         Engine::Gamepad gamepad_;
         Engine::InputActions input_;

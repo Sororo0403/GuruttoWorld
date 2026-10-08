@@ -38,9 +38,10 @@ namespace SceneRuntime
     private:
         /// <summary>保存した移動クリップを現在位置から評価し、メニュー選択へ追従します。</summary>
         void AnimateCameraFocus(float elapsed);
+        void SetTransitionState(float progress);
         std::array<float,3> focusPosition_{},focusRotation_{};
         float focusSeconds_=0;
-        int focusRequested_=0;
+        float focusRequested_=0;
         bool focusEngaged_=false;
         UiState uiState_;
         SceneAudio audio_;

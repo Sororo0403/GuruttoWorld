@@ -41,7 +41,8 @@ namespace Engine
                 {"MoveBack",{{DIK_S,DIK_DOWN},XINPUT_GAMEPAD_DPAD_DOWN,-2}},
                 {"Jump",{{DIK_SPACE},XINPUT_GAMEPAD_A}},
                 {"Confirm",{{DIK_RETURN},XINPUT_GAMEPAD_A}},
-                {"Cancel",{{DIK_ESCAPE},XINPUT_GAMEPAD_B}}};
+                {"Cancel",{{DIK_ESCAPE},XINPUT_GAMEPAD_B}},
+                {"SelectModel1",{{DIK_1}}},{"SelectModel2",{{DIK_2}}}};
         }
         static void Validate(const Bindings& bindings)
         {

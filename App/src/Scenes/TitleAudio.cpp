@@ -14,13 +14,13 @@ void TitleAudio::Update(SceneRuntime::SceneEnvironment& environment,const std::f
     const float elapsed=std::isfinite(seconds)?static_cast<float>(std::clamp(seconds,0.0,0.1)):0;
     const float fadeDuration=std::clamp(environment.Ui().Value("musicFadeDuration",0.4f),0.01f,10.0f);
     if(active) fade_=std::min(1.0f,fade_+elapsed/fadeDuration);
-    const float gain=menu.GetSettings().volume/10.0f;
+    const float gain=menu.GetSettings().Gain();
     environment.Ui().values["volumeGain"]=gain;
     environment.Ui().values["musicVolume"]=gain*fade_*(1-menu.TransitionProgress());
     environment.UpdateAudio(active);
     if(active && gain>0) {
-        constexpr const char* cues[]={"","Select","Confirm","Back","Error"};
-        environment.AudioCue(cues[static_cast<size_t>(menu.GetCue())]);
+        const auto cue=static_cast<size_t>(menu.GetCue());
+        if(cue) environment.AudioCue(menu.Configuration().cues[cue-1]);
     }
 }
 }

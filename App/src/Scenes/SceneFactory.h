@@ -1,6 +1,8 @@
 #pragma once
 #include <Engine/Scenes/ISceneFactory.h>
 #include <filesystem>
+#include <set>
+#include <string>
 
 namespace App
 {
@@ -17,6 +19,6 @@ namespace App
         std::unique_ptr<Engine::IScene> Create(std::string_view name) override;
     private:
         std::filesystem::path root_;
-        bool titleVisited_ = false;
+        std::set<std::string> visited_;
     };
 }

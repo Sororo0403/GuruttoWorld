@@ -3,6 +3,12 @@
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
+namespace SceneRuntime {
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuEntry,index,action,target,focus,view,focusClock)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuSetting,key,action,minimum,maximum,step,initial)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuStateBinding,key,source,operation,factor,compare,scale,offset,minimum,maximum,factorDefault)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuConfiguration,entries,settings,inputs,cues,bindings,pressAnyButton,focusState)
+}
 namespace {
 using Engine::Json;
     using Engine::JsonNumber;
@@ -44,12 +50,23 @@ void ReadCanvas(const Json& o,SceneRuntime::ScenePlacement& p) {
             throw std::runtime_error("Invalid Canvas state key");
         c.stateDefaults[key]=Number(o.at("stateDefaults"),key.c_str(),-100000,100000);
     }
+    if(o.contains("menu")) {
+        for(const auto& entry:JsonArray(o.at("menu").at("entries"))) {
+            const auto& index=entry.at("index");
+            if(!index.is_number_integer() || JsonNumber(index)<0 || JsonNumber(index)>=128) throw std::runtime_error("Invalid menu index");
+        }
+        c.menu=o.at("menu").get<SceneRuntime::MenuConfiguration>(); SceneRuntime::ValidateMenu(*c.menu);
+        for(const auto& entry:c.menu->entries) if(entry.action=="setState") {
+            SceneRuntime::UiState state; if(!state.Assign(entry.target)) throw std::runtime_error("Invalid menu state assignment");
+        }
+    }
     p.canvas=std::move(c);
 }
 void WriteCanvas(Json& a,const SceneRuntime::CanvasComponent& c) {
     Json o; Put(o,"id",c.id); Put(o,"type",std::string("Canvas")); Put(o,"enabled",c.enabled);
     Put(o,"referenceSize",c.referenceSize); Put(o,"scaleWithScreen",c.scaleWithScreen);
     Json defaults=Json::object(); for(const auto& [key,value]:c.stateDefaults) Put(defaults,key.c_str(),value); o["stateDefaults"]=defaults;
+    if(c.menu) { SceneRuntime::ValidateMenu(*c.menu); o["menu"]=*c.menu; }
     a.push_back(o);
 }
 void ReadRectTransform(const Json& o,SceneRuntime::ScenePlacement& p) {
@@ -128,6 +145,12 @@ void ReadButton(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(o.contains("event")) c.event=String(o,"event");
     if(o.contains("shortcut")) c.shortcut=String(o,"shortcut");
     if(o.contains("inputAction")) c.inputAction=String(o,"inputAction");
+    if(c.inputAction.empty()) {
+        if(c.shortcut=="space") c.inputAction="Jump";
+        else if(c.shortcut=="escape") c.inputAction="Cancel";
+        else if(c.shortcut=="1") c.inputAction="SelectModel1";
+        else if(c.shortcut=="2") c.inputAction="SelectModel2";
+    }
     if(c.inputAction.size()>128 || c.inputAction.find('\0')!=std::string::npos) throw std::runtime_error("Invalid button input action");
     const std::array<std::string_view,5> shortcuts{"","space","escape","1","2"};
     if(std::find(shortcuts.begin(),shortcuts.end(),c.shortcut)==shortcuts.end()) throw std::runtime_error("Unsupported button shortcut");

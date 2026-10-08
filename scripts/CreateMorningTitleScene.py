@@ -8,7 +8,8 @@ import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCENE = ROOT / "Content/Assets/Scenes/TitleStreet.json"
+SCENE = ROOT / "generated/authoring/MorningTitle.json"
+SCENE.parent.mkdir(parents=True,exist_ok=True)
 objects = []
 
 

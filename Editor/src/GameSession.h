@@ -54,6 +54,8 @@ namespace Editor
         }
         bool Update(double seconds, bool active)
         {
+            if(!active || !state_.CanPause()) title_.Suspend();
+            if(runtime_ && state_.CanPause()) title_.UpdateAudio(*runtime_,seconds,active);
             if(runtime_) runtime_->UpdateAudio(active && state_.CanPause());
             if (!active || !runtime_ || !state_.Advance(seconds)) return false;
             runtime_->Update(seconds,title_.BackgroundMotion(),true);

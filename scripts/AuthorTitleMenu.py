@@ -12,6 +12,7 @@ PATH = ROOT / "Content/Assets/Scenes/TitleStreet.json"
 
 
 def save_scene(scene):
+    (ROOT / "generated/authoring").mkdir(parents=True,exist_ok=True)
     rows=[]
     for key,value in scene.items():
         if key=="objects":
@@ -19,7 +20,7 @@ def save_scene(scene):
             rows.append('  "objects": [\n'+body+'\n  ]')
         else:
             rows.append("  "+json.dumps(key)+": "+json.dumps(value,ensure_ascii=False,separators=(",",":")))
-    PATH.write_bytes(("{\n"+",\n".join(rows)+"\n}\n").replace("\n","\r\n").encode("utf-8"))
+    (ROOT / "generated/authoring/TitleMenu.json").write_bytes(("{\n"+",\n".join(rows)+"\n}\n").replace("\n","\r\n").encode("utf-8"))
 
 
 def author(scene):

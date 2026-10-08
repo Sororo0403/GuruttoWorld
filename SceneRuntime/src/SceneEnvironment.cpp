@@ -69,18 +69,28 @@ namespace SceneRuntime
         {
             const float duration=std::clamp(uiState_.Value("startDuration",0.32f),0.1f,10.0f);
             const float progress=std::clamp(startSeconds_/duration,0.0f,1.0f);
-            uiState_.values["transition"]=progress;
-            uiState_.values["transitionPink"]=std::min(1.0f,progress*uiState_.Value("transitionPinkScale",1.25f));
+            SetTransitionState(progress);
         }
         AnimateCameraFocus(elapsed);
+    }
+    void SceneEnvironment::SetTransitionState(float progress) {
+        for(const auto& object:world_.Layout().objects) if(object.canvas && object.canvas->enabled && object.canvas->menu) {
+            const auto defaults=uiState_.values;
+            for(const auto& binding:object.canvas->menu->bindings) if(binding.source=="transition")
+                uiState_.values[binding.key]=EvaluateMenuBinding(binding,progress,defaults);
+            return;
+        }
+        uiState_.values["transition"]=progress;
+        uiState_.values["transitionPink"]=std::min(1.0f,progress*uiState_.Value("transitionPinkScale",1.25f));
     }
     void SceneEnvironment::AnimateCameraFocus(float elapsed)
     {
         const auto* camera=SceneView::CameraObject(world_.Layout());
         const auto position=camera ? camera->position : std::array<float,3>{};
         const auto rotation=camera ? camera->rotation : std::array<float,3>{};
-        const float focus=uiState_.Value("cameraFocus");
-        const int requested=focus==2 ? 2 : focus==1 ? 1 : 0;
+        const MenuConfiguration* menu=nullptr;
+        for(const auto& object:world_.Layout().objects) if(object.canvas && object.canvas->enabled && object.canvas->menu) {menu=&*object.canvas->menu; break;}
+        const float requested=uiState_.Value(menu?menu->focusState:"cameraFocus");
         if (requested!=focusRequested_)
         {
             focusRequested_=requested; focusEngaged_=true; focusSeconds_=0;
@@ -91,12 +101,14 @@ namespace SceneRuntime
         if (!focusEngaged_ || startSeconds_>=0) return;
         camera=SceneView::CameraObject(world_.Layout());
         if (!camera || !camera->animation || !camera->animation->enabled) return;
-        const std::array<std::string,3> focusClocks{"homeFocusTime","configFocusTime","quitFocusTime"};
-        const auto& clock=focusClocks[focusRequested_];
+        if(!menu) return;
+        const auto entry=std::find_if(menu->entries.begin(),menu->entries.end(),[&](const auto& e){return e.focus==focusRequested_;});
+        if(entry==menu->entries.end() || entry->focusClock.empty()) return;
+        const auto& clock=entry->focusClock;
         const auto pose=SampleCameraFocus(*camera,clock,focusSeconds_,focusPosition_,focusRotation_);
         if (!world_.SetLocalTransform(camera->id,pose.position,pose.rotation,camera->scale))
             Engine::Log::Warning("Camera focus rejected an invalid transform.");
-        if (!focusRequested_ && focusSeconds_>=pose.duration) focusEngaged_=false;
+        if (entry->view==0 && focusSeconds_>=pose.duration) focusEngaged_=false;
     }
     void SceneEnvironment::SeekAnimation(float sceneSeconds,float motionSeconds,float startSeconds)
     {
@@ -109,8 +121,7 @@ namespace SceneRuntime
         uiState_.values["startTime"]=startSeconds;
         const float duration=std::clamp(uiState_.Value("startDuration",0.32f),0.1f,10.0f);
         const float progress=std::clamp(startSeconds/duration,0.0f,1.0f);
-        uiState_.values["transition"]=progress;
-        uiState_.values["transitionPink"]=std::min(1.0f,progress*1.25f);
+        SetTransitionState(progress);
         world_.Animate(uiState_.values);
     }
     std::array<float,3> SceneEnvironment::CameraPosition() const

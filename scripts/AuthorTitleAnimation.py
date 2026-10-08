@@ -61,5 +61,7 @@ if __name__ == "__main__":
     path = Path(__file__).resolve().parent.parent / "Content/Assets/Scenes/TitleStreet.json"
     scene = json.loads(path.read_text(encoding="utf-8"))
     apply_animation(scene)
+    path=Path(__file__).resolve().parent.parent / "generated/authoring/TitleAnimation.json"
+    path.parent.mkdir(parents=True,exist_ok=True)
     path.write_bytes((json.dumps(scene, ensure_ascii=False, indent=2) + "\n").replace("\n", "\r\n").encode("utf-8"))
     print("Authored editable intro, idle and start clips")
