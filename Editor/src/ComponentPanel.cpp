@@ -5,6 +5,7 @@
 #include "AnimatorPanel.h"
 #include "PhysicsPanel.h"
 #include <SceneRuntime/ScriptRuntime.h>
+#include <SceneRuntime/MaterialAsset.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -46,23 +47,34 @@ namespace Editor
         if (ImGui::BeginCombo("モデルアセット###Model asset",ProjectCatalog::Text(mesh.model.filename()).c_str()))
         { edited=ChooseModel(mesh.model,catalog) || edited; ImGui::EndCombo(); }
         ImGui::TextWrapped("%s",text.c_str());
-        const auto materialLabel=mesh.material.empty() ? std::string("モデルの設定") : ProjectCatalog::Text(mesh.material.filename());
-        if (ImGui::BeginCombo("Material###Material asset",materialLabel.c_str()))
-        {
-            if (ImGui::Selectable("モデルの設定",mesh.material.empty())) { mesh.material.clear(); edited=true; }
-            if (catalog) for (const auto& asset : catalog->Assets()) if (asset.kind==AssetKind::Material)
-            { if (ImGui::Selectable(ProjectCatalog::Text(asset.path).c_str(),asset.path==mesh.material)) { mesh.material=asset.path; edited=true; } }
-            ImGui::EndCombo();
-        }
         std::vector<char> condition(std::max(size_t(16385),mesh.visibleWhen.size()+1));
         std::copy(mesh.visibleWhen.begin(),mesh.visibleWhen.end(),condition.begin());
         if(ImGui::InputText("表示条件###Mesh visible when",condition.data(),condition.size()))
         { mesh.visibleWhen=condition.data(); edited=true; }
-        if (ImGui::Button("メッシュ描画をリセット###Reset MeshRenderer")) { mesh.enabled=true; edited=true; }
+        if (ImGui::Button("描画設定を初期化###Reset MeshRenderer")) { mesh.enabled=true; mesh.visibleWhen.clear(); edited=true; }
         ImGui::SameLine();
         if (ImGui::Button("メッシュ描画を削除###Remove MeshRenderer")) { candidate.meshRenderer.reset(); candidate.animator.reset(); edited=true; }
         ImGui::PopID();
         return edited;
+    }
+    bool ComponentPanel::DrawMaterial(EditState& state,SceneRuntime::ScenePlacement& candidate,const ProjectCatalog* catalog)
+    {
+        if (!candidate.material || !ImGui::CollapsingHeader("マテリアル割り当て###Material",ImGuiTreeNodeFlags_DefaultOpen)) return false;
+        auto& material=*candidate.material; ImGui::PushID(material.id.c_str());
+        bool edited=ImGui::Checkbox("有効###Enabled",&material.enabled);
+        const auto label=material.asset.empty() ? std::string("モデルの設定") : ProjectCatalog::Text(material.asset.filename());
+        if (ImGui::BeginCombo("Materialアセット###Material asset",label.c_str())) {
+            if (ImGui::Selectable("モデルの設定",material.asset.empty())) { material.asset.clear(); edited=true; }
+            if (catalog) for (const auto& asset : catalog->Assets()) if (asset.kind==AssetKind::Material)
+                if (ImGui::Selectable(ProjectCatalog::Text(asset.path).c_str(),asset.path==material.asset)) {material.asset=asset.path; edited=true;}
+            ImGui::EndCombo();
+        }
+        if (!material.asset.empty() && ImGui::Button("Materialアセットを編集###Edit material asset")) state.InspectAsset(material.asset);
+        if (ImGui::Button("割り当てを初期化###Reset material binding")) {material.enabled=true; material.asset.clear(); edited=true;}
+        ImGui::SameLine();
+        if (ImGui::Button("割り当てを削除###Remove material binding")) {candidate.material.reset(); edited=true;}
+        if (!candidate.meshRenderer) ImGui::TextWrapped("メッシュ描画を追加すると、この割り当てで描画します。");
+        ImGui::PopID(); return edited;
     }
 
     bool ComponentPanel::DrawRotator(EditState& state, SceneRuntime::ScenePlacement& candidate)
@@ -89,6 +101,8 @@ namespace Editor
         if (ImGui::Button("コンポーネントを追加###Add Component")) ImGui::OpenPopup("コンポーネントを選択###Add component");
         if (!ImGui::BeginPopup("コンポーネントを選択###Add component")) return false;
         bool edited=false;
+        if (ImGui::MenuItem("マテリアル割り当て###Material",nullptr,false,!candidate.material))
+        { candidate.material=SceneRuntime::MaterialComponent{NewComponentId(candidate,"material"),true,{}}; edited=true; }
         if (ImGui::BeginMenu("メッシュ描画###MeshRenderer",!candidate.meshRenderer))
         {
             std::filesystem::path model;
@@ -139,6 +153,7 @@ namespace Editor
     {
         auto candidate=placement;
         bool edited=DrawMesh(candidate,catalog);
+        edited=DrawMaterial(state,candidate,catalog) || edited;
         edited=DrawRotator(state,candidate) || edited;
         edited=AnimatorPanel::Draw(candidate,catalog) || edited;
         if (candidate.playerController && ImGui::CollapsingHeader("プレイヤー操作###PlayerController",ImGuiTreeNodeFlags_DefaultOpen))

@@ -20,6 +20,7 @@
 #include "GameSession.h"
 #include <SceneRuntime/Prefab.h>
 #include "UiCanvasPanel.h"
+#include "UiEditorPanel.h"
 #include "AudioPreview.h"
 #include "EditorFonts.h"
 #include "PlaySnapshot.h"
@@ -59,6 +60,14 @@ namespace
     class StreetEditor final
     {
     public:
+        explicit StreetEditor(const std::filesystem::path& scene="Assets/Scenes/TitleStreet.json")
+        {
+            if (scene.is_absolute() || scene.has_root_name() || scene.extension()!=".json" ||
+                !Editor::ProjectCatalog::Text(scene).starts_with("Assets/Scenes/") ||
+                std::any_of(scene.begin(),scene.end(),[](const auto& part){return part=="..";}))
+                throw std::runtime_error("Invalid initial scene path");
+            document=Editor::SceneDocument(root/scene);
+        }
         int Run()
         {
             if (root.empty()) return 1;
@@ -93,7 +102,7 @@ namespace
         {
             const auto updateStart=std::chrono::steady_clock::now();
             buildPanel.Poll(root);
-            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer)) return Engine::RenderResult::Failed;
+            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer) || !PrepareUiTexture(renderer)) return Engine::RenderResult::Failed;
             if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
             ApplyUiEvent(renderer);
             audioPreview.Process(root);
@@ -139,6 +148,11 @@ namespace
             bool success=projectPanel.RenderPreview(commands);
             if (sceneViewport.Valid()) success=DrawSceneTexture(commands) && success;
             if (gamePanel.Viewport().Valid()) success=DrawGameTexture(commands) && success;
+            if (uiEditorPanel.Visible() && presentation) {
+                if (!uiTexture.Begin(commands,{.12f,.12f,.14f,1})) return false;
+                presentation->DrawUi(commands,world.Layout(),uiTexture.GetWidth(),uiTexture.GetHeight(),uiEditorPanel.PreviewState());
+                success=uiTexture.End(commands) && success;
+            }
             return success;
         }
 
@@ -178,6 +192,14 @@ namespace
             }
             gameTextureId=renderer.SetSceneTexture(gameTexture.GetShaderResourceView(),1).ptr;
             return gameTextureId!=0;
+        }
+        bool PrepareUiTexture(Engine::DirectX12Renderer& renderer)
+        {
+            const auto size=uiEditorPanel.Resolution();
+            if (uiTexture.GetWidth()==size[0] && uiTexture.GetHeight()==size[1]) return true;
+            if (!uiTexture.Resize(renderer,size[0],size[1])) return false;
+            uiTextureId=renderer.SetSceneTexture(uiTexture.GetShaderResourceView(),4).ptr;
+            return uiTextureId!=0;
         }
 
         bool DrawGameTexture(ID3D12GraphicsCommandList* commands)
@@ -544,6 +566,7 @@ namespace
             uiCanvasPanel.Draw(world,editState,gamePanel.Viewport(),SceneEditingEnabled());
             UpdateGamePointer();
             Editor::ScenePanel::End();
+            uiEditorPanel.Draw(uiTextureId,world.Layout(),editState,SceneEditingEnabled());
             scenePanel.Begin(sceneTextureId);
             sceneViewport = scenePanel.Viewport();
             requestedSceneSize = scenePanel.RequestedSize();
@@ -1107,6 +1130,9 @@ namespace
         std::optional<SceneRuntime::UiEvent> pendingUiEvent;
         Editor::AudioPreview audioPreview;
         Editor::UiCanvasPanel uiCanvasPanel;
+        Editor::UiEditorPanel uiEditorPanel;
+        Engine::RenderTexture uiTexture;
+        UINT64 uiTextureId=0;
         Editor::GameSession gameSession;
         std::optional<Editor::PlaySnapshot> playSnapshot;
         std::optional<Editor::GameSession::Command> pendingPlay;
@@ -1144,8 +1170,16 @@ namespace
     };
 }
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int)
 {
-    StreetEditor editor;
-    return editor.Run();
+    try {
+        auto arguments=std::wstring_view(commandLine?commandLine:L"");
+        std::filesystem::path scene="Assets/Scenes/TitleStreet.json";
+        if (arguments.starts_with(L"--scene=")) scene=arguments.substr(8);
+        StreetEditor editor(scene);
+        return editor.Run();
+    } catch(const std::exception& error) {
+        MessageBoxA(nullptr,error.what(),"Editor startup error",MB_OK|MB_ICONERROR);
+        return 1;
+    }
 }

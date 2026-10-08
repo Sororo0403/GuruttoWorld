@@ -40,9 +40,24 @@ namespace MaterialValidation
         Require(rejected && SceneRuntime::MaterialAsset::Load(root,path).values.color==saved,"invalid material save preserves prior asset");
         Require(!SceneRuntime::MaterialAsset::ValidPath("Assets/Materials/../Bad.mat"),"material path rejects traversal");
         Require(Editor::ProjectCatalog::Kind(path)==Editor::AssetKind::Material,"Project classifies materials");
-        SceneRuntime::ScenePlacement object; object.id="mesh"; object.SetModel("Assets/Models/Cube.obj"); object.meshRenderer->material=path;
+        SceneRuntime::ScenePlacement object; object.id="mesh"; object.SetModel("Assets/Models/Cube.obj"); object.material=SceneRuntime::MaterialComponent{"material",true,path};
         SceneRuntime::SceneLayout scene; scene.objects={object};
-        Require(SceneRuntime::SceneLayout::Parse(scene.Serialize()).objects[0].meshRenderer->material==path,"Mesh material reference roundtrip");
+        Require(SceneRuntime::SceneLayout::Parse(scene.Serialize()).objects[0].Material()==path,"Independent material component reference roundtrip");
+        const auto serialized=Engine::Json::parse(scene.Serialize());
+        auto legacyScene=serialized;
+        legacyScene["objects"][0]["components"].erase(legacyScene["objects"][0]["components"].begin()+1);
+        legacyScene["objects"][0]["components"][0]["material"]=Engine::AssetDatabase::Text(path);
+        const auto migrated=SceneRuntime::SceneLayout::Parse(legacyScene.dump());
+        Require(migrated.objects[0].material && migrated.objects[0].Material()==path &&
+            !Engine::Json::parse(migrated.Serialize())["objects"][0]["components"][0].contains("material"),
+            "legacy mesh material migrates to independent component without data loss");
+        object.meshRenderer.reset(); scene.objects[0]=object;
+        const auto withoutMesh=SceneRuntime::SceneLayout::Parse(scene.Serialize());
+        Require(!withoutMesh.objects[0].meshRenderer && withoutMesh.objects[0].Material()==path,
+            "material assignment survives removal of mesh renderer");
+        object.material->enabled=false; scene.objects[0]=object;
+        Require(SceneRuntime::SceneLayout::Parse(scene.Serialize()).objects[0].Material().empty(),
+            "disabled material binding falls back to model materials");
     }
     inline void Rendering(Engine::DirectX12Renderer& renderer)
     {

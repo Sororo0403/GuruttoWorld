@@ -185,7 +185,7 @@ namespace SceneRuntime
                         if (!instance || (!reuse && !instance->ApplyPose(Animator::Advance(*placement.animator,animatorStates[placement.id],*model->Rig(),0,{},&matrices[objects.size()])))) throw std::runtime_error("Animator initialization failed");
                         object.SetModel(instance); animated[placement.id]=std::move(instance);
                     }
-                    const auto& material=placement.meshRenderer->material;
+                    const auto& material=placement.Material();
                     if (!material.empty())
                     {
                         auto found=materials.find(material);
@@ -420,7 +420,7 @@ namespace SceneRuntime
             if (!found->camera && candidate.settings.mainCamera==id) candidate.settings.mainCamera.clear();
             static_cast<void>(candidate.Serialize());
             const auto index=static_cast<size_t>(found-candidate.objects.begin());
-            if (found->meshRenderer==layout_.objects[index].meshRenderer && found->animator==layout_.objects[index].animator)
+            if (found->meshRenderer==layout_.objects[index].meshRenderer && found->material==layout_.objects[index].material && found->animator==layout_.objects[index].animator)
             {
                 layout_.objects[index].CopyComponents(*found);
                 layout_.settings=candidate.settings;
@@ -498,7 +498,7 @@ namespace SceneRuntime
         if (!runtime.Update(candidate,seconds,error,inputValues_,inputPressed_,&physicsWorld_)) { Engine::Log::Warning(error); return false; }
         const bool rebuild=candidate.objects.size()!=layout_.objects.size() ||
             !std::equal(candidate.objects.begin(),candidate.objects.end(),layout_.objects.begin(),[](const auto& a,const auto& b) {
-                return a.id==b.id && a.meshRenderer==b.meshRenderer && a.animator==b.animator;
+                return a.id==b.id && a.meshRenderer==b.meshRenderer && a.material==b.material && a.animator==b.animator;
             });
         PreparedLayout prepared;
         if (rebuild)
@@ -754,7 +754,7 @@ namespace SceneRuntime
                     if (!animated || !animated->ApplyPose(Animator::Advance(*placement.animator,animatorState,*model->Rig(),0,{},&matrices.back()))) throw std::runtime_error("Animator initialization failed");
                     object.SetModel(animated);
                 }
-                if (!placement.meshRenderer->material.empty()) object.SetMaterial(MaterialAsset::Load(assetsRoot,placement.meshRenderer->material).Prepare(materialDevice_.Get(),materialQueue_.Get(),assetsRoot));
+                if (!placement.Material().empty()) object.SetMaterial(MaterialAsset::Load(assetsRoot,placement.Material()).Prepare(materialDevice_.Get(),materialQueue_.Get(),assetsRoot));
             }
             const auto id = placement.id;
             Append(std::move(placement), std::move(object));

@@ -1062,7 +1062,25 @@
             465,
             118
           ],
-          "visibleWhen": ""
+          "visibleWhen": "",
+          "introDelay": 0,
+          "anchorMax": [
+            0,
+            0
+          ],
+          "opacityBinding": "",
+          "introOffset": 0,
+          "widthBinding": "",
+          "pivot": [
+            0,
+            0
+          ],
+          "offsetBinding": "",
+          "rotation": 0,
+          "anchorMin": [
+            0,
+            0
+          ]
         },
         {
           "type": "Image",
@@ -1074,6 +1092,12 @@
             0.16,
             0.2,
             0.82
+          ],
+          "uv": [
+            0,
+            0,
+            1,
+            1
           ]
         }
       ]
@@ -1110,7 +1134,25 @@
             430,
             42
           ],
-          "visibleWhen": ""
+          "visibleWhen": "",
+          "introDelay": 0,
+          "anchorMax": [
+            0,
+            0
+          ],
+          "opacityBinding": "",
+          "introOffset": 0,
+          "widthBinding": "",
+          "pivot": [
+            0,
+            0
+          ],
+          "offsetBinding": "",
+          "rotation": 0,
+          "anchorMin": [
+            0,
+            0
+          ]
         },
         {
           "type": "Text",
@@ -1160,7 +1202,25 @@
             1040,
             48
           ],
-          "visibleWhen": ""
+          "visibleWhen": "",
+          "introDelay": 0,
+          "anchorMax": [
+            0,
+            0
+          ],
+          "opacityBinding": "",
+          "introOffset": 0,
+          "widthBinding": "",
+          "pivot": [
+            0,
+            0
+          ],
+          "offsetBinding": "",
+          "rotation": 0,
+          "anchorMin": [
+            0,
+            0
+          ]
         },
         {
           "type": "Image",
@@ -1172,6 +1232,12 @@
             0.16,
             0.2,
             0.82
+          ],
+          "uv": [
+            0,
+            0,
+            1,
+            1
           ]
         }
       ]
@@ -1208,7 +1274,25 @@
             1020,
             35
           ],
-          "visibleWhen": ""
+          "visibleWhen": "",
+          "introDelay": 0,
+          "anchorMax": [
+            0,
+            0
+          ],
+          "opacityBinding": "",
+          "introOffset": 0,
+          "widthBinding": "",
+          "pivot": [
+            0,
+            0
+          ],
+          "offsetBinding": "",
+          "rotation": 0,
+          "anchorMin": [
+            0,
+            0
+          ]
         },
         {
           "type": "Text",
@@ -1258,7 +1342,25 @@
             600,
             48
           ],
-          "visibleWhen": ""
+          "visibleWhen": "",
+          "introDelay": 0,
+          "anchorMax": [
+            0,
+            0
+          ],
+          "opacityBinding": "",
+          "introOffset": 0,
+          "widthBinding": "",
+          "pivot": [
+            0,
+            0
+          ],
+          "offsetBinding": "",
+          "rotation": 0,
+          "anchorMin": [
+            0,
+            0
+          ]
         },
         {
           "type": "Text",
@@ -1356,6 +1458,25 @@
           "size": [
             420,
             45
+          ],
+          "introDelay": 0,
+          "anchorMax": [
+            0,
+            0
+          ],
+          "opacityBinding": "",
+          "introOffset": 0,
+          "visibleWhen": "",
+          "widthBinding": "",
+          "pivot": [
+            0,
+            0
+          ],
+          "offsetBinding": "",
+          "rotation": 0,
+          "anchorMin": [
+            0,
+            0
           ]
         },
         {
@@ -1367,7 +1488,19 @@
           "sound": "",
           "event": "",
           "shortcut": "escape",
-          "inputAction": "Cancel"
+          "inputAction": "Cancel",
+          "hoverColor": [
+            1,
+            0.85,
+            0.8,
+            1
+          ],
+          "pressedColor": [
+            0.7,
+            0.7,
+            0.7,
+            1
+          ]
         },
         {
           "type": "Text",
@@ -1416,6 +1549,25 @@
           "size": [
             0,
             0
+          ],
+          "introDelay": 0,
+          "anchorMax": [
+            0,
+            0
+          ],
+          "opacityBinding": "",
+          "introOffset": 0,
+          "visibleWhen": "",
+          "widthBinding": "",
+          "pivot": [
+            0,
+            0
+          ],
+          "offsetBinding": "",
+          "rotation": 0,
+          "anchorMin": [
+            0,
+            0
           ]
         },
         {
@@ -1426,7 +1578,19 @@
           "target": "Assets/Scenes/AdventureDemo.json",
           "sound": "",
           "event": "",
-          "shortcut": "2"
+          "shortcut": "2",
+          "hoverColor": [
+            1,
+            0.85,
+            0.8,
+            1
+          ],
+          "pressedColor": [
+            0.7,
+            0.7,
+            0.7,
+            1
+          ]
         }
       ]
     }

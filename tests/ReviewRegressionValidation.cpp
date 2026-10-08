@@ -14,6 +14,7 @@
 #include "../Editor/src/SceneSnapshotCache.h"
 #include "../Editor/src/AssetFileTransaction.h"
 #include "../Editor/src/BlendTreePanel.h"
+#include "../Editor/src/UiCanvasTransform.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetInfo.h"
@@ -1180,7 +1181,8 @@ namespace
             Check(modelPreviewId && imagePreviewId && modelPreviewId!=imagePreviewId &&
                 modelPreviewId!=textureId && imagePreviewId!=gameId,
                 "asset previews use dedicated UI descriptors independent of Scene and Game");
-            Check(!renderer.SetSceneTexture(target.GetShaderResourceView(),4).ptr, "invalid preview slot is rejected");
+            Check(renderer.SetSceneTexture(target.GetShaderResourceView(),4).ptr!=0,"UI editor has a dedicated preview slot");
+            Check(!renderer.SetSceneTexture(target.GetShaderResourceView(),5).ptr, "invalid preview slot is rejected");
 #endif
             auto* device = renderer.GetDevice();
             D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
@@ -2910,6 +2912,30 @@ void ValidateEditorTitlePreview()
 
 void ValidateUiCanvasInteraction()
 {
+    SceneRuntime::SceneLayout geometry;
+    SceneRuntime::ScenePlacement geometryCanvas; geometryCanvas.id="canvas"; geometryCanvas.canvas.emplace(); geometryCanvas.canvas->referenceSize={400,300};
+    geometry.objects.push_back(geometryCanvas);
+    SceneRuntime::ScenePlacement geometryObject; geometryObject.id="ui"; geometryObject.parentId="canvas"; geometryObject.rectTransform.emplace();
+    geometryObject.rectTransform->position={40,60}; geometryObject.rectTransform->size={120,80}; geometryObject.rectTransform->pivot={.3f,.7f}; geometryObject.rectTransform->rotation=.4f;
+    geometry.objects.push_back(geometryObject);
+    const auto corner=[](const SceneRuntime::UiRect& r,float x,float y) {
+        const float dx=(x-.5f)*r.size[0],dy=(y-.5f)*r.size[1];
+        return std::array<float,2>{r.position[0]+r.size[0]*.5f+dx*std::cos(r.rotation)-dy*std::sin(r.rotation),
+            r.position[1]+r.size[1]*.5f+dx*std::sin(r.rotation)+dy*std::cos(r.rotation)};
+    };
+    const auto before=SceneRuntime::SceneUi::Resolve(geometry,geometry.objects[1],400,300);
+    for(const auto& handle:std::array<std::array<float,2>,8>{{{-1,-1},{0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1},{-1,0}}}) {
+        geometry.objects[1].rectTransform=Editor::UiCanvasTransform::Resize(*geometryObject.rectTransform,0,1,handle,{13,-8});
+        const auto after=SceneRuntime::SceneUi::Resolve(geometry,geometry.objects[1],400,300);
+        const auto fixedBefore=corner(before,(1-handle[0])*.5f,(1-handle[1])*.5f);
+        const auto fixedAfter=corner(after,(1-handle[0])*.5f,(1-handle[1])*.5f);
+        Check(std::abs(fixedBefore[0]-fixedAfter[0])<.001f && std::abs(fixedBefore[1]-fixedAfter[1])<.001f,
+            "all eight rotated resize handles preserve opposite edge or corner");
+    }
+    geometry.objects[1].rectTransform=Editor::UiCanvasTransform::Pivot(*geometryObject.rectTransform,before,{8,10});
+    const auto pivotAfter=SceneRuntime::SceneUi::Resolve(geometry,geometry.objects[1],400,300);
+    Check(std::abs(before.position[0]-pivotAfter.position[0])<.001f && std::abs(before.position[1]-pivotAfter.position[1])<.001f,
+        "graphical pivot editing preserves visual rectangle position");
     ImGui::CreateContext();
     auto& io=ImGui::GetIO(); io.IniFilename=nullptr; io.DisplaySize={640,480}; io.DeltaTime=1.0f/60;
     io.Fonts->Build();
@@ -2941,6 +2967,13 @@ void ValidateUiCanvasInteraction()
     io.AddKeyEvent(ImGuiMod_Ctrl,false); frame(90,90,false);
     state.Select("lower"); frame(450,170,false); frame(450,170,true);
     Check(!panel.IsDragging(),"UI drag does not start outside viewport");
+    frame(450,170,false); state.Select({});
+    layout.objects[2].rectTransform->visibleWhen="screen=1";
+    SceneRuntime::UiState preview; preview.values["screen"]=1; panel.SetPreviewState(preview);
+    frame(90,90,false); frame(90,90,true);
+    Check(state.SelectedId()=="upper" && panel.IsDragging(),"preview state selects otherwise hidden UI without editing Canvas defaults");
+    frame(90,90,false);
+    Check(layout.objects[0].canvas->stateDefaults.empty(),"UI preview state leaves authored defaults unchanged");
     ImGui::DestroyContext();
 }
 
@@ -3244,6 +3277,44 @@ int main()
         if(GetEnvironmentVariableW(L"WP1_EDITOR_INTEGRITY_ONLY",nullptr,0)) {
             ValidateEditorIntegrity();
             std::cout<<"PASS: scene snapshot cache, animator parameter references and prefab rollback\n";
+            return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_EDITOR_MATERIAL_ONLY",nullptr,0)) {
+            MaterialValidation::Schema();
+            std::cout<<"PASS: independent Material component, legacy migration and mesh removal preservation\n";
+            return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_ADVENTURE_ONLY",nullptr,0)) {
+            const auto root=std::filesystem::absolute("Content");
+            const auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/AdventureDemo.json",root);
+            Check(std::any_of(layout.objects.begin(),layout.objects.end(),[](const auto& object){return object.material.has_value();}),
+                "adventure scene loads independent Material components");
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden adventure stage validation",640,360),"adventure validation window");
+            Check(renderer.Initialize(window.GetHandle()),"adventure validation renderer");
+            Editor::GameSession game; std::string error;
+            Check(game.Play(renderer,root,layout,error),("adventure starts in Editor Play: "+error).c_str());
+            const auto player=[&]() {
+                const auto& objects=game.Runtime()->World().Layout().objects;
+                const auto found=std::find_if(objects.begin(),objects.end(),[](const auto& object){return object.id=="Player";});
+                Check(found!=objects.end(),"adventure player exists"); return found->position;
+            };
+            const auto initial=player();
+            for(int frame=0;frame<60;++frame) {game.Runtime()->MovePlayers(1.0/60,1,0); game.Update(1.0/60,true);}
+            const auto moved=player();
+            Check(moved[0]>initial[0]+2,"adventure player moves using existing controller");
+            for(int frame=0;frame<10;++frame) {game.Runtime()->MovePlayers(1.0/60,0,0,frame==0); game.Update(1.0/60,true);}
+            Check(player()[1]>moved[1]+.2f,"adventure player jumps using existing physics");
+            Check(renderer.Render(layout.settings.background,[&](auto* commands,float){game.Draw(commands,640,360);})!=Engine::RenderResult::Failed,
+                "adventure Material and UI render successfully");
+            const auto restart=game.Runtime()->Click("Restart");
+            Check(restart.action=="loadScene" && restart.target=="Assets/Scenes/AdventureDemo.json","adventure restart button targets authored scene");
+            Check(renderer.WaitForIdle(),"adventure reload GPU completion");
+            Check(game.LoadScene(renderer,root,layout,error),("adventure restarts in Editor Play: "+error).c_str());
+            Check(player()==initial,"adventure restart resets player position");
+            Check(renderer.WaitForIdle(),"adventure stop GPU completion"); game.Stop();
+            CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: adventure independent Material loading, Editor Play, movement, jump, rendering and restart\n";
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_TEXTURE_IMPORT_ONLY",nullptr,0)) {

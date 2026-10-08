@@ -104,14 +104,16 @@ namespace
             if (placement.meshRenderer) throw std::runtime_error("Only one MeshRenderer is allowed");
             placement.meshRenderer=SceneRuntime::MeshRendererComponent{id,enabled,ReadModel(component)};
             if (component.contains("visibleWhen")) placement.meshRenderer->visibleWhen=component.at("visibleWhen").get<std::string>();
-            if (component.contains("material"))
-            {
-                const auto text=component.at("material").get<std::string>();
-                placement.meshRenderer->material=std::filesystem::path(std::u8string(text.begin(),text.end()));
-                if (!placement.meshRenderer->material.empty() && !SceneRuntime::MaterialAsset::ValidPath(placement.meshRenderer->material)) throw std::runtime_error("Invalid mesh material path");
-            }
             SceneRuntime::UiState check;
             if (!check.Assign(placement.meshRenderer->visibleWhen)) throw std::runtime_error("Invalid mesh visibility expression");
+        }
+        else if (type=="Material")
+        {
+            if (placement.material) throw std::runtime_error("Only one Material is allowed");
+            const auto text=component.at("asset").get<std::string>();
+            const auto path=std::filesystem::path(std::u8string(text.begin(),text.end()));
+            if (!path.empty() && !SceneRuntime::MaterialAsset::ValidPath(path)) throw std::runtime_error("Invalid material asset path");
+            placement.material=SceneRuntime::MaterialComponent{id,enabled,path};
         }
         else if (type=="Rotator")
         {
@@ -232,6 +234,7 @@ namespace SceneRuntime
         }
         if (object.contains("model")) throw std::runtime_error("Version 3 model belongs to MeshRenderer");
         std::unordered_set<std::string> ids{"transform"};
+        std::filesystem::path legacyMaterial;
         for (const auto& value : JsonArray(object.at("components")))
         {
             const auto& component=JsonObject(value);
@@ -239,9 +242,20 @@ namespace SceneRuntime
             if (id.empty() || id.find('\0')!=std::string::npos || !ids.insert(id).second)
                 throw std::runtime_error("Empty, duplicate or reserved component ID");
             const auto type=component.at("type").get<std::string>();
+            if (type=="MeshRenderer" && component.contains("material")) {
+                const auto text=component.at("material").get<std::string>();
+                legacyMaterial=std::filesystem::path(std::u8string(text.begin(),text.end()));
+                if (!legacyMaterial.empty() && !MaterialAsset::ValidPath(legacyMaterial)) throw std::runtime_error("Invalid legacy mesh material path");
+            }
             if (!ReadBasicComponent(component,placement,type) && !ReadEnvironmentComponent(component,placement,type) &&
                 !ReadUiComponent(component,placement,type))
                 throw std::runtime_error("Unsupported component type: "+type);
+        }
+        if (!legacyMaterial.empty()) {
+            if (placement.material) throw std::runtime_error("Material specified both in MeshRenderer and Material component");
+            std::string id="material"; size_t number=2;
+            while (ids.contains(id)) id="material-"+std::to_string(number++);
+            placement.material=MaterialComponent{id,true,legacyMaterial};
         }
     }
 
@@ -254,8 +268,13 @@ namespace SceneRuntime
             auto object=Component(mesh.id,"MeshRenderer",mesh.enabled);
             object["model"]=mesh.model;
             object["visibleWhen"]=mesh.visibleWhen;
-            object["material"]=mesh.material;
             components.push_back(object);
+        }
+        if (placement.material)
+        {
+            const auto& material=*placement.material;
+            auto object=Component(material.id,"Material",material.enabled);
+            object["asset"]=material.asset; components.push_back(std::move(object));
         }
         if (placement.rotator)
         {

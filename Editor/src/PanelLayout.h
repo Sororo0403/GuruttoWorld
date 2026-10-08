@@ -62,6 +62,7 @@ namespace Editor::PanelLayout
         ImGui::DockBuilderDockWindow("インスペクター###Inspector", right);
         ImGui::DockBuilderDockWindow("シーン###Scene", center);
         ImGui::DockBuilderDockWindow("ゲーム###Game", center);
+        ImGui::DockBuilderDockWindow("UI編集###UI Editor", center);
         ImGui::DockBuilderDockWindow("プロジェクト###Models", bottom);
         ImGui::DockBuilderDockWindow("シーンカメラ###Debug Camera", bottom);
         ImGui::DockBuilderDockWindow("コンソール###Console", bottom);

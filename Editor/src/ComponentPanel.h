@@ -11,6 +11,7 @@ namespace Editor
             const ProjectCatalog* catalog);
     private:
         static bool DrawMesh(SceneRuntime::ScenePlacement& candidate, const ProjectCatalog* catalog);
+        static bool DrawMaterial(EditState& state,SceneRuntime::ScenePlacement& candidate,const ProjectCatalog* catalog);
         static bool DrawRotator(EditState& state, SceneRuntime::ScenePlacement& candidate);
         static bool DrawAdd(SceneRuntime::ScenePlacement& candidate, const ProjectCatalog* catalog);
         static bool ChooseModel(std::filesystem::path& model, const ProjectCatalog* catalog);

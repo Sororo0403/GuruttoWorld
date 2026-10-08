@@ -102,8 +102,8 @@ namespace Engine
             context_ = nullptr;
         }
         descriptorHeap_.Reset();
-        std::fill_n(sceneCpu_,4,D3D12_CPU_DESCRIPTOR_HANDLE{});
-        std::fill_n(sceneGpu_,4,D3D12_GPU_DESCRIPTOR_HANDLE{});
+        std::fill_n(sceneCpu_,5,D3D12_CPU_DESCRIPTOR_HANDLE{});
+        std::fill_n(sceneGpu_,5,D3D12_GPU_DESCRIPTOR_HANDLE{});
         descriptorSize_ = 0;
         allocated_.fill(false);
     }
@@ -126,7 +126,7 @@ namespace Engine
 
     D3D12_GPU_DESCRIPTOR_HANDLE ImGuiLayer::SetSceneTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE source, unsigned int slot)
     {
-        if (!rendererInitialized_ || !device || !source.ptr || slot >= 4) return {};
+        if (!rendererInitialized_ || !device || !source.ptr || slot >= 5) return {};
         if (!sceneCpu_[slot].ptr) AllocateDescriptor(sceneCpu_[slot], sceneGpu_[slot]);
         device->CopyDescriptorsSimple(1, sceneCpu_[slot], source, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
         return sceneGpu_[slot];

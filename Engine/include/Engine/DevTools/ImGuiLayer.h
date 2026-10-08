@@ -93,8 +93,8 @@ namespace Engine
         ImGuiContext* context_ = nullptr;
         bool platformInitialized_ = false;
         bool rendererInitialized_ = false;
-        D3D12_CPU_DESCRIPTOR_HANDLE sceneCpu_[4]{};
-        D3D12_GPU_DESCRIPTOR_HANDLE sceneGpu_[4]{};
+        D3D12_CPU_DESCRIPTOR_HANDLE sceneCpu_[5]{};
+        D3D12_GPU_DESCRIPTOR_HANDLE sceneGpu_[5]{};
         UINT descriptorSize_ = 0;
         std::array<bool, DescriptorCount> allocated_{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap_;

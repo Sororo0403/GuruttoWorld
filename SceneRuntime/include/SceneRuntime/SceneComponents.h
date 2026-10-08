@@ -13,8 +13,14 @@ namespace SceneRuntime
         bool enabled=true;
         std::filesystem::path model;
         std::string visibleWhen;
-        std::filesystem::path material;
         bool operator==(const MeshRendererComponent&) const = default;
+    };
+    struct MaterialComponent
+    {
+        std::string id="material";
+        bool enabled=true;
+        std::filesystem::path asset;
+        bool operator==(const MaterialComponent&) const = default;
     };
     struct PlayerControllerComponent
     {
