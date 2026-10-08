@@ -23,6 +23,14 @@ namespace Editor
         void DrawInspector(EditState& state, bool enabled=true);
         void RequestDrop(EditState& state, const std::string& path, const std::array<float,3>& position) const;
         const ProjectCatalog& Catalog() const { return catalog_; }
+        bool HasMaterialChanges() const { return materialPanel_.HasChanges(); }
+        void SaveMaterials() { materialPanel_.SaveAll(root_); }
+        auto TakeAssetMove()
+        {
+            auto moved=std::move(assetMove_);
+            assetMove_.reset();
+            return moved;
+        }
         std::optional<std::filesystem::path> TakeSceneRequest()
         {
             auto request=std::move(sceneRequest_);
@@ -42,6 +50,7 @@ namespace Editor
         std::filesystem::path previewed_;
         std::optional<AssetInfo> info_;
         std::optional<std::filesystem::path> sceneRequest_;
+        std::optional<std::pair<std::filesystem::path,std::filesystem::path>> assetMove_;
         std::array<char,256> search_{};
         std::array<float,3> addPosition_{};
         bool positionInitialized_=false;

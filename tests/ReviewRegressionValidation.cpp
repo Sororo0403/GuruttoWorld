@@ -9,6 +9,7 @@
 #include "../Editor/src/ModelDrop.h"
 #include "../Editor/src/ConsoleFilter.h"
 #include "../Editor/src/SceneDocument.h"
+#include "../Editor/src/MaterialDocument.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetInfo.h"
@@ -2812,9 +2813,60 @@ void ValidateSaveAs()
     document.SaveAs(layout,existing,true);
     Check(document.Path()==existing && SceneRuntime::SceneLayout::Load(existing).Serialize()==layout.Serialize(),
         "confirmed Save as replaces destination and changes active path");
+    auto external=layout;
+    external.objects[0].name="external edit";
+    external.Save(existing);
+    rejected=false;
+    try { document.Save(layout); } catch (const std::exception&) { rejected=true; }
+    Check(rejected && SceneRuntime::SceneLayout::Load(existing).Serialize()==external.Serialize(),
+        "ordinary save protects external scene edits");
+    Editor::SceneDocument renamed(existing);
+    const auto relocated=root/"Assets/Scenes/relocated.json";
+    if (std::filesystem::exists(relocated)) std::filesystem::remove(relocated);
+    std::filesystem::rename(existing,relocated);
+    renamed.AssetMoved(existing,relocated);
+    renamed.Save(layout);
+    Check(renamed.Path()==relocated && !std::filesystem::exists(existing) &&
+        SceneRuntime::SceneLayout::Load(relocated).Serialize()==layout.Serialize(),
+        "saving a moved scene updates destination without recreating old file");
+    std::filesystem::remove(relocated);
+    rejected=false;
+    try { renamed.Save(layout); } catch (const std::exception&) { rejected=true; }
+    Check(rejected && !std::filesystem::exists(relocated),"ordinary save protects external scene deletion");
     Check(Editor::SceneDocument::SaveTarget(root,"existing.json")==existing &&
         Editor::SceneDocument::SaveTarget(root,"新規コピー.JSON").parent_path()==root/"Assets/Scenes",
         "Save as accepts existing and UTF-8 targets for subsequent confirmation");
+}
+
+void ValidateMaterialDocuments()
+{
+    const auto root=std::filesystem::absolute("generated/tests/material-documents");
+    const std::filesystem::path first="Assets/Materials/first.mat",second="Assets/Materials/second.mat",broken="Assets/Materials/broken.mat";
+    SceneRuntime::MaterialAsset asset;
+    asset.values.roughness=0.5f;
+    asset.Save(root,first); asset.Save(root,second);
+    Editor::MaterialDocument a,b,invalid;
+    a.Refresh(root,first); a.Asset().values.roughness=0.3f;
+    b.Refresh(root,second); a.Refresh(root,first,true);
+    Check(a.Dirty() && a.Asset().values.roughness==0.3f && !b.Dirty(),"material drafts survive switching assets independently");
+    std::ofstream(root/broken)<<"{\"invalid\":true}";
+    bool rejected=false;
+    try { invalid.Refresh(root,broken); } catch (const std::exception&) { rejected=true; }
+    Check(rejected && !invalid.Loaded(),"failed material load never exposes another asset");
+    rejected=false;
+    try { invalid.Save(root,broken); } catch (const std::exception&) { rejected=true; }
+    Check(rejected,"failed material load disables saving");
+    asset.values.roughness=0.9f; asset.Save(root,first); asset.Save(root,second);
+    a.Refresh(root,first,true); b.Refresh(root,second,true);
+    Check(a.Conflict() && a.Asset().values.roughness==0.3f && b.Asset().values.roughness==0.9f,
+        "external material reload updates clean assets and preserves conflicting drafts");
+    rejected=false;
+    try { a.Save(root,first); } catch (const std::exception&) { rejected=true; }
+    Check(rejected && SceneRuntime::MaterialAsset::Load(root,first).values.roughness==0.9f,
+        "material save protects external changes");
+    a.Reload(root,first); a.Asset().values.roughness=0.4f; a.Save(root,first);
+    Check(!a.Dirty() && SceneRuntime::MaterialAsset::Load(root,first).values.roughness==0.4f,
+        "explicit reload resolves material conflict and subsequent save clears dirty state");
 }
 
 void ValidateConsoleLog()
@@ -2888,6 +2940,7 @@ void ValidateProjectCatalog()
         fixture << "fixture";
     }
     Editor::ProjectCatalog catalog;
+    std::filesystem::create_directories(root/"Assets/EmptyFolder");
     Check(catalog.Scan(root) && catalog.Assets().size()==9, "Project lists typed assets and shaders with case-insensitive extensions");
     std::array<size_t,6> counts{};
     for (const auto& asset : catalog.Assets())
@@ -2903,8 +2956,10 @@ void ValidateProjectCatalog()
         Editor::ProjectCatalog::Matches(nested,"Assets/Scenes","BUILDING") &&
         !Editor::ProjectCatalog::Matches(nested,"Assets","missing"), "Project folder browsing and global path search");
     Check(std::find(catalog.Folders().begin(),catalog.Folders().end(),"Assets/Models/Title")!=catalog.Folders().end() &&
-        std::find(catalog.Folders().begin(),catalog.Folders().end(),"Assets/Settings")==catalog.Folders().end(),
-        "Project tree contains the supported asset ancestors");
+        std::find(catalog.Folders().begin(),catalog.Folders().end(),"Assets/Settings")!=catalog.Folders().end(),
+        "Project tree includes folders without supported assets");
+    Check(std::find(catalog.Folders().begin(),catalog.Folders().end(),"Assets/EmptyFolder")!=catalog.Folders().end(),
+        "Project tree includes empty asset folders");
     const auto oldPath=catalog.Assets().front().path;
     Check(!catalog.Scan(root/"missing-root") && !catalog.Error().empty() && catalog.Assets().size()==9 &&
         catalog.Assets().front().path==oldPath, "failed refresh preserves previous Project catalog");
@@ -2923,6 +2978,11 @@ void ValidateProjectCatalog()
     const auto binary=Editor::AssetInfo::Read(root,shader);
     Check(!binary.error.empty() && binary.text.empty(), "binary source preview rejected without displaying partial data");
     const auto texture=Editor::AssetInfo::Read(root,{"Assets/Models/Title/texture.png",Editor::AssetKind::Texture});
+    const auto glbPath=root/"Assets/Models/Title/binary.glb";
+    { std::ofstream glb(glbPath,std::ios::binary); glb.write("glTF\2\0\0\0",8); }
+    const auto glb=Editor::AssetInfo::Read(root,{"Assets/Models/Title/binary.glb",Editor::AssetKind::Model});
+    Check(glb.error.empty() && glb.text.empty() && glb.bytes==8,"GLB preview accepts binary model metadata");
+    std::filesystem::remove(glbPath);
     Check(texture.error.empty() && texture.bytes==7 && texture.text.empty(), "binary asset provides metadata without source decoding");
     Check(!Editor::AssetInfo::Read(root,{"../outside.hlsl",Editor::AssetKind::Shader}).error.empty() &&
         !Editor::AssetInfo::Read(root,{"Shaders/missing.hlsl",Editor::AssetKind::Shader}).error.empty(), "invalid and missing asset paths report preview errors");
@@ -3043,6 +3103,13 @@ int main()
     std::string phase="focused validation";
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_EDITOR_DATA_ONLY",nullptr,0)) {
+            phase="ValidateSaveAs"; ValidateSaveAs();
+            phase="ValidateMaterialDocuments"; ValidateMaterialDocuments();
+            phase="ValidateProjectCatalog"; ValidateProjectCatalog();
+            std::cout<<"PASS: editor scene conflicts/moves, material drafts/conflicts, GLB and asset folders\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_TEXTURE_IMPORT_ONLY",nullptr,0)) {
             Engine::Window window; Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden texture import validation",64,32),"texture import window"); Check(renderer.Initialize(window.GetHandle()),"texture import renderer");
@@ -3204,6 +3271,7 @@ int main()
         phase="ValidateModelDrop"; ValidateModelDrop();
         phase="ValidateConsoleLog"; ValidateConsoleLog();
         phase="ValidateSaveAs"; ValidateSaveAs();
+        phase="ValidateMaterialDocuments"; ValidateMaterialDocuments();
         phase="ValidateMultiSelection"; ValidateMultiSelection();
         phase="ValidateEditHistory"; ValidateEditHistory();
         phase="ValidateFocusSelection"; ValidateFocusSelection();

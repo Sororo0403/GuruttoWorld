@@ -14,7 +14,8 @@ public:
         bool disabled=false;
         try {
             if (selected_!=asset.path) {
-                selected_=asset.path; settings_=Engine::AssetDatabase::Ensure(root/selected_);
+                auto settings=Engine::AssetDatabase::Ensure(root/asset.path);
+                settings_=std::move(settings); selected_=asset.path;
                 destination_.fill(0); const auto text=ProjectCatalog::Text(selected_);
                 std::copy_n(text.begin(),std::min(text.size(),destination_.size()-1),destination_.begin()); error_.clear();
             }

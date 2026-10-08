@@ -6,21 +6,32 @@
 #include <stdexcept>
 #include <string_view>
 #include <utility>
+#include <fstream>
 
 namespace Editor
 {
     class SceneDocument final
     {
     public:
-        explicit SceneDocument(std::filesystem::path path) : path_(std::move(path)) {}
+        explicit SceneDocument(std::filesystem::path path) : path_(std::move(path)), savedSource_(ReadSource(path_)) {}
         const std::filesystem::path& Path() const { return path_; }
+        void AssetMoved(const std::filesystem::path& source, const std::filesystem::path& destination)
+        {
+            if (path_.lexically_normal()!=source.lexically_normal()) return;
+            const auto baseline=ReadSource(destination);
+            path_=destination;
+            savedSource_=baseline;
+        }
         bool UnsavedNew() const { return unsavedNew_; }
         void Save(const SceneRuntime::SceneLayout& layout)
         {
+            if (ReadSource(path_)!=savedSource_)
+                throw std::runtime_error("シーンが外部で変更・削除されています。再読み込みするか、別名で保存してください。");
             if (unsavedNew_ && std::filesystem::exists(path_))
                 throw std::runtime_error("新規シーンの保存先にファイルが作成されたため、保存を中止しました。");
             layout.Save(path_,!unsavedNew_);
             unsavedNew_=false;
+            savedSource_=ReadSource(path_);
         }
         void SaveAs(const SceneRuntime::SceneLayout& layout, std::filesystem::path target, bool overwrite)
         {
@@ -29,6 +40,7 @@ namespace Editor
             layout.Save(target,overwrite);
             path_=std::move(target);
             unsavedNew_=false;
+            savedSource_=ReadSource(path_);
         }
         bool Pending() const { return request_.has_value(); }
         bool NeedsConfirmation() const { return request_ && !ready_; }
@@ -74,13 +86,24 @@ namespace Editor
                 if (!success) return false;
                 path_=std::move(request.path);
                 unsavedNew_=request.create;
+                savedSource_=ReadSource(path_);
                 return true;
             }
             catch (const std::exception& exception) { error=exception.what(); return false; }
         }
     private:
+        static std::optional<std::string> ReadSource(const std::filesystem::path& path)
+        {
+            if (!std::filesystem::exists(path)) return std::nullopt;
+            std::ifstream input(path,std::ios::binary);
+            if (!input) throw std::runtime_error("シーンの保存状態を読み取れません。");
+            std::string source{std::istreambuf_iterator<char>(input),{}};
+            if (input.bad()) throw std::runtime_error("シーンの保存状態を読み取れません。");
+            return source;
+        }
         struct RequestData { std::filesystem::path path; bool create=false; };
         std::filesystem::path path_;
+        std::optional<std::string> savedSource_;
         std::optional<RequestData> request_;
         bool ready_=false, unsavedNew_=false;
     };

@@ -208,6 +208,7 @@ namespace
                 if (!renderer.WaitForIdle()) return false;
                 if (world.Reload(root, document.Path(), fileStatus))
                 {
+                    document=Editor::SceneDocument(document.Path());
                     sceneLoaded = true;
                     editState.Reloaded();
                     history.Reset(Snapshot(world.Layout().Serialize()));
@@ -465,6 +466,7 @@ namespace
             try
             {
                 document.Save(world.Layout());
+                projectPanel.SaveMaterials();
                 SavedSuccessfully("保存しました。");
                 return true;
             }
@@ -491,6 +493,7 @@ namespace
             try
             {
                 document.SaveAs(world.Layout(),target,overwrite);
+                projectPanel.SaveMaterials();
                 SavedSuccessfully("別名で保存しました："+Editor::ProjectCatalog::Text(document.Path().filename()));
                 return true;
             }
@@ -608,7 +611,7 @@ namespace
         void DrawClosePopup()
         {
             cameraPanel.CancelDrag();
-            if (!sceneLoaded || !editState.HasChanges())
+            if ((!sceneLoaded || !editState.HasChanges()) && !projectPanel.HasMaterialChanges())
             {
                 closeConfirmed = true;
                 return;
@@ -727,13 +730,18 @@ namespace
             projectPanel.Draw(editState, suggested, EditWidgetsEnabled() && !pendingObject && !pendingHistory);
             objectPanel.Draw(world, editState, EditWidgetsEnabled(),&projectPanel.Catalog());
             projectPanel.DrawInspector(editState,EditWidgetsEnabled());
+            if (const auto moved=projectPanel.TakeAssetMove())
+            {
+                try { document.AssetMoved(root/moved->first,root/moved->second); }
+                catch (const std::exception& exception) { ReportStatus(exception.what(),false); }
+            }
             if (auto request = editState.TakeRequest()) pendingObject = std::move(request);
             if (auto scene=projectPanel.TakeSceneRequest()) document.Request(root / *scene,false,editState.HasChanges());
             if (sceneLoaded)
             {
                 const auto json=world.Layout().Serialize();
                 history.Observe(Snapshot(json), editState.Interaction());
-                editState.SetChanged(document.UnsavedNew() || history.Dirty(json));
+                editState.SetChanged(document.UnsavedNew() || history.Dirty(json) || projectPanel.HasMaterialChanges());
             }
         }
 

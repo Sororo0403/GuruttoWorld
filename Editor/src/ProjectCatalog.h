@@ -89,6 +89,7 @@ namespace Editor
             folders.insert(folder);
             for (const auto& entry : std::filesystem::recursive_directory_iterator(root/folder))
             {
+                if (entry.is_directory()) { folders.insert(entry.path().lexically_relative(root)); continue; }
                 if (!entry.is_regular_file()) continue;
                 const auto relative=entry.path().lexically_relative(root);
                 const auto kind=Kind(relative);

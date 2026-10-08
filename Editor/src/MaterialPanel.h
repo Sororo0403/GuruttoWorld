@@ -1,5 +1,7 @@
 #pragma once
 #include "ProjectCatalog.h"
+#include "MaterialDocument.h"
+#include <map>
 #include <SceneRuntime/MaterialAsset.h>
 #include <imgui.h>
 
@@ -8,15 +10,24 @@ namespace Editor
     class MaterialPanel final
     {
     public:
+        bool HasChanges() const
+        { return std::any_of(documents_.begin(),documents_.end(),[](const auto& item) { return item.second.Dirty(); }); }
+        void SaveAll(const std::filesystem::path& root)
+        { for (auto& [path,document] : documents_) if (document.Dirty()) document.Save(root,path); }
+        void AssetMoved(const std::filesystem::path& source,const std::filesystem::path& destination)
+        {
+            auto entry=documents_.extract(source);
+            if (!entry.empty()) { entry.key()=destination; documents_.insert(std::move(entry)); }
+        }
         void Draw(const std::filesystem::path& root,const std::filesystem::path& path,const ProjectCatalog& catalog,bool enabled)
         {
-            if (path_!=path)
-            {
-                path_=path;
-                try { asset_=SceneRuntime::MaterialAsset::Load(root,path); error_.clear(); }
-                catch (const std::exception& exception) { error_=exception.what(); }
-            }
-            ImGui::BeginDisabled(!enabled);
+            auto& document=documents_[path];
+            try { document.Refresh(root,path); error_.clear(); }
+            catch (const std::exception& exception) { error_=exception.what(); }
+            auto& asset_=document.Asset();
+            if (document.Dirty()) ImGui::TextUnformatted("Materialに未保存の変更があります。");
+            if (document.Conflict()) ImGui::TextWrapped("外部の変更と競合しています。再読み込みでは編集中の値を破棄します。");
+            ImGui::BeginDisabled(!enabled || !document.Loaded() || !error_.empty());
             ImGui::ColorEdit4("色・透明度###Material color",asset_.values.color.data());
             ImGui::SliderFloat("粗さ###Roughness",&asset_.values.roughness,0.04f,1,"%.2f");
             ImGui::SliderFloat("金属感###Metallic",&asset_.values.metallic,0,1,"%.2f");
@@ -45,21 +56,36 @@ namespace Editor
             ImGui::DragFloat2("画像の移動###UV translation",asset_.values.uv.translation.data(),0.05f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp);
             if (ImGui::Button("Materialを保存###Save material"))
             {
-                try { asset_.Save(root,path); error_.clear(); }
+                try { document.Save(root,path); error_.clear(); }
                 catch (const std::exception& exception) { error_=exception.what(); }
             }
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(!enabled);
             ImGui::SameLine();
             if (ImGui::Button("再読み込み###Reload material"))
             {
-                try { asset_=SceneRuntime::MaterialAsset::Load(root,path); error_.clear(); }
-                catch (const std::exception& exception) { error_=exception.what(); }
+                if (document.Dirty()) ImGui::OpenPopup("Materialの編集を破棄###Discard material draft");
+                else Reload(document,root,path);
+            }
+            if (ImGui::BeginPopupModal("Materialの編集を破棄###Discard material draft",nullptr,ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::TextUnformatted("未保存のMaterial編集を破棄して読み込み直しますか？");
+                if (ImGui::Button("破棄して再読み込み###Discard and reload material"))
+                { Reload(document,root,path); ImGui::CloseCurrentPopup(); }
+                ImGui::SameLine();
+                if (ImGui::Button("キャンセル###Cancel material reload")) ImGui::CloseCurrentPopup();
+                ImGui::EndPopup();
             }
             ImGui::EndDisabled();
             if (!error_.empty()) ImGui::TextWrapped("%s",error_.c_str());
         }
     private:
-        std::filesystem::path path_;
-        SceneRuntime::MaterialAsset asset_;
+        void Reload(MaterialDocument& document,const std::filesystem::path& root,const std::filesystem::path& path)
+        {
+            try { document.Reload(root,path); error_.clear(); }
+            catch (const std::exception& exception) { error_=exception.what(); }
+        }
+        std::map<std::filesystem::path,MaterialDocument> documents_;
         std::string error_;
     };
 }
