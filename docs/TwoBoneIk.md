@@ -18,4 +18,6 @@ Animatorの`ik`配列に、名前・3ボーン名・有効状態・目標・補�
 
 Animatorはクリップ／Blend Treeとクロスフェードの後に、制約を配列順に適用する。`basePose`に補正前の姿勢を保持し、遷移の元姿勢にはこちらを使うため、IK補正が毎フレーム蓄積しない。無効なAnimatorは補正済みの姿勢と時刻を保持する。解法が失敗した場合は実行状態を変更しない。
 
-Scriptによる目標操作、World座標の目標、App／Editor再生の描画検証、比較シーンは引き続き実装する。IK全体はまだ完了扱いにしない。
+`worldSpace=true`なら目標と補助点をWorld座標として解釈する。SceneWorldは初期化・生成・通常更新の各経路で、親子階層を含む候補シーンのObject行列を渡す。SkeletonからWorldへの変換は`inverseRoot × importScale × ObjectWorld`であり、その逆行列で目標を変換する。Object側の非一様Scaleや階層由来のshearも完全な行列として扱う。これはSkeleton内部の非一様Scaleとは別であり、内部チェーンの正の一様Scale制約は引き続き適用する。単独で`Animator::Advance`を使う場合はWorld行列を渡す必要がある。欠落・特異・非アフィンの行列は失敗として扱い、状態を保持する。
+
+Scriptによる目標操作、App／Editor再生の描画検証、比較シーンは引き続き実装する。IK全体はまだ完了扱いにしない。

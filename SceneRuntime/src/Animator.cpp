@@ -1,5 +1,6 @@
 #include <SceneRuntime/Animator.h>
 #include <Engine/Animation/TwoBoneIk.h>
+#include <SceneRuntime/SceneTransforms.h>
 #include <algorithm>
 #include <cmath>
 #include <set>
@@ -15,13 +16,28 @@ namespace
         if (result==rig.nodes.size()) throw std::runtime_error("Missing IK bone: "+name);
         return result;
     }
-    std::vector<Engine::BonePose> SolveIk(const SceneRuntime::AnimatorComponent& component,const Engine::SkeletonData& rig,std::vector<Engine::BonePose> pose)
+    std::vector<Engine::BonePose> SolveIk(const SceneRuntime::AnimatorComponent& component,const Engine::SkeletonData& rig,std::vector<Engine::BonePose> pose,const DirectX::XMFLOAT4X4* modelWorld)
     {
         for (const auto& item : component.ik) if (item.enabled && item.weight>0)
         {
             Engine::TwoBoneIkConstraint constraint;
             constraint.root=Bone(rig,item.root); constraint.middle=Bone(rig,item.middle); constraint.tip=Bone(rig,item.tip);
             constraint.target=item.target; constraint.hint=item.hint; constraint.weight=item.weight;
+            if (item.worldSpace)
+            {
+                using namespace DirectX;
+                if (!modelWorld || !std::isfinite(rig.importScale) || rig.importScale<=0) throw std::runtime_error("World-space IK requires model transform");
+                const auto skeletonWorld=XMLoadFloat4x4(&rig.inverseRoot)*XMMatrixScaling(rig.importScale,rig.importScale,rig.importScale)*XMLoadFloat4x4(modelWorld);
+                XMFLOAT4X4 transform; XMStoreFloat4x4(&transform,skeletonWorld);
+                if (!SceneRuntime::SceneTransforms::IsUsable(transform)) throw std::runtime_error("Invalid world-space IK transform");
+                const auto inverse=XMMatrixInverse(nullptr,skeletonWorld);
+                for (auto* point : {&constraint.target,&constraint.hint})
+                {
+                    XMFLOAT3 converted;
+                    XMStoreFloat3(&converted,XMVector3TransformCoord(XMVectorSet((*point)[0],(*point)[1],(*point)[2],1),inverse));
+                    *point={converted.x,converted.y,converted.z};
+                }
+            }
             pose=Engine::TwoBoneIk::Solve(rig,pose,constraint);
         }
         return pose;
@@ -110,7 +126,7 @@ namespace SceneRuntime
         }
     }
     std::vector<Engine::BonePose> Animator::Advance(const AnimatorComponent& component,AnimatorState& state,
-        const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters)
+        const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters,const DirectX::XMFLOAT4X4* modelWorld)
     {
         if (!std::isfinite(seconds) || seconds<0) throw std::runtime_error("Invalid Animator time");
         Validate(component,&rig);
@@ -126,7 +142,7 @@ namespace SceneRuntime
         const auto& before=State(component,next.current);
         if (!component.enabled)
         {
-            if (next.pose.empty()) { next.basePose=Sample(component,before,next,rig,values); next.pose=SolveIk(component,rig,next.basePose); next.motions=Motions(component,before,values); }
+            if (next.pose.empty()) { next.basePose=Sample(component,before,next,rig,values); next.pose=SolveIk(component,rig,next.basePose,modelWorld); next.motions=Motions(component,before,values); }
             auto pose=next.pose; state=std::move(next); return pose;
         }
         const double duration=BlendTree::Duration(Motions(component,before,values),rig);
@@ -158,7 +174,7 @@ namespace SceneRuntime
         const float toWeight=next.previousPose.empty() || next.blendDuration<=0 ? 1 : std::clamp(next.blendElapsed/next.blendDuration,0.0f,1.0f);
         next.events=AnimationEvents::Collect(component.events,rig,next.current,next.motions,from,next.normalizedTime,definition.loop,next.eventsAtStart,fromWeight,toWeight);
         if (next.normalizedTime>from) next.eventsAtStart=false;
-        next.basePose=pose; pose=SolveIk(component,rig,std::move(pose));
+        next.basePose=pose; pose=SolveIk(component,rig,std::move(pose),modelWorld);
         next.pose=pose; state=std::move(next); return pose;
     }
 }

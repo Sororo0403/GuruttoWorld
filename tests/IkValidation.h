@@ -106,5 +106,26 @@ namespace IkValidation
         animator.ik.push_back(definition); bool duplicate=false;
         try { Animator::Validate(animator,&rig); } catch (const std::exception&) { duplicate=true; }
         Require(duplicate,"IK rejects duplicate constraint names");
+        animator.ik.resize(1); animator.ik[0].worldSpace=true;
+        rig.importScale=2;
+        DirectX::XMStoreFloat4x4(&rig.inverseRoot,DirectX::XMMatrixTranslation(0,0,2));
+        DirectX::XMFLOAT4X4 world;
+        DirectX::XMStoreFloat4x4(&world,DirectX::XMMatrixScaling(2,3,1)*DirectX::XMMatrixRotationY(.6f)*DirectX::XMMatrixTranslation(3,4,5));
+        const auto skeletonWorld=DirectX::XMLoadFloat4x4(&rig.inverseRoot)*DirectX::XMMatrixScaling(2,2,2)*DirectX::XMLoadFloat4x4(&world);
+        const auto Transform=[&](const std::array<float,3>& point) {
+            DirectX::XMFLOAT3 value;
+            DirectX::XMStoreFloat3(&value,DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(point[0],point[1],point[2],1),skeletonWorld));
+            return std::array<float,3>{value.x,value.y,value.z};
+        };
+        animator.ik[0].target=Transform(definition.target); animator.ik[0].hint=Transform(definition.hint);
+        AnimatorState worldState; Animator::Advance(animator,worldState,rig,.1,{},&world);
+        Require(Distance(Transform(Position(rig,worldState.pose,3)),animator.ik[0].target)<.0005f,"world IK accounts for import root, import scale and full object transform");
+        const auto worldTime=worldState.time; bool missingWorld=false;
+        try { Animator::Advance(animator,worldState,rig,.1,{}); } catch (const std::exception&) { missingWorld=true; }
+        Require(missingWorld && worldState.time==worldTime,"world IK missing transform preserves clock");
+        auto projective=world; projective._14=.5f; bool badWorld=false;
+        try { Animator::Advance(animator,worldState,rig,.1,{},&projective); } catch (const std::exception&) { badWorld=true; }
+        Require(badWorld && worldState.time==worldTime,"world IK rejects projective transform transactionally");
+        Require(ReadAnimator(WriteAnimator(animator),animator.id,true)==animator,"world IK setting roundtrip");
     }
 }

@@ -22,13 +22,14 @@ namespace Editor
             bool changed=false; ImGui::PushID("ikConstraints");
             if (ImGui::TreeNode("ik","二関節IK (%zu)",animator.ik.size()))
             {
-                ImGui::TextWrapped("目標・曲げ方向はSkeleton座標です。直接つながる3ボーンと正の一様Scaleが必要です。制約は上から順に適用します。");
+                ImGui::TextWrapped("目標・補助点はSkeleton座標、またはWorld座標で指定します。切り替え時は入力値を選択した座標として解釈します。直接つながる3ボーンと正の一様Scaleが必要です。制約は上から順に適用します。");
                 for (size_t index=0;index<animator.ik.size();++index)
                 {
                     auto& item=animator.ik[index]; ImGui::PushID(static_cast<int>(index));
                     std::vector<char> name(std::max(size_t(512),item.name.size()+1)); std::copy(item.name.begin(),item.name.end(),name.begin());
                     if (ImGui::InputText("名前###Name",name.data(),name.size())) { item.name=name.data(); changed=true; }
                     changed=ImGui::Checkbox("有効###Enabled",&item.enabled) || changed;
+                    changed=ImGui::Checkbox("World座標###WorldSpace",&item.worldSpace) || changed;
                     changed=Bone("根元###Root",item.root,rig) || changed;
                     changed=Bone("中間###Middle",item.middle,rig) || changed;
                     changed=Bone("先端###Tip",item.tip,rig) || changed;

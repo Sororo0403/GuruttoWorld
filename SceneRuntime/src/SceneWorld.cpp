@@ -181,7 +181,7 @@ namespace SceneRuntime
                         const bool reuse=preserveExecution && old!=layout_.objects.end() && old->meshRenderer==placement.meshRenderer && old->animator==placement.animator && animatedModels_.contains(placement.id);
                         auto instance=reuse ? animatedModels_.at(placement.id) : model->AnimatedCopy(materialDevice_.Get(),materialQueue_.Get());
                         if (reuse) animatorStates[placement.id]=animatorStates_.at(placement.id);
-                        if (!instance || (!reuse && !instance->ApplyPose(Animator::Advance(*placement.animator,animatorStates[placement.id],*model->Rig(),0,{})))) throw std::runtime_error("Animator initialization failed");
+                        if (!instance || (!reuse && !instance->ApplyPose(Animator::Advance(*placement.animator,animatorStates[placement.id],*model->Rig(),0,{},&matrices[objects.size()])))) throw std::runtime_error("Animator initialization failed");
                         object.SetModel(instance); animated[placement.id]=std::move(instance);
                     }
                     const auto& material=placement.meshRenderer->material;
@@ -225,8 +225,11 @@ namespace SceneRuntime
         try
         {
             std::vector<AnimatorFrame> frames;
-            for (const auto& placement : layout.objects)
+            std::vector<DirectX::XMFLOAT4X4> matrices;
+            if (!SceneTransforms::Resolve(layout,matrices,error)) throw std::runtime_error(error);
+            for (size_t index=0;index<layout.objects.size();++index)
             {
+                const auto& placement=layout.objects[index];
                 if (!placement.animator) continue;
                 const auto model=models.find(placement.id); if (model==models.end()) throw std::runtime_error("Animator model missing");
                 AnimatorFrame frame; frame.id=placement.id; frame.model=model->second; frame.state=states.at(placement.id);
@@ -239,7 +242,7 @@ namespace SceneRuntime
                 parameters["speed"]=std::hypot(parameters["moveX"],parameters["moveY"]);
                 const auto body=physics_.find(placement.id); parameters["grounded"]=body==physics_.end() ? 1.0f : (body->second.grounded ? 1.0f : 0.0f);
                 for (const auto& [name,pressed] : inputPressed_) parameters["pressed:"+name]=pressed ? 1.0f : 0.0f;
-                const auto pose=Animator::Advance(*placement.animator,frame.state,*frame.model->Rig(),seconds,parameters);
+                const auto pose=Animator::Advance(*placement.animator,frame.state,*frame.model->Rig(),seconds,parameters,&matrices[index]);
                 frame.applyPose=placement.animator->enabled;
                 if (frame.applyPose && !frame.model->PreparePose(pose,frame.pose)) throw std::runtime_error("Animator pose preparation failed");
                 for (const auto& occurrence : frame.state.events)
@@ -696,7 +699,7 @@ namespace SceneRuntime
                     if (!model->Rig()) throw std::runtime_error("Animator needs a glTF or GLB model");
                     Animator::Validate(*placement.animator,model->Rig().get());
                     animated=model->AnimatedCopy(materialDevice_.Get(),materialQueue_.Get());
-                    if (!animated || !animated->ApplyPose(Animator::Advance(*placement.animator,animatorState,*model->Rig(),0,{}))) throw std::runtime_error("Animator initialization failed");
+                    if (!animated || !animated->ApplyPose(Animator::Advance(*placement.animator,animatorState,*model->Rig(),0,{},&matrices.back()))) throw std::runtime_error("Animator initialization failed");
                     object.SetModel(animated);
                 }
                 if (!placement.meshRenderer->material.empty()) object.SetMaterial(MaterialAsset::Load(assetsRoot,placement.meshRenderer->material).Prepare(materialDevice_.Get(),materialQueue_.Get(),assetsRoot));

@@ -11,6 +11,7 @@ namespace SceneRuntime
         bool enabled=true;
         std::array<float,3> target{},hint{0,0,1};
         float weight=1;
+        bool worldSpace=false;
         bool operator==(const AnimatorIkConstraint&) const = default;
     };
     struct AnimatorStateDefinition
@@ -61,6 +62,7 @@ namespace SceneRuntime
         static void ValidateParameters(const std::map<std::string,float>& parameters);
         /// <summary>状態と同期したBlend Treeを進めます。評価に失敗した場合は実行状態を保持します。</summary>
         static std::vector<Engine::BonePose> Advance(const AnimatorComponent& component,AnimatorState& state,
-            const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters);
+            const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters,
+            const DirectX::XMFLOAT4X4* modelWorld=nullptr);
     };
 }

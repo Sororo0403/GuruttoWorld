@@ -50,6 +50,7 @@ namespace SceneRuntime
                 constraint.middle=item.at("middle").get<std::string>(); constraint.tip=item.at("tip").get<std::string>();
                 if (item.contains("enabled")) constraint.enabled=item.at("enabled").get<bool>();
                 if (item.contains("weight")) constraint.weight=static_cast<float>(JsonNumber(item.at("weight")));
+                if (item.contains("worldSpace")) constraint.worldSpace=item.at("worldSpace").get<bool>();
                 for (const auto& key : {"target","hint"})
                 {
                     const auto& point=JsonArray(item.at(key)); if (point.size()!=3) throw std::runtime_error("IK point requires three coordinates");
@@ -134,7 +135,7 @@ namespace SceneRuntime
         {
             object["ik"]=Json::array();
             for (const auto& item : animator.ik) object["ik"].push_back({{"name",item.name},{"root",item.root},{"middle",item.middle},{"tip",item.tip},
-                {"enabled",item.enabled},{"weight",item.weight},{"target",item.target},{"hint",item.hint}});
+                {"enabled",item.enabled},{"weight",item.weight},{"target",item.target},{"hint",item.hint},{"worldSpace",item.worldSpace}});
         }
         if (!animator.events.empty())
         {
