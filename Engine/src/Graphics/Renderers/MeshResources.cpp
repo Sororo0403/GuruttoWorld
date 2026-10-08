@@ -74,8 +74,9 @@ namespace Engine
         return rootSignature_.Get();
     }
 
-    ID3D12PipelineState* MeshResources::GetPipelineState(bool mirrored,bool transparent) const noexcept
+    ID3D12PipelineState* MeshResources::GetPipelineState(bool mirrored,bool transparent,bool hdr) const noexcept
     {
+        if (hdr) return hdrPipelineStates_[(transparent ? 2 : 0)+(mirrored ? 1 : 0)].Get();
         if (transparent) return mirrored ? transparentMirroredPipelineState_.Get() : transparentPipelineState_.Get();
         return mirrored ? mirroredPipelineState_.Get() : pipelineState_.Get();
     }
@@ -200,7 +201,17 @@ namespace Engine
         description.DepthStencilState.DepthWriteMask=D3D12_DEPTH_WRITE_MASK_ZERO;
         if (!Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&transparentMirroredPipelineState_)),"Create transparent mirrored mesh pipeline")) return false;
         description.RasterizerState.FrontCounterClockwise=FALSE;
-        return Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&transparentPipelineState_)),"Create transparent mesh pipeline");
+        if (!Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&transparentPipelineState_)),"Create transparent mesh pipeline")) return false;
+        description.RTVFormats[0]=DXGI_FORMAT_R16G16B16A16_FLOAT;
+        for (size_t index=0;index<hdrPipelineStates_.size();++index)
+        {
+            const bool transparent=index>=2;
+            description.RasterizerState.FrontCounterClockwise=(index%2)!=0;
+            blend.BlendEnable=transparent ? TRUE : FALSE;
+            description.DepthStencilState.DepthWriteMask=transparent ? D3D12_DEPTH_WRITE_MASK_ZERO : D3D12_DEPTH_WRITE_MASK_ALL;
+            if (!Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&hdrPipelineStates_[index])),"Create HDR mesh pipeline")) return false;
+        }
+        return true;
     }
 
 }

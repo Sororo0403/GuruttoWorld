@@ -230,6 +230,8 @@ PBRの正面照明をGGXの解析値と比較し、金属の反射色・粗さ�
 
 `WP1_LIGHTS_ONLY=1`ではPoint/Spotの保存復元、Componentコピー・ID、不正値と32灯上限、GPU画素による逆二乗減衰・距離制限・表裏・円錐の内外とフェード・色の加算・32灯・PBR・照明OFF・極端に遠い光源での数値保持を検証します。同じフレームの後続アップロードが先の描画を上書きしないこと、複数フレームのリソース寿命、親のカメラに追従するSpot、動くPoint、App共通環境・Editor再生・Inspector・停止時の編集データ保持も含みます。
 
+`WP1_POST_ONLY=1`ではHDRのFP16画素読み戻しでPBRの1を超える明るさ、鏡映・透明描画、スプライトの線形変換、パーティクルの加算を検証します。LDR画素では露出、Reinhard/ACES近似/sRGB変換、ブルームのしきい値と広がり、元の描画先の復元、GPUが処理中のリサイズも確認します。旧シーンで無効となる互換性、不正値・初期化失敗時の保持と再試行、空への処理、UIが露出を受けないこと、PostEffectsPlaygroundの実際の再生・影・PBR・パーティクル・UIと停止時の設定保持、Inspector、Undo/Redo、保存・再読み込みを含みます。大きい回帰テストのオブジェクトファイルは`/bigobj`で生成します。
+
 AnimatorValidationはglTF読み込み、ボーン変形・法線、補間・ループ・状態遷移、GPU更新、複製・削除と不正クリップ時の保持を確認します。`WP1_ANIMATOR_ONLY=1`で単独実行します。AssetDatabaseValidationは参照ID保存、改名後の旧パス・ID解決、倍率・UV反転、上書き・パス逸脱・ID欠損の拒否を確認します。`WP1_ASSET_ONLY=1`で単独実行します。
 
 ProfilerValidationはCPU描画時間・フレーム数と、完了フェンスに同期したGPUタイムスタンプの読み戻しを確認します。`WP1_PROFILER_ONLY=1`で単独実行します。`scripts/BuildPlayer.ps1 -Configuration Release` は配布物を生成し、そのAppを `--validate-package` で起動して実際のリソース読み込み・描画を検証します。package.jsonに同梱ファイルのサイズ・SHA-256を記録します。

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <Engine/Core/Log.h>
 
 namespace SceneRuntime
 {
@@ -13,6 +14,7 @@ namespace SceneRuntime
             !sky_.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/Sky.hlsl") ||
             !particles_.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/GlowParticle.hlsl"))
         { error="Scene sky or particle renderer could not be initialized"; return false; }
+        device_=renderer.GetDevice(); postShader_=root/"Shaders/PostEffects.hlsl";
         error.clear();
         return true;
     }
@@ -93,17 +95,34 @@ namespace SceneRuntime
             }
         }
     }
+    bool ScenePresentation::PrepareEffects(const SceneLayout& layout,std::string& error) const
+    {
+        if (!layout.settings.postEffects.enabled || postEffects_.Ready()) return true;
+        if (!postEffects_.Initialize(device_.Get(),postShader_)) { error="Post effect pipeline could not be initialized"; return false; }
+        return true;
+    }
     void ScenePresentation::Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world,
         unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, double seconds, bool motionEnabled, const UiState* uiState) const
     {
         if (!width || !height) return;
+        bool processing=false;
+        if (world.Layout().settings.postEffects.enabled)
+        {
+            std::string error; auto clear=world.Layout().settings.background;
+            for (size_t channel=0;channel<3;++channel)
+                clear[channel]=clear[channel]<=.04045f ? clear[channel]/12.92f : std::pow((clear[channel]+.055f)/1.055f,2.4f);
+            processing=PrepareEffects(world.Layout(),error) && postEffects_.Begin(commands,width,height,clear);
+            if (!processing) Engine::Log::Warning(error.empty() ? "Post effect target could not be prepared" : error);
+        }
         DrawSky(commands,world.Layout(),width,height,seconds);
         Engine::Camera gameCamera;
-        if (!sceneCamera && !SceneView::Camera(world,float(width)/height,seconds,gameCamera))
-        { DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{}); return; }
-        const auto& camera=sceneCamera ? *sceneCamera : gameCamera;
-        world.Draw(commands,camera,SceneView::Light(world),uiState);
-        if (motionEnabled) DrawParticles(commands,world,camera,seconds);
+        if (sceneCamera || SceneView::Camera(world,float(width)/height,seconds,gameCamera))
+        {
+            const auto& camera=sceneCamera ? *sceneCamera : gameCamera;
+            world.Draw(commands,camera,SceneView::Light(world),uiState);
+            if (motionEnabled) DrawParticles(commands,world,camera,seconds);
+        }
+        if (processing && !postEffects_.End(commands,world.Layout().settings.postEffects)) Engine::Log::Warning("Post effect rendering failed");
         if (!sceneCamera) DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{});
     }
 }

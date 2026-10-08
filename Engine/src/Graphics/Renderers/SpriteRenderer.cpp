@@ -4,6 +4,7 @@
 #include <Engine/Core/Log.h>
 
 #include <Engine/Graphics/Resources/IndexedMeshBuffer.h>
+#include <Engine/Graphics/Resources/RenderTargetBinding.h>
 #include <cmath>
 #include <format>
 #include <utility>
@@ -47,6 +48,7 @@ namespace Engine
             vertexBufferView_ = {};
             indexBufferView_ = {};
             pipelineState_.Reset();
+            hdrPipelineState_.Reset();
             rootSignature_.Reset();
             return false;
         }
@@ -63,7 +65,7 @@ namespace Engine
         textureRange.NumDescriptors = 1;
         textureRange.BaseShaderRegister = 0;
         textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        D3D12_ROOT_PARAMETER parameters[4]{};
+        D3D12_ROOT_PARAMETER parameters[5]{};
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
         parameters[0].Constants.Num32BitValues = 16;
@@ -80,6 +82,9 @@ namespace Engine
         parameters[3].Constants.ShaderRegister = 1;
         parameters[3].Constants.Num32BitValues = 36;
         parameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        parameters[4].ParameterType=D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        parameters[4].Constants.ShaderRegister=3; parameters[4].Constants.Num32BitValues=1;
+        parameters[4].ShaderVisibility=D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -91,7 +96,7 @@ namespace Engine
         sampler.ShaderRegister = 0;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_ROOT_SIGNATURE_DESC description{};
-        description.NumParameters = 4;
+        description.NumParameters = 5;
         description.pParameters = parameters;
         description.NumStaticSamplers = 1;
         description.pStaticSamplers = &sampler;
@@ -153,8 +158,9 @@ namespace Engine
         description.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         description.DSVFormat = DepthBuffer::Format;
         description.SampleDesc.Count = 1;
-        return Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),
-            "Create sprite pipeline state");
+        if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),"Create sprite pipeline state")) return false;
+        description.RTVFormats[0]=DXGI_FORMAT_R16G16B16A16_FLOAT;
+        return Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&hdrPipelineState_)),"Create HDR sprite pipeline");
     }
 
     bool SpriteRenderer::CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue)
@@ -184,12 +190,15 @@ namespace Engine
             parameters.color[0], parameters.color[1], parameters.color[2], parameters.color[3],
             parameters.uvRect[0], parameters.uvRect[1], parameters.uvRect[2], parameters.uvRect[3]
         };
-        commands->SetPipelineState(pipelineState_.Get());
+        RenderTargetBinding target;
+        const UINT hdr=RenderTargetBinding::Current(commands,target) && target.format==DXGI_FORMAT_R16G16B16A16_FLOAT ? 1U : 0U;
+        commands->SetPipelineState(hdr ? hdrPipelineState_.Get() : pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
         commands->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(constants.size()), constants.data(), 0);
         const auto uvConstants = parameters.uvTransform.GetConstants();
         commands->SetGraphicsRoot32BitConstants(2, 8, uvConstants.data(), 0);
         commands->SetGraphicsRoot32BitConstants(3,36,parameters.pixelConstants.data(),0);
+        commands->SetGraphicsRoot32BitConstants(4,1,&hdr,0);
         ID3D12DescriptorHeap* heaps[] = { texture_->GetDescriptorHeap() };
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, texture_->GetGpuHandle());

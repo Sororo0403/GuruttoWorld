@@ -1,3 +1,9 @@
+#include "Common/ColorSpace.hlsli"
+cbuffer ParticleOutput : register(b1) { uint hdrOutput; };
+float4 FinishParticleColor(float4 value)
+{
+    return float4(hdrOutput!=0 ? DecodeSrgb(value.rgb) : value.rgb,value.a);
+}
 cbuffer ParticleConstants : register(b0)
 {
     row_major float4x4 worldViewProjection;
@@ -21,5 +27,5 @@ VertexOutput VSMain(float2 corner : POSITION)
 }
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
-    return particleTexture.Sample(textureSampler, input.uv) * input.color;
+    return FinishParticleColor(particleTexture.Sample(textureSampler, input.uv) * input.color);
 }

@@ -8,6 +8,7 @@ namespace Engine
         D3D12_CPU_DESCRIPTOR_HANDLE color{},depth{};
         D3D12_VIEWPORT viewport{};
         D3D12_RECT scissor{};
+        DXGI_FORMAT format=DXGI_FORMAT_R8G8B8A8_UNORM;
         /// <summary>出力先とビューポートを設定し、補助パスから復元できるよう記録します。</summary>
         void Bind(ID3D12GraphicsCommandList* commands) const
         {

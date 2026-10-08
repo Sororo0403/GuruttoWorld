@@ -25,7 +25,7 @@ namespace
     float Number(const Json& object, const char* key, float low, float high)
     {
         const auto value=JsonNumber(object.at(key));
-        if (!std::isfinite(value) || value<low || value>high) throw std::runtime_error("Fog property out of range");
+        if (!std::isfinite(value) || value<low || value>high) throw std::runtime_error("Scene property out of range");
         return static_cast<float>(value);
     }
     template<size_t N>
@@ -51,6 +51,18 @@ namespace SceneRuntime
             result.fog.strength=Number(fog,"strength",0,1);
             if (result.fog.end-result.fog.start<=0.00001f) throw std::runtime_error("Fog end must exceed start");
         }
+        if (object.contains("postEffects"))
+        {
+            const auto& effects=JsonObject(object.at("postEffects")); auto& settings=result.postEffects;
+            settings.enabled=effects.at("enabled").get<bool>(); settings.bloomEnabled=effects.at("bloomEnabled").get<bool>();
+            settings.exposure=Number(effects,"exposure",-10,10); settings.bloomIntensity=Number(effects,"bloomIntensity",0,10);
+            settings.bloomThreshold=Number(effects,"bloomThreshold",0,100); settings.bloomRadius=Number(effects,"bloomRadius",.25f,8);
+            const auto mapping=effects.at("toneMapping").get<std::string>();
+            if (mapping=="none") settings.toneMapping=Engine::ToneMapping::None;
+            else if (mapping=="reinhard") settings.toneMapping=Engine::ToneMapping::Reinhard;
+            else if (mapping=="filmic") settings.toneMapping=Engine::ToneMapping::Filmic;
+            else throw std::runtime_error("Unknown tone mapping curve");
+        }
         return result;
     }
     Json WriteSceneSettings(const SceneSettings& settings)
@@ -64,6 +76,11 @@ namespace SceneRuntime
         fog["end"]=settings.fog.end;
         fog["strength"]=settings.fog.strength;
         result["fog"]=fog;
+        const auto& post=settings.postEffects;
+        if (!post.Valid()) throw std::runtime_error("Invalid post effect settings");
+        result["postEffects"]={{"enabled",post.enabled},{"bloomEnabled",post.bloomEnabled},{"exposure",post.exposure},
+            {"bloomIntensity",post.bloomIntensity},{"bloomThreshold",post.bloomThreshold},{"bloomRadius",post.bloomRadius},
+            {"toneMapping",post.toneMapping==Engine::ToneMapping::None ? "none" : post.toneMapping==Engine::ToneMapping::Reinhard ? "reinhard" : "filmic"}};
         return result;
     }
 }

@@ -6,5 +6,5 @@ float4 PSMain(VertexOutput input) : SV_TARGET
 {
     float2 center = input.uv * 2.0f - 1.0f;
     float glow = saturate(1.0f - dot(center, center));
-    return float4(input.color.rgb, input.color.a * glow * glow);
+    return FinishParticleColor(float4(input.color.rgb, input.color.a * glow * glow));
 }

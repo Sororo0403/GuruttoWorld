@@ -21,6 +21,7 @@ namespace Engine
     struct RenderTexture::Resources
     {
         UINT width = 0, height = 0;
+        DXGI_FORMAT format=Format;
         Microsoft::WRL::ComPtr<ID3D12Device> device;
         Microsoft::WRL::ComPtr<ID3D12Resource> color;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv, srv;
@@ -39,7 +40,7 @@ namespace Engine
         description.Width = resources.width;
         description.Height = resources.height;
         description.DepthOrArraySize = description.MipLevels = 1;
-        description.Format = Format;
+        description.Format = resources.format;
         description.SampleDesc.Count = 1;
         description.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
         return Check(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
@@ -56,7 +57,7 @@ namespace Engine
         heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         if (!Check(device->CreateDescriptorHeap(&heap, IID_PPV_ARGS(&resources.srv)), "Create texture SRV heap")) return false;
         D3D12_SHADER_RESOURCE_VIEW_DESC view{};
-        view.Format = Format;
+        view.Format = resources.format;
         view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         view.Texture2D.MipLevels = 1;
@@ -64,16 +65,27 @@ namespace Engine
         return resources.depth.Initialize(device, resources.width, resources.height);
     }
 
-    bool RenderTexture::Resize(DirectX12Renderer& renderer, UINT width, UINT height)
+    bool RenderTexture::Initialize(ID3D12Device* device,UINT width,UINT height,DXGI_FORMAT format)
+    {
+        if (resources_ || !device || !width || !height || width>D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION ||
+            height>D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION || (format!=Format && format!=HdrFormat)) return false;
+        auto candidate=std::make_unique<Resources>();
+        candidate->width=width; candidate->height=height; candidate->format=format; candidate->device=device;
+        if (!CreateColor(device,*candidate) || !CreateViews(device,*candidate)) return false;
+        resources_=std::move(candidate); return true;
+    }
+    bool RenderTexture::Resize(DirectX12Renderer& renderer, UINT width, UINT height,DXGI_FORMAT format)
     {
         auto* device = renderer.GetDevice();
         if (recording_ || !device || !width || !height ||
-            width > D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION || height > D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION) return false;
+            width > D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION || height > D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION ||
+            (format!=Format && format!=HdrFormat)) return false;
         if (resources_ && resources_->device.Get() != device) return false;
-        if (resources_ && resources_->width == width && resources_->height == height) return true;
+        if (resources_ && resources_->width == width && resources_->height == height && resources_->format==format) return true;
         auto candidate = std::make_unique<Resources>();
         candidate->width = width;
         candidate->height = height;
+        candidate->format = format;
         candidate->device = device;
         if (!CreateColor(device, *candidate) || !CreateViews(device, *candidate) || !renderer.WaitForIdle()) return false;
         resources_.swap(candidate);
@@ -103,7 +115,7 @@ namespace Engine
         commands->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
         const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(resources_->width), static_cast<float>(resources_->height), 0, 1};
         const D3D12_RECT scissor{0, 0, static_cast<LONG>(resources_->width), static_cast<LONG>(resources_->height)};
-        RenderTargetBinding{rtv,dsv,viewport,scissor}.Bind(commands);
+        RenderTargetBinding{rtv,dsv,viewport,scissor,resources_->format}.Bind(commands);
         recording_ = commands;
         return true;
     }
@@ -120,6 +132,7 @@ namespace Engine
     }
     UINT RenderTexture::GetWidth() const noexcept { return resources_ ? resources_->width : 0; }
     UINT RenderTexture::GetHeight() const noexcept { return resources_ ? resources_->height : 0; }
+    DXGI_FORMAT RenderTexture::GetFormat() const noexcept { return resources_ ? resources_->format : DXGI_FORMAT_UNKNOWN; }
     ID3D12Resource* RenderTexture::GetResource() const noexcept { return resources_ ? resources_->color.Get() : nullptr; }
     D3D12_CPU_DESCRIPTOR_HANDLE RenderTexture::GetShaderResourceView() const noexcept
     {

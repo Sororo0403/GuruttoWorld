@@ -1,5 +1,6 @@
 #include <Engine/Graphics/Renderers/MeshRenderer.h>
 #include <Engine/Graphics/Resources/IndexedMeshBuffer.h>
+#include <Engine/Graphics/Resources/RenderTargetBinding.h>
 #include <Engine/Core/Log.h>
 
 #include <algorithm>
@@ -140,6 +141,9 @@ namespace Engine
                 (material->normalTexture ? 2 : 0) | (material->normalFlipY ? 4 : 0));
         }
         LocalLightView localLights;
+        RenderTargetBinding target;
+        const bool hdr=RenderTargetBinding::Current(commands,target) && target.format==DXGI_FORMAT_R16G16B16A16_FLOAT;
+        if (hdr) lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|16U);
         if (!light.localLights.empty())
         {
             localLights=resources_->PrepareLights(commands,light.localLights);
@@ -149,7 +153,7 @@ namespace Engine
         auto* heap=Bindings(light.shadow,material ? material->texture : nullptr,material ? material->normalTexture : nullptr,localLights);
         if (!heap) { Log::Error("Cannot allocate mesh texture/shadow bindings."); return; }
         // Transform/tint 32 + lighting 26 + compact UV 5 + SRV table 1 = 64 DWORD.
-        commands->SetPipelineState(resources_->GetPipelineState(mirrored,material && (material->transparent || material->color[3]<1)));
+        commands->SetPipelineState(resources_->GetPipelineState(mirrored,material && (material->transparent || material->color[3]<1),hdr));
         commands->SetGraphicsRootSignature(resources_->GetRootSignature());
         commands->SetGraphicsRoot32BitConstants(0, 32, &constants, 0);
         commands->SetGraphicsRoot32BitConstants(2, 26, lightConstants.data(), 0);

@@ -198,6 +198,7 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     float3 color=albedo.rgb;
     uint flags=(uint)lightingEnabled;
     bool pbr=shininess<0;
+    bool hdr=(flags & 16)!=0;
     if ((flags & 1)!=0)
     {
         float3 normal=SurfaceNormal(input,flags);
@@ -261,9 +262,10 @@ float4 PSMain(VertexOutput input) : SV_TARGET
                 color+=contribution*radiance.rgb*radiance.w*attenuation;
             }
         }
-        if (pbr) color=LinearToSrgb(color);
+        if (pbr && !hdr) color=LinearToSrgb(color);
     }
+    if (hdr && (!pbr || (flags & 1)==0)) color=SrgbToLinear(color);
     float haze=smoothstep(fogStart,fogEnd,length(input.worldPosition-cameraPosition))*fogStrength;
-    color=lerp(color,fogColor,haze);
+    color=lerp(color,hdr ? SrgbToLinear(fogColor) : fogColor,haze);
     return float4(color, albedo.a);
 }

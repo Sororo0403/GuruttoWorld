@@ -1,4 +1,10 @@
 #include "Common/UvTransform.hlsli"
+#include "Common/ColorSpace.hlsli"
+cbuffer SpriteOutput : register(b3) { uint hdrOutput; };
+float4 FinishSpriteColor(float4 value)
+{
+    return float4(hdrOutput!=0 ? DecodeSrgb(value.rgb) : value.rgb,value.a);
+}
 
 cbuffer SpriteConstants : register(b0)
 {
@@ -37,5 +43,5 @@ VertexOutput VSMain(float2 corner : POSITION)
 
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
-    return spriteTexture.Sample(textureSampler, input.uv) * input.color;
+    return FinishSpriteColor(spriteTexture.Sample(textureSampler, input.uv) * input.color);
 }

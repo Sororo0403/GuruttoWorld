@@ -37,6 +37,7 @@
 #include "InputActionValidation.h"
 #include "MaterialValidation.h"
 #include "LocalLightValidation.h"
+#include "PostEffectValidation.h"
 #include "TitlePresentationValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
@@ -1875,6 +1876,7 @@ namespace
                 PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
                 MaterialValidation::Rendering(renderer);
                 LocalLightValidation::Rendering(renderer); LocalLightValidation::Runtime(renderer);
+                PostEffectValidation::Rendering(renderer); PostEffectValidation::Runtime(renderer);
                 AnimatorValidation::Runtime(renderer);
                 ProfilerValidation::Run(renderer);
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
@@ -3059,6 +3061,15 @@ int main()
         ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: skeletal import, skinning, normals, interpolation, state transitions and schema\n"; return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_POST_ONLY",nullptr,0)) {
+            PostEffectValidation::Schema();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden HDR/post validation",64,32),"post test window");
+            Check(renderer.Initialize(window.GetHandle()),"post test renderer");
+            PostEffectValidation::Rendering(renderer); PostEffectValidation::Runtime(renderer);
+            CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: HDR radiance, linear blending, exposure, tone mapping, bloom, UI and playback\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_LIGHTS_ONLY",nullptr,0)) {
             LocalLightValidation::Schema();
             Engine::Window window; Engine::DirectX12Renderer renderer;
@@ -3168,6 +3179,7 @@ int main()
         InputActionValidation::Run();
         MaterialValidation::Schema();
         LocalLightValidation::Schema();
+        PostEffectValidation::Schema();
         AnimatorValidation::Run();
         AssetDatabaseValidation::Run();
         phase="ValidateSceneLayout"; ValidateSceneLayout();

@@ -46,5 +46,5 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     clouds = max(clouds, CloudBank(input.uv, cloudBanks[2].xy, cloudBanks[2].z));
     float3 cloudColor = lerp(cloudLow.rgb, cloudHigh.rgb, altitude);
     sky = lerp(sky, cloudColor, clouds * zenith.w);
-    return float4(sky, 1.0f);
+    return FinishSpriteColor(float4(sky, 1.0f));
 }

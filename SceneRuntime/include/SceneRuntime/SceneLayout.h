@@ -4,6 +4,7 @@
 #include <SceneRuntime/UiComponents.h>
 #include <SceneRuntime/Animation.h>
 #include <SceneRuntime/Animator.h>
+#include <Engine/Graphics/Materials/PostEffectSettings.h>
 #include <optional>
 #include <array>
 #include <filesystem>
@@ -91,6 +92,7 @@ namespace SceneRuntime
         std::array<float,4> background{0.66f,0.79f,0.83f,1};
         std::string mainCamera;
         FogSettings fog;
+        Engine::PostEffectSettings postEffects;
         bool operator==(const SceneSettings&) const = default;
     };
 

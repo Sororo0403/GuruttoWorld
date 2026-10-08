@@ -6,11 +6,11 @@
 - [x] ゲーム処理API: 検索、Component取得、生成・複製・削除、イベント
 - [x] 物理: 動的剛体、Collider、Trigger、衝突イベント、Raycast、斜面・移動床
 - [x] Prefab: プロパティ単位の上書き、適用・復元、入れ子、Variant
-- [ ] 描画: PBR、法線マップ、Point/Spot Light、ポストエフェクト
+- [x] 描画: PBR、法線マップ、Point/Spot Light、ポストエフェクト
 - [ ] アニメーション: GPUスキニング、Blend Tree、イベント、IK、ルートモーション
 - [ ] アセット・性能: 画像圧縮・Mip設定、CPUスコープ・GPUパス別計測
 
-描画の進捗: PBR（GGX・金属度・sRGB変換）と接線空間の法線マップ、Material編集・保存、Point/Spot Light（32灯、距離・角度減衰、親子とScript追従）、比較シーンを追加。ポストエフェクトは未完了。
+描画: PBR（GGX・金属度・sRGB変換）と接線空間の法線マップ、Material編集・保存、Point/Spot Light（32灯、距離・角度減衰、親子とScript追従）、線形FP16 HDR、露出・Reinhard/ACES近似・ブルーム、比較シーンを追加。UIはポストエフェクトの後で描画する。
 
 既存のシーン形式・再生停止時の編集データ復元・失敗時のデータ保持を維持する。
 新機能はAppとEditorの再生双方へ接続し、APIだけの追加で終わらせない。

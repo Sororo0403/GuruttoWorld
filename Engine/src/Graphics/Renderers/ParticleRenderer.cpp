@@ -4,6 +4,7 @@
 #include <Engine/Core/Log.h>
 
 #include <Engine/Graphics/Resources/IndexedMeshBuffer.h>
+#include <Engine/Graphics/Resources/RenderTargetBinding.h>
 #include <cmath>
 #include <format>
 #include <utility>
@@ -47,6 +48,7 @@ namespace Engine
             vertexBufferView_ = {};
             indexBufferView_ = {};
             pipelineState_.Reset();
+            hdrPipelineState_.Reset();
             rootSignature_.Reset();
             return false;
         }
@@ -63,7 +65,7 @@ namespace Engine
         textureRange.NumDescriptors = 1;
         textureRange.BaseShaderRegister = 0;
         textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        D3D12_ROOT_PARAMETER parameters[2]{};
+        D3D12_ROOT_PARAMETER parameters[3]{};
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
         parameters[0].Constants.Num32BitValues = 20;
@@ -72,6 +74,9 @@ namespace Engine
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
         parameters[1].DescriptorTable.pDescriptorRanges = &textureRange;
         parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        parameters[2].ParameterType=D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        parameters[2].Constants.ShaderRegister=1; parameters[2].Constants.Num32BitValues=1;
+        parameters[2].ShaderVisibility=D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -83,7 +88,7 @@ namespace Engine
         sampler.ShaderRegister = 0;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_ROOT_SIGNATURE_DESC description{};
-        description.NumParameters = 2;
+        description.NumParameters = 3;
         description.pParameters = parameters;
         description.NumStaticSamplers = 1;
         description.pStaticSamplers = &sampler;
@@ -145,8 +150,9 @@ namespace Engine
         description.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         description.DSVFormat = DepthBuffer::Format;
         description.SampleDesc.Count = 1;
-        return Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),
-            "Create particle pipeline state");
+        if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),"Create particle pipeline state")) return false;
+        description.RTVFormats[0]=DXGI_FORMAT_R16G16B16A16_FLOAT;
+        return Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&hdrPipelineState_)),"Create HDR particle pipeline");
     }
 
     bool ParticleRenderer::CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue)
@@ -164,11 +170,14 @@ namespace Engine
         const std::array<float, 4>& color) const
     {
         if (!initialized_ || commands == nullptr) return;
-        commands->SetPipelineState(pipelineState_.Get());
+        RenderTargetBinding target;
+        const UINT hdr=RenderTargetBinding::Current(commands,target) && target.format==DXGI_FORMAT_R16G16B16A16_FLOAT ? 1U : 0U;
+        commands->SetPipelineState(hdr ? hdrPipelineState_.Get() : pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
         // HLSL の行列16要素と色4要素を、それぞれのオフセットへ設定します。
         commands->SetGraphicsRoot32BitConstants(0, 16, &worldViewProjection, 0);
         commands->SetGraphicsRoot32BitConstants(0, 4, color.data(), 16);
+        commands->SetGraphicsRoot32BitConstants(2,1,&hdr,0);
         ID3D12DescriptorHeap* heaps[] = { texture_->GetDescriptorHeap() };
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, texture_->GetGpuHandle());

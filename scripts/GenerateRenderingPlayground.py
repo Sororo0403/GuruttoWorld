@@ -67,6 +67,15 @@ def main():
     ])
     scene["objects"][-1]["parent"] = "Camera"
     write("Assets/Scenes/LocalLightPlayground.json", json.dumps(scene, indent=2) + "\n")
+    scene["objects"][1]["components"][0]["enabled"] = True
+    scene["settings"]["postEffects"] = dict(enabled=True, exposure=0, toneMapping="filmic", bloomEnabled=True, bloomIntensity=.4, bloomThreshold=1, bloomRadius=1.5)
+    scene["objects"].extend([
+        obj("Glow", [0, 2, -2], [1, 1, 1], [component("ParticleEmitter", count=24, color=[.3, .7, 1, 1], size=.35, extent=[.2, .2, .2], travel=[0, 2, 0], cycle=3, drift=.1)]),
+        obj("Overlay", [0, 0, 0], [1, 1, 1], [component("Canvas", referenceSize=[1280, 720], scaleWithScreen=True)]),
+        obj("Label", [0, 0, 0], [1, 1, 1], [component("RectTransform", anchorMin=[0, 0], anchorMax=[0, 0], pivot=[0, 0], position=[20, 20], size=[800, 50], rotation=0, introDelay=0, introOffset=0, visibleWhen="", offsetBinding="", opacityBinding=""), component("Text", text="露出・ブルームをシーン設定で調整", font="Yu Gothic UI", fontSize=24, color=[1, 1, 1, 1])]),
+    ])
+    scene["objects"][-1]["parent"] = "Overlay"
+    write("Assets/Scenes/PostEffectsPlayground.json", json.dumps(scene, indent=2) + "\n")
 
 
 if __name__ == "__main__":

@@ -213,6 +213,22 @@ namespace Editor
         TrackInspectorEdit(state);
         settingsEdited=ImGui::SliderFloat("霧の強さ###Fog strength",&settings.fog.strength,0,1) || settingsEdited;
         TrackInspectorEdit(state);
+        settingsEdited=ImGui::Checkbox("ポストエフェクトを有効化###Post effects",&settings.postEffects.enabled) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("露出（EV）###Exposure",&settings.postEffects.exposure,-10,10) || settingsEdited;
+        TrackInspectorEdit(state);
+        int tone=static_cast<int>(settings.postEffects.toneMapping);
+        if (ImGui::Combo("トーンマッピング###Tone mapping",&tone,"なし\0Reinhard\0ACES近似\0"))
+        { settings.postEffects.toneMapping=static_cast<Engine::ToneMapping>(tone); settingsEdited=true; }
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::Checkbox("ブルームを有効化###Bloom",&settings.postEffects.bloomEnabled) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("ブルームの強さ###Bloom intensity",&settings.postEffects.bloomIntensity,0,10) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("ブルームのしきい値###Bloom threshold",&settings.postEffects.bloomThreshold,0,100) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("ブルームの広がり###Bloom radius",&settings.postEffects.bloomRadius,.25f,8) || settingsEdited;
+        TrackInspectorEdit(state);
         if (settingsEdited)
         {
             TrackInspectorEdit(state);

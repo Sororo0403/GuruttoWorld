@@ -78,5 +78,6 @@ namespace Engine
         D3D12_INDEX_BUFFER_VIEW indexBufferView_{};
         Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
+        Microsoft::WRL::ComPtr<ID3D12PipelineState> hdrPipelineState_;
     };
 }

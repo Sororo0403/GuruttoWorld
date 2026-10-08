@@ -1,0 +1,618 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [
+      0.025,
+      0.035,
+      0.055,
+      1
+    ],
+    "mainCamera": "Camera",
+    "postEffects": {
+      "enabled": true,
+      "exposure": 0,
+      "toneMapping": "filmic",
+      "bloomEnabled": true,
+      "bloomIntensity": 0.4,
+      "bloomThreshold": 1,
+      "bloomRadius": 1.5
+    }
+  },
+  "objects": [
+    {
+      "id": "Camera",
+      "name": "Camera",
+      "parent": "",
+      "position": [
+        0,
+        6,
+        -13
+      ],
+      "rotation": [
+        0.3,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "camera",
+          "type": "Camera",
+          "enabled": true,
+          "verticalFov": 45,
+          "nearClip": 0.1,
+          "farClip": 100,
+          "referenceAspect": 1.7777777777777777,
+          "preserveHorizontal": true
+        }
+      ]
+    },
+    {
+      "id": "Light",
+      "name": "Light",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "directionallight",
+          "type": "DirectionalLight",
+          "enabled": true,
+          "direction": [
+            0.3,
+            -0.6,
+            1
+          ],
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "intensity": 2,
+          "ambient": 0.08,
+          "specular": 0.4,
+          "shininess": 32,
+          "shadowsEnabled": true
+        }
+      ]
+    },
+    {
+      "id": "Floor",
+      "name": "Floor",
+      "parent": "",
+      "position": [
+        0,
+        -0.5,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        10,
+        0.3,
+        7
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj",
+          "material": "Assets/Materials/PbrFloor.mat"
+        }
+      ]
+    },
+    {
+      "id": "PbrDielectric0",
+      "name": "PbrDielectric0",
+      "parent": "",
+      "position": [
+        -2.6,
+        0.8,
+        0.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "material": "Assets/Materials/PbrDielectric0.mat"
+        }
+      ]
+    },
+    {
+      "id": "PbrDielectric1",
+      "name": "PbrDielectric1",
+      "parent": "",
+      "position": [
+        0.0,
+        0.8,
+        0.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "material": "Assets/Materials/PbrDielectric1.mat"
+        }
+      ]
+    },
+    {
+      "id": "PbrDielectric2",
+      "name": "PbrDielectric2",
+      "parent": "",
+      "position": [
+        2.6,
+        0.8,
+        0.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "material": "Assets/Materials/PbrDielectric2.mat"
+        }
+      ]
+    },
+    {
+      "id": "PbrMetal0",
+      "name": "PbrMetal0",
+      "parent": "",
+      "position": [
+        -2.6,
+        0.8,
+        2.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "material": "Assets/Materials/PbrMetal0.mat"
+        }
+      ]
+    },
+    {
+      "id": "PbrMetal1",
+      "name": "PbrMetal1",
+      "parent": "",
+      "position": [
+        0.0,
+        0.8,
+        2.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "material": "Assets/Materials/PbrMetal1.mat"
+        }
+      ]
+    },
+    {
+      "id": "PbrMetal2",
+      "name": "PbrMetal2",
+      "parent": "",
+      "position": [
+        2.6,
+        0.8,
+        2.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "material": "Assets/Materials/PbrMetal2.mat"
+        }
+      ]
+    },
+    {
+      "id": "PbrSmooth",
+      "name": "PbrSmooth",
+      "parent": "",
+      "position": [
+        -1.5,
+        0.65,
+        -3
+      ],
+      "rotation": [
+        0,
+        0.2,
+        0
+      ],
+      "scale": [
+        1.2,
+        1.2,
+        1.2
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj",
+          "material": "Assets/Materials/PbrSmooth.mat"
+        }
+      ]
+    },
+    {
+      "id": "PbrRelief",
+      "name": "PbrRelief",
+      "parent": "",
+      "position": [
+        1.5,
+        0.65,
+        -3
+      ],
+      "rotation": [
+        0,
+        0.2,
+        0
+      ],
+      "scale": [
+        1.2,
+        1.2,
+        1.2
+      ],
+      "components": [
+        {
+          "id": "meshrenderer",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj",
+          "material": "Assets/Materials/PbrRelief.mat"
+        }
+      ]
+    },
+    {
+      "id": "WarmPoint",
+      "name": "WarmPoint",
+      "parent": "",
+      "position": [
+        -3,
+        3,
+        -2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "pointlight",
+          "type": "PointLight",
+          "enabled": true,
+          "color": [
+            1,
+            0.25,
+            0.08
+          ],
+          "intensity": 20,
+          "range": 10
+        },
+        {
+          "id": "script",
+          "type": "Script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 1,
+            "frequency": 0.25
+          }
+        }
+      ]
+    },
+    {
+      "id": "CoolPoint",
+      "name": "CoolPoint",
+      "parent": "",
+      "position": [
+        3,
+        3,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "pointlight",
+          "type": "PointLight",
+          "enabled": true,
+          "color": [
+            0.08,
+            0.35,
+            1
+          ],
+          "intensity": 25,
+          "range": 10
+        }
+      ]
+    },
+    {
+      "id": "CameraSpot",
+      "name": "CameraSpot",
+      "parent": "Camera",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "spotlight",
+          "type": "SpotLight",
+          "enabled": true,
+          "color": [
+            1,
+            0.9,
+            0.7
+          ],
+          "intensity": 100,
+          "range": 25,
+          "innerAngle": 30,
+          "outerAngle": 60
+        }
+      ]
+    },
+    {
+      "id": "Glow",
+      "name": "Glow",
+      "parent": "",
+      "position": [
+        0,
+        2,
+        -2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "particleemitter",
+          "type": "ParticleEmitter",
+          "enabled": true,
+          "count": 24,
+          "color": [
+            0.3,
+            0.7,
+            1,
+            1
+          ],
+          "size": 0.35,
+          "extent": [
+            0.2,
+            0.2,
+            0.2
+          ],
+          "travel": [
+            0,
+            2,
+            0
+          ],
+          "cycle": 3,
+          "drift": 0.1
+        }
+      ]
+    },
+    {
+      "id": "Overlay",
+      "name": "Overlay",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "canvas",
+          "type": "Canvas",
+          "enabled": true,
+          "referenceSize": [
+            1280,
+            720
+          ],
+          "scaleWithScreen": true
+        }
+      ]
+    },
+    {
+      "id": "Label",
+      "name": "Label",
+      "parent": "Overlay",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "recttransform",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            20,
+            20
+          ],
+          "size": [
+            800,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "\u9732\u51fa\u30fb\u30d6\u30eb\u30fc\u30e0\u3092\u30b7\u30fc\u30f3\u8a2d\u5b9a\u3067\u8abf\u6574",
+          "font": "Yu Gothic UI",
+          "fontSize": 24,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    }
+  ]
+}

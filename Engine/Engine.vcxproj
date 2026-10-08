@@ -268,5 +268,8 @@
     <ClInclude Include="include\Engine\Graphics\Resources\LocalLightBuffer.h" />
     <ClInclude Include="include\Engine\Graphics\Renderers\ShadowMap.h" />
     <ClCompile Include="src\Graphics\Renderers\ShadowMap.cpp" />
+    <ClInclude Include="include\Engine\Graphics\Materials\PostEffectSettings.h" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\PostEffectRenderer.h" />
+    <ClCompile Include="src\Graphics\Renderers\PostEffectRenderer.cpp" />
   </ItemGroup>
 </Project>
