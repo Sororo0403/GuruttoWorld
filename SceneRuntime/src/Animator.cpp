@@ -1,4 +1,5 @@
 #include <SceneRuntime/Animator.h>
+#include <Engine/Animation/TwoBoneIk.h>
 #include <algorithm>
 #include <cmath>
 #include <set>
@@ -6,6 +7,25 @@
 
 namespace
 {
+    size_t Bone(const Engine::SkeletonData& rig,const std::string& name)
+    {
+        size_t result=rig.nodes.size();
+        for (size_t index=0;index<rig.nodes.size();++index) if (rig.nodes[index].name==name)
+        { if (result!=rig.nodes.size()) throw std::runtime_error("Ambiguous IK bone: "+name); result=index; }
+        if (result==rig.nodes.size()) throw std::runtime_error("Missing IK bone: "+name);
+        return result;
+    }
+    std::vector<Engine::BonePose> SolveIk(const SceneRuntime::AnimatorComponent& component,const Engine::SkeletonData& rig,std::vector<Engine::BonePose> pose)
+    {
+        for (const auto& item : component.ik) if (item.enabled && item.weight>0)
+        {
+            Engine::TwoBoneIkConstraint constraint;
+            constraint.root=Bone(rig,item.root); constraint.middle=Bone(rig,item.middle); constraint.tip=Bone(rig,item.tip);
+            constraint.target=item.target; constraint.hint=item.hint; constraint.weight=item.weight;
+            pose=Engine::TwoBoneIk::Solve(rig,pose,constraint);
+        }
+        return pose;
+    }
     const SceneRuntime::AnimatorStateDefinition& State(const SceneRuntime::AnimatorComponent& component,const std::string& name)
     {
         const auto found=std::find_if(component.states.begin(),component.states.end(),[&](const auto& state) { return state.name==name; });
@@ -53,6 +73,23 @@ namespace SceneRuntime
         BlendTree::Validate(component.blendTrees,rig);
         ValidateParameters(component.parameters);
         AnimationEvents::Validate(component.events,rig);
+        if (component.ik.size()>16) throw std::runtime_error("Too many IK constraints");
+        std::set<std::string> ikNames;
+        for (const auto& item : component.ik)
+        {
+            for (const auto& name : {item.name,item.root,item.middle,item.tip})
+                if (name.empty() || name.size()>256 || name.find('\0')!=std::string::npos) throw std::runtime_error("Invalid IK name");
+            if (!ikNames.insert(item.name).second || !std::isfinite(item.weight) || item.weight<0 || item.weight>1)
+                throw std::runtime_error("Invalid IK weight or duplicate name");
+            for (const auto& point : {item.target,item.hint})
+                if (std::ranges::any_of(point,[](float value) { return !std::isfinite(value) || std::abs(value)>1000000; })) throw std::runtime_error("Invalid IK point");
+            if (item.root==item.middle || item.root==item.tip || item.middle==item.tip) throw std::runtime_error("Invalid IK chain");
+            if (rig)
+            {
+                const auto root=Bone(*rig,item.root),middle=Bone(*rig,item.middle),tip=Bone(*rig,item.tip);
+                if (rig->nodes[middle].parent!=static_cast<int>(root) || rig->nodes[tip].parent!=static_cast<int>(middle)) throw std::runtime_error("IK bones must be directly connected");
+            }
+        }
         std::set<std::string> names;
         for (const auto& state : component.states)
         {
@@ -89,7 +126,7 @@ namespace SceneRuntime
         const auto& before=State(component,next.current);
         if (!component.enabled)
         {
-            if (next.pose.empty()) { next.pose=Sample(component,before,next,rig,values); next.motions=Motions(component,before,values); }
+            if (next.pose.empty()) { next.basePose=Sample(component,before,next,rig,values); next.pose=SolveIk(component,rig,next.basePose); next.motions=Motions(component,before,values); }
             auto pose=next.pose; state=std::move(next); return pose;
         }
         const double duration=BlendTree::Duration(Motions(component,before,values),rig);
@@ -98,7 +135,7 @@ namespace SceneRuntime
             const double phase=before.blendTree.empty() ? next.time/duration : next.normalizedTime;
             if (initializing || (transition.from!="*" && transition.from!=next.current) || transition.to==next.current ||
                 (transition.exitTime>=0 && phase<transition.exitTime) || !Condition(transition,values)) continue;
-            next.previousPose=next.pose.empty() ? Sample(component,before,next,rig,values) : next.pose;
+            next.previousPose=next.basePose.empty() ? Sample(component,before,next,rig,values) : next.basePose;
             next.current=transition.to; next.time=next.normalizedTime=0; next.blendElapsed=0; next.blendDuration=transition.blendSeconds; next.eventsAtStart=true;
             break;
         }
@@ -121,6 +158,7 @@ namespace SceneRuntime
         const float toWeight=next.previousPose.empty() || next.blendDuration<=0 ? 1 : std::clamp(next.blendElapsed/next.blendDuration,0.0f,1.0f);
         next.events=AnimationEvents::Collect(component.events,rig,next.current,next.motions,from,next.normalizedTime,definition.loop,next.eventsAtStart,fromWeight,toWeight);
         if (next.normalizedTime>from) next.eventsAtStart=false;
+        next.basePose=pose; pose=SolveIk(component,rig,std::move(pose));
         next.pose=pose; state=std::move(next); return pose;
     }
 }

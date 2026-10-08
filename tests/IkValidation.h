@@ -1,5 +1,7 @@
 #pragma once
 #include <Engine/Animation/TwoBoneIk.h>
+#include <SceneRuntime/Animator.h>
+#include "../SceneRuntime/src/AnimatorJson.h"
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -71,5 +73,38 @@ namespace IkValidation
         badPose=pose; badPose[2].position={0,0,0}; Reject(badPose,ik);
         badPose=pose; badPose.pop_back(); Reject(badPose,ik);
         badPose=pose; badPose[1].rotation={0,0,0,0}; Reject(badPose,ik);
+        using namespace SceneRuntime;
+        rig.nodes[0].rest={}; rig.nodes[3].rest.position={1,0,0};
+        rig.clips.push_back({"Idle",1,{}});
+        AnimatorComponent animator; animator.states[0].clip="Idle";
+        AnimatorIkConstraint definition; definition.name="arm"; definition.root="root"; definition.middle="middle"; definition.tip="tip";
+        definition.target={1,1,0}; definition.hint={0,1,0}; animator.ik.push_back(definition);
+        const auto json=WriteAnimator(animator); const auto restored=ReadAnimator(json,animator.id,animator.enabled);
+        Require(restored==animator,"IK Animator JSON roundtrip");
+        AnimatorState state; Animator::Advance(animator,state,rig,.1,{});
+        Require(Distance(Position(rig,state.pose,3),definition.target)<.0001f && Distance(Position(rig,state.basePose,3),{2,0,0})<.0001f,"Animator applies IK after sampling and preserves base pose");
+        for (int index=0;index<10;++index) Animator::Advance(animator,state,rig,.1,{});
+        Require(Distance(Position(rig,state.pose,3),definition.target)<.0001f,"Animator IK does not accumulate across frames");
+        const auto oldTime=state.time; const auto oldRotation=state.pose[1].rotation;
+        animator.enabled=false; Animator::Advance(animator,state,rig,.1,{});
+        Require(state.time==oldTime && state.pose[1].rotation==oldRotation,"disabled Animator freezes IK pose");
+        animator.enabled=true; animator.ik[0].target={-1,1,0}; Animator::Advance(animator,state,rig,.1,{});
+        Require(Distance(Position(rig,state.pose,3),animator.ik[0].target)<.0001f,"Animator follows changed IK target");
+        const auto successfulTime=state.time; const auto successfulRotation=state.pose[1].rotation;
+        animator.ik[0].middle="missing"; bool failed=false;
+        try { Animator::Advance(animator,state,rig,.1,{}); } catch (const std::exception&) { failed=true; }
+        Require(failed && state.time==successfulTime && state.pose[1].rotation==successfulRotation,"failed IK preserves Animator clock and pose");
+        animator.ik[0]=definition;
+        animator.states.push_back({"Next","Idle",1,true}); animator.transitions.push_back({"Idle","Next","go",">",0,.5f,-1});
+        AnimatorState transitioning; Animator::Advance(animator,transitioning,rig,.1,{});
+        Animator::Advance(animator,transitioning,rig,.1,{{"go",1.0f}});
+        Require(transitioning.current=="Next" && Distance(Position(rig,transitioning.basePose,3),{2,0,0})<.0001f &&
+            Distance(Position(rig,transitioning.pose,3),definition.target)<.0001f,"Animator crossfade uses uncorrected source before IK");
+        auto invalidJson=WriteAnimator(animator); invalidJson["ik"][0]["target"]=Engine::Json::array({1,2});
+        bool badJson=false; try { ReadAnimator(invalidJson,animator.id,true); } catch (const std::exception&) { badJson=true; }
+        Require(badJson,"IK rejects malformed saved point");
+        animator.ik.push_back(definition); bool duplicate=false;
+        try { Animator::Validate(animator,&rig); } catch (const std::exception&) { duplicate=true; }
+        Require(duplicate,"IK rejects duplicate constraint names");
     }
 }

@@ -5,6 +5,14 @@
 
 namespace SceneRuntime
 {
+    struct AnimatorIkConstraint
+    {
+        std::string name="IK",root,middle,tip;
+        bool enabled=true;
+        std::array<float,3> target{},hint{0,0,1};
+        float weight=1;
+        bool operator==(const AnimatorIkConstraint&) const = default;
+    };
     struct AnimatorStateDefinition
     {
         std::string name="Idle",clip;
@@ -28,6 +36,7 @@ namespace SceneRuntime
         std::vector<AnimatorBlendTree> blendTrees;
         std::map<std::string,float> parameters;
         std::vector<AnimatorEventKey> events;
+        std::vector<AnimatorIkConstraint> ik;
         bool operator==(const AnimatorComponent&) const = default;
     };
     struct AnimatorState
@@ -37,6 +46,7 @@ namespace SceneRuntime
         double normalizedTime=0;
         float blendElapsed=0,blendDuration=0;
         std::vector<Engine::BonePose> previousPose,pose;
+        std::vector<Engine::BonePose> basePose;
         std::vector<AnimatorMotionSample> motions;
         std::map<std::string,float> parameterOverrides;
         bool eventsAtStart=true;

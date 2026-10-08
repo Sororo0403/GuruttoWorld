@@ -3,6 +3,7 @@
 #include "ProjectCatalog.h"
 #include "BlendTreePanel.h"
 #include "AnimationEventPanel.h"
+#include "IkPanel.h"
 #include <imgui.h>
 namespace Editor {
 class AnimatorPanel final {
@@ -61,6 +62,7 @@ public:
         }
         edited=BlendTreePanel::Draw(animator,rig.get()) || edited;
         edited=AnimationEventPanel::Draw(animator,rig.get()) || edited;
+        edited=IkPanel::Draw(animator,rig.get()) || edited;
         for (size_t i=0;i<animator.transitions.size();++i) {
             ImGui::PushID(static_cast<int>(i+100)); auto& transition=animator.transitions[i];
             if (ImGui::TreeNode("transition","遷移: %s -> %s",transition.from.c_str(),transition.to.c_str())) {

@@ -39,6 +39,26 @@ namespace SceneRuntime
     {
         using Engine::JsonArray; using Engine::JsonNumber;
         AnimatorComponent animator; animator.id=id; animator.enabled=enabled;
+        if (component.contains("ik"))
+        {
+            const auto& constraints=JsonArray(component.at("ik"));
+            if (constraints.size()>16) throw std::runtime_error("Too many IK constraints");
+            for (const auto& item : constraints)
+            {
+                Engine::JsonObject(item); AnimatorIkConstraint constraint;
+                constraint.name=item.at("name").get<std::string>(); constraint.root=item.at("root").get<std::string>();
+                constraint.middle=item.at("middle").get<std::string>(); constraint.tip=item.at("tip").get<std::string>();
+                if (item.contains("enabled")) constraint.enabled=item.at("enabled").get<bool>();
+                if (item.contains("weight")) constraint.weight=static_cast<float>(JsonNumber(item.at("weight")));
+                for (const auto& key : {"target","hint"})
+                {
+                    const auto& point=JsonArray(item.at(key)); if (point.size()!=3) throw std::runtime_error("IK point requires three coordinates");
+                    auto& destination=std::string(key)=="target" ? constraint.target : constraint.hint;
+                    for (size_t axis=0;axis<3;++axis) destination[axis]=static_cast<float>(JsonNumber(point[axis]));
+                }
+                animator.ik.push_back(std::move(constraint));
+            }
+        }
         if (component.contains("parameters"))
         {
             const auto& parameters=Engine::JsonObject(component.at("parameters"));
@@ -110,6 +130,12 @@ namespace SceneRuntime
         Animator::Validate(animator);
         Json object{{"id",animator.id},{"type","Animator"},{"enabled",animator.enabled},{"initialState",animator.initialState},{"states",Json::array()},{"transitions",Json::array()}};
         if (!animator.parameters.empty()) object["parameters"]=animator.parameters;
+        if (!animator.ik.empty())
+        {
+            object["ik"]=Json::array();
+            for (const auto& item : animator.ik) object["ik"].push_back({{"name",item.name},{"root",item.root},{"middle",item.middle},{"tip",item.tip},
+                {"enabled",item.enabled},{"weight",item.weight},{"target",item.target},{"hint",item.hint}});
+        }
         if (!animator.events.empty())
         {
             object["events"]=Json::array();
