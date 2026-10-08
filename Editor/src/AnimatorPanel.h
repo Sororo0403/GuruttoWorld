@@ -1,6 +1,7 @@
 #pragma once
 #include <SceneRuntime/Animator.h>
 #include "ProjectCatalog.h"
+#include "BlendTreePanel.h"
 #include <imgui.h>
 namespace Editor {
 class AnimatorPanel final {
@@ -25,6 +26,7 @@ public:
         }
         auto& animator=*object.animator; ImGui::PushID(animator.id.c_str());
         bool edited=ImGui::Checkbox("有効###Enabled",&animator.enabled);
+        edited=BlendTreePanel::Parameters(animator) || edited;
         if (ImGui::BeginCombo("初期状態###Initial state",animator.initialState.c_str())) {
             for (const auto& state : animator.states) if (ImGui::Selectable(state.name.c_str(),state.name==animator.initialState)) { animator.initialState=state.name; edited=true; }
             ImGui::EndCombo();
@@ -39,11 +41,7 @@ public:
                     for (auto& transition : animator.transitions) { if (transition.from==oldName) transition.from=state.name; if (transition.to==oldName) transition.to=state.name; }
                     edited=true;
                 }
-                if (ImGui::BeginCombo("clip###Clip",state.clip.empty() ? "初期姿勢" : state.clip.c_str())) {
-                    if (ImGui::Selectable("初期姿勢",state.clip.empty())) { state.clip.clear(); edited=true; }
-                    if (rig) for (const auto& clip : rig->clips) if (ImGui::Selectable(clip.name.c_str(),state.clip==clip.name)) { state.clip=clip.name; edited=true; }
-                    ImGui::EndCombo();
-                }
+                edited=BlendTreePanel::Motion("Motion###Clip",state.clip,state.blendTree,animator,rig.get()) || edited;
                 edited=ImGui::DragFloat("再生速度###Speed",&state.speed,0.01f,0,1000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
                 edited=ImGui::Checkbox("ループ###Loop",&state.loop) || edited;
                 if (animator.states.size()>1 && ImGui::Button("状態を削除###Remove")) {
@@ -60,6 +58,7 @@ public:
             do { next.name="State"+std::to_string(number++); } while (std::any_of(animator.states.begin(),animator.states.end(),[&](const auto& state) { return state.name==next.name; }));
             animator.states.push_back(next); edited=true;
         }
+        edited=BlendTreePanel::Draw(animator,rig.get()) || edited;
         for (size_t i=0;i<animator.transitions.size();++i) {
             ImGui::PushID(static_cast<int>(i+100)); auto& transition=animator.transitions[i];
             if (ImGui::TreeNode("transition","遷移: %s -> %s",transition.from.c_str(),transition.to.c_str())) {

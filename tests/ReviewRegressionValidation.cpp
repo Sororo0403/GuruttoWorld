@@ -3061,6 +3061,14 @@ int main()
         ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: skeletal import, skinning, normals, interpolation, state transitions and schema\n"; return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_BLEND_ONLY",nullptr,0)) {
+            BlendTreeValidation::Schema();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden Blend Tree validation",64,32),"Blend Tree window");
+            Check(renderer.Initialize(window.GetHandle()),"Blend Tree renderer");
+            BlendTreeValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: 1D/2D/Direct/nested Blend Trees, synchronized phase, validation, editing and App/Editor playback\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_POST_ONLY",nullptr,0)) {
             PostEffectValidation::Schema();
             Engine::Window window; Engine::DirectX12Renderer renderer;

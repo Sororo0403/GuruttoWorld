@@ -130,6 +130,7 @@ namespace SceneRuntime
                 if (destroyed_.contains(item.parentId) && destroyed_.insert(item.id).second) changed=true;
         }
         std::erase_if(layout_.objects,[&](const auto& item) { return destroyed_.contains(item.id); });
+        std::erase_if(animatorParameters,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         if (destroyed_.contains(layout_.settings.mainCamera)) layout_.settings.mainCamera.clear();
         static_cast<void>(layout_.Serialize());
     }
@@ -138,6 +139,13 @@ namespace SceneRuntime
         if (events_.size()>=4096 || event.name.empty() || event.name.size()>128 || !std::isfinite(event.value))
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events_.push_back(std::move(event));
+    }
+    void ScriptScene::SetAnimatorParameter(const std::string& id,const std::string& name,float value)
+    {
+        const auto* object=Find(id); if (!object || !object->animator) throw std::runtime_error("Animator parameter owner missing: "+id);
+        const auto found=animatorParameters.find(id);
+        auto values=found==animatorParameters.end() ? std::map<std::string,float>{} : found->second; values[name]=value;
+        Animator::ValidateParameters(values); animatorParameters[id]=std::move(values);
     }
     float ScriptContext::Value(const std::string& name,float fallback) const
     { const auto found=parameters.find(name); return found==parameters.end() ? fallback : found->second; }
@@ -158,7 +166,7 @@ namespace SceneRuntime
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
-        { impulses_.clear(); error.clear(); return true; }
+        { impulses_.clear(); animatorParameters_.clear(); error.clear(); return true; }
         auto candidate=layout;
         auto runtime=*this;
         if (!runtime.Advance(candidate,seconds,error,input,pressed,physics)) return false;
@@ -232,6 +240,7 @@ namespace SceneRuntime
                 }
             events_=std::move(scene.events);
             impulses_=std::move(scene.impulses);
+            animatorParameters_=std::move(scene.animatorParameters);
             error.clear(); return true;
         }
         catch (const std::exception& exception) { error=exception.what(); return false; }
@@ -253,6 +262,6 @@ namespace SceneRuntime
             catch (...) { Engine::Log::Warning("Script stop callback failed"); }
         }
         instances_.clear();
-        events_.clear(); impulses_.clear(); nextId_=1;
+        events_.clear(); impulses_.clear(); animatorParameters_.clear(); nextId_=1;
     }
 }

@@ -59,6 +59,12 @@ namespace SceneRuntime
         bool QueueScriptEvent(ScriptEvent event,std::string& error);
         void SetRuntimePreparation(std::function<bool(const SceneLayout&,std::string&)> prepare) { prepareRuntime_=std::move(prepare); }
         std::string AnimatorStateName(const std::string& id) const { const auto found=animatorStates_.find(id); return found==animatorStates_.end() ? std::string{} : found->second.current; }
+        /// <summary>現在のクリップ重み・同期位相・骨格姿勢を取得します。変更操作後に再取得してください。</summary>
+        const AnimatorState* AnimatorStatus(const std::string& id) const { const auto found=animatorStates_.find(id); return found==animatorStates_.end() ? nullptr : &found->second; }
+        /// <summary>個体のAnimatorパラメーターを実行中だけ上書きします。保存したComponentには反映しません。</summary>
+        bool SetAnimatorParameter(const std::string& id,const std::string& name,float value);
+        /// <summary>個体のパラメーター上書きを解除し、入力または保存値を使用します。</summary>
+        bool ClearAnimatorParameter(const std::string& id,const std::string& name);
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { inputValues_=std::move(values); inputPressed_=std::move(pressed); }
         // Normalized input moves controllers on their parent-local XZ plane.
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false);

@@ -369,7 +369,7 @@ namespace SceneRuntime
                 error.clear();
                 return true;
             }
-            return ReplaceLayout(std::move(candidate),assetsRoot,error);
+            return ReplaceLayout(std::move(candidate),assetsRoot,error,true);
         }
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
@@ -433,6 +433,19 @@ namespace SceneRuntime
         auto runtime=scripts_;
         std::string error;
         if (!runtime.Update(candidate,seconds,error,inputValues_,inputPressed_,&physicsWorld_)) { Engine::Log::Warning(error); return false; }
+        try
+        {
+            for (const auto& [id,changes] : runtime.AnimatorParameters())
+            {
+                std::map<std::string,float> values;
+                const auto old=std::ranges::find(layout_.objects,id,&ScenePlacement::id),fresh=std::ranges::find(candidate.objects,id,&ScenePlacement::id);
+                const auto state=animatorStates_.find(id);
+                if (state!=animatorStates_.end() && old!=layout_.objects.end() && fresh!=candidate.objects.end() && old->animator==fresh->animator && old->meshRenderer==fresh->meshRenderer) values=state->second.parameterOverrides;
+                for (const auto& [name,value] : changes) values[name]=value;
+                Animator::ValidateParameters(values);
+            }
+        }
+        catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); return false; }
         const bool rebuild=candidate.objects.size()!=layout_.objects.size() ||
             !std::equal(candidate.objects.begin(),candidate.objects.end(),layout_.objects.begin(),[](const auto& a,const auto& b) {
                 return a.id==b.id && a.meshRenderer==b.meshRenderer && a.animator==b.animator;
@@ -454,6 +467,8 @@ namespace SceneRuntime
             layout_=std::move(candidate);
         }
         for (const auto& [id,impulse] : runtime.Impulses()) physicsWorld_.AddImpulse(id,impulse);
+        for (const auto& [id,changes] : runtime.AnimatorParameters())
+            for (const auto& [name,value] : changes) if (!SetAnimatorParameter(id,name,value)) return false;
         scripts_=std::move(runtime);
         for (const auto& placement : layout_.objects)
         {
@@ -461,7 +476,8 @@ namespace SceneRuntime
             const auto model=animatedModels_.find(placement.id); if (model==animatedModels_.end()) continue;
             auto parameters=inputValues_;
             const auto input=[&](const char* name) { const auto found=inputValues_.find(name); return found==inputValues_.end() ? 0.0f : found->second; };
-            parameters["speed"]=std::hypot(input("MoveRight")-input("MoveLeft"),input("MoveForward")-input("MoveBack"));
+            parameters["moveX"]=input("MoveRight")-input("MoveLeft"); parameters["moveY"]=input("MoveForward")-input("MoveBack");
+            parameters["speed"]=std::hypot(parameters["moveX"],parameters["moveY"]);
             const auto body=physics_.find(placement.id); parameters["grounded"]=body==physics_.end() ? 1.0f : (body->second.grounded ? 1.0f : 0.0f);
             for (const auto& [name,pressed] : inputPressed_) parameters["pressed:"+name]=pressed ? 1.0f : 0.0f;
             auto state=animatorStates_[placement.id];
@@ -474,6 +490,19 @@ namespace SceneRuntime
             catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); return false; }
         }
         return true;
+    }
+
+    bool SceneWorld::SetAnimatorParameter(const std::string& id,const std::string& name,float value)
+    {
+        const auto found=animatorStates_.find(id); if (found==animatorStates_.end()) return false;
+        auto values=found->second.parameterOverrides; values[name]=value;
+        try { Animator::ValidateParameters(values); }
+        catch (const std::exception&) { return false; }
+        found->second.parameterOverrides=std::move(values); return true;
+    }
+    bool SceneWorld::ClearAnimatorParameter(const std::string& id,const std::string& name)
+    {
+        const auto found=animatorStates_.find(id); return found!=animatorStates_.end() && found->second.parameterOverrides.erase(name)>0;
     }
 
     bool SceneWorld::RenameObject(std::string_view id, std::string name)

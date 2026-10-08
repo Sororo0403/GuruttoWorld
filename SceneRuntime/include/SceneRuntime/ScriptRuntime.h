@@ -39,6 +39,8 @@ namespace SceneRuntime
         void Emit(ScriptEvent event);
         /// <summary>動的剛体へ適用するインパルスを次の物理更新へ予約します。</summary>
         void AddImpulse(const std::string& id,const std::array<float,3>& impulse);
+        /// <summary>個体のAnimatorパラメーター変更を予約します。骨格の時計や保存データを作り直しません。</summary>
+        void SetAnimatorParameter(const std::string& id,const std::string& name,float value);
         /// <summary>実行中の物理ワールドから最も近いColliderの交点を取得します。</summary>
         std::optional<PhysicsRayHit> Raycast(const std::array<float,3>& origin,const std::array<float,3>& direction,float distance,
             unsigned int mask=0xffffffffu,bool triggers=false,const std::string& ignore={}) const
@@ -47,6 +49,7 @@ namespace SceneRuntime
         void Commit();
         std::vector<ScriptEvent> events;
         std::map<std::string,std::array<float,3>> impulses;
+        std::map<std::string,std::map<std::string,float>> animatorParameters;
     private:
         SceneLayout& layout_;
         size_t& nextId_;
@@ -97,6 +100,8 @@ namespace SceneRuntime
         void Stop(SceneLayout& layout) noexcept;
         void QueueEvent(ScriptEvent event);
         const std::map<std::string,std::array<float,3>>& Impulses() const { return impulses_; }
+        /// <summary>成功した更新で予約された個体ごとのAnimatorパラメーターを取得します。</summary>
+        const std::map<std::string,std::map<std::string,float>>& AnimatorParameters() const { return animatorParameters_; }
     private:
         bool Advance(SceneLayout& layout,double seconds,std::string& error,
             const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics);
@@ -105,5 +110,6 @@ namespace SceneRuntime
         size_t nextId_=1;
         std::vector<ScriptEvent> events_;
         std::map<std::string,std::array<float,3>> impulses_;
+        std::map<std::string,std::map<std::string,float>> animatorParameters_;
     };
 }

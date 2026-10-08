@@ -1,5 +1,6 @@
 #pragma once
 #include <Engine/Animation/Skeleton.h>
+#include <SceneRuntime/BlendTree.h>
 
 namespace SceneRuntime
 {
@@ -8,6 +9,7 @@ namespace SceneRuntime
         std::string name="Idle",clip;
         float speed=1;
         bool loop=true;
+        std::string blendTree;
         bool operator==(const AnimatorStateDefinition&) const = default;
     };
     struct AnimatorTransition
@@ -22,19 +24,28 @@ namespace SceneRuntime
         bool enabled=true;
         std::vector<AnimatorStateDefinition> states{{}};
         std::vector<AnimatorTransition> transitions;
+        std::vector<AnimatorBlendTree> blendTrees;
+        std::map<std::string,float> parameters;
         bool operator==(const AnimatorComponent&) const = default;
     };
     struct AnimatorState
     {
         std::string current;
         double time=0;
+        double normalizedTime=0;
         float blendElapsed=0,blendDuration=0;
         std::vector<Engine::BonePose> previousPose,pose;
+        std::vector<AnimatorMotionSample> motions;
+        std::map<std::string,float> parameterOverrides;
     };
     class Animator final
     {
     public:
+        /// <summary>状態・遷移・Blend Treeと参照クリップを検証します。</summary>
         static void Validate(const AnimatorComponent& component,const Engine::SkeletonData* rig=nullptr);
+        /// <summary>保存値・個体ごとの上書きパラメーターの名前・値・最大64件を検証します。</summary>
+        static void ValidateParameters(const std::map<std::string,float>& parameters);
+        /// <summary>状態と同期したBlend Treeを進めます。評価に失敗した場合は実行状態を保持します。</summary>
         static std::vector<Engine::BonePose> Advance(const AnimatorComponent& component,AnimatorState& state,
             const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters);
     };

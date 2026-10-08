@@ -25,6 +25,10 @@ namespace SceneRuntime
         void Update(double deltaSeconds, bool enabled, bool active);
         bool QueueScriptEvent(ScriptEvent event,std::string& error) { return world_.QueueScriptEvent(std::move(event),error); }
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { world_.SetInputActions(std::move(values),std::move(pressed)); }
+        /// <summary>実行中の個体のAnimatorパラメーターを上書きします。</summary>
+        bool SetAnimatorParameter(const std::string& id,const std::string& name,float value) { return world_.SetAnimatorParameter(id,name,value); }
+        /// <summary>個体のAnimatorパラメーター上書きを解除します。</summary>
+        bool ClearAnimatorParameter(const std::string& id,const std::string& name) { return world_.ClearAnimatorParameter(id,name); }
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false) { return world_.MovePlayers(seconds,horizontal,vertical,jump); }
         bool AddImpulse(const std::string& id,const std::array<float,3>& impulse) { return world_.AddImpulse(id,impulse); }
         /// <summary>時計を指定して演出をプレビューします。未開始の開始演出には負値を指定します。</summary>

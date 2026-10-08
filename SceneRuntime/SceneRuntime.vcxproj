@@ -141,6 +141,10 @@
     <ClCompile Include="src\Animation.cpp" />
     <ClCompile Include="src\Animator.cpp" />
     <ClInclude Include="include\SceneRuntime\Animator.h" />
+    <ClCompile Include="src\BlendTree.cpp" />
+    <ClInclude Include="include\SceneRuntime\BlendTree.h" />
+    <ClCompile Include="src\AnimatorJson.cpp" />
+    <ClInclude Include="src\AnimatorJson.h" />
     <ClInclude Include="include\SceneRuntime\UiComponents.h" />
     <ClInclude Include="include\SceneRuntime\SceneAudio.h" />
     <ClCompile Include="src\SceneAudio.cpp" />
