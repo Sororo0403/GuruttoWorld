@@ -7,9 +7,11 @@
 #include "SkinningValidation.h"
 #include "BlendTreeValidation.h"
 #include "AnimationEventValidation.h"
+#include "IkValidation.h"
 namespace AnimatorValidation {
 inline void Require(bool value,const char* message) { if (!value) throw std::runtime_error(message); }
 inline void Run() {
+    IkValidation::Run();
     BlendTreeValidation::Schema();
     AnimationEventValidation::Schema();
     using namespace Engine; using namespace SceneRuntime;
