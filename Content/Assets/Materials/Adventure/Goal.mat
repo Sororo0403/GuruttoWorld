@@ -1,0 +1,13 @@
+{
+  "color": [
+    0.98,
+    0.48,
+    0.24,
+    1
+  ],
+  "roughness": 0.8,
+  "metallic": 0,
+  "transparent": false,
+  "texture": "",
+  "physicallyBased": true
+}
