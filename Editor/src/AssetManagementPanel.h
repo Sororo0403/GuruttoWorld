@@ -25,6 +25,18 @@ public:
                 ImGui::Checkbox("V座標を反転###Flip V",&settings_.flipV);
                 if (ImGui::Button("設定を保存・再インポート###Save import")) Engine::AssetDatabase::Write(root/selected_,settings_);
             }
+            if (asset.kind==AssetKind::Texture && ImGui::CollapsingHeader("画像インポート###Texture import")) {
+                ImGui::Checkbox("Mipを生成###Mipmaps",&settings_.texture.mipmaps);
+                ImGui::Checkbox("sRGBでMipを計算###sRGB mip filter",&settings_.texture.srgb);
+                int size=static_cast<int>(settings_.texture.maxSize);
+                if (ImGui::DragInt("最大サイズ###Max texture size",&size,1,1,16384,"%d",ImGuiSliderFlags_AlwaysClamp)) settings_.texture.maxSize=static_cast<unsigned int>(size);
+                if (ImGui::BeginCombo("圧縮###Compression",settings_.texture.compression.c_str())) {
+                    for(const auto* mode:{"none","bc3"}) if(ImGui::Selectable(mode,settings_.texture.compression==mode)) settings_.texture.compression=mode;
+                    ImGui::EndCombo();
+                }
+                if(settings_.texture.compression=="bc3") ImGui::TextWrapped("縦横が4の倍数の画像を圧縮します。それ以外は元の寸法で読み込みます。");
+                if (ImGui::Button("設定を保存・再インポート###Save texture import")) Engine::AssetDatabase::Write(root/selected_,settings_);
+            }
             if (ImGui::CollapsingHeader("移動・改名###Move asset")) {
                 ImGui::InputText("移動先###Destination",destination_.data(),destination_.size());
                 ImGui::TextUnformatted("同じ種類のAssetsフォルダー内で移動できます。IDを維持します。");

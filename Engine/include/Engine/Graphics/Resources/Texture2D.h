@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Platform/Window.h>
+#include <Engine/Assets/TextureImport.h>
 #include <d3d12.h>
 #include <wrl/client.h>
 
@@ -54,7 +55,9 @@ namespace Engine
         D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const noexcept;
 
         bool InitializePixels(ID3D12Device* device, ID3D12CommandQueue* queue, UINT width, UINT height,
-            std::vector<unsigned char> pixels);
+            std::vector<unsigned char> pixels,const TextureImportSettings& settings={});
+        UINT GetMipLevels() const noexcept { return resource_ ? resource_->GetDesc().MipLevels : 0; }
+        DXGI_FORMAT GetFormat() const noexcept { return resource_ ? resource_->GetDesc().Format : DXGI_FORMAT_UNKNOWN; }
 
         UINT GetWidth() const noexcept { return resource_ ? static_cast<UINT>(resource_->GetDesc().Width) : 0; }
         UINT GetHeight() const noexcept { return resource_ ? resource_->GetDesc().Height : 0; }
@@ -83,7 +86,7 @@ namespace Engine
         /// <param name="device">生成に使用するデバイス。</param>
         /// <param name="image">画像のサイズ情報。</param>
         /// <returns>生成に成功した場合は true。</returns>
-        bool CreateResource(ID3D12Device* device, const ImageData& image);
+        bool CreateResource(ID3D12Device* device, const std::vector<TextureLevel>& levels,bool compressed);
 
         /// <summary>
         /// 行ピッチの配置規則に従い画素をアップロードバッファーへ書き込みます。
@@ -93,8 +96,8 @@ namespace Engine
         /// <param name="upload">アップロードバッファーの出力先。</param>
         /// <param name="footprint">テクスチャ転送時の配置情報の出力先。</param>
         /// <returns>生成と書き込みに成功した場合は true。</returns>
-        bool CreateUploadBuffer(ID3D12Device* device, const ImageData& image,
-            Microsoft::WRL::ComPtr<ID3D12Resource>& upload, D3D12_PLACED_SUBRESOURCE_FOOTPRINT& footprint);
+        bool CreateUploadBuffer(ID3D12Device* device, const std::vector<TextureLevel>& levels,
+            Microsoft::WRL::ComPtr<ID3D12Resource>& upload,std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints);
 
         /// <summary>
         /// 画素のコピーとシェーダー参照状態への遷移を実行し、フェンスで完了を待機します。
@@ -105,7 +108,7 @@ namespace Engine
         /// <param name="footprint">コピー元の配置情報。</param>
         /// <returns>転送と待機に成功した場合は true。</returns>
         bool UploadAndWait(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Resource* upload,
-            const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& footprint);
+            const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints);
 
         /// <summary>
         /// 描画用の SRV ヒープとテクスチャビューを生成します。

@@ -1,5 +1,6 @@
 #include <Engine/Graphics/Resources/Texture2D.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
 
 #include <wincodec.h>
@@ -55,19 +56,22 @@ namespace Engine
         {
             return false;
         }
-        return InitializePixels(device,queue,image.width,image.height,std::move(image.pixels));
+        try { return InitializePixels(device,queue,image.width,image.height,std::move(image.pixels),path.empty() ? TextureImportSettings{} : AssetDatabase::Read(path).texture); }
+        catch (const std::exception& error) { Log::Error(error.what()); return false; }
     }
 
     bool Texture2D::InitializePixels(ID3D12Device* device, ID3D12CommandQueue* queue, UINT width, UINT height,
-        std::vector<unsigned char> pixels)
+        std::vector<unsigned char> pixels,const TextureImportSettings& settings)
     {
         if (resource_ || !device || !queue || queue->GetDesc().Type!=D3D12_COMMAND_LIST_TYPE_DIRECT ||
             !width || !height || width>16384 || height>16384 || pixels.size()!=size_t(width)*height*4) return false;
-        ImageData image{width,height,std::move(pixels)};
+        std::vector<TextureLevel> levels;
+        try { levels=TextureImport::Build({width,height,std::move(pixels)},settings); }
+        catch (const std::exception& error) { Log::Error(error.what()); return false; }
         ComPtr<ID3D12Resource> upload;
-        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
-        if (!CreateResource(device,image) || !CreateUploadBuffer(device,image,upload,footprint) ||
-            !CreateShaderResourceView(device) || !UploadAndWait(device,queue,upload.Get(),footprint))
+        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels.size());
+        if (!CreateResource(device,levels,TextureImport::Compressed(settings,levels.front())) || !CreateUploadBuffer(device,levels,upload,footprints) ||
+            !CreateShaderResourceView(device) || !UploadAndWait(device,queue,upload.Get(),footprints))
         {
             descriptorHeap_.Reset(); cpuDescriptorHeap_.Reset(); resource_.Reset(); return false;
         }
@@ -117,7 +121,7 @@ namespace Engine
             "Read texture pixels");
     }
 
-    bool Texture2D::CreateResource(ID3D12Device* device, const ImageData& image)
+    bool Texture2D::CreateResource(ID3D12Device* device, const std::vector<TextureLevel>& levels,bool compressed)
     {
         D3D12_HEAP_PROPERTIES heap{};
         heap.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -125,22 +129,23 @@ namespace Engine
         heap.VisibleNodeMask = 1;
         D3D12_RESOURCE_DESC description{};
         description.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        description.Width = image.width;
-        description.Height = image.height;
+        description.Width = levels.front().width;
+        description.Height = levels.front().height;
         description.DepthOrArraySize = 1;
-        description.MipLevels = 1;
-        description.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        description.MipLevels = static_cast<UINT16>(levels.size());
+        description.Format = compressed ? DXGI_FORMAT_BC3_UNORM : DXGI_FORMAT_R8G8B8A8_UNORM;
         description.SampleDesc.Count = 1;
         return Check(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
             D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource_)), "Create texture resource");
     }
 
-    bool Texture2D::CreateUploadBuffer(ID3D12Device* device, const ImageData& image,
-        ComPtr<ID3D12Resource>& upload, D3D12_PLACED_SUBRESOURCE_FOOTPRINT& footprint)
+    bool Texture2D::CreateUploadBuffer(ID3D12Device* device, const std::vector<TextureLevel>& levels,
+        ComPtr<ID3D12Resource>& upload,std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints)
     {
         const auto textureDescription = resource_->GetDesc();
         UINT64 size = 0;
-        device->GetCopyableFootprints(&textureDescription, 0, 1, 0, &footprint, nullptr, nullptr, &size);
+        std::vector<UINT> rows(levels.size()); std::vector<UINT64> pitches(levels.size());
+        device->GetCopyableFootprints(&textureDescription, 0,static_cast<UINT>(levels.size()),0,footprints.data(),rows.data(),pitches.data(),&size);
         D3D12_HEAP_PROPERTIES heap{};
         heap.Type = D3D12_HEAP_TYPE_UPLOAD;
         heap.CreationNodeMask = 1;
@@ -164,12 +169,13 @@ namespace Engine
         {
             return false;
         }
-        const size_t sourcePitch = static_cast<size_t>(image.width) * 4;
-        for (UINT row = 0; row < image.height; ++row)
+        for (size_t index=0;index<levels.size();++index)
         {
+            const auto& footprint=footprints[index];
+            for (UINT row=0;row<rows[index];++row)
             std::memcpy(static_cast<unsigned char*>(mapped) + footprint.Offset +
                 static_cast<size_t>(row) * footprint.Footprint.RowPitch,
-                image.pixels.data() + static_cast<size_t>(row) * sourcePitch, sourcePitch);
+                levels[index].pixels.data()+static_cast<size_t>(row)*static_cast<size_t>(pitches[index]),static_cast<size_t>(pitches[index]));
         }
         const D3D12_RANGE writtenRange{ 0, static_cast<SIZE_T>(size) };
         upload->Unmap(0, &writtenRange);
@@ -177,7 +183,7 @@ namespace Engine
     }
 
     bool Texture2D::UploadAndWait(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Resource* upload,
-        const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& footprint)
+        const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints)
     {
         ComPtr<ID3D12CommandAllocator> allocator;
         ComPtr<ID3D12GraphicsCommandList> commands;
@@ -199,11 +205,13 @@ namespace Engine
         D3D12_TEXTURE_COPY_LOCATION source{};
         source.pResource = upload;
         source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-        source.PlacedFootprint = footprint;
         D3D12_TEXTURE_COPY_LOCATION destination{};
         destination.pResource = resource_.Get();
         destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        commands->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+        for (size_t index=0;index<footprints.size();++index) {
+            source.PlacedFootprint=footprints[index]; destination.SubresourceIndex=static_cast<UINT>(index);
+            commands->CopyTextureRegion(&destination,0,0,0,&source,nullptr);
+        }
         D3D12_RESOURCE_BARRIER barrier{};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Transition.pResource = resource_.Get();
@@ -232,10 +240,10 @@ namespace Engine
             return false;
         }
         D3D12_SHADER_RESOURCE_VIEW_DESC view{};
-        view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        view.Format = resource_->GetDesc().Format;
         view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        view.Texture2D.MipLevels = 1;
+        view.Texture2D.MipLevels = resource_->GetDesc().MipLevels;
         device->CreateShaderResourceView(resource_.Get(), &view, descriptorHeap_->GetCPUDescriptorHandleForHeapStart());
         description.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
         if (!Check(device->CreateDescriptorHeap(&description, IID_PPV_ARGS(&cpuDescriptorHeap_)), "Create copyable texture SRV heap")) return false;

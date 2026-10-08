@@ -54,5 +54,6 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_;
         std::map<std::filesystem::path, std::shared_ptr<const Texture2D>, PathLess> textures_;
+        std::map<std::filesystem::path,std::pair<std::filesystem::file_time_type,std::filesystem::file_time_type>,PathLess> textureStamps_;
     };
 }

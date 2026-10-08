@@ -95,5 +95,6 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12PipelineState> transparentPipelineState_,transparentMirroredPipelineState_;
         std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>,4> hdrPipelineStates_;
         std::map<std::filesystem::path, std::shared_ptr<Texture2D>, PathLess> textures_;
+        std::map<std::filesystem::path,std::pair<std::filesystem::file_time_type,std::filesystem::file_time_type>,PathLess> textureStamps_;
     };
 }

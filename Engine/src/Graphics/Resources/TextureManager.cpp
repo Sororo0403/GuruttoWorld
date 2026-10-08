@@ -30,13 +30,19 @@ namespace Engine
             Log::Error("Cannot resolve the texture cache path.");
             return {};
         }
-        if (const auto found = textures_.find(key); found != textures_.end())
+        std::pair<std::filesystem::file_time_type,std::filesystem::file_time_type> stamp{};
+        if (!key.empty()) {
+            stamp.first=std::filesystem::last_write_time(key,error); if(error) return {};
+            auto metadata=key; metadata+=".meta";
+            if(std::filesystem::exists(metadata,error)) { stamp.second=std::filesystem::last_write_time(metadata,error); if(error) return {}; }
+        }
+        if (const auto found = textures_.find(key); found != textures_.end() && textureStamps_.at(key)==stamp)
         {
             return found->second;
         }
         auto texture = std::make_shared<Texture2D>();
         if (!texture->Initialize(device_.Get(), queue_.Get(), key)) return {};
-        textures_.emplace(key, texture);
+        textures_[key]=texture; textureStamps_[key]=stamp;
         return texture;
     }
 

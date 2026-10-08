@@ -1,5 +1,6 @@
 #pragma once
 #include <Engine/Core/Json.h>
+#include <Engine/Assets/TextureImport.h>
 #include <filesystem>
 #include <fstream>
 #include <random>
@@ -21,6 +22,7 @@ struct AssetMetadata {
     float scale=1;
     bool flipV=false;
     std::vector<std::string> previousPaths;
+    TextureImportSettings texture;
 };
 class AssetDatabase final {
     std::filesystem::path root_;
@@ -41,16 +43,24 @@ public:
         const auto json=Json::parse(input); result.id=json.at("id").get<std::string>();
         result.scale=static_cast<float>(JsonNumber(json.value("scale",Json(1)))); result.flipV=json.value("flipV",false);
         result.previousPaths=json.value("previousPaths",std::vector<std::string>{});
+        if (json.contains("texture")) {
+            const auto& value=json.at("texture"); result.texture.mipmaps=value.value("mipmaps",false); result.texture.srgb=value.value("srgb",false);
+            const double limit=JsonNumber(value.value("maxSize",Json(16384)));
+            if(limit<1 || limit>16384 || std::floor(limit)!=limit) throw std::runtime_error("Invalid texture size limit");
+            result.texture.maxSize=static_cast<unsigned int>(limit); result.texture.compression=value.value("compression",std::string("none"));
+        }
+        result.texture.Validate();
         if (!ValidId(result.id) || !std::isfinite(result.scale) || result.scale<0.0001f || result.scale>10000 || result.previousPaths.size()>1024)
             throw std::runtime_error("Invalid asset metadata: "+Text(path));
         for (const auto& previous : result.previousPaths) if (!Valid(previous)) throw std::runtime_error("Invalid asset alias");
         return result;
     }
     static void Write(const std::filesystem::path& path,const AssetMetadata& metadata) {
+        metadata.texture.Validate();
         if (!ValidId(metadata.id) || !std::isfinite(metadata.scale) || metadata.scale<0.0001f || metadata.scale>10000) throw std::runtime_error("Invalid import settings");
         auto target=Sidecar(path),temporary=target; temporary+=".tmp."+std::to_string(GetCurrentProcessId());
         std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
-        output<<Json{{"version",1},{"id",metadata.id},{"scale",metadata.scale},{"flipV",metadata.flipV},{"previousPaths",metadata.previousPaths}}.dump(2)<<'\n'; output.close();
+        output<<Json{{"version",1},{"id",metadata.id},{"scale",metadata.scale},{"flipV",metadata.flipV},{"previousPaths",metadata.previousPaths},{"texture",{{"mipmaps",metadata.texture.mipmaps},{"srgb",metadata.texture.srgb},{"maxSize",metadata.texture.maxSize},{"compression",metadata.texture.compression}}}}.dump(2)<<'\n'; output.close();
         if (!output || !MoveFileExW(temporary.c_str(),target.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)) {
             std::error_code error; std::filesystem::remove(temporary,error); throw std::runtime_error("Cannot save asset metadata");
         }

@@ -33,6 +33,7 @@
 #include "AnimatorValidation.h"
 #include "AssetDatabaseValidation.h"
 #include "ProfilerValidation.h"
+#include "TextureImportValidation.h"
 #include "PrefabValidation.h"
 #include "InputActionValidation.h"
 #include "MaterialValidation.h"
@@ -1878,7 +1879,7 @@ namespace
                 LocalLightValidation::Rendering(renderer); LocalLightValidation::Runtime(renderer);
                 PostEffectValidation::Rendering(renderer); PostEffectValidation::Runtime(renderer);
                 AnimatorValidation::Runtime(renderer);
-                ProfilerValidation::Run(renderer);
+                TextureImportValidation::Run(renderer); ProfilerValidation::Run(renderer);
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
@@ -3042,6 +3043,12 @@ int main()
     std::string phase="focused validation";
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_TEXTURE_IMPORT_ONLY",nullptr,0)) {
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden texture import validation",64,32),"texture import window"); Check(renderer.Initialize(window.GetHandle()),"texture import renderer");
+            TextureImportValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: texture mip filtering, size limits, BC3 upload/rendering and invalid settings\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_ROOT_MOTION_ONLY",nullptr,0)) {
             RootMotionValidation::Run(); std::cout<<"PASS: continuous root translation/rotation, loop deltas, rigid accumulation and validation\n"; return 0;
         }
@@ -3064,7 +3071,7 @@ int main()
             Engine::Window window; Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden profiler validation",64,32),"profiler test window");
             Check(renderer.Initialize(window.GetHandle()),"profiler renderer");
-            ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
+            TextureImportValidation::Run(renderer); ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: CPU timing, fenced GPU timestamps and frame counters\n"; return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_ASSET_ONLY",nullptr,0)) {
@@ -3076,7 +3083,7 @@ int main()
             Check(window.Create(L"Hidden skeletal validation",64,32),"skeletal test window");
             Check(renderer.Initialize(window.GetHandle()),"skeletal renderer");
             AnimatorValidation::Runtime(renderer);
-        ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
+        TextureImportValidation::Run(renderer); ProfilerValidation::Run(renderer); CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: skeletal import, skinning, normals, interpolation, state transitions and schema\n"; return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_BLEND_ONLY",nullptr,0)) {
@@ -3119,7 +3126,7 @@ int main()
             Check(renderer.Initialize(window.GetHandle()),"material test renderer");
             MaterialValidation::Rendering(renderer);
         AnimatorValidation::Runtime(renderer);
-        ProfilerValidation::Run(renderer);
+        TextureImportValidation::Run(renderer); ProfilerValidation::Run(renderer);
             CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: material compatibility, PBR/sRGB, normal maps, GUID references and App/Editor rendering\n";
             return 0;
