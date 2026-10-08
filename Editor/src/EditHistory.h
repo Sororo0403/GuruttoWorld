@@ -21,6 +21,17 @@ namespace Editor
             pending_=std::move(state);
             if (interaction.empty()) Commit();
         }
+        // Idle frames update selection without copying the entire scene JSON.
+        void Observe(const std::string& json,const std::string& selection,const std::vector<std::string>& selections,std::string_view interaction)
+        {
+            if(states_.empty()) {Reset({json,selection,selections});return;}
+            if(!interaction.empty() && interaction_!=interaction) Commit();
+            interaction_=interaction;
+            auto& current=pending_?*pending_:states_[cursor_];
+            if(current.json==json) {current.selection=selection;current.selections=selections;}
+            else pending_=State{json,selection,selections};
+            if(interaction.empty()) Commit();
+        }
         void Commit()
         {
             interaction_.clear();

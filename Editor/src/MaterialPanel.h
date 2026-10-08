@@ -4,6 +4,7 @@
 #include <map>
 #include <SceneRuntime/MaterialAsset.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 namespace Editor
 {
@@ -12,6 +13,13 @@ namespace Editor
     public:
         bool HasChanges() const
         { return std::any_of(documents_.begin(),documents_.end(),[](const auto& item) { return item.second.Dirty(); }); }
+        bool CanUndo(const std::filesystem::path& path,bool redo) const {
+            const auto found=documents_.find(path);
+            return found!=documents_.end() && (redo?found->second.CanRedo():found->second.CanUndo());
+        }
+        bool Undo(const std::filesystem::path& path,bool redo) {
+            const auto found=documents_.find(path);return found!=documents_.end() && found->second.Undo(redo);
+        }
         SceneRuntime::MaterialAsset Draft(const std::filesystem::path& root,const std::filesystem::path& path) {
             auto& document=documents_[path];document.Refresh(root,path,true);
             if(!document.Loaded()) throw std::runtime_error("Materialを読み込めません");
@@ -21,6 +29,7 @@ namespace Editor
         { for (auto& [path,document] : documents_) if (document.Dirty()) document.Save(root,path); }
         void AssetMoved(const std::filesystem::path& source,const std::filesystem::path& destination)
         {
+            for(auto& [path,document]:documents_) {static_cast<void>(path);document.AssetMoved(source,destination);}
             auto entry=documents_.extract(source);
             if (!entry.empty()) { entry.key()=destination; documents_.insert(std::move(entry)); }
         }
@@ -59,6 +68,14 @@ namespace Editor
             float degrees=asset_.values.uv.rotation*57.2957795f;
             if (ImGui::DragFloat("画像の回転（度）###UV rotation",&degrees,1,-36000,36000,"%.1f",ImGuiSliderFlags_AlwaysClamp)) asset_.values.uv.rotation=degrees*0.0174532925f;
             ImGui::DragFloat2("画像の移動###UV translation",asset_.values.uv.translation.data(),0.05f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp);
+            const auto active=ImGui::GetCurrentContext()->ActiveId;
+            document.Observe(active?"material/"+std::to_string(active):std::string{});
+            ImGui::BeginDisabled(!document.CanUndo());
+            if(ImGui::Button("Materialの編集を元に戻す###Undo material draft")) document.Undo();
+            ImGui::EndDisabled();ImGui::SameLine();ImGui::BeginDisabled(!document.CanRedo());
+            if(ImGui::Button("やり直す###Redo material draft")) document.Undo(true);
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("UndoはこのMaterialの編集値を戻します。保存済みファイルへの反映には保存が必要です。");
             if (ImGui::Button("Materialを保存###Save material"))
             {
                 try { document.Save(root,path); error_.clear(); }

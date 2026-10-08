@@ -18,6 +18,7 @@
 #include "SceneSnapshotCache.h"
 #include "SceneRecovery.h"
 #include "AssetFileTransaction.h"
+#include "ComponentEditResources.h"
 #include "SaveAsPanel.h"
 #include "GameSession.h"
 #include "GamePointerCapture.h"
@@ -385,7 +386,7 @@ namespace
         bool ApplyObject(Engine::DirectX12Renderer& renderer)
         {
             if (!pendingObject) return true;
-            if (!renderer.WaitForIdle()) return false;
+            if (Editor::ComponentEditResources::NeedsIdle(world.Layout(),*pendingObject) && !renderer.WaitForIdle()) return false;
             auto request=std::move(*pendingObject);
             pendingObject.reset();
             if (request.interaction.empty()) history.Commit();
@@ -853,8 +854,8 @@ namespace
             if (auto scene=projectPanel.TakeSceneRequest()) document.Request(root / *scene,false,editState.HasChanges());
             if (sceneLoaded)
             {
-                const auto json=SceneJson();
-                history.Observe(Snapshot(json), editState.Interaction());
+                const auto& json=SceneJson();
+                history.Observe(json,editState.SelectedId(),editState.SelectedIds(),editState.Interaction());
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(json) || projectPanel.HasMaterialChanges());
             }
         }
@@ -880,14 +881,25 @@ namespace
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
         }
 
+        bool CanUndoActive(bool redo) const {
+            if(!editState.InspectedAsset().empty()) return projectPanel.CanUndoAsset(editState.InspectedAsset(),redo);
+            return redo?history.CanRedo():history.CanUndo();
+        }
+        void RequestUndoActive(bool redo) {
+            if(editState.InspectedAsset().empty()) {pendingHistory=redo;return;}
+            if(projectPanel.UndoAsset(editState.InspectedAsset(),redo)) {
+                editState.SetChanged(document.UnsavedNew() || history.Dirty(SceneJson()) || projectPanel.HasMaterialChanges());
+                ReportStatus(redo?"Materialの編集をやり直しました。":"Materialの編集を元に戻しました。",true);
+            }
+        }
         void UpdateControlShortcuts()
         {
             if (ImGui::IsKeyPressed(ImGuiKey_Z, false))
             {
                 const bool redo=ImGui::GetIO().KeyShift;
-                if (redo ? history.CanRedo() : history.CanUndo()) pendingHistory=redo;
+                if(CanUndoActive(redo)) RequestUndoActive(redo);
             }
-            else if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && history.CanRedo()) pendingHistory=true;
+            else if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && CanUndoActive(true)) RequestUndoActive(true);
             else if (ImGui::IsKeyPressed(ImGuiKey_S,false))
             {
                 if (ImGui::GetIO().KeyShift) saveAsPanel.Request(document.Path()); else Save();
@@ -1018,8 +1030,9 @@ namespace
         void DrawEditMenu(bool enabled)
         {
             if (!ImGui::BeginMenu("編集###Edit")) return;
-            if (ImGui::MenuItem("元に戻す###Undo", "Ctrl+Z", false, enabled && history.CanUndo())) pendingHistory=false;
-            if (ImGui::MenuItem("やり直す###Redo", "Ctrl+Y", false, enabled && history.CanRedo())) pendingHistory=true;
+            const bool asset=!editState.InspectedAsset().empty();
+            if (ImGui::MenuItem(asset?"アセットの編集を元に戻す###Undo":"シーンを元に戻す###Undo", "Ctrl+Z", false, enabled && CanUndoActive(false))) RequestUndoActive(false);
+            if (ImGui::MenuItem(asset?"アセットの編集をやり直す###Redo":"シーンをやり直す###Redo", "Ctrl+Y", false, enabled && CanUndoActive(true))) RequestUndoActive(true);
             ImGui::Separator();
             const bool selected=enabled && editState.InspectedAsset().empty() && !editState.SelectedIds().empty();
             if (ImGui::MenuItem("複製###Duplicate", "Ctrl+D", false, selected))
@@ -1109,12 +1122,12 @@ namespace
                 ImGui::BeginDisabled(!enabled);
                 if (ImGui::Button("保存###Save")) Save();
                 ImGui::SameLine();
-                ImGui::BeginDisabled(!history.CanUndo());
-                if (ImGui::Button("元に戻す###Undo")) pendingHistory=false;
+                ImGui::BeginDisabled(!CanUndoActive(false));
+                if (ImGui::Button("元に戻す###Undo")) RequestUndoActive(false);
                 ImGui::EndDisabled();
                 ImGui::SameLine();
-                ImGui::BeginDisabled(!history.CanRedo());
-                if (ImGui::Button("やり直す###Redo")) pendingHistory=true;
+                ImGui::BeginDisabled(!CanUndoActive(true));
+                if (ImGui::Button("やり直す###Redo")) RequestUndoActive(true);
                 ImGui::EndDisabled();
                 ImGui::EndDisabled();
                 ImGui::SameLine();

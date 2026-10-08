@@ -23,6 +23,8 @@
 #include "../Editor/src/AnimationTimeline.h"
 #include "../Editor/src/ComponentGuideGeometry.h"
 #include "../Editor/src/IkHandleTransform.h"
+#include "../Editor/src/BuildPanel.h"
+#include "../Editor/src/ComponentEditResources.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetDependencies.h"
@@ -2920,6 +2922,31 @@ void ValidateMaterialDocuments()
     a.Reload(root,first); a.Asset().values.roughness=0.4f; a.Save(root,first);
     Check(!a.Dirty() && SceneRuntime::MaterialAsset::Load(root,first).values.roughness==0.4f,
         "explicit reload resolves material conflict and subsequent save clears dirty state");
+    Editor::MaterialDocument materialHistory;materialHistory.Reload(root,second);
+    for(float value:{.8f,.7f,.6f}) {materialHistory.Asset().values.roughness=value;materialHistory.Observe("roughness/drag");}
+    materialHistory.Observe({});
+    Check(materialHistory.Undo() && materialHistory.Asset().values.roughness==.9f && !materialHistory.Dirty() && !materialHistory.CanUndo(),
+        "continuous Material gesture forms one undo step and restores saved values");
+    Check(materialHistory.Undo(true) && materialHistory.Asset().values.roughness==.6f && materialHistory.Dirty(),"Material redo restores its own draft");
+    materialHistory.Save(root,second);
+    Check(materialHistory.Undo() && materialHistory.Dirty() && SceneRuntime::MaterialAsset::Load(root,second).values.roughness==.6f,
+        "Material undo after save changes draft without rewriting saved file");
+    materialHistory.Asset().values.roughness=.5f;materialHistory.Observe({});
+    Check(!materialHistory.CanRedo() && a.Asset().values.roughness==.4f,"new Material edits clear redo without touching another asset");
+    materialHistory.Reload(root,second);
+    Check(!materialHistory.CanUndo() && !materialHistory.CanRedo() && !materialHistory.Dirty(),"Material reload resets asset-local history");
+    const std::filesystem::path oldTexture="Assets/Textures/old.png",newTexture="Assets/Textures/new.png",movingMaterial="Assets/Materials/moving.mat";
+    std::filesystem::create_directories(root/"Assets/Textures");
+    {std::ofstream texture(root/oldTexture);texture<<"texture reference fixture";}
+    std::error_code ignored;std::filesystem::remove(root/newTexture,ignored);auto newMeta=root/newTexture;newMeta+=".meta";std::filesystem::remove(newMeta,ignored);
+    SceneRuntime::MaterialAsset moving;moving.texture=oldTexture;moving.Save(root,movingMaterial);
+    Editor::MaterialDocument movedDraft;movedDraft.Reload(root,movingMaterial);
+    movedDraft.Asset().values.roughness=.3f;movedDraft.Observe({});
+    Engine::AssetDatabase(root).Move(oldTexture,newTexture);movedDraft.AssetMoved(oldTexture,newTexture);
+    Check(movedDraft.Asset().texture==newTexture && movedDraft.Dirty(),"texture move preserves dirty Material draft while remapping its reference");
+    movedDraft.Save(root,movingMaterial);
+    Check(movedDraft.Undo() && movedDraft.Asset().texture==newTexture && movedDraft.Asset().values.roughness==.5f && movedDraft.Dirty(),
+        "Material undo after texture move restores values without reviving missing texture path");
 }
 
 void ValidateEditorTitlePreview()
@@ -3058,6 +3085,15 @@ void ValidateUiCanvasInteraction()
 
 void ValidateEditorIntegrity()
 {
+    SceneRuntime::ScenePlacement resourceOwner;resourceOwner.id="ui";resourceOwner.rectTransform.emplace();resourceOwner.text.emplace();
+    auto movedResourceOwner=resourceOwner;movedResourceOwner.rectTransform->position={10,20};movedResourceOwner.text->color={.2f,.3f,.4f,1};
+    Check(!Editor::ComponentEditResources::Changed(resourceOwner,movedResourceOwner),"UI movement and tint preserve GPU resources");
+    movedResourceOwner.rectTransform->size={300,200};
+    Check(Editor::ComponentEditResources::Changed(resourceOwner,movedResourceOwner),"text resize still waits before replacing raster texture");
+    movedResourceOwner=resourceOwner;movedResourceOwner.text.reset();
+    Check(Editor::ComponentEditResources::Changed(resourceOwner,movedResourceOwner),"removing text still waits before pruning GPU resources");
+    movedResourceOwner=resourceOwner;movedResourceOwner.material.emplace();
+    Check(Editor::ComponentEditResources::Changed(resourceOwner,movedResourceOwner),"material binding changes still require GPU resource protection");
     DirectX::XMFLOAT4X4 ikMatrix;
     DirectX::XMStoreFloat4x4(&ikMatrix,DirectX::XMMatrixScaling(2,2,2)*DirectX::XMMatrixRotationY(.3f)*DirectX::XMMatrixTranslation(10,4,-3));
     SceneRuntime::AnimatorIkConstraint ikHandle;ikHandle.target={1,2,3};ikHandle.hint={4,5,6};
@@ -3190,6 +3226,35 @@ void ValidateEditorIntegrity()
     std::filesystem::remove(fresh); std::filesystem::remove(meta);
     Check(!Editor::AssetFileTransaction::Run(fresh,error,[&]() {asset.Save(fresh); Engine::AssetDatabase::Ensure(fresh); return false;}) &&
         !std::filesystem::exists(fresh) && !std::filesystem::exists(meta),"failed new prefab operation removes created asset and metadata");
+}
+
+void ValidateBuildCancellation()
+{
+    const auto root=std::filesystem::absolute("generated/tests/build-cancel-"+std::to_string(GetTickCount64()));
+    std::filesystem::create_directories(root/"Content");std::filesystem::create_directories(root/"scripts");
+    {std::ofstream script(root/"scripts/BuildPlayer.ps1");script<<R"(param([string]$Configuration,[string]$RunId)
+$child=Start-Process -FilePath (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 30' -WindowStyle Hidden -PassThru
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'parent.pid'),[string]$PID)
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'child.pid'),[string]$child.Id)
+Start-Sleep -Seconds 30
+)";}
+    Editor::BuildPanel build;build.Start(root/"Content");
+    const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
+    DWORD parent=0,child=0;
+    while(std::chrono::steady_clock::now()<deadline) {
+        std::ifstream(root/"scripts/parent.pid")>>parent;std::ifstream(root/"scripts/child.pid")>>child;
+        if(parent && child) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    Check(parent!=0 && child!=0,"build cancellation fixture starts parent and child");
+    const auto parentProcess=OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION,FALSE,parent);
+    const auto childProcess=OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION,FALSE,child);
+    Check(parentProcess && childProcess,"build cancellation fixture opens process handles");
+    build.Cancel();
+    const bool parentStopped=WaitForSingleObject(parentProcess,5000)==WAIT_OBJECT_0;
+    const bool childStopped=WaitForSingleObject(childProcess,5000)==WAIT_OBJECT_0;
+    CloseHandle(parentProcess);CloseHandle(childProcess);
+    Check(parentStopped && childStopped && !build.Running(),"build cancellation stops entire owned process tree");
 }
 
 void ValidateConsoleLog()
@@ -3329,6 +3394,12 @@ void ValidateProjectCatalog()
 
 void ValidateEditHistory()
 {
+    Editor::EditHistory idle;
+    const std::string idleJson(100000,'x');idle.Reset({idleJson,"a",{"a"}});
+    for(int i=0;i<100;++i) idle.Observe(idleJson,"b",{"b"},{});
+    Check(!idle.CanUndo(),"idle history observation preserves selection without creating undo steps");
+    idle.Observe("changed","b",{"b"},"drag");idle.Observe("changed","c",{"c"},"drag");idle.Observe("changed","c",{"c"},{});
+    Check(idle.CanUndo() && idle.Target(false).json==idleJson && idle.Target(false).selection=="b","history reference observation preserves pending edit grouping and previous selection");
     Editor::EditHistory history;
     history.Reset({"initial", "a"});
     history.Observe({"drag1", "a"},"drag");
@@ -3465,6 +3536,11 @@ int main()
             std::cout<<"PASS: scene snapshot cache, animator parameter references and prefab rollback\n";
             return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_EDITOR_BUILD_ONLY",nullptr,0)) {
+            ValidateBuildCancellation();
+            std::cout<<"PASS: build cancellation stops parent and child processes\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_EDITOR_WATCH_ONLY",nullptr,0)) {
             ValidateAssetChangeBatching();
             std::cout<<"PASS: background asset scanning, error recovery and stable reload batching\n";
@@ -3498,6 +3574,18 @@ int main()
             Check(player()[1]>moved[1]+.2f,"adventure player jumps using existing physics");
             Check(renderer.Render(layout.settings.background,[&](auto* commands,float){game.Draw(commands,640,360);})!=Engine::RenderResult::Failed,
                 "adventure Material and UI render successfully");
+            const auto hud=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& object){return object.rectTransform && object.text;});
+            Check(hud!=layout.objects.end(),"adventure HUD provides resource-preserving edit fixture");
+            for(int frame=0;frame<20;++frame) {
+                const auto& current=game.Runtime()->World().Layout().objects;
+                const auto found=std::find_if(current.begin(),current.end(),[&](const auto& object){return object.id==hud->id;});
+                auto candidate=*found;candidate.rectTransform->position[0]+=.5f;candidate.text->color[0]=.5f;
+                Editor::ObjectRequest request;request.action=Editor::ObjectAction::Components;request.id=candidate.id;request.components=candidate;
+                Check(!Editor::ComponentEditResources::NeedsIdle(game.Runtime()->World().Layout(),request),"HUD position and tint edits do not request GPU idle");
+                Check(game.Runtime()->World().SetComponents(candidate.id,candidate,root,error),"HUD resource-preserving edit applies");
+                Check(renderer.Render(layout.settings.background,[&](auto* commands,float){game.Draw(commands,640,360);})!=Engine::RenderResult::Failed,
+                    "consecutive HUD edits render safely without global GPU waits");
+            }
             const auto restart=game.Runtime()->Click("Restart");
             Check(restart.action=="loadScene" && restart.target=="Assets/Scenes/AdventureDemo.json","adventure restart button targets authored scene");
             Check(renderer.WaitForIdle(),"adventure reload GPU completion");

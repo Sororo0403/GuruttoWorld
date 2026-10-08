@@ -43,6 +43,7 @@ public:
             if (ImGui::CollapsingHeader("移動・改名###Move asset")) {
                 ImGui::InputText("移動先###Destination",destination_.data(),destination_.size());
                 ImGui::TextUnformatted("同じ種類のAssetsフォルダー内で移動できます。IDを維持します。");
+                ImGui::TextWrapped("ファイルの移動・改名はシーンのUndoでは戻せません。戻す場合は元の移動先を指定してください。");
                 if (ImGui::Button("移動・改名を実行###Move")) {
                     const auto target=Engine::AssetDatabase::Path(destination_.data());
                     Engine::AssetDatabase(root).Move(selected_,target); moved=target; selected_.clear(); error_.clear();

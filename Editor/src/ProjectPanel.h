@@ -25,6 +25,8 @@ namespace Editor
         const ProjectCatalog& Catalog() const { return catalog_; }
         bool HasMaterialChanges() const { return materialPanel_.HasChanges(); }
         void SaveMaterials() { materialPanel_.SaveAll(root_); }
+        bool CanUndoAsset(const std::filesystem::path& path,bool redo) const {return materialPanel_.CanUndo(path,redo);}
+        bool UndoAsset(const std::filesystem::path& path,bool redo) {return materialPanel_.Undo(path,redo);}
         auto TakeAssetMove()
         {
             auto moved=std::move(assetMove_);
