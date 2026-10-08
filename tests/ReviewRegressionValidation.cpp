@@ -22,6 +22,7 @@
 #include "../Editor/src/MaterialWorkflow.h"
 #include "../Editor/src/AnimationTimeline.h"
 #include "../Editor/src/ComponentGuideGeometry.h"
+#include "../Editor/src/IkHandleTransform.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetDependencies.h"
@@ -3057,6 +3058,18 @@ void ValidateUiCanvasInteraction()
 
 void ValidateEditorIntegrity()
 {
+    DirectX::XMFLOAT4X4 ikMatrix;
+    DirectX::XMStoreFloat4x4(&ikMatrix,DirectX::XMMatrixScaling(2,2,2)*DirectX::XMMatrixRotationY(.3f)*DirectX::XMMatrixTranslation(10,4,-3));
+    SceneRuntime::AnimatorIkConstraint ikHandle;ikHandle.target={1,2,3};ikHandle.hint={4,5,6};
+    const auto ikWorld=Editor::IkHandleTransform::ToWorld(ikHandle,ikMatrix,false);
+    Check(ikWorld && Editor::IkHandleTransform::Apply(ikHandle,ikMatrix,false,*ikWorld) &&
+        std::abs(ikHandle.target[0]-1)<.001f && std::abs(ikHandle.target[1]-2)<.001f && std::abs(ikHandle.target[2]-3)<.001f && ikHandle.hint==std::array<float,3>{4,5,6},
+        "IK handle roundtrip preserves Skeleton coordinates and the other point under rotated scaled parent");
+    ikHandle.worldSpace=true;const auto beforeIk=ikHandle;
+    Check(Editor::IkHandleTransform::Apply(ikHandle,ikMatrix,true,{7,8,9}) && ikHandle.hint==std::array<float,3>{7,8,9} && ikHandle.target==beforeIk.target,
+        "World-space IK hint handle changes only the chosen point");
+    const auto validIk=ikHandle;
+    Check(!Editor::IkHandleTransform::Apply(ikHandle,ikMatrix,false,{NAN,0,0}) && ikHandle==validIk,"invalid IK handle keeps previous constraint");
     const Editor::SceneViewport pointerViewport{10,20,400,300};
     Check(Editor::GamePointerCapture::Allowed(true,true,true,true,false,pointerViewport) &&
         !Editor::GamePointerCapture::Allowed(true,false,true,true,false,pointerViewport) &&

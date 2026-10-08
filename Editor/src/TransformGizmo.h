@@ -13,6 +13,7 @@ namespace Editor
             EditState& state, const SceneViewport& viewport, bool active);
         void DrawToolbar(bool enabled);
         bool IsDragging() const { return dragging_; }
+        void Cancel() {dragging_=false;hovered_=false;}
         bool ConsumesMouse() const { return dragging_ || hovered_; }
         enum class Mode { Move, Rotate, Scale };
         void SetMode(Mode mode) { if (!dragging_) mode_=mode; }

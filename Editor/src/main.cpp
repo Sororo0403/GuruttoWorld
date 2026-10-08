@@ -8,6 +8,7 @@
 #include "ModelDrop.h"
 #include "SceneSelection.h"
 #include "TransformGizmo.h"
+#include "IkSceneHandles.h"
 #include "EditHistory.h"
 #include "FocusSelection.h"
 #include "PanelLayout.h"
@@ -430,7 +431,7 @@ namespace
         {
             return sceneLoaded && gameSession.State().IsEditing() && !pendingPlay &&
                 !document.Pending() && !pendingObject && !pendingHistory && !gizmo.IsDragging() &&
-                editState.Interaction().empty();
+                editState.Interaction().empty() && !ikHandles.IsDragging();
         }
 
         bool ApplyAssets(Engine::DirectX12Renderer& renderer)
@@ -664,7 +665,7 @@ namespace
 
         void AcceptModelDrop()
         {
-            if (closeRequested || !SceneEditingEnabled() || gizmo.IsDragging() ||
+            if (closeRequested || !SceneEditingEnabled() || gizmo.IsDragging() || ikHandles.IsDragging() ||
                 ImGui::IsMouseDown(ImGuiMouseButton_Right) || !sceneViewport.Valid()) return;
             if (!ImGui::BeginDragDropTarget()) return;
             if (const auto* payload=ImGui::AcceptDragDropPayload(Editor::ModelPayload))
@@ -709,6 +710,7 @@ namespace
 
         void DrawClosePopup()
         {
+            ikHandles.Cancel();
             cameraPanel.CancelDrag();
             if ((!sceneLoaded || !editState.HasChanges()) && !projectPanel.HasMaterialChanges())
             {
@@ -761,14 +763,14 @@ namespace
 
         void UpdateCamera()
         {
-            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, scenePanel.Hovered(), !gizmo.IsDragging() && !ImGui::GetDragDropPayload());
+            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, scenePanel.Hovered(), !gizmo.IsDragging() && !ikHandles.IsDragging() && !ImGui::GetDragDropPayload());
             if (sceneViewport.Valid())
                 camera.GetCamera().SetAspectRatio(sceneViewport.Aspect());
         }
 
         bool CanFocus() const
         {
-            return editState.InspectedAsset().empty() && !pendingPlay && sceneViewport.Valid() && !document.Pending() && sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() &&
+            return editState.InspectedAsset().empty() && !pendingPlay && sceneViewport.Valid() && !document.Pending() && sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() && !ikHandles.IsDragging() &&
                 !pendingObject && !pendingHistory && !reloadRequested &&
                 !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
@@ -806,7 +808,7 @@ namespace
         bool EditWidgetsEnabled() const
         {
             return !pendingPlay && gameSession.State().IsEditing() && sceneLoaded && !document.Pending() && !reloadRequested && !gizmo.IsDragging() &&
-                ImGui::GetTopMostPopupModal()==nullptr;
+                ImGui::GetTopMostPopupModal()==nullptr && !ikHandles.IsDragging();
         }
 
         bool SceneEditingEnabled() const
@@ -818,10 +820,18 @@ namespace
         void UpdateObjects()
         {
             const bool sceneInput=SceneEditingEnabled() && !ImGui::GetDragDropPayload();
-            gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
-                sceneInput && editState.InspectedAsset().empty() && (scenePanel.Hovered() || gizmo.IsDragging()));
+            ikHandles.Controls(world.Layout(),editState,sceneViewport,sceneInput && !gizmo.IsDragging());
+            const bool useIk=ikHandles.Enabled() && ikHandles.Available(world.Layout(),editState);
+            if(useIk) {
+                gizmo.Cancel();
+                ikHandles.Draw(world,camera.GetCamera(),editState,sceneViewport,sceneInput && (scenePanel.Hovered() || ikHandles.IsDragging()));
+            } else {
+                ikHandles.Cancel();
+                gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
+                    sceneInput && editState.InspectedAsset().empty() && (scenePanel.Hovered() || gizmo.IsDragging()));
+            }
             Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
-                sceneInput && !gizmo.ConsumesMouse() && scenePanel.Hovered());
+                sceneInput && !gizmo.ConsumesMouse() && !ikHandles.ConsumesMouse() && scenePanel.Hovered());
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
@@ -852,7 +862,7 @@ namespace
         bool HistoryEnabled() const
         {
             return !pendingPlay && gameSession.State().IsEditing() && sceneLoaded && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
-                !gizmo.IsDragging() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+                !gizmo.IsDragging() && !ikHandles.IsDragging() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
         }
 
         void UpdateShortcuts(bool historyEnabled)
@@ -937,7 +947,7 @@ namespace
         bool IdleContextEnabled(bool allowToolbarText = false) const
         {
             return initialized && !pendingPlay && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
-                !gizmo.IsDragging() && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !EditingField() &&
+                !gizmo.IsDragging() && !ikHandles.IsDragging() && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !EditingField() &&
                 (!ImGui::GetIO().WantTextInput || allowToolbarText) &&
                 ImGui::GetTopMostPopupModal()==nullptr && !closeRequested;
         }
@@ -971,7 +981,7 @@ namespace
                     preview=true;
                     cameraPanel.CancelDrag();
                 }
-                if (ImGui::MenuItem("パネル配置をリセット###Reset panel layout", nullptr, false, !gizmo.IsDragging())) Editor::PanelLayout::Reset();
+                if (ImGui::MenuItem("パネル配置をリセット###Reset panel layout", nullptr, false, !gizmo.IsDragging() && !ikHandles.IsDragging())) Editor::PanelLayout::Reset();
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
@@ -987,7 +997,7 @@ namespace
             if (ImGui::MenuItem("名前を付けて保存…###Save as...", "Ctrl+Shift+S", false, enabled)) saveAsPanel.Request(document.Path());
             if (ImGui::MenuItem("再読み込み###Reload", nullptr, false, enabled && !document.UnsavedNew())) RequestReload();
             ImGui::Separator();
-            if (ImGui::MenuItem("終了###Exit", nullptr, false, !gizmo.IsDragging())) closeRequested=true;
+            if (ImGui::MenuItem("終了###Exit", nullptr, false, !gizmo.IsDragging() && !ikHandles.IsDragging())) closeRequested=true;
             ImGui::EndMenu();
         }
 
@@ -1220,6 +1230,7 @@ namespace
         Editor::AssetChanges assetChanges;
         bool assetReloadRequested=false;
         Editor::TransformGizmo gizmo;
+        Editor::IkSceneHandles ikHandles;
         Editor::EditHistory history;
         Editor::ConsolePanel consolePanel;
         Editor::SaveAsPanel saveAsPanel;
