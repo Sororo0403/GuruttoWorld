@@ -80,8 +80,7 @@ namespace Editor
     {
         const auto path=ProjectCatalog::Text(folder);
         const auto label=ProjectCatalog::Text(folder.filename());
-        const bool children=std::any_of(catalog_.Folders().begin(),catalog_.Folders().end(),
-            [&](const auto& candidate) { return candidate.parent_path()==folder; });
+        const bool children=!catalog_.Children(folder).empty();
         auto flags=ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
         if (!children) flags |= ImGuiTreeNodeFlags_Leaf;
         if (folder==folder_) flags |= ImGuiTreeNodeFlags_Selected;
@@ -91,7 +90,7 @@ namespace Editor
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) folder_=folder;
         if (open)
         {
-            for (const auto& candidate : catalog_.Folders()) if (candidate.parent_path()==folder) DrawFolder(candidate);
+            for (const auto& candidate : catalog_.Children(folder)) DrawFolder(candidate);
             ImGui::TreePop();
         }
         ImGui::PopID();
@@ -99,11 +98,18 @@ namespace Editor
     void ProjectPanel::DrawAssets(EditState& state, bool enabled)
     {
         ImGui::TextUnformatted(search_[0] ? "検索結果（全フォルダー）" : ProjectCatalog::Text(folder_).c_str());
-        size_t count=0;
+        std::vector<const ProjectAsset*> matches;
         for (const auto& asset : catalog_.Assets())
         {
             if (!ProjectCatalog::Matches(asset,folder_,search_.data())) continue;
             if (type_ && static_cast<int>(asset.kind)!=type_-1) continue;
+            matches.push_back(&asset);
+        }
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(matches.size()),ImGui::GetTextLineHeightWithSpacing());
+        while (clipper.Step()) for (int index=clipper.DisplayStart; index<clipper.DisplayEnd; ++index)
+        {
+            const auto& asset=*matches[index];
             const auto path=ProjectCatalog::Text(asset.path);
             const auto label=search_[0] ? path : ProjectCatalog::Text(asset.path.filename());
             ImGui::PushID(path.c_str());
@@ -120,9 +126,8 @@ namespace Editor
                 ImGui::EndDragDropSource();
             }
             ImGui::PopID();
-            ++count;
         }
-        if (!count) ImGui::TextUnformatted("一致するアセットはありません。");
+        if (matches.empty()) ImGui::TextUnformatted("一致するアセットはありません。");
     }
     void ProjectPanel::RequestDrop(EditState& state, const std::string& path, const std::array<float,3>& position) const
     {

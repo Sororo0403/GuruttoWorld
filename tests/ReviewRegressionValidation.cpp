@@ -17,6 +17,7 @@
 #include "../Editor/src/UiCanvasTransform.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
+#include "../Editor/src/AssetDependencies.h"
 #include "../Editor/src/AssetInfo.h"
 #include "../Editor/src/AssetChanges.h"
 #include <thread>
@@ -3135,6 +3136,22 @@ void ValidateProjectCatalog()
         "Project tree includes folders without supported assets");
     Check(std::find(catalog.Folders().begin(),catalog.Folders().end(),"Assets/EmptyFolder")!=catalog.Folders().end(),
         "Project tree includes empty asset folders");
+    Check(catalog.Children("Assets/Models")==std::vector<std::filesystem::path>{"Assets/Models/Title"} &&
+        catalog.Children("Assets/EmptyFolder").empty(), "folder index contains direct children and supports empty folders");
+    const auto dependencyFile=root/"Assets/Models/Dependencies.OBJ";
+    {std::ofstream file(dependencyFile); file<<"  mtllib first.mtl second.mtl\nmtllib first.mtl\n";}
+    Editor::AssetDependencies dependencies;
+    const Editor::ProjectAsset dependencyAsset{"Assets/Models/Dependencies.OBJ",Editor::AssetKind::Model};
+    for(int i=0;i<100;++i) dependencies.Refresh(root,dependencyAsset);
+    Check(dependencies.Values()==std::vector<std::string>{"first.mtl","second.mtl"} && dependencies.Reads()==1,
+        "dependency preview caches idle reads and recognizes uppercase OBJ and multiple libraries");
+    dependencies.Refresh(root,{"Assets/Fonts/Test.ttf",Editor::AssetKind::Font});
+    Check(dependencies.Values().empty() && dependencies.Reads()==1,"binary dependency preview does not read file contents");
+    dependencies.Refresh(root,{"Assets/Models/missing.obj",Editor::AssetKind::Model});
+    Check(!dependencies.Error().empty() && dependencies.Values().empty(),"failed dependency load never shows another asset's references");
+    dependencies.Refresh(root,dependencyAsset);
+    Check(dependencies.Error().empty() && dependencies.Values().size()==2,"dependency preview recovers after switching from missing asset");
+    std::filesystem::remove(dependencyFile);
     const auto oldPath=catalog.Assets().front().path;
     Check(!catalog.Scan(root/"missing-root") && !catalog.Error().empty() && catalog.Assets().size()==9 &&
         catalog.Assets().front().path==oldPath, "failed refresh preserves previous Project catalog");

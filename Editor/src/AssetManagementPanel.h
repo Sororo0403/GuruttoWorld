@@ -1,5 +1,6 @@
 #pragma once
 #include "ProjectCatalog.h"
+#include "AssetDependencies.h"
 #include <Engine/Assets/AssetDatabase.h>
 #include <imgui.h>
 namespace Editor {
@@ -8,6 +9,7 @@ class AssetManagementPanel final {
     Engine::AssetMetadata settings_;
     std::array<char,1024> destination_{};
     std::string error_;
+    AssetDependencies dependencies_;
 public:
     std::optional<std::filesystem::path> Draw(const std::filesystem::path& root,const ProjectAsset& asset,bool enabled) {
         std::optional<std::filesystem::path> moved;
@@ -48,25 +50,10 @@ public:
             }
             ImGui::EndDisabled(); disabled=false;
             if (ImGui::CollapsingHeader("参照するアセット###Dependencies")) {
-                std::ifstream input(root/asset.path,std::ios::binary); std::string source{std::istreambuf_iterator<char>(input),{}};
-                if (asset.kind==AssetKind::Scene || asset.kind==AssetKind::Prefab || asset.kind==AssetKind::Material) {
-                    const auto json=Engine::Json::parse(source); std::set<std::string> dependencies;
-                    const auto walk=[&](auto&& self,const Engine::Json& value)->void {
-                        if (value.is_string()) { const auto path=value.get<std::string>(); if (Engine::AssetDatabase::Valid(Engine::AssetDatabase::Path(path))) dependencies.insert(path); }
-                        else if (value.is_array() || value.is_object()) for (const auto& item : value) self(self,item);
-                    }; walk(walk,json);
-                    for (const auto& path : dependencies) ImGui::BulletText("%s",path.c_str());
-                    if (dependencies.empty()) ImGui::TextUnformatted("参照はありません。");
-                } else if (asset.path.extension()==".gltf") {
-                    const auto json=Engine::Json::parse(source);
-                    for (const auto* key : {"buffers","images"}) if (json.contains(key)) for (const auto& resource : json[key]) {
-                        const auto uri=resource.value("uri",std::string{});
-                        if (!uri.empty() && !uri.starts_with("data:")) ImGui::BulletText("%s",uri.c_str());
-                    }
-                } else if (asset.path.extension()==".obj") {
-                    std::istringstream lines(source); std::string line;
-                    while (std::getline(lines,line)) if (line.starts_with("mtllib ")) ImGui::BulletText("%s",line.substr(7).c_str());
-                } else ImGui::TextUnformatted("外部参照はありません。");
+                dependencies_.Refresh(root,asset);
+                for (const auto& path:dependencies_.Values()) ImGui::BulletText("%s",path.c_str());
+                if (!dependencies_.Error().empty()) ImGui::TextWrapped("%s",dependencies_.Error().c_str());
+                else if (dependencies_.Values().empty()) ImGui::TextUnformatted("参照はありません。");
             }
         } catch (const std::exception& error) { error_=error.what(); }
         if (disabled) ImGui::EndDisabled();

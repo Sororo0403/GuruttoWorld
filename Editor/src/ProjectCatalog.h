@@ -4,6 +4,7 @@
 #include <cctype>
 #include <filesystem>
 #include <set>
+#include <map>
 #include <string>
 #include <vector>
 #include <optional>
@@ -38,6 +39,8 @@ namespace Editor
                 static_cast<void>(Engine::AssetDatabase(root));
                 root_=root; assets_=std::move(assets);
                 folders_={folders.begin(),folders.end()};
+                children_.clear();
+                for (const auto& folder : folders_) children_[folder.parent_path()].push_back(folder);
                 error_.clear();
                 return true;
             }
@@ -79,6 +82,12 @@ namespace Editor
         const std::filesystem::path& Root() const { return root_; }
         const std::vector<ProjectAsset>& Assets() const { return assets_; }
         const std::vector<std::filesystem::path>& Folders() const { return folders_; }
+        const std::vector<std::filesystem::path>& Children(const std::filesystem::path& folder) const
+        {
+            static const std::vector<std::filesystem::path> empty;
+            const auto found=children_.find(folder);
+            return found==children_.end() ? empty : found->second;
+        }
         const std::string& Error() const { return error_; }
     private:
         static bool HasExtension(const std::string& extension, std::initializer_list<std::string_view> supported)
@@ -107,6 +116,7 @@ namespace Editor
         std::filesystem::path root_;
         std::vector<ProjectAsset> assets_;
         std::vector<std::filesystem::path> folders_;
+        std::map<std::filesystem::path,std::vector<std::filesystem::path>> children_;
         std::string error_;
     };
 }
