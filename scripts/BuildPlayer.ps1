@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet('Release','Development')][string]$Configuration='Release',
     [ValidatePattern('^[a-f0-9]{32}$')][string]$RunId=([Guid]::NewGuid().ToString('N')),
     [switch]$SkipBuild
@@ -10,7 +10,22 @@ New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
 $resultPath=Join-Path $buildRoot "$RunId.json"
 $logPath=Join-Path $buildRoot "$RunId.log"
 Start-Transcript -Path $logPath -Force | Out-Null
+function Set-BuildProgress {
+    param([int]$Step,[string]$Phase)
+    $progressPath=Join-Path $buildRoot "$RunId.progress.json"
+    [ordered]@{step=$Step;phase=$Phase} | ConvertTo-Json | Set-Content -LiteralPath "$progressPath.tmp" -Encoding UTF8
+    Move-Item -LiteralPath "$progressPath.tmp" -Destination $progressPath -Force
+}
 try {
+    $package=Join-Path $buildRoot "$Configuration-$RunId"
+    if (Test-Path -LiteralPath $package) { throw 'Package destination already exists.' }
+    $staging="$package.building"
+    if (Test-Path -LiteralPath $staging) { throw 'Staging destination already exists.' }
+    New-Item -ItemType Directory -Path $staging | Out-Null
+    Set-BuildProgress 0 '保存済みContentのスナップショットを作成中'
+    . (Join-Path $PSScriptRoot 'BuildContentSnapshot.ps1')
+    Copy-BuildContentSnapshot -Content (Join-Path $repoRoot 'Content') -Destination $staging
+    Set-BuildProgress 1 'Appをコンパイル中'
     $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
     if (!(Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio Installer/vswhere.exe is required.' }
     $installation=& $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -property installationPath
@@ -22,24 +37,10 @@ try {
     }
     $executable=Join-Path $repoRoot "generated/outputs/x64/$Configuration/App/App.exe"
     if (!(Test-Path -LiteralPath $executable)) { throw 'Built App.exe is missing.' }
-    $package=Join-Path $buildRoot "$Configuration-$RunId"
-    if (Test-Path -LiteralPath $package) { throw 'Package destination already exists.' }
-    $staging="$package.building"
-    if (Test-Path -LiteralPath $staging) { throw 'Staging destination already exists.' }
-    New-Item -ItemType Directory -Path $staging | Out-Null
+    Set-BuildProgress 2 '実行ファイル・ランタイムをパッケージ中'
     Copy-Item -LiteralPath $executable -Destination (Join-Path $staging 'App.exe')
     $licenseFolder=Join-Path (Split-Path $executable -Parent) 'Licenses'
     if (Test-Path -LiteralPath $licenseFolder) { Copy-Item -LiteralPath $licenseFolder -Destination (Join-Path $staging 'Licenses') -Recurse }
-    foreach ($folder in @('Assets','Shaders')) {
-        $source=Join-Path $repoRoot "Content/$folder"
-        foreach ($file in Get-ChildItem -LiteralPath $source -File -Recurse) {
-            if ($file.Name -match '\.tmp($|\.)') { continue }
-            $relative=$file.FullName.Substring($source.Length).TrimStart('\','/')
-            $target=Join-Path $staging "$folder/$relative"
-            New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
-            Copy-Item -LiteralPath $file.FullName -Destination $target
-        }
-    }
     $redistRoot=Join-Path $installation 'VC/Redist/MSVC'
     $version=Get-ChildItem -LiteralPath $redistRoot -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' } | Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
     if (!$version) { throw 'MSVC redistributable runtime is missing.' }
@@ -63,6 +64,7 @@ try {
         [ordered]@{path=$_.FullName.Substring($staging.Length+1).Replace('\','/');bytes=$_.Length;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
     })
     [ordered]@{configuration=$Configuration;createdUtc=[DateTime]::UtcNow.ToString('o');startupScene=$startup;files=$files} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $staging 'package.json') -Encoding UTF8
+    Set-BuildProgress 3 'パッケージの起動を検証中'
     $validation=Start-Process -FilePath (Join-Path $staging 'App.exe') -ArgumentList '--validate-package' -WorkingDirectory $staging -WindowStyle Hidden -PassThru
     $validationStarted=[DateTime]::UtcNow
     while (!$validation.WaitForExit(5000)) {
@@ -71,6 +73,7 @@ try {
     }
     if ($validation.ExitCode -ne 0) { throw "Package startup validation failed ($($validation.ExitCode)); see Diagnostics/package-validation.log." }
     Move-Item -LiteralPath $staging -Destination $package
+    Set-BuildProgress 4 '完了'
     [ordered]@{success=$true;package=$package;log=$logPath;configuration=$Configuration} | ConvertTo-Json | Set-Content -LiteralPath $resultPath -Encoding UTF8
     Write-Output "Package complete: $package"
 } catch {

@@ -14,6 +14,7 @@ private:
     void UpdateDrag(EditState&,const std::array<float,2>& mouse);
     void SelectAndBegin(const SceneRuntime::SceneLayout&,EditState&,const SceneViewport&);
     std::optional<SceneRuntime::ScenePlacement> start_;
+    std::vector<SceneRuntime::ScenePlacement> dragSelection_;
     std::array<float,2> mouse_{};
     float scale_=1,rotation_=0;
     bool resize_=false;

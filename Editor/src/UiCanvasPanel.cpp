@@ -1,4 +1,5 @@
 #include "UiCanvasPanel.h"
+#include "UiLayoutTools.h"
 #include "UiCanvasTransform.h"
 #include <imgui.h>
 #include <cmath>
@@ -78,15 +79,25 @@ void UiCanvasPanel::UpdateDrag(EditState& state,const std::array<float,2>& mouse
         if (snap_ && grid_>0 && !ImGui::GetIO().KeyShift) for (auto& value:c.position) value=std::round(value/grid_)*grid_;
     }
     state.SetInteraction("ui/drag/"+start_->id);
-    if (!candidate.SameComponents(*start_)) state.RequestComponents(std::move(candidate),state.Interaction());
-    if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) start_.reset();
+    if (!candidate.SameComponents(*start_)) {
+        if(!resize_ && !rotate_ && !pivot_ && dragSelection_.size()>1) {
+            auto batch=dragSelection_;
+            const std::array<float,2> delta{c.position[0]-start_->rectTransform->position[0],c.position[1]-start_->rectTransform->position[1]};
+            for(auto& object:batch) for(size_t axis=0;axis<2;++axis) object.rectTransform->position[axis]+=delta[axis];
+            state.RequestComponentBatch(std::move(batch),state.Interaction());
+        } else state.RequestComponents(std::move(candidate),state.Interaction());
+    }
+    if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {start_.reset();dragSelection_.clear();}
 }
 void UiCanvasPanel::Draw(const SceneRuntime::SceneWorld& world,EditState& state,const SceneViewport& viewport,bool enabled) {
     DrawLayout(world.Layout(),state,viewport,enabled);
 }
 void UiCanvasPanel::DrawLayout(const SceneRuntime::SceneLayout& layout,EditState& state,const SceneViewport& viewport,bool enabled) {
-    if(!enabled || !viewport.Valid()) {start_.reset(); return;}
-    if(!start_) SelectAndBegin(layout,state,viewport);
+    if(!enabled || !viewport.Valid()) {start_.reset();dragSelection_.clear(); return;}
+    if(!start_) {
+        SelectAndBegin(layout,state,viewport);
+        if(start_) dragSelection_=UiLayoutTools::Selection(layout,state);
+    }
     if(start_) {const auto mouse=ImGui::GetIO().MousePos; UpdateDrag(state,{mouse.x,mouse.y});}
 }
 }

@@ -49,6 +49,8 @@ namespace SceneRuntime
         bool ScaleObjectsWorld(const std::vector<std::string>& ids, const std::array<float,3>& pivot,
             const DirectX::XMFLOAT4X4& axes, const std::array<float,3>& factors);
         bool SetParent(std::string_view id, std::string parentId, std::string& error);
+        bool SetParents(const std::vector<std::string>& ids,const std::string& parentId,std::string& error);
+        bool SetComponentBatch(const std::vector<ScenePlacement>& settings,const std::filesystem::path& assetsRoot,std::string& error);
         // 表示名だけを変更します。ID・描画リソースは維持します。
         // Component changes are transactional. Call outside Render after GPU idle.
         bool SetSettings(const SceneSettings& settings, std::string& error);

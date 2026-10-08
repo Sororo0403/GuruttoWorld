@@ -20,6 +20,7 @@ namespace Editor
         std::string interaction{};
         std::optional<SceneRuntime::SceneSettings> settings{};
         std::string property{};
+        std::vector<SceneRuntime::ScenePlacement> componentBatch{};
     };
 
     // Shared editing state and operations; independent of panels and ImGui.
@@ -93,6 +94,15 @@ namespace Editor
             if (changed) { changed_=true; SetInteraction("command/reparent/"+id); }
             return true;
         }
+        bool SetParents(SceneRuntime::SceneWorld& world,const std::vector<std::string>& ids,const std::string& parent,std::string& error)
+        {
+            const auto changed=std::any_of(world.Layout().objects.begin(),world.Layout().objects.end(),[&](const auto& object) {
+                return std::find(ids.begin(),ids.end(),object.id)!=ids.end() && object.parentId!=parent;
+            });
+            if(!world.SetParents(ids,parent,error)) return false;
+            if(changed) {changed_=true; SetInteraction("command/reparent/selection");}
+            return true;
+        }
         bool Rename(SceneRuntime::SceneWorld& world, const std::string& id, std::string name)
         {
             const auto& objects=world.Layout().objects;
@@ -153,6 +163,13 @@ namespace Editor
             Request(std::move(request));
         }
         void Request(ObjectRequest request) { request_ = std::move(request); }
+        void RequestComponentBatch(std::vector<SceneRuntime::ScenePlacement> placements,std::string interaction)
+        {
+            if(placements.empty()) return;
+            ObjectRequest request; request.action=ObjectAction::Components;
+            request.componentBatch=std::move(placements); request.interaction=std::move(interaction);
+            Request(std::move(request));
+        }
         std::optional<ObjectRequest> TakeRequest()
         {
             auto request = std::move(request_);

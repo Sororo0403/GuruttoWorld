@@ -1,5 +1,6 @@
 #pragma once
 #include "UiCanvasPanel.h"
+#include "UiLayoutTools.h"
 #include <imgui.h>
 
 namespace Editor
@@ -38,6 +39,27 @@ namespace Editor
             preview_=std::move(defaults);
             for (const auto& [name,value]:overrides_) preview_.values[name]=value;
             preview_.values["intro"]=1;
+            ImGui::BeginDisabled(!enabled || UiLayoutTools::Selection(layout,state).size()<2);
+            static constexpr const char* labels[]{"左揃え","左右中央","右揃え","上揃え","上下中央","下揃え","横に等間隔","縦に等間隔"};
+            for(int i=0;i<8;++i) {
+                if(i%4) ImGui::SameLine();
+                if(ImGui::Button(labels[i])) state.RequestComponentBatch(UiLayoutTools::Apply(layout,state,resolution_[0],resolution_[1],preview_,static_cast<UiLayoutTools::Arrange>(i)),"ui/arrange");
+            }
+            ImGui::EndDisabled();
+            if(state.SelectedIds().size()>1) ImGui::TextUnformatted("整列は同じ親のUIを選択して操作します。等間隔は3個以上で使用できます。");
+            if(state.SingleSelection() && ImGui::TreeNode("アンカー配置（見た目の位置を維持）###Anchor presets")) {
+                const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object){return object.id==state.SelectedId();});
+                ImGui::BeginDisabled(!enabled || found==layout.objects.end() || !found->rectTransform);
+                static constexpr const char* anchors[]{"左上","上中央","右上","左中央","中央","右中央","左下","下中央","右下"};
+                for(int i=0;i<9;++i) {
+                    if(i%3) ImGui::SameLine();
+                    if(ImGui::Button(anchors[i]) && found!=layout.objects.end()) {
+                        if(auto candidate=UiLayoutTools::Anchor(layout,*found,resolution_[0],resolution_[1],preview_,{(i%3)*.5f,(i/3)*.5f}))
+                            state.RequestComponents(std::move(*candidate),"ui/anchor");
+                    }
+                }
+                ImGui::EndDisabled(); ImGui::TreePop();
+            }
             ImGui::TextUnformatted("ドラッグ: 移動・サイズ変更 / 青い丸: 回転 / Alt＋緑の丸: ピボット / 中ボタン: パン / Shift: スナップ解除");
             if (ImGui::BeginChild("Canvas viewport",{0,0},ImGuiChildFlags_Borders,ImGuiWindowFlags_HorizontalScrollbar)) {
                 if (resetScroll_) {ImGui::SetScrollX(0); ImGui::SetScrollY(0); resetScroll_=false;}

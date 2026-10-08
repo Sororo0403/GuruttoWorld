@@ -15,6 +15,7 @@
 #include "ConsolePanel.h"
 #include "SceneDocument.h"
 #include "SceneSnapshotCache.h"
+#include "SceneRecovery.h"
 #include "AssetFileTransaction.h"
 #include "SaveAsPanel.h"
 #include "GameSession.h"
@@ -127,6 +128,7 @@ namespace
                     input && playerInputs.Pressed("Jump"));
             }
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
+            if(gameSession.State().IsEditing()) recovery.Poll(RecoveryDirectory(),document.Path(),SceneJson(),sceneLoaded && editState.HasChanges(),seconds);
             profilerPanel.Update(renderer,DisplayedWorld(),seconds,std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-updateStart).count());
             bool rendered = true;
             const auto result = renderer.Render(preview ? world.Layout().settings.background : std::array<float,4>{0.10f,0.11f,0.13f,1},
@@ -269,6 +271,25 @@ namespace
             return {json,editState.SelectedId(),editState.SelectedIds()};
         }
         const std::string& SceneJson() { return sceneSnapshots.Get(world.Layout()); }
+        std::filesystem::path RecoveryDirectory() const {
+            const auto diagnostics=Engine::GetDiagnosticsRoot();
+            return (diagnostics.empty()?root.parent_path()/"generated":diagnostics)/"Editor/Recovery";
+        }
+        bool ApplyRecovery(Engine::DirectX12Renderer& renderer) {
+            if(!pendingRecovery) return true;
+            if(!gameSession.State().IsEditing()) {pendingRecovery=false;ReportStatus("復旧は再生を停止してから行ってください。",false);return true;}
+            if(!renderer.WaitForIdle()) return false;
+            pendingRecovery=false;
+            try {
+                auto layout=Editor::SceneRecovery::Read(RecoveryDirectory(),document.Path());
+                if(!world.ReplaceLayout(std::move(layout),root,fileStatus)) {LogResult(false);return true;}
+                sceneLoaded=true; editState.Select({});
+                history.Observe(Snapshot(SceneJson()),{}); editState.SetChanged(true);
+                recovery.Clear(RecoveryDirectory(),document.Path());
+                ReportStatus("復旧用シーンを読み込みました。内容を確認して保存してください。",true);
+            } catch(const std::exception& e) {ReportStatus(e.what(),false);}
+            return true;
+        }
 
         bool ApplyHistory(Engine::DirectX12Renderer& renderer)
         {
@@ -354,6 +375,7 @@ namespace
             if (request.action==Editor::ObjectAction::Delete)
                 return editState.DeleteObjects(world,request.ids,fileStatus);
             if (request.action==Editor::ObjectAction::Settings) return request.settings && world.SetSettings(*request.settings,fileStatus);
+            if(!request.componentBatch.empty()) return world.SetComponentBatch(request.componentBatch,root,fileStatus);
             return request.components && world.SetComponents(request.id,*request.components,root,fileStatus);
         }
 
@@ -399,7 +421,7 @@ namespace
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
                     sceneLoaded ? "エディターのシーンを読み込みました。" : fileStatus);
             }
-            return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer) && ApplyPlay(renderer) && ApplyAssets(renderer);
+            return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer) && ApplyPlay(renderer) && ApplyAssets(renderer) && ApplyRecovery(renderer);
         }
 
         bool CanReloadAssets() const
@@ -473,7 +495,11 @@ namespace
                 captured.emplace(world,editState,history,document);
             }
             if (!gameSession.Play(renderer,root,world.Layout(),fileStatus)) { LogResult(false); return; }
-            if (captured) playSnapshot=std::move(captured);
+            if (captured) {
+                playSnapshot=std::move(captured);
+                runtimeEditState.Reloaded();
+                runtimeEditState.RestoreSelection(editState.SelectedIds(),editState.SelectedId());
+            }
             focusGame=true;
             cameraPanel.CancelDrag();
             ReportStatus("再生を開始しました。",true);
@@ -490,6 +516,7 @@ namespace
             }
             if (gameSession.Stop())
             {
+                runtimeEditState.Reloaded();
                 playSnapshot.reset();
                 ReportStatus("編集へ戻りました。",true);
             }
@@ -515,6 +542,7 @@ namespace
 
         void SavedSuccessfully(std::string status)
         {
+            recovery.Clear(RecoveryDirectory(),document.Path());
             history.Saved(SceneJson());
             editState.MarkSaved();
             projectPanel.Scan(root);
@@ -550,7 +578,8 @@ namespace
             }
             Editor::PanelLayout::BeginFrame(preview);
             if (!preview) {
-                consolePanel.Draw(); buildPanel.Draw(root,!editState.HasChanges() && !document.UnsavedNew()); profilerPanel.Draw(root);
+                consolePanel.Draw(); buildPanel.Draw(root,!editState.HasChanges() && !document.UnsavedNew() && !projectPanel.HasMaterialChanges()); profilerPanel.Draw(root);
+                DrawRecovery();
             }
             Editor::TransformGizmo::BeginFrame();
             sceneViewport = {};
@@ -580,7 +609,7 @@ namespace
             const bool historyEnabled = HistoryEnabled();
             UpdateShortcuts(historyEnabled);
             DrawCommands();
-            if (!preview) Editor::SceneSelection::Draw(DisplayedWorld(), camera.GetCamera(), editState, sceneViewport);
+            if (!preview) Editor::SceneSelection::Draw(DisplayedWorld(), camera.GetCamera(), gameSession.Runtime()?runtimeEditState:editState, sceneViewport);
             Editor::ScenePanel::End();
         }
 
@@ -595,6 +624,7 @@ namespace
             try {
                 const auto layout=SceneRuntime::SceneLayout::Load(root/std::filesystem::path(event.target));
                 if(!gameSession.LoadScene(renderer,root,layout,fileStatus)) LogResult(false);
+                else runtimeEditState.Reloaded();
             } catch(const std::exception& e) { ReportStatus(e.what(),false); }
         }
 
@@ -645,6 +675,31 @@ namespace
             ImGui::EndDragDropTarget();
         }
 
+        void DrawRecovery()
+        {
+            if(!recovery.PreviousSession() && recovery.Error().empty()) return;
+            if(ImGui::Begin("シーンの復旧###Scene recovery")) {
+                if(!recovery.Error().empty()) ImGui::TextWrapped("%s",recovery.Error().c_str());
+                if(recovery.Available()) {
+                    ImGui::TextUnformatted("このシーンの復旧用データがあります。保存元のファイルは変更していません。");
+                    ImGui::BeginDisabled(!gameSession.State().IsEditing() || document.Pending() || pendingRecovery);
+                    if(ImGui::Button("復旧用データを読み込む###Restore recovery")) {
+                        if(editState.HasChanges()) ImGui::OpenPopup("現在の変更を置き換えますか###Confirm recovery");
+                        else pendingRecovery=true;
+                    }
+                    ImGui::SameLine(); if(ImGui::Button("復旧用データを破棄###Discard recovery")) recovery.Clear(RecoveryDirectory(),document.Path());
+                    ImGui::EndDisabled();
+                }
+                if(ImGui::BeginPopupModal("現在の変更を置き換えますか###Confirm recovery",nullptr,ImGuiWindowFlags_AlwaysAutoResize)) {
+                    ImGui::TextUnformatted("現在の未保存のシーンを復旧用データで置き換えます。Undoで戻せます。");
+                    if(ImGui::Button("置き換える###Replace from recovery")) {pendingRecovery=true;ImGui::CloseCurrentPopup();}
+                    ImGui::SameLine(); if(ImGui::Button("キャンセル###Cancel recovery")) ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                }
+            }
+            ImGui::End();
+        }
+
         void DrawClosePopup()
         {
             cameraPanel.CancelDrag();
@@ -667,6 +722,7 @@ namespace
                 ImGui::SameLine();
                 if (ImGui::Button("保存せず終了###Exit without saving"))
                 {
+                    recovery.Clear(RecoveryDirectory(),document.Path());
                     closeConfirmed = true;
                     ImGui::CloseCurrentPopup();
                 }
@@ -765,8 +821,12 @@ namespace
             const std::array<float, 3> suggested{ eye[0] + viewInverse._31 * 8.0f, 0.08f,
                 eye[2] + viewInverse._33 * 8.0f };
             projectPanel.Draw(editState, suggested, EditWidgetsEnabled() && !pendingObject && !pendingHistory);
-            objectPanel.Draw(world, editState, EditWidgetsEnabled(),&projectPanel.Catalog());
-            projectPanel.DrawInspector(editState,EditWidgetsEnabled());
+            if (auto* runtime=gameSession.Runtime())
+                runtimeObjectPanel.Draw(runtime->World(),runtimeEditState,false,&projectPanel.Catalog(),true);
+            else {
+                objectPanel.Draw(world, editState, EditWidgetsEnabled(),&projectPanel.Catalog());
+                projectPanel.DrawInspector(editState,EditWidgetsEnabled());
+            }
             if (const auto moved=projectPanel.TakeAssetMove())
             {
                 try { document.AssetMoved(root/moved->first,root/moved->second); }
@@ -1137,6 +1197,10 @@ namespace
         std::optional<Editor::PlaySnapshot> playSnapshot;
         std::optional<Editor::GameSession::Command> pendingPlay;
         Editor::ObjectPanel objectPanel;
+        Editor::ObjectPanel runtimeObjectPanel;
+        Editor::EditState runtimeEditState;
+        Editor::SceneRecovery recovery;
+        bool pendingRecovery=false;
         Editor::ProjectPanel projectPanel;
         Editor::BuildPanel buildPanel;
         Editor::ProfilerPanel profilerPanel;

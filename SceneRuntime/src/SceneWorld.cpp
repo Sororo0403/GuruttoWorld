@@ -375,17 +375,23 @@ namespace SceneRuntime
 
     bool SceneWorld::SetParent(std::string_view id, std::string parentId, std::string& error)
     {
+        return SetParents({std::string(id)},parentId,error);
+    }
+
+    bool SceneWorld::SetParents(const std::vector<std::string>& ids,const std::string& parentId,std::string& error)
+    {
         try
         {
+            if(ids.empty()) throw std::runtime_error("No objects selected");
             auto candidate=layout_;
-            const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
-                [&](const auto& object) { return object.id==id; });
-            if (found==candidate.objects.end()) throw std::runtime_error("Object no longer exists");
-            if (found->parentId==parentId) { error.clear(); return true; }
-            auto validation=candidate;
-            validation.objects[static_cast<size_t>(found-candidate.objects.begin())].parentId=parentId;
-            static_cast<void>(validation.Serialize());
-            if (!ReparentPlacement(*found,std::move(parentId),error)) return false;
+            for(const auto& id:ids) {
+                const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
+                    [&](const auto& object) { return object.id==id; });
+                if(found==candidate.objects.end()) throw std::runtime_error("Object no longer exists: "+id);
+                if(found->parentId!=parentId && !ReparentPlacement(*found,parentId,error)) return false;
+            }
+            // Validate the final graph and commit once so a failed member cannot move the rest.
+            static_cast<void>(candidate.Serialize());
             if (!CommitTransforms(std::move(candidate))) throw std::runtime_error("Invalid inherited transform");
             error.clear();
             return true;
@@ -410,19 +416,28 @@ namespace SceneRuntime
     bool SceneWorld::SetComponents(std::string_view id, const ScenePlacement& settings,
         const std::filesystem::path& assetsRoot, std::string& error)
     {
+        auto owner=settings; owner.id=id;
+        return SetComponentBatch({std::move(owner)},assetsRoot,error);
+    }
+    bool SceneWorld::SetComponentBatch(const std::vector<ScenePlacement>& settings,const std::filesystem::path& assetsRoot,std::string& error)
+    {
         try
         {
             auto candidate=layout_;
+            bool rebuild=false;
+            for(const auto& setting:settings) {
             const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),
-                [&](const auto& placement) { return placement.id==id; });
+                [&](const auto& placement) { return placement.id==setting.id; });
             if (found==candidate.objects.end()) throw std::runtime_error("Component owner no longer exists");
-            found->CopyComponents(settings);
-            if (!found->camera && candidate.settings.mainCamera==id) candidate.settings.mainCamera.clear();
-            static_cast<void>(candidate.Serialize());
+            found->CopyComponents(setting);
+            if (!found->camera && candidate.settings.mainCamera==setting.id) candidate.settings.mainCamera.clear();
             const auto index=static_cast<size_t>(found-candidate.objects.begin());
-            if (found->meshRenderer==layout_.objects[index].meshRenderer && found->material==layout_.objects[index].material && found->animator==layout_.objects[index].animator)
+            rebuild |= found->meshRenderer!=layout_.objects[index].meshRenderer || found->material!=layout_.objects[index].material || found->animator!=layout_.objects[index].animator;
+            }
+            static_cast<void>(candidate.Serialize());
+            if (!rebuild)
             {
-                layout_.objects[index].CopyComponents(*found);
+                for(size_t index=0;index<candidate.objects.size();++index) layout_.objects[index].CopyComponents(candidate.objects[index]);
                 layout_.settings=candidate.settings;
                 error.clear();
                 return true;

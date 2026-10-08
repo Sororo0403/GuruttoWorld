@@ -12,6 +12,7 @@ namespace SceneRuntime
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             SceneLayout layout, std::string& error);
         const SceneWorld& World() const { return world_; }
+        SceneWorld& World() { return world_; }
         double MotionSeconds() const { return seconds_; }
         bool MotionEnabled() const { return motionEnabled_; }
         std::array<float,3> CameraPosition() const;

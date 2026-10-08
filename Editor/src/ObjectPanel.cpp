@@ -16,8 +16,9 @@ namespace
 
 namespace Editor
 {
-    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled, const ProjectCatalog* catalog)
+    void ObjectPanel::Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled, const ProjectCatalog* catalog,bool runtime)
     {
+        runtime_=runtime;
         editsEnabled_=enabled;
         catalog_=catalog;
         DrawObjects(world, state, enabled);
@@ -30,6 +31,7 @@ namespace Editor
         PanelLayout::Place(PanelLayout::Panel::Objects);
         if (ImGui::Begin("ヒエラルキー###Objects"))
         {
+            if (runtime_) ImGui::TextUnformatted("再生中の実行状態（読み取り専用）");
             filter_.Draw("検索###Search",-1);
             ImGui::Text("オブジェクト：%zu個／選択：%zu個",world.Layout().objects.size(),state.SelectedIds().size());
             ImGui::BeginDisabled(!enabled);
@@ -39,9 +41,9 @@ namespace Editor
             ImGui::Selectable("ここにドロップして親を解除###Drop here to make root",false);
             DrawReparentTarget(world,state,{});
             if (!parentError_.empty()) ImGui::TextWrapped("%s",parentError_.c_str());
+            ImGui::EndDisabled();
             if (ImGui::BeginChild("Object list",ImVec2(0,0))) DrawHierarchy(world,state,enabled);
             ImGui::EndChild();
-            ImGui::EndDisabled();
         }
         ImGui::End();
     }
@@ -64,8 +66,10 @@ namespace Editor
         std::vector<std::string> visible;
         std::transform(rows.begin(),rows.end(),std::back_inserter(visible),
             [&](const auto& row) { return world.Layout().objects[row.index].id; });
-        ImGui::BeginDisabled(!enabled);
-        for (const auto& row : rows) DrawRow(world,state,row,visible);
+        ImGui::BeginDisabled(!enabled && !runtime_);
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(rows.size()),ImGui::GetTextLineHeightWithSpacing());
+        while(clipper.Step()) for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;++i) DrawRow(world,state,rows[i],visible);
         ImGui::EndDisabled();
     }
 
@@ -89,7 +93,7 @@ namespace Editor
         text.x+=ImGui::GetTreeNodeToLabelSpacing();
         text.y+=(ImGui::GetItemRectSize().y-ImGui::GetTextLineHeight())*0.5f;
         ImGui::GetWindowDrawList()->AddText(text,ImGui::GetColorU32(ImGuiCol_Text),object.name.c_str());
-        if (ImGui::BeginDragDropSource())
+        if (editsEnabled_ && ImGui::BeginDragDropSource())
         {
             ImGui::SetDragDropPayload("WP1_HIERARCHY_OBJECT",object.id.c_str(),object.id.size()+1);
             ImGui::TextUnformatted(object.name.c_str());
@@ -115,7 +119,8 @@ namespace Editor
         const std::string& id, const std::string& parent)
     {
         if (!editsEnabled_) return;
-        if (!state.SetParent(world,id,parent,parentError_)) Engine::Log::Warning("Reparent: "+parentError_);
+        const auto ids=state.IsSelected(id) ? state.SelectedIds() : std::vector<std::string>{id};
+        if (!state.SetParents(world,ids,parent,parentError_)) Engine::Log::Warning("Reparent: "+parentError_);
     }
 
     void ObjectPanel::DrawParent(SceneRuntime::SceneWorld& world, EditState& state, const SceneRuntime::ScenePlacement& placement)
@@ -151,6 +156,7 @@ namespace Editor
         PanelLayout::Place(PanelLayout::Panel::Inspector);
         if (ImGui::Begin("インスペクター###Inspector"))
         {
+            if(runtime_) ImGui::TextUnformatted("再生中の実行状態（読み取り専用・停止すると破棄）");
             const auto found = std::find_if(objects.begin(), objects.end(),
                 [&](const auto& object) { return object.id == state.SelectedId(); });
             if (state.SelectedIds().size()>1)
@@ -178,7 +184,7 @@ namespace Editor
                     ImGui::TextWrapped("変換値が不正です。有限の数値とゼロ以外のスケールを指定してください。");
             }
             ImGui::Separator();
-            ImGui::TextWrapped(state.HasChanges() ? "未保存の変更があります。" :
+            if(!runtime_) ImGui::TextWrapped(state.HasChanges() ? "未保存の変更があります。" :
                 "未保存の変更はありません。");
         }
         ImGui::End();

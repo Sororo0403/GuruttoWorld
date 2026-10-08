@@ -11,7 +11,7 @@ namespace Editor
     class ObjectPanel final
     {
     public:
-        void Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled, const ProjectCatalog* catalog = nullptr);
+        void Draw(SceneRuntime::SceneWorld& world, EditState& state, bool enabled, const ProjectCatalog* catalog = nullptr,bool runtime=false);
     private:
         void DrawObjects(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         std::vector<HierarchyRow> VisibleRows(const SceneRuntime::SceneLayout& layout) const;
@@ -23,6 +23,7 @@ namespace Editor
         std::unordered_set<std::string> collapsed_;
         std::string parentError_;
         bool editsEnabled_=false;
+        bool runtime_=false;
         const ProjectCatalog* catalog_=nullptr;
         void DrawInspector(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);
         static void DrawSettings(SceneRuntime::SceneWorld& world, EditState& state, bool enabled);

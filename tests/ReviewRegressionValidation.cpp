@@ -12,9 +12,11 @@
 #include "../Editor/src/MaterialDocument.h"
 #include "../Editor/src/UiCanvasPanel.h"
 #include "../Editor/src/SceneSnapshotCache.h"
+#include "../Editor/src/SceneRecovery.h"
 #include "../Editor/src/AssetFileTransaction.h"
 #include "../Editor/src/BlendTreePanel.h"
 #include "../Editor/src/UiCanvasTransform.h"
+#include "../Editor/src/UiLayoutTools.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetDependencies.h"
@@ -507,6 +509,23 @@ namespace
         Check(world.SetParent("child",{},error) && world.WorldMatrix("grandchild",actual) &&
             SceneRuntime::SceneTransforms::Matches(grandBefore,actual), "root detach preserves reflected descendant pose");
         Check(world.ReplaceLayout(layout,root,error), "restore hierarchy before duplicate");
+        const auto beforeBatch=world.Layout().Serialize();
+        auto componentOwner=world.Layout().objects[1]; componentOwner.rotator.emplace();
+        auto missingOwner=componentOwner; missingOwner.id="missing";
+        Check(!world.SetComponentBatch({componentOwner,missingOwner},root,error) && world.Layout().Serialize()==beforeBatch,
+            "component batch rolls back earlier updates when a later owner is missing");
+        auto otherOwner=world.Layout().objects.back(); otherOwner.rotator.emplace();
+        Check(world.SetComponentBatch({componentOwner,otherOwner},root,error) && world.Layout().objects[1].rotator && world.Layout().objects.back().rotator,
+            "component batch commits all selected owners together");
+        Check(world.ReplaceLayout(layout,root,error), "restore hierarchy after component batch");
+        Check(!world.SetParents({"child","missing"},"other",error) && world.Layout().Serialize()==beforeBatch,
+            "missing member rolls back entire reparent batch");
+        Check(!world.SetParents({"other","parent"},"child",error) && world.Layout().Serialize()==beforeBatch,
+            "cyclic member rolls back earlier valid reparent member");
+        Check(world.SetParents({"child","grandchild"},"other",error) && world.WorldMatrix("child",actual) &&
+            SceneRuntime::SceneTransforms::Matches(childBefore,actual) && world.WorldMatrix("grandchild",actual) &&
+            SceneRuntime::SceneTransforms::Matches(grandBefore,actual), "batch reparent preserves every selected world pose");
+        Check(world.ReplaceLayout(layout,root,error), "restore hierarchy after batch reparent");
         Check(world.SetLocalTransform("parent",parent.position,parent.rotation,{-2,3,4}), "nonuniform mirrored duplicate fixture");
         const auto source=world.Layout().objects[1];
         Check(world.WorldMatrix("child",childBefore) && world.DuplicateObject("child",{5,-2,3},created,error), "duplicate uses world offset under shear");
@@ -2946,6 +2965,15 @@ void ValidateUiCanvasInteraction()
             r.position[1]+r.size[1]*.5f+dx*std::sin(r.rotation)+dy*std::cos(r.rotation)};
     };
     const auto before=SceneRuntime::SceneUi::Resolve(geometry,geometry.objects[1],400,300);
+    for(const auto& anchor:std::array<std::array<float,2>,3>{{{0,0},{.5f,.5f},{1,1}}}) {
+        const auto candidate=Editor::UiLayoutTools::Anchor(geometry,geometryObject,400,300,{},anchor);
+        Check(candidate.has_value(),"GUI anchor preset resolves parent");
+        geometry.objects[1]=*candidate;
+        const auto after=SceneRuntime::SceneUi::Resolve(geometry,geometry.objects[1],400,300);
+        Check(std::abs(before.position[0]-after.position[0])<.001f && std::abs(before.position[1]-after.position[1])<.001f && before.size==after.size,
+            "GUI anchor preset preserves visual rectangle size and position");
+    }
+    geometry.objects[1]=geometryObject;
     for(const auto& handle:std::array<std::array<float,2>,8>{{{-1,-1},{0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1},{-1,0}}}) {
         geometry.objects[1].rectTransform=Editor::UiCanvasTransform::Resize(*geometryObject.rectTransform,0,1,handle,{13,-8});
         const auto after=SceneRuntime::SceneUi::Resolve(geometry,geometry.objects[1],400,300);
@@ -2996,12 +3024,54 @@ void ValidateUiCanvasInteraction()
     Check(state.SelectedId()=="upper" && panel.IsDragging(),"preview state selects otherwise hidden UI without editing Canvas defaults");
     frame(90,90,false);
     Check(layout.objects[0].canvas->stateDefaults.empty(),"UI preview state leaves authored defaults unchanged");
+    state.RestoreSelection({"lower","upper"},"upper");
+    frame(90,90,false); frame(90,90,true); state.TakeRequest(); frame(105,95,true);
+    const auto batch=state.TakeRequest();
+    Check(batch && batch->componentBatch.size()==2 &&
+        batch->componentBatch[0].rectTransform->position==std::array<float,2>{35,25} &&
+        batch->componentBatch[1].rectTransform->position==std::array<float,2>{35,25},
+        "UI dragging translates every selected sibling by the same delta");
+    frame(105,95,false);
+    auto third=lower; third.id="third"; third.rectTransform->position={280,160}; third.rectTransform->size={40,40};
+    layout.objects.push_back(third);
+    layout.objects[1].rectTransform->position={10,70}; layout.objects[1].rectTransform->size={50,30};
+    layout.objects[2].rectTransform->position={100,20}; layout.objects[2].rectTransform->size={60,30};
+    state.RestoreSelection({"lower","upper","third"},"upper");
+    const auto aligned=Editor::UiLayoutTools::Apply(layout,state,400,300,preview,Editor::UiLayoutTools::Arrange::Top);
+    Check(aligned.size()==3 && std::all_of(aligned.begin(),aligned.end(),[](const auto& object){return object.rectTransform->position[1]==20;}),
+        "UI alignment applies common top edge to selected siblings");
+    const auto spaced=Editor::UiLayoutTools::Apply(layout,state,400,300,preview,Editor::UiLayoutTools::Arrange::Horizontal);
+    Check(spaced.size()==3 && std::abs(spaced[1].rectTransform->position[0]-140)<.001f &&
+        spaced[0].rectTransform->position[0]==10 && spaced[2].rectTransform->position[0]==280,
+        "UI distribution uses equal gaps while preserving outside edges");
+    layout.objects[3].parentId="lower";
+    Check(Editor::UiLayoutTools::Apply(layout,state,400,300,preview,Editor::UiLayoutTools::Arrange::Left).empty(),
+        "UI alignment rejects nested mixed-parent selections");
     ImGui::DestroyContext();
 }
 
 void ValidateEditorIntegrity()
 {
     SceneRuntime::SceneLayout layout; SceneRuntime::ScenePlacement object; object.id="root"; layout.objects.push_back(object);
+    const auto recoveryRoot=std::filesystem::absolute("generated/tests/recovery");
+    std::filesystem::create_directories(recoveryRoot);
+    const auto sceneFile=recoveryRoot/"Original.json";
+    layout.Save(sceneFile);
+    const auto originalJson=layout.Serialize();layout.objects[0].name="recovered";
+    Editor::SceneRecovery recovery;
+    recovery.Clear(recoveryRoot/"backups",sceneFile);
+    recovery.Poll(recoveryRoot/"backups",sceneFile,layout.Serialize(),true,1);
+    Check(recovery.Available() && Editor::SceneRecovery::Read(recoveryRoot/"backups",sceneFile).objects[0].name=="recovered" &&
+        SceneRuntime::SceneLayout::Load(sceneFile).Serialize()==originalJson,"recovery checkpoint preserves original saved scene");
+    Editor::SceneRecovery freshRecovery;
+    freshRecovery.Poll(recoveryRoot/"backups",sceneFile,originalJson,false,1);
+    Check(freshRecovery.Available(),"opening a clean scene preserves previous session recovery");
+    freshRecovery.Poll(recoveryRoot/"backups",sceneFile,originalJson,true,1);
+    Check(Editor::SceneRecovery::Read(recoveryRoot/"backups",sceneFile).objects[0].name=="recovered","new edits do not overwrite unreviewed recovery");
+    bool rejected=false; try {Editor::SceneRecovery::Write(recoveryRoot/"backups",sceneFile,"invalid");} catch(...) {rejected=true;}
+    Check(rejected && Editor::SceneRecovery::Read(recoveryRoot/"backups",sceneFile).objects[0].name=="recovered","invalid checkpoint preserves last valid recovery");
+    recovery.Clear(recoveryRoot/"backups",sceneFile);
+    Check(!recovery.Available() && !std::filesystem::exists(Editor::SceneRecovery::Path(recoveryRoot/"backups",sceneFile)),"successful save or explicit discard removes checkpoint");
     Editor::SceneSnapshotCache snapshots;
     const auto initial=snapshots.Get(layout);
     for(int frame=0;frame<100;++frame) Check(snapshots.Get(layout)==initial,"unchanged scene snapshot remains stable");
