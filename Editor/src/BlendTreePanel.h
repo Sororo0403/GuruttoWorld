@@ -45,6 +45,19 @@ namespace Editor
             tree.children.push_back(std::move(child));
         }
     public:
+        static bool RenameParameter(SceneRuntime::AnimatorComponent& animator,const std::string& previous,const std::string& name)
+        {
+            if (previous==name) return false;
+            if (name.empty() || name.size()>128 || !animator.parameters.contains(previous) || animator.parameters.contains(name)) return false;
+            auto node=animator.parameters.extract(previous); node.key()=name; animator.parameters.insert(std::move(node));
+            for (auto& transition : animator.transitions) if (transition.parameter==previous) transition.parameter=name;
+            for (auto& tree : animator.blendTrees) {
+                if (tree.parameterX==previous) tree.parameterX=name;
+                if (tree.parameterY==previous) tree.parameterY=name;
+                for (auto& child : tree.children) if (child.parameter==previous) child.parameter=name;
+            }
+            return true;
+        }
         /// <summary>入力が指定されていない時に使う保存済みパラメーターを編集します。</summary>
         static bool Parameters(SceneRuntime::AnimatorComponent& animator)
         {
@@ -58,7 +71,7 @@ namespace Editor
                 if (ImGui::Button("パラメーターを削除###Remove")) remove=name;
                 ImGui::PopID();
             }
-            if (!oldName.empty() && oldName!=newName) { auto node=animator.parameters.extract(oldName); node.key()=newName; animator.parameters.insert(std::move(node)); }
+            if (!oldName.empty() && oldName!=newName) edited=RenameParameter(animator,oldName,newName) || edited;
             if (!remove.empty()) { animator.parameters.erase(remove); edited=true; }
             if (animator.parameters.size()<64 && ImGui::Button("パラメーターを追加###Add"))
             {

@@ -24,7 +24,8 @@ public:
             const auto time=std::filesystem::last_write_time(path,error);
             if (!error && (cachedPath!=path || cachedTime!=time)) {
                 std::string message; cachedRig=Engine::Skeleton::Load(path,message); cachedPath=path; cachedTime=time;
-            } rig=cachedRig;
+            }
+            if (!error && cachedPath==path) rig=cachedRig;
         }
         auto& animator=*object.animator; ImGui::PushID(animator.id.c_str());
         bool edited=ImGui::Checkbox("有効###Enabled",&animator.enabled);

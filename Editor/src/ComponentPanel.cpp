@@ -6,6 +6,7 @@
 #include "PhysicsPanel.h"
 #include <SceneRuntime/ScriptRuntime.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 namespace
 {
@@ -207,6 +208,8 @@ namespace Editor
         edited=UiComponentPanel::Draw(state,candidate,catalog) || edited;
         edited=AnimationPanel::Draw(state,candidate) || edited;
         edited=DrawAdd(candidate,catalog) || edited;
+        if (ImGui::GetActiveID()!=0 && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+            state.SetInteraction("component/"+std::to_string(ImGui::GetActiveID()));
         if (edited && !candidate.SameComponents(placement))
             state.RequestComponents(std::move(candidate),state.Interaction());
     }

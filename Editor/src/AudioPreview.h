@@ -10,7 +10,7 @@ public:
     static void StopRequest() {pending=Request{};}
     void Process(const std::filesystem::path& root) {
         if(!pending) return; auto request=std::move(*pending); pending.reset();
-        audio_.Shutdown(); if(request.clip.empty()) return;
+        audio_.Shutdown(); error.clear(); if(request.clip.empty()) return;
         if(!audio_.Initialize()) {error="音声出力を利用できません"; return;}
         const auto sound=audio_.Load(root/request.clip);
         if(!sound) {error="音声アセットをデコードできません"; return;}

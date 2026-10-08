@@ -11,6 +11,9 @@
 #include "../Editor/src/SceneDocument.h"
 #include "../Editor/src/MaterialDocument.h"
 #include "../Editor/src/UiCanvasPanel.h"
+#include "../Editor/src/SceneSnapshotCache.h"
+#include "../Editor/src/AssetFileTransaction.h"
+#include "../Editor/src/BlendTreePanel.h"
 #include "../Editor/src/HierarchyRows.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/AssetInfo.h"
@@ -2941,6 +2944,52 @@ void ValidateUiCanvasInteraction()
     ImGui::DestroyContext();
 }
 
+void ValidateEditorIntegrity()
+{
+    SceneRuntime::SceneLayout layout; SceneRuntime::ScenePlacement object; object.id="root"; layout.objects.push_back(object);
+    Editor::SceneSnapshotCache snapshots;
+    const auto initial=snapshots.Get(layout);
+    for(int frame=0;frame<100;++frame) Check(snapshots.Get(layout)==initial,"unchanged scene snapshot remains stable");
+    Check(snapshots.Serializations()==1,"unchanged frames serialize scene only once");
+    layout.objects[0].name="renamed";
+    Check(snapshots.Get(layout)!=initial && snapshots.Serializations()==2,"scene snapshot observes object name changes");
+    const auto renamed=snapshots.Get(layout); layout.objects[0].rectTransform.emplace();
+    Check(snapshots.Get(layout)!=renamed && snapshots.Serializations()==3,"scene snapshot observes component changes");
+    const auto component=snapshots.Get(layout); layout.settings.background[0]=0.2f;
+    Check(snapshots.Get(layout)!=component && snapshots.Serializations()==4,"scene snapshot observes settings changes");
+    SceneRuntime::AnimatorComponent animator; animator.parameters["old"]=0.5f;
+    animator.transitions.emplace_back(); animator.transitions.back().parameter="old";
+    SceneRuntime::AnimatorBlendTree tree; tree.parameterX="old"; tree.parameterY="old"; tree.children.emplace_back(); tree.children.back().parameter="old";
+    animator.blendTrees.push_back(tree);
+    Check(Editor::BlendTreePanel::RenameParameter(animator,"old","new") && !animator.parameters.contains("old") &&
+        animator.parameters.contains("new") && animator.transitions[0].parameter=="new" &&
+        animator.blendTrees[0].parameterX=="new" && animator.blendTrees[0].parameterY=="new" && animator.blendTrees[0].children[0].parameter=="new",
+        "animator parameter rename updates transition and blend tree references");
+    Check(!Editor::BlendTreePanel::RenameParameter(animator,"new","") && animator.parameters.contains("new"),
+        "animator parameter rename rejects empty names without mutating references");
+    const auto root=std::filesystem::absolute("generated/tests/prefab-editor-transaction");
+    std::filesystem::create_directories(root/"Assets/Prefabs");
+    const std::filesystem::path a="Assets/Prefabs/A.prefab",b="Assets/Prefabs/B.prefab";
+    SceneRuntime::SceneLayout asset; object.name="original source"; asset.objects.push_back(object);
+    asset.Save(root/a); asset.Save(root/b);
+    Engine::AssetDatabase::Ensure(root/a);
+    SceneRuntime::SceneLayout scene;
+    const auto id=SceneRuntime::Prefab::Instantiate(scene,asset,a,{});
+    SceneRuntime::Prefab::Instantiate(scene,asset,b,{});
+    for(auto& item:scene.objects) if(item.id==id) item.name="applied name";
+    std::filesystem::remove(root/b); std::string error;
+    const bool success=Editor::AssetFileTransaction::Run(root/a,error,[&]() {
+        SceneRuntime::Prefab::ApplyOverride(scene,id,"/name",root);
+        SceneRuntime::Prefab::Refresh(scene,root); return true;
+    });
+    Check(!success && !error.empty() && SceneRuntime::SceneLayout::Load(root/a).objects[0].name=="original source",
+        "failed prefab refresh rolls back earlier asset write");
+    const auto fresh=root/"Assets/Prefabs/New.prefab"; auto meta=fresh; meta+=".meta";
+    std::filesystem::remove(fresh); std::filesystem::remove(meta);
+    Check(!Editor::AssetFileTransaction::Run(fresh,error,[&]() {asset.Save(fresh); Engine::AssetDatabase::Ensure(fresh); return false;}) &&
+        !std::filesystem::exists(fresh) && !std::filesystem::exists(meta),"failed new prefab operation removes created asset and metadata");
+}
+
 void ValidateConsoleLog()
 {
     Engine::Log::ClearRecent();
@@ -3192,6 +3241,11 @@ int main()
             std::cout<<"PASS: UI first-gesture dragging, overlapping selection, Ctrl selection and viewport bounds\n";
             return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_EDITOR_INTEGRITY_ONLY",nullptr,0)) {
+            ValidateEditorIntegrity();
+            std::cout<<"PASS: scene snapshot cache, animator parameter references and prefab rollback\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_TEXTURE_IMPORT_ONLY",nullptr,0)) {
             Engine::Window window; Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden texture import validation",64,32),"texture import window"); Check(renderer.Initialize(window.GetHandle()),"texture import renderer");
@@ -3356,6 +3410,7 @@ int main()
         phase="ValidateMaterialDocuments"; ValidateMaterialDocuments();
         phase="ValidateEditorTitlePreview"; ValidateEditorTitlePreview();
         phase="ValidateUiCanvasInteraction"; ValidateUiCanvasInteraction();
+        phase="ValidateEditorIntegrity"; ValidateEditorIntegrity();
         phase="ValidateMultiSelection"; ValidateMultiSelection();
         phase="ValidateEditHistory"; ValidateEditHistory();
         phase="ValidateFocusSelection"; ValidateFocusSelection();

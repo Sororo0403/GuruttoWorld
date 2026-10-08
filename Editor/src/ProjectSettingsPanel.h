@@ -12,7 +12,8 @@ namespace Editor
         bool TakeSaved() { const bool result=saved_; saved_=false; return result; }
         void Open(const std::filesystem::path& root)
         {
-            try { settings_=SceneRuntime::ProjectSettings::Load(root); error_.clear(); }
+            loaded_=false;
+            try { settings_=SceneRuntime::ProjectSettings::Load(root); error_.clear(); loaded_=true; }
             catch(const std::exception& exception) { error_=exception.what(); }
             title_.fill(0); std::copy(settings_.title.begin(),settings_.title.end(),title_.begin());
             requested_=true;
@@ -21,6 +22,7 @@ namespace Editor
         {
             if(requested_) {requested_=false; ImGui::OpenPopup("プロジェクト設定###Project settings");}
             if(!ImGui::BeginPopupModal("プロジェクト設定###Project settings",nullptr,ImGuiWindowFlags_AlwaysAutoResize)) return;
+            ImGui::BeginDisabled(!loaded_);
             ImGui::InputText("ウィンドウタイトル###Window title",title_.data(),title_.size());
             if(ImGui::BeginCombo("起動シーン###Startup scene",settings_.startupScene.c_str())) {
                 for(const auto& asset:catalog.Assets()) if(asset.kind==AssetKind::Scene) {
@@ -38,6 +40,7 @@ namespace Editor
                 try { settings_.title=title_.data(); settings_.Save(root); saved_=true; ImGui::CloseCurrentPopup(); }
                 catch(const std::exception& exception) { error_=exception.what(); }
             }
+            ImGui::EndDisabled();
             ImGui::SameLine(); if(ImGui::Button("キャンセル###Cancel project settings")) ImGui::CloseCurrentPopup();
             ImGui::EndPopup();
         }
@@ -46,5 +49,6 @@ namespace Editor
         std::array<char,1025> title_{};
         std::string error_;
         bool requested_=false,saved_=false;
+        bool loaded_=false;
     };
 }

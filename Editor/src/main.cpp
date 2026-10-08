@@ -14,6 +14,8 @@
 #include "ScenePanel.h"
 #include "ConsolePanel.h"
 #include "SceneDocument.h"
+#include "SceneSnapshotCache.h"
+#include "AssetFileTransaction.h"
 #include "SaveAsPanel.h"
 #include "GameSession.h"
 #include <SceneRuntime/Prefab.h>
@@ -213,7 +215,7 @@ namespace
                     document=Editor::SceneDocument(document.Path());
                     sceneLoaded = true;
                     editState.Reloaded();
-                    history.Reset(Snapshot(world.Layout().Serialize()));
+                    history.Reset(Snapshot(SceneJson()));
                     fileStatus = "再読み込みしました。";
                     LogResult(true);
                 }
@@ -230,7 +232,7 @@ namespace
             {
                 sceneLoaded=true;
                 editState.Reloaded();
-                history.Reset({world.Layout().Serialize(),{}});
+                history.Reset({SceneJson(),{}});
                 editState.SetChanged(document.UnsavedNew());
                 cameraPanel.CancelDrag();
                 fileStatus=document.UnsavedNew() ? "新規シーンを作成しました（未保存）。" : "シーンを開きました。";
@@ -244,6 +246,7 @@ namespace
         {
             return {json,editState.SelectedId(),editState.SelectedIds()};
         }
+        const std::string& SceneJson() { return sceneSnapshots.Get(world.Layout()); }
 
         bool ApplyHistory(Engine::DirectX12Renderer& renderer)
         {
@@ -292,8 +295,13 @@ namespace
                     else if (request.action==Editor::ObjectAction::RevertPrefabProperty) SceneRuntime::Prefab::RevertOverride(candidate,request.id,request.property);
                     else if (request.action==Editor::ObjectAction::ApplyPrefabProperty)
                     {
-                        SceneRuntime::Prefab::ApplyOverride(candidate,request.id,request.property,root);
-                        SceneRuntime::Prefab::Refresh(candidate,root);
+                        const auto object=std::find_if(candidate.objects.begin(),candidate.objects.end(),[&](const auto& item){return item.id==request.id;});
+                        if (object==candidate.objects.end() || !object->prefab) throw std::runtime_error("Prefabの対象が見つかりません。");
+                        return Editor::AssetFileTransaction::Run(root/object->prefab->asset,fileStatus,[&]() {
+                            SceneRuntime::Prefab::ApplyOverride(candidate,request.id,request.property,root);
+                            SceneRuntime::Prefab::Refresh(candidate,root);
+                            return world.ReplaceLayout(std::move(candidate),root,fileStatus);
+                        });
                     }
                     else SceneRuntime::Prefab::Unpack(candidate,request.id);
                     return world.ReplaceLayout(std::move(candidate),root,fileStatus);
@@ -307,11 +315,14 @@ namespace
                     if (!SceneRuntime::Prefab::ValidPath(request.model)) throw std::runtime_error("Prefabの保存先が不正です");
                     std::filesystem::create_directories((root/request.model).parent_path());
                     const auto asset=request.action==Editor::ObjectAction::SavePrefabVariant ? SceneRuntime::Prefab::Variant(world.Layout(),request.id) : SceneRuntime::Prefab::Extract(world.Layout(),request.id);
-                    asset.Save(root/request.model,request.action==Editor::ObjectAction::ApplyPrefab);
-                    auto candidate=world.Layout();
-                    SceneRuntime::Prefab::Bind(candidate,request.id,request.model);
-                    if (request.action==Editor::ObjectAction::ApplyPrefab || request.action==Editor::ObjectAction::SavePrefabVariant) SceneRuntime::Prefab::Refresh(candidate,root);
-                    if (!world.ReplaceLayout(std::move(candidate),root,fileStatus)) return false;
+                    const bool success=Editor::AssetFileTransaction::Run(root/request.model,fileStatus,[&]() {
+                        asset.Save(root/request.model,request.action==Editor::ObjectAction::ApplyPrefab);
+                        auto candidate=world.Layout();
+                        SceneRuntime::Prefab::Bind(candidate,request.id,request.model);
+                        if (request.action==Editor::ObjectAction::ApplyPrefab || request.action==Editor::ObjectAction::SavePrefabVariant) SceneRuntime::Prefab::Refresh(candidate,root);
+                        return world.ReplaceLayout(std::move(candidate),root,fileStatus);
+                    });
+                    if (!success) return false;
                     projectPanel.Scan(root); fileStatus="Prefabを保存しました。"; return true;
                 }
                 catch (const std::exception& exception) { fileStatus=exception.what(); return false; }
@@ -342,8 +353,8 @@ namespace
                     request.action==Editor::ObjectAction::Duplicate ? "複製しました。" :
                     request.action==Editor::ObjectAction::Components ? "コンポーネントを更新しました。" :
                     request.action==Editor::ObjectAction::Settings ? "シーン設定を更新しました。" : "追加しました。";
-                history.Observe(Snapshot(world.Layout().Serialize()),request.interaction);
-                editState.SetChanged(document.UnsavedNew() || history.Dirty(world.Layout().Serialize()));
+                history.Observe(Snapshot(SceneJson()),request.interaction);
+                editState.SetChanged(document.UnsavedNew() || history.Dirty(SceneJson()));
             }
             LogResult(success);
             return true;
@@ -362,7 +373,7 @@ namespace
                 presentation=std::make_unique<SceneRuntime::ScenePresentation>();
                 if (!presentation->Initialize(renderer,root,fileStatus)) { presentation.reset(); sceneLoaded=false; }
                 initialized = true;
-                if (sceneLoaded) history.Reset(Snapshot(world.Layout().Serialize()));
+                if (sceneLoaded) history.Reset(Snapshot(SceneJson()));
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
                     sceneLoaded ? "エディターのシーンを読み込みました。" : fileStatus);
             }
@@ -482,7 +493,7 @@ namespace
 
         void SavedSuccessfully(std::string status)
         {
-            history.Saved(world.Layout().Serialize());
+            history.Saved(SceneJson());
             editState.MarkSaved();
             projectPanel.Scan(root);
             fileStatus=std::move(status);
@@ -619,7 +630,7 @@ namespace
                 closeConfirmed = true;
                 return;
             }
-            history.Observe(Snapshot(world.Layout().Serialize()), {});
+            history.Observe(Snapshot(SceneJson()), {});
             // 編集中のギズモを止め、確認中は配置を変更しません。
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport, false);
             if (!ImGui::IsPopupOpen("未保存の変更があります：終了###Exit with unsaved changes?")) ImGui::OpenPopup("未保存の変更があります：終了###Exit with unsaved changes?");
@@ -742,7 +753,7 @@ namespace
             if (auto scene=projectPanel.TakeSceneRequest()) document.Request(root / *scene,false,editState.HasChanges());
             if (sceneLoaded)
             {
-                const auto json=world.Layout().Serialize();
+                const auto json=SceneJson();
                 history.Observe(Snapshot(json), editState.Interaction());
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(json) || projectPanel.HasMaterialChanges());
             }
@@ -1127,6 +1138,7 @@ namespace
         bool closeConfirmed = false;
         std::string fileStatus;
         Editor::SceneDocument document{root / "Assets/Scenes/TitleStreet.json"};
+        Editor::SceneSnapshotCache sceneSnapshots;
         bool newScenePopupRequested=false;
         std::array<char,256> newSceneName{"NewScene.json"};
     };

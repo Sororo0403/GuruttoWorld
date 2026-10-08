@@ -6,6 +6,7 @@
 #include <iterator>
 #include <string>
 #include "EditorLanguage.h"
+#include <Engine/Platform/Window.h>
 
 namespace Editor::PanelLayout
 {
@@ -34,10 +35,12 @@ namespace Editor::PanelLayout
             std::filesystem::create_directories(settingsPath.parent_path());
             size_t size = 0;
             const char* contents = ImGui::SaveIniSettingsToMemory(&size);
-            std::ofstream output(settingsPath, std::ios::binary | std::ios::trunc);
+            auto temporary=settingsPath; temporary+=".tmp";
+            std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
             output.write(contents, static_cast<std::streamsize>(size));
             output.close();
-            if (!output) throw std::runtime_error("エディターのパネル配置を保存できませんでした。");
+            if (!output || !MoveFileExW(temporary.c_str(),settingsPath.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
+            { std::error_code ignored; std::filesystem::remove(temporary,ignored); throw std::runtime_error("エディターのパネル配置を保存できませんでした。"); }
             ImGui::GetIO().WantSaveIniSettings = false;
             error.clear();
             return true;

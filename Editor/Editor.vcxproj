@@ -114,6 +114,8 @@
     <ClInclude Include="src\AnimationPanel.h" />
     <ClInclude Include="src\AnimatorPanel.h" />
     <ClInclude Include="src\MaterialDocument.h" />
+    <ClInclude Include="src\SceneSnapshotCache.h" />
+    <ClInclude Include="src\AssetFileTransaction.h" />
     <ClInclude Include="src\TitlePreview.h" />
     <ClCompile Include="..\App\src\Scenes\TitleMenu.cpp" />
     <ClCompile Include="..\App\src\Scenes\TitleUi.cpp" />
