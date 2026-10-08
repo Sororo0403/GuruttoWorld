@@ -11,6 +11,7 @@ namespace SceneRuntime
     {
         std::string name,sender,target;
         float value=0;
+        std::optional<AnimatorEventOccurrence> animation;
     };
     // Commands are applied after every callback; object pointers never survive a frame.
     class ScriptScene final

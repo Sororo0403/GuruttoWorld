@@ -56,7 +56,7 @@ namespace SceneRuntime
     {
         motionEnabled_=enabled;
         if (!active || !std::isfinite(deltaSeconds) || deltaSeconds<=0) return;
-        if (!world_.UpdateComponents(deltaSeconds)) Engine::Log::Warning("Component update rejected an invalid inherited transform.");
+        if (!world_.UpdateComponents(deltaSeconds)) { Engine::Log::Warning("Component update failed; runtime clocks were preserved."); return; }
         if (enabled) seconds_+=std::min(deltaSeconds,0.1);
         const float elapsed=static_cast<float>(std::min(deltaSeconds,0.1));
         sceneSeconds_+=elapsed;

@@ -93,6 +93,29 @@ namespace SceneRuntime
         bool LocalTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
     private:
+        struct PreparedLayout
+        {
+            SceneLayout layout;
+            std::filesystem::path assetsRoot;
+            std::vector<Engine::Object3D> objects;
+            std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animated;
+            std::map<std::string,AnimatorState> states;
+        };
+        struct AnimatorFrame
+        {
+            std::string id;
+            std::shared_ptr<Engine::ModelRenderer> model;
+            AnimatorState state;
+            Engine::ModelRenderer::PreparedPose pose;
+            bool applyPose=false;
+        };
+        /// <summary>配置・モデル・初期Animatorを候補へ構築し、現在のシーンを保持します。</summary>
+        bool PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result);
+        /// <summary>準備した配置とリソースをシーンへ反映します。</summary>
+        void CommitLayout(PreparedLayout&& prepared,bool preserveExecution);
+        /// <summary>全個体の姿勢とイベントを検証し、Scriptの候補キューへ予約します。</summary>
+        bool PrepareAnimators(const SceneLayout& layout,double seconds,const std::map<std::string,std::shared_ptr<Engine::ModelRenderer>>& models,
+            const std::map<std::string,AnimatorState>& states,ScriptRuntime& scripts,std::vector<AnimatorFrame>& result,std::string& error) const;
         mutable MeshTelemetry meshTelemetry_;
         std::filesystem::path assetsRoot_;
         std::function<bool(const SceneLayout&,std::string&)> prepareRuntime_;

@@ -18,6 +18,28 @@ namespace Engine
     class ModelRenderer final
     {
     public:
+        class PreparedPose final
+        {
+        public:
+            /// <summary>無効な姿勢候補を生成します。</summary>
+            PreparedPose() = default;
+            /// <summary>姿勢候補の所有権を移動します。</summary>
+            PreparedPose(PreparedPose&&) noexcept = default;
+            /// <summary>姿勢候補の所有権を移動して代入します。</summary>
+            PreparedPose& operator=(PreparedPose&&) noexcept = default;
+            /// <summary>候補の複製を禁止します。</summary>
+            PreparedPose(const PreparedPose&) = delete;
+            /// <summary>候補のコピー代入を禁止します。</summary>
+            PreparedPose& operator=(const PreparedPose&) = delete;
+        private:
+            friend class ModelRenderer;
+            const ModelRenderer* owner_=nullptr;
+            std::shared_ptr<const SkeletonData> rig_;
+            std::vector<BonePose> pose_;
+            std::vector<DirectX::XMFLOAT4X4> matrices_;
+            std::vector<std::vector<SkinMatrix>> palettes_;
+            DirectX::BoundingBox bounds_{};
+        };
         /// <summary>
         /// モデルの描画リソース管理を初期化します。
         /// </summary>
@@ -71,7 +93,12 @@ namespace Engine
         const std::shared_ptr<const SkeletonData>& Rig() const { return rig_; }
         const std::vector<BonePose>& Pose() const { return pose_; }
         std::shared_ptr<ModelRenderer> AnimatedCopy(ID3D12Device* device,ID3D12CommandQueue* queue) const;
+        /// <summary>姿勢を検証して反映します。頂点バッファーは変更しません。</summary>
         bool ApplyPose(const std::vector<BonePose>& pose);
+        /// <summary>行列とBoundsを計算して候補に保存します。失敗時は現在のモデルと出力候補を保持します。</summary>
+        bool PreparePose(const std::vector<BonePose>& pose,PreparedPose& result) const;
+        /// <summary>このモデルで準備した候補を割り当てなしで反映します。候補は1度だけ使用できます。</summary>
+        bool ApplyPreparedPose(PreparedPose&& pose) noexcept;
         /// <summary>モデル内のすべてのメッシュを光源の深度へ描画します。</summary>
         void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow) const;
         // ローカル空間の単位レイを三角形へ当て、最も近い交点距離を返します。

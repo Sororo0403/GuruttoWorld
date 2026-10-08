@@ -3069,6 +3069,13 @@ int main()
             BlendTreeValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: 1D/2D/Direct/nested Blend Trees, synchronized phase, validation, editing and App/Editor playback\n"; return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_ANIMATION_EVENTS_ONLY",nullptr,0)) {
+            AnimationEventValidation::Schema();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden animation event validation",64,32),"event window"); Check(renderer.Initialize(window.GetHandle()),"event renderer");
+            AnimationEventValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: animation event intervals, loops, weights, typed payloads, transactional rollback and App/Editor playback\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_POST_ONLY",nullptr,0)) {
             PostEffectValidation::Schema();
             Engine::Window window; Engine::DirectX12Renderer renderer;

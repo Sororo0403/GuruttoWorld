@@ -149,6 +149,7 @@
     <ClInclude Include="src\PhysicsPanel.h" />
     <ClInclude Include="src\AnimatorPanel.h" />
     <ClInclude Include="src\BlendTreePanel.h" />
+    <ClInclude Include="src\AnimationEventPanel.h" />
     <ClInclude Include="src\FocusSelection.h" />
     <ClInclude Include="src\PanelLayout.h" />
     <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">

@@ -6,10 +6,12 @@
 #include <cmath>
 #include "SkinningValidation.h"
 #include "BlendTreeValidation.h"
+#include "AnimationEventValidation.h"
 namespace AnimatorValidation {
 inline void Require(bool value,const char* message) { if (!value) throw std::runtime_error(message); }
 inline void Run() {
     BlendTreeValidation::Schema();
+    AnimationEventValidation::Schema();
     using namespace Engine; using namespace SceneRuntime;
     std::string error;
     const auto rig=Skeleton::Load(std::filesystem::absolute("Content/Assets/Models/AnimatedBox.gltf"),error);
@@ -45,6 +47,7 @@ inline void Run() {
     Require(restored.objects.back().animator==scene.objects.back().animator,"Animator schema roundtrip");
 }
 inline void Runtime(Engine::DirectX12Renderer& renderer) {
+    AnimationEventValidation::Runtime(renderer);
     BlendTreeValidation::Runtime(renderer);
     SkinningValidation::Rendering(renderer);
     SkinningValidation::Model(renderer);

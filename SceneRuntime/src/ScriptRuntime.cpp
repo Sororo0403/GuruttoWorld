@@ -22,6 +22,20 @@ namespace
             ScriptDefinition spin; spin.fields={{"speed",{90,-100000,100000}}};
             spin.update=[](ScriptContext& context) { context.object.rotation[1]=std::remainder(context.object.rotation[1]+static_cast<float>(context.seconds)*context.Value("speed",90)*0.0174532925f,6.2831853f); };
             result.emplace("Spin",std::move(spin));
+            ScriptDefinition pulse; pulse.fields={{"duration",{.2f,.01f,60}},{"peak",{15,0,10000}}};
+            pulse.start=[](ScriptContext& context) { context.state["origin"]=context.object.pointLight ? context.object.pointLight->intensity : 0; context.state["remaining"]=0; context.state["scale"]=1; };
+            pulse.onEvent=[](ScriptContext& context) {
+                if (!context.event || !context.event->animation) return;
+                context.state["events"]+=1; context.state["remaining"]=context.Value("duration",.2f);
+                context.state["scale"]=context.event->animation->weight*std::clamp(std::abs(context.event->value),.1f,2.0f);
+            };
+            pulse.update=[](ScriptContext& context) {
+                const float duration=context.Value("duration",.2f);
+                context.state["remaining"]=std::max(0.0f,context.state["remaining"]-static_cast<float>(context.seconds));
+                if (context.object.pointLight) context.object.pointLight->intensity=std::clamp(context.state["origin"]+context.Value("peak",15)*context.state["scale"]*context.state["remaining"]/duration,0.0f,10000.0f);
+            };
+            pulse.stop=[](ScriptContext& context) { if (context.object.pointLight) context.object.pointLight->intensity=context.state["origin"]; };
+            result.emplace("AnimationEventPulse",std::move(pulse));
             return result;
         }();
         return definitions;
@@ -98,6 +112,7 @@ namespace SceneRuntime
     }
     void ScriptScene::Emit(ScriptEvent event)
     {
+        if (event.animation) AnimationEvents::ValidateOccurrence(*event.animation);
         if (events.size()>=4096 || event.name.empty() || event.name.size()>128 || !std::isfinite(event.value))
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events.push_back(std::move(event));
@@ -136,6 +151,7 @@ namespace SceneRuntime
     }
     void ScriptRuntime::QueueEvent(ScriptEvent event)
     {
+        if (event.animation) AnimationEvents::ValidateOccurrence(*event.animation);
         if (events_.size()>=4096 || event.name.empty() || event.name.size()>128 || !std::isfinite(event.value))
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events_.push_back(std::move(event));

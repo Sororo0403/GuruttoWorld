@@ -118,6 +118,10 @@ namespace Engine
     }
     bool ModelRenderer::ApplyPose(const std::vector<BonePose>& pose)
     {
+        PreparedPose prepared; return PreparePose(pose,prepared) && ApplyPreparedPose(std::move(prepared));
+    }
+    bool ModelRenderer::PreparePose(const std::vector<BonePose>& pose,PreparedPose& result) const
+    {
         if (!rig_) return false;
         try
         {
@@ -143,17 +147,24 @@ namespace Engine
             if (corners.empty()) return false;
             DirectX::BoundingBox bounds;
             DirectX::BoundingBox::CreateFromPoints(bounds,corners.size(),corners.data(),sizeof(DirectX::XMFLOAT3));
-            for (const float value : {bounds.Center.x,bounds.Center.y,bounds.Center.z,bounds.Extents.x,bounds.Extents.y,bounds.Extents.z})
-                if (!std::isfinite(value)) throw std::runtime_error("Overflowed posed bounds");
             // 丸め誤差でウェイト付き頂点が境界の外へ出ないよう、保守的な余白を加えます。
             bounds.Extents.x+=std::max(1.0e-5f,std::abs(bounds.Center.x)*1.0e-6f+bounds.Extents.x*1.0e-6f);
             bounds.Extents.y+=std::max(1.0e-5f,std::abs(bounds.Center.y)*1.0e-6f+bounds.Extents.y*1.0e-6f);
             bounds.Extents.z+=std::max(1.0e-5f,std::abs(bounds.Center.z)*1.0e-6f+bounds.Extents.z*1.0e-6f);
-            auto copiedPose=pose;
-            palettes_=std::move(palettes); nodeMatrices_=std::move(matrices); pose_=std::move(copiedPose); bounds_=bounds; pickDirty_=true;
+            for (const float value : {bounds.Center.x,bounds.Center.y,bounds.Center.z,bounds.Extents.x,bounds.Extents.y,bounds.Extents.z})
+                if (!std::isfinite(value)) throw std::runtime_error("Overflowed posed bounds");
+            PreparedPose prepared; prepared.owner_=this; prepared.rig_=rig_; prepared.pose_=pose;
+            prepared.palettes_=std::move(palettes); prepared.matrices_=std::move(matrices); prepared.bounds_=bounds;
+            result=std::move(prepared);
             return true;
         }
         catch (const std::exception& exception) { Log::Warning(exception.what()); return false; }
+    }
+    bool ModelRenderer::ApplyPreparedPose(PreparedPose&& prepared) noexcept
+    {
+        if (prepared.owner_!=this || prepared.rig_!=rig_) return false;
+        palettes_=std::move(prepared.palettes_); nodeMatrices_=std::move(prepared.matrices_); pose_=std::move(prepared.pose_);
+        bounds_=prepared.bounds_; pickDirty_=true; prepared.owner_=nullptr; prepared.rig_.reset(); return true;
     }
 
     void ModelRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,

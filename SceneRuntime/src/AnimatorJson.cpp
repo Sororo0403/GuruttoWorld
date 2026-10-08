@@ -1,4 +1,5 @@
 #include "AnimatorJson.h"
+#include <limits>
 
 namespace
 {
@@ -18,6 +19,18 @@ namespace
         if (name=="2D") return SceneRuntime::AnimatorBlendType::Cartesian2D;
         if (name=="Direct") return SceneRuntime::AnimatorBlendType::Direct;
         throw std::runtime_error("Unknown Blend Tree type: "+name);
+    }
+    int Integer(const Engine::Json& value)
+    {
+        if (!value.is_number_integer()) throw std::runtime_error("Animation event integer must be an integer");
+        if (value.is_number_unsigned())
+        {
+            const auto number=value.get<std::uint64_t>(); if (number>static_cast<std::uint64_t>((std::numeric_limits<int>::max)())) throw std::runtime_error("Animation event integer overflow");
+            return static_cast<int>(number);
+        }
+        const auto number=value.get<std::int64_t>();
+        if (number<(std::numeric_limits<int>::min)() || number>(std::numeric_limits<int>::max)()) throw std::runtime_error("Animation event integer overflow");
+        return static_cast<int>(number);
     }
 }
 namespace SceneRuntime
@@ -44,6 +57,20 @@ namespace SceneRuntime
         for (const auto& transition : transitions)
             animator.transitions.push_back({transition.at("from").get<std::string>(),transition.at("to").get<std::string>(),transition.at("parameter").get<std::string>(),
                 transition.at("comparison").get<std::string>(),static_cast<float>(JsonNumber(transition.at("value"))),static_cast<float>(JsonNumber(transition.at("blendSeconds"))),static_cast<float>(JsonNumber(transition.at("exitTime")))});
+        if (component.contains("events"))
+        {
+            const auto& events=JsonArray(component.at("events")); if (events.size()>256) throw std::runtime_error("Too many animation event keys");
+            for (const auto& item : events)
+            {
+                Engine::JsonObject(item); AnimatorEventKey key;
+                key.clip=item.at("clip").get<std::string>(); key.name=item.at("name").get<std::string>(); key.time=static_cast<float>(JsonNumber(item.at("time")));
+                if (item.contains("value")) key.value=static_cast<float>(JsonNumber(item.at("value")));
+                if (item.contains("minimumWeight")) key.minimumWeight=static_cast<float>(JsonNumber(item.at("minimumWeight")));
+                if (item.contains("stringValue")) key.stringValue=item.at("stringValue").get<std::string>();
+                if (item.contains("intValue")) key.intValue=Integer(item.at("intValue"));
+                animator.events.push_back(std::move(key));
+            }
+        }
         if (component.contains("blendTrees"))
         {
             const auto& trees=JsonArray(component.at("blendTrees"));
@@ -83,6 +110,12 @@ namespace SceneRuntime
         Animator::Validate(animator);
         Json object{{"id",animator.id},{"type","Animator"},{"enabled",animator.enabled},{"initialState",animator.initialState},{"states",Json::array()},{"transitions",Json::array()}};
         if (!animator.parameters.empty()) object["parameters"]=animator.parameters;
+        if (!animator.events.empty())
+        {
+            object["events"]=Json::array();
+            for (const auto& key : animator.events) object["events"].push_back({{"clip",key.clip},{"name",key.name},{"time",key.time},{"value",key.value},
+                {"minimumWeight",key.minimumWeight},{"stringValue",key.stringValue},{"intValue",key.intValue}});
+        }
         for (const auto& state : animator.states)
         {
             Json definition{{"name",state.name},{"clip",state.clip},{"speed",state.speed},{"loop",state.loop}};

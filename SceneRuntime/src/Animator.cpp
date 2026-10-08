@@ -52,6 +52,7 @@ namespace SceneRuntime
         if (component.states.empty() || component.states.size()>32 || component.transitions.size()>128) throw std::runtime_error("Invalid Animator state count");
         BlendTree::Validate(component.blendTrees,rig);
         ValidateParameters(component.parameters);
+        AnimationEvents::Validate(component.events,rig);
         std::set<std::string> names;
         for (const auto& state : component.states)
         {
@@ -77,6 +78,7 @@ namespace SceneRuntime
         if (!std::isfinite(seconds) || seconds<0) throw std::runtime_error("Invalid Animator time");
         Validate(component,&rig);
         auto next=state;
+        next.events.clear();
         ValidateParameters(next.parameterOverrides);
         auto values=component.parameters;
         for (const auto& [name,value] : parameters) values[name]=value;
@@ -97,14 +99,16 @@ namespace SceneRuntime
             if (initializing || (transition.from!="*" && transition.from!=next.current) || transition.to==next.current ||
                 (transition.exitTime>=0 && phase<transition.exitTime) || !Condition(transition,values)) continue;
             next.previousPose=next.pose.empty() ? Sample(component,before,next,rig,values) : next.pose;
-            next.current=transition.to; next.time=next.normalizedTime=0; next.blendElapsed=0; next.blendDuration=transition.blendSeconds;
+            next.current=transition.to; next.time=next.normalizedTime=0; next.blendElapsed=0; next.blendDuration=transition.blendSeconds; next.eventsAtStart=true;
             break;
         }
         const auto& definition=State(component,next.current);
-        const float tick=static_cast<float>(std::min(seconds,0.1)); next.time+=tick*definition.speed;
         next.motions=Motions(component,definition,values);
-        next.normalizedTime=definition.blendTree.empty() ? next.time/BlendTree::Duration(next.motions,rig) :
-            next.normalizedTime+tick*definition.speed/BlendTree::Duration(next.motions,rig);
+        const double cycleDuration=BlendTree::Duration(next.motions,rig);
+        const double from=definition.blendTree.empty() ? next.time/cycleDuration : next.normalizedTime;
+        const float fromWeight=next.previousPose.empty() || next.blendDuration<=0 ? 1 : std::clamp(next.blendElapsed/next.blendDuration,0.0f,1.0f);
+        const float tick=static_cast<float>(std::min(seconds,0.1)); next.time+=tick*definition.speed;
+        next.normalizedTime=definition.blendTree.empty() ? next.time/cycleDuration : next.normalizedTime+tick*definition.speed/cycleDuration;
         auto pose=definition.blendTree.empty() ? Engine::Skeleton::Sample(rig,definition.clip,next.time,definition.loop) :
             BlendTree::SamplePose(next.motions,rig,next.normalizedTime,definition.loop);
         if (!next.previousPose.empty() && next.blendDuration>0)
@@ -114,6 +118,9 @@ namespace SceneRuntime
             if (next.blendElapsed>=next.blendDuration) next.previousPose.clear();
         }
         else next.previousPose.clear();
+        const float toWeight=next.previousPose.empty() || next.blendDuration<=0 ? 1 : std::clamp(next.blendElapsed/next.blendDuration,0.0f,1.0f);
+        next.events=AnimationEvents::Collect(component.events,rig,next.current,next.motions,from,next.normalizedTime,definition.loop,next.eventsAtStart,fromWeight,toWeight);
+        if (next.normalizedTime>from) next.eventsAtStart=false;
         next.pose=pose; state=std::move(next); return pose;
     }
 }

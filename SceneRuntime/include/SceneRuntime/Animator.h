@@ -1,6 +1,7 @@
 #pragma once
 #include <Engine/Animation/Skeleton.h>
 #include <SceneRuntime/BlendTree.h>
+#include <SceneRuntime/AnimationEvents.h>
 
 namespace SceneRuntime
 {
@@ -26,6 +27,7 @@ namespace SceneRuntime
         std::vector<AnimatorTransition> transitions;
         std::vector<AnimatorBlendTree> blendTrees;
         std::map<std::string,float> parameters;
+        std::vector<AnimatorEventKey> events;
         bool operator==(const AnimatorComponent&) const = default;
     };
     struct AnimatorState
@@ -37,6 +39,8 @@ namespace SceneRuntime
         std::vector<Engine::BonePose> previousPose,pose;
         std::vector<AnimatorMotionSample> motions;
         std::map<std::string,float> parameterOverrides;
+        bool eventsAtStart=true;
+        std::vector<AnimatorEventOccurrence> events;
     };
     class Animator final
     {

@@ -99,6 +99,11 @@ namespace SkinningValidation
         ModelRenderer model; Require(model.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),std::filesystem::absolute("Content/Assets/Models/AnimatedBox.gltf"),std::filesystem::absolute("Content/Shaders/Mesh.hlsl")),"GPU animated model initializes");
         const auto copy=model.AnimatedCopy(renderer.GetDevice(),renderer.GetCommandQueue());
         Require(copy && copy->GeometryResource(0)==model.GeometryResource(0),"animated instances share immutable geometry");
+        ModelRenderer::PreparedPose prepared;
+        const auto pending=Skeleton::Sample(*model.Rig(),"Walk",.25,false);
+        const auto originalPose=model.Pose();
+        Require(model.PreparePose(pending,prepared) && model.Pose().back().rotation==originalPose.back().rotation,"preparing pose leaves rendered instance unchanged");
+        Require(!copy->ApplyPreparedPose(std::move(prepared)) && model.ApplyPreparedPose(std::move(prepared)) && !model.ApplyPreparedPose(std::move(prepared)),"pose ticket applies only to its owner and only once");
         auto pose=Skeleton::Sample(*model.Rig(),"Walk",.5,false); auto* geometry=model.GeometryResource(0);
         Require(model.ApplyPose(pose) && model.GeometryResource(0)==geometry,"model pose does not upload new vertices");
         Require(copy->Pose().back().rotation!=model.Pose().back().rotation,"shared geometry retains independent instance pose");

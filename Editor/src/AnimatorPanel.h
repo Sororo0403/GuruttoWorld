@@ -2,6 +2,7 @@
 #include <SceneRuntime/Animator.h>
 #include "ProjectCatalog.h"
 #include "BlendTreePanel.h"
+#include "AnimationEventPanel.h"
 #include <imgui.h>
 namespace Editor {
 class AnimatorPanel final {
@@ -59,6 +60,7 @@ public:
             animator.states.push_back(next); edited=true;
         }
         edited=BlendTreePanel::Draw(animator,rig.get()) || edited;
+        edited=AnimationEventPanel::Draw(animator,rig.get()) || edited;
         for (size_t i=0;i<animator.transitions.size();++i) {
             ImGui::PushID(static_cast<int>(i+100)); auto& transition=animator.transitions[i];
             if (ImGui::TreeNode("transition","遷移: %s -> %s",transition.from.c_str(),transition.to.c_str())) {
