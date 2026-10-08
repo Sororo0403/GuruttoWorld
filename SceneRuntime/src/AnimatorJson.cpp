@@ -39,6 +39,8 @@ namespace SceneRuntime
     {
         using Engine::JsonArray; using Engine::JsonNumber;
         AnimatorComponent animator; animator.id=id; animator.enabled=enabled;
+        if (component.contains("rootMotion")) animator.rootMotion=component.at("rootMotion").get<bool>();
+        if (component.contains("rootBone")) animator.rootBone=component.at("rootBone").get<std::string>();
         if (component.contains("ik"))
         {
             const auto& constraints=JsonArray(component.at("ik"));
@@ -131,6 +133,7 @@ namespace SceneRuntime
         Animator::Validate(animator);
         Json object{{"id",animator.id},{"type","Animator"},{"enabled",animator.enabled},{"initialState",animator.initialState},{"states",Json::array()},{"transitions",Json::array()}};
         if (!animator.parameters.empty()) object["parameters"]=animator.parameters;
+        if (animator.rootMotion || !animator.rootBone.empty()) { object["rootMotion"]=animator.rootMotion; object["rootBone"]=animator.rootBone; }
         if (!animator.ik.empty())
         {
             object["ik"]=Json::array();

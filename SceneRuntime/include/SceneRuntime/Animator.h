@@ -45,6 +45,8 @@ namespace SceneRuntime
         std::map<std::string,float> parameters;
         std::vector<AnimatorEventKey> events;
         std::vector<AnimatorIkConstraint> ik;
+        bool rootMotion=false;
+        std::string rootBone;
         bool operator==(const AnimatorComponent&) const = default;
     };
     struct AnimatorState
@@ -60,6 +62,11 @@ namespace SceneRuntime
         std::map<std::string,AnimatorIkTarget> ikOverrides;
         bool eventsAtStart=true;
         std::vector<AnimatorEventOccurrence> events;
+        Engine::BonePose rootDelta;
+        std::vector<AnimatorMotionSample> previousRootMotions;
+        double previousRootPhase=0;
+        float previousRootSpeed=1;
+        bool previousRootLoop=true;
     };
     class Animator final
     {

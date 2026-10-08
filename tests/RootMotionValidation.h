@@ -1,5 +1,7 @@
 #pragma once
 #include <Engine/Animation/RootMotion.h>
+#include <SceneRuntime/Animator.h>
+#include "../SceneRuntime/src/AnimatorJson.h"
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -49,5 +51,34 @@ namespace RootMotionValidation
         Reject(1,"Walk",0,1); Reject(0,"missing",0,1); Reject(0,"Walk",1,0);
         Reject(0,"Walk",0,std::numeric_limits<double>::quiet_NaN()); Reject(0,"Walk",-1,0);
         Reject(0,"Walk",0,9007199254740992.0);
+        using namespace SceneRuntime;
+        rig.clips[0].tracks[0].positions={{0,{0,0,0}},{2,{2,0,0}}}; rig.clips[0].tracks[0].rotations.clear();
+        auto run=rig.clips[0]; run.name="Run"; run.tracks[0].positions.back().value={4,0,0}; rig.clips.push_back(run);
+        AnimatorComponent animator; animator.states[0].clip="Walk"; animator.rootMotion=true; animator.rootBone="root";
+        AnimatorState state; Animator::Advance(animator,state,rig,.1,{});
+        Require(std::abs(state.rootDelta.position[0]-.1f)<.0001f && state.pose[0].position==rig.nodes[0].rest.position,"Animator extracts root delta and leaves in-place bone pose");
+        Require(ReadAnimator(WriteAnimator(animator),animator.id,true)==animator,"root motion Animator schema roundtrip");
+        animator.states.push_back({"Run","Run",1,true}); animator.transitions.push_back({"Idle","Run","go",">",0,.2f,-1});
+        Animator::Advance(animator,state,rig,.1,{{"go",1.0f}});
+        Require(std::abs(state.rootDelta.position[0]-.125f)<.0001f,"root motion blends advancing outgoing and incoming velocities");
+        Animator::Advance(animator,state,rig,.1,{});
+        Require(std::abs(state.rootDelta.position[0]-.175f)<.0001f && state.previousRootMotions.empty(),"root motion fade completes without velocity discontinuity");
+        animator.enabled=false; const auto frozen=state.time; Animator::Advance(animator,state,rig,.1,{});
+        Require(state.time==frozen && state.rootDelta.position==std::array<float,3>{},"disabled Animator clears delta and freezes clock");
+        animator.enabled=true; animator.transitions.clear(); animator.states.resize(1); animator.states[0].blendTree="Motion";
+        AnimatorBlendTree tree; tree.name="Motion"; tree.type=AnimatorBlendType::Direct;
+        AnimatorBlendMotion firstMotion; firstMotion.clip="Walk"; firstMotion.parameter="walk";
+        auto secondMotion=firstMotion; secondMotion.clip="Run"; secondMotion.parameter="run"; tree.children={firstMotion,secondMotion}; animator.blendTrees={tree};
+        AnimatorState blended; Animator::Advance(animator,blended,rig,.1,{{"walk",1.0f},{"run",1.0f}});
+        Require(std::abs(blended.rootDelta.position[0]-.15f)<.0001f,"Blend Tree root delta mixes synchronized clip motions");
+        animator.states[0].blendTree.clear(); animator.blendTrees.clear();
+        rig.clips[0].tracks[0].rotations={{0,{0,0,0,1}},{2,{0,0,std::sin(XM_PIDIV4),std::cos(XM_PIDIV4)}}};
+        rig.clips[0].tracks[0].scales={{0,{1,1,1}},{2,{2,2,2}}};
+        AnimatorState rotating; Animator::Advance(animator,rotating,rig,.1,{});
+        Require(rotating.rootDelta.rotation[2]>.03f && rotating.pose[0].rotation==rig.nodes[0].rest.rotation,"Animator extracts rotation and restores root rest orientation");
+        Require(std::abs(rotating.pose[0].scale[0]-1.05f)<.0001f && rotating.rootDelta.scale==std::array<float,3>{1,1,1},"root motion retains skeletal scale without extracting it");
+        const auto validTime=blended.time; const auto validDelta=blended.rootDelta.position; animator.rootBone="missing"; bool invalidBone=false;
+        try { Animator::Advance(animator,blended,rig,.1,{}); } catch (const std::exception&) { invalidBone=true; }
+        Require(invalidBone && blended.time==validTime && blended.rootDelta.position==validDelta,"failed root extraction preserves Animator state");
     }
 }
