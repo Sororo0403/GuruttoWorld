@@ -36,6 +36,17 @@ namespace
             };
             pulse.stop=[](ScriptContext& context) { if (context.object.pointLight) context.object.pointLight->intensity=context.state["origin"]; };
             result.emplace("AnimationEventPulse",std::move(pulse));
+            ScriptDefinition orbit; orbit.fields={{"radius",{.25f,0,1000}},{"frequency",{.3f,0,1000}},{"weight",{1,0,1}}};
+            orbit.update=[](ScriptContext& context) {
+                if (!context.scene || !context.object.animator || context.object.animator->ik.empty()) return;
+                const auto& item=context.object.animator->ik.front();
+                context.state["phase"]=std::remainder(context.state["phase"]+static_cast<float>(context.seconds)*context.Value("frequency",.3f)*6.2831853f,6.2831853f);
+                AnimatorIkTarget target{item.target,item.hint,context.Value("weight",1),item.worldSpace};
+                target.target[0]+=std::sin(context.state["phase"])*context.Value("radius",.25f);
+                target.target[2]+=std::cos(context.state["phase"])*context.Value("radius",.25f);
+                context.scene->SetIkTarget(context.object.id,item.name,target);
+            };
+            result.emplace("IkOrbit",std::move(orbit));
             return result;
         }();
         return definitions;

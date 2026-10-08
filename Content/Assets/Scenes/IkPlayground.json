@@ -1,0 +1,362 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [
+      0.025,
+      0.035,
+      0.055,
+      1
+    ],
+    "mainCamera": "Camera"
+  },
+  "objects": [
+    {
+      "id": "Camera",
+      "name": "Camera",
+      "position": [
+        0,
+        7,
+        -14
+      ],
+      "rotation": [
+        0.35,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "camera",
+          "type": "Camera",
+          "enabled": true,
+          "verticalFov": 45,
+          "nearClip": 0.1,
+          "farClip": 100,
+          "referenceAspect": 1.7777777777777777,
+          "preserveHorizontal": false
+        }
+      ]
+    },
+    {
+      "id": "Light",
+      "name": "Light",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "directionallight",
+          "type": "DirectionalLight",
+          "enabled": true,
+          "direction": [
+            0.4,
+            -0.7,
+            1
+          ],
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "intensity": 0.8,
+          "ambient": 0.2,
+          "specular": 0.4,
+          "shininess": 32
+        }
+      ]
+    },
+    {
+      "id": "Floor",
+      "name": "Floor",
+      "parent": "",
+      "position": [
+        0,
+        -0.375,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        12,
+        0.5,
+        12
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj"
+        },
+        {
+          "id": "collider",
+          "type": "BoxCollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Ik0",
+      "name": "IK weight 0",
+      "parent": "",
+      "position": [
+        -3,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/IkBox.gltf"
+        },
+        {
+          "id": "animator",
+          "type": "Animator",
+          "enabled": true,
+          "initialState": "Idle",
+          "states": [
+            {
+              "name": "Idle",
+              "clip": "Idle",
+              "speed": 1,
+              "loop": true
+            }
+          ],
+          "transitions": [],
+          "blendTrees": [],
+          "ik": [
+            {
+              "name": "reach",
+              "root": "Root",
+              "middle": "Upper",
+              "tip": "Tip",
+              "enabled": true,
+              "target": [
+                0.75,
+                1.3,
+                0
+              ],
+              "hint": [
+                2,
+                1,
+                0
+              ],
+              "weight": 0,
+              "worldSpace": false
+            }
+          ]
+        },
+        {
+          "id": "orbit",
+          "type": "Script",
+          "enabled": true,
+          "behaviour": "IkOrbit",
+          "parameters": {
+            "radius": 0.25,
+            "frequency": 0.3,
+            "weight": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "Ik1",
+      "name": "IK weight 0.5",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/IkBox.gltf"
+        },
+        {
+          "id": "animator",
+          "type": "Animator",
+          "enabled": true,
+          "initialState": "Idle",
+          "states": [
+            {
+              "name": "Idle",
+              "clip": "Idle",
+              "speed": 1,
+              "loop": true
+            }
+          ],
+          "transitions": [],
+          "blendTrees": [],
+          "ik": [
+            {
+              "name": "reach",
+              "root": "Root",
+              "middle": "Upper",
+              "tip": "Tip",
+              "enabled": true,
+              "target": [
+                0.75,
+                1.3,
+                0
+              ],
+              "hint": [
+                2,
+                1,
+                0
+              ],
+              "weight": 0.5,
+              "worldSpace": false
+            }
+          ]
+        },
+        {
+          "id": "orbit",
+          "type": "Script",
+          "enabled": true,
+          "behaviour": "IkOrbit",
+          "parameters": {
+            "radius": 0.25,
+            "frequency": 0.3,
+            "weight": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "Ik2",
+      "name": "IK weight 1",
+      "parent": "",
+      "position": [
+        3,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/IkBox.gltf"
+        },
+        {
+          "id": "animator",
+          "type": "Animator",
+          "enabled": true,
+          "initialState": "Idle",
+          "states": [
+            {
+              "name": "Idle",
+              "clip": "Idle",
+              "speed": 1,
+              "loop": true
+            }
+          ],
+          "transitions": [],
+          "blendTrees": [],
+          "ik": [
+            {
+              "name": "reach",
+              "root": "Root",
+              "middle": "Upper",
+              "tip": "Tip",
+              "enabled": true,
+              "target": [
+                3.75,
+                1.3,
+                0
+              ],
+              "hint": [
+                5,
+                1,
+                0
+              ],
+              "weight": 1,
+              "worldSpace": true
+            }
+          ]
+        },
+        {
+          "id": "orbit",
+          "type": "Script",
+          "enabled": true,
+          "behaviour": "IkOrbit",
+          "parameters": {
+            "radius": 0.25,
+            "frequency": 0.3,
+            "weight": 1
+          }
+        }
+      ]
+    }
+  ],
+  "assetReferences": {
+    "Assets/Models/Cube.obj": "d08e9c24bfa343e0890b07fa7e70d7d8",
+    "Assets/Models/IkBox.gltf": "949db699e254061d17b948e3f70ac3b8"
+  }
+}

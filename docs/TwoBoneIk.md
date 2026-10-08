@@ -24,4 +24,6 @@ Animatorはクリップ／Blend Treeとクロスフェードの後に、制約�
 
 Script更新の予約結果をSceneWorldの候補状態に取り込み、すべての個体の姿勢計算に成功してから反映する。削除された個体の予約は取り消す。不正な目標や存在しない制約は失敗とし、予約済みの値を保持する。実行時上書きはシーンJSONへ保存しない。
 
-App／Editor再生のIK描画検証と比較シーンは引き続き実装する。IK全体はまだ完了扱いにしない。
+`Assets/Scenes/IkPlayground.json`で重み0・0.5・1を比較する。所有するAnimatedBoxモデルへ補助ノードTipを追加した`IkBox.gltf`を使い、`IkOrbit` Scriptが目標を動かす。右側の個体はWorld座標を使う。`radius`・`frequency`・`weight`をScriptパラメーターとして編集できる。`scripts/GenerateIkPlayground.py`でモデルとシーンを再生成する。
+
+`WP1_IK_PLAYBACK_ONLY=1`で、実際にモデルを読み込む統合検証を実行する。World座標の先端とScriptの目標が一致すること、GPU画像がCPU変形したモデルの画像と一致すること、重みで実際の描画が変わることを確認する。AppとEditorの再生・一時停止・コマ送り・停止、Inspectorの描画、遅い個体のIK失敗時に早い個体とScript状態を保持する更新も検証する。通常のAnimator／全体回帰テストにも含まれる。

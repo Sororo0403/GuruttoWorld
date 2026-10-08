@@ -3045,6 +3045,12 @@ int main()
         if(GetEnvironmentVariableW(L"WP1_IK_ONLY",nullptr,0)) {
             IkValidation::Run(); std::cout<<"PASS: two-bone IK targets, hints, reach, weights and transformed ancestors\n"; return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_IK_PLAYBACK_ONLY",nullptr,0)) {
+            IkValidation::Run(); Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden IK validation",64,32),"IK window"); Check(renderer.Initialize(window.GetHandle()),"IK renderer");
+            IkPlaybackValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: Script IK targets, world-space endpoints, GPU oracle, Inspector and App/Editor playback\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_PROFILER_ONLY",nullptr,0)) {
             Engine::Window window; Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden profiler validation",64,32),"profiler test window");
