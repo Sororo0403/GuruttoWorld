@@ -3715,6 +3715,14 @@ int main()
             ScriptValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: transactional script scene API, events, dynamic meshes and runtime UI\n"; return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_SCRIPT_MODULE_SETUP",nullptr,0)) {
+            ScriptModuleValidation::Setup(); std::cout<<"PASS: native script project setup\n"; return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_SCRIPT_MODULE_ONLY",nullptr,0)) {
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden native scripts",640,360) && renderer.Initialize(window.GetHandle()),"native script renderer");
+            ScriptModuleValidation::Native(renderer); std::cout<<"PASS: native script build/load, host context, reload lifetime and ABI checks\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_SCRIPT_ONLY",nullptr,0)) {
             ScriptValidation::Run();
             std::cout<<"PASS: script registry, parameters, lifecycle, serialization and missing behaviours\n";

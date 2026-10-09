@@ -108,6 +108,8 @@ namespace SceneRuntime
     public:
         // Register before Play, on the main thread. Duplicate names and invalid metadata are refused.
         static bool Register(std::string name,ScriptDefinition definition);
+        /// <summary>再生前にモジュール所有の処理を一括置換します。失敗時は既存の登録を保持します。</summary>
+        static bool InstallModule(const std::string& owner,std::map<std::string,ScriptDefinition> definitions,std::string& error);
         static const std::map<std::string,ScriptDefinition>& Definitions();
     };
     class ScriptRuntime final

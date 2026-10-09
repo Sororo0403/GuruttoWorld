@@ -2,6 +2,7 @@
 #include "ObjectPanel.h"
 #include "ProjectPanel.h"
 #include "BuildPanel.h"
+#include "ScriptAuthoringPanel.h"
 #include "ProfilerPanel.h"
 #include <chrono>
 #include "AssetChanges.h"
@@ -79,6 +80,7 @@ namespace
             camera.GetCamera().SetPerspective(DirectX::XM_PIDIV4,16.0f/9.0f,0.1f,1000);
             camera.SetMoveSpeed(8.0f);
             projectPanel.Scan(root);
+            std::string scriptError; if (!SceneRuntime::ScriptModule::Reload(root,scriptError)) Engine::Log::Warning(scriptError);
             try { playerInputs.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions); }
             catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); }
             Engine::ApplicationCallbacks callbacks;
@@ -106,6 +108,7 @@ namespace
         {
             const auto updateStart=std::chrono::steady_clock::now();
             buildPanel.Poll(root);
+            scriptPanel.Poll(root,gameSession.State().IsEditing());
             if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer) || !PrepareUiTexture(renderer)) return Engine::RenderResult::Failed;
             if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
             ApplyUiEvent(renderer);
@@ -464,6 +467,9 @@ namespace
             if (!pendingPlay) return true;
             const auto command=*pendingPlay;
             pendingPlay.reset();
+            if (command==Editor::GameSession::Command::Play && !scriptPanel.Ready()) {
+                ReportStatus("C++ゲーム処理のコンパイル・再読み込みを完了してから再生してください。",false); return true;
+            }
             if (command==Editor::GameSession::Command::Pause)
             {
                 if (gameSession.Pause()) ReportStatus("ゲームを一時停止しました。",true);
@@ -582,7 +588,7 @@ namespace
             }
             Editor::PanelLayout::BeginFrame(preview);
             if (!preview) {
-                consolePanel.Draw(); buildPanel.Draw(root,!editState.HasChanges() && !document.UnsavedNew() && !projectPanel.HasMaterialChanges()); profilerPanel.Draw(root);
+                consolePanel.Draw(); buildPanel.Draw(root,!editState.HasChanges() && !document.UnsavedNew() && !projectPanel.HasMaterialChanges()); scriptPanel.Draw(root); profilerPanel.Draw(root);
                 DrawRecovery();
             }
             Editor::TransformGizmo::BeginFrame();
@@ -982,6 +988,7 @@ namespace
             DrawFileMenu(enabled);
             DrawEditMenu(enabled);
             if (ImGui::MenuItem("ビルド###Build player")) buildPanel.open=true;
+            if (ImGui::MenuItem("C++ゲーム処理###Script authoring")) scriptPanel.open=true;
             if (ImGui::BeginMenu("表示###View"))
             {
                 if (ImGui::MenuItem("選択対象にフォーカス###Focus selected", "F", false, enabled && editState.InspectedAsset().empty() && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
@@ -1075,7 +1082,7 @@ namespace
             const bool enabled=sceneLoaded && IdleContextEnabled() && !reloadConfirmRequested && !newScenePopupRequested &&
                 !saveAsPanel.Requested() && !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
             ImGui::BeginDisabled(!enabled);
-            ImGui::BeginDisabled(!gameSession.State().CanPlay());
+            ImGui::BeginDisabled(!gameSession.State().CanPlay() || !scriptPanel.Ready());
             if (ImGui::Button(gameSession.State().IsEditing() ? "再生###Play" : "再開###Play"))
                 pendingPlay=Editor::GameSession::Command::Play;
             ImGui::EndDisabled();
@@ -1241,6 +1248,7 @@ namespace
         bool pendingRecovery=false;
         Editor::ProjectPanel projectPanel;
         Editor::BuildPanel buildPanel;
+        Editor::ScriptAuthoringPanel scriptPanel;
         Editor::ProfilerPanel profilerPanel;
         Editor::AssetChanges assetChanges;
         bool assetReloadRequested=false;

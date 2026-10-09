@@ -8,6 +8,7 @@
 #include "../Editor/src/GameSession.h"
 #include "../Editor/src/EditHistory.h"
 #include "ScriptPhaseValidation.h"
+#include "ScriptModuleValidation.h"
 
 namespace ScriptValidation
 {
@@ -208,5 +209,6 @@ namespace ScriptValidation
         SceneApi();
         TypedData();
         ScriptPhaseValidation::Schema();
+        ScriptModuleValidation::Schema();
     }
 }

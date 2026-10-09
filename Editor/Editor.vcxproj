@@ -172,6 +172,7 @@
     <ClInclude Include="src\SceneSelection.h" />
     <ClInclude Include="src\ObjectPanel.h" />
     <ClInclude Include="src\ScriptDataPanel.h" />
+    <ClInclude Include="src\ScriptAuthoringPanel.h" />
     <ClInclude Include="src\CameraPanel.h" />
     <ProjectReference Include="..\Engine\Engine.vcxproj">
       <Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project>

@@ -1,4 +1,4 @@
-﻿param(
+param(
     [ValidateSet('Release','Development')][string]$Configuration='Release',
     [ValidatePattern('^[a-f0-9]{32}$')][string]$RunId=([Guid]::NewGuid().ToString('N')),
     [switch]$SkipBuild
@@ -37,6 +37,11 @@ try {
     }
     $executable=Join-Path $repoRoot "generated/outputs/x64/$Configuration/App/App.exe"
     if (!(Test-Path -LiteralPath $executable)) { throw 'Built App.exe is missing.' }
+    Set-BuildProgress 2 '配布用C++ゲーム処理をコンパイル中'
+    $scriptShell=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+    & $scriptShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'BuildScripts.ps1') -Configuration $Configuration -Content $staging -OutputContent $staging -RunId "$RunId-scripts"
+    $scriptResult=Get-Content -LiteralPath (Join-Path $repoRoot "generated/script-builds/$RunId-scripts.json") -Raw | ConvertFrom-Json
+    if (!$scriptResult.success) { throw $scriptResult.error }
     Set-BuildProgress 2 '実行ファイル・ランタイムをパッケージ中'
     Copy-Item -LiteralPath $executable -Destination (Join-Path $staging 'App.exe')
     $licenseFolder=Join-Path (Split-Path $executable -Parent) 'Licenses'

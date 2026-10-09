@@ -4,6 +4,7 @@
 #include <Engine/Core/Application.h>
 #include <Windows.h>
 #include <SceneRuntime/ProjectSettings.h>
+#include <SceneRuntime/ScriptModule.h>
 #include <Engine/Core/Log.h>
 #include <winrt/base.h>
 
@@ -17,7 +18,10 @@ namespace App
         executable.resize(length);
         const auto root=std::filesystem::path(executable).parent_path();
         SceneRuntime::ProjectSettings project;
-        try { project=SceneRuntime::ProjectSettings::Load(root); }
+        try {
+            project=SceneRuntime::ProjectSettings::Load(root);
+            std::string error; if (!SceneRuntime::ScriptModule::Reload(root,error)) throw std::runtime_error(error);
+        }
         catch(const std::exception& exception) {
             MessageBoxW(nullptr,winrt::to_hstring(exception.what()).c_str(),L"プロジェクト設定エラー",MB_OK|MB_ICONERROR);
             return 1;

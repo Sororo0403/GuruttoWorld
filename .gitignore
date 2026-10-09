@@ -409,3 +409,6 @@ FodyWeavers.xsd
 
 # Asset IDs and import settings are source data.
 !Content/**/*.meta
+
+# Script modules are rebuilt from tracked C++ sources for each configuration.
+/Content/Assets/Scripts/Bin/

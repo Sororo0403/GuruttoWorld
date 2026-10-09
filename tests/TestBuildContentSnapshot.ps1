@@ -8,9 +8,14 @@ $scene=Join-Path $source 'Assets/Scenes/Main.json'
 Set-Content -LiteralPath $scene -Value 'original'
 Set-Content -LiteralPath (Join-Path $source 'Shaders/Test.hlsl') -Value 'shader'
 Set-Content -LiteralPath "$scene.tmp" -Value 'temporary save'
+New-Item -ItemType Directory -Path (Join-Path $source 'Assets/Scripts/Bin/Development') -Force | Out-Null
+Set-Content -LiteralPath (Join-Path $source 'Assets/Scripts/Game.cpp') -Value 'script source'
+Set-Content -LiteralPath (Join-Path $source 'Assets/Scripts/Bin/Development/GameScripts-old.dll') -Value 'old module'
 Copy-BuildContentSnapshot -Content $source -Destination $destination
 if((Get-Content -LiteralPath (Join-Path $destination 'Assets/Scenes/Main.json') -Raw).Trim() -ne 'original') {throw 'Snapshot did not preserve scene.'}
 if(Test-Path -LiteralPath (Join-Path $destination 'Assets/Scenes/Main.json.tmp')) {throw 'Snapshot included temporary saves.'}
+if(!(Test-Path -LiteralPath (Join-Path $destination 'Assets/Scripts/Game.cpp'))) {throw 'Snapshot omitted script sources.'}
+if(Test-Path -LiteralPath (Join-Path $destination 'Assets/Scripts/Bin')) {throw 'Snapshot included stale compiled script modules.'}
 Set-Content -LiteralPath $scene -Value 'later edit'
 if((Get-Content -LiteralPath (Join-Path $destination 'Assets/Scenes/Main.json') -Raw).Trim() -ne 'original') {throw 'Snapshot changed with live Content.'}
 # Inject a source edit immediately after copying an isolated test fixture.

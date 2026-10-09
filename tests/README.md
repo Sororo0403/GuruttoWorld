@@ -1,5 +1,10 @@
 # カメラ・パーティクルの検証
 
+ScriptModuleValidationはモジュール単位の登録、名前競合と不正設定時の既存登録保持、ソース作成と上書き拒否をScriptValidationに含めます。
+実DLLの確認は `WP1_SCRIPT_MODULE_SETUP=1` で検証用ソースを作成し、`scripts/BuildScripts.ps1 -Configuration Debug -Content generated/tests/native-script-project/Content` でコンパイルした後、`WP1_SCRIPT_MODULE_ONLY=1` で実行します。
+Releaseも同じ構成のDLLを用意します。ホストContextでの移動、再読み込み後の古いコールバックの寿命、ABI不一致・パス逸脱・読み込み失敗時の登録保持を検証します。
+`tests/TestScriptBuild.ps1` は意図したC++エラーを検出し、診断の公開と前のDLL manifestの保持を確認してソースを戻します。
+
 ScriptValidationは型付きデータの保存復元、公開型の検証、内部データの失敗時復元、削除済み参照と、階層・Prefab・Editor複製の参照変換も検証します。
 ScriptPhaseValidationは更新段階の順序、60Hz物理の30／120fps比較、Pause・Step、短いフレームの押下保持とPause・フォーカス喪失での解除、固定バッチの物理・内部状態復元、LateUpdateのリソース失敗を検証します。
 `WP1_SCRIPT_RUNTIME_ONLY=1`には組み込みFollowTargetの実行とEditorのUndoによる保存データ・参照の復元を含みます。

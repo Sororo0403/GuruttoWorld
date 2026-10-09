@@ -244,7 +244,7 @@ namespace SceneRuntime
             std::isfinite(field.initial) && std::isfinite(field.minimum) && std::isfinite(field.maximum) &&
             field.initial>=field.minimum && field.initial<=field.maximum && field.minimum>=-1000000 && field.maximum<=1000000;
     }
-    bool ScriptRegistry::Register(std::string name,ScriptDefinition definition)
+    bool ValidDefinition(const std::string& name,const ScriptDefinition& definition)
     {
         if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || definition.fields.size()>64 ||
             (!definition.update && !definition.fixedUpdate && !definition.lateUpdate)) return false;
@@ -252,7 +252,28 @@ namespace SceneRuntime
         catch (const std::exception&) { return false; }
         for (const auto& [key,field] : definition.fields)
             if (!ValidScriptField(key,field)) return false;
-        return Registry().emplace(std::move(name),std::move(definition)).second;
+        return true;
+    }
+    bool ScriptRegistry::Register(std::string name,ScriptDefinition definition)
+    {
+        return ValidDefinition(name,definition) && Registry().emplace(std::move(name),std::move(definition)).second;
+    }
+    bool ScriptRegistry::InstallModule(const std::string& owner,std::map<std::string,ScriptDefinition> definitions,std::string& error)
+    {
+        static std::map<std::string,std::set<std::string>> owners;
+        try {
+            if (owner.empty() || owner.size()>32768 || definitions.size()>256) throw std::runtime_error("Invalid script module owner or size");
+            auto candidate=Registry(); auto candidateOwners=owners;
+            const auto previous=candidateOwners.find(owner);
+            if (previous!=candidateOwners.end()) for (const auto& name:previous->second) candidate.erase(name);
+            std::set<std::string> names;
+            for (auto& [name,definition]:definitions) {
+                if (!ValidDefinition(name,definition)) throw std::runtime_error("Invalid script module definition: "+name);
+                if (candidate.contains(name)) throw std::runtime_error("Script module name conflicts with an existing behaviour: "+name);
+                names.insert(name); candidate.emplace(name,std::move(definition));
+            }
+            candidateOwners[owner]=std::move(names); Registry().swap(candidate); owners.swap(candidateOwners); error.clear(); return true;
+        } catch (const std::exception& exception) { error=exception.what(); return false; }
     }
     const std::map<std::string,ScriptDefinition>& ScriptRegistry::Definitions() { return Registry(); }
     float ScriptContext::Input(const std::string& name) const

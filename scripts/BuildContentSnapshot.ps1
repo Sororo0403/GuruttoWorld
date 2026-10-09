@@ -6,6 +6,7 @@ function Get-BuildContentInventory {
         foreach($file in Get-ChildItem -LiteralPath $source -File -Recurse | Sort-Object FullName) {
             if($file.Name -match '\.tmp($|\.)') {continue}
             $relative="$folder/"+$file.FullName.Substring($source.Length).TrimStart('\','/').Replace('\','/')
+            if($relative.StartsWith('Assets/Scripts/Bin/')) {continue}
             $entries.Add([pscustomobject]@{path=$relative;source=$file.FullName;bytes=$file.Length;hash=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash})
         }
     }
