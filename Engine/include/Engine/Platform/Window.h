@@ -7,6 +7,7 @@
 #define NOMINMAX
 #endif
 #include <Windows.h>
+#include <vector>
 
 namespace Engine
 {
@@ -72,6 +73,10 @@ namespace Engine
         /// </summary>
         /// <returns>作成済みのハンドル。未作成または破棄済みの場合は nullptr。</returns>
         HWND GetHandle() const noexcept;
+        /// <summary>WM_CHARで確定したUnicode文字を一度だけ取得します。</summary>
+        static std::vector<char32_t> ConsumeTextInput(HWND handle);
+        /// <summary>蓄積したホイール回転を一度だけ取得します。</summary>
+        static float ConsumeMouseWheel(HWND handle);
 
     private:
         /// <summary>
@@ -88,5 +93,8 @@ namespace Engine
         HWND handle_ = nullptr;
         ATOM classAtom_ = 0;
         bool closeRequested_ = false;
+        std::vector<char32_t> textInput_;
+        char32_t highSurrogate_=0;
+        float mouseWheel_=0;
     };
 }

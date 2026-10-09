@@ -35,10 +35,7 @@ namespace Engine
             catch (const std::exception& exception) { Log::Error(exception.what()); return false; }
         }
         else if (!ModelLoader::Load(modelPath,data)) return false;
-        resources_=std::make_shared<MeshResources>();
-        if (!resources_->Initialize(device,shaderPath)) { resources_.reset(); return false; }
-        device_=device; queue_=queue;
-        if (!Rebuild(data)) return false;
+        if(!Initialize(device,queue,data,shaderPath)) return false;
         rig_=std::move(rig);
         if (rig_)
         {
@@ -47,6 +44,13 @@ namespace Engine
             if (!ApplyPose(Skeleton::Sample(*rig_,"",0,false))) return false;
         }
         return true;
+    }
+    bool ModelRenderer::Initialize(ID3D12Device* device,ID3D12CommandQueue* queue,const std::vector<MeshData>& data,const std::filesystem::path& shaderPath)
+    {
+        if(!meshes_.empty()||!device||!queue||data.empty()) return false;
+        resources_=std::make_shared<MeshResources>();
+        if(!resources_->Initialize(device,shaderPath)) {resources_.reset();return false;}
+        device_=device;queue_=queue;return Rebuild(data);
     }
     bool ModelRenderer::Rebuild(const std::vector<MeshData>& data)
     {
@@ -172,14 +176,14 @@ namespace Engine
     void ModelRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
         const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
         const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,const Material* material,
-        std::span<const std::shared_ptr<const Material>> slots,MaterialPass pass) const
+        std::span<const std::shared_ptr<const Material>> slots,MaterialPass pass,std::span<const DirectX::XMFLOAT4X4> instances) const
     {
         for (size_t index=0;index<meshes_.size();++index)
         {
             const auto* selected=MaterialForSlot(index,material,slots);
             if(!MatchesMaterialPass(selected,pass)) continue;
             meshes_[index]->Draw(commands, world, viewProjection, light, cameraPosition, selected?selected->uv:uvTransform,selected,
-                rig_ ? std::span<const SkinMatrix>(palettes_[index]) : std::span<const SkinMatrix>{});
+                rig_ ? std::span<const SkinMatrix>(palettes_[index]) : std::span<const SkinMatrix>{},instances);
         }
     }
     bool ModelRenderer::IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction,

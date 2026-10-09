@@ -219,6 +219,7 @@
     <ClCompile Include="src\Audio\WaveData.cpp" />
     <ClInclude Include="include\Engine\Audio\WaveData.h" />
     <ClCompile Include="src\Audio\AudioSystem.cpp" />
+    <ClCompile Include="src\Audio\AudioSpatial.cpp" />
     <ClInclude Include="include\Engine\Audio\AudioSystem.h" />
   </ItemGroup>
   <ItemGroup>
@@ -258,6 +259,7 @@
   <ItemGroup>
     <ClCompile Include="src\Audio\AudioDecoder.cpp" />
     <ClInclude Include="include\Engine\Audio\AudioDecoder.h" />
+    <ClInclude Include="include\Engine\Audio\AudioStream.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\Scenes\IScene.h" />
@@ -276,6 +278,7 @@
     <ClInclude Include="include\Engine\Animation\SkinMatrix.h" />
     <ClInclude Include="include\Engine\Graphics\Resources\SkinPaletteBuffer.h" />
     <ClInclude Include="include\Engine\Graphics\Renderers\ShadowMap.h" />
+    <ClInclude Include="include\Engine\Graphics\Renderers\OcclusionRenderer.h" />
     <ClCompile Include="src\Graphics\Renderers\ShadowMap.cpp" />
     <ClInclude Include="include\Engine\Graphics\Materials\PostEffectSettings.h" />
     <ClInclude Include="include\Engine\Graphics\Renderers\PostEffectRenderer.h" />

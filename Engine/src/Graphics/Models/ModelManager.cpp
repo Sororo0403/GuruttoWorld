@@ -1,5 +1,6 @@
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Core/Log.h>
+#include <stdexcept>
 
 namespace Engine
 {
@@ -42,10 +43,19 @@ namespace Engine
         return model;
     }
 
+    std::shared_ptr<const ModelRenderer> ModelManager::Procedural(const std::string& key,const std::string& signature,const std::function<std::vector<MeshData>()>& generate)
+    {
+        if(!device_||key.empty()||!generate) return {};
+        const auto found=procedural_.find(key); if(found!=procedural_.end()&&found->second.signature==signature) return found->second.model;
+        const auto data=generate();
+        if(data.empty()||data.front().indices.empty()) {procedural_[key]={signature,{}};return {};}
+        auto model=std::make_shared<ModelRenderer>(); if(!model->Initialize(device_.Get(),queue_.Get(),data,shaderPath_)) throw std::runtime_error("Procedural model GPU upload failed");
+        procedural_[key]={signature,model};return model;
+    }
     void ModelManager::Swap(ModelManager& other) noexcept
     {
         device_.Swap(other.device_); queue_.Swap(other.queue_);
-        shaderPath_.swap(other.shaderPath_); models_.swap(other.models_);
+        shaderPath_.swap(other.shaderPath_); models_.swap(other.models_); procedural_.swap(other.procedural_);
     }
 
     bool ModelManager::PathLess::operator()(const std::filesystem::path& left, const std::filesystem::path& right) const

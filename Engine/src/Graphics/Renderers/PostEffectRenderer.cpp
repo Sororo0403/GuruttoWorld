@@ -15,17 +15,18 @@ namespace Engine
     {
         struct Targets
         {
-            RenderTexture scene,bright,temporary;
+            RenderTexture scene,bright,temporary,meter;
             std::array<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>,4> bindings;
             bool Initialize(ID3D12Device* gpuDevice,UINT width,UINT height)
             {
                 const UINT halfWidth=std::max(1U,(width+1)/2),halfHeight=std::max(1U,(height+1)/2);
                 if (!scene.Initialize(gpuDevice,width,height,RenderTexture::HdrFormat) ||
                     !bright.Initialize(gpuDevice,halfWidth,halfHeight,RenderTexture::HdrFormat) ||
-                    !temporary.Initialize(gpuDevice,halfWidth,halfHeight,RenderTexture::HdrFormat)) return false;
+                    !temporary.Initialize(gpuDevice,halfWidth,halfHeight,RenderTexture::HdrFormat) ||
+                    !meter.Initialize(gpuDevice,1,1,RenderTexture::HdrFormat)) return false;
                 const std::array<RenderTexture*,4> sources{&scene,&scene,&bright,&temporary};
                 D3D12_DESCRIPTOR_HEAP_DESC description{}; description.Type=D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-                description.NumDescriptors=2; description.Flags=D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+                description.NumDescriptors=3; description.Flags=D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
                 for (size_t index=0;index<bindings.size();++index)
                 {
                     if (FAILED(gpuDevice->CreateDescriptorHeap(&description,IID_PPV_ARGS(&bindings[index])))) return false;
@@ -33,6 +34,14 @@ namespace Engine
                     gpuDevice->CopyDescriptorsSimple(1,handle,sources[index]->GetShaderResourceView(),description.Type);
                     handle.ptr+=gpuDevice->GetDescriptorHandleIncrementSize(description.Type);
                     if (index==0) gpuDevice->CopyDescriptorsSimple(1,handle,bright.GetShaderResourceView(),description.Type);
+                    else
+                    {
+                        D3D12_SHADER_RESOURCE_VIEW_DESC empty{}; empty.Format=RenderTexture::HdrFormat;
+                        empty.ViewDimension=D3D12_SRV_DIMENSION_TEXTURE2D; empty.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                        empty.Texture2D.MipLevels=1; gpuDevice->CreateShaderResourceView(nullptr,&empty,handle);
+                    }
+                    handle.ptr+=gpuDevice->GetDescriptorHandleIncrementSize(description.Type);
+                    if (index==0) gpuDevice->CopyDescriptorsSimple(1,handle,meter.GetShaderResourceView(),description.Type);
                     else
                     {
                         D3D12_SHADER_RESOURCE_VIEW_DESC empty{}; empty.Format=RenderTexture::HdrFormat;
@@ -56,12 +65,12 @@ namespace Engine
         bool Initialize(ID3D12Device* input,const std::filesystem::path& shader)
         {
             if (!input) return false;
-            D3D12_DESCRIPTOR_RANGE range{}; range.RangeType=D3D12_DESCRIPTOR_RANGE_TYPE_SRV; range.NumDescriptors=2;
+            D3D12_DESCRIPTOR_RANGE range{}; range.RangeType=D3D12_DESCRIPTOR_RANGE_TYPE_SRV; range.NumDescriptors=3;
             D3D12_ROOT_PARAMETER parameters[2]{};
             parameters[0].ParameterType=D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
             parameters[0].DescriptorTable={1,&range}; parameters[0].ShaderVisibility=D3D12_SHADER_VISIBILITY_PIXEL;
             parameters[1].ParameterType=D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-            parameters[1].Constants.Num32BitValues=12; parameters[1].ShaderVisibility=D3D12_SHADER_VISIBILITY_PIXEL;
+            parameters[1].Constants.Num32BitValues=20; parameters[1].ShaderVisibility=D3D12_SHADER_VISIBILITY_PIXEL;
             D3D12_STATIC_SAMPLER_DESC sampler{}; sampler.Filter=D3D12_FILTER_MIN_MAG_MIP_LINEAR;
             sampler.AddressU=sampler.AddressV=sampler.AddressW=D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
             sampler.ComparisonFunc=D3D12_COMPARISON_FUNC_ALWAYS; sampler.MaxLOD=D3D12_FLOAT32_MAX;
@@ -90,12 +99,14 @@ namespace Engine
         void Draw(ID3D12GraphicsCommandList* list,ID3D12DescriptorHeap* binding,const PostEffectSettings& settings,float pass,
             UINT width,UINT height,bool hdrOutput) const
         {
-            const std::array<float,12> constants{settings.exposure,settings.bloomIntensity,settings.bloomThreshold,
+            const std::array<float,20> constants{settings.exposure,settings.bloomIntensity,settings.bloomThreshold,
                 static_cast<float>(settings.toneMapping),1.0f/width,1.0f/height,pass,hdrOutput ? 1.0f : 0.0f,settings.bloomRadius,
-                settings.bloomEnabled ? 1.0f : 0.0f,0,0};
+                settings.bloomEnabled ? 1.0f : 0.0f,settings.autoExposure ? 1.0f : 0.0f,settings.middleGray,
+                settings.exposureMinimum,settings.exposureMaximum,settings.contrast,settings.saturation,
+                settings.colorFilter[0],settings.colorFilter[1],settings.colorFilter[2],0};
             list->SetPipelineState(hdrOutput ? hdr.Get() : ldr.Get()); list->SetGraphicsRootSignature(root.Get());
             list->SetDescriptorHeaps(1,&binding); list->SetGraphicsRootDescriptorTable(0,binding->GetGPUDescriptorHandleForHeapStart());
-            list->SetGraphicsRoot32BitConstants(1,12,constants.data(),0); list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            list->SetGraphicsRoot32BitConstants(1,20,constants.data(),0); list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             list->DrawInstanced(3,1,0,0);
         }
     };
@@ -134,6 +145,15 @@ namespace Engine
         if (!targets.scene.End(commands)) return false;
         const bool valid=settings.Valid();
         bool processed=valid;
+        if (valid && settings.autoExposure)
+        {
+            processed=targets.meter.Begin(commands,{0,0,0,1});
+            if (processed)
+            {
+                impl_->Draw(commands,targets.bindings[1].Get(),settings,4,targets.scene.GetWidth(),targets.scene.GetHeight(),true);
+                processed=targets.meter.End(commands);
+            }
+        }
         if (valid && settings.bloomEnabled && settings.bloomIntensity>0)
         {
             const auto pass=[&](RenderTexture& output,const RenderTexture& source,size_t binding,float mode) {
@@ -141,12 +161,13 @@ namespace Engine
                 impl_->Draw(commands,targets.bindings[binding].Get(),settings,mode,source.GetWidth(),source.GetHeight(),true);
                 return output.End(commands);
             };
-            processed=pass(targets.bright,targets.scene,1,1) && pass(targets.temporary,targets.bright,2,2) &&
+            processed=processed && pass(targets.bright,targets.scene,1,1) && pass(targets.temporary,targets.bright,2,2) &&
                 pass(targets.bright,targets.temporary,3,3);
         }
         impl_->prior.Bind(commands);
         auto applied=valid ? settings : PostEffectSettings{};
         if (!processed) applied.bloomEnabled=false;
+        if (!processed) applied.autoExposure=false;
         if (!valid) applied.toneMapping=ToneMapping::None;
         if (applied.bloomIntensity==0) applied.bloomEnabled=false;
         impl_->Draw(commands,targets.bindings[0].Get(),applied,0,targets.scene.GetWidth(),targets.scene.GetHeight(),impl_->prior.format==RenderTexture::HdrFormat);

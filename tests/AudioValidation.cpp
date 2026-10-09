@@ -1,5 +1,6 @@
 #include <Engine/Audio/AudioSystem.h>
 #include <Engine/Audio/AudioDecoder.h>
+#include <Engine/Core/Log.h>
 #include <mfapi.h>
 #include <mfidl.h>
 #include <mfreadwrite.h>
@@ -146,6 +147,24 @@ int main()
         Engine::WaveData decoded;
         Check(Engine::DecodeAudioFile(compressed, decoded), "decode AAC");
         Check(decoded.format.wFormatTag == WAVE_FORMAT_PCM && decoded.format.nSamplesPerSec == 48000 && !decoded.samples.empty(), "decoded PCM");
+        {
+        Engine::AudioStream stream;
+        Check(stream.Open(compressed),"open compressed streaming decoder");
+        std::vector<unsigned char> streamed; bool ended=false;
+        for(size_t chunk=0;!ended&&chunk<10000;++chunk) {
+            std::vector<unsigned char> bytes; Check(stream.Read(bytes,ended),"decode compressed stream chunk");
+            streamed.insert(streamed.end(),bytes.begin(),bytes.end());
+        }
+        Check(ended&&streamed==decoded.samples&&stream.Rewind(),"streamed AAC PCM matches complete decoder and rewinds");
+        std::vector<unsigned char> replayChunk;ended=false;
+        Check(stream.Read(replayChunk,ended)&&!replayChunk.empty(),"AAC decoder produces samples after rewind");
+        const auto streamedHandle=audio.Load(compressed,true);
+        Check(streamedHandle!=0,"AAC streaming load");
+        Check(audio.SetVolume(streamedHandle,0),"AAC streaming mute");
+        Check(audio.Play(streamedHandle,true),"AAC streaming playback");
+        audio.Update(); Check(audio.IsPlaying(streamedHandle)&&audio.BufferedBytes(streamedHandle)>0,"AAC buffers queued");
+        audio.Unload(streamedHandle);
+        }
         const auto before = decoded.samples;
         const auto invalid = folder / "invalid.mp3";
         { std::ofstream file(invalid); file << "not audio"; }
@@ -196,6 +215,7 @@ int main()
     catch (const std::exception& error)
     {
         std::cerr << error.what() << '\n';
+        for(const auto& entry:Engine::Log::Recent()) std::cerr<<entry.text<<'\n';
         return 1;
     }
 }

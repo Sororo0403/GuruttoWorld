@@ -1,4 +1,5 @@
 #include <Engine/Audio/AudioDecoder.h>
+#include <Engine/Audio/AudioStream.h>
 #include <Engine/Core/Log.h>
 #include <mfapi.h>
 #include <mfidl.h>
@@ -85,7 +86,7 @@ namespace
         return NormalizePcmFormat(allocated, size, format);
     }
 
-    bool AppendSample(IMFSample* sample, std::vector<unsigned char>& samples)
+    bool AppendSample(IMFSample* sample, std::vector<unsigned char>& samples,size_t limit=MaxDecodedBytes)
     {
         ComPtr<IMFMediaBuffer> buffer;
         if (!Check(sample->ConvertToContiguousBuffer(&buffer), "Get audio buffer")) return false;
@@ -97,9 +98,9 @@ namespace
             IMFMediaBuffer* buffer;
             ~Unlock() { buffer->Unlock(); }
         } unlock{ buffer.Get() };
-        if (length > MaxDecodedBytes - samples.size())
+        if (samples.size()>limit || length>limit-samples.size())
         {
-            Engine::Log::Error("Decoded audio exceeds 64 MiB.");
+            Engine::Log::Error("Decoded audio exceeds buffer limit.");
             return false;
         }
         if (length != 0) samples.insert(samples.end(), data, data + length);
@@ -141,5 +142,34 @@ namespace Engine
         }
         wave = std::move(decoded);
         return true;
+    }
+    bool AudioStream::Open(const std::filesystem::path& path)
+    {
+        std::error_code error;
+        if (!std::filesystem::is_regular_file(path,error) || error) return false;
+        ComPtr<IMFSourceReader> reader;
+        WAVEFORMATEX format{};
+        if (!Check(MFCreateSourceReaderFromURL(path.c_str(),nullptr,&reader),"Open streamed audio") ||
+            !ConfigureReader(reader.Get(),format)) return false;
+        reader_=std::move(reader); format_=format; return true;
+    }
+    bool AudioStream::Read(std::vector<unsigned char>& bytes,bool& ended)
+    {
+        if (!reader_) return false;
+        DWORD flags=0; ComPtr<IMFSample> sample;
+        if (!Check(reader_->ReadSample(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM),0,nullptr,&flags,nullptr,&sample),"Stream audio sample") ||
+            (flags&(MF_SOURCE_READERF_ERROR|MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED))!=0) {Log::Error("Stream decoding flags: "+std::to_string(flags));return false;}
+        std::vector<unsigned char> pending;
+        if (sample && !AppendSample(sample.Get(),pending,4*1024*1024)) return false;
+        // One decoder sample must remain bounded; streamed playback never retains the complete file.
+        if (pending.size()>4*1024*1024 || pending.size()%format_.nBlockAlign!=0) return false;
+        bytes=std::move(pending); ended=(flags&MF_SOURCE_READERF_ENDOFSTREAM)!=0; return true;
+    }
+    bool AudioStream::Rewind()
+    {
+        if (!reader_) return false;
+        PROPVARIANT position{};position.vt=VT_I8;position.hVal.QuadPart=0;
+        return Check(reader_->Flush(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM)),"Flush stream decoder")&&
+            Check(reader_->SetCurrentPosition(GUID_NULL,position),"Rewind streamed audio");
     }
 }

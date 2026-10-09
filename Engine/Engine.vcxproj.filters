@@ -374,9 +374,14 @@
     <ClInclude Include="include\Engine\Animation\SkinMatrix.h"><Filter>include\Engine\Animation</Filter></ClInclude>
     <ClInclude Include="include\Engine\Graphics\Resources\SkinPaletteBuffer.h"><Filter>include\Engine\Graphics\Resources</Filter></ClInclude>
     <ClInclude Include="include\Engine\Graphics\Renderers\ShadowMap.h"><Filter>include\Engine\Graphics\Renderers</Filter></ClInclude>
+    <ClInclude Include="include\Engine\Graphics\Renderers\OcclusionRenderer.h"><Filter>include\Engine\Graphics\Renderers</Filter></ClInclude>
     <ClCompile Include="src\Graphics\Renderers\ShadowMap.cpp"><Filter>src\Graphics\Renderers</Filter></ClCompile>
     <ClInclude Include="include\Engine\Graphics\Materials\PostEffectSettings.h"><Filter>include\Engine\Graphics\Materials</Filter></ClInclude>
     <ClInclude Include="include\Engine\Graphics\Renderers\PostEffectRenderer.h"><Filter>include\Engine\Graphics\Renderers</Filter></ClInclude>
     <ClCompile Include="src\Graphics\Renderers\PostEffectRenderer.cpp"><Filter>src\Graphics\Renderers</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Audio\AudioStream.h"><Filter>include\Engine\Audio</Filter></ClInclude>
+    <ClCompile Include="src\Audio\AudioSpatial.cpp"><Filter>src\Audio</Filter></ClCompile>
   </ItemGroup>
 </Project>

@@ -3,6 +3,7 @@
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
 #include <map>
 #include <memory>
+#include <functional>
 
 namespace Engine
 {
@@ -41,6 +42,8 @@ namespace Engine
         /// Windows の通常のパスとして大文字・小文字を区別せず扱います。
         /// </summary>
         std::shared_ptr<const ModelRenderer> Load(const std::filesystem::path& path);
+        /// <summary>内容が変わった手続きメッシュだけ再生成し、IDごとの最新モデルを共有します。</summary>
+        std::shared_ptr<const ModelRenderer> Procedural(const std::string& key,const std::string& signature,const std::function<std::vector<MeshData>()>& generate);
 
         // Swap complete caches only after GPU idle. Existing shared models keep their ownership.
         void Swap(ModelManager& other) noexcept;
@@ -54,6 +57,8 @@ namespace Engine
             bool operator()(const std::filesystem::path& left, const std::filesystem::path& right) const;
         };
 
+        struct ProceduralModel {std::string signature;std::shared_ptr<const ModelRenderer> model;};
+        std::map<std::string,ProceduralModel> procedural_;
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_;
         std::filesystem::path shaderPath_;

@@ -21,6 +21,8 @@ namespace Engine
         std::shared_ptr<const Texture2D> texture;
         // 接線空間の法線画像（RGB、線形値）。未指定時は幾何法線を使います。
         std::shared_ptr<const Texture2D> normalTexture;
+        std::shared_ptr<const Texture2D> environmentTexture,lightmap;
+        float environmentIntensity=1;
     };
     using MaterialSlots=std::vector<std::shared_ptr<const Material>>;
     inline const Material* MaterialForSlot(size_t index,const Material* fallback,std::span<const std::shared_ptr<const Material>> slots) {

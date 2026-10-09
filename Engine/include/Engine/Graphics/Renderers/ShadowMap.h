@@ -11,10 +11,15 @@ namespace Engine
     {
     public:
         static constexpr UINT Resolution=2048;
+        static constexpr UINT LocalResolution=512,LocalFaces=32;
         /// <summary>光源視点の深度テクスチャと深度専用パイプラインを生成します。</summary>
-        bool Initialize(ID3D12Device* device,const std::filesystem::path& shader);
+        bool Initialize(ID3D12Device* device,const std::filesystem::path& shader,bool localAtlas=false);
         /// <summary>カメラ近傍を覆う光源視点を計算し、深度描画を開始します。</summary>
         bool Begin(ID3D12GraphicsCommandList* commands,const Camera& camera,const DirectionalLight& light);
+        /// <summary>点光源の立方体面またはスポット円錐の深度描画を開始します。</summary>
+        bool BeginLocal(ID3D12GraphicsCommandList* commands,const LocalLight& light,UINT slice,UINT face=0);
+        /// <summary>局所光源アトラスの各投影行列を取得します。</summary>
+        const std::array<DirectX::XMFLOAT4X4,LocalFaces>& LocalMatrices() const { return localMatrices_; }
         /// <summary>深度を参照可能に遷移させ、直前の出力先を復元します。</summary>
         void End(ID3D12GraphicsCommandList* commands);
         /// <summary>入力済みの頂点・インデックスを深度専用で描画します。</summary>
@@ -41,5 +46,7 @@ namespace Engine
         DirectX::XMFLOAT4X4 viewProjection_{};
         std::array<float,6> constants_{};
         RenderTargetBinding previous_;
+        UINT resolution_=Resolution,layers_=1,descriptorStride_=0;
+        std::array<DirectX::XMFLOAT4X4,LocalFaces> localMatrices_{};
     };
 }

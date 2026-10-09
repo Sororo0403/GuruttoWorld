@@ -123,7 +123,7 @@ public:
             } else if (value.is_array()) for (auto& item : value) self(self,item);
         };
         if (json.contains("objects")) walk(walk,json["objects"]);
-        else for (const auto* key : {"texture","normalTexture","startupScene"}) if (json.contains(key)) walk(walk,json[key]);
+        else for (const auto* key : {"texture","normalTexture","environmentTexture","lightmap","startupScene"}) if (json.contains(key)) walk(walk,json[key]);
         if (capture) json["assetReferences"]=updated;
     }
     void Move(const std::filesystem::path& from,const std::filesystem::path& to) {

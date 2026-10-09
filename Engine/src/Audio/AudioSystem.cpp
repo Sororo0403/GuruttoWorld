@@ -2,6 +2,9 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Audio/AudioDecoder.h>
 #include <mfapi.h>
+#include <xaudio2fx.h>
+#include <algorithm>
+#include <numeric>
 
 #include <cmath>
 #include <format>
@@ -48,6 +51,11 @@ namespace Engine
             Shutdown();
             return false;
         }
+        XAUDIO2_VOICE_DETAILS details{}; masteringVoice_->GetVoiceDetails(&details);
+        outputChannels_=2; outputSampleRate_=details.InputSampleRate;
+        DWORD channelMask=SPEAKER_FRONT_LEFT|SPEAKER_FRONT_RIGHT;
+        if (FAILED(X3DAudioInitialize(channelMask,X3DAUDIO_SPEED_OF_SOUND,spatialHandle_)) ||
+            !SetBus("Master",{})) {Shutdown(); return false;}
         Log::Info("XAudio2 initialized.");
         return true;
     }
@@ -64,12 +72,16 @@ namespace Engine
             }
         }
         sounds_.clear();
+        for (auto& [name,bus]:buses_) if(name!="Master" && bus.voice) bus.voice->DestroyVoice();
+        if(buses_.contains("Master") && buses_.at("Master").voice) buses_.at("Master").voice->DestroyVoice();
+        buses_.clear();
         if (masteringVoice_ != nullptr)
         {
             masteringVoice_->DestroyVoice();
             masteringVoice_ = nullptr;
         }
         engine_.Reset();
+        outputPaused_=false;
         if (ownsMediaFoundation_)
         {
             Check(MFShutdown(), "Shutdown Media Foundation");
@@ -82,11 +94,15 @@ namespace Engine
         }
     }
 
-    SoundHandle AudioSystem::Load(const std::filesystem::path& path)
+    SoundHandle AudioSystem::Load(const std::filesystem::path& path,bool streaming)
     {
         if (!engine_ || nextHandle_ == 0) return 0;
         Sound sound;
-        if (!DecodeAudioFile(path, sound.wave)) return 0;
+        sound.streaming=streaming;
+        if (streaming) {
+            if (!sound.stream.Open(path)) return 0;
+            sound.wave.format=sound.stream.Format();
+        } else if (!DecodeAudioFile(path, sound.wave)) return 0;
         const SoundHandle handle = nextHandle_++;
         sounds_.emplace(handle, std::move(sound));
         return handle;
@@ -98,19 +114,21 @@ namespace Engine
         if (!engine_ || found == sounds_.end()) return false;
         Stop(handle);
         auto& sound = found->second;
-        if (!Check(engine_->CreateSourceVoice(&sound.voice, &sound.wave.format), "Create source voice")) return false;
-        XAUDIO2_BUFFER buffer{};
-        buffer.Flags = XAUDIO2_END_OF_STREAM;
-        buffer.AudioBytes = static_cast<UINT32>(sound.wave.samples.size());
-        buffer.pAudioData = sound.wave.samples.data();
-        buffer.LoopCount = loop ? XAUDIO2_LOOP_INFINITE : 0;
-        if (!Check(sound.voice->SetVolume(sound.volume), "Set sound volume") ||
-            !Check(sound.voice->SubmitSourceBuffer(&buffer), "Submit sound buffer") ||
-            !Check(sound.voice->Start(), "Start sound"))
-        {
-            Stop(handle);
-            return false;
+        const auto bus=buses_.find(sound.bus);
+        if(bus==buses_.end()) return false;
+        XAUDIO2_SEND_DESCRIPTOR send{0,bus->second.voice}; XAUDIO2_VOICE_SENDS sends{1,&send};
+        if (!Check(engine_->CreateSourceVoice(&sound.voice,&sound.wave.format,XAUDIO2_VOICE_USEFILTER,2.0f,nullptr,&sends),"Create source voice")) return false;
+        sound.loop=loop; sound.ended=false;
+        bool submitted=false;
+        if (sound.streaming) submitted=sound.stream.Rewind() && FillStream(sound);
+        else {
+            XAUDIO2_BUFFER buffer{}; buffer.Flags=XAUDIO2_END_OF_STREAM;
+            buffer.AudioBytes=static_cast<UINT32>(sound.wave.samples.size()); buffer.pAudioData=sound.wave.samples.data();
+            buffer.LoopCount=loop?XAUDIO2_LOOP_INFINITE:0;
+            submitted=Check(sound.voice->SubmitSourceBuffer(&buffer),"Submit sound buffer");
         }
+        if (!submitted || !Check(sound.voice->SetVolume(sound.volume),"Set sound volume") ||
+            !ApplySpatial(sound) || !Check(sound.voice->Start(),"Start sound")) {Stop(handle); return false;}
         return true;
     }
 
@@ -122,6 +140,7 @@ namespace Engine
             // DestroyVoice が音声スレッドの参照終了を待つため、この後で波形を解放できます。
             found->second.voice->DestroyVoice();
             found->second.voice = nullptr;
+            found->second.chunks.clear();
         }
     }
 

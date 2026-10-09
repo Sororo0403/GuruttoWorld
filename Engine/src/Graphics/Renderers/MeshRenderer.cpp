@@ -11,16 +11,17 @@
 namespace Engine
 {
     ID3D12DescriptorHeap* MeshRenderer::Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& overrideTexture,
-        const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights,const SkinPaletteView& palette) const
+        const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights,const SkinPaletteView& palette,const SkinPaletteView& instances,const ShadowMap* localShadow,
+        const std::shared_ptr<const Texture2D>& environment,const std::shared_ptr<const Texture2D>& lightmap) const
     {
         const std::shared_ptr<const Texture2D> texture=overrideTexture ? overrideTexture : texture_;
-        const auto key=std::tuple{shadow ? shadow->Resource() : nullptr,texture.get(),normal.get(),lights.resource,palette.resource};
+        const auto key=std::tuple{shadow ? shadow->Resource() : nullptr,texture.get(),normal.get(),lights.resource,palette.resource,instances.resource,localShadow ? localShadow->Resource() : nullptr,environment.get(),lightmap.get()};
         if (const auto found=bindings_.find(key);found!=bindings_.end()) return found->second.heap.Get();
         Microsoft::WRL::ComPtr<ID3D12Device> device;
         if (FAILED(meshBuffer_->GetDevice(IID_PPV_ARGS(&device)))) return nullptr;
         D3D12_DESCRIPTOR_HEAP_DESC description{};
         description.Type=D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        description.Flags=D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; description.NumDescriptors=5;
+        description.Flags=D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; description.NumDescriptors=9;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap;
         if (FAILED(device->CreateDescriptorHeap(&description,IID_PPV_ARGS(&heap)))) return nullptr;
         auto handle=heap->GetCPUDescriptorHandleForHeapStart();
@@ -57,8 +58,34 @@ namespace Engine
             view.Buffer.NumElements=1; view.Buffer.StructureByteStride=sizeof(SkinMatrix);
             device->CreateShaderResourceView(nullptr,&view,handle);
         }
+        handle.ptr+=device->GetDescriptorHandleIncrementSize(description.Type);
+        if (instances.resource) device->CopyDescriptorsSimple(1,handle,instances.srv,description.Type);
+        else {
+            D3D12_SHADER_RESOURCE_VIEW_DESC view{}; view.ViewDimension=D3D12_SRV_DIMENSION_BUFFER;
+            view.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            view.Buffer.NumElements=1; view.Buffer.StructureByteStride=sizeof(SkinMatrix);
+            device->CreateShaderResourceView(nullptr,&view,handle);
+        }
+        handle.ptr+=device->GetDescriptorHandleIncrementSize(description.Type);
+        if (localShadow) device->CopyDescriptorsSimple(1,handle,localShadow->View(),description.Type);
+        else {
+            D3D12_SHADER_RESOURCE_VIEW_DESC view{}; view.ViewDimension=D3D12_SRV_DIMENSION_TEXTURE2DARRAY; view.Format=DXGI_FORMAT_R32_FLOAT;
+            view.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            view.Texture2DArray.MipLevels=1; view.Texture2DArray.ArraySize=ShadowMap::LocalFaces;
+            device->CreateShaderResourceView(nullptr,&view,handle);
+        }
+        for (const auto& image : {environment,lightmap})
+        {
+            handle.ptr+=device->GetDescriptorHandleIncrementSize(description.Type);
+            if (image) device->CopyDescriptorsSimple(1,handle,image->GetShaderResourceView(),description.Type);
+            else {
+                D3D12_SHADER_RESOURCE_VIEW_DESC view{}; view.ViewDimension=D3D12_SRV_DIMENSION_TEXTURE2D; view.Format=DXGI_FORMAT_R8G8B8A8_UNORM;
+                view.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; view.Texture2D.MipLevels=1;
+                device->CreateShaderResourceView(nullptr,&view,handle);
+            }
+        }
         // 各組み合わせを保持し、実行中のフレームが参照する SRV を書き換えません。
-        return bindings_.emplace(key,Binding{std::move(heap),texture,normal}).first->second.heap.Get();
+        return bindings_.emplace(key,Binding{std::move(heap),texture,normal,environment,lightmap}).first->second.heap.Get();
     }
     void MeshRenderer::DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,std::span<const SkinMatrix> palette) const
     {
@@ -115,7 +142,8 @@ namespace Engine
 
     void MeshRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
         const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
-        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,const Material* material,std::span<const SkinMatrix> palette) const
+        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,const Material* material,std::span<const SkinMatrix> palette,
+        std::span<const DirectX::XMFLOAT4X4> instances) const
     {
         if (!initialized_ || commands == nullptr)
         {
@@ -170,15 +198,36 @@ namespace Engine
         RenderTargetBinding target;
         const bool hdr=RenderTargetBinding::Current(commands,target) && target.format==DXGI_FORMAT_R16G16B16A16_FLOAT;
         if (hdr) lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|16U);
-        if (!light.localLights.empty())
+        const bool environment=material && material->environmentTexture && material->environmentIntensity>0;
+        if (!light.localLights.empty() || environment)
         {
-            localLights=resources_->PrepareLights(commands,light.localLights);
+            localLights=resources_->PrepareLights(commands,light.localLights,light.localShadow,
+                environment ? std::array<float,2>{material->environmentIntensity,static_cast<float>(material->environmentTexture->GetMipLevels())} : std::array<float,2>{});
             if (!localLights.resource) { Log::Error("Cannot prepare local lights for the current render frame."); return; }
             lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|8U);
         }
+        if (environment) lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|64U);
+        if (material && material->lightmap) lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|128U);
         const auto skin=palette.empty() ? SkinPaletteView{} : resources_->PrepareSkin(commands,palette);
         if (!palette.empty() && !skin.resource) { Log::Error("Cannot prepare mesh skin palette."); return; }
-        auto* heap=Bindings(light.shadow,material ? material->texture : nullptr,material ? material->normalTexture : nullptr,localLights,skin);
+        SkinPaletteView instanceView;
+        if (!instances.empty())
+        {
+            if (!palette.empty() || instances.size()>SkinPaletteBuffer::Capacity) return;
+            std::vector<SkinMatrix> matrices; matrices.reserve(instances.size());
+            for (const auto& instance : instances)
+            {
+                const auto matrix=XMLoadFloat4x4(&instance);
+                if ((XMVectorGetX(XMMatrixDeterminant(matrix))<0)!=mirrored) return;
+                SkinMatrix record; XMStoreFloat4x4(&record.position,matrix*XMLoadFloat4x4(&viewProjection));
+                record.normal=instance; matrices.push_back(record);
+            }
+            instanceView=resources_->PrepareInstances(commands,matrices);
+            if (!instanceView.resource) return;
+            lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|32U);
+        }
+        auto* heap=Bindings(light.shadow,material ? material->texture : nullptr,material ? material->normalTexture : nullptr,localLights,skin,instanceView,light.localShadow,
+            material ? material->environmentTexture : nullptr,material ? material->lightmap : nullptr);
         if (!heap) { Log::Error("Cannot allocate mesh texture/shadow bindings."); return; }
         // Transform/tint 32 + lighting 26 + compact UV 5 + SRV table 1 = 64 DWORD.
         commands->SetPipelineState(resources_->GetPipelineState(mirrored,material && (material->transparent || material->color[3]<1),hdr));
@@ -193,6 +242,6 @@ namespace Engine
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commands->IASetVertexBuffers(0, 1, &vertexView_);
         commands->IASetIndexBuffer(&indexView_);
-        commands->DrawIndexedInstanced(indexCount_, 1, 0, 0, 0);
+        commands->DrawIndexedInstanced(indexCount_, instances.empty() ? 1U : static_cast<UINT>(instances.size()), 0, 0, 0);
     }
 }

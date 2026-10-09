@@ -70,6 +70,8 @@ namespace Engine
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
             const std::filesystem::path& modelPath, const std::filesystem::path& shaderPath);
+        /// <summary>ファイルを生成せず、手続き生成したメッシュをGPUへ転送します。</summary>
+        bool Initialize(ID3D12Device* device,ID3D12CommandQueue* queue,const std::vector<MeshData>& meshes,const std::filesystem::path& shaderPath);
 
         /// <summary>
         /// 深度テスト・裏面除去・陰影を使ってモデルを描画します。
@@ -84,7 +86,8 @@ namespace Engine
             const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
             const UvTransform& uvTransform = {},const Material* material=nullptr,
-            std::span<const std::shared_ptr<const Material>> slots={},MaterialPass pass=MaterialPass::All) const;
+            std::span<const std::shared_ptr<const Material>> slots={},MaterialPass pass=MaterialPass::All,
+            std::span<const DirectX::XMFLOAT4X4> instances={}) const;
 
         size_t MeshCount() const { return meshes_.size(); }
         size_t TriangleCount() const { return triangleCount_; }

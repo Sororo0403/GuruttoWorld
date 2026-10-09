@@ -2,6 +2,7 @@
 
 #include <array>
 #include <vector>
+#include <memory>
 
 namespace Engine
 {
@@ -15,7 +16,7 @@ namespace Engine
         std::array<float,3> color{1,1,1};
         float intensity=1;
         float innerCosine=.9659258f,outerCosine=.8660254f;
-        std::array<float,2> padding{};
+        float shadowFirst=-1,shadowCount=0;
         bool operator==(const LocalLight&) const = default;
     };
     static_assert(sizeof(LocalLight)==64);
@@ -42,6 +43,7 @@ namespace Engine
         bool shadowsEnabled=false;
         float shadowDistance=70,shadowBias=.0001f;
         const ShadowMap* shadow=nullptr;
+        const ShadowMap* localShadow=nullptr;
         std::vector<LocalLight> localLights;
     };
 }

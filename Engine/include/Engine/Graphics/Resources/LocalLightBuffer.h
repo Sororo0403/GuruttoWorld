@@ -1,6 +1,7 @@
 #pragma once
 #include <Engine/Graphics/Materials/DirectionalLight.h>
 #include <Engine/Graphics/Resources/RenderFrameContext.h>
+#include <Engine/Graphics/Renderers/ShadowMap.h>
 #include <wrl/client.h>
 #include <algorithm>
 #include <cstring>
@@ -17,15 +18,18 @@ namespace Engine
     public:
         static constexpr size_t Capacity=32;
         /// <summary>同一フレームの異なる照明を別領域へ記録し、使用中のGPUデータを保持します。</summary>
-        LocalLightView Prepare(ID3D12Device* device,ID3D12GraphicsCommandList* commands,std::span<const LocalLight> lights)
+        LocalLightView Prepare(ID3D12Device* device,ID3D12GraphicsCommandList* commands,std::span<const LocalLight> lights,const ShadowMap* shadows=nullptr,
+            std::array<float,2> environment={})
         {
             RenderFrameContext context;
-            if (!device || lights.empty() || lights.size()>Capacity || !RenderFrameContext::Current(commands,context)) return {};
+            if (!device || (lights.empty() && environment[0]<=0) || lights.size()>Capacity || !RenderFrameContext::Current(commands,context)) return {};
+            if (!std::isfinite(environment[0]) || environment[0]<0 || environment[0]>100 ||
+                !std::isfinite(environment[1]) || environment[1]<0 || environment[1]>32) return {};
             if (!std::ranges::all_of(lights,Valid)) return {};
             auto& frame=frames_[context.slot];
             if (frame.serial!=context.serial) { frame.serial=context.serial; frame.used=0; }
             for (size_t index=0;index<frame.used;++index)
-                if (std::ranges::equal(frame.entries[index]->lights,lights)) return frame.entries[index]->View();
+                if (!shadows && !frame.entries[index]->shadowed && frame.entries[index]->environment==environment && std::ranges::equal(frame.entries[index]->lights,lights)) return frame.entries[index]->View();
             if (frame.used>=1024) return {};
             if (frame.used==frame.entries.size())
             {
@@ -35,12 +39,14 @@ namespace Engine
             }
             auto& entry=*frame.entries[frame.used];
             Packet packet; packet.header[0]=static_cast<float>(lights.size());
+            packet.header[1]=environment[0]; packet.header[2]=environment[1];
             std::copy(lights.begin(),lights.end(),packet.lights.begin());
+            if (shadows) packet.matrices=shadows->LocalMatrices();
             void* data=nullptr; const D3D12_RANGE read{0,0};
             if (FAILED(entry.resource->Map(0,&read,&data))) return {};
             std::memcpy(data,&packet,sizeof(packet));
             const D3D12_RANGE written{0,sizeof(packet)}; entry.resource->Unmap(0,&written);
-            entry.lights.assign(lights.begin(),lights.end()); ++frame.used;
+            entry.lights.assign(lights.begin(),lights.end()); entry.shadowed=shadows!=nullptr; entry.environment=environment; ++frame.used;
             return entry.View();
         }
     private:
@@ -52,16 +58,26 @@ namespace Engine
             return std::ranges::all_of(light.position,finite) && std::ranges::all_of(light.direction,finite) &&
                 std::ranges::all_of(light.color,color) && finite(light.intensity) && light.intensity>=0 &&
                 finite(light.range) && light.range>0 && (light.spot==0 || light.spot==1) &&
+                ValidShadow(light) &&
                 (light.spot==0 || (finite(light.innerCosine) && finite(light.outerCosine) && light.innerCosine<=1 &&
                     light.outerCosine>=-1 && light.innerCosine>light.outerCosine));
         }
-        struct Packet { std::array<float,4> header{}; std::array<LocalLight,Capacity> lights{}; };
-        static_assert(sizeof(Packet)==16+64*Capacity);
+        /// <summary>局所影のアトラス範囲と面数を検証します。</summary>
+        static bool ValidShadow(const LocalLight& light)
+        {
+            return std::isfinite(light.shadowFirst) && light.shadowFirst>=-1 && light.shadowFirst<ShadowMap::LocalFaces &&
+                std::floor(light.shadowFirst)==light.shadowFirst && (light.shadowCount==0 || light.shadowCount==1 || light.shadowCount==6) &&
+                (light.shadowFirst<0 || light.shadowFirst+light.shadowCount<=ShadowMap::LocalFaces);
+        }
+        struct Packet { std::array<float,4> header{}; std::array<LocalLight,Capacity> lights{}; std::array<DirectX::XMFLOAT4X4,ShadowMap::LocalFaces> matrices{}; };
+        static_assert(sizeof(Packet)==16+64*Capacity+64*ShadowMap::LocalFaces);
         struct Entry
         {
             Microsoft::WRL::ComPtr<ID3D12Resource> resource;
             Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor;
             std::vector<LocalLight> lights;
+            bool shadowed=false;
+            std::array<float,2> environment{};
             /// <summary>フレーム枠に属するアップロード領域と不変のSRVを作成します。</summary>
             bool Initialize(ID3D12Device* device)
             {
@@ -74,7 +90,7 @@ namespace Engine
                 if (FAILED(device->CreateDescriptorHeap(&descriptors,IID_PPV_ARGS(&descriptor)))) return false;
                 D3D12_SHADER_RESOURCE_VIEW_DESC view{}; view.ViewDimension=D3D12_SRV_DIMENSION_BUFFER;
                 view.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-                view.Buffer.NumElements=1+static_cast<UINT>(Capacity)*4; view.Buffer.StructureByteStride=16;
+                view.Buffer.NumElements=1+static_cast<UINT>(Capacity)*4+ShadowMap::LocalFaces*4; view.Buffer.StructureByteStride=16;
                 device->CreateShaderResourceView(resource.Get(),&view,descriptor->GetCPUDescriptorHandleForHeapStart()); return true;
             }
             /// <summary>寿命を保持した照明領域のビューを返します。</summary>

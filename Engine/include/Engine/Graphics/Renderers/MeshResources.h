@@ -57,14 +57,18 @@ namespace Engine
         ID3D12PipelineState* GetPipelineState(bool mirrored = false,bool transparent = false,bool hdr=false) const noexcept;
 
         /// <summary>現在の描画フレームへ局所ライトの不変データを準備します。</summary>
-        LocalLightView PrepareLights(ID3D12GraphicsCommandList* commands,std::span<const LocalLight> lights)
-        { return localLights_.Prepare(device_.Get(),commands,lights); }
+        LocalLightView PrepareLights(ID3D12GraphicsCommandList* commands,std::span<const LocalLight> lights,const ShadowMap* shadows=nullptr,std::array<float,2> environment={})
+        { return localLights_.Prepare(device_.Get(),commands,lights,shadows,environment); }
         /// <summary>現在のフレームへスキニングの行列を準備します。</summary>
         SkinPaletteView PrepareSkin(ID3D12GraphicsCommandList* commands,std::span<const SkinMatrix> palette)
         { return skinPalettes_.Prepare(device_.Get(),commands,palette); }
+        /// <summary>同じメッシュの個体行列を現在のフレームへ不変データとして準備します。</summary>
+        SkinPaletteView PrepareInstances(ID3D12GraphicsCommandList* commands,std::span<const SkinMatrix> instances)
+        { return instances_.Prepare(device_.Get(),commands,instances); }
     private:
         LocalLightBuffer localLights_;
         SkinPaletteBuffer skinPalettes_;
+        SkinPaletteBuffer instances_;
         struct PathLess
         {
             /// <summary>

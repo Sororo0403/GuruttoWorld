@@ -44,11 +44,29 @@ Texture2D<float4> normalTexture : register(t2);
 StructuredBuffer<float4> localLights : register(t3);
 struct SkinMatrix { row_major float4x4 position; row_major float4x4 normal; };
 StructuredBuffer<SkinMatrix> skinPalette : register(t4);
+StructuredBuffer<SkinMatrix> instances : register(t5);
+Texture2DArray<float> localShadowDepth : register(t6);
+Texture2D<float4> environmentTexture : register(t7);
+Texture2D<float4> bakedLightmap : register(t8);
 SamplerComparisonState shadowSampler : register(s1);
+SamplerState environmentSampler : register(s2);
 cbuffer ShadowTransform : register(b3)
 {
     row_major float4x4 shadowWorldViewProjection;
 };
+cbuffer BoundsTransform : register(b4)
+{
+    row_major float4x4 boundsViewProjection;
+    float4 boundsMinimum;
+    float4 boundsMaximum;
+};
+float4 VSBounds(uint vertex : SV_VertexID) : SV_POSITION
+{
+    static const uint indices[36]={0,2,1,1,2,3,4,5,6,5,7,6,0,1,4,1,5,4,2,6,3,3,6,7,0,4,2,2,4,6,1,3,5,3,7,5};
+    uint corner=indices[vertex];
+    float3 position=lerp(boundsMinimum.xyz,boundsMaximum.xyz,float3(corner&1,(corner>>1)&1,(corner>>2)&1));
+    return mul(float4(position,1),boundsViewProjection);
+}
 
 struct VertexInput
 {
@@ -66,14 +84,12 @@ struct VertexOutput
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
     float3 worldPosition : TEXCOORD1;
+    float2 lightmapUv : TEXCOORD2;
     float4 color : COLOR;
 };
 
-float3 TransformNormal(float3 normal)
+float3 TransformNormal(float3 normal,float3 row0,float3 row1,float3 row2)
 {
-    float3 row0=float3(worldRows[0].x,worldRows[1].x,worldRows[2].x);
-    float3 row1=float3(worldRows[0].y,worldRows[1].y,worldRows[2].y);
-    float3 row2=float3(worldRows[0].z,worldRows[1].z,worldRows[2].z);
     float3 cofactor0=cross(row1,row2);
     float3 cofactor1=cross(row2,row0);
     float3 cofactor2=cross(row0,row1);
@@ -117,15 +133,25 @@ float3 SkinNormal(float3 normal,uint4 joints,float4 weights)
     }
     return result;
 }
-VertexOutput VSMain(VertexInput input)
+VertexOutput VSMain(VertexInput input,uint instanceId : SV_InstanceID)
 {
     VertexOutput output;
     float3 position=SkinPosition(input.position,input.joints,input.weights);
     output.position = mul(float4(position, 1.0f), worldViewProjection);
-    output.normal = TransformNormal(SkinNormal(input.normal,input.joints,input.weights));
+    output.normal = TransformNormal(SkinNormal(input.normal,input.joints,input.weights),
+        float3(worldRows[0].x,worldRows[1].x,worldRows[2].x),
+        float3(worldRows[0].y,worldRows[1].y,worldRows[2].y),float3(worldRows[0].z,worldRows[1].z,worldRows[2].z));
     output.worldPosition = mul(worldRows, float4(position, 1.0f));
+    if (((uint)lightingEnabled & 32)!=0)
+    {
+        SkinMatrix instance=instances[instanceId];
+        output.position=mul(float4(position,1),instance.position);
+        output.worldPosition=mul(float4(position,1),instance.normal).xyz;
+        output.normal=TransformNormal(input.normal,instance.normal[0].xyz,instance.normal[1].xyz,instance.normal[2].xyz);
+    }
     output.color = input.color*materialColor;
     output.uv = TransformUv(input.uv);
+    output.lightmapUv=input.uv;
     return output;
 }
 
@@ -173,6 +199,35 @@ float3 SafeNormalize(float3 value)
 {
     return value*rsqrt(max(dot(value,value),1e-20));
 }
+float LocalShadowVisibility(float3 position,float4 positionRange,float4 directionSpot,float4 cone)
+{
+    float visibility=1;
+    [branch] if (cone.z>=0)
+    {
+        uint face=0;
+        if (directionSpot.w<.5)
+        {
+            float3 direction=position-positionRange.xyz,magnitude=abs(direction);
+            face=magnitude.x>=magnitude.y && magnitude.x>=magnitude.z ? (direction.x>=0 ? 0 : 1) :
+                magnitude.y>=magnitude.z ? (direction.y>=0 ? 2 : 3) : (direction.z>=0 ? 4 : 5);
+        }
+        uint slice=(uint)cone.z+face;
+        uint offset=129+slice*4;
+        row_major float4x4 projection=float4x4(localLights[offset],localLights[offset+1],localLights[offset+2],localLights[offset+3]);
+        float4 clip=mul(float4(position,1),projection);
+        float3 ndc=clip.xyz/max(clip.w,1e-6);
+        float2 uv=float2(ndc.x,-ndc.y)*.5+.5;
+        if (clip.w>0 && all(uv>=0) && all(uv<=1) && ndc.z>=0 && ndc.z<=1)
+        {
+            visibility=0;
+            [unroll] for (int y=-1;y<=1;++y)
+                [unroll] for (int x=-1;x<=1;++x)
+                    visibility+=localShadowDepth.SampleCmpLevelZero(shadowSampler,float3(uv+float2(x,y)/512,slice),ndc.z-.0005);
+            visibility/=9;
+        }
+    }
+    return visibility;
+}
 
 float3 SurfaceNormal(VertexOutput input,uint flags)
 {
@@ -209,6 +264,34 @@ float3 LinearToSrgb(float3 value)
 {
     value=max(value,0);
     return lerp(value*12.92,1.055*pow(value,1/2.4)-.055,step(.0031308,value));
+}
+float3 EnvironmentRadiance(float3 direction,float mip)
+{
+    direction=SafeNormalize(direction);
+    float2 uv=float2(atan2(direction.z,direction.x)/6.28318530718+.5,acos(clamp(direction.y,-1,1))/3.14159265359);
+    return SrgbToLinear(environmentTexture.SampleLevel(environmentSampler,uv,mip).rgb)*localLights[0].y;
+}
+float3 ImageBasedLighting(float3 baseColor,float3 normal,float3 toCamera,float roughness,float metallic)
+{
+    float3 reference=abs(normal.y)>.95 ? float3(0,0,1) : float3(0,1,0);
+    float3 tangent=SafeNormalize(cross(reference,normal)),bitangent=cross(normal,tangent);
+    float lastMip=max(localLights[0].z-1,0);
+    float3 irradiance=EnvironmentRadiance(normal,lastMip)*.25;
+    [unroll] for (uint index=0;index<8;++index)
+    {
+        float angle=(index+.5)*.78539816339;
+        float3 direction=normal*.577350269+tangent*(cos(angle)*.816496581)+bitangent*(sin(angle)*.816496581);
+        irradiance+=EnvironmentRadiance(direction,lastMip)*.09375;
+    }
+    float NoV=saturate(dot(normal,toCamera));
+    float3 f0=lerp(.04,baseColor,metallic);
+    float3 fresnel=f0+(max(1-roughness,f0)-f0)*pow(1-NoV,5);
+    float3 reflected=EnvironmentRadiance(reflect(-toCamera,normal),roughness*lastMip);
+    // Lazarovの環境BRDF近似。粗さと視線角から事前計算LUTを近似します。
+    float4 coefficients=roughness*float4(-1,-.0275,-.572,.022)+float4(1,.0425,1.04,-.04);
+    float a004=min(coefficients.x*coefficients.x,exp2(-9.28*NoV))*coefficients.x+coefficients.y;
+    float2 brdf=float2(-1.04,1.04)*a004+coefficients.zw;
+    return (1-fresnel)*(1-metallic)*baseColor*irradiance+reflected*(f0*brdf.x+brdf.y);
 }
 
 // GGX分布、Smithの高さ相関可視性、Schlick Fresnelによる金属度ワークフロー。
@@ -298,8 +381,21 @@ float4 PSMain(VertexOutput input) : SV_TARGET
                     float specular=diffuse>0 ? specularStrength*pow(saturate(dot(normal,SafeNormalize(direction+toCamera))),shininess) : 0;
                     contribution=baseColor*diffuse+specular;
                 }
-                color+=contribution*radiance.rgb*radiance.w*attenuation;
+                color+=contribution*radiance.rgb*radiance.w*attenuation*LocalShadowVisibility(input.worldPosition,positionRange,directionSpot,cone);
             }
+        }
+        if ((flags & 128)!=0) color=0;
+        if ((flags & 64)!=0)
+        {
+            float3 baseColor=SrgbToLinear(sampled.rgb)*SrgbToLinear(input.color.rgb);
+            float3 contribution=ImageBasedLighting(baseColor,normal,SafeNormalize(cameraPosition-input.worldPosition),pbr ? -shininess : .5,pbr ? specularStrength : 0);
+            color+=pbr ? contribution : LinearToSrgb(contribution);
+        }
+        if ((flags & 128)!=0)
+        {
+            float3 baseColor=pbr ? SrgbToLinear(sampled.rgb)*SrgbToLinear(input.color.rgb) : albedo.rgb;
+            float3 baked=bakedLightmap.Sample(textureSampler,input.lightmapUv).rgb;
+            color+=baseColor*(pbr ? SrgbToLinear(baked) : baked)*(pbr ? 1-specularStrength : 1);
         }
         if (pbr && !hdr) color=LinearToSrgb(color);
     }
