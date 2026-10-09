@@ -15,6 +15,7 @@ namespace SceneRuntime
         Engine::Material values;
         std::filesystem::path texture;
         std::filesystem::path normalTexture;
+        std::filesystem::path environmentTexture,lightmap;
         static bool ValidPath(const std::filesystem::path& path)
         {
             const auto utf8=path.generic_u8string(); const std::string value(utf8.begin(),utf8.end());
@@ -26,7 +27,8 @@ namespace SceneRuntime
             for (const float channel : values.color) if (!std::isfinite(channel) || channel<0 || channel>1) throw std::runtime_error("Invalid material color");
             if (!std::isfinite(values.roughness) || values.roughness<0.04f || values.roughness>1 ||
                 !std::isfinite(values.metallic) || values.metallic<0 || values.metallic>1) throw std::runtime_error("Invalid material surface");
-            for (const auto& image : {texture,normalTexture})
+            if (!std::isfinite(values.environmentIntensity) || values.environmentIntensity<0 || values.environmentIntensity>100) throw std::runtime_error("Invalid environment intensity");
+            for (const auto& image : {texture,normalTexture,environmentTexture,lightmap})
             {
                 const auto text=image.generic_u8string(); const std::string path(text.begin(),text.end());
                 if (!image.empty() && (image.is_absolute() || image.has_root_name() || !path.starts_with("Assets/Textures/") ||
@@ -50,6 +52,10 @@ namespace SceneRuntime
             asset.values.normalFlipY=json.value("normalFlipY",false);
             const auto normal=json.value("normalTexture",std::string{});
             asset.normalTexture=std::filesystem::path(std::u8string(normal.begin(),normal.end()));
+            const auto environment=json.value("environmentTexture",std::string{}),baked=json.value("lightmap",std::string{});
+            asset.environmentTexture=std::filesystem::path(std::u8string(environment.begin(),environment.end()));
+            asset.lightmap=std::filesystem::path(std::u8string(baked.begin(),baked.end()));
+            asset.values.environmentIntensity=json.value("environmentIntensity",1.0f);
             if (json.contains("uv"))
             {
                 const auto& uv=json.at("uv");
@@ -66,7 +72,7 @@ namespace SceneRuntime
         void Save(const std::filesystem::path& root,const std::filesystem::path& path) const
         {
             Validate();
-            for (const auto& image : {texture,normalTexture})
+            for (const auto& image : {texture,normalTexture,environmentTexture,lightmap})
                 if (!image.empty() && !std::filesystem::is_regular_file(root/image)) throw std::runtime_error("Material texture does not exist");
             if (!ValidPath(path)) throw std::runtime_error("Invalid material path");
             std::filesystem::create_directories((root/path).parent_path());
@@ -76,6 +82,7 @@ namespace SceneRuntime
                 {"transparent",values.transparent},{"texture",std::string(text.begin(),text.end())},
                 {"physicallyBased",values.physicallyBased},{"normalFlipY",values.normalFlipY},
                 {"normalTexture",std::string(normal.begin(),normal.end())},
+                {"environmentTexture",environmentTexture},{"environmentIntensity",values.environmentIntensity},{"lightmap",lightmap},
                 {"uv",{{"scale",values.uv.scale},{"rotation",values.uv.rotation},{"translation",values.uv.translation}}}};
             Engine::AssetDatabase(root).References(json);
             auto temporary=root/path; temporary+=".tmp";
@@ -98,6 +105,13 @@ namespace SceneRuntime
                 if (!image->Initialize(device,queue,root/normalTexture)) throw std::runtime_error("Cannot load material normal texture");
                 result->normalTexture=std::move(image);
             }
+            for (const auto& entry : {std::pair{environmentTexture,&result->environmentTexture},std::pair{lightmap,&result->lightmap}})
+                if (!entry.first.empty())
+                {
+                    auto image=std::make_shared<Engine::Texture2D>();
+                    if (!image->Initialize(device,queue,root/entry.first)) throw std::runtime_error("Cannot load material lighting texture");
+                    *entry.second=std::move(image);
+                }
             return result;
         }
     };

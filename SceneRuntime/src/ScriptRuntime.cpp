@@ -9,6 +9,30 @@
 namespace
 {
     using namespace SceneRuntime;
+    void ValidateUiKey(const std::string& key,size_t count,bool existing)
+    {
+        if(key.empty() || key.size()>128 || key.find_first_of("=&")!=std::string::npos || key.find('\0')!=std::string::npos || (!existing && count>=256))
+            throw std::runtime_error("Invalid UI command key or command limit exceeded");
+    }
+    struct UiUtf8Prefix {size_t bytes;char32_t code,minimum;};
+    UiUtf8Prefix ReadUiUtf8Prefix(unsigned char lead)
+    {
+        if(lead>=0xc2 && lead<=0xdf) return {1,static_cast<char32_t>(lead&0x1f),0x80};
+        if(lead>=0xe0 && lead<=0xef) return {2,static_cast<char32_t>(lead&0x0f),0x800};
+        if(lead>=0xf0 && lead<=0xf4) return {3,static_cast<char32_t>(lead&7),0x10000};
+        throw std::runtime_error("UI text must be valid UTF-8");
+    }
+    void ValidateUiText(const std::string& text)
+    {
+        if(text.size()>4096 || text.find('\0')!=std::string::npos) throw std::runtime_error("Invalid UI text length");
+        for(size_t index=0;index<text.size();) {
+            const auto lead=static_cast<unsigned char>(text[index++]);if(lead<0x80) continue;
+            auto prefix=ReadUiUtf8Prefix(lead);
+            if(prefix.bytes>text.size()-index) throw std::runtime_error("UI text must be valid UTF-8");
+            for(size_t i=0;i<prefix.bytes;++i) {const auto byte=static_cast<unsigned char>(text[index++]);if((byte&0xc0)!=0x80) throw std::runtime_error("UI text must be valid UTF-8");prefix.code=(prefix.code<<6)|(byte&0x3f);}
+            if(prefix.code<prefix.minimum || prefix.code>0x10ffff || (prefix.code>=0xd800 && prefix.code<=0xdfff)) throw std::runtime_error("UI text must be valid UTF-8");
+        }
+    }
     ScriptDefinition FollowDefinition()
     {
         ScriptDefinition follow;
@@ -112,6 +136,11 @@ namespace SceneRuntime
         do { object.id="runtime-"+std::to_string(nextId_++); }
         while (Find(object.id) || std::any_of(spawned_.begin(),spawned_.end(),[&](const auto& item) { return item.id==object.id; }));
         object.prefab.reset();
+        for(auto& [name,ids]:layout_.sceneObjects)
+        {
+            static_cast<void>(name);
+            if(std::find(ids.begin(),ids.end(),currentOwner)!=ids.end()) {ids.push_back(object.id);break;}
+        }
         const auto id=object.id; spawned_.push_back(std::move(object)); return id;
     }
     std::string ScriptScene::Instantiate(const std::string& id,const std::array<float,3>& position)
@@ -139,10 +168,13 @@ namespace SceneRuntime
             auto& item=spawned_[i];
             const auto remap=[&](std::string& value) { const auto found=ids.find(value); if (found!=ids.end()) value=found->second; };
             remap(item.parentId);
+            if(item.joint) remap(item.joint->target);
             for (auto& script:item.scripts) script.Remap(ids);
+        if(item.navAgent) item.navAgent->Remap(ids);
+            if(item.ragdoll) item.ragdoll->Remap(ids);
             if (item.button)
             {
-                if (item.button->action!="loadScene" && item.button->action!="setState") remap(item.button->target);
+                if (item.button->action!="loadScene" && item.button->action!="loadSceneAdditive" && item.button->action!="unloadScene" && item.button->action!="setState") remap(item.button->target);
                 remap(item.button->sound);
             }
         }
@@ -157,7 +189,7 @@ namespace SceneRuntime
     void ScriptScene::Emit(ScriptEvent event)
     {
         if (event.animation) AnimationEvents::ValidateOccurrence(*event.animation);
-        if (events.size()>=4096 || event.name.empty() || event.name.size()>128 || !std::isfinite(event.value))
+        if (events.size()>=4096 || event.name.empty() || event.name.size()>128 || event.text.size()>4096 || !std::isfinite(event.value))
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events.push_back(std::move(event));
     }
@@ -175,6 +207,9 @@ namespace SceneRuntime
     }
     void ScriptScene::Commit()
     {
+        if(uiCommands.values.size()+uiCommands.texts.size()>256) throw std::runtime_error("Too many UI commands");
+        for(const auto& [key,value]:uiCommands.values) SetUiValue(key,value);
+        for(const auto& [key,text]:uiCommands.texts) SetUiText(key,text);
         for (auto& item : layout_.objects)
         {
             const auto found=components_.find(item.id);
@@ -195,10 +230,22 @@ namespace SceneRuntime
         if (destroyed_.contains(layout_.settings.mainCamera)) layout_.settings.mainCamera.clear();
         static_cast<void>(layout_.Serialize());
     }
+    void ScriptScene::SetUiValue(const std::string& key,float value)
+    {
+        ValidateUiKey(key,uiCommands.values.size()+uiCommands.texts.size(),uiCommands.values.contains(key));
+        if(!std::isfinite(value) || std::abs(value)>100000) throw std::runtime_error("Invalid UI value command");
+        uiCommands.values[key]=value;
+    }
+    void ScriptScene::SetUiText(const std::string& key,std::string text)
+    {
+        ValidateUiKey(key,uiCommands.values.size()+uiCommands.texts.size(),uiCommands.texts.contains(key));
+        ValidateUiText(text);
+        uiCommands.texts[key]=std::move(text);
+    }
     void ScriptRuntime::QueueEvent(ScriptEvent event)
     {
         if (event.animation) AnimationEvents::ValidateOccurrence(*event.animation);
-        if (events_.size()>=4096 || event.name.empty() || event.name.size()>128 || !std::isfinite(event.value))
+        if (events_.size()>=4096 || event.name.empty() || event.name.size()>128 || event.text.size()>4096 || !std::isfinite(event.value))
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events_.push_back(std::move(event));
     }
@@ -310,6 +357,8 @@ namespace SceneRuntime
         try
         {
             ScriptScene scene(layout,nextId_,physics);
+            scene.sceneCommands=sceneCommands_;
+            scene.uiCommands=uiCommands_;
             if (phase!=ScriptPhase::Update) scene.events=events_;
             if (pendingFixedCommands_ && phase!=ScriptPhase::LateUpdate) {
                 scene.animatorParameters=animatorParameters_; scene.ikTargets=ikTargets_; scene.rootMotions=rootMotions_;
@@ -387,6 +436,9 @@ namespace SceneRuntime
                     iterator=instances_.erase(iterator);
                 }
             events_=std::move(scene.events);
+            if(scene.sceneCommands.size()>64) throw std::runtime_error("Too many scene commands");
+            sceneCommands_=std::move(scene.sceneCommands);
+            uiCommands_=std::move(scene.uiCommands);
             impulses_=std::move(scene.impulses);
             animatorParameters_=std::move(scene.animatorParameters);
             ikTargets_=std::move(scene.ikTargets);
@@ -414,7 +466,31 @@ namespace SceneRuntime
             catch (...) { Engine::Log::Warning("Script stop callback failed"); }
         }
         instances_.clear();
+        sceneCommands_.clear();
+        uiCommands_={};
         pendingFixedCommands_=false;
         events_.clear(); impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); nextId_=1;
+    }
+    void ScriptRuntime::StopRemoved(SceneLayout& previous,const SceneLayout& next) noexcept
+    {
+        for(auto iterator=instances_.begin();iterator!=instances_.end();)
+        {
+            const auto& instance=iterator->second;
+            const bool survives=std::any_of(next.objects.begin(),next.objects.end(),[&](const auto& object){return object.id==instance.owner &&
+                std::any_of(object.scripts.begin(),object.scripts.end(),[&](const auto& script){return script.enabled && script.id==instance.id && script.behaviour==instance.behaviour;});});
+            if(survives) {++iterator;continue;}
+            try
+            {
+                const auto owner=std::find_if(previous.objects.begin(),previous.objects.end(),[&](const auto& object){return object.id==instance.owner;});
+                const auto definition=Registry().find(instance.behaviour);
+                if(owner!=previous.objects.end() && definition!=Registry().end() && definition->second.stop)
+                {
+                    auto& state=iterator->second; ScriptContext context{*owner,state.parameters,state.state,0};
+                    context.data=&state.data;context.dataState=&state.dataState;definition->second.stop(context);
+                }
+            }
+            catch(...) {Engine::Log::Warning("Script stop callback failed while unloading a scene");}
+            iterator=instances_.erase(iterator);
+        }
     }
 }

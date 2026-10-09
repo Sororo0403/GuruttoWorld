@@ -1,3 +1,4 @@
+. (Join-Path $PSScriptRoot 'FileHash.ps1')
 function Get-BuildContentInventory {
     param([string]$Content)
     $entries=[System.Collections.Generic.List[object]]::new()
@@ -7,7 +8,7 @@ function Get-BuildContentInventory {
             if($file.Name -match '\.tmp($|\.)') {continue}
             $relative="$folder/"+$file.FullName.Substring($source.Length).TrimStart('\','/').Replace('\','/')
             if($relative.StartsWith('Assets/Scripts/Bin/')) {continue}
-            $entries.Add([pscustomobject]@{path=$relative;source=$file.FullName;bytes=$file.Length;hash=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash})
+            $entries.Add([pscustomobject]@{path=$relative;source=$file.FullName;bytes=$file.Length;hash=(Get-Wp1FileHash -LiteralPath $file.FullName)})
         }
     }
     return $entries.ToArray()
@@ -19,7 +20,7 @@ function Copy-BuildContentSnapshot {
         $target=Join-Path $Destination $entry.path
         New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
         Copy-Item -LiteralPath $entry.source -Destination $target
-        if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $entry.hash) {throw "Content changed while copying: $($entry.path)"}
+        if((Get-Wp1FileHash -LiteralPath $target) -ne $entry.hash) {throw "Content changed while copying: $($entry.path)"}
     }
     $after=@(Get-BuildContentInventory -Content $Content)
     $beforeText=($before | ForEach-Object {"$($_.path)|$($_.bytes)|$($_.hash)"}) -join "`n"

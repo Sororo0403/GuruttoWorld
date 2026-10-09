@@ -66,7 +66,7 @@ try {
     }
     if (!(Test-Path -LiteralPath (Join-Path $staging $startup))) { throw 'Packaged startup scene is missing.' }
     $files=@(Get-ChildItem -LiteralPath $staging -File -Recurse | ForEach-Object {
-        [ordered]@{path=$_.FullName.Substring($staging.Length+1).Replace('\','/');bytes=$_.Length;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
+        [ordered]@{path=$_.FullName.Substring($staging.Length+1).Replace('\','/');bytes=$_.Length;sha256=(Get-Wp1FileHash -LiteralPath $_.FullName).ToLowerInvariant()}
     })
     [ordered]@{configuration=$Configuration;createdUtc=[DateTime]::UtcNow.ToString('o');startupScene=$startup;files=$files} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $staging 'package.json') -Encoding UTF8
     Set-BuildProgress 3 'パッケージの起動を検証中'

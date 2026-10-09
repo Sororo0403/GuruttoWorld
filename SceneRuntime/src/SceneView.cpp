@@ -75,6 +75,7 @@ namespace SceneRuntime
             if (point)
             {
                 light.color=object.pointLight->color; light.intensity=object.pointLight->intensity; light.range=object.pointLight->range;
+                light.shadowCount=object.pointLight->shadowsEnabled ? 6.0f : 0.0f;
                 result.localLights.push_back(light);
             }
             if (spot)
@@ -86,6 +87,7 @@ namespace SceneRuntime
                 constexpr float radians=std::numbers::pi_v<float>/360;
                 light.innerCosine=std::cos(object.spotLight->innerAngle*radians);
                 light.outerCosine=std::cos(object.spotLight->outerAngle*radians);
+                light.shadowCount=object.spotLight->shadowsEnabled ? 1.0f : 0.0f;
                 result.localLights.push_back(light);
             }
         }

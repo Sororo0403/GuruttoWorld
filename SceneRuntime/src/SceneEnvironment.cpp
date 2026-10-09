@@ -1,5 +1,8 @@
 #include <SceneRuntime/SceneEnvironment.h>
+#include <SceneRuntime/Navigation.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
+#include <Engine/Graphics/Resources/Texture2D.h>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -36,7 +39,7 @@ namespace SceneRuntime
     bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
         const std::filesystem::path& scenePath, std::string& error)
     {
-        try { return Initialize(renderer,root,SceneLayout::Load(scenePath,root),error); }
+        try { if(!Initialize(renderer,root,SceneLayout::Load(scenePath,root),error)) return false; scenes_.Reset(world_.Layout(),scenePath.is_absolute() ? scenePath.lexically_relative(root).generic_string() : scenePath.generic_string()); return true; }
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
     bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
@@ -45,12 +48,39 @@ namespace SceneRuntime
         if (!presentation_.Initialize(renderer,root,error) ||
             !world_.Initialize(renderer,root,std::move(layout),root/"Shaders/Mesh.hlsl",&error) || !presentation_.PrepareUi(renderer,root,world_.Layout(),error)) return false;
         seconds_=0; motionEnabled_=true; uiState_=SceneUi::Defaults(world_.Layout());
-        world_.SetRuntimePreparation([this,&renderer,root](const SceneLayout& candidate,std::string& diagnostic) {
-            return presentation_.PrepareUi(renderer,root,candidate,diagnostic);
+        renderer_=&renderer; root_=root; scenes_.Reset(world_.Layout());
+        uiSceneCommands_.clear();
+        pendingUiResources_.reset();
+        world_.SetRuntimePreparation([this](const SceneLayout& candidate,std::string& diagnostic) {
+            return PrepareRuntimeUi(candidate,{},diagnostic);
+        });
+        world_.SetUiPreparation([this](const SceneLayout& candidate,const ScriptUiCommands& commands,std::string& diagnostic) {
+            return PrepareRuntimeUi(candidate,commands,diagnostic);
         });
         SeekAnimation(0,0);
         error.clear();
         return true;
+    }
+    bool SceneEnvironment::PrepareRuntimeUi(const SceneLayout& layout,const ScriptUiCommands& commands,std::string& error)
+    {
+        if(!renderer_) {error="UI renderer is not initialized";return false;}
+        auto candidate=uiPreparationOverride_?*uiPreparationOverride_:uiState_;
+        for(const auto& [key,value]:commands.values) candidate.values[key]=value;
+        for(const auto& [key,text]:commands.texts) candidate.strings[key]=text;
+        auto resources=pendingUiResources_?*pendingUiResources_:presentation_.CaptureUi();
+        if(!presentation_.PrepareUiCandidate(*renderer_,root_,layout,error,candidate,resources)) return false;
+        pendingUiResources_=std::move(resources); return true;
+    }
+    void SceneEnvironment::ApplyUiCommands(ScriptUiCommands commands)
+    {
+        for(const auto& [key,value]:commands.values) uiState_.values[key]=value;
+        for(const auto& [key,text]:commands.texts) uiState_.strings[key]=text;
+        if(pendingUiResources_) presentation_.RestoreUi(std::move(*pendingUiResources_));
+        pendingUiResources_.reset();
+    }
+    void SceneEnvironment::DiscardPreparedUi()
+    {
+        world_.DiscardUiCommands(); pendingUiResources_.reset();
     }
     void SceneEnvironment::Update(double deltaSeconds, bool enabled, bool active)
     {
@@ -58,10 +88,12 @@ namespace SceneRuntime
         if (!active) DiscardPendingInput();
         if (!active || !std::isfinite(deltaSeconds) || deltaSeconds<=0) return;
         const bool physicsReady=physicsAttempted_ ? physicsSucceeded_ :
-            !ScriptRuntime::HasPhase(world_.Layout(),ScriptPhase::FixedUpdate) || world_.MovePlayers(deltaSeconds,0,0);
+            !RequiresFixedUpdate(world_.Layout()) || world_.MovePlayers(deltaSeconds,0,0);
         physicsAttempted_=false;
-        if (!physicsReady) { Engine::Log::Warning("FixedUpdate failed; frame update was skipped."); return; }
-        if (!world_.UpdateComponents(deltaSeconds)) { Engine::Log::Warning("Component update failed; runtime clocks were preserved."); return; }
+        if (!physicsReady) { DiscardPreparedUi(); Engine::Log::Warning("FixedUpdate failed; frame update was skipped."); return; }
+        if (!world_.UpdateComponents(deltaSeconds)) { DiscardPreparedUi(); Engine::Log::Warning("Component update failed; runtime clocks were preserved."); return; }
+        ApplyUiCommands(world_.TakeUiCommands());
+        ProcessSceneCommands();
         if (enabled) seconds_+=std::min(deltaSeconds,0.1);
         const float elapsed=static_cast<float>(std::min(deltaSeconds,0.1));
         sceneSeconds_+=elapsed;
@@ -147,6 +179,104 @@ namespace SceneRuntime
         const auto event=SceneUi::Activate(world_.Layout(),object,uiState_);
         if(!event.sound.empty()) audio_.Play(event.sound);
         if(event.action=="playAudio") audio_.Play(event.target);
+        if(uiSceneCommands_.size()<64)
+        {
+            if(event.action=="loadSceneAdditive") uiSceneCommands_.push_back({event.target,true,false});
+            if(event.action=="unloadScene") uiSceneCommands_.push_back({event.target,false,true});
+        }
+        return event;
+    }
+    bool SceneEnvironment::RequiresFixedUpdate(const SceneLayout& layout)
+    {
+        return ScriptRuntime::HasPhase(layout,ScriptPhase::FixedUpdate) || Navigation::HasAgents(layout) ||
+            std::any_of(layout.objects.begin(),layout.objects.end(),[](const auto& object){
+                return (object.ragdoll && !object.ragdoll->bones.empty()) || (object.rigidBody && object.rigidBody->enabled) ||
+                    (object.playerController && object.playerController->enabled);
+            });
+    }
+    void SceneEnvironment::ProcessSceneCommands()
+    {
+        auto commands=world_.TakeSceneCommands();
+        commands.insert(commands.end(),uiSceneCommands_.begin(),uiSceneCommands_.end());uiSceneCommands_.clear();
+        for(const auto& command:commands)
+        {
+            std::string error;
+            const bool success=command.unload ? UnloadScene(command.scene,error) : LoadScene(command.scene,command.additive,error);
+            if(!success) Engine::Log::Warning(error);
+        }
+    }
+    bool SceneEnvironment::ApplySceneLayout(SceneLayout layout,SceneCollection scenes,std::string& error,bool resetUi)
+    {
+        if(!renderer_) {error="Scene environment is not initialized";return false;}
+        Engine::Texture2D fenceTexture;
+        if(!fenceTexture.Initialize(renderer_->GetDevice(),renderer_->GetCommandQueue(),{})) {error="Cannot synchronize scene resource release";return false;}
+        auto candidateUi=SceneUi::SceneState(world_.Layout(),layout,uiState_,resetUi);
+        const auto previousOverride=uiPreparationOverride_;
+        struct RestorePreparation {const UiState*& target; const UiState* previous; ~RestorePreparation() {target=previous;}} restore{uiPreparationOverride_,previousOverride};
+        uiPreparationOverride_=&candidateUi;
+        auto previousResources=presentation_.CaptureUi();
+        if(!presentation_.PrepareUi(*renderer_,root_,layout,error,candidateUi)) return false;
+        if(!world_.ReplaceLayout(std::move(layout),root_,error,true))
+        {
+            pendingUiResources_.reset(); presentation_.RestoreUi(std::move(previousResources)); return false;
+        }
+        uiPreparationOverride_=previousOverride;
+        scenes_=std::move(scenes); uiState_=std::move(candidateUi);
+        ApplyUiCommands({});
+        if(resetUi) world_.DiscardUiCommands();
+        if(resetUi) {seconds_=0;sceneSeconds_=0;startSeconds_=-1;focusRequested_=0;focusEngaged_=false;focusSeconds_=0;}
+        if(!audio_.Reconcile(root_,world_.Layout(),error)) Engine::Log::Warning(error);
+        error.clear(); return true;
+    }
+    bool SceneEnvironment::LoadScene(const std::filesystem::path& scene,bool additive,std::string& error)
+    {
+        try
+        {
+            const auto relative=scene.lexically_normal();
+            if(relative.is_absolute() || relative.has_root_name() || relative.extension()!=".json" ||
+                !relative.generic_string().starts_with("Assets/Scenes/") ||
+                std::any_of(relative.begin(),relative.end(),[](const auto& part){return part=="..";}))
+                throw std::runtime_error("Invalid scene path");
+            auto incoming=SceneLayout::Load(root_/relative,root_); auto collection=scenes_; auto layout=world_.Layout();
+            std::set<std::string> reserved;
+            if(!additive)
+            {
+                for(const auto& object:layout.objects) reserved.insert(object.id);
+                const auto entries=collection.Entries(); for(const auto& entry:entries) layout=collection.Unload(layout,entry.name);
+            }
+            layout=collection.Add(layout,std::move(incoming),relative.generic_string(),!additive,reserved);
+            return ApplySceneLayout(std::move(layout),std::move(collection),error,!additive);
+        }
+        catch(const std::exception& exception) {error=exception.what();return false;}
+    }
+    bool SceneEnvironment::UnloadScene(const std::string& name,std::string& error)
+    {
+        try {auto collection=scenes_; auto layout=collection.Unload(world_.Layout(),name);return ApplySceneLayout(std::move(layout),std::move(collection),error);}
+        catch(const std::exception& exception) {error=exception.what();return false;}
+    }
+    UiEvent SceneEnvironment::UiPointer(unsigned int width,unsigned int height,float x,float y,bool down,bool pressed,bool released,float wheel)
+    {
+        const auto pressedObject=uiState_.pressed;
+        const auto found=std::find_if(world_.Layout().objects.begin(),world_.Layout().objects.end(),[&](const auto& p){return p.id==pressedObject;});
+        const bool button=found!=world_.Layout().objects.end() && found->button && found->button->enabled && !found->toggle && !found->inputField;
+        auto event=SceneUi::Pointer(world_.Layout(),width,height,x,y,down,pressed,released && !button,wheel,uiState_);
+        if(released && button) {
+            if(pressedObject==uiState_.hovered) event=Click(pressedObject);
+            uiState_.pressed.clear();
+        }
+        if(!event.event.empty()) {
+            ScriptEvent scriptEvent; scriptEvent.name=event.event; scriptEvent.sender=event.object; scriptEvent.value=event.value; scriptEvent.text=event.text;
+            std::string error; if(!QueueScriptEvent(std::move(scriptEvent),error)) Engine::Log::Warning(error);
+        }
+        return event;
+    }
+    UiEvent SceneEnvironment::UiTextInput(char32_t character)
+    {
+        auto event=SceneUi::TextInput(world_.Layout(),character,uiState_);
+        if(!event.event.empty()) {
+            ScriptEvent scriptEvent; scriptEvent.name=event.event; scriptEvent.sender=event.object; scriptEvent.value=event.value; scriptEvent.text=event.text;
+            std::string error; if(!QueueScriptEvent(std::move(scriptEvent),error)) Engine::Log::Warning(error);
+        }
         return event;
     }
     void SceneEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, bool showSceneUi) const

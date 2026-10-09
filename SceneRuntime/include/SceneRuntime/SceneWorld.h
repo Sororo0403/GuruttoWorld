@@ -6,6 +6,7 @@
 #include <SceneRuntime/ScenePhysics.h>
 #include <SceneRuntime/ScriptRuntime.h>
 #include <SceneRuntime/PhysicsWorld.h>
+#include <Engine/Graphics/Renderers/OcclusionRenderer.h>
 
 namespace Engine { class DirectX12Renderer; }
 namespace SceneRuntime { struct UiState; }
@@ -59,7 +60,17 @@ namespace SceneRuntime
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
         bool UpdateComponents(double seconds);
         bool QueueScriptEvent(ScriptEvent event,std::string& error);
+        /// <summary>成功した更新で予約されたシーン操作を取り出します。</summary>
+        std::vector<SceneCommand> TakeSceneCommands() { return scripts_.TakeSceneCommands(); }
+        /// <summary>成功したフレームのScript UI変更を取得します。</summary>
+        ScriptUiCommands TakeUiCommands() {return scripts_.TakeUiCommands();}
+        /// <summary>失敗フレームの未適用Script UI変更を破棄します。</summary>
+        void DiscardUiCommands() {scripts_.DiscardUiCommands();}
         void SetRuntimePreparation(std::function<bool(const SceneLayout&,std::string&)> prepare) { prepareRuntime_=std::move(prepare); }
+        /// <summary>Scriptと姿勢の確定前にUI変更の描画資源を候補へ準備します。</summary>
+        void SetUiPreparation(std::function<bool(const SceneLayout&,const ScriptUiCommands&,std::string&)> prepare) {prepareUi_=std::move(prepare);}
+        /// <summary>現在のUI候補準備を取得し、検証処理を追加して委譲できます。</summary>
+        const std::function<bool(const SceneLayout&,const ScriptUiCommands&,std::string&)>& UiPreparation() const {return prepareUi_;}
         std::string AnimatorStateName(const std::string& id) const { const auto found=animatorStates_.find(id); return found==animatorStates_.end() ? std::string{} : found->second.current; }
         /// <summary>現在のクリップ重み・同期位相・骨格姿勢を取得します。変更操作後に再取得してください。</summary>
         const AnimatorState* AnimatorStatus(const std::string& id) const { const auto found=animatorStates_.find(id); return found==animatorStates_.end() ? nullptr : &found->second; }
@@ -69,10 +80,12 @@ namespace SceneRuntime
         bool ClearAnimatorParameter(const std::string& id,const std::string& name);
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { inputValues_=std::move(values); inputPressed_=std::move(pressed); }
         /// <summary>フォーカス喪失や一時停止で未処理の固定更新入力を破棄します。</summary>
-        void DiscardPendingInput() { fixedPressed_.clear(); fixedJump_=false; inputValues_.clear(); inputPressed_.clear(); }
+        void DiscardPendingInput() { fixedPressed_.clear(); fixedJump_=false; inputValues_.clear(); inputPressed_.clear(); scripts_.DiscardUiCommands(); }
         // Normalized input moves controllers on their parent-local XZ plane.
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false);
         bool AddImpulse(const std::string& id,const std::array<float,3>& impulse);
+        /// <summary>選択モデルの現在の骨格姿勢からラグドール用剛体とJointを一括生成します。</summary>
+        bool GenerateRagdoll(const std::string& id,const std::filesystem::path& root,std::string& error);
         std::optional<PhysicsRayHit> PhysicsRaycast(const std::array<float,3>& origin,const std::array<float,3>& direction,float distance,
             unsigned int mask=0xffffffffu,bool triggers=false,const std::string& ignore={}) const { return physicsWorld_.Raycast(origin,direction,distance,mask,triggers,ignore); }
         /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
@@ -104,6 +117,7 @@ namespace SceneRuntime
             std::vector<Engine::Object3D> objects;
             std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animated;
             std::map<std::string,AnimatorState> states;
+            std::map<std::string,std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lods;
         };
         struct AnimatorFrame
         {
@@ -134,6 +148,7 @@ namespace SceneRuntime
         mutable MeshTelemetry meshTelemetry_;
         std::filesystem::path assetsRoot_;
         std::function<bool(const SceneLayout&,std::string&)> prepareRuntime_;
+        std::function<bool(const SceneLayout&,const ScriptUiCommands&,std::string&)> prepareUi_;
         bool InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
             std::string* error);
         bool ReparentPlacement(ScenePlacement& placement, std::string parentId, std::string& error) const;
@@ -159,8 +174,11 @@ namespace SceneRuntime
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> materialQueue_;
         bool modelsReady_ = false;
         mutable Engine::ShadowMap shadow_;
+        mutable Engine::ShadowMap localShadow_;
+        mutable Engine::OcclusionRenderer occlusion_;
         SceneLayout layout_;
         Engine::ModelManager models_;
         std::vector<Engine::Object3D> objects_;
+        std::map<std::string,std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lodModels_;
     };
 }

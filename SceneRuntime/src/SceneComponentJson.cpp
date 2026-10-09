@@ -1,6 +1,8 @@
 #include "SceneComponentJson.h"
+#include "RagdollJson.h"
 #include "EnvironmentJson.h"
 #include "UiJson.h"
+#include "GenreJson.h"
 #include "AnimatorJson.h"
 #include <SceneRuntime/MaterialAsset.h>
 #include <SceneRuntime/SceneUi.h>
@@ -153,6 +155,21 @@ namespace
             if (placement.meshRenderer) throw std::runtime_error("Only one MeshRenderer is allowed");
             placement.meshRenderer=SceneRuntime::MeshRendererComponent{id,enabled,ReadModel(component)};
             if (component.contains("visibleWhen")) placement.meshRenderer->visibleWhen=component.at("visibleWhen").get<std::string>();
+            auto& mesh=*placement.meshRenderer;
+            if (component.contains("instancing")) mesh.instancing=component.at("instancing").get<bool>();
+            if (component.contains("occlusionCulling")) mesh.occlusionCulling=component.at("occlusionCulling").get<bool>();
+            if (component.contains("lods"))
+            {
+                const auto& levels=JsonArray(component.at("lods"));
+                if (levels.size()>8) throw std::runtime_error("Mesh LOD count exceeds eight");
+                float previous=0;
+                for (const auto& level : levels)
+                {
+                    const auto distance=JsonNumber(level.at("distance"));
+                    if (!std::isfinite(distance) || distance<=previous || distance>100000) throw std::runtime_error("LOD distances must increase within (0,100000]");
+                    mesh.lods.push_back({static_cast<float>(distance),ReadModel(level)}); previous=static_cast<float>(distance);
+                }
+            }
             SceneRuntime::UiState check;
             if (!check.Assign(placement.meshRenderer->visibleWhen)) throw std::runtime_error("Invalid mesh visibility expression");
         }
@@ -223,7 +240,7 @@ namespace
                 if (!value.is_number_integer() || JsonNumber(value)<0 || JsonNumber(value)>4294967295.0) throw std::runtime_error("Invalid collision layer or mask");
                 (std::string_view(key)=="layer" ? collider.layer : collider.mask)=value.get<unsigned int>();
             }
-            if (collider.shape!="box" && collider.shape!="sphere" && collider.shape!="capsule" && collider.shape!="mesh") throw std::runtime_error("Invalid collider shape");
+            if (collider.shape!="box" && collider.shape!="sphere" && collider.shape!="capsule" && collider.shape!="mesh" && collider.shape!="terrain" && collider.shape!="tilemap") throw std::runtime_error("Invalid collider shape");
             if (collider.layer>31 || !std::isfinite(collider.radius) || collider.radius<0.001f || collider.radius>100000 ||
                 !std::isfinite(collider.halfHeight) || collider.halfHeight<0 || collider.halfHeight>100000) throw std::runtime_error("Invalid collider radius, height or layer");
             if (component.contains("model") && !component.at("model").get<std::string>().empty()) collider.model=ReadModel(component);
@@ -234,6 +251,7 @@ namespace
             if (placement.rigidBody) throw std::runtime_error("Only one RigidBody is allowed");
             SceneRuntime::RigidBodyComponent body; body.id=id; body.enabled=enabled;
             body.motion=component.value("motion",std::string("dynamic")); body.continuous=component.value("continuous",true);
+            body.planar=component.value("planar",false);
             const std::pair<const char*,float*> fields[]={{"mass",&body.mass},{"friction",&body.friction},{"restitution",&body.restitution},
                 {"gravityScale",&body.gravityScale},{"linearDamping",&body.linearDamping},{"angularDamping",&body.angularDamping}};
             for (const auto& [key,target] : fields) if (component.contains(key)) *target=static_cast<float>(JsonNumber(component.at(key)));
@@ -248,6 +266,22 @@ namespace
                 !std::isfinite(body.gravityScale) || body.gravityScale<0 || body.gravityScale>10 || !std::isfinite(body.linearDamping) || body.linearDamping<0 || body.linearDamping>10 ||
                 !std::isfinite(body.angularDamping) || body.angularDamping<0 || body.angularDamping>10) throw std::runtime_error("Invalid rigid body properties");
             placement.rigidBody=body;
+        }
+        else if(type=="Ragdoll")
+        {
+            if(placement.ragdoll) throw std::runtime_error("Only one Ragdoll is allowed");
+            auto ragdoll=component.get<SceneRuntime::RagdollComponent>(); ragdoll.Validate(); placement.ragdoll=std::move(ragdoll);
+        }
+        else if(type=="Joint")
+        {
+            if(placement.joint) throw std::runtime_error("Only one Joint is allowed");
+            SceneRuntime::JointComponent joint; joint.id=id; joint.enabled=enabled;
+            joint.type=component.value("kind",std::string("fixed")); joint.target=component.value("target",std::string{});
+            joint.collideConnected=component.value("collideConnected",false);
+            joint.anchor=component.value("anchor",joint.anchor);joint.connectedAnchor=component.value("connectedAnchor",joint.connectedAnchor);
+            joint.axis=component.value("axis",joint.axis);joint.minimum=component.value("minimum",joint.minimum);joint.maximum=component.value("maximum",joint.maximum);
+            joint.swing=component.value("swing",joint.swing);joint.minDistance=component.value("minDistance",joint.minDistance);joint.maxDistance=component.value("maxDistance",joint.maxDistance);
+            joint.Validate();placement.joint=joint;
         }
         else if (type=="Script")
         {
@@ -313,7 +347,7 @@ namespace SceneRuntime
                 if (!legacyMaterial.empty() && !MaterialAsset::ValidPath(legacyMaterial)) throw std::runtime_error("Invalid legacy mesh material path");
             }
             if (!ReadBasicComponent(component,placement,type) && !ReadEnvironmentComponent(component,placement,type) &&
-                !ReadUiComponent(component,placement,type))
+                !(ReadGenreComponent(component,placement,type) || ReadUiComponent(component,placement,type)))
                 throw std::runtime_error("Unsupported component type: "+type);
         }
         if (!legacyMaterial.empty()) {
@@ -327,12 +361,23 @@ namespace SceneRuntime
     Json WriteSceneComponents(const ScenePlacement& placement)
     {
         Json components=Json::array();
+        if(placement.joint)
+        {
+            const auto& joint=*placement.joint; joint.Validate(); auto object=Component(joint.id,"Joint",joint.enabled);
+            object["kind"]=joint.type;object["target"]=joint.target;object["collideConnected"]=joint.collideConnected;
+            object["anchor"]=joint.anchor;object["connectedAnchor"]=joint.connectedAnchor;object["axis"]=joint.axis;
+            object["minimum"]=joint.minimum;object["maximum"]=joint.maximum;object["swing"]=joint.swing;
+            object["minDistance"]=joint.minDistance;object["maxDistance"]=joint.maxDistance;components.push_back(std::move(object));
+        }
         if (placement.meshRenderer)
         {
             const auto& mesh=*placement.meshRenderer;
             auto object=Component(mesh.id,"MeshRenderer",mesh.enabled);
             object["model"]=mesh.model;
             object["visibleWhen"]=mesh.visibleWhen;
+            object["instancing"]=mesh.instancing; object["occlusionCulling"]=mesh.occlusionCulling;
+            object["lods"]=Json::array();
+            for (const auto& lod : mesh.lods) object["lods"].push_back({{"distance",lod.distance},{"model",lod.model}});
             components.push_back(object);
         }
         if (placement.material)
@@ -387,6 +432,7 @@ namespace SceneRuntime
             const auto& body=*placement.rigidBody;
             auto object=Component(body.id,"RigidBody",body.enabled);
             object["motion"]=body.motion; object["continuous"]=body.continuous;
+            object["planar"]=body.planar;
             object["mass"]=body.mass; object["friction"]=body.friction; object["restitution"]=body.restitution;
             object["gravityScale"]=body.gravityScale; object["linearDamping"]=body.linearDamping; object["angularDamping"]=body.angularDamping;
             object["velocity"]=body.velocity; object["angularVelocity"]=body.angularVelocity;
@@ -403,8 +449,10 @@ namespace SceneRuntime
             components.push_back(object);
         }
         if (placement.animator) components.push_back(WriteAnimator(*placement.animator));
+        if(placement.ragdoll) {placement.ragdoll->Validate(); Json object=*placement.ragdoll; object["type"]="Ragdoll"; components.push_back(std::move(object));}
         WriteEnvironmentComponents(components,placement);
         WriteUiComponents(components,placement);
+        WriteGenreComponents(components,placement);
         if (placement.animation) components.push_back(WriteAnimation(*placement.animation));
         return components;
     }

@@ -8,11 +8,14 @@
 namespace SceneRuntime
 {
     enum class ScriptPhase { Update,FixedUpdate,LateUpdate };
+    struct SceneCommand { std::string scene; bool additive=false,unload=false; };
+    struct ScriptUiCommands {std::map<std::string,float> values; std::map<std::string,std::string> texts;};
     struct ScriptEvent
     {
         std::string name,sender,target;
         float value=0;
         std::optional<AnimatorEventOccurrence> animation;
+        std::string text;
     };
     // Commands are applied after every callback; object pointers never survive a frame.
     class ScriptScene final
@@ -39,6 +42,14 @@ namespace SceneRuntime
         void SetComponents(const std::string& id,const ScenePlacement& components);
         /// <summary>宛先付きイベントを次のScript更新へ予約します。</summary>
         void Emit(ScriptEvent event);
+        /// <summary>成功したフレームでUIの数値bindingを設定します。</summary>
+        void SetUiValue(const std::string& key,float value);
+        /// <summary>成功したフレームでUIの文字列bindingを設定します。</summary>
+        void SetUiText(const std::string& key,std::string text);
+        /// <summary>成功した更新後に保存シーンのロードを予約します。</summary>
+        void LoadScene(std::string scene,bool additive=false) { sceneCommands.push_back({std::move(scene),additive,false}); }
+        /// <summary>成功した更新後にロード済みシーンのアンロードを予約します。</summary>
+        void UnloadScene(std::string scene) { sceneCommands.push_back({std::move(scene),false,true}); }
         /// <summary>動的剛体へ適用するインパルスを次の物理更新へ予約します。</summary>
         void AddImpulse(const std::string& id,const std::array<float,3>& impulse);
         /// <summary>個体のAnimatorパラメーター変更を予約します。骨格の時計や保存データを作り直しません。</summary>
@@ -56,6 +67,9 @@ namespace SceneRuntime
         /// <summary>予約した構造変更を検証し、候補シーンへ反映します。</summary>
         void Commit();
         std::vector<ScriptEvent> events;
+        std::vector<SceneCommand> sceneCommands;
+        ScriptUiCommands uiCommands;
+        std::string currentOwner;
         std::map<std::string,std::array<float,3>> impulses;
         std::map<std::string,std::map<std::string,float>> animatorParameters;
         std::map<std::string,std::map<std::string,std::optional<AnimatorIkTarget>>> ikTargets;
@@ -75,7 +89,7 @@ namespace SceneRuntime
         ScriptContext(ScenePlacement& owner,const std::map<std::string,float>& values,std::map<std::string,float>& instanceState,
             double elapsed=0,const std::map<std::string,float>* actionValues=nullptr,const std::map<std::string,bool>* actionPressed=nullptr,
             ScriptScene* sceneApi=nullptr,const ScriptEvent* incomingEvent=nullptr) :
-            object(owner),parameters(values),state(instanceState),seconds(elapsed),input(actionValues),pressed(actionPressed),scene(sceneApi),event(incomingEvent) {}
+            object(owner),parameters(values),state(instanceState),seconds(elapsed),input(actionValues),pressed(actionPressed),scene(sceneApi),event(incomingEvent) {if(scene) scene->currentOwner=owner.id;}
         ScenePlacement& object;
         const std::map<std::string,float>& parameters;
         std::map<std::string,float>& state;
@@ -122,6 +136,16 @@ namespace SceneRuntime
         /// <summary>指定した更新段階を持つ有効な処理があるか調べます。</summary>
         static bool HasPhase(const SceneLayout& layout,ScriptPhase phase);
         void Stop(SceneLayout& layout) noexcept;
+        /// <summary>取り除かれた個体の終了処理を旧配置で実行し、残る個体の実行状態を維持します。</summary>
+        void StopRemoved(SceneLayout& previous,const SceneLayout& next) noexcept;
+        /// <summary>成功したフレームで予約されたシーン操作を取得します。</summary>
+        std::vector<SceneCommand> TakeSceneCommands() { auto commands=std::move(sceneCommands_); sceneCommands_.clear(); return commands; }
+        /// <summary>成功したFixed・Update・LateUpdateが予約したUI変更を一度だけ取得します。</summary>
+        ScriptUiCommands TakeUiCommands() {auto commands=std::move(uiCommands_); uiCommands_={}; return commands;}
+        /// <summary>失敗フレームの未適用UI変更を破棄します。</summary>
+        void DiscardUiCommands() {uiCommands_={};}
+        /// <summary>未確定フレームのUI変更をGPU候補準備へ参照します。</summary>
+        const ScriptUiCommands& UiCommands() const {return uiCommands_;}
         void QueueEvent(ScriptEvent event);
         const std::map<std::string,std::array<float,3>>& Impulses() const { return impulses_; }
         /// <summary>成功した更新で予約された個体ごとのAnimatorパラメーターを取得します。</summary>
@@ -136,6 +160,8 @@ namespace SceneRuntime
         std::map<std::pair<std::string,std::string>,Instance> instances_;
         size_t nextId_=1;
         std::vector<ScriptEvent> events_;
+        std::vector<SceneCommand> sceneCommands_;
+        ScriptUiCommands uiCommands_;
         std::map<std::string,std::array<float,3>> impulses_;
         std::map<std::string,std::map<std::string,float>> animatorParameters_;
         std::map<std::string,std::map<std::string,std::optional<AnimatorIkTarget>>> ikTargets_;

@@ -1,4 +1,6 @@
 #include "UiJson.h"
+#include "AudioJson.h"
+#include "UiControlJson.h"
 #include <SceneRuntime/SceneUi.h>
 #include <cmath>
 #include <algorithm>
@@ -157,9 +159,9 @@ void ReadButton(const Json& o,SceneRuntime::ScenePlacement& p) {
     c.sound=String(o,"sound");
     c.hoverColor=Vector<4>(o,"hoverColor",0.0f,1.0f);
     c.pressedColor=Vector<4>(o,"pressedColor",0.0f,1.0f);
-    const std::array<std::string_view,8> actions{"click","show","hide","toggle","playAudio","loadScene","quit","setState"};
+    const std::array<std::string_view,10> actions{"click","show","hide","toggle","playAudio","loadScene","loadSceneAdditive","unloadScene","quit","setState"};
     if(std::find(actions.begin(),actions.end(),c.action)==actions.end()) throw std::runtime_error("Unsupported button action");
-    if(c.action=="loadScene" && (!c.target.starts_with("Assets/Scenes/") || std::filesystem::path(c.target).extension()!=".json" || std::filesystem::path(c.target).has_root_name() || c.target.find("..")!=std::string::npos)) throw std::runtime_error("Scene target must be relative to Assets/Scenes");
+    if((c.action=="loadScene" || c.action=="loadSceneAdditive" || c.action=="unloadScene") && (!c.target.starts_with("Assets/Scenes/") || std::filesystem::path(c.target).extension()!=".json" || std::filesystem::path(c.target).has_root_name() || c.target.find("..")!=std::string::npos)) throw std::runtime_error("Scene target must be relative to Assets/Scenes");
     SceneRuntime::UiState check; if(c.action=="setState" && !check.Assign(c.target)) throw std::runtime_error("Invalid state assignment");
     p.button=std::move(c);
 }
@@ -175,44 +177,26 @@ void WriteButton(Json& a,const SceneRuntime::ButtonComponent& c) {
     Put(o,"pressedColor",c.pressedColor);
     a.push_back(o);
 }
-void ReadAudioSource(const Json& o,SceneRuntime::ScenePlacement& p) {
-    if(p.audioSource) throw std::runtime_error("Duplicate AudioSource");
-    SceneRuntime::AudioSourceComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
-    c.clip=Path(o,"clip");
-    c.volume=Number(o,"volume",0.0f,1.0f);
-    c.loop=o.at("loop").get<bool>();
-    c.playOnAwake=o.at("playOnAwake").get<bool>();
-    c.cue=String(o,"cue");
-    c.volumeBinding=String(o,"volumeBinding");
-    p.audioSource=std::move(c);
-}
-void WriteAudioSource(Json& a,const SceneRuntime::AudioSourceComponent& c) {
-    Json o; Put(o,"id",c.id); Put(o,"type",std::string("AudioSource")); Put(o,"enabled",c.enabled);
-    Put(o,"clip",c.clip);
-    Put(o,"volume",c.volume);
-    Put(o,"loop",c.loop);
-    Put(o,"playOnAwake",c.playOnAwake);
-    Put(o,"cue",c.cue);
-    Put(o,"volumeBinding",c.volumeBinding);
-    a.push_back(o);
-}
+
 }
 namespace SceneRuntime {
 bool ReadUiComponent(const Json& o,ScenePlacement& p,const std::string& type) {
+    if(ReadUiControl(o,p,type)) return true;
     if(type=="Canvas") ReadCanvas(o,p);
     else if(type=="RectTransform") ReadRectTransform(o,p);
     else if(type=="Image") ReadImage(o,p);
     else if(type=="Text") ReadText(o,p);
     else if(type=="Button") ReadButton(o,p);
-    else if(type=="AudioSource") ReadAudioSource(o,p);
+    else if(ReadAudioComponent(o,p,type)) {}
     else return false; return true;
 }
 void WriteUiComponents(Json& a,const ScenePlacement& p) {
+    WriteUiControls(a,p);
     if(p.canvas) WriteCanvas(a,*p.canvas);
     if(p.rectTransform) WriteRectTransform(a,*p.rectTransform);
     if(p.image) WriteImage(a,*p.image);
     if(p.text) WriteText(a,*p.text);
     if(p.button) WriteButton(a,*p.button);
-    if(p.audioSource) WriteAudioSource(a,*p.audioSource);
+    WriteAudioComponents(a,p);
 }
 }

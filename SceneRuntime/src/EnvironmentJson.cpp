@@ -83,6 +83,7 @@ namespace
         auto light=ReadBase(object,placement.pointLight);
         light.color=Vector<3>(object,"color",0,1); light.intensity=Number(object,"intensity",0,10000);
         light.range=Number(object,"range",.01f,100000); placement.pointLight=std::move(light);
+        if (object.contains("shadowsEnabled")) placement.pointLight->shadowsEnabled=object.at("shadowsEnabled").get<bool>();
     }
     void ReadSpotLight(const Json& object, SceneRuntime::ScenePlacement& placement)
     {
@@ -92,6 +93,7 @@ namespace
         light.innerAngle=Number(object,"innerAngle",0,178); light.outerAngle=Number(object,"outerAngle",1,179);
         if (light.innerAngle>=light.outerAngle) throw std::runtime_error("Spot inner angle must be smaller than outer angle");
         placement.spotLight=std::move(light);
+        if (object.contains("shadowsEnabled")) placement.spotLight->shadowsEnabled=object.at("shadowsEnabled").get<bool>();
     }
     void ReadSky(const Json& object, SceneRuntime::ScenePlacement& placement)
     {
@@ -202,12 +204,14 @@ namespace SceneRuntime
         if (placement.pointLight)
         {
             const auto& light=*placement.pointLight; auto object=WriteBase(light,"PointLight");
+            object["shadowsEnabled"]=light.shadowsEnabled;
             Put(object,"color",light.color); Put(object,"intensity",light.intensity); Put(object,"range",light.range);
             array.push_back(object);
         }
         if (placement.spotLight)
         {
             const auto& light=*placement.spotLight; auto object=WriteBase(light,"SpotLight");
+            object["shadowsEnabled"]=light.shadowsEnabled;
             Put(object,"color",light.color); Put(object,"intensity",light.intensity); Put(object,"range",light.range);
             Put(object,"innerAngle",light.innerAngle); Put(object,"outerAngle",light.outerAngle); array.push_back(object);
         }

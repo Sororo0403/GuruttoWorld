@@ -4,10 +4,16 @@
 #include <winrt/base.h>
 #include <algorithm>
 #include <cstring>
+#include <cmath>
 #include <stdexcept>
 #include <unordered_set>
 #pragma comment(lib,"gdi32.lib")
 namespace {
+void SynchronizeUiResources(const Engine::DirectX12Renderer& renderer) {
+    // Complete earlier rendering on this queue before releasing replaced or unused sprites.
+    Engine::Texture2D fenceTexture;
+    if(!fenceTexture.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),{})) throw std::runtime_error("Cannot synchronize UI resource release");
+}
 std::shared_ptr<Engine::Texture2D> TextTexture(const Engine::DirectX12Renderer& renderer,const SceneRuntime::TextComponent& text,const std::array<float,2>& size) {
     const UINT width=static_cast<UINT>(std::clamp(size[0],1.0f,4096.0f)),height=static_cast<UINT>(std::clamp(size[1],1.0f,4096.0f));
     HDC dc=CreateCompatibleDC(nullptr);
@@ -39,6 +45,36 @@ std::string Signature(const SceneRuntime::ScenePlacement& p,bool text) {
 }
 }
 namespace SceneRuntime {
+namespace {
+ScenePlacement ControlVisual(const ScenePlacement& source,const UiState& state) {
+    auto p=source;
+    if((p.slider && p.slider->enabled) || (p.toggle && p.toggle->enabled) || (p.inputField && p.inputField->enabled)) {
+        if(!p.image) {p.image.emplace(); p.image->color={.16f,.18f,.22f,1};}
+    }
+    if(p.inputField && p.inputField->enabled) {
+        if(!p.text) {p.text.emplace(); p.text->fontSize=24;}
+        p.text->text=SceneUi::InputText(p,state);
+        if(state.focused==p.id) p.image->color={.2f,.25f,.35f,1};
+    }
+    if(p.toggle && p.toggle->enabled) {
+        const auto& c=*p.toggle;
+        if(state.Value(c.binding.empty()?p.id:c.binding,c.value?1.0f:0.0f)!=0) p.image->color=c.checkedColor;
+    }
+    return p;
+}
+void SetClip(Engine::SpriteDrawParameters& draw,const UiRect& rect) {
+    std::copy(rect.clip.begin(),rect.clip.end(),draw.pixelConstants.begin()+16);
+}
+UiRect SliderFill(const ScenePlacement& p,const UiRect& rect,const UiState& state) {
+    auto filled=rect; const auto& c=*p.slider;
+    const float ratio=std::clamp((state.Value(c.binding.empty()?p.id:c.binding,c.value)-c.minimum)/(c.maximum-c.minimum),0.0f,1.0f);
+    const size_t axis=c.vertical?1:0; filled.size[axis]*=ratio;
+    const float delta=(filled.size[axis]-rect.size[axis])*.5f;
+    filled.position[0]+=(axis==0?std::cos(rect.rotation):-std::sin(rect.rotation))*delta-delta*(axis==0?1:0);
+    filled.position[1]+=(axis==0?std::sin(rect.rotation):std::cos(rect.rotation))*delta-delta*(axis==1?1:0);
+    return filled;
+}
+}
 std::string SceneUi::Shortcut(const SceneLayout& layout,const std::string& key,unsigned int width,unsigned int height,const UiState& state)
 {
     if(key.empty()) return {};
@@ -61,12 +97,15 @@ void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::f
         }
     };
     find(resources_); find(pending);
-    if(shared) {pending.emplace(key,Resource{signature,std::move(shared),std::move(sharedScene)}); return;}
+    if(shared) {
+        if(old!=resources_.end()) SynchronizeUiResources(renderer);
+        pending.emplace(key,Resource{signature,std::move(shared),std::move(sharedScene)}); return;
+    }
     auto texture=text?TextTexture(renderer,*p.text,p.rectTransform?p.rectTransform->size:std::array<float,2>{200,60}):std::make_shared<Engine::Texture2D>();
     if(!text && !texture->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),p.image->texture.empty()?std::filesystem::path{}:root/p.image->texture))
         throw std::runtime_error("Cannot load UI image: "+signature);
     auto sprite=std::make_shared<Engine::SpriteRenderer>();
-    if(!sprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/Sprite.hlsl"))
+    if(!sprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/Ui.hlsl"))
         throw std::runtime_error("Cannot create UI renderer");
     auto sceneSprite=std::make_shared<Engine::SpriteRenderer>();
     if(!sceneSprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/SceneUi.hlsl",true))
@@ -77,21 +116,21 @@ void SceneUi::Prune(const Engine::DirectX12Renderer& renderer,const SceneLayout&
 {
     std::unordered_set<std::string> keys;
     for(const auto& p:layout.objects) {
-        if(p.image) keys.insert(p.id+"/image");
-        if(p.text) keys.insert(p.id+"/text");
+        if(p.image || p.slider || p.toggle || p.inputField) keys.insert(p.id+"/image");
+        if(p.text || p.inputField) keys.insert(p.id+"/text");
     }
     if(std::none_of(resources_.begin(),resources_.end(),[&](const auto& item){return !keys.contains(item.first);})) return;
-    // The upload fence completes earlier rendering on this queue before releasing unused sprites.
-    Engine::Texture2D fenceTexture;
-    if(!fenceTexture.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),{})) throw std::runtime_error("Cannot synchronize UI resource release");
+    SynchronizeUiResources(renderer);
     std::erase_if(resources_,[&](const auto& item){return !keys.contains(item.first);});
 }
 bool SceneUi::Prepare(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,
-    const SceneLayout& layout,std::string& error)
+    const SceneLayout& layout,std::string& error,const UiState& state)
 {
     try {
         std::map<std::string,Resource> pending;
-        for(const auto& p:layout.objects) {
+        for(const auto& source:layout.objects) {
+            if(!source.image && !source.text && !source.slider && !source.toggle && !source.inputField) continue;
+            const auto p=ControlVisual(source,state);
             if(p.image) PreparePart(renderer,root,p,false,pending);
             if(p.text) PreparePart(renderer,root,p,true,pending);
         }
@@ -114,17 +153,23 @@ void SceneUi::DrawPart(ID3D12GraphicsCommandList* commands,const ScenePlacement&
         else if(state.hovered==p.id) draw.color=p.button->hoverColor;
     }
     draw.color[3]*=rect.opacity;
+    SetClip(draw,rect);
     resource->second.sprite->Draw(commands,width,height,draw);
 }
 void SceneUi::Draw(ID3D12GraphicsCommandList* commands,const SceneLayout& layout,
     unsigned int width,unsigned int height,const UiState& state) const
 {
     if(!width || !height) return;
-    for(const auto& p:layout.objects) {
-        if(!p.rectTransform) continue;
-        const auto rect=Resolve(layout,p,width,height,state);
+    for(const auto& source:layout.objects) {
+        if(!source.rectTransform) continue;
+        const auto p=ControlVisual(source,state);
+        const auto rect=Resolve(layout,source,width,height,state);
         if(!rect.visible) continue;
         if(p.image && p.image->enabled) DrawPart(commands,p,rect,width,height,state,false);
+        if(p.slider && p.slider->enabled && p.image) {
+            auto fill=p; fill.image->color=p.slider->fillColor;
+            DrawPart(commands,fill,SliderFill(p,rect,state),width,height,state,false);
+        }
         if(p.text && p.text->enabled) DrawPart(commands,p,rect,width,height,state,true);
     }
 }
@@ -132,12 +177,13 @@ void SceneUi::DrawScene(ID3D12GraphicsCommandList* commands,const SceneWorld& wo
     const Engine::Camera& camera,const UiState& state) const
 {
     const auto& layout=world.Layout();
-    for(const auto& p:layout.objects) {
-        if(!p.rectTransform) continue;
+    for(const auto& source:layout.objects) {
+        if(!source.rectTransform) continue;
+        const auto p=ControlVisual(source,state);
         const auto* root=SceneCanvas::Root(layout,p);
         const auto matrix=SceneCanvas::Matrix(world,p);
         if(!root || !matrix) continue;
-        const auto rect=Resolve(layout,p,static_cast<unsigned int>(root->canvas->referenceSize[0]),
+        const auto rect=Resolve(layout,source,static_cast<unsigned int>(root->canvas->referenceSize[0]),
             static_cast<unsigned int>(root->canvas->referenceSize[1]),state);
         if(!rect.visible) continue;
         DirectX::XMFLOAT4X4 projection;
@@ -152,7 +198,13 @@ void SceneUi::DrawScene(ID3D12GraphicsCommandList* commands,const SceneWorld& wo
             draw.color[3]*=rect.opacity;
             draw.uvRect=text?std::array<float,4>{0,0,1,1}:p.image->uv;
             std::memcpy(draw.pixelConstants.data(),&projection,sizeof(projection));
+            SetClip(draw,rect);
             resource->second.sceneSprite->Draw(commands,1,1,draw);
+            if(!text && p.slider && p.slider->enabled) {
+                const auto filled=SliderFill(p,rect,state);
+                draw.position=filled.position; draw.size=filled.size; draw.color=p.slider->fillColor; draw.color[3]*=rect.opacity;
+                resource->second.sceneSprite->Draw(commands,1,1,draw);
+            }
         }
     }
 }

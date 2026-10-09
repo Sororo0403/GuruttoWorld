@@ -5,6 +5,8 @@
 #include <map>
 #include <optional>
 #include <SceneRuntime/MenuConfiguration.h>
+#include <SceneRuntime/UiControls.h>
+#include <SceneRuntime/AudioComponents.h>
 namespace SceneRuntime
 {
     struct CanvasComponent
@@ -47,12 +49,5 @@ namespace SceneRuntime
         std::array<float,4> hoverColor{1,0.85f,0.8f,1}, pressedColor{0.7f,0.7f,0.7f,1};
         bool operator==(const ButtonComponent&) const = default;
     };
-    struct AudioSourceComponent
-    {
-        std::string id="audio"; bool enabled=true;
-        std::filesystem::path clip;
-        float volume=1; bool loop=false, playOnAwake=false;
-        std::string cue, volumeBinding;
-        bool operator==(const AudioSourceComponent&) const = default;
-    };
+
 }

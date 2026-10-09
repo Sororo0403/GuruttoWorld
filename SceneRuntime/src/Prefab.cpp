@@ -32,10 +32,13 @@ namespace
     {
         const auto replace=[&](std::string& id) { const auto found=ids.find(id); if (found!=ids.end()) id=found->second; };
         replace(object.parentId);
+        if(object.joint) replace(object.joint->target);
         for (auto& script:object.scripts) script.Remap(ids);
+        if(object.navAgent) object.navAgent->Remap(ids);
+        if(object.ragdoll) object.ragdoll->Remap(ids);
         if (object.button)
         {
-            if (object.button->action!="loadScene" && object.button->action!="setState") replace(object.button->target);
+            if (object.button->action!="loadScene" && object.button->action!="loadSceneAdditive" && object.button->action!="unloadScene" && object.button->action!="setState") replace(object.button->target);
             replace(object.button->sound);
         }
     }

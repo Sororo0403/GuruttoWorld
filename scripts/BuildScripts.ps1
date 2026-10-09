@@ -6,6 +6,7 @@ param(
 )
 
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'FileHash.ps1')
 if ($RunId -notmatch '^[a-zA-Z0-9_-]{1,64}$') { throw 'Invalid script build run ID.' }
 $repoRoot=Split-Path $PSScriptRoot -Parent
 if (!$Content) { $Content=Join-Path $repoRoot 'Content' }
@@ -21,7 +22,7 @@ Start-Transcript -Path $logPath -Force | Out-Null
 function Get-SourceHashes {
     param([object[]]$Files)
     $hashes=[ordered]@{}
-    foreach ($sourceFile in $Files) { $hashes[$sourceFile.FullName]=(Get-FileHash -LiteralPath $sourceFile.FullName -Algorithm SHA256).Hash }
+    foreach ($sourceFile in $Files) { $hashes[$sourceFile.FullName]=Get-Wp1FileHash -LiteralPath $sourceFile.FullName }
     return $hashes
 }
 function Escape-Xml([string]$Value) { return [Security.SecurityElement]::Escape($Value) }

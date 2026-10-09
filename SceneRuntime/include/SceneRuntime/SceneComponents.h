@@ -9,12 +9,20 @@
 namespace SceneRuntime
 {
     // IDs are stable within their owning object. Transform is mandatory and has reserved ID "transform".
+    struct MeshLod
+    {
+        float distance=20;
+        std::filesystem::path model;
+        bool operator==(const MeshLod&) const = default;
+    };
     struct MeshRendererComponent
     {
         std::string id="mesh";
         bool enabled=true;
         std::filesystem::path model;
         std::string visibleWhen;
+        std::vector<MeshLod> lods;
+        bool instancing=false,occlusionCulling=false;
         bool operator==(const MeshRendererComponent&) const = default;
     };
     struct MaterialComponent
@@ -54,6 +62,7 @@ namespace SceneRuntime
     {
         std::string id="rigidbody",motion="dynamic";
         bool enabled=true,continuous=true;
+        bool planar=false;
         float mass=1,friction=0.5f,restitution=0,gravityScale=1,linearDamping=0.05f,angularDamping=0.05f;
         std::array<float,3> velocity{},angularVelocity{};
         bool operator==(const RigidBodyComponent&) const = default;

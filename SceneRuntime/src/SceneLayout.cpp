@@ -91,6 +91,7 @@ namespace SceneRuntime
             if (version!=2.0 && version!=3.0 && version!=4.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
+            if(document.contains("sceneObjects")) layout.sceneObjects=document.at("sceneObjects").get<std::map<std::string,std::vector<std::string>>>();
             if (document.contains("assetReferences")) layout.assetReferences=document.at("assetReferences").get<std::map<std::string,std::string>>();
             for (const auto& [path,id] : layout.assetReferences) if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id)) throw std::runtime_error("Invalid asset reference metadata");
             if (version==4.0) layout.settings=ReadSceneSettings(JsonObject(document.at("settings")));
@@ -106,6 +107,7 @@ namespace SceneRuntime
                 try
                 {
                     placement.name = object.at("name").get<std::string>();
+                    if (object.contains("persistent")) placement.persistent=object.at("persistent").get<bool>();
                     if (object.contains("parent")) placement.parentId = object.at("parent").get<std::string>();
                     ReadSceneComponents(object,placement,version==2.0);
                     if (object.contains("prefab"))
@@ -129,7 +131,11 @@ namespace SceneRuntime
                 }
                 layout.objects.push_back(std::move(placement));
             }
+            for(const auto& p:layout.objects) {
+                if((p.terrain&&p.tilemap)||((p.terrain||p.tilemap)&&p.meshRenderer)) throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
+            }
             ValidateParents(layout.objects);
+            for(const auto& object:layout.objects) if(object.ragdoll && !object.animator) throw std::runtime_error("Ragdoll requires an Animator");
             ValidateCamera(layout);
             size_t menus=0;
             for(const auto& object:layout.objects) if(object.canvas && object.canvas->enabled && object.canvas->menu) ++menus;
@@ -157,13 +163,14 @@ namespace SceneRuntime
             const auto& p=objects[i];
             Json object={{"id",p.id},{"name",p.name},{"parent",p.parentId},
                 {"components",WriteSceneComponents(p)},{"position",p.position},{"rotation",p.rotation},{"scale",p.scale}};
+            if (p.persistent) object["persistent"]=true;
             if (p.prefab) object["prefab"]={{"asset",p.prefab->asset},{"source",p.prefab->sourceId},{"root",p.prefab->rootId},{"baseline",p.prefab->baseline}};
             for(const auto& vector:{p.position,p.rotation,p.scale})
                 if(std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);}))
                     throw std::runtime_error("Cannot save nonfinite transform");
             json+="    "+object.dump()+(i+1==objects.size()?"\n":",\n");
         }
-        json+="  ],\n  \"assetReferences\": "+Json(assetReferences).dump()+"\n}\n";
+        json+="  ],\n  \"assetReferences\": "+Json(assetReferences).dump()+",\n  \"sceneObjects\": "+Json(sceneObjects).dump()+"\n}\n";
         static_cast<void>(Parse(json));
         return json;
     }

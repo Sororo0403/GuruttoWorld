@@ -4,6 +4,8 @@
 #include <SceneRuntime/SceneUi.h>
 #include <SceneRuntime/Prefab.h>
 #include <SceneRuntime/MaterialAsset.h>
+#include <SceneRuntime/GenreGeometry.h>
+#include <SceneRuntime/Navigation.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Core/Log.h>
 #include <format>
@@ -15,9 +17,20 @@
 #include <unordered_map>
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
+#include "SceneRenderPlan.h"
 
 namespace
 {
+    void PrepareProcedural(Engine::ModelManager& models,Engine::Object3D& object,const SceneRuntime::ScenePlacement& p,const std::filesystem::path& root,ID3D12Device* device,ID3D12CommandQueue* queue)
+    {
+        if(!p.terrain&&!p.tilemap) return;
+        auto model=models.Procedural(p.id,root.generic_string()+SceneRuntime::GenreGeometry::Signature(p),[&] {
+            return std::vector<Engine::MeshData>{p.terrain?SceneRuntime::GenreGeometry::Terrain(*p.terrain,root):SceneRuntime::GenreGeometry::Tilemap(*p.tilemap,root)};
+        });
+        object.SetModel(std::move(model));
+        if(p.tilemap) {auto material=std::make_shared<Engine::Material>();material->transparent=true;object.SetMaterial(std::move(material));}
+        if(!p.Material().empty()) object.SetMaterial(SceneRuntime::MaterialAsset::Load(root,p.Material()).Prepare(device,queue,root));
+    }
     constexpr double FixedStepSeconds=1.0/60.0;
     Engine::MaterialSlots PrepareMaterialSlots(const SceneRuntime::ScenePlacement& placement,size_t meshes,
         ID3D12Device* device,ID3D12CommandQueue* queue,const std::filesystem::path& root,
@@ -119,7 +132,7 @@ namespace SceneRuntime
     {
         materialDevice_=renderer.GetDevice(); materialQueue_=renderer.GetCommandQueue();
         modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath) &&
-            shadow_.Initialize(renderer.GetDevice(),shaderPath);
+            shadow_.Initialize(renderer.GetDevice(),shaderPath) && localShadow_.Initialize(renderer.GetDevice(),shaderPath,true) && occlusion_.Initialize(renderer.GetDevice(),shaderPath);
         if (!modelsReady_)
         {
             if (diagnostic) *diagnostic = "Scene renderer could not be initialized. Check shaders and restart.";
@@ -149,8 +162,10 @@ namespace SceneRuntime
         SceneWorld candidate;
         if (!candidate.InitializeModels(renderer,shaderPath,&error) || !candidate.ReplaceLayout(layout_,assetsRoot,error)) return false;
         models_.Swap(candidate.models_);
-        layout_=std::move(candidate.layout_); objects_.swap(candidate.objects_); animatedModels_.swap(candidate.animatedModels_); animatorStates_.swap(candidate.animatorStates_);
+        layout_=std::move(candidate.layout_); objects_.swap(candidate.objects_); animatedModels_.swap(candidate.animatedModels_); animatorStates_.swap(candidate.animatorStates_); lodModels_.swap(candidate.lodModels_);
         std::swap(shadow_,candidate.shadow_);
+        std::swap(localShadow_,candidate.localShadow_);
+        std::swap(occlusion_,candidate.occlusion_);
         error.clear();
         return true;
     }
@@ -160,6 +175,7 @@ namespace SceneRuntime
         PreparedLayout prepared;
         if (!PrepareLayout(std::move(layout),assetsRoot,error,preserveExecution,prepared)) return false;
         if (preserveExecution && prepareRuntime_ && !prepareRuntime_(prepared.layout,error)) return false;
+        if(preserveExecution) scripts_.StopRemoved(layout_,prepared.layout);
         CommitLayout(std::move(prepared),preserveExecution); error.clear(); return true;
     }
     bool SceneWorld::PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result,const PreparedLayout* previous)
@@ -183,6 +199,7 @@ namespace SceneRuntime
             std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>> materials;
             std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animated;
             std::map<std::string,AnimatorState> animatorStates;
+            std::map<std::string,std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lods;
             for (const auto& placement : layout.objects)
             {
                 Engine::Object3D object;
@@ -192,10 +209,18 @@ namespace SceneRuntime
                     const auto model = models_.Load(assetsRoot / placement.Model());
                     if (!model) throw std::runtime_error("Model could not be loaded: " + placement.id);
                     object.SetModel(model);
+                    for (const auto& lod : placement.meshRenderer->lods)
+                    {
+                        if (placement.animator) throw std::runtime_error("Animated meshes cannot use static LOD models");
+                        auto loaded=models_.Load(assetsRoot/lod.model);
+                        if (!loaded || loaded->Rig()) throw std::runtime_error("Static LOD model could not be loaded: "+placement.id);
+                        lods[placement.id].push_back(std::move(loaded));
+                    }
                     if (placement.animator)
                     {
                         if (!model->Rig()) throw std::runtime_error("Animator needs a glTF or GLB model");
                         Animator::Validate(*placement.animator,model->Rig().get());
+                        Ragdoll::Validate(layout,placement,*model->Rig());
                         const auto old=std::find_if(previousLayout.objects.begin(),previousLayout.objects.end(),[&](const auto& item) { return item.id==placement.id; });
                         const bool reuse=preserveExecution && old!=previousLayout.objects.end() && old->meshRenderer==placement.meshRenderer && old->animator==placement.animator && previousModels.contains(placement.id);
                         auto instance=reuse ? previousModels.at(placement.id) : model->AnimatedCopy(materialDevice_.Get(),materialQueue_.Get());
@@ -212,6 +237,7 @@ namespace SceneRuntime
                     }
                     object.SetMaterialSlots(PrepareMaterialSlots(placement,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot,materials));
                 }
+                PrepareProcedural(models_,object,placement,assetsRoot,materialDevice_.Get(),materialQueue_.Get());
                 if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
                     throw std::runtime_error("Invalid transform: " + placement.id);
                 if (!object.SetWorldMatrix(matrices[objects.size()])) throw std::runtime_error("Invalid world matrix");
@@ -219,6 +245,7 @@ namespace SceneRuntime
             }
             PreparedLayout prepared; prepared.assetsRoot=assetsRoot; prepared.layout=std::move(layout);
             prepared.animated=std::move(animated); prepared.states=std::move(animatorStates); prepared.objects=std::move(objects);
+            prepared.lods=std::move(lods);
             result=std::move(prepared);
             error.clear();
             return true;
@@ -237,6 +264,7 @@ namespace SceneRuntime
         if (!preserveExecution) { physics_.clear(); physicsWorld_.Reset(); fixedSeconds_=0; fixedJump_=false; fixedPressed_.clear(); }
         else std::erase_if(physics_,[&](const auto& pair) { return std::none_of(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==pair.first; }); });
         animatedModels_=std::move(prepared.animated); animatorStates_=std::move(prepared.states); objects_=std::move(prepared.objects);
+        lodModels_=std::move(prepared.lods);
     }
 
     bool SceneWorld::PrepareAnimators(const SceneLayout& layout,double seconds,const std::map<std::string,std::shared_ptr<Engine::ModelRenderer>>& models,
@@ -266,8 +294,10 @@ namespace SceneRuntime
                 parameters["speed"]=std::hypot(parameters["moveX"],parameters["moveY"]);
                 const auto body=physics_.find(placement.id); parameters["grounded"]=body==physics_.end() ? 1.0f : (body->second.grounded ? 1.0f : 0.0f);
                 for (const auto& [name,pressed] : inputPressed_) parameters["pressed:"+name]=pressed ? 1.0f : 0.0f;
-                const auto pose=Animator::Advance(*placement.animator,frame.state,*frame.model->Rig(),seconds,parameters,&matrices[index]);
-                frame.applyPose=placement.animator->enabled;
+                const bool ragdoll=placement.ragdoll && placement.ragdoll->enabled && placement.ragdoll->active && !placement.ragdoll->bones.empty();
+                const auto pose=ragdoll?Ragdoll::Pose(layout,placement,*frame.model->Rig(),frame.state.basePose.empty()?frame.state.pose:frame.state.basePose):Animator::Advance(*placement.animator,frame.state,*frame.model->Rig(),seconds,parameters,&matrices[index]);
+                if(ragdoll) {frame.state.pose=pose; frame.state.events.clear(); frame.state.rootDelta={};}
+                frame.applyPose=placement.animator->enabled || ragdoll;
                 if (frame.applyPose && !frame.model->PreparePose(pose,frame.pose)) throw std::runtime_error("Animator pose preparation failed");
                 for (const auto& occurrence : frame.state.events)
                 {
@@ -285,48 +315,35 @@ namespace SceneRuntime
         const Engine::DirectionalLight& light, const UiState* state) const
     {
         meshTelemetry_={};
-        const auto count=[&](size_t index,Engine::MaterialPass pass) {
-            const auto& model=objects_[index].GetModel();
-            if(model) for(size_t mesh=0;mesh<model->MeshCount();++mesh) if(Engine::MatchesMaterialPass(objects_[index].MaterialForMesh(mesh),pass)) {
-                ++meshTelemetry_.draws;meshTelemetry_.triangles+=model->MeshTriangleCount(mesh);
-            }
-        };
         const auto defaults=state ? UiState{} : SceneUi::Defaults(layout_);
         const auto& values=state ? *state : defaults;
-        const auto visible=[&](size_t index) {
-            const auto& mesh=layout_.objects[index].meshRenderer;
-            return mesh && mesh->enabled && values.Matches(mesh->visibleWhen);
-        };
+        auto items=RenderPlan::Items(layout_,objects_,lodModels_,camera,values);
         auto lighting=light;
         lighting.shadow=nullptr;
+        lighting.localShadow=nullptr;
         if (light.enabled && light.shadowsEnabled && shadow_.Begin(commands,camera,light))
         {
             Engine::GpuScope gpu(commands,"Shadows"); Engine::CpuScope cpu("Shadows");
-            for (size_t index=0;index<objects_.size();++index)
-                if (visible(index) && objects_[index].HasMaterialPass(Engine::MaterialPass::Opaque))
-                    { count(index,Engine::MaterialPass::Opaque); objects_[index].GetModel()->DrawShadow(commands,objects_[index].GetWorldMatrix(),shadow_,objects_[index].GetMaterial().get(),objects_[index].GetMaterialSlots()); }
+            for (const auto& item : items)
+                if (item.object.HasMaterialPass(Engine::MaterialPass::Opaque))
+                {
+                    RenderPlan::Count(item.object,Engine::MaterialPass::Opaque,1,meshTelemetry_);
+                    item.object.GetModel()->DrawShadow(commands,item.object.GetWorldMatrix(),shadow_,item.object.GetMaterial().get(),item.object.GetMaterialSlots());
+                }
             shadow_.End(commands);
             lighting.shadow=&shadow_;
         }
-        std::vector<size_t> blended;
+        if (RenderPlan::LocalShadows(commands,lighting,items,localShadow_,meshTelemetry_)) lighting.localShadow=&localShadow_;
         {
         Engine::GpuScope gpu(commands,"Opaque meshes"); Engine::CpuScope cpu("Opaque meshes");
-        for (size_t index=0;index<objects_.size();++index)
-            if (visible(index))
-            {
-                if (objects_[index].HasMaterialPass(Engine::MaterialPass::Transparent)) blended.push_back(index);
-                if(objects_[index].HasMaterialPass(Engine::MaterialPass::Opaque)) {
-                    count(index,Engine::MaterialPass::Opaque);objects_[index].Draw(commands,camera,lighting,{},Engine::MaterialPass::Opaque);
-                }
-            }
+        std::stable_sort(items.begin(),items.end(),[](const auto& first,const auto& second) { return first.distance<second.distance; });
+        RenderPlan::Opaque(commands,camera,lighting,items,meshTelemetry_,occlusion_);
         }
         Engine::GpuScope gpu(commands,"Transparent meshes"); Engine::CpuScope cpu("Transparent meshes");
-        const auto distance=[&](size_t index) {
-            const auto& world=objects_[index].GetWorldMatrix(); const auto& eye=camera.GetPosition();
-            const float x=world._41-eye[0],y=world._42-eye[1],z=world._43-eye[2]; return x*x+y*y+z*z;
-        };
-        std::stable_sort(blended.begin(),blended.end(),[&](size_t first,size_t second) { return distance(first)>distance(second); });
-        for (const auto index : blended) { count(index,Engine::MaterialPass::Transparent); objects_[index].Draw(commands,camera,lighting,{},Engine::MaterialPass::Transparent); }
+        std::stable_sort(items.begin(),items.end(),[](const auto& first,const auto& second) { return first.distance>second.distance; });
+        for (const auto& item : items)
+            if (item.object.HasMaterialPass(Engine::MaterialPass::Transparent))
+            { RenderPlan::Count(item.object,Engine::MaterialPass::Transparent,1,meshTelemetry_); item.object.Draw(commands,camera,lighting,{},Engine::MaterialPass::Transparent); }
     }
 
     bool SceneWorld::PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error)
@@ -462,6 +479,11 @@ namespace SceneRuntime
             static_cast<void>(candidate.Serialize());
             if (!rebuild)
             {
+                for(const auto& object:candidate.objects) if(object.ragdoll) {
+                    const auto model=animatedModels_.find(object.id);
+                    if(model==animatedModels_.end()) throw std::runtime_error("Ragdoll requires a loaded Animator model");
+                    Ragdoll::Validate(candidate,object,*model->second->Rig());
+                }
                 for(size_t index=0;index<candidate.objects.size();++index) layout_.objects[index].CopyComponents(candidate.objects[index]);
                 layout_.settings=candidate.settings;
                 error.clear();
@@ -472,6 +494,14 @@ namespace SceneRuntime
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
 
+    bool SceneWorld::GenerateRagdoll(const std::string& id,const std::filesystem::path& root,std::string& error)
+    {
+        const auto model=animatedModels_.find(id); const auto state=animatorStates_.find(id);
+        if(model==animatedModels_.end() || state==animatorStates_.end()) {error="Ragdoll generation requires a loaded Animator model"; return false;}
+        auto candidate=layout_;
+        if(!Ragdoll::Generate(candidate,id,*model->second->Rig(),state->second.pose,error)) return false;
+        return ReplaceLayout(std::move(candidate),root,error,true);
+    }
     bool SceneWorld::AddImpulse(const std::string& id,const std::array<float,3>& impulse)
     {
         const auto object=std::find_if(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==id; });
@@ -510,6 +540,7 @@ namespace SceneRuntime
         const bool hasFixedUpdate=ScriptRuntime::HasPhase(layout,ScriptPhase::FixedUpdate);
         if (hasFixedUpdate &&
             !scripts.Update(layout,FixedStepSeconds,error,inputValues_,pressed,&physicsWorld_,ScriptPhase::FixedUpdate)) return false;
+        if(!Navigation::Advance(layout,FixedStepSeconds,error)) return false;
         std::map<std::string,bool> savedRootMotion;
         for (auto& object:layout.objects) if (object.animator) {
             savedRootMotion[object.id]=object.animator->rootMotion;
@@ -520,8 +551,29 @@ namespace SceneRuntime
         }
         if (hasFixedUpdate)
             for (const auto& [id,impulse]:scripts.Impulses()) if (!physicsWorld_.AddImpulse(id,impulse)) { error="FixedUpdate impulse rejected"; return false; }
+        try {
+            std::vector<std::string> owners; for(const auto& object:layout.objects) if(object.ragdoll && !object.ragdoll->bones.empty()) owners.push_back(object.id);
+            for(const auto& id:owners) {
+                const auto model=animatedModels_.find(id); const auto state=animatorStates_.find(id);
+                if(model==animatedModels_.end() || state==animatorStates_.end()) throw std::runtime_error("Ragdoll Animator is missing");
+                Ragdoll::Synchronize(layout,id,*model->second->Rig(),state->second.pose);
+            }
+        } catch(const std::exception& exception) {error=exception.what(); return false;}
+        std::map<std::string,std::array<bool,3>> ragdollOwnerEnabled;
+        for(auto& object:layout.objects) if(object.ragdoll && object.ragdoll->enabled && object.ragdoll->active && !object.ragdoll->bones.empty()) {
+            ragdollOwnerEnabled[object.id]={object.playerController && object.playerController->enabled,object.boxCollider && object.boxCollider->enabled,object.rigidBody && object.rigidBody->enabled};
+            if(object.playerController) object.playerController->enabled=false;
+            if(object.boxCollider) object.boxCollider->enabled=false;
+            if(object.rigidBody) {object.rigidBody->enabled=false; object.rigidBody->velocity=object.rigidBody->angularVelocity={0,0,0};}
+            states.erase(object.id);
+        }
         if (!ScenePhysics::Advance(layout,states,FixedStepSeconds,horizontal,vertical,jump) ||
             !physicsWorld_.Advance(layout,states,FixedStepSeconds,horizontal,vertical,jump,assetsRoot_,error)) return false;
+        for(auto& object:layout.objects) if(const auto saved=ragdollOwnerEnabled.find(object.id);saved!=ragdollOwnerEnabled.end()) {
+            if(object.playerController) object.playerController->enabled=saved->second[0];
+            if(object.boxCollider) object.boxCollider->enabled=saved->second[1];
+            if(object.rigidBody) object.rigidBody->enabled=saved->second[2];
+        }
         for (auto& object:layout.objects) if (object.animator) object.animator->rootMotion=savedRootMotion.at(object.id);
         return QueueContacts(layout,scripts,error);
     }
@@ -549,7 +601,7 @@ namespace SceneRuntime
     SceneWorld::PreparedLayout SceneWorld::RuntimeLayout() const
     {
         PreparedLayout result; result.assetsRoot=assetsRoot_; result.layout=layout_; result.objects=objects_;
-        result.animated=animatedModels_; result.states=animatorStates_; return result;
+        result.animated=animatedModels_; result.states=animatorStates_; result.lods=lodModels_; return result;
     }
     bool SceneWorld::PrepareScriptLayout(SceneLayout layout,const PreparedLayout& previous,PreparedLayout& result,std::string& error)
     {
@@ -615,6 +667,7 @@ namespace SceneRuntime
             for (const auto& frame:frames) prepared.states.at(frame.id)=frame.state;
         }
         if (prepareRuntime_ && !prepareRuntime_(prepared.layout,error)) { Engine::Log::Warning(error); return false; }
+        if(prepareUi_ && !prepareUi_(prepared.layout,runtime.UiCommands(),error)) {Engine::Log::Warning(error); return false;}
         CommitLayout(std::move(prepared),true);
         for (auto& frame : frames)
         {
@@ -636,6 +689,7 @@ namespace SceneRuntime
             for (const auto& frame : frames)
             {
                 auto& placement=prepared.layout.objects.at(frame.index);
+                if(placement.ragdoll && placement.ragdoll->enabled && placement.ragdoll->active) continue;
                 if (!frame.applyPose || !frame.state.rootMotionOverride.value_or(placement.animator->rootMotion)) continue;
                 if (frame.state.rootDelta.position==std::array<float,3>{} && frame.state.rootDelta.rotation==std::array<float,4>{0,0,0,1}) continue;
                 const auto delta=Animator::RootDeltaMatrix(*placement.animator,frame.state,*frame.model->Rig());
@@ -655,6 +709,7 @@ namespace SceneRuntime
             for (auto& frame : frames) if (frame.applyPose)
             {
                 const auto& placement=prepared.layout.objects.at(frame.index);
+                if(placement.ragdoll && placement.ragdoll->enabled && placement.ragdoll->active) continue;
                 frame.state.pose=Animator::Constrain(*placement.animator,frame.state,*frame.model->Rig(),&matrices[frame.index]);
                 if (!frame.model->PreparePose(frame.state.pose,frame.pose)) throw std::runtime_error("Root motion constraint pose failed");
             }
@@ -833,6 +888,7 @@ namespace SceneRuntime
             if (!SceneTransforms::Resolve(validation,matrices,error)) throw std::runtime_error(error);
             Engine::Object3D object;
             std::shared_ptr<Engine::ModelRenderer> animated; AnimatorState animatorState;
+            std::vector<std::shared_ptr<const Engine::ModelRenderer>> lods;
             if (placement.animator && !placement.meshRenderer) throw std::runtime_error("Animator needs a MeshRenderer");
             if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
                 throw std::runtime_error("Invalid transform");
@@ -842,9 +898,17 @@ namespace SceneRuntime
                 const auto model = models_.Load(assetsRoot / placement.Model());
                 if (!model) throw std::runtime_error("Model could not be loaded");
                 object.SetModel(model);
+                for (const auto& lod : placement.meshRenderer->lods)
+                {
+                    if (placement.animator) throw std::runtime_error("Animated meshes cannot use static LOD models");
+                    auto loaded=models_.Load(assetsRoot/lod.model);
+                    if (!loaded || loaded->Rig()) throw std::runtime_error("Static LOD model could not be loaded");
+                    lods.push_back(std::move(loaded));
+                }
                 if (placement.animator) {
                     if (!model->Rig()) throw std::runtime_error("Animator needs a glTF or GLB model");
                     Animator::Validate(*placement.animator,model->Rig().get());
+                    Ragdoll::Validate(validation,placement,*model->Rig());
                     animated=model->AnimatedCopy(materialDevice_.Get(),materialQueue_.Get());
                     if (!animated || !animated->ApplyPose(Animator::Advance(*placement.animator,animatorState,*model->Rig(),0,{},&matrices.back()))) throw std::runtime_error("Animator initialization failed");
                     object.SetModel(animated);
@@ -853,10 +917,12 @@ namespace SceneRuntime
                 std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>> materials;
                 object.SetMaterialSlots(PrepareMaterialSlots(placement,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot,materials));
             }
+            PrepareProcedural(models_,object,placement,assetsRoot,materialDevice_.Get(),materialQueue_.Get());
             const auto id = placement.id;
             Append(std::move(placement), std::move(object));
             layout_.assetReferences=std::move(validation.assetReferences);
             if (animated) { animatedModels_[id]=std::move(animated); animatorStates_[id]=std::move(animatorState); }
+            if (!lods.empty()) lodModels_[id]=std::move(lods);
             nextObjectId_=nextCounter;
             createdId = id;
             error.clear();
@@ -896,7 +962,7 @@ namespace SceneRuntime
         auto candidate=layout_;
         auto objects=objects_;
         auto nextCounter=nextObjectId_;
-        auto animated=animatedModels_; auto states=animatorStates_;
+        auto animated=animatedModels_; auto states=animatorStates_; auto lods=lodModels_;
         std::unordered_map<std::string,std::string> copies;
         std::vector<std::string> created;
         for (const auto index : indices)
@@ -909,13 +975,16 @@ namespace SceneRuntime
         {
             auto placement=layout_.objects[index];
             for (auto& script:placement.scripts) script.Remap(copies);
+        if(placement.navAgent) placement.navAgent->Remap(copies);
+            if(placement.ragdoll) placement.ragdoll->Remap(copies);
+            if(placement.joint) {const auto found=copies.find(placement.joint->target);if(found!=copies.end()) placement.joint->target=found->second;}
             const auto parent=copies.find(placement.parentId);
             if (parent!=copies.end()) placement.parentId=parent->second;
             else if (!TranslatePlacement(placement,offset))
             { error=placement.id+": invalid world duplicate offset"; return false; }
             if(placement.button) {
                 const auto remap=[&](std::string& id) {const auto found=copies.find(id); if(found!=copies.end()) id=found->second;};
-                if(placement.button->action!="loadScene" && placement.button->action!="setState") remap(placement.button->target);
+                if(placement.button->action!="loadScene" && placement.button->action!="loadSceneAdditive" && placement.button->action!="unloadScene" && placement.button->action!="setState") remap(placement.button->target);
                 remap(placement.button->sound);
             }
             if (placement.prefab)
@@ -925,6 +994,7 @@ namespace SceneRuntime
                 else placement.prefab.reset();
             }
             placement.id=copies.at(placement.id); placement.name+=" copy";
+            if (const auto levels=lodModels_.find(layout_.objects[index].id);levels!=lodModels_.end()) lods[placement.id]=levels->second;
             auto object=objects_[index];
             if (placement.animator) {
                 try {
@@ -940,6 +1010,7 @@ namespace SceneRuntime
         if (!PrepareTransforms(candidate,objects,error)) return false;
         layout_=std::move(candidate); objects_=std::move(objects);
         animatedModels_=std::move(animated); animatorStates_=std::move(states);
+        lodModels_=std::move(lods);
         nextObjectId_=nextCounter;
         createdIds=std::move(created);
         error.clear();
@@ -970,7 +1041,7 @@ namespace SceneRuntime
         }
         if (!PrepareTransforms(candidate,objects,error)) return false;
         layout_=std::move(candidate); objects_=std::move(objects);
-        for (const auto& id : removed) { animatedModels_.erase(id); animatorStates_.erase(id); physics_.erase(id); }
+        for (const auto& id : removed) { animatedModels_.erase(id); animatorStates_.erase(id); physics_.erase(id); lodModels_.erase(id); }
         error.clear();
         return true;
     }
@@ -992,7 +1063,9 @@ namespace SceneRuntime
         for (size_t index = 0; index < objects_.size(); ++index)
         {
             const auto& object = objects_[index];
-            if (!object.GetModel() || !layout_.objects[index].meshRenderer->enabled) continue;
+            const auto& placement=layout_.objects[index];
+            const bool enabled=(placement.meshRenderer&&placement.meshRenderer->enabled)||(placement.terrain&&placement.terrain->enabled)||(placement.tilemap&&placement.tilemap->enabled);
+            if(!object.GetModel()||!enabled) continue;
             const auto inverse = XMMatrixInverse(nullptr, XMLoadFloat4x4(&object.GetWorldMatrix()));
             const auto localStart = XMVector3TransformCoord(start, inverse);
             auto localRay = XMVector3TransformNormal(ray, inverse);

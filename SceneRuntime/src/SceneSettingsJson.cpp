@@ -62,6 +62,14 @@ namespace SceneRuntime
             else if (mapping=="reinhard") settings.toneMapping=Engine::ToneMapping::Reinhard;
             else if (mapping=="filmic") settings.toneMapping=Engine::ToneMapping::Filmic;
             else throw std::runtime_error("Unknown tone mapping curve");
+            if (effects.contains("autoExposure")) settings.autoExposure=effects.at("autoExposure").get<bool>();
+            if (effects.contains("exposureMinimum")) settings.exposureMinimum=Number(effects,"exposureMinimum",-10,10);
+            if (effects.contains("exposureMaximum")) settings.exposureMaximum=Number(effects,"exposureMaximum",-10,10);
+            if (effects.contains("middleGray")) settings.middleGray=Number(effects,"middleGray",.01f,1);
+            if (effects.contains("contrast")) settings.contrast=Number(effects,"contrast",0,4);
+            if (effects.contains("saturation")) settings.saturation=Number(effects,"saturation",0,4);
+            if (effects.contains("colorFilter")) settings.colorFilter=effects.at("colorFilter").get<std::array<float,3>>();
+            if (!settings.Valid()) throw std::runtime_error("Invalid post effect settings");
         }
         return result;
     }
@@ -81,6 +89,10 @@ namespace SceneRuntime
         result["postEffects"]={{"enabled",post.enabled},{"bloomEnabled",post.bloomEnabled},{"exposure",post.exposure},
             {"bloomIntensity",post.bloomIntensity},{"bloomThreshold",post.bloomThreshold},{"bloomRadius",post.bloomRadius},
             {"toneMapping",post.toneMapping==Engine::ToneMapping::None ? "none" : post.toneMapping==Engine::ToneMapping::Reinhard ? "reinhard" : "filmic"}};
+        auto& effects=result["postEffects"];
+        effects["autoExposure"]=post.autoExposure; effects["exposureMinimum"]=post.exposureMinimum;
+        effects["exposureMaximum"]=post.exposureMaximum; effects["middleGray"]=post.middleGray;
+        effects["contrast"]=post.contrast; effects["saturation"]=post.saturation; effects["colorFilter"]=Array(post.colorFilter);
         return result;
     }
 }

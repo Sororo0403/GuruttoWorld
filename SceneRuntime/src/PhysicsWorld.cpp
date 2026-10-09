@@ -1,6 +1,7 @@
 #include <SceneRuntime/PhysicsWorld.h>
 #include <Engine/Core/Profiler.h>
 #include <SceneRuntime/SceneTransforms.h>
+#include <SceneRuntime/GenreGeometry.h>
 #include <Engine/Graphics/Models/ModelLoader.h>
 #include <Engine/Core/Log.h>
 #pragma warning(push,0)
@@ -12,6 +13,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyLock.h>
+#include <Jolt/Physics/Body/BodyLockMulti.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -26,6 +28,7 @@
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/StateRecorderImpl.h>
 #pragma warning(pop)
+#include "PhysicsJoints.h"
 #include <cmath>
 #include <mutex>
 #include <set>
@@ -106,6 +109,17 @@ namespace
     }
     JPH::RefConst<JPH::Shape> Checked(const JPH::Shape::ShapeResult& result)
     { if (result.HasError()) throw std::runtime_error(result.GetError().c_str()); return result.Get(); }
+    std::vector<Engine::MeshData> ColliderMeshes(const ScenePlacement& object,const std::filesystem::path& root)
+    {
+        const auto& c=*object.boxCollider;
+        if(c.shape=="terrain") {if(!object.terrain) throw std::runtime_error("Terrain collider needs a Terrain");return {GenreGeometry::Terrain(*object.terrain)};}
+        if(c.shape=="tilemap") {if(!object.tilemap) throw std::runtime_error("Tile collider needs a Tilemap");return {GenreGeometry::TileCollision(*object.tilemap)};}
+        const auto model=c.model.empty()?object.Model():c.model;
+        if(model.empty()) throw std::runtime_error("Mesh collider requires a model");
+        std::vector<Engine::MeshData> meshes;
+        if(!Engine::ModelLoader::Load(root/model,meshes)) throw std::runtime_error("Collider model cannot be loaded");
+        return meshes;
+    }
     JPH::RefConst<JPH::Shape> Shape(const ScenePlacement& object,const Pose& pose,const std::filesystem::path& root)
     {
         const auto& c=*object.boxCollider;
@@ -116,10 +130,7 @@ namespace
         else if (c.shape=="capsule") shape=c.halfHeight==0 ? Checked(JPH::SphereShapeSettings(c.radius*scale.ReduceMax()).Create()) : Checked(JPH::CapsuleShapeSettings(c.halfHeight*scale.GetY(),c.radius*std::max(scale.GetX(),scale.GetZ())).Create());
         else
         {
-            const auto model=c.model.empty() ? object.Model() : c.model;
-            if (model.empty()) throw std::runtime_error("Mesh collider requires a model");
-            std::vector<Engine::MeshData> meshes;
-            if (!Engine::ModelLoader::Load(root/model,meshes)) throw std::runtime_error("Mesh collider model cannot be loaded");
+            const auto meshes=ColliderMeshes(object,root);
             JPH::TriangleList triangles;
             JPH::Array<JPH::Vec3> points;
             for (const auto& mesh : meshes) for (size_t i=0;i+2<mesh.indices.size();i+=3)
@@ -167,8 +178,7 @@ namespace
             }
         else
         {
-            std::vector<Engine::MeshData> meshes;
-            if (!Engine::ModelLoader::Load(root/(c.model.empty() ? object.Model() : c.model),meshes)) throw std::runtime_error("Cannot load sheared collider model");
+            const auto meshes=ColliderMeshes(object,root);
             JPH::TriangleList triangles;
             for (const auto& mesh : meshes) for (size_t i=0;i+2<mesh.indices.size();i+=3)
             {
@@ -198,11 +208,14 @@ namespace SceneRuntime
         SceneLayout definition;
         std::map<std::string,Entry> entries;
         std::map<JPH::uint32,size_t> bodyObjects;
+        std::vector<JPH::Ref<JPH::Constraint>> constraints;
         std::set<Contact> contacts;
         explicit Impl(const SceneLayout& layout) : definition(layout)
         { system.Init(8192,0,32768,32768,layers,broadFilter,pairFilter); system.SetGravity({0,-20,0}); system.SetContactListener(this); }
         ~Impl()
         {
+            for(const auto& constraint:constraints) system.RemoveConstraint(constraint);
+            constraints.clear();
             for (auto& [id,entry] : entries)
             {
                 static_cast<void>(id);
@@ -212,6 +225,8 @@ namespace SceneRuntime
         }
         bool Allowed(size_t a,size_t b) const
         {
+            const auto disconnected=[&](size_t x,size_t y){const auto& object=definition.objects[x];return object.joint && object.joint->enabled && !object.joint->collideConnected && object.joint->target==definition.objects[y].id;};
+            if(disconnected(a,b) || disconnected(b,a)) return false;
             const auto& x=*definition.objects[a].boxCollider; const auto& y=*definition.objects[b].boxCollider;
             return (x.mask&(1u<<y.layer)) && (y.mask&(1u<<x.layer)) && !Related(definition,a,b);
         }
@@ -266,6 +281,7 @@ namespace SceneRuntime
                     if (body)
                     {
                         const auto& rb=*object.rigidBody;
+                        if(rb.planar) settings.mAllowedDOFs=JPH::EAllowedDOFs::Plane2D;
                         settings.mOverrideMassProperties=JPH::EOverrideMassProperties::CalculateInertia; settings.mMassPropertiesOverride.mMass=rb.mass;
                         settings.mFriction=rb.friction; settings.mRestitution=rb.restitution; settings.mGravityFactor=rb.gravityScale;
                         settings.mLinearDamping=rb.linearDamping; settings.mAngularDamping=rb.angularDamping;
@@ -288,7 +304,36 @@ namespace SceneRuntime
                 bodyObjects[entry.body.GetIndexAndSequenceNumber()]=i; entries.emplace(object.id,std::move(entry));
             }
             system.OptimizeBroadPhase();
+            BuildJoints(matrices);
             if (old) contacts=old->contacts;
+        }
+        void BuildJoints(const std::vector<Matrix>& matrices)
+        {
+            const auto transform=[](const std::array<float,3>& value,const Matrix& matrix,bool direction)
+            {
+                const auto vector=DirectX::XMVectorSet(value[0],value[1],value[2],direction ? 0.0f : 1.0f);
+                const auto world=direction ? DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(vector,DirectX::XMLoadFloat4x4(&matrix))) :
+                    DirectX::XMVector3TransformCoord(vector,DirectX::XMLoadFloat4x4(&matrix));
+                return JPH::Vec3{DirectX::XMVectorGetX(world),DirectX::XMVectorGetY(world),DirectX::XMVectorGetZ(world)};
+            };
+            for(size_t index=0;index<definition.objects.size();++index)
+            {
+                const auto& object=definition.objects[index];if(!object.joint || !object.joint->enabled) continue;
+                const auto& joint=*object.joint;joint.Validate();
+                const auto owner=entries.find(object.id),target=entries.find(joint.target);
+                if(owner==entries.end() || owner->second.character || !object.rigidBody || !object.rigidBody->enabled || object.rigidBody->motion!="dynamic")
+                    throw std::runtime_error("Joint owner requires a dynamic RigidBody: "+object.id);
+                if(!joint.target.empty() && (target==entries.end() || target==owner || target->second.character))
+                    throw std::runtime_error("Joint target requires a different collider body: "+joint.target);
+                const JPH::BodyID ids[]{owner->second.body,target==entries.end() ? JPH::BodyID{} : target->second.body};
+                JPH::BodyLockMultiWrite lock(system.GetBodyLockInterface(),ids,2);auto* first=lock.GetBody(0);
+                auto* second=target==entries.end() ? &JPH::Body::sFixedToWorld : lock.GetBody(1);
+                if(!first || !second) throw std::runtime_error("Cannot lock Joint bodies");
+                const auto point=transform(joint.anchor,matrices[index],false);
+                const auto connected=target==entries.end() ? V(joint.connectedAnchor) : transform(joint.connectedAnchor,matrices[target->second.index],false);
+                JPH::Ref<JPH::Constraint> constraint=PhysicsJoints::Create(joint,*first,*second,point,connected,transform(joint.axis,matrices[index],true));
+                lock.ReleaseLocks();system.AddConstraint(constraint);constraints.push_back(std::move(constraint));
+            }
         }
         bool Matches(const SceneLayout& layout,const std::vector<Matrix>& matrices) const
         {
@@ -296,7 +341,7 @@ namespace SceneRuntime
             for (size_t i=0;i<layout.objects.size();++i)
             {
                 const auto& a=layout.objects[i]; const auto& b=definition.objects[i];
-                if (a.id!=b.id || a.parentId!=b.parentId || a.boxCollider!=b.boxCollider || a.rigidBody!=b.rigidBody || a.playerController!=b.playerController) return false;
+                if (a.id!=b.id || a.parentId!=b.parentId || a.boxCollider!=b.boxCollider || a.rigidBody!=b.rigidBody || a.playerController!=b.playerController || a.terrain!=b.terrain || a.tilemap!=b.tilemap || a.joint!=b.joint) return false;
                 if (a.boxCollider && a.boxCollider->enabled)
                 {
                     bool baked=false; const auto scale=ColliderPose(a,matrices[i],baked).scale;

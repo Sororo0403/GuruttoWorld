@@ -35,6 +35,7 @@ namespace SceneRuntime
         bool enabled=true;
         std::array<float,3> color{1,1,1};
         float intensity=5,range=10;
+        bool shadowsEnabled=false;
         bool operator==(const PointLightComponent&) const = default;
     };
     struct SpotLightComponent
@@ -44,6 +45,7 @@ namespace SceneRuntime
         std::array<float,3> color{1,1,1};
         float intensity=10,range=15;
         float innerAngle=30,outerAngle=60;
+        bool shadowsEnabled=false;
         bool operator==(const SpotLightComponent&) const = default;
     };
     struct CloudBank
