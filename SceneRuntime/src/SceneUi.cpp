@@ -1,4 +1,5 @@
 #include <SceneRuntime/SceneUi.h>
+#include <SceneRuntime/SceneCanvas.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <winrt/base.h>
 #include <algorithm>
@@ -52,22 +53,25 @@ void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::f
     const auto key=p.id+(text?"/text":"/image"),signature=Signature(p,text);
     const auto old=resources_.find(key);
     if(old!=resources_.end() && old->second.signature==signature) return;
-    std::shared_ptr<Engine::SpriteRenderer> shared;
+    std::shared_ptr<Engine::SpriteRenderer> shared,sharedScene;
     const auto find=[&](const auto& map) {
         for(const auto& [id,resource]:map) {
             static_cast<void>(id);
-            if(resource.signature==signature) {shared=resource.sprite; break;}
+            if(resource.signature==signature) {shared=resource.sprite; sharedScene=resource.sceneSprite; break;}
         }
     };
     find(resources_); find(pending);
-    if(shared) {pending.emplace(key,Resource{signature,std::move(shared)}); return;}
+    if(shared) {pending.emplace(key,Resource{signature,std::move(shared),std::move(sharedScene)}); return;}
     auto texture=text?TextTexture(renderer,*p.text,p.rectTransform?p.rectTransform->size:std::array<float,2>{200,60}):std::make_shared<Engine::Texture2D>();
     if(!text && !texture->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),p.image->texture.empty()?std::filesystem::path{}:root/p.image->texture))
         throw std::runtime_error("Cannot load UI image: "+signature);
     auto sprite=std::make_shared<Engine::SpriteRenderer>();
     if(!sprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/Sprite.hlsl"))
         throw std::runtime_error("Cannot create UI renderer");
-    pending.emplace(key,Resource{signature,std::move(sprite)});
+    auto sceneSprite=std::make_shared<Engine::SpriteRenderer>();
+    if(!sceneSprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/SceneUi.hlsl",true))
+        throw std::runtime_error("Cannot create Scene Canvas renderer");
+    pending.emplace(key,Resource{signature,std::move(sprite),std::move(sceneSprite)});
 }
 void SceneUi::Prune(const Engine::DirectX12Renderer& renderer,const SceneLayout& layout)
 {
@@ -122,6 +126,34 @@ void SceneUi::Draw(ID3D12GraphicsCommandList* commands,const SceneLayout& layout
         if(!rect.visible) continue;
         if(p.image && p.image->enabled) DrawPart(commands,p,rect,width,height,state,false);
         if(p.text && p.text->enabled) DrawPart(commands,p,rect,width,height,state,true);
+    }
+}
+void SceneUi::DrawScene(ID3D12GraphicsCommandList* commands,const SceneWorld& world,
+    const Engine::Camera& camera,const UiState& state) const
+{
+    const auto& layout=world.Layout();
+    for(const auto& p:layout.objects) {
+        if(!p.rectTransform) continue;
+        const auto* root=SceneCanvas::Root(layout,p);
+        const auto matrix=SceneCanvas::Matrix(world,p);
+        if(!root || !matrix) continue;
+        const auto rect=Resolve(layout,p,static_cast<unsigned int>(root->canvas->referenceSize[0]),
+            static_cast<unsigned int>(root->canvas->referenceSize[1]),state);
+        if(!rect.visible) continue;
+        DirectX::XMFLOAT4X4 projection;
+        DirectX::XMStoreFloat4x4(&projection,DirectX::XMLoadFloat4x4(&*matrix)*camera.GetViewMatrix()*camera.GetProjectionMatrix());
+        for(const bool text:{false,true}) {
+            if(text ? (!p.text || !p.text->enabled) : (!p.image || !p.image->enabled)) continue;
+            const auto resource=resources_.find(p.id+(text?"/text":"/image"));
+            if(resource==resources_.end()) continue;
+            Engine::SpriteDrawParameters draw;
+            draw.position=rect.position; draw.size=rect.size; draw.rotation=rect.rotation;
+            draw.color=text?p.text->color:p.image->color;
+            draw.color[3]*=rect.opacity;
+            draw.uvRect=text?std::array<float,4>{0,0,1,1}:p.image->uv;
+            std::memcpy(draw.pixelConstants.data(),&projection,sizeof(projection));
+            resource->second.sceneSprite->Draw(commands,1,1,draw);
+        }
     }
 }
 }

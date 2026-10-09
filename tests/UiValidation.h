@@ -4,6 +4,9 @@
 #include "../App/src/Scenes/AuthoredScene.h"
 #include "EnvironmentValidation.h"
 #include "../Editor/src/ProjectCatalog.h"
+#include "../Editor/src/FocusSelection.h"
+#include "../Editor/src/UiCanvasPanel.h"
+#include <Engine/Graphics/Resources/RenderTargetBinding.h>
 namespace UiValidation {
 using namespace SceneRuntime;
 inline void Require(bool success,const char* message) {if(!success) throw std::runtime_error(message);}
@@ -94,6 +97,69 @@ inline void Rendering(Engine::DirectX12Renderer& renderer,const std::filesystem:
     Require(ui.Prepare(renderer,root,layout,error),"UI prepares resources outside draw");
     const auto pixel=[&](const UiState& state=UiState{}) {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){ui.Draw(commands,layout,64,32,state);});};
     Require(pixel()==std::array<unsigned char,4>{255,0,0,255},"authored UI image is drawn without Camera");
+    {
+        SceneWorld world;
+        Require(world.Initialize(renderer,root,layout,root/"Shaders/Mesh.hlsl",&error),"Scene Canvas world initializes");
+        Engine::Camera camera; camera.SetPosition({0,0,-1}); camera.SetRotation(0,0); camera.SetPerspective(DirectX::XM_PIDIV4,2,.1f,100);
+        const auto scenePixel=[&] {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){ui.DrawScene(commands,world,camera);});};
+        Require(scenePixel()==std::array<unsigned char,4>{255,0,0,255},"Scene Canvas plane draws at its authored world location");
+        const auto occluded=EnvironmentValidation::Pixel(renderer,[&](auto* commands) {
+            Engine::RenderTargetBinding target;
+            Require(Engine::RenderTargetBinding::Current(commands,target),"Scene Canvas depth target is available");
+            commands->ClearDepthStencilView(target.depth,D3D12_CLEAR_FLAG_DEPTH,0,0,0,nullptr);
+            ui.DrawScene(commands,world,camera);
+        });
+        Require(occluded==std::array<unsigned char,4>{0,0,0,255},"Scene Canvas respects foreground depth");
+        SceneEnvironment environment;
+        Require(environment.Initialize(renderer,root,layout,error),"Scene Canvas presentation initializes");
+        const auto presentationPixel=[&](bool visible) {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){environment.Draw(commands,64,32,&camera,visible);});};
+        Require(presentationPixel(true)==std::array<unsigned char,4>{255,0,0,255},"Scene presentation includes the Canvas plane");
+        Require(presentationPixel(false)==std::array<unsigned char,4>{0,0,0,255},"Scene UI display toggle hides Canvas content");
+        const auto matrix=SceneCanvas::Matrix(world,world.Layout().objects[1]);
+        Require(matrix.has_value(),"Scene Canvas resolves the root transform");
+        const auto hit=SceneCanvas::Intersect(*matrix,camera,0,0);
+        Require(hit && std::abs((*hit)[0]-32)<.001f && std::abs((*hit)[1]-16)<.001f,"Scene ray resolves Canvas pixels");
+        Require(Editor::FocusPosition(world,{"canvas","panel"},camera).has_value(),"Canvas and UI support F focus without mesh bounds");
+        Require(world.SetLocalTransform("canvas",{3,0,0},{0,0,0},{1,1,1}),"Scene Canvas transform edits apply");
+        Require(scenePixel()==std::array<unsigned char,4>{0,0,0,255},"moving Canvas moves UI out of view rather than pinning it to the screen");
+        Require(pixel()==std::array<unsigned char,4>{255,0,0,255},"Game overlay remains independent of the Scene Canvas transform");
+        camera.SetPosition({3,0,-1});
+        Require(scenePixel()==std::array<unsigned char,4>{255,0,0,255},"Scene camera movement follows the Canvas world plane");
+        const auto movedMatrix=SceneCanvas::Matrix(world,world.Layout().objects[1]);
+        const auto movedHit=SceneCanvas::Intersect(*movedMatrix,camera,0,0);
+        Require(movedHit && std::abs((*movedHit)[0]-32)<.001f,"picking follows the translated Canvas");
+        Require(world.SetLocalTransform("canvas",{3,0,0},{0,.4f,.2f},{1.5f,.8f,1}),"rotated and scaled Canvas transform applies");
+        const auto rotatedMatrix=SceneCanvas::Matrix(world,world.Layout().objects[1]);
+        const auto rotatedHit=SceneCanvas::Intersect(*rotatedMatrix,camera,0,0);
+        Require(rotatedHit && std::abs((*rotatedHit)[0]-32)<.01f && std::abs((*rotatedHit)[1]-16)<.01f,"picking agrees with a rotated and scaled Canvas plane");
+        Require(scenePixel()==std::array<unsigned char,4>{255,0,0,255},"rotated Canvas projects its UI into the Scene framebuffer");
+        Require(world.SetLocalTransform("canvas",{3,0,0},{0,0,0},{1,1,1}),"Canvas transform restores before drag test");
+        camera.SetPosition({3,0,1});
+        Require(!SceneCanvas::Intersect(*movedMatrix,camera,0,0),"Canvas behind the Scene camera cannot be picked");
+        camera.SetPosition({3,0,-1}); camera.SetPerspective(DirectX::XM_PIDIV4,2,.1f,100);
+        struct ContextScope {
+            ImGuiContext* previous=ImGui::GetCurrentContext();
+            ImGuiContext* context=ImGui::CreateContext();
+            ContextScope() {ImGui::SetCurrentContext(context);}
+            ~ContextScope() {ImGui::DestroyContext(context);ImGui::SetCurrentContext(previous);}
+        } context;
+        auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.DisplaySize={640,480};io.DeltaTime=1.0f/60;io.Fonts->Build();
+        Editor::EditState edit; Editor::UiCanvasPanel panel;
+        const Editor::SceneViewport viewport{0,0,640,320};
+        const auto frame=[&](float x,bool down) {
+            io.AddMousePosEvent(x,160);io.AddMouseButtonEvent(0,down);
+            ImGui::NewFrame();ImGui::SetNextWindowPos({0,0});ImGui::SetNextWindowSize({640,480});
+            ImGui::Begin("Scene Canvas validation",nullptr,ImGuiWindowFlags_NoTitleBar);
+            edit.BeginFrame();panel.DrawScene(world,camera,edit,viewport,true);ImGui::End();ImGui::Render();
+        };
+        frame(320,false);frame(320,false);frame(320,true);
+        Require(edit.SelectedId()=="panel" && panel.IsDragging() && panel.ConsumesMouse(),"Scene UI selects on first press and consumes world selection");
+        edit.TakeRequest();frame(340,true);
+        const auto request=edit.TakeRequest();
+        Require(request && request->components && request->components->rectTransform->position[0]>0,"Scene UI drag edits RectTransform in Canvas coordinates");
+        frame(340,false);Require(!panel.IsDragging(),"Scene UI drag finishes on release");
+        Require(renderer.WaitForIdle(),"Scene UI work completes before resource release");
+    }
     UiState state; state.hovered="panel"; Require(pixel(state)==std::array<unsigned char,4>{0,255,0,255},"button hover tint reaches GPU");
     SceneUi::Activate(layout,"panel",state); Require(pixel(state)==std::array<unsigned char,4>{0,0,0,255},"hidden UI is omitted");
     layout.objects[1].image.reset(); layout.objects[1].text.emplace(); layout.objects[1].text->text="█"; layout.objects[1].rectTransform->position={20,0};

@@ -103,7 +103,7 @@ namespace SceneRuntime
         return true;
     }
     void ScenePresentation::Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world,
-        unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, double seconds, bool motionEnabled, const UiState* uiState) const
+        unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, double seconds, bool motionEnabled, const UiState* uiState, bool showSceneUi) const
     {
         if (!width || !height) return;
         bool processing=false;
@@ -124,6 +124,7 @@ namespace SceneRuntime
             if (motionEnabled) { Engine::GpuScope gpu(commands,"Particles"); Engine::CpuScope cpu("Particles"); DrawParticles(commands,world,camera,seconds); }
         }
         if (processing) { Engine::GpuScope gpu(commands,"Post effects"); Engine::CpuScope cpu("Post effects"); if (!postEffects_.End(commands,world.Layout().settings.postEffects)) Engine::Log::Warning("Post effect rendering failed"); }
-        if (!sceneCamera) { Engine::GpuScope gpu(commands,"Game UI"); Engine::CpuScope cpu("Game UI"); DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{}); }
+        if (sceneCamera) { Engine::GpuScope gpu(commands,"Scene UI"); Engine::CpuScope cpu("Scene UI"); if (showSceneUi) ui_.DrawScene(commands,world,*sceneCamera,uiState?*uiState:UiState{}); }
+        else { Engine::GpuScope gpu(commands,"Game UI"); Engine::CpuScope cpu("Game UI"); DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{}); }
     }
 }

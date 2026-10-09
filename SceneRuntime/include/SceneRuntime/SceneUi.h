@@ -2,8 +2,9 @@
 #include <SceneRuntime/SceneLayout.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <map>
-namespace Engine { class DirectX12Renderer; }
+namespace Engine { class DirectX12Renderer; class Camera; }
 namespace SceneRuntime {
+class SceneWorld;
 struct UiState {
     std::map<std::string,float> values;
     std::map<std::string,bool> visibility;
@@ -23,13 +24,14 @@ class SceneUi final {
 public:
     bool Prepare(const Engine::DirectX12Renderer&, const std::filesystem::path&, const SceneLayout&, std::string& error);
     void Draw(ID3D12GraphicsCommandList*,const SceneLayout&,unsigned int width,unsigned int height,const UiState& state={}) const;
+    void DrawScene(ID3D12GraphicsCommandList*,const SceneWorld&,const Engine::Camera&,const UiState& state={}) const;
     static UiState Defaults(const SceneLayout&);
     static UiRect Resolve(const SceneLayout&,const ScenePlacement&,unsigned int width,unsigned int height,const UiState& state={});
     static std::string Hit(const SceneLayout&,unsigned int width,unsigned int height,float x,float y,const UiState& state={},bool buttonsOnly=true);
     static UiEvent Activate(const SceneLayout&,const std::string& object,UiState& state);
     static std::string Shortcut(const SceneLayout&,const std::string& key,unsigned int width,unsigned int height,const UiState& state);
 private:
-    struct Resource {std::string signature; std::shared_ptr<Engine::SpriteRenderer> sprite;};
+    struct Resource {std::string signature; std::shared_ptr<Engine::SpriteRenderer> sprite,sceneSprite;};
     void Prune(const Engine::DirectX12Renderer&,const SceneLayout&);
     void PreparePart(const Engine::DirectX12Renderer&,const std::filesystem::path&,const ScenePlacement&,bool text,std::map<std::string,Resource>& pending);
     void DrawPart(ID3D12GraphicsCommandList*,const ScenePlacement&,const UiRect&,unsigned int width,unsigned int height,const UiState&,bool text) const;

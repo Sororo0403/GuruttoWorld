@@ -12,7 +12,7 @@ namespace SceneRuntime
     public:
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root, std::string& error);
         void Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width,
-            unsigned int height, const Engine::Camera* sceneCamera=nullptr, double seconds=0, bool motionEnabled=true, const UiState* uiState=nullptr) const;
+            unsigned int height, const Engine::Camera* sceneCamera=nullptr, double seconds=0, bool motionEnabled=true, const UiState* uiState=nullptr, bool showSceneUi=true) const;
         bool PrepareUi(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,const SceneLayout& layout,std::string& error)
         { return PrepareEffects(layout,error) && ui_.Prepare(renderer,root,layout,error); }
         void DrawUi(ID3D12GraphicsCommandList* commands,const SceneLayout& layout,unsigned int width,unsigned int height,const UiState& state={}) const

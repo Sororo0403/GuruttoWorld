@@ -226,9 +226,8 @@ namespace
         {
             if (!sceneTexture.Begin(commands, world.Layout().settings.background)) return false;
             const auto* runtime=gameSession.Runtime();
-            const auto& displayed=DisplayedWorld();
-            if (presentation) presentation->Draw(commands,displayed,sceneTexture.GetWidth(),sceneTexture.GetHeight(),
-                &camera.GetCamera(),runtime ? runtime->MotionSeconds() : 0,runtime ? runtime->MotionEnabled() : true);
+            if (runtime) runtime->Draw(commands,sceneTexture.GetWidth(),sceneTexture.GetHeight(),&camera.GetCamera(),showSceneUi);
+            else if (presentation) presentation->Draw(commands,world,sceneTexture.GetWidth(),sceneTexture.GetHeight(),&camera.GetCamera(),0,true,nullptr,showSceneUi);
             return sceneTexture.End(commands);
         }
 
@@ -432,7 +431,7 @@ namespace
         {
             return sceneLoaded && gameSession.State().IsEditing() && !pendingPlay &&
                 !document.Pending() && !pendingObject && !pendingHistory && !gizmo.IsDragging() &&
-                editState.Interaction().empty() && !ikHandles.IsDragging();
+                editState.Interaction().empty() && !ikHandles.IsDragging() && !uiCanvasPanel.IsDragging();
         }
 
         bool ApplyAssets(Engine::DirectX12Renderer& renderer)
@@ -601,7 +600,6 @@ namespace
             const bool pointerAllowed=Editor::GamePointerCapture::Allowed(captureGamePointer,gameSession.State().CanPause(),
                 keyboard && keyboard->IsActive(),gamePanel.Focused(),closeRequested || ImGui::GetTopMostPopupModal()!=nullptr,gamePanel.Viewport());
             if(pointerCapture.Update(keyboard?keyboard->WindowHandle():nullptr,gamePanel.Viewport(),pointerAllowed)) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-            uiCanvasPanel.Draw(world,editState,gamePanel.Viewport(),SceneEditingEnabled());
             UpdateGamePointer();
             Editor::ScenePanel::End();
             uiEditorPanel.Draw(uiTextureId,world.Layout(),editState,SceneEditingEnabled());
@@ -661,7 +659,7 @@ namespace
 
         void AcceptModelDrop()
         {
-            if (closeRequested || !SceneEditingEnabled() || gizmo.IsDragging() || ikHandles.IsDragging() ||
+            if (closeRequested || !SceneEditingEnabled() || gizmo.IsDragging() || ikHandles.IsDragging() || uiCanvasPanel.IsDragging() ||
                 ImGui::IsMouseDown(ImGuiMouseButton_Right) || !sceneViewport.Valid()) return;
             if (!ImGui::BeginDragDropTarget()) return;
             if (const auto* payload=ImGui::AcceptDragDropPayload(Editor::ModelPayload))
@@ -759,7 +757,7 @@ namespace
 
         void UpdateCamera()
         {
-            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, scenePanel.Hovered(), !gizmo.IsDragging() && !ikHandles.IsDragging() && !ImGui::GetDragDropPayload());
+            if (keyboard) cameraPanel.Draw(camera, *keyboard, seconds, sceneViewport, scenePanel.Hovered(), !gizmo.IsDragging() && !ikHandles.IsDragging() && !uiCanvasPanel.IsDragging() && !ImGui::GetDragDropPayload());
             if (sceneViewport.Valid())
                 camera.GetCamera().SetAspectRatio(sceneViewport.Aspect());
         }
@@ -767,7 +765,7 @@ namespace
         bool CanFocus() const
         {
             return editState.InspectedAsset().empty() && !pendingPlay && sceneViewport.Valid() && !document.Pending() && sceneLoaded && keyboard && keyboard->IsActive() && !gizmo.IsDragging() && !ikHandles.IsDragging() &&
-                !pendingObject && !pendingHistory && !reloadRequested &&
+                !pendingObject && !pendingHistory && !reloadRequested && !uiCanvasPanel.IsDragging() &&
                 !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
                 !ImGui::IsMouseDown(ImGuiMouseButton_Right);
         }
@@ -791,7 +789,7 @@ namespace
                 focusRequested=false;
                 if (canFocus && !editState.SelectedIds().empty())
                 {
-                    if (const auto position=Editor::FocusPosition(world,editState.SelectedIds(),camera.GetCamera()))
+                    if (const auto position=Editor::FocusPosition(DisplayedWorld(),gameSession.Runtime()?runtimeEditState.SelectedIds():editState.SelectedIds(),camera.GetCamera()))
                     {
                         cameraPanel.CancelDrag();
                         camera.GetCamera().SetPosition(*position);
@@ -804,7 +802,7 @@ namespace
         bool EditWidgetsEnabled() const
         {
             return !pendingPlay && gameSession.State().IsEditing() && sceneLoaded && !document.Pending() && !reloadRequested && !gizmo.IsDragging() &&
-                ImGui::GetTopMostPopupModal()==nullptr && !ikHandles.IsDragging();
+                ImGui::GetTopMostPopupModal()==nullptr && !ikHandles.IsDragging() && !uiCanvasPanel.IsDragging();
         }
 
         bool SceneEditingEnabled() const
@@ -816,18 +814,25 @@ namespace
         void UpdateObjects()
         {
             const bool sceneInput=SceneEditingEnabled() && !ImGui::GetDragDropPayload();
-            ikHandles.Controls(world.Layout(),editState,sceneViewport,sceneInput && !gizmo.IsDragging());
+            const auto& displayed=DisplayedWorld();
+            uiCanvasPanel.SetPreviewState(gameSession.Runtime()?gameSession.Runtime()->Ui():SceneRuntime::SceneUi::Defaults(displayed.Layout()));
+            uiCanvasPanel.DrawScene(displayed,camera.GetCamera(),gameSession.Runtime()?runtimeEditState:editState,
+                showSceneUi?sceneViewport:Editor::SceneViewport{},sceneInput && !gizmo.IsDragging() && !ikHandles.IsDragging());
+            const auto selected=std::find_if(world.Layout().objects.begin(),world.Layout().objects.end(),[&](const auto& p){return p.id==editState.SelectedId();});
+            const bool selectedUi=selected!=world.Layout().objects.end() && selected->rectTransform && !selected->canvas;
+            const bool worldInput=sceneInput && !uiCanvasPanel.ConsumesMouse() && !selectedUi;
+            ikHandles.Controls(world.Layout(),editState,sceneViewport,worldInput && !gizmo.IsDragging());
             const bool useIk=ikHandles.Enabled() && ikHandles.Available(world.Layout(),editState);
             if(useIk) {
                 gizmo.Cancel();
-                ikHandles.Draw(world,camera.GetCamera(),editState,sceneViewport,sceneInput && (scenePanel.Hovered() || ikHandles.IsDragging()));
+                ikHandles.Draw(world,camera.GetCamera(),editState,sceneViewport,worldInput && (scenePanel.Hovered() || ikHandles.IsDragging()));
             } else {
                 ikHandles.Cancel();
                 gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
-                    sceneInput && editState.InspectedAsset().empty() && (scenePanel.Hovered() || gizmo.IsDragging()));
+                    worldInput && editState.InspectedAsset().empty() && (scenePanel.Hovered() || gizmo.IsDragging()));
             }
             Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
-                sceneInput && !gizmo.ConsumesMouse() && !ikHandles.ConsumesMouse() && scenePanel.Hovered());
+                sceneInput && !uiCanvasPanel.ConsumesMouse() && !gizmo.ConsumesMouse() && !ikHandles.ConsumesMouse() && scenePanel.Hovered());
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
@@ -858,7 +863,7 @@ namespace
         bool HistoryEnabled() const
         {
             return !pendingPlay && gameSession.State().IsEditing() && sceneLoaded && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
-                !gizmo.IsDragging() && !ikHandles.IsDragging() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+                !gizmo.IsDragging() && !ikHandles.IsDragging() && !uiCanvasPanel.IsDragging() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
         }
 
         void UpdateShortcuts(bool historyEnabled)
@@ -954,7 +959,7 @@ namespace
         bool IdleContextEnabled(bool allowToolbarText = false) const
         {
             return initialized && !pendingPlay && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
-                !gizmo.IsDragging() && !ikHandles.IsDragging() && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !EditingField() &&
+                !gizmo.IsDragging() && !ikHandles.IsDragging() && !uiCanvasPanel.IsDragging() && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !EditingField() &&
                 (!ImGui::GetIO().WantTextInput || allowToolbarText) &&
                 ImGui::GetTopMostPopupModal()==nullptr && !closeRequested;
         }
@@ -981,6 +986,7 @@ namespace
             {
                 if (ImGui::MenuItem("選択対象にフォーカス###Focus selected", "F", false, enabled && editState.InspectedAsset().empty() && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
                 ImGui::MenuItem("性能計測###Profiler",nullptr,&profilerPanel.open);
+                ImGui::MenuItem("シーンのUI###Scene UI",nullptr,&showSceneUi);
                 if (ImGui::MenuItem("コンソール###Console")) ImGui::SetWindowFocus("コンソール###Console");
                 if (ImGui::MenuItem("ゲームタブ###Game tab", nullptr, false, enabled)) focusGame=true;
                 if (ImGui::MenuItem("ゲーム画面を確認###Preview Game composition", nullptr, false, enabled))
@@ -1219,6 +1225,7 @@ namespace
         std::optional<SceneRuntime::UiEvent> pendingUiEvent;
         Editor::AudioPreview audioPreview;
         Editor::UiCanvasPanel uiCanvasPanel;
+        bool showSceneUi=true;
         Editor::UiEditorPanel uiEditorPanel;
         Engine::RenderTexture uiTexture;
         UINT64 uiTextureId=0;

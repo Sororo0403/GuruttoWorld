@@ -31,7 +31,7 @@ Release のソリューションビルドはゲームを対象とし、Editor �
 
 起動時は上部にFile／Edit／Viewメニューとツールバー、左に状態表示とHierarchy、中央にScene、右にInspectorを配置します。
 中央のScene／Gameはタブで切り替え、分割して並べることもできます。View → Game tabでGameを選択します。
-編集中のGameは現在のシーン（未保存を含む）のCamera・照明・Sky・ParticleEmitterで表示します。Play中はRotator・CameraSway・粒子・雲の移動を更新し、Sceneにも同じ実行用シーンを表示します。タイトルUIは含みません。
+編集中のGameは現在のシーン（未保存を含む）のCamera・照明・Sky・ParticleEmitter・Canvas内のUIで表示します。SceneではCanvasをルートCanvasのTransformに配置した編集用の平面として表示します。基準解像度の100ピクセルを1ワールド単位とし、Canvas中心がTransformの原点です。視点移動・拡大・選択対象へのFフォーカスが使え、UIの移動・サイズ・回転・ピボットを平面上で編集できます。「表示 → シーンのUI」で表示を切り替えます。Play中はRotator・CameraSway・粒子・雲の移動を更新し、Sceneにも同じ実行用シーンとUIの状態を表示します。
 Game上では選択・ギズモ・モデル追加は行わず、Sceneの視点を維持します。既存の全画面構図プレビューも利用できます。
 保存済みのレイアウトでGameが中央にない場合は、View → Reset panel layoutで標準配置へ戻せます。
 下部のProject／Console／Debug Cameraはタブで切り替えます。パネルはドッキング・分割・移動・サイズ変更できます。

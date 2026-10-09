@@ -3515,6 +3515,16 @@ int main()
     std::string phase="focused validation";
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_SCENE_UI_ONLY",nullptr,0)) {
+            ValidateUiCanvasInteraction();
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Scene Canvas validation",640,480),"Scene Canvas test window");
+            Check(renderer.Initialize(window.GetHandle()),"Scene Canvas test renderer");
+            UiValidation::SchemaAndLayout();
+            UiValidation::Rendering(renderer,TestContentRoot());
+            std::cout<<"PASS: Scene Canvas GPU rendering, camera movement, picking, drag, focus and Game UI regression\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_EDITOR_DATA_ONLY",nullptr,0)) {
             phase="ValidateSaveAs"; ValidateSaveAs();
             phase="ValidateMaterialDocuments"; ValidateMaterialDocuments();

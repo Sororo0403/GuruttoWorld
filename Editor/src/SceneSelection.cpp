@@ -43,7 +43,7 @@ namespace Editor
         if(!viewport.Valid()) return;
         const auto& objects=world.Layout().objects;
         const auto found=std::find_if(objects.begin(),objects.end(),[&](const auto& object){return object.id==id;});
-        DirectX::XMFLOAT4X4 matrix,rotation;
+        DirectX::XMFLOAT4X4 matrix{},rotation{};
         if(found==objects.end() || !world.WorldMatrix(id,matrix)) return;
         auto* draw=ImGui::GetWindowDrawList();draw->PushClipRect({viewport.x,viewport.y},{viewport.x+viewport.width,viewport.y+viewport.height},true);
         const auto lines=[&](const auto& segments,const DirectX::XMFLOAT4X4& transform,ImU32 color) {

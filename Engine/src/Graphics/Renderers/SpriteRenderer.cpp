@@ -27,7 +27,7 @@ namespace
 namespace Engine
 {
     bool SpriteRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-        std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath)
+        std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest)
     {
         if (device == nullptr || queue == nullptr || initialized_ || !texture || texture->GetDescriptorHeap() == nullptr)
         {
@@ -41,6 +41,7 @@ namespace Engine
         {
             return false;
         }
+        depthTest_=depthTest;
         if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) ||
             !CreateMeshBuffer(device, queue))
         {
@@ -81,7 +82,7 @@ namespace Engine
         parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[3].Constants.ShaderRegister = 1;
         parameters[3].Constants.Num32BitValues = 36;
-        parameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        parameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
         parameters[4].ParameterType=D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[4].Constants.ShaderRegister=3; parameters[4].Constants.Num32BitValues=1;
         parameters[4].ShaderVisibility=D3D12_SHADER_VISIBILITY_PIXEL;
@@ -148,9 +149,9 @@ namespace Engine
         blend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
         blend.LogicOp = D3D12_LOGIC_OP_NOOP;
         blend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-        description.DepthStencilState.DepthEnable = FALSE;
+        description.DepthStencilState.DepthEnable = depthTest_ ? TRUE : FALSE;
         description.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-        description.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        description.DepthStencilState.DepthFunc = depthTest_ ? D3D12_COMPARISON_FUNC_LESS_EQUAL : D3D12_COMPARISON_FUNC_ALWAYS;
         description.DepthStencilState.StencilEnable = FALSE;
         description.SampleMask = UINT_MAX;
         description.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;

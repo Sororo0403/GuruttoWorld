@@ -34,7 +34,7 @@ namespace SceneRuntime
         bool AddImpulse(const std::string& id,const std::array<float,3>& impulse) { return world_.AddImpulse(id,impulse); }
         /// <summary>時計を指定して演出をプレビューします。未開始の開始演出には負値を指定します。</summary>
         void SeekAnimation(float sceneSeconds, float motionSeconds, float startSeconds = -1);
-        void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height) const;
+        void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height, const Engine::Camera* sceneCamera=nullptr, bool showSceneUi=true) const;
     private:
         /// <summary>保存した移動クリップを現在位置から評価し、メニュー選択へ追従します。</summary>
         void AnimateCameraFocus(float elapsed);

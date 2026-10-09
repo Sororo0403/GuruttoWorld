@@ -1,6 +1,8 @@
 #pragma once
 #include <Engine/Graphics/Camera.h>
 #include <SceneRuntime/SceneWorld.h>
+#include <SceneRuntime/SceneCanvas.h>
+#include <SceneRuntime/SceneUi.h>
 #include <span>
 #include <vector>
 #include <optional>
@@ -48,7 +50,22 @@ namespace Editor
         for (const auto& id : ids)
         {
             std::array<std::array<float,3>,8> bounds;
-            if (!world.WorldBounds(id,bounds)) return std::nullopt;
+            const auto& layout=world.Layout();
+            const auto object=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& p){return p.id==id;});
+            const auto matrix=object==layout.objects.end()?std::nullopt:SceneRuntime::SceneCanvas::Matrix(world,*object);
+            if(matrix && (object->canvas || object->rectTransform)) {
+                const auto* root=SceneRuntime::SceneCanvas::Root(layout,*object);
+                auto rect=SceneRuntime::SceneUi::Resolve(layout,*object,static_cast<unsigned int>(root->canvas->referenceSize[0]),static_cast<unsigned int>(root->canvas->referenceSize[1]));
+                if(!object->rectTransform) {rect.position={0,0};rect.size=root->canvas->referenceSize;rect.rotation=0;}
+                for(size_t i=0;i<bounds.size();++i) {
+                    const float x=((i%2)-.5f)*rect.size[0],y=(((i/2)%2)-.5f)*rect.size[1];
+                    DirectX::XMFLOAT3 point;
+                    DirectX::XMStoreFloat3(&point,DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(
+                        rect.position[0]+rect.size[0]*.5f+x*std::cos(rect.rotation)-y*std::sin(rect.rotation),
+                        rect.position[1]+rect.size[1]*.5f+x*std::sin(rect.rotation)+y*std::cos(rect.rotation),0,1),DirectX::XMLoadFloat4x4(&*matrix)));
+                    bounds[i]={point.x,point.y,point.z};
+                }
+            } else if (!world.WorldBounds(id,bounds)) return std::nullopt;
             corners.insert(corners.end(),bounds.begin(),bounds.end());
         }
         return FocusPosition(corners,camera);

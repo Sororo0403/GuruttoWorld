@@ -55,7 +55,7 @@ namespace Engine
         /// <param name="shaderPath">スプライト用の VSMain・PSMain を定義した HLSL ファイル。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-            std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath);
+            std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest=false);
 
         /// <summary>
         /// 深度判定・深度書き込みなしで、アルファ合成した四角形を描画します。後の描画ほど手前になります。
@@ -92,6 +92,7 @@ namespace Engine
         bool CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue);
 
         bool initialized_ = false;
+        bool depthTest_ = false;
         std::shared_ptr<const Texture2D> texture_;
         Microsoft::WRL::ComPtr<ID3D12Resource> meshBuffer_;
         D3D12_VERTEX_BUFFER_VIEW vertexBufferView_{};

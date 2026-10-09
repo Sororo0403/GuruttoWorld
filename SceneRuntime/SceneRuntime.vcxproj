@@ -152,6 +152,7 @@
     <ClInclude Include="include\SceneRuntime\SceneAudio.h" />
     <ClCompile Include="src\SceneAudio.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneUi.h" />
+    <ClInclude Include="include\SceneRuntime\SceneCanvas.h" />
     <ClCompile Include="src\SceneUi.cpp" />
     <ClCompile Include="src\UiLayout.cpp" />
     <ClInclude Include="src\UiJson.h" />
