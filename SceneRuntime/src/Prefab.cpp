@@ -32,6 +32,7 @@ namespace
     {
         const auto replace=[&](std::string& id) { const auto found=ids.find(id); if (found!=ids.end()) id=found->second; };
         replace(object.parentId);
+        for (auto& script:object.scripts) script.Remap(ids);
         if (object.button)
         {
             if (object.button->action!="loadScene" && object.button->action!="setState") replace(object.button->target);

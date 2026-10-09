@@ -849,6 +849,7 @@ namespace SceneRuntime
         for (const auto index : indices)
         {
             auto placement=layout_.objects[index];
+            for (auto& script:placement.scripts) script.Remap(copies);
             const auto parent=copies.find(placement.parentId);
             if (parent!=copies.end()) placement.parentId=parent->second;
             else if (!TranslatePlacement(placement,offset))

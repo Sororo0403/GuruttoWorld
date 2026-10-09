@@ -17,6 +17,55 @@ namespace
     using Engine::JsonArray;
     using Engine::JsonObject;
     using Engine::JsonNumber;
+    SceneRuntime::ScriptValue ReadScriptValue(const Json& source,size_t depth,size_t& remaining)
+    {
+        if (depth>8 || remaining==0) throw std::runtime_error("Script data exceeds nesting or element limit");
+        --remaining;
+        const auto& object=JsonObject(source);
+        if (object.size()!=2) throw std::runtime_error("Invalid script data encoding");
+        const auto kind=object.at("kind").get<std::string>();
+        const auto& value=object.at("value");
+        using Value=SceneRuntime::ScriptValue;
+        if (kind=="number") {
+            const auto number=JsonNumber(value);
+            if (!std::isfinite(number) || std::abs(number)>1000000) throw std::runtime_error("Invalid script data number");
+            return {static_cast<float>(number)};
+        }
+        if (kind=="bool") return {value.get<bool>()};
+        if (kind=="string") return {value.get<std::string>()};
+        if (kind=="reference") return {SceneRuntime::ScriptObjectReference{value.get<std::string>()}};
+        if (kind=="array") {
+            Value::Array result;
+            for (const auto& child:JsonArray(value)) result.push_back(ReadScriptValue(child,depth+1,remaining));
+            return {std::move(result)};
+        }
+        if (kind=="object") {
+            Value::Object result;
+            for (const auto& [key,child]:JsonObject(value).items()) result.emplace(key,ReadScriptValue(child,depth+1,remaining));
+            return {std::move(result)};
+        }
+        throw std::runtime_error("Unknown script data kind");
+    }
+    Json WriteScriptValue(const SceneRuntime::ScriptValue& source)
+    {
+        return std::visit([](const auto& value)->Json {
+            using T=std::decay_t<decltype(value)>;
+            using Value=SceneRuntime::ScriptValue;
+            if constexpr (std::is_same_v<T,float>) return {{"kind","number"},{"value",value}};
+            else if constexpr (std::is_same_v<T,bool>) return {{"kind","bool"},{"value",value}};
+            else if constexpr (std::is_same_v<T,std::string>) return {{"kind","string"},{"value",value}};
+            else if constexpr (std::is_same_v<T,SceneRuntime::ScriptObjectReference>) return {{"kind","reference"},{"value",value.id}};
+            else if constexpr (std::is_same_v<T,Value::Array>) {
+                Json array=Json::array();
+                for (const auto& child:value) array.push_back(WriteScriptValue(child));
+                return {{"kind","array"},{"value",std::move(array)}};
+            } else {
+                Json object=Json::object();
+                for (const auto& [key,child]:value) object[key]=WriteScriptValue(child);
+                return {{"kind","object"},{"value",std::move(object)}};
+            }
+        },source.value);
+    }
     std::filesystem::path ReadModel(const Json& object)
     {
         const auto text=object.at("model").get<std::string>();
@@ -214,6 +263,13 @@ namespace
                 script.parameters[key]=static_cast<float>(number);
             }
             if (script.parameters.size()>64) throw std::runtime_error("Too many script parameters");
+            if (component.contains("data")) {
+                size_t remaining=4096;
+                auto data=ReadScriptValue(component.at("data"),0,remaining);
+                remaining=4096; data.Validate(0,remaining);
+                if (!std::holds_alternative<SceneRuntime::ScriptValue::Object>(data.value)) throw std::runtime_error("Script data must be an object");
+                script.data=std::get<SceneRuntime::ScriptValue::Object>(std::move(data.value));
+            }
             placement.scripts.push_back(std::move(script));
         }
         else if (type=="Animator")
@@ -340,6 +396,10 @@ namespace SceneRuntime
         {
             auto object=Component(script.id,"Script",script.enabled);
             object["behaviour"]=script.behaviour; object["parameters"]=script.parameters;
+            if (!script.data.empty()) {
+                ScriptValue data{script.data}; size_t remaining=4096; data.Validate(0,remaining);
+                object["data"]=WriteScriptValue(data);
+            }
             components.push_back(object);
         }
         if (placement.animator) components.push_back(WriteAnimator(*placement.animator));

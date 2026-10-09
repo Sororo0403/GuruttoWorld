@@ -4,6 +4,7 @@
 #include "AnimationPanel.h"
 #include "AnimatorPanel.h"
 #include "PhysicsPanel.h"
+#include "ScriptDataPanel.h"
 #include <SceneRuntime/ScriptRuntime.h>
 #include <SceneRuntime/MaterialAsset.h>
 #include <imgui.h>
@@ -153,6 +154,7 @@ namespace Editor
                 {
                     SceneRuntime::ScriptComponent script; script.id=NewComponentId(candidate,"script"); script.behaviour=name;
                     for (const auto& [key,field] : definition.fields) script.parameters[key]=field.initial;
+                    script.data=definition.dataFields;
                     candidate.scripts.push_back(std::move(script)); edited=true;
                 }
             ImGui::EndMenu();
@@ -227,9 +229,18 @@ namespace Editor
                     {
                         script.enabled=true; script.parameters.clear();
                         for (const auto& [key,field] : definition->second.fields) script.parameters[key]=field.initial;
+                        script.data=definition->second.dataFields;
                         edited=true;
                     }
                     ImGui::SameLine();
+                }
+                if (definition!=SceneRuntime::ScriptRegistry::Definitions().end()) {
+                    for (const auto& [name,initial]:definition->second.dataFields) {
+                        auto value=script.data.contains(name) ? script.data.at(name) : initial;
+                        if (ScriptDataPanel::Draw(state,name.c_str(),value)) { script.data[name]=std::move(value); edited=true; }
+                    }
+                } else {
+                    for (auto& [name,value]:script.data) edited=ScriptDataPanel::Draw(state,name.c_str(),value) || edited;
                 }
                 remove=ImGui::Button("削除###Remove Script");
             }

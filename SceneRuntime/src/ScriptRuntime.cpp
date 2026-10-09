@@ -9,6 +9,23 @@
 namespace
 {
     using namespace SceneRuntime;
+    ScriptDefinition FollowDefinition()
+    {
+        ScriptDefinition follow;
+        follow.dataFields={{"active",{true}},{"target",{ScriptObjectReference{}}},
+            {"offset",{ScriptValue::Object{{"x",{0.0f}},{"y",{0.0f}},{"z",{0.0f}}}}}};
+        follow.update=[](ScriptContext& context) {
+            if (!std::get<bool>(context.Data("active")->value)) return;
+            const auto* target=context.Reference("target");
+            if (!target) return;
+            if (target->parentId!=context.object.parentId) throw std::runtime_error("FollowTarget requires the same parent as its target");
+            const auto& offset=std::get<ScriptValue::Object>(context.Data("offset")->value);
+            const auto position=target->position;
+            const char* axes[]={"x","y","z"};
+            for (size_t axis=0;axis<3;++axis) context.object.position[axis]=position[axis]+std::get<float>(offset.at(axes[axis]).value);
+        };
+        return follow;
+    }
     std::map<std::string,ScriptDefinition>& Registry()
     {
         static auto definitions=[] {
@@ -55,12 +72,19 @@ namespace
                 context.scene->SetRootMotion(context.object.id,enabled<0 ? std::nullopt : std::optional<bool>(enabled>0));
             };
             result.emplace("RootMotionControl",std::move(rootMotion));
+            result.emplace("FollowTarget",FollowDefinition());
             return result;
         }();
         return definitions;
     }
     void Validate(const ScriptComponent& script,const ScriptDefinition& definition)
     {
+        size_t remaining=4096; ScriptValue{script.data}.Validate(0,remaining);
+        for (const auto& [name,value]:script.data) {
+            const auto field=definition.dataFields.find(name);
+            if (field==definition.dataFields.end() || field->second.value.index()!=value.value.index())
+                throw std::runtime_error("Unknown or incompatible script data field: "+name);
+        }
         for (const auto& [name,field] : definition.fields)
         {
             const auto found=script.parameters.find(name);
@@ -115,6 +139,7 @@ namespace SceneRuntime
             auto& item=spawned_[i];
             const auto remap=[&](std::string& value) { const auto found=ids.find(value); if (found!=ids.end()) value=found->second; };
             remap(item.parentId);
+            for (auto& script:item.scripts) script.Remap(ids);
             if (item.button)
             {
                 if (item.button->action!="loadScene" && item.button->action!="setState") remap(item.button->target);
@@ -205,12 +230,27 @@ namespace SceneRuntime
     }
     float ScriptContext::Value(const std::string& name,float fallback) const
     { const auto found=parameters.find(name); return found==parameters.end() ? fallback : found->second; }
+    const ScriptValue* ScriptContext::Data(const std::string& name) const
+    { if (!data) return nullptr; const auto found=data->find(name); return found==data->end() ? nullptr : &found->second; }
+    const ScenePlacement* ScriptContext::Reference(const std::string& name) const
+    {
+        const auto field=Data(name);
+        const auto reference=field ? std::get_if<ScriptObjectReference>(&field->value) : nullptr;
+        return reference && scene ? scene->Find(reference->id) : nullptr;
+    }
+    bool ValidScriptField(const std::string& key,const ScriptField& field)
+    {
+        return !key.empty() && key.size()<=128 && key.find('\0')==std::string::npos &&
+            std::isfinite(field.initial) && std::isfinite(field.minimum) && std::isfinite(field.maximum) &&
+            field.initial>=field.minimum && field.initial<=field.maximum && field.minimum>=-1000000 && field.maximum<=1000000;
+    }
     bool ScriptRegistry::Register(std::string name,ScriptDefinition definition)
     {
         if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || definition.fields.size()>64 || !definition.update) return false;
+        try { size_t remaining=4096; ScriptValue{definition.dataFields}.Validate(0,remaining); }
+        catch (const std::exception&) { return false; }
         for (const auto& [key,field] : definition.fields)
-            if (key.empty() || key.size()>128 || !std::isfinite(field.initial) || !std::isfinite(field.minimum) || !std::isfinite(field.maximum) ||
-                field.initial<field.minimum || field.initial>field.maximum || field.minimum<-1000000 || field.maximum>1000000) return false;
+            if (!ValidScriptField(key,field)) return false;
         return Registry().emplace(std::move(name),std::move(definition)).second;
     }
     const std::map<std::string,ScriptDefinition>& ScriptRegistry::Definitions() { return Registry(); }
@@ -249,25 +289,32 @@ namespace SceneRuntime
                     {
                         auto& old=found->second;
                         ScriptContext context{object,old.parameters,old.state,0};
+                        context.data=&old.data; context.dataState=&old.dataState;
                         const auto& previous=Registry().at(old.behaviour);
                         if (previous.stop) previous.stop(context);
                         instances_.erase(found); found=instances_.end();
                     }
                     if (found==instances_.end())
                     {
-                        Instance instance{object.id,script.id,script.behaviour,{},script.parameters};
+                        Instance instance{object.id,script.id,script.behaviour,{},script.parameters,definition->second.dataFields,{}};
+                        for (const auto& [name,value]:script.data) instance.data[name]=value;
                         auto& created=instances_.emplace(key,std::move(instance)).first->second;
                         ScriptContext context{object,created.parameters,created.state,0,&input,&pressed,&scene};
+                        context.data=&created.data; context.dataState=&created.dataState;
                         if (definition->second.start) definition->second.start(context);
                         found=instances_.find(key);
                     }
                     auto& instance=found->second; instance.parameters=script.parameters;
                     ScriptContext context{object,instance.parameters,instance.state,std::min(seconds,0.1),&input,&pressed,&scene};
+                    instance.data=definition->second.dataFields;
+                    for (const auto& [name,value]:script.data) instance.data[name]=value;
+                    context.data=&instance.data; context.dataState=&instance.dataState;
                     if (definition->second.onEvent)
                         for (const auto& event : events_) if (event.target.empty() || event.target==object.id)
                         { context.event=&event; definition->second.onEvent(context); }
                     context.event=nullptr;
                     definition->second.update(context);
+                    size_t remaining=4096; ScriptValue{instance.dataState}.Validate(0,remaining);
                 }
             for (auto iterator=instances_.begin();iterator!=instances_.end();)
             {
@@ -277,6 +324,7 @@ namespace SceneRuntime
                 if (owner!=layout.objects.end())
                 {
                     ScriptContext context{*owner,instance.parameters,instance.state,0};
+                    context.data=&instance.data; context.dataState=&instance.dataState;
                     const auto& definition=Registry().at(instance.behaviour);
                     if (definition.stop) definition.stop(context);
                 }
@@ -292,7 +340,7 @@ namespace SceneRuntime
                     const auto owner=std::find_if(previous.objects.begin(),previous.objects.end(),[&](const auto& item) { return item.id==instance.owner; });
                     const auto& definition=Registry().at(instance.behaviour);
                     if (owner!=previous.objects.end() && definition.stop)
-                    { ScriptContext context{*owner,instance.parameters,instance.state,0}; definition.stop(context); }
+                    { ScriptContext context{*owner,instance.parameters,instance.state,0}; context.data=&instance.data; context.dataState=&instance.dataState; definition.stop(context); }
                     iterator=instances_.erase(iterator);
                 }
             events_=std::move(scene.events);
@@ -315,6 +363,7 @@ namespace SceneRuntime
                 const auto owner=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object) { return object.id==instance.owner; });
                 if (owner==layout.objects.end()) continue;
                 ScriptContext context{*owner,instance.parameters,instance.state,0};
+                context.data=&instance.data; context.dataState=&instance.dataState;
                 const auto& definition=Registry().at(instance.behaviour);
                 if (definition.stop) definition.stop(context);
             }

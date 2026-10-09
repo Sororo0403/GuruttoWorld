@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/ScriptValue.h>
 #include <array>
 #include <filesystem>
 #include <string>
@@ -69,7 +70,11 @@ namespace SceneRuntime
         bool enabled=true;
         std::string behaviour="Bob";
         std::map<std::string,float> parameters;
+        ScriptValue::Object data;
         bool operator==(const ScriptComponent&) const = default;
+        /// <summary>保存データ内のオブジェクト参照を複製先へ置き換えます。</summary>
+        template<class IdMap> void Remap(const IdMap& ids)
+        { for (auto& [name,value]:data) { static_cast<void>(name); value.Remap(ids); } }
     };
     struct RotatorComponent
     {

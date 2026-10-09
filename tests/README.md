@@ -1,5 +1,8 @@
 # カメラ・パーティクルの検証
 
+ScriptValidationは型付きデータの保存復元、公開型の検証、内部データの失敗時復元、削除済み参照と、階層・Prefab・Editor複製の参照変換も検証します。
+`WP1_SCRIPT_RUNTIME_ONLY=1`には組み込みFollowTargetの実行とEditorのUndoによる保存データ・参照の復元を含みます。
+
 `WP1_SCENE_UI_ONLY=1`でReviewRegressionValidationを実行すると、SceneのCanvas平面のGPU描画・深度判定・表示切り替え・視点移動・平面の移動／回転／拡縮・クリック座標・UIドラッグ・Fフォーカスと、既存のGame UI描画・UI編集を検証します。
 
 MenuAuthoringValidationは、任意のメニュー番号と遷移先、4行以上の設定、独自キーの保存・取消・保存失敗、音量の範囲と小数の刻み、状態出力、カメラ時計、操作音、Undo／Redo、シーン改名後のランタイム選択、右スティック・トリガー・マウスの共通入力を検証します。WP1_AUTHORING_ONLYにも含まれます。タイトルの描画検証では、スクラブ・実行中の遷移が保存した倍率・加算・上下限と独自の出力キーを使うことも確認します。

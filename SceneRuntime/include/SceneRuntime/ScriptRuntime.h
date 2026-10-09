@@ -83,6 +83,12 @@ namespace SceneRuntime
         const std::map<std::string,bool>* pressed=nullptr;
         ScriptScene* scene=nullptr;
         const ScriptEvent* event=nullptr;
+        const ScriptValue::Object* data=nullptr;
+        ScriptValue::Object* dataState=nullptr;
+        /// <summary>保存された型付きパラメーターを参照します。存在しない名前はnullです。</summary>
+        const ScriptValue* Data(const std::string& name) const;
+        /// <summary>オブジェクト参照の現在の対象を取得します。未設定・削除済みはnullです。</summary>
+        const ScenePlacement* Reference(const std::string& name) const;
         float Input(const std::string& name) const;
         bool Pressed(const std::string& name) const;
         float Value(const std::string& name,float fallback=0) const;
@@ -92,6 +98,7 @@ namespace SceneRuntime
         std::map<std::string,ScriptField> fields;
         std::function<void(ScriptContext&)> start,update,stop;
         std::function<void(ScriptContext&)> onEvent;
+        ScriptValue::Object dataFields;
     };
     class ScriptRegistry final
     {
@@ -116,7 +123,7 @@ namespace SceneRuntime
     private:
         bool Advance(SceneLayout& layout,double seconds,std::string& error,
             const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics);
-        struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; };
+        struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; ScriptValue::Object data,dataState; };
         std::map<std::pair<std::string,std::string>,Instance> instances_;
         size_t nextId_=1;
         std::vector<ScriptEvent> events_;
