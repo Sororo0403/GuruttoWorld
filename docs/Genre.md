@@ -1,0 +1,13 @@
+# 地形・Tilemap・ナビゲーション
+
+Inspector のコンポーネント追加から Terrain、Tilemap、NavMesh、NavAgent を配置できます。Terrain と Tilemap は MeshRenderer と同じオブジェクトに併設しません。GPU メッシュをメモリから生成するため、生成OBJなどをContentへ書き出す必要はありません。
+
+Terrain は高さマップを法線とUV付きの三角形へ展開します。セル数、セルサイズ、テクスチャ倍率、色、高さブラシをInspectorで編集できます。「地形Colliderを追加」で同じ高さマップをJoltの三角形Colliderへ接続します。形状が変わった編集はGPU完了を待って差し替えられ、保存とUndoに反映されます。
+
+Tilemap はXY平面にアトラス付きの四角形を生成します。-1 は空セル、それ以外はアトラスの行優先インデックスです。パレットとセルボタンで描き換え、全面塗りと消去もできます。表示グリッドは先頭32×32セルで、それ以降は対象セルの座標欄から編集します。「タイルColliderを追加」は非空セルを厚み0.1の直方体へ展開し、Joltへ接続します。2D物体はRigidbodyの平面拘束と組み合わせます。
+
+NavMesh は高さ付きのセル面です。Terrainと同じオブジェクトへ追加すると、Bakeで地形のセル中心の高さと最大傾斜を取り込みます。TerrainのないNavMeshは平面を焼き込みます。シーンの有効なsolid BoxColliderを障害物として、Agent半径を加えた通行可否を保存します。Colliderを移動・編集したら再Bakeします。Inspectorでセルの通行可否を直接変更することもできます。
+
+NavAgent はNavMeshオブジェクトとワールド座標の目的地を指定します。A*で通行可能なセルを結び、地形の高さと親子座標を保って60Hzの固定更新で移動します。停止距離へ入るとMovingを解除します。Play中のScriptからNavAgentのdestinationとmovingを更新すると新しい経路へ移動します。通行不能な終点や経路のない場合はその位置で待機します。Prefab、Hierarchy複製、追加シーンはNavMeshへのオブジェクト参照を再対応付けします。
+
+`WP1_GENRE_ONLY=1` で ReviewRegressionValidation を実行すると、保存/入力検証、生成メッシュとアトラス、障害物と傾斜Bake、A*迂回、親座標のAgent移動、GPU描画、TerrainのピッキングとJolt Raycast、SceneEnvironmentの固定更新を確認します。

@@ -1,0 +1,9 @@
+# ラグドール
+
+`Content/Assets/Scenes/RagdollPlayground.json`を開き、PlayerのInspectorで「現在の姿勢から剛体とJointを生成」を押してください。一回のUndoで生成全体を戻せます。「物理制御を有効化」を選んでPlayすると、生成された剛体が重力とJointで動き、GPUスキニングの骨格姿勢へ反映されます。
+
+Animatorを持つモデルに「ラグドール」Componentを追加すると、同じ生成機能を使えます。スキンに使われる骨を対象に、現在の姿勢からCollider・RigidBody・SwingTwist Jointを生成します。Hierarchyの骨オブジェクトでColliderの形と太さ、質量、Jointのアンカーと角度制限を調整してください。名前が一意でない骨と、SRTで表せない変形は生成時に診断して元のシーンを維持します。
+
+非activeでは生成した剛体がkinematicとしてアニメーションへ追従し、Jointを無効化します。activeではdynamicへ切り替え、物理剛体のワールド姿勢を骨のローカル姿勢へ戻します。合成重みは最後のアニメーション姿勢と物理姿勢の間を補間します。root motion・IKによる姿勢上書きとownerのPlayerController／Collider／RigidBody運動は物理制御中に抑制し、ownerの保存された有効状態を保持します。
+
+生成した骨への参照とbind offsetはシーンに保存されます。Hierarchyの複製、Prefab、追加シーンのID変換でも参照を維持します。Scriptからは`ScriptScene::SetComponents`でRagdollの`active`と`weight`を変更できます。

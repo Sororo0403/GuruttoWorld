@@ -8,15 +8,17 @@
 - [x] 型付きゲームデータ: 数値、真偽値、文字列、オブジェクト参照、配列、構造化データ、Inspector、複製・Prefab参照
 - [x] 更新タイミング: FixedUpdate、物理との同期、LateUpdate、Pause・Step、失敗時の状態保持
 - [x] スクリプト制作: 作成、編集、コンパイル、診断、再読み込み、公開フィールド、配布物への同梱
-- [ ] 汎用UI: InputField、Slider、Toggle、ScrollView、Mask、自動レイアウト
-- [ ] 複数シーン: 追加ロード、アンロード、シーン間の保持、Editor編集
-- [ ] 音響: Listener、3D位置と減衰、Mixer、エフェクト、ストリーミング
-- [ ] 描画規模: LOD、GPUインスタンシング、遮蔽カリング
-- [ ] 照明: Point/Spotの影、IBL、ベイク照明、自動露出、カラーグレーディング
-- [ ] ジャンル支援: NavMesh、Terrain、Tilemap、2D物理、Joint、ラグドール
+- [x] 汎用UI: InputField、Slider、Toggle、ScrollView、Mask、自動レイアウト
+- [x] 複数シーン: 追加ロード、アンロード、シーン間の保持、Editor編集
+- [x] 音響: Listener、3D位置と減衰、Mixer、エフェクト、ストリーミング
+- [x] 描画規模: LOD、GPUインスタンシング、遮蔽カリング
+- [x] 照明: Point/Spotの影、IBL、ベイク照明、自動露出、カラーグレーディング
+- [x] ジャンル支援: NavMesh、Terrain、Tilemap、2D物理、Joint、ラグドール
 - 対象外: 複数プラットフォーム対応。ユーザー指定によりWindows / DirectX 12を維持する。
 
-Windows向けのEditorとAppで編集・実行・配布を確認する。
+Windows向けのEditorとAppで編集・実行・配布を確認する。チェックは実装の完了を表す。
+
+検証状況: 全変更を統合したDebug・Development・Releaseのソリューションビルド、各領域のDebug個別回帰、Debug／Releaseの音声デコード・ストリーミング、実DLLの登録と再読み込み、自動変更監視、コンパイル失敗時の保持、Contentスナップショット、Release配布物の起動検証が成功。Debug／Releaseの全体回帰と全追加領域の個別回帰、配布Appでの汎用UI・ラグドール両デモの読み込み・GPU描画も成功。下記の先行機能に記載した成功結果は、その機能を追加した時点の検証結果。
 
 ## 型付きゲームデータ
 
@@ -67,4 +69,54 @@ Editorの作成画面・外部編集・ソースとヘッダーの変更監視�
 配布では保存済みソースのスナップショットをコンパイルする。既存のBinをコピーせず、構成の違う古いDLLを持ち込まない。
 コンパイル中にソース・ヘッダー・ファイル一覧が変わった場合は前のmanifestを維持して中止する。
 
-検証: 3構成のソリューションビルド、Debug全体回帰、Debug／Releaseの実DLL登録・実行・再読み込み、ABI不一致と不正manifestの拒否、コンパイル失敗時のmanifest保持、ソースsnapshot、Release配布検証が成功。Editorの変更監視画面はビルド確認済みで、UI操作の自動検証は未実施。
+検証: 3構成のソリューションビルド、Debug全体回帰、Debug／Releaseの実DLL登録・実行・再読み込み、ABI不一致と不正manifestの拒否、コンパイル失敗時のmanifest保持、ソースsnapshot、Release配布検証が成功。変更監視は実際のScriptAuthoringPanel::Pollを使うheadless検証が成功。ソース作成・変更からの自動コンパイル、Play中の読み込み保留、編集状態へ戻った後の読み込みとPlay許可を確認した。
+
+## 汎用UI
+
+InputField、Slider、Toggle、ScrollView、Mask、horizontal／vertical／gridのLayoutGroupを追加した。
+保存・Inspector・Undoと、Editor Gameビュー／Appの入力・描画へ接続する。文字列・数値のbinding、変更／確定イベント、ScriptからのSetUiValue／SetUiTextも共通経路で反映する。
+InputFieldのフォーカス中はゲーム移動を抑制し、ScrollViewとMaskは子孫の描画とヒットを制限する。
+
+操作とデモは[汎用UI](UiControls.md)。回転したマスクのクリップは外接矩形を使う。ScriptModule ABIはversion 3となり、古いDLLは再コンパイルが必要。
+
+## 追加シーンと保持オブジェクト
+
+EditorとAppのSceneEnvironmentへ追加ロード・アンロードを接続した。Editorではロード済みシーンを編集でき、配置とシーン所属を保存・Undoする。
+ScriptのLoadScene／UnloadSceneとUIボタンからも呼び出せる。追加時は衝突したIDと内部参照を変換し、存続するScript・Animator・音声の実行状態を保持する。
+persistentを指定したオブジェクトと子孫はアンロードや置換ロード後も残る。親が削除される場合はWorld姿勢を保ってルートへ移す。
+
+基本の編集・保存操作は[Editorの操作説明](../Editor/README.md)。保持物体のWorld姿勢をSRTで表せない場合は切り替えを拒否して現状を維持する。有効なメニューCanvasは統合したシーン全体で一つまで。
+
+## 音響
+
+AudioListener、階層を含む3D音源の位置・距離減衰・混合率・ピッチ、Master配下のミキサーグループを追加した。
+音量・消音・低域フィルタ・リバーブを実際のXAudio2ボイスへ反映し、WAV／AACなどを少数のPCMチャンクで逐次再生する。
+PauseはSourceの再生位置を保持し、全体出力も消音する。シーンの再構成では存続する音源を再利用する。
+
+操作は[音響コンポーネント](Audio.md)。出力はステレオsubmix、リバーブはRoomプリセット。Streamingは元ファイルを保持し、各チャンクの上限は4 MiB。
+
+## 描画規模
+
+カメラ距離によるLOD、共有する静的メッシュのGPUインスタンシング、同フレームの深度とGPU query／predicationによる遮蔽カリングを追加した。
+保存・InspectorとEditor／Appの描画へ接続し、Profilerには実際のバッチ数と全個体分の三角形数を反映する。
+
+詳細は[描画・照明](Rendering.md)。LODは最大8段階でAnimator付きモデルは対象外。インスタンシングは不透明な静的個体を最大257個ずつまとめる。遮蔽判定を使う個体は個別描画する。
+
+## 照明と色調整
+
+PointLightの六面影、SpotLightの透視投影影、Materialの環境パノラマによるIBL、静的メッシュのライトマップベイクを追加した。
+シーンの自動露出・色フィルター・コントラスト・彩度を線形HDRのポストエフェクトへ接続し、保存・Inspector・Undoに含める。
+
+操作と制約は[描画・照明](Rendering.md)。局所影のアトラスは32面。IBLは画像mipとBRDF近似を使い、GGX反射プローブの事前積分は行わない。
+ベイクは重なりのない既存UVが必要で、自動UV展開と間接光の反復計算は行わない。LDRライトマップでは1を超える照度を切り詰める。自動露出は毎フレーム測光し、時間的な明暗順応は行わない。
+
+## ジャンル支援と物理
+
+Terrainの高さブラシ・GPUメッシュ・Jolt三角形Collider、アトラス付きTilemapの描画・セル編集・厚み付きColliderを追加した。
+NavMeshの高さ・傾斜・障害物BakeとA*を使い、NavAgentを60Hzで親座標を保って目的地へ移動する。保存・Inspector・Undoと複製／Prefab／追加シーンの参照変換へ接続する。
+
+RigidbodyのXY平面拘束による2D物理、固定・距離・Hinge・SwingTwist Jointと制限を追加した。
+ラグドールは現在の骨格からCollider・剛体・Jointを一括生成し、物理姿勢をGPUスキニングへ反映する。生成全体のUndoとアニメーション／物理制御の切り替えに対応する。
+
+操作は[地形・Tilemap・ナビゲーション](Genre.md)、[ラグドール](Ragdoll.md)。NavMeshはセル面で、障害物Bakeはsolid BoxColliderを扱う。形状や障害物を変更したら再Bakeする。
+Terrain／Tilemapは同じオブジェクトのMeshRendererと併設しない。ラグドールはスキンに使う一意な骨名とSRTで表せる姿勢が必要。
