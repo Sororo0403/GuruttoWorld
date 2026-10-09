@@ -8,7 +8,7 @@ namespace Editor
     {
     public:
         static void Draw(EditState& state, const SceneRuntime::ScenePlacement& placement,
-            const ProjectCatalog* catalog);
+            const ProjectCatalog* catalog,const SceneRuntime::SceneLayout* layout=nullptr);
     private:
         static bool DrawMesh(SceneRuntime::ScenePlacement& candidate, const ProjectCatalog* catalog);
         static bool DrawMaterial(EditState& state,SceneRuntime::ScenePlacement& candidate,const ProjectCatalog* catalog);

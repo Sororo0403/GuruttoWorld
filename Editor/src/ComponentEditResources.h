@@ -4,6 +4,8 @@
 namespace Editor {
 struct ComponentEditResources {
     static bool Changed(const SceneRuntime::ScenePlacement& before,const SceneRuntime::ScenePlacement& after) {
+        if(before.terrain!=after.terrain || before.tilemap!=after.tilemap) return true;
+        if(before.inputField!=after.inputField || before.slider.has_value()!=after.slider.has_value() || before.toggle.has_value()!=after.toggle.has_value()) return true;
         if(before.meshRenderer!=after.meshRenderer || before.material!=after.material || before.animator!=after.animator) return true;
         if(before.image.has_value()!=after.image.has_value() || before.text.has_value()!=after.text.has_value()) return true;
         if(before.image && before.image->texture!=after.image->texture) return true;

@@ -6,6 +6,7 @@
 #include <Engine/Input/Gamepad.h>
 #include <SceneRuntime/SceneEnvironment.h>
 #include "TitleAudio.h"
+#include <memory>
 
 namespace App
 {
@@ -15,7 +16,7 @@ namespace App
         /// <summary>
         /// タイトル画像とシェーダーの基準フォルダーを受け取ります。
         /// </summary>
-        explicit TitleScene(std::filesystem::path root, bool playIntro = true, std::filesystem::path scene="Assets/Scenes/TitleStreet.json");
+        explicit TitleScene(std::filesystem::path root, bool playIntro = true, std::filesystem::path scene="Assets/Scenes/TitleStreet.json",std::shared_ptr<SceneRuntime::SceneEnvironment> environment=std::make_shared<SceneRuntime::SceneEnvironment>());
         /// <summary>
         /// タイトル画像と CC0 モデルの街並みを初期化します。
         /// </summary>
@@ -42,7 +43,8 @@ namespace App
         TitleMenu menu_;
         Engine::Gamepad gamepad_;
         Engine::InputActions input_;
-        SceneRuntime::SceneEnvironment environment_;
+        std::shared_ptr<SceneRuntime::SceneEnvironment> environmentOwner_;
+        SceneRuntime::SceneEnvironment& environment_;
         TitleAudio audio_;
     };
 }

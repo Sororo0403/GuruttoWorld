@@ -1,6 +1,8 @@
 #include "UiComponentPanel.h"
+#include "UiControlPanel.h"
 #include "EnvironmentPanel.h"
 #include "AudioPreview.h"
+#include "AudioComponentPanel.h"
 #include "MenuPanel.h"
 #include <imgui.h>
 #include <algorithm>
@@ -59,6 +61,7 @@ void Rect(Editor::EditState& state,SceneRuntime::RectTransformComponent& c) {
 namespace Editor {
 bool UiComponentPanel::Draw(EditState& state,SceneRuntime::ScenePlacement& p,const ProjectCatalog* catalog) {
     const auto before=p;
+    DrawUiControls(state,p);
     Component(p.canvas,"キャンバス###Canvas",[&](auto& c){Vector(state,"基準解像度###Reference resolution",c.referenceSize,1,8192); ImGui::Checkbox("画面サイズに合わせて拡縮###Scale with screen",&c.scaleWithScreen);
         TitleSettings(state,c);
         DrawMenuConfiguration(state,c,catalog);
@@ -71,8 +74,8 @@ bool UiComponentPanel::Draw(EditState& state,SceneRuntime::ScenePlacement& p,con
     Component(p.image,"画像###Image",[&](auto& c){Asset(c.texture,catalog,AssetKind::Texture); Color(state,"画像の色###Image tint",c.color); ImGui::DragFloat4("UV範囲###UV rect",c.uv.data(),0.001f,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp); Track(state); c.uv[2]=std::max(c.uv[0],c.uv[2]); c.uv[3]=std::max(c.uv[1],c.uv[3]);});
     Component(p.text,"テキスト###Text",[&](auto& c){String(state,"テキスト内容###Content",c.text); String(state,"フォント名###Font family",c.font); ImGui::DragFloat("文字サイズ###Font size",&c.fontSize,1,1,512,"%.0f",ImGuiSliderFlags_AlwaysClamp); Track(state); Color(state,"文字色###Text color",c.color);});
     Component(p.button,"ボタン###Button",[&](auto& c){
-        static constexpr const char* actions[]{"click","show","hide","toggle","playAudio","loadScene","quit","setState"};
-        static constexpr const char* labels[]{"クリック通知","表示","非表示","表示切り替え","音声再生","シーン切り替え","実行終了","状態値を設定"};
+        static constexpr const char* actions[]{"click","show","hide","toggle","playAudio","loadScene","quit","setState","loadSceneAdditive","unloadScene"};
+        static constexpr const char* labels[]{"クリック通知","表示","非表示","表示切り替え","音声再生","シーン切り替え","実行終了","状態値を設定","シーン追加ロード","シーンをアンロード"};
         const auto found=std::find(std::begin(actions),std::end(actions),c.action);
         const auto preview=found==std::end(actions) ? c.action.c_str() : labels[found-std::begin(actions)];
         if(ImGui::BeginCombo("動作###Action",preview)) {
@@ -99,17 +102,17 @@ bool UiComponentPanel::Draw(EditState& state,SceneRuntime::ScenePlacement& p,con
         String(state,"入力Action名###Input action",c.inputAction);
         Color(state,"ホバー時の色###Hover tint",c.hoverColor); Color(state,"押下時の色###Pressed tint",c.pressedColor);
     });
-    Component(p.audioSource,"音源###AudioSource",[&](auto& c){Asset(c.clip,catalog,AssetKind::Audio); ImGui::SliderFloat("音量###Volume",&c.volume,0,1); Track(state); ImGui::Checkbox("ループ###Loop",&c.loop); ImGui::Checkbox("開始時に再生###Play on awake",&c.playOnAwake); String(state,"再生キュー名###Cue",c.cue); String(state,"音量の状態キー###Volume binding",c.volumeBinding); if(ImGui::Button("試聴###Audition")) AudioPreview::Play(c.clip,c.volume,c.loop); ImGui::SameLine(); if(ImGui::Button("試聴を停止###Stop audition")) AudioPreview::StopRequest();});
+    AudioPanel::Draw(state,p,catalog);
     return !p.SameComponents(before);
 }
 bool UiComponentPanel::Add(SceneRuntime::ScenePlacement& p) {
-    bool edited=false;
+    bool edited=AddUiControls(p);
     if(ImGui::MenuItem("キャンバス###Canvas",nullptr,false,!p.canvas)) {const auto id=EnvironmentPanel::NewId(p,"canvas"); p.canvas.emplace(); p.canvas->id=id; edited=true;}
     if(ImGui::MenuItem("UIトランスフォーム###RectTransform",nullptr,false,!p.rectTransform)) {const auto id=EnvironmentPanel::NewId(p,"rectTransform"); p.rectTransform.emplace(); p.rectTransform->id=id; edited=true;}
     if(ImGui::MenuItem("画像###Image",nullptr,false,!p.image)) {const auto id=EnvironmentPanel::NewId(p,"image"); p.image.emplace(); p.image->id=id; edited=true;}
     if(ImGui::MenuItem("テキスト###Text",nullptr,false,!p.text)) {const auto id=EnvironmentPanel::NewId(p,"text"); p.text.emplace(); p.text->id=id; edited=true;}
     if(ImGui::MenuItem("ボタン###Button",nullptr,false,!p.button)) {const auto id=EnvironmentPanel::NewId(p,"button"); p.button.emplace(); p.button->id=id; edited=true;}
-    if(ImGui::MenuItem("音源###AudioSource",nullptr,false,!p.audioSource)) {const auto id=EnvironmentPanel::NewId(p,"audioSource"); p.audioSource.emplace(); p.audioSource->id=id; edited=true;}
+    edited|=AudioPanel::Add(p);
     return edited;
 }
 }

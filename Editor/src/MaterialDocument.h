@@ -19,9 +19,11 @@ namespace Editor
             const auto remap=[&](SceneRuntime::MaterialAsset& asset) {
                 if(asset.texture==source) asset.texture=destination;
                 if(asset.normalTexture==source) asset.normalTexture=destination;
+                if(asset.environmentTexture==source) asset.environmentTexture=destination;
+                if(asset.lightmap==source) asset.lightmap=destination;
             };
             remap(asset_);for(auto& state:history_) remap(state);if(pending_) remap(*pending_);
-            for(const char* key:{"texture","normalTexture"}) if(savedValues_.contains(key) && savedValues_[key]==Text(source)) savedValues_[key]=Text(destination);
+            for(const char* key:{"texture","normalTexture","environmentTexture","lightmap"}) if(savedValues_.contains(key) && savedValues_[key]==Text(source)) savedValues_[key]=Text(destination);
         }
         bool CanUndo() const {return loaded_ && (cursor_>0 || (!history_.empty() && Values(asset_)!=Values(history_[cursor_])));}
         bool CanRedo() const {return loaded_ && cursor_+1<history_.size() && Values(asset_)==Values(history_[cursor_]);}
@@ -94,7 +96,8 @@ namespace Editor
             return {{"color",v.color},{"roughness",v.roughness},{"metallic",v.metallic},
                 {"transparent",v.transparent},{"physicallyBased",v.physicallyBased},{"normalFlipY",v.normalFlipY},
                 {"scale",v.uv.scale},{"rotation",v.uv.rotation},{"translation",v.uv.translation},
-                {"texture",Text(asset.texture)},{"normalTexture",Text(asset.normalTexture)}};
+                {"texture",Text(asset.texture)},{"normalTexture",Text(asset.normalTexture)},
+                {"environmentTexture",Text(asset.environmentTexture)},{"environmentIntensity",v.environmentIntensity},{"lightmap",Text(asset.lightmap)}};
         }
         SceneRuntime::MaterialAsset asset_;
         Engine::Json savedValues_;

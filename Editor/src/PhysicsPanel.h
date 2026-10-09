@@ -1,6 +1,7 @@
 #pragma once
 #include "EditState.h"
 #include "ProjectCatalog.h"
+#include "JointPanel.h"
 #include <imgui.h>
 
 namespace Editor
@@ -13,9 +14,9 @@ namespace Editor
         {
             auto& c=*candidate.boxCollider; ImGui::PushID(c.id.c_str());
             edited=ImGui::Checkbox("有効###Enabled",&c.enabled) || edited;
-            const char* shapes[]={"box","sphere","capsule","mesh"}; const char* labels[]={"箱","球","カプセル","メッシュ"};
-            int shape=0; for (int i=0;i<4;++i) if (c.shape==shapes[i]) shape=i;
-            if (ImGui::Combo("形状###Shape",&shape,labels,4)) { c.shape=shapes[shape]; edited=true; }
+            const char* shapes[]={"box","sphere","capsule","mesh","terrain","tilemap"}; const char* labels[]={"箱","球","カプセル","メッシュ","地形","タイルマップ"};
+            int shape=0; for (int i=0;i<6;++i) if (c.shape==shapes[i]) shape=i;
+            if (ImGui::Combo("形状###Shape",&shape,labels,6)) { c.shape=shapes[shape]; edited=true; }
             edited=ImGui::DragFloat3("中心###Center",c.center.data(),0.05f,-100000,100000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited; track();
             if (c.shape=="box") { edited=ImGui::DragFloat3("大きさ###Size",c.size.data(),0.05f,0.001f,100000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited; track(); }
             if (c.shape=="sphere" || c.shape=="capsule") { edited=ImGui::DragFloat("半径###Radius",&c.radius,0.05f,0.001f,100000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited; track(); }
@@ -47,6 +48,7 @@ namespace Editor
             int motion=body.motion=="kinematic" ? 1 : 0; const char* modes[]={"動的（物理で移動）","Kinematic（Scriptや演出で移動）"};
             if (ImGui::Combo("移動方式###Motion",&motion,modes,2)) { body.motion=motion==0 ? "dynamic" : "kinematic"; edited=true; }
             edited=ImGui::Checkbox("連続衝突判定###Continuous",&body.continuous) || edited;
+            edited=ImGui::Checkbox("2D（XY平面・Z軸回転）###Planar physics",&body.planar) || edited;
             edited=ImGui::DragFloat("質量###Mass",&body.mass,0.05f,0.001f,100000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited; track();
             for (const auto& field : {std::pair{"摩擦###Friction",&body.friction},std::pair{"反発###Restitution",&body.restitution}})
             { edited=ImGui::SliderFloat(field.first,field.second,0,1) || edited; track(); }
@@ -58,6 +60,6 @@ namespace Editor
             if (ImGui::Button("削除###Remove RigidBody")) { candidate.rigidBody.reset(); edited=true; }
             ImGui::PopID();
         }
-        return edited;
+        return DrawJoint(state,candidate) || edited;
     }
 }

@@ -98,7 +98,9 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\main.cpp">
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="src\EditorFonts.cpp" />
     <ClInclude Include="src\EditorFonts.h" />
     <ClInclude Include="src\EditorLanguage.h" />
@@ -109,8 +111,12 @@
     <ClCompile Include="src\UiCanvasPanel.cpp" />
     <ClInclude Include="src\UiCanvasPanel.h" />
     <ClInclude Include="src\AudioPreview.h" />
+    <ClInclude Include="src\AudioComponentPanel.h" />
+    <ClInclude Include="src\GenreComponentPanel.h" />
     <ClCompile Include="src\UiComponentPanel.cpp" />
     <ClInclude Include="src\UiComponentPanel.h" />
+    <ClInclude Include="src\UiControlPanel.h" />
+    <ClInclude Include="src\RagdollPanel.h" />
     <ClInclude Include="src\AnimationPanel.h" />
     <ClInclude Include="src\AnimatorPanel.h" />
     <ClInclude Include="src\MaterialDocument.h" />
@@ -155,6 +161,7 @@
     <ClInclude Include="src\ProjectSettingsPanel.h" />
     <ClInclude Include="src\InputBindingsPanel.h" />
     <ClInclude Include="src\MaterialPanel.h" />
+    <ClInclude Include="src\LightmapPanel.h" />
     <ClInclude Include="src\PrefabPanel.h" />
     <ClInclude Include="src\PhysicsPanel.h" />
     <ClInclude Include="src\AnimatorPanel.h" />
@@ -173,6 +180,7 @@
     <ClInclude Include="src\ObjectPanel.h" />
     <ClInclude Include="src\ScriptDataPanel.h" />
     <ClInclude Include="src\ScriptAuthoringPanel.h" />
+    <ClInclude Include="src\JointPanel.h" />
     <ClInclude Include="src\CameraPanel.h" />
     <ProjectReference Include="..\Engine\Engine.vcxproj">
       <Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project>

@@ -17,10 +17,10 @@ namespace App
             const auto path=std::filesystem::path(std::u8string(scene.begin(),scene.end()));
             const auto layout=SceneRuntime::SceneLayout::Load(root_/path);
             if(TitleBindings::Configuration(layout)) {
-                auto title=std::make_unique<TitleScene>(root_,!visited_.contains(scene),path);
+                auto title=std::make_unique<TitleScene>(root_,!visited_.contains(scene),path,environment_);
                 visited_.insert(scene); return title;
             }
-            return std::make_unique<AuthoredScene>(root_,path);
+            return std::make_unique<AuthoredScene>(root_,path,environment_);
         }
         return {};
     }

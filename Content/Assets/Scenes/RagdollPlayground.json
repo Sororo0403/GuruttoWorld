@@ -1,0 +1,348 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [
+      0.025,
+      0.035,
+      0.055,
+      1
+    ],
+    "mainCamera": "Camera"
+  },
+  "objects": [
+    {
+      "id": "Camera",
+      "name": "Camera",
+      "position": [
+        0,
+        7,
+        -14
+      ],
+      "rotation": [
+        0.35,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "camera",
+          "type": "Camera",
+          "enabled": true,
+          "verticalFov": 45,
+          "nearClip": 0.1,
+          "farClip": 100,
+          "referenceAspect": 1.7777777777777777,
+          "preserveHorizontal": false
+        }
+      ]
+    },
+    {
+      "id": "Light",
+      "name": "Light",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "parent": "",
+      "components": [
+        {
+          "id": "directionallight",
+          "type": "DirectionalLight",
+          "enabled": true,
+          "direction": [
+            0.4,
+            -0.7,
+            1
+          ],
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "intensity": 0.8,
+          "ambient": 0.2,
+          "specular": 0.4,
+          "shininess": 32
+        }
+      ]
+    },
+    {
+      "id": "Floor",
+      "name": "Floor",
+      "parent": "",
+      "position": [
+        0,
+        -0.375,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        12,
+        0.5,
+        12
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj"
+        },
+        {
+          "id": "collider",
+          "type": "BoxCollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Wall",
+      "name": "Wall",
+      "parent": "",
+      "position": [
+        3,
+        1.5,
+        2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.2,
+        2,
+        5
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj"
+        },
+        {
+          "id": "collider",
+          "type": "BoxCollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Platform",
+      "name": "Platform",
+      "parent": "",
+      "position": [
+        -3,
+        0.5,
+        3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.6666666666666666,
+        2
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/Cube.obj"
+        },
+        {
+          "id": "collider",
+          "type": "BoxCollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1.5,
+            1.5,
+            1.5
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Player",
+      "name": "Player",
+      "parent": "",
+      "position": [
+        0,
+        7,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "mesh",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "model": "Assets/Models/AnimatedBox.gltf"
+        },
+        {
+          "id": "collider",
+          "type": "BoxCollider",
+          "enabled": true,
+          "center": [
+            0,
+            1,
+            0
+          ],
+          "size": [
+            0.8,
+            2,
+            0.6
+          ]
+        },
+        {
+          "id": "player",
+          "type": "PlayerController",
+          "enabled": true,
+          "moveSpeed": 5,
+          "useGravity": true,
+          "gravity": 20,
+          "jumpSpeed": 7
+        },
+        {
+          "id": "animator",
+          "type": "Animator",
+          "enabled": true,
+          "initialState": "Idle",
+          "states": [
+            {
+              "name": "Idle",
+              "clip": "Idle",
+              "speed": 1,
+              "loop": true
+            },
+            {
+              "name": "Walk",
+              "clip": "Walk",
+              "speed": 1,
+              "loop": true
+            },
+            {
+              "name": "Jump",
+              "clip": "Jump",
+              "speed": 1,
+              "loop": true
+            }
+          ],
+          "transitions": [
+            {
+              "to": "Jump",
+              "parameter": "grounded",
+              "comparison": "==",
+              "value": 0,
+              "blendSeconds": 0.15,
+              "exitTime": -1,
+              "from": "*"
+            },
+            {
+              "to": "Idle",
+              "parameter": "grounded",
+              "comparison": "==",
+              "value": 1,
+              "blendSeconds": 0.15,
+              "exitTime": -1,
+              "from": "Jump"
+            },
+            {
+              "to": "Walk",
+              "parameter": "speed",
+              "comparison": ">",
+              "value": 0.05,
+              "blendSeconds": 0.15,
+              "exitTime": -1,
+              "from": "Idle"
+            },
+            {
+              "to": "Idle",
+              "parameter": "speed",
+              "comparison": "<=",
+              "value": 0.05,
+              "blendSeconds": 0.15,
+              "exitTime": -1,
+              "from": "Walk"
+            }
+          ]
+        },
+        {
+          "id": "ragdoll",
+          "type": "Ragdoll",
+          "enabled": true,
+          "active": false,
+          "weight": 1,
+          "bodyMass": 1,
+          "radius": 0.08,
+          "swing": 45,
+          "twist": 45,
+          "bones": []
+        }
+      ]
+    }
+  ],
+  "assetReferences": {
+    "Assets/Models/Cube.obj": "d08e9c24bfa343e0890b07fa7e70d7d8",
+    "Assets/Models/AnimatedBox.gltf": "2c9e91678dc446e79654385fe5798571"
+  }
+}

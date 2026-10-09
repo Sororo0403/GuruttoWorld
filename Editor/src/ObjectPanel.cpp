@@ -174,7 +174,7 @@ namespace Editor
                 DrawParent(world,state,*found);
                 ImGui::Separator();
                 DrawTransform(world, state, *found);
-                ComponentPanel::Draw(state,*found,catalog_);
+                ComponentPanel::Draw(state,*found,catalog_,&world.Layout());
                 DrawPrefabOverrides(state,world.Layout(),*found);
                 if (ImGui::Button("複製###Duplicate")) state.Request(state.DuplicateSelectionRequest());
                 ImGui::SameLine();
@@ -223,6 +223,21 @@ namespace Editor
         settingsEdited=ImGui::Checkbox("ポストエフェクトを有効化###Post effects",&settings.postEffects.enabled) || settingsEdited;
         TrackInspectorEdit(state);
         settingsEdited=ImGui::SliderFloat("露出（EV）###Exposure",&settings.postEffects.exposure,-10,10) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::Checkbox("自動露出###Auto exposure",&settings.postEffects.autoExposure) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("最小露出###Minimum exposure",&settings.postEffects.exposureMinimum,-10,settings.postEffects.exposureMaximum) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("最大露出###Maximum exposure",&settings.postEffects.exposureMaximum,settings.postEffects.exposureMinimum,10) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("測光の中間灰色###Middle gray",&settings.postEffects.middleGray,.01f,1) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("コントラスト###Contrast",&settings.postEffects.contrast,0,4) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::SliderFloat("彩度###Saturation",&settings.postEffects.saturation,0,4) || settingsEdited;
+        TrackInspectorEdit(state);
+        settingsEdited=ImGui::ColorEdit3("カラーフィルター###Color filter",settings.postEffects.colorFilter.data(),ImGuiColorEditFlags_HDR|ImGuiColorEditFlags_Float) || settingsEdited;
+        for (auto& value : settings.postEffects.colorFilter) value=std::clamp(value,0.0f,4.0f);
         TrackInspectorEdit(state);
         int tone=static_cast<int>(settings.postEffects.toneMapping);
         if (ImGui::Combo("トーンマッピング###Tone mapping",&tone,"なし\0Reinhard\0ACES近似\0"))
@@ -298,6 +313,12 @@ namespace Editor
         if (ImGui::IsItemDeactivatedAfterEdit() && invalidName_)
         {
             observedName_.clear(); // Restore the last valid name on the next frame.
+        }
+        bool persistent=placement.persistent;
+        if(ImGui::Checkbox("シーン切り替え後も保持###Persistent",&persistent))
+        {
+            auto candidate=placement; candidate.persistent=persistent;
+            state.RequestComponents(std::move(candidate),"Persistent");
         }
         if (invalidName_) ImGui::TextWrapped("名前には空白以外の文字を含めてください。");
     }

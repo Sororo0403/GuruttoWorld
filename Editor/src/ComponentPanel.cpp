@@ -3,7 +3,9 @@
 #include "UiComponentPanel.h"
 #include "AnimationPanel.h"
 #include "AnimatorPanel.h"
+#include "RagdollPanel.h"
 #include "PhysicsPanel.h"
+#include "GenreComponentPanel.h"
 #include "ScriptDataPanel.h"
 #include <SceneRuntime/ScriptRuntime.h>
 #include <SceneRuntime/MaterialAsset.h>
@@ -52,7 +54,23 @@ namespace Editor
         std::copy(mesh.visibleWhen.begin(),mesh.visibleWhen.end(),condition.begin());
         if(ImGui::InputText("表示条件###Mesh visible when",condition.data(),condition.size()))
         { mesh.visibleWhen=condition.data(); edited=true; }
-        if (ImGui::Button("描画設定を初期化###Reset MeshRenderer")) { mesh.enabled=true; mesh.visibleWhen.clear(); edited=true; }
+        edited=ImGui::Checkbox("GPUインスタンシング###GPU instancing",&mesh.instancing) || edited;
+        edited=ImGui::Checkbox("GPU遮蔽カリング###GPU occlusion culling",&mesh.occlusionCulling) || edited;
+        for (size_t index=0;index<mesh.lods.size();++index)
+        {
+            ImGui::PushID(static_cast<int>(index)); auto& lod=mesh.lods[index];
+            const float low=index ? mesh.lods[index-1].distance+.01f : .01f;
+            const float high=index+1<mesh.lods.size() ? mesh.lods[index+1].distance-.01f : 100000;
+            edited=ImGui::DragFloat("LOD切替距離###LOD distance",&lod.distance,.1f,low,high,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited;
+            if (ImGui::BeginCombo("LODモデル###LOD model",ProjectCatalog::Text(lod.model.filename()).c_str()))
+            { edited=ChooseModel(lod.model,catalog) || edited; ImGui::EndCombo(); }
+            if (ImGui::Button("LODを削除###Remove LOD")) { mesh.lods.erase(mesh.lods.begin()+index); edited=true; ImGui::PopID(); break; }
+            ImGui::PopID();
+        }
+        if (mesh.lods.size()<8 && !candidate.animator && ImGui::Button("LODを追加###Add LOD"))
+        { mesh.lods.push_back({mesh.lods.empty() ? 20.0f : std::min(100000.0f,mesh.lods.back().distance+20),mesh.model}); edited=true; }
+        if (ImGui::Button("描画設定を初期化###Reset MeshRenderer"))
+        { mesh.enabled=true; mesh.visibleWhen.clear(); mesh.lods.clear(); mesh.instancing=false; mesh.occlusionCulling=false; edited=true; }
         ImGui::SameLine();
         if (ImGui::Button("メッシュ描画を削除###Remove MeshRenderer")) { candidate.meshRenderer.reset(); candidate.animator.reset(); edited=true; }
         ImGui::PopID();
@@ -122,7 +140,7 @@ namespace Editor
         bool edited=false;
         if (ImGui::MenuItem("マテリアル割り当て###Material",nullptr,false,!candidate.material))
         { candidate.material=SceneRuntime::MaterialComponent{NewComponentId(candidate,"material"),true,{}}; edited=true; }
-        if (ImGui::BeginMenu("メッシュ描画###MeshRenderer",!candidate.meshRenderer))
+        if (ImGui::BeginMenu("メッシュ描画###MeshRenderer",!candidate.meshRenderer&&!candidate.terrain&&!candidate.tilemap))
         {
             std::filesystem::path model;
             if (ChooseModel(model,catalog))
@@ -147,6 +165,12 @@ namespace Editor
             if (!candidate.boxCollider) { candidate.boxCollider.emplace(); candidate.boxCollider->id=NewComponentId(candidate,"collider"); }
             edited=true;
         }
+        if(ImGui::MenuItem("Joint（剛体接続）###Joint",nullptr,false,!candidate.joint))
+        {
+            candidate.joint.emplace(); candidate.joint->id=NewComponentId(candidate,"joint");
+            if(!candidate.rigidBody) candidate.rigidBody.emplace();
+            if(!candidate.boxCollider) candidate.boxCollider.emplace();edited=true;
+        }
         if (ImGui::BeginMenu("ゲーム処理###Script"))
         {
             for (const auto& [name,definition] : SceneRuntime::ScriptRegistry::Definitions())
@@ -162,20 +186,23 @@ namespace Editor
         if (ImGui::MenuItem("骨格アニメーション###Animator",nullptr,false,!candidate.animator && candidate.meshRenderer && (candidate.Model().extension()==".gltf" || candidate.Model().extension()==".glb")))
         { candidate.animator=SceneRuntime::AnimatorComponent{}; candidate.animator->id=NewComponentId(candidate,"animator"); edited=true; }
         edited=EnvironmentPanel::Add(candidate) || edited;
+        if(ImGui::MenuItem("ラグドール###Ragdoll",nullptr,false,candidate.animator && candidate.meshRenderer && !candidate.ragdoll)) {candidate.ragdoll.emplace(); candidate.ragdoll->id=NewComponentId(candidate,"ragdoll"); edited=true;}
         edited=UiComponentPanel::Add(candidate) || edited;
+        edited=GenrePanel::Add(candidate) || edited;
         if (ImGui::MenuItem("アニメーション###Animation",nullptr,false,!candidate.animation))
         { candidate.animation=SceneRuntime::AnimationComponent{NewComponentId(candidate,"animation"),true,{}}; edited=true; }
         ImGui::EndPopup();
         return edited;
     }
 
-    void ComponentPanel::Draw(EditState& state, const SceneRuntime::ScenePlacement& placement, const ProjectCatalog* catalog)
+    void ComponentPanel::Draw(EditState& state, const SceneRuntime::ScenePlacement& placement, const ProjectCatalog* catalog,const SceneRuntime::SceneLayout* layout)
     {
         auto candidate=placement;
         bool edited=DrawMesh(candidate,catalog);
         edited=DrawMaterial(state,candidate,catalog) || edited;
         edited=DrawRotator(state,candidate) || edited;
         edited=AnimatorPanel::Draw(candidate,catalog) || edited;
+        edited=DrawRagdoll(state,candidate) || edited;
         if (candidate.playerController && ImGui::CollapsingHeader("プレイヤー操作###PlayerController",ImGuiTreeNodeFlags_DefaultOpen))
         {
             auto& player=*candidate.playerController;
@@ -250,6 +277,7 @@ namespace Editor
         }
         edited=EnvironmentPanel::Draw(state,candidate) || edited;
         edited=UiComponentPanel::Draw(state,candidate,catalog) || edited;
+        edited=GenrePanel::Draw(state,candidate,catalog,layout) || edited;
         edited=AnimationPanel::Draw(state,candidate) || edited;
         edited=DrawAdd(candidate,catalog) || edited;
         if (ImGui::GetActiveID()!=0 && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))

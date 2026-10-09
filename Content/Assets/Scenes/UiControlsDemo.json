@@ -1,0 +1,1515 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [
+      0.04,
+      0.06,
+      0.08,
+      1
+    ],
+    "mainCamera": "",
+    "fog": {
+      "enabled": false,
+      "color": [
+        0.76,
+        0.84,
+        0.85
+      ],
+      "start": 24,
+      "end": 155,
+      "strength": 0.72
+    }
+  },
+  "objects": [
+    {
+      "id": "canvas",
+      "name": "UI Controls",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "canvas",
+          "type": "Canvas",
+          "enabled": true,
+          "referenceSize": [
+            640,
+            360
+          ],
+          "scaleWithScreen": true,
+          "stateDefaults": {}
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "title",
+      "parent": "canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            20,
+            10
+          ],
+          "size": [
+            600,
+            38
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "UI Controls Demo",
+          "font": "Yu Gothic UI",
+          "fontSize": 28,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "name-label",
+      "name": "name-label",
+      "parent": "canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            20,
+            55
+          ],
+          "size": [
+            260,
+            25
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Name (click and type)",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "name",
+      "name": "name",
+      "parent": "canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            20,
+            85
+          ],
+          "size": [
+            260,
+            40
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "input",
+          "type": "InputField",
+          "enabled": true,
+          "text": "",
+          "placeholder": "Enter name",
+          "binding": "playerName",
+          "changedEvent": "playerNameChanged",
+          "submittedEvent": "playerNameSubmitted",
+          "maxLength": 64,
+          "multiline": false,
+          "password": false,
+          "readOnly": false
+        }
+      ]
+    },
+    {
+      "id": "volume-label",
+      "name": "volume-label",
+      "parent": "canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            20,
+            140
+          ],
+          "size": [
+            260,
+            25
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Volume (drag slider)",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "volume",
+      "name": "volume",
+      "parent": "canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            20,
+            170
+          ],
+          "size": [
+            260,
+            32
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "slider",
+          "type": "Slider",
+          "enabled": true,
+          "minimum": 0,
+          "maximum": 1,
+          "value": 0.65,
+          "wholeNumbers": false,
+          "vertical": false,
+          "binding": "volume",
+          "changedEvent": "volumeChanged",
+          "fillColor": [
+            0.2,
+            0.65,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "toggle",
+      "name": "toggle",
+      "parent": "canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            20,
+            220
+          ],
+          "size": [
+            32,
+            32
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "toggle",
+          "type": "Toggle",
+          "enabled": true,
+          "value": true,
+          "binding": "musicEnabled",
+          "changedEvent": "musicChanged",
+          "checkedColor": [
+            0.2,
+            0.85,
+            0.4,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "toggle-label",
+      "name": "toggle-label",
+      "parent": "canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            64,
+            225
+          ],
+          "size": [
+            230,
+            32
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Music enabled (click square)",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scroll",
+      "name": "scroll",
+      "parent": "canvas",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            320,
+            60
+          ],
+          "size": [
+            300,
+            270
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.09,
+            0.11,
+            0.15,
+            1
+          ]
+        },
+        {
+          "id": "scrollView",
+          "type": "ScrollView",
+          "enabled": true,
+          "contentSize": [
+            300,
+            630
+          ],
+          "offset": [
+            0,
+            0
+          ],
+          "horizontal": false,
+          "vertical": true,
+          "wheelSpeed": 40
+        },
+        {
+          "id": "mask",
+          "type": "Mask",
+          "enabled": true
+        },
+        {
+          "id": "layout",
+          "type": "LayoutGroup",
+          "enabled": true,
+          "direction": "vertical",
+          "spacing": [
+            8,
+            8
+          ],
+          "cellSize": [
+            100,
+            40
+          ],
+          "padding": [
+            12,
+            12,
+            12,
+            12
+          ],
+          "columns": 2,
+          "expandWidth": true,
+          "expandHeight": false
+        }
+      ]
+    },
+    {
+      "id": "row-0",
+      "name": "row-0",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 1",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-1",
+      "name": "row-1",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 2",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-2",
+      "name": "row-2",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 3",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-3",
+      "name": "row-3",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 4",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-4",
+      "name": "row-4",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 5",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-5",
+      "name": "row-5",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 6",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-6",
+      "name": "row-6",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 7",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-7",
+      "name": "row-7",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 8",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-8",
+      "name": "row-8",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 9",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "row-9",
+      "name": "row-9",
+      "parent": "scroll",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "id": "rect",
+          "type": "RectTransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            276,
+            50
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": "",
+          "widthBinding": ""
+        },
+        {
+          "id": "image",
+          "type": "Image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.15,
+            0.2,
+            0.28,
+            1
+          ]
+        },
+        {
+          "id": "text",
+          "type": "Text",
+          "enabled": true,
+          "text": "Scroll row 10",
+          "font": "Yu Gothic UI",
+          "fontSize": 20,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "assetReferences": {}
+}

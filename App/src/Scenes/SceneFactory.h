@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <set>
 #include <string>
+#include <SceneRuntime/SceneEnvironment.h>
 
 namespace App
 {
@@ -20,5 +21,6 @@ namespace App
     private:
         std::filesystem::path root_;
         std::set<std::string> visited_;
+        std::shared_ptr<SceneRuntime::SceneEnvironment> environment_=std::make_shared<SceneRuntime::SceneEnvironment>();
     };
 }

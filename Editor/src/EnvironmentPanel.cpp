@@ -92,6 +92,7 @@ namespace
         Color(state,"光の色###Local light color",light.color);
         Scalar(state,"強度###Local light intensity",light.intensity,0,10000);
         Scalar(state,"到達距離###Local light range",light.range,.01f,100000);
+        ImGui::Checkbox("局所光源のリアルタイム影###Local shadows",&light.shadowsEnabled); Track(state);
     }
     void Spot(Editor::EditState& state, SceneRuntime::SpotLightComponent& light)
     {

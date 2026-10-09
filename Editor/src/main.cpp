@@ -3,6 +3,7 @@
 #include "ProjectPanel.h"
 #include "BuildPanel.h"
 #include "ScriptAuthoringPanel.h"
+#include "LightmapPanel.h"
 #include "ProfilerPanel.h"
 #include <chrono>
 #include "AssetChanges.h"
@@ -122,9 +123,10 @@ namespace
             if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard,&gamepad,
                 gamePanel.Focused() && gamePanel.Hovered() && !ImGui::IsAnyItemActive()));
             if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
+            if(gameSession.Runtime() && !gameSession.Runtime()->PrepareUi(renderer,root,fileStatus)) LogResult(false);
             if (gameSession.State().CanPause() && gameSession.Runtime() && keyboard && keyboard->IsActive() && !closeRequested)
             {
-                const bool input=gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive();
+                const bool input=gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && gameSession.Runtime()->Ui().focused.empty();
                 if (const auto event=gameSession.Title().Update(playerInputs,input,seconds,gameSession.Runtime()->Ui()))
                     pendingUiEvent=*event;
                 if (input) gameSession.Runtime()->SetInputActions(playerInputs.Values(),playerInputs.PressedValues());
@@ -377,7 +379,11 @@ namespace
                 catch (const std::exception& exception) { fileStatus=exception.what(); return false; }
             }
             if (request.action==Editor::ObjectAction::Duplicate)
+            {
                 return editState.DuplicateObjects(world,request.ids,{4,0,0},fileStatus);
+            }
+            if(request.action==Editor::ObjectAction::GenerateRagdoll)
+                return world.GenerateRagdoll(request.id,root,fileStatus);
             if (request.action==Editor::ObjectAction::Delete)
                 return editState.DeleteObjects(world,request.ids,fileStatus);
             if (request.action==Editor::ObjectAction::Settings) return request.settings && world.SetSettings(*request.settings,fileStatus);
@@ -427,7 +433,33 @@ namespace
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
                     sceneLoaded ? "エディターのシーンを読み込みました。" : fileStatus);
             }
-            return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer) && ApplyPlay(renderer) && ApplyAssets(renderer) && ApplyRecovery(renderer);
+            return ApplySceneChange(renderer) && ApplyReload(renderer) && ApplyHistory(renderer) && ApplyObject(renderer) && ApplyPlay(renderer) && ApplySceneCollection(renderer) && ApplyAssets(renderer) && ApplyRecovery(renderer);
+        }
+
+        bool ApplySceneCollection(Engine::DirectX12Renderer& renderer)
+        {
+            if(!pendingSceneCollection) return true;
+            const auto [name,unload]=std::move(*pendingSceneCollection); pendingSceneCollection.reset();
+            if(!renderer.WaitForIdle()) return false;
+            if(auto* runtime=gameSession.Runtime())
+            {
+                const bool success=unload ? runtime->UnloadScene(name,fileStatus) : runtime->LoadScene(name,true,fileStatus);
+                LogResult(success); return true;
+            }
+            try
+            {
+                SceneRuntime::SceneCollection collection;
+                collection.Reset(world.Layout(),document.Path().lexically_relative(root).generic_string());
+                auto layout=unload ? collection.Unload(world.Layout(),name) :
+                    collection.Add(world.Layout(),SceneRuntime::SceneLayout::Load(root/name,root),name);
+                const auto previousUi=presentation?std::optional<SceneRuntime::SceneUi>{presentation->CaptureUi()}:std::nullopt;
+                if(presentation && !presentation->PrepareUi(renderer,root,layout,fileStatus)) {LogResult(false);return true;}
+                if(!world.ReplaceLayout(std::move(layout),root,fileStatus)) {if(presentation && previousUi) presentation->RestoreUi(*previousUi); LogResult(false);return true;}
+                history.Observe(Snapshot(SceneJson()),{}); editState.SetChanged(true);
+                fileStatus="シーン構成を更新しました。保存すると合成シーンと所属を保存します。"; LogResult(true);
+            }
+            catch(const std::exception& exception) {ReportStatus(exception.what(),false);}
+            return true;
         }
 
         bool CanReloadAssets() const
@@ -628,6 +660,7 @@ namespace
 
         void ApplyUiEvent(Engine::DirectX12Renderer& renderer)
         {
+            if(gameSession.Runtime()) gameSession.Runtime()->FlushSceneChanges();
             if(!pendingUiEvent) return;
             if(!renderer.WaitForIdle()) return;
             const auto event=std::move(*pendingUiEvent); pendingUiEvent.reset();
@@ -635,19 +668,20 @@ namespace
             if(event.action=="quit") { StopGame(); return; }
             if(event.action!="loadScene") return;
             try {
-                const auto layout=SceneRuntime::SceneLayout::Load(root/std::filesystem::path(event.target));
-                if(!gameSession.LoadScene(renderer,root,layout,fileStatus)) LogResult(false);
+                if(!gameSession.Runtime()->LoadScene(std::filesystem::path(event.target),false,fileStatus)) LogResult(false);
                 else runtimeEditState.Reloaded();
             } catch(const std::exception& e) { ReportStatus(e.what(),false); }
         }
 
         void UpdateGamePointer()
         {
+            const auto characters=keyboard?Engine::Window::ConsumeTextInput(keyboard->WindowHandle()):std::vector<char32_t>{};
+            if(keyboard) Engine::Window::ConsumeMouseWheel(keyboard->WindowHandle());
             auto* runtime=gameSession.Runtime(); if(!runtime) return;
-            if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {runtime->Ui().pressed.clear(); runtime->Ui().hovered.clear(); return;}
+            if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {runtime->Ui().pressed.clear(); runtime->Ui().hovered.clear(); runtime->Ui().focused.clear(); return;}
             const auto& v=gamePanel.Viewport(); if(!v.Valid()) return;
             auto& ui=runtime->Ui(); const auto mouse=ImGui::GetIO().MousePos;
-            if(gamePanel.Focused() && !gameSession.Title().Active() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
+            if(gamePanel.Focused() && !gameSession.Title().Active() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && ui.focused.empty()) {
                 for (const auto& [name,binding] : playerInputs.GetBindings()) {
                     static_cast<void>(binding);
                     if (!playerInputs.Pressed(name)) continue;
@@ -655,11 +689,12 @@ namespace
                     if (!object.empty()) { pendingUiEvent=runtime->Click(object); break; }
                 }
             }
-            ui.hovered=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered()?SceneRuntime::SceneUi::Hit(runtime->World().Layout(),static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),mouse.x-v.x,mouse.y-v.y,ui):std::string{};
-            if(ImGui::IsMouseClicked(ImGuiMouseButton_Left)) ui.pressed=ui.hovered;
-            if(ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-                if(!ui.pressed.empty() && ui.pressed==ui.hovered) pendingUiEvent=runtime->Click(ui.pressed);
-                ui.pressed.clear();
+            const bool inside=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered();
+            const auto event=runtime->UiPointer(static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),inside?mouse.x-v.x:-100000,inside?mouse.y-v.y:-100000,
+                ImGui::IsMouseDown(ImGuiMouseButton_Left),ImGui::IsMouseClicked(ImGuiMouseButton_Left),ImGui::IsMouseReleased(ImGuiMouseButton_Left),inside?ImGui::GetIO().MouseWheel:0);
+            if(!event.object.empty()) pendingUiEvent=event;
+            if(gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
+                for(const auto character:characters) runtime->UiTextInput(character);
             }
         }
 
@@ -849,6 +884,7 @@ namespace
                 runtimeObjectPanel.Draw(runtime->World(),runtimeEditState,false,&projectPanel.Catalog(),true);
             else {
                 objectPanel.Draw(world, editState, EditWidgetsEnabled(),&projectPanel.Catalog());
+                lightmapPanel.Draw(world,editState,root,EditWidgetsEnabled());
                 projectPanel.DrawInspector(editState,EditWidgetsEnabled(),&world.Layout());
             }
             if (const auto moved=projectPanel.TakeAssetMove())
@@ -989,6 +1025,7 @@ namespace
             DrawEditMenu(enabled);
             if (ImGui::MenuItem("ビルド###Build player")) buildPanel.open=true;
             if (ImGui::MenuItem("C++ゲーム処理###Script authoring")) scriptPanel.open=true;
+            ImGui::MenuItem("追加シーン###Scene collection",nullptr,&showSceneCollection);
             if (ImGui::BeginMenu("表示###View"))
             {
                 if (ImGui::MenuItem("選択対象にフォーカス###Focus selected", "F", false, enabled && editState.InspectedAsset().empty() && sceneViewport.Valid() && !editState.SelectedIds().empty())) focusRequested=true;
@@ -1146,6 +1183,7 @@ namespace
 
         void DrawSceneDialogs()
         {
+            DrawSceneCollection();
             saveAsPanel.Draw(root,[&](const auto& path,bool overwrite) { return SaveAs(path,overwrite); },fileStatus);
             if (newScenePopupRequested) { ImGui::OpenPopup("新規シーン###New scene"); newScenePopupRequested=false; }
             if (ImGui::BeginPopupModal("新規シーン###New scene",nullptr,ImGuiWindowFlags_AlwaysAutoResize))
@@ -1162,6 +1200,36 @@ namespace
             if (document.NeedsConfirmation() && !ImGui::IsPopupOpen("未保存の変更があります：シーン切り替え###Switch scene with unsaved changes?"))
                 ImGui::OpenPopup("未保存の変更があります：シーン切り替え###Switch scene with unsaved changes?");
             DrawSceneSwitchPopup();
+        }
+
+        void DrawSceneCollection()
+        {
+            if(!showSceneCollection) return;
+            if(ImGui::Begin("追加シーン###Scene collection",&showSceneCollection))
+            {
+                ImGui::InputText("Assets/Scenes内のパス###Scene path",additiveScenePath.data(),additiveScenePath.size());
+                ImGui::BeginDisabled(pendingSceneCollection.has_value() || !sceneLoaded);
+                if(ImGui::Button("追加ロード###Load additive"))
+                {
+                    const std::filesystem::path path(additiveScenePath.data());
+                    if(!path.is_absolute() && path.generic_string().starts_with("Assets/Scenes/") && path.extension()==".json" &&
+                        std::none_of(path.begin(),path.end(),[](const auto& part){return part=="..";})) pendingSceneCollection={{path.generic_string(),false}};
+                    else fileStatus="Assets/Scenes内のJSONを指定してください。";
+                }
+                SceneRuntime::SceneCollection collection;
+                if(gameSession.Runtime()) collection=gameSession.Runtime()->Scenes();
+                else collection.Reset(world.Layout(),document.Path().lexically_relative(root).generic_string());
+                for(const auto& entry:collection.Entries())
+                {
+                    ImGui::PushID(entry.name.c_str()); ImGui::TextUnformatted(entry.name.c_str()); ImGui::SameLine();
+                    if(ImGui::SmallButton("アンロード###Unload")) pendingSceneCollection={{entry.name,true}};
+                    ImGui::PopID();
+                }
+                ImGui::EndDisabled();
+                ImGui::TextWrapped("Inspectorで保持を指定すると、シーン切り替え後も対象と子孫を保持します。編集時の保存は合成シーンとして保存します。");
+                if(!fileStatus.empty()) ImGui::TextWrapped("%s",fileStatus.c_str());
+            }
+            ImGui::End();
         }
 
         void CreateSceneRequest()
@@ -1278,6 +1346,10 @@ namespace
         Editor::SceneSnapshotCache sceneSnapshots;
         bool newScenePopupRequested=false;
         std::array<char,256> newSceneName{"NewScene.json"};
+        bool showSceneCollection=false;
+        Editor::LightmapPanel lightmapPanel;
+        std::array<char,256> additiveScenePath{"Assets/Scenes/Game.json"};
+        std::optional<std::pair<std::string,bool>> pendingSceneCollection;
     };
 }
 

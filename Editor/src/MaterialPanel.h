@@ -64,6 +64,19 @@ namespace Editor
                 ImGui::EndCombo();
             }
             ImGui::Checkbox("法線マップのYを反転###Normal flip Y",&asset_.values.normalFlipY);
+            for (const auto& entry : {std::pair{"環境照明パノラマ###Environment panorama",&asset_.environmentTexture},std::pair{"ベイク済みライトマップ###Baked lightmap",&asset_.lightmap}})
+            {
+                const auto imageLabel=entry.second->empty() ? std::string("なし") : ProjectCatalog::Text(entry.second->filename());
+                if (ImGui::BeginCombo(entry.first,imageLabel.c_str()))
+                {
+                    if (ImGui::Selectable("なし",entry.second->empty())) entry.second->clear();
+                    for (const auto& image : catalog.Assets()) if (image.kind==AssetKind::Texture && ProjectCatalog::Text(image.path).starts_with("Assets/Textures/"))
+                        if (ImGui::Selectable(ProjectCatalog::Text(image.path).c_str(),image.path==*entry.second)) *entry.second=image.path;
+                    ImGui::EndCombo();
+                }
+            }
+            ImGui::SliderFloat("環境照明の強度###Environment intensity",&asset_.values.environmentIntensity,0,100);
+            ImGui::TextWrapped("環境照明は正距円筒パノラマを使います。ライトマップはモデルの元のUVへ適用します。");
             ImGui::DragFloat2("画像の拡縮###UV scale",asset_.values.uv.scale.data(),0.05f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp);
             float degrees=asset_.values.uv.rotation*57.2957795f;
             if (ImGui::DragFloat("画像の回転（度）###UV rotation",&degrees,1,-36000,36000,"%.1f",ImGuiSliderFlags_AlwaysClamp)) asset_.values.uv.rotation=degrees*0.0174532925f;

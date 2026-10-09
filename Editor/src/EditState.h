@@ -8,7 +8,7 @@
 
 namespace Editor
 {
-    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete, Components, Settings, AddPrefab, SavePrefab, ApplyPrefab, RefreshPrefabs, UnpackPrefab, RevertPrefab, RevertPrefabProperty, ApplyPrefabProperty, SavePrefabVariant };
+    enum class ObjectAction { Add, AddEmpty, Duplicate, Delete, Components, Settings, AddPrefab, SavePrefab, ApplyPrefab, RefreshPrefabs, UnpackPrefab, RevertPrefab, RevertPrefabProperty, ApplyPrefabProperty, SavePrefabVariant, GenerateRagdoll };
     struct ObjectRequest
     {
         ObjectAction action = ObjectAction::Add;

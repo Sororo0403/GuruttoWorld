@@ -5,16 +5,18 @@
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <utility>
 #include <SceneRuntime/ProjectSettings.h>
+#include <Engine/Platform/Window.h>
 
 namespace App
 {
-    TitleScene::TitleScene(std::filesystem::path root, bool playIntro,std::filesystem::path scene) : root_(std::move(root)), scene_(std::move(scene)), menu_(playIntro, false, false) {}
+    TitleScene::TitleScene(std::filesystem::path root, bool playIntro,std::filesystem::path scene,std::shared_ptr<SceneRuntime::SceneEnvironment> environment) : root_(std::move(root)), scene_(std::move(scene)), menu_(playIntro, false, false),environmentOwner_(std::move(environment)),environment_(*environmentOwner_) {}
 
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)
     {
         input_.SetBindings(SceneRuntime::ProjectSettings::Load(root_).inputActions);
         std::string error;
-        if (!environment_.Initialize(renderer,root_,root_/scene_,error)) return false;
+        const bool loaded=!environment_.Initialized() ? environment_.Initialize(renderer,root_,root_/scene_,error) : environment_.LoadScene(scene_,false,error);
+        if (!loaded) return false;
         menu_.Configure(TitleBindings::EffectiveConfiguration(environment_.World().Layout()));
         const auto settings=GameSettings::Load(GameSettings::UserPath());
         if(settings.loaded) menu_.LoadSettings(settings);
@@ -46,7 +48,8 @@ namespace App
     std::string TitleScene::Update(double deltaSeconds, const Engine::Keyboard& keyboard)
     {
         gamepad_.Update(keyboard.IsActive());
-        const auto input = ReadMenuInput(keyboard);
+        auto input = ReadMenuInput(keyboard);
+        if(!environment_.Ui().focused.empty()) {input.keyboardButtons=0; input.gamepadButtons=0; input.stickX=input.stickY=0; input.anyButtonPressed=false;}
         const float previousIntro=menu_.IntroProgress();
         auto action = menu_.Update(input, deltaSeconds);
         SyncUi();
@@ -83,7 +86,9 @@ namespace App
     }
     TitleMenuAction TitleScene::UpdatePointer(const Engine::Keyboard& keyboard)
     {
-        if(!keyboard.IsActive()) {mouseReady_=false; mouseDown_=false; pressed_.clear(); hovered_.clear(); return TitleMenuAction::None;}
+        const auto characters=Engine::Window::ConsumeTextInput(keyboard.WindowHandle());
+        const auto wheel=Engine::Window::ConsumeMouseWheel(keyboard.WindowHandle());
+        if(!keyboard.IsActive()) {mouseReady_=false; mouseDown_=false; pressed_.clear(); hovered_.clear(); environment_.Ui().focused.clear(); return TitleMenuAction::None;}
         POINT cursor{}; GetCursorPos(&cursor); ScreenToClient(keyboard.WindowHandle(),&cursor);
         const bool down=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
         const auto& state=environment_.Ui();
@@ -91,16 +96,12 @@ namespace App
         hovered_=SceneRuntime::SceneUi::Hit(environment_.World().Layout(),width_,height_,static_cast<float>(cursor.x),static_cast<float>(cursor.y),state);
         SelectHovered(previousHover);
         auto action=TitleMenuAction::None;
-        if(mouseReady_ && down && !mouseDown_) pressed_=hovered_;
-        if(mouseReady_ && !down && mouseDown_) {
-            if(!pressed_.empty() && pressed_==hovered_) {
-                const auto event=environment_.Click(pressed_);
-                if(!event.event.empty()) action=menu_.ActivateUi(event.event);
-                else if(event.action=="quit") PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
-                else if(event.action=="loadScene") requestedScene_=event.target;
-            }
-            pressed_.clear();
-        }
+        const auto event=environment_.UiPointer(width_,height_,static_cast<float>(cursor.x),static_cast<float>(cursor.y),mouseReady_ && down,mouseReady_ && down && !mouseDown_,mouseReady_ && !down && mouseDown_,wheel);
+        for(const auto character:characters) environment_.UiTextInput(character);
+        pressed_=environment_.Ui().pressed;
+        if(!event.event.empty()) action=menu_.ActivateUi(event.event);
+        else if(event.action=="quit") PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
+        else if(event.action=="loadScene") requestedScene_=event.target;
         mouseDown_=down; mouseReady_=true; return action;
     }
     void TitleScene::SelectHovered(const std::string& previousHover)
@@ -112,6 +113,7 @@ namespace App
     Engine::RenderResult TitleScene::Draw(Engine::DirectX12Renderer& renderer)
     {
         width_=renderer.GetWidth(); height_=renderer.GetHeight();
+        std::string error; if(!environment_.PrepareUi(renderer,root_,error)) {Engine::Log::Error(error); return Engine::RenderResult::Failed;}
         return renderer.Render(environment_.World().Layout().settings.background, [&](ID3D12GraphicsCommandList* commands, float)
         {
             environment_.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
