@@ -1,6 +1,7 @@
 # カメラ・パーティクルの検証
 
 ScriptValidationは型付きデータの保存復元、公開型の検証、内部データの失敗時復元、削除済み参照と、階層・Prefab・Editor複製の参照変換も検証します。
+ScriptPhaseValidationは更新段階の順序、60Hz物理の30／120fps比較、Pause・Step、短いフレームの押下保持とPause・フォーカス喪失での解除、固定バッチの物理・内部状態復元、LateUpdateのリソース失敗を検証します。
 `WP1_SCRIPT_RUNTIME_ONLY=1`には組み込みFollowTargetの実行とEditorのUndoによる保存データ・参照の復元を含みます。
 
 `WP1_SCENE_UI_ONLY=1`でReviewRegressionValidationを実行すると、SceneのCanvas平面のGPU描画・深度判定・表示切り替え・視点移動・平面の移動／回転／拡縮・クリック座標・UIドラッグ・Fフォーカスと、既存のGame UI描画・UI編集を検証します。

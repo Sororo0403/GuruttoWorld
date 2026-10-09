@@ -7,6 +7,7 @@
 
 namespace SceneRuntime
 {
+    enum class ScriptPhase { Update,FixedUpdate,LateUpdate };
     struct ScriptEvent
     {
         std::string name,sender,target;
@@ -85,6 +86,7 @@ namespace SceneRuntime
         const ScriptEvent* event=nullptr;
         const ScriptValue::Object* data=nullptr;
         ScriptValue::Object* dataState=nullptr;
+        ScriptPhase phase=ScriptPhase::Update;
         /// <summary>保存された型付きパラメーターを参照します。存在しない名前はnullです。</summary>
         const ScriptValue* Data(const std::string& name) const;
         /// <summary>オブジェクト参照の現在の対象を取得します。未設定・削除済みはnullです。</summary>
@@ -99,6 +101,7 @@ namespace SceneRuntime
         std::function<void(ScriptContext&)> start,update,stop;
         std::function<void(ScriptContext&)> onEvent;
         ScriptValue::Object dataFields;
+        std::function<void(ScriptContext&)> fixedUpdate,lateUpdate;
     };
     class ScriptRegistry final
     {
@@ -112,7 +115,10 @@ namespace SceneRuntime
     public:
         // Transactional update. Use context.scene for structural changes; never resize arrays in a callback.
         bool Update(SceneLayout& layout,double seconds,std::string& error,
-            const std::map<std::string,float>& input={},const std::map<std::string,bool>& pressed={},const PhysicsWorld* physics=nullptr);
+            const std::map<std::string,float>& input={},const std::map<std::string,bool>& pressed={},const PhysicsWorld* physics=nullptr,
+            ScriptPhase phase=ScriptPhase::Update);
+        /// <summary>指定した更新段階を持つ有効な処理があるか調べます。</summary>
+        static bool HasPhase(const SceneLayout& layout,ScriptPhase phase);
         void Stop(SceneLayout& layout) noexcept;
         void QueueEvent(ScriptEvent event);
         const std::map<std::string,std::array<float,3>>& Impulses() const { return impulses_; }
@@ -122,7 +128,8 @@ namespace SceneRuntime
         const std::map<std::string,std::optional<bool>>& RootMotions() const { return rootMotions_; }
     private:
         bool Advance(SceneLayout& layout,double seconds,std::string& error,
-            const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics);
+            const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase);
+        bool pendingFixedCommands_=false;
         struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; ScriptValue::Object data,dataState; };
         std::map<std::pair<std::string,std::string>,Instance> instances_;
         size_t nextId_=1;

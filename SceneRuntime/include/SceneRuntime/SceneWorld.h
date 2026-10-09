@@ -68,6 +68,8 @@ namespace SceneRuntime
         /// <summary>個体のパラメーター上書きを解除し、入力または保存値を使用します。</summary>
         bool ClearAnimatorParameter(const std::string& id,const std::string& name);
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { inputValues_=std::move(values); inputPressed_=std::move(pressed); }
+        /// <summary>フォーカス喪失や一時停止で未処理の固定更新入力を破棄します。</summary>
+        void DiscardPendingInput() { fixedPressed_.clear(); fixedJump_=false; inputValues_.clear(); inputPressed_.clear(); }
         // Normalized input moves controllers on their parent-local XZ plane.
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false);
         bool AddImpulse(const std::string& id,const std::array<float,3>& impulse);
@@ -113,7 +115,16 @@ namespace SceneRuntime
             bool applyPose=false;
         };
         /// <summary>配置・モデル・初期Animatorを候補へ構築し、現在のシーンを保持します。</summary>
-        bool PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result);
+        bool PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result,const PreparedLayout* previous=nullptr);
+        /// <summary>実行段階の変更を直前の候補から準備し、進行したAnimator状態を保持します。</summary>
+        bool PrepareScriptLayout(SceneLayout layout,const PreparedLayout& previous,PreparedLayout& result,std::string& error);
+        /// <summary>現在の実行リソースと状態を更新候補へ参照共有します。</summary>
+        PreparedLayout RuntimeLayout() const;
+        /// <summary>固定コールバック・物理・衝突イベントを候補へ進めます。</summary>
+        bool FixedTick(SceneLayout& layout,ScenePhysics::States& states,ScriptRuntime& scripts,float horizontal,float vertical,bool jump,
+            const std::map<std::string,bool>& pressed,std::string& error);
+        /// <summary>接触イベントを指定した実行状態へ予約します。</summary>
+        bool QueueContacts(const SceneLayout& layout,ScriptRuntime& scripts,std::string& error) const;
         /// <summary>準備した配置とリソースをシーンへ反映します。</summary>
         void CommitLayout(PreparedLayout&& prepared,bool preserveExecution);
         bool PrepareRootMotion(PreparedLayout& prepared,std::vector<AnimatorFrame>& frames,std::string& error) const;
@@ -139,6 +150,9 @@ namespace SceneRuntime
         std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animatedModels_;
         std::map<std::string,AnimatorState> animatorStates_;
         ScriptRuntime scripts_;
+        double fixedSeconds_=0;
+        bool fixedJump_=false;
+        std::map<std::string,bool> fixedPressed_;
         ScenePhysics::States physics_;
         PhysicsWorld physicsWorld_;
         Microsoft::WRL::ComPtr<ID3D12Device> materialDevice_;

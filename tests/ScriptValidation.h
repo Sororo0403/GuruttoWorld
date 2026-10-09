@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include "../Editor/src/GameSession.h"
 #include "../Editor/src/EditHistory.h"
+#include "ScriptPhaseValidation.h"
 
 namespace ScriptValidation
 {
@@ -165,6 +166,7 @@ namespace ScriptValidation
         Require(history.CanUndo() && environment->World().ReplaceLayout(SceneLayout::Parse(history.Target(false).json),root,error,true),"typed data and references restore through Editor Undo");
         Require(renderer.Render({0,0,0,1},[&](auto* commands,float) { session.Draw(commands,renderer.GetWidth(),renderer.GetHeight()); })!=Engine::RenderResult::Failed,"runtime spawned objects render");
         Require(renderer.WaitForIdle() && session.Stop(),"runtime resources stop safely");
+        ScriptPhaseValidation::Runtime(renderer);
     }
     inline void Run()
     {
@@ -205,5 +207,6 @@ namespace ScriptValidation
         Require(!runtime.Update(unknown,0.1,error) && !error.empty(),"unknown runtime script reports error");
         SceneApi();
         TypedData();
+        ScriptPhaseValidation::Schema();
     }
 }

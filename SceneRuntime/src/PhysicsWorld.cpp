@@ -429,6 +429,43 @@ namespace SceneRuntime
             }
         }
     };
+    struct PhysicsWorld::Transaction::State
+    {
+        std::shared_ptr<Impl> world;
+        JPH::StateRecorderImpl system;
+        std::map<std::string,JPH::StateRecorderImpl> characters;
+        std::map<std::string,Pose> poses;
+        std::set<Contact> contacts;
+        std::map<std::string,std::array<float,3>> impulses;
+        std::vector<PhysicsContactEvent> events;
+    };
+    PhysicsWorld::Transaction::Transaction(PhysicsWorld& world) : world_(&world),state_(std::make_unique<State>())
+    {
+        state_->world=world.impl_; state_->impulses=world.impulses_; state_->events=world.events_;
+        if (!state_->world) return;
+        auto& saved=*state_->world;
+        saved.system.SaveState(state_->system); state_->contacts=saved.contacts;
+        for (const auto& [id,entry]:saved.entries) {
+            state_->poses[id]=entry.pose;
+            if (entry.character) entry.character->SaveState(state_->characters[id]);
+        }
+    }
+    PhysicsWorld::Transaction::Transaction(Transaction&& other) noexcept : world_(other.world_),state_(std::move(other.state_))
+    { other.world_=nullptr; }
+    PhysicsWorld::Transaction::~Transaction()
+    {
+        if (!world_) return;
+        world_->impl_=state_->world; world_->impulses_=std::move(state_->impulses); world_->events_=std::move(state_->events);
+        if (!state_->world) return;
+        auto& saved=*state_->world;
+        state_->system.Rewind(); saved.system.RestoreState(state_->system); saved.contacts=std::move(state_->contacts);
+        for (auto& [id,entry]:saved.entries) {
+            entry.pose=state_->poses.at(id);
+            if (entry.character) { state_->characters.at(id).Rewind(); entry.character->RestoreState(state_->characters.at(id)); }
+        }
+    }
+    void PhysicsWorld::Transaction::Commit() noexcept { world_=nullptr; }
+    PhysicsWorld::Transaction PhysicsWorld::BeginTransaction() { return Transaction(*this); }
     PhysicsWorld::PhysicsWorld() { Register(); }
     PhysicsWorld::~PhysicsWorld()=default;
     void PhysicsWorld::Reset() { impl_.reset(); impulses_.clear(); events_.clear(); }

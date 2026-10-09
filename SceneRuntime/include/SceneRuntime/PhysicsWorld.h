@@ -15,6 +15,27 @@ namespace SceneRuntime
     class PhysicsWorld final
     {
     public:
+        class Transaction final
+        {
+        public:
+            /// <summary>未確定の物理更新を巻き戻します。</summary>
+            ~Transaction();
+            /// <summary>巻き戻しの責任を移動します。</summary>
+            Transaction(Transaction&& other) noexcept;
+            Transaction(const Transaction&)=delete;
+            Transaction& operator=(const Transaction&)=delete;
+            /// <summary>物理更新を確定し、巻き戻しを解除します。</summary>
+            void Commit() noexcept;
+        private:
+            friend class PhysicsWorld;
+            struct State;
+            /// <summary>物理ワールド・接触・キャラクター・予約インパルスを保存します。</summary>
+            explicit Transaction(PhysicsWorld& world);
+            PhysicsWorld* world_;
+            std::unique_ptr<State> state_;
+        };
+        /// <summary>複数固定更新とリソース準備を一括で確定できる保存点を作ります。</summary>
+        Transaction BeginTransaction();
         /// <summary>共有の物理型を登録し、実行用ワールドを準備します。</summary>
         PhysicsWorld();
         ~PhysicsWorld();
@@ -37,7 +58,7 @@ namespace SceneRuntime
         void Reset();
     private:
         struct Impl;
-        std::unique_ptr<Impl> impl_;
+        std::shared_ptr<Impl> impl_;
         std::map<std::string,std::array<float,3>> impulses_;
         std::vector<PhysicsContactEvent> events_;
     };

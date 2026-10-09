@@ -18,6 +18,7 @@
 
 namespace
 {
+    constexpr double FixedStepSeconds=1.0/60.0;
     Engine::MaterialSlots PrepareMaterialSlots(const SceneRuntime::ScenePlacement& placement,size_t meshes,
         ID3D12Device* device,ID3D12CommandQueue* queue,const std::filesystem::path& root,
         std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>>& cache)
@@ -161,7 +162,7 @@ namespace SceneRuntime
         if (preserveExecution && prepareRuntime_ && !prepareRuntime_(prepared.layout,error)) return false;
         CommitLayout(std::move(prepared),preserveExecution); error.clear(); return true;
     }
-    bool SceneWorld::PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result)
+    bool SceneWorld::PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result,const PreparedLayout* previous)
     {
         if (!modelsReady_)
         {
@@ -170,6 +171,9 @@ namespace SceneRuntime
         }
         try
         {
+            const auto& previousLayout=previous ? previous->layout : layout_;
+            const auto& previousModels=previous ? previous->animated : animatedModels_;
+            const auto& previousStates=previous ? previous->states : animatorStates_;
             layout.ResolveAssets(assetsRoot);
             static_cast<void>(layout.Serialize());
             std::vector<DirectX::XMFLOAT4X4> matrices;
@@ -192,10 +196,10 @@ namespace SceneRuntime
                     {
                         if (!model->Rig()) throw std::runtime_error("Animator needs a glTF or GLB model");
                         Animator::Validate(*placement.animator,model->Rig().get());
-                        const auto old=std::find_if(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==placement.id; });
-                        const bool reuse=preserveExecution && old!=layout_.objects.end() && old->meshRenderer==placement.meshRenderer && old->animator==placement.animator && animatedModels_.contains(placement.id);
-                        auto instance=reuse ? animatedModels_.at(placement.id) : model->AnimatedCopy(materialDevice_.Get(),materialQueue_.Get());
-                        if (reuse) animatorStates[placement.id]=animatorStates_.at(placement.id);
+                        const auto old=std::find_if(previousLayout.objects.begin(),previousLayout.objects.end(),[&](const auto& item) { return item.id==placement.id; });
+                        const bool reuse=preserveExecution && old!=previousLayout.objects.end() && old->meshRenderer==placement.meshRenderer && old->animator==placement.animator && previousModels.contains(placement.id);
+                        auto instance=reuse ? previousModels.at(placement.id) : model->AnimatedCopy(materialDevice_.Get(),materialQueue_.Get());
+                        if (reuse) animatorStates[placement.id]=previousStates.at(placement.id);
                         if (!instance || (!reuse && !instance->ApplyPose(Animator::Advance(*placement.animator,animatorStates[placement.id],*model->Rig(),0,{},&matrices[objects.size()])))) throw std::runtime_error("Animator initialization failed");
                         object.SetModel(instance); animated[placement.id]=std::move(instance);
                     }
@@ -230,7 +234,7 @@ namespace SceneRuntime
     {
         if (!preserveExecution) scripts_.Stop(layout_);
         layout_=std::move(prepared.layout); assetsRoot_=std::move(prepared.assetsRoot);
-        if (!preserveExecution) { physics_.clear(); physicsWorld_.Reset(); }
+        if (!preserveExecution) { physics_.clear(); physicsWorld_.Reset(); fixedSeconds_=0; fixedJump_=false; fixedPressed_.clear(); }
         else std::erase_if(physics_,[&](const auto& pair) { return std::none_of(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==pair.first; }); });
         animatedModels_=std::move(prepared.animated); animatorStates_=std::move(prepared.states); objects_=std::move(prepared.objects);
     }
@@ -476,19 +480,55 @@ namespace SceneRuntime
     bool SceneWorld::MovePlayers(double seconds, float horizontal, float vertical, bool jump)
     {
         Engine::CpuScope scope("Physics and player movement");
-        auto candidate=layout_;
-        auto states=physics_;
-        for (auto& object : candidate.objects) if (object.animator)
-            if (const auto state=animatorStates_.find(object.id);state!=animatorStates_.end()) object.animator->rootMotion=state->second.rootMotionOverride.value_or(object.animator->rootMotion);
-        if (!ScenePhysics::Advance(candidate,states,seconds,horizontal,vertical,jump)) return false;
-        std::string error;
-        if (!physicsWorld_.Advance(candidate,states,seconds,horizontal,vertical,jump,assetsRoot_,error))
-        { Engine::Log::Warning(error); return false; }
-        if (!CommitTransforms(std::move(candidate))) return false;
-        // CommitTransforms only applies Transform values; saved Animator settings stay unchanged.
-        physics_=std::move(states);
+        if (!std::isfinite(seconds) || seconds<=0 || !std::isfinite(horizontal) || !std::isfinite(vertical)) return false;
+        auto pending=std::min(seconds,0.1)+fixedSeconds_;
+        auto pressed=fixedPressed_; for (const auto& [name,value]:inputPressed_) if (value) pressed[name]=true;
+        bool pendingJump=fixedJump_ || jump;
+        if (pending+1e-10<FixedStepSeconds) {
+            fixedSeconds_=pending; fixedPressed_=std::move(pressed); fixedJump_=pendingJump; return true;
+        }
+        try {
+            auto transaction=physicsWorld_.BeginTransaction();
+            auto candidate=layout_; auto states=physics_; auto runtime=scripts_;
+            std::string error;
+            while (pending+1e-10>=FixedStepSeconds) {
+                if (!FixedTick(candidate,states,runtime,horizontal,vertical,pendingJump,pressed,error)) {
+                    Engine::Log::Warning(error); return false;
+                }
+                pending=std::max(0.0,pending-FixedStepSeconds); pendingJump=false; pressed.clear();
+            }
+            PreparedLayout prepared;
+            if (!PrepareScriptLayout(std::move(candidate),RuntimeLayout(),prepared,error) ||
+                (prepareRuntime_ && !prepareRuntime_(prepared.layout,error))) { Engine::Log::Warning(error); return false; }
+            CommitLayout(std::move(prepared),true); physics_=std::move(states); scripts_=std::move(runtime);
+            fixedSeconds_=pending; fixedJump_=pendingJump; fixedPressed_=std::move(pressed); transaction.Commit(); return true;
+        } catch (const std::exception& error) { Engine::Log::Warning(error.what()); return false; }
+    }
+    bool SceneWorld::FixedTick(SceneLayout& layout,ScenePhysics::States& states,ScriptRuntime& scripts,float horizontal,float vertical,bool jump,
+        const std::map<std::string,bool>& pressed,std::string& error)
+    {
+        const bool hasFixedUpdate=ScriptRuntime::HasPhase(layout,ScriptPhase::FixedUpdate);
+        if (hasFixedUpdate &&
+            !scripts.Update(layout,FixedStepSeconds,error,inputValues_,pressed,&physicsWorld_,ScriptPhase::FixedUpdate)) return false;
+        std::map<std::string,bool> savedRootMotion;
+        for (auto& object:layout.objects) if (object.animator) {
+            savedRootMotion[object.id]=object.animator->rootMotion;
+            if (const auto state=animatorStates_.find(object.id);state!=animatorStates_.end())
+                object.animator->rootMotion=state->second.rootMotionOverride.value_or(object.animator->rootMotion);
+            if (const auto change=scripts.RootMotions().find(object.id);change!=scripts.RootMotions().end())
+                object.animator->rootMotion=change->second.value_or(savedRootMotion.at(object.id));
+        }
+        if (hasFixedUpdate)
+            for (const auto& [id,impulse]:scripts.Impulses()) if (!physicsWorld_.AddImpulse(id,impulse)) { error="FixedUpdate impulse rejected"; return false; }
+        if (!ScenePhysics::Advance(layout,states,FixedStepSeconds,horizontal,vertical,jump) ||
+            !physicsWorld_.Advance(layout,states,FixedStepSeconds,horizontal,vertical,jump,assetsRoot_,error)) return false;
+        for (auto& object:layout.objects) if (object.animator) object.animator->rootMotion=savedRootMotion.at(object.id);
+        return QueueContacts(layout,scripts,error);
+    }
+    bool SceneWorld::QueueContacts(const SceneLayout& layout,ScriptRuntime& scripts,std::string& error) const
+    {
         std::set<std::string> listeners;
-        for (const auto& object : layout_.objects) for (const auto& script : object.scripts) if (script.enabled)
+        for (const auto& object : layout.objects) for (const auto& script : object.scripts) if (script.enabled)
         {
             const auto definition=ScriptRegistry::Definitions().find(script.behaviour);
             if (definition!=ScriptRegistry::Definitions().end() && definition->second.onEvent) listeners.insert(object.id);
@@ -498,12 +538,35 @@ namespace SceneRuntime
             const auto name=std::string(contact.trigger ? "trigger" : "collision")+contact.phase;
             try
             {
-                if (listeners.contains(contact.second)) scripts_.QueueEvent({name,contact.first,contact.second,0});
-                if (listeners.contains(contact.first)) scripts_.QueueEvent({name,contact.second,contact.first,0});
+                if (listeners.contains(contact.second)) scripts.QueueEvent({name,contact.first,contact.second,0});
+                if (listeners.contains(contact.first)) scripts.QueueEvent({name,contact.second,contact.first,0});
             }
-            catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); break; }
+            catch (const std::exception& exception) { error=exception.what(); return false; }
         }
         return true;
+    }
+
+    SceneWorld::PreparedLayout SceneWorld::RuntimeLayout() const
+    {
+        PreparedLayout result; result.assetsRoot=assetsRoot_; result.layout=layout_; result.objects=objects_;
+        result.animated=animatedModels_; result.states=animatorStates_; return result;
+    }
+    bool SceneWorld::PrepareScriptLayout(SceneLayout layout,const PreparedLayout& previous,PreparedLayout& result,std::string& error)
+    {
+        const bool rebuild=layout.objects.size()!=previous.layout.objects.size() ||
+            !std::equal(layout.objects.begin(),layout.objects.end(),previous.layout.objects.begin(),[](const auto& a,const auto& b) {
+                return a.id==b.id && a.meshRenderer==b.meshRenderer && a.material==b.material && a.animator==b.animator;
+            });
+        if (rebuild) {
+            Microsoft::WRL::ComPtr<ID3D12Fence> fence;
+            if (FAILED(materialDevice_->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&fence))) ||
+                !Engine::SignalGpuFence(materialDevice_.Get(),materialQueue_.Get(),fence.Get(),1) ||
+                !Engine::WaitForGpuFence(materialDevice_.Get(),fence.Get(),1,nullptr)) { error="Script resource GPU wait failed"; return false; }
+            return PrepareLayout(std::move(layout),assetsRoot_,error,true,result,&previous);
+        }
+        auto candidate=previous; candidate.layout=std::move(layout);
+        if (!PrepareTransforms(candidate.layout,candidate.objects,error)) return false;
+        result=std::move(candidate); return true;
     }
 
     bool SceneWorld::QueueScriptEvent(ScriptEvent event,std::string& error)
@@ -532,37 +595,33 @@ namespace SceneRuntime
         auto runtime=scripts_;
         std::string error;
         if (!runtime.Update(candidate,seconds,error,inputValues_,inputPressed_,&physicsWorld_)) { Engine::Log::Warning(error); return false; }
-        const bool rebuild=candidate.objects.size()!=layout_.objects.size() ||
-            !std::equal(candidate.objects.begin(),candidate.objects.end(),layout_.objects.begin(),[](const auto& a,const auto& b) {
-                return a.id==b.id && a.meshRenderer==b.meshRenderer && a.material==b.material && a.animator==b.animator;
-            });
         PreparedLayout prepared;
-        if (rebuild)
-        {
-            Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-            if (FAILED(materialDevice_->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&fence))) ||
-                !Engine::SignalGpuFence(materialDevice_.Get(),materialQueue_.Get(),fence.Get(),1) ||
-                !Engine::WaitForGpuFence(materialDevice_.Get(),fence.Get(),1,nullptr)) return false;
-            if (!PrepareLayout(std::move(candidate),assetsRoot_,error,true,prepared)) { Engine::Log::Warning(error); return false; }
-        }
-        else
-        {
-            prepared.layout=std::move(candidate); prepared.objects=objects_;
-            if (!PrepareTransforms(prepared.layout,prepared.objects,error)) return false;
-        }
+        if (!PrepareScriptLayout(std::move(candidate),RuntimeLayout(),prepared,error)) { Engine::Log::Warning(error); return false; }
         std::vector<AnimatorFrame> frames;
-        if (!PrepareAnimators(prepared.layout,seconds,rebuild ? prepared.animated : animatedModels_,rebuild ? prepared.states : animatorStates_,runtime,frames,error))
+        if (!PrepareAnimators(prepared.layout,seconds,prepared.animated,prepared.states,runtime,frames,error))
         { Engine::Log::Warning(error); return false; }
         if (!PrepareRootMotion(prepared,frames,error)) { Engine::Log::Warning(error); return false; }
+        for (const auto& frame:frames) prepared.states.at(frame.id)=frame.state;
+        auto impulses=runtime.Impulses();
+        if (ScriptRuntime::HasPhase(prepared.layout,ScriptPhase::LateUpdate)) {
+            auto late=prepared.layout;
+            if (!runtime.Update(late,seconds,error,inputValues_,inputPressed_,&physicsWorld_,ScriptPhase::LateUpdate)) { Engine::Log::Warning(error); return false; }
+            PreparedLayout afterLate;
+            if (!PrepareScriptLayout(std::move(late),prepared,afterLate,error)) { Engine::Log::Warning(error); return false; }
+            prepared=std::move(afterLate);
+            for (const auto& [id,impulse]:runtime.Impulses()) for (size_t axis=0;axis<3;++axis) impulses[id][axis]+=impulse[axis];
+            if (!PrepareAnimators(prepared.layout,0,prepared.animated,prepared.states,runtime,frames,error) || !PrepareRootMotion(prepared,frames,error))
+            { Engine::Log::Warning(error); return false; }
+            for (const auto& frame:frames) prepared.states.at(frame.id)=frame.state;
+        }
         if (prepareRuntime_ && !prepareRuntime_(prepared.layout,error)) { Engine::Log::Warning(error); return false; }
-        if (rebuild) CommitLayout(std::move(prepared),true);
-        else { layout_=std::move(prepared.layout); objects_=std::move(prepared.objects); }
+        CommitLayout(std::move(prepared),true);
         for (auto& frame : frames)
         {
             if (frame.applyPose) frame.model->ApplyPreparedPose(std::move(frame.pose));
             animatorStates_.at(frame.id)=std::move(frame.state);
         }
-        for (const auto& [id,impulse] : runtime.Impulses()) physicsWorld_.AddImpulse(id,impulse);
+        for (const auto& [id,impulse] : impulses) physicsWorld_.AddImpulse(id,impulse);
         scripts_=std::move(runtime);
         return true;
     }

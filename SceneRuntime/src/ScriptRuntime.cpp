@@ -246,7 +246,8 @@ namespace SceneRuntime
     }
     bool ScriptRegistry::Register(std::string name,ScriptDefinition definition)
     {
-        if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || definition.fields.size()>64 || !definition.update) return false;
+        if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || definition.fields.size()>64 ||
+            (!definition.update && !definition.fixedUpdate && !definition.lateUpdate)) return false;
         try { size_t remaining=4096; ScriptValue{definition.dataFields}.Validate(0,remaining); }
         catch (const std::exception&) { return false; }
         for (const auto& [key,field] : definition.fields)
@@ -258,7 +259,20 @@ namespace SceneRuntime
     { if (!input) return 0; const auto found=input->find(name); return found==input->end() ? 0 : found->second; }
     bool ScriptContext::Pressed(const std::string& name) const
     { if (!pressed) return false; const auto found=pressed->find(name); return found!=pressed->end() && found->second; }
-    bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics)
+    bool ScriptRuntime::HasPhase(const SceneLayout& layout,ScriptPhase phase)
+    {
+        for (const auto& object:layout.objects) for (const auto& script:object.scripts) {
+            if (!script.enabled) continue;
+            const auto found=Registry().find(script.behaviour);
+            if (found==Registry().end()) continue;
+            const auto& definition=found->second;
+            if (phase==ScriptPhase::FixedUpdate && definition.fixedUpdate) return true;
+            if (phase==ScriptPhase::LateUpdate && definition.lateUpdate) return true;
+            if (phase==ScriptPhase::Update && definition.update) return true;
+        }
+        return false;
+    }
+    bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase)
     {
         Engine::CpuScope scope("Scripts");
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
@@ -266,15 +280,19 @@ namespace SceneRuntime
         { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); error.clear(); return true; }
         auto candidate=layout;
         auto runtime=*this;
-        if (!runtime.Advance(candidate,seconds,error,input,pressed,physics)) return false;
+        if (!runtime.Advance(candidate,seconds,error,input,pressed,physics,phase)) return false;
         layout=std::move(candidate); *this=std::move(runtime); return true;
     }
-    bool ScriptRuntime::Advance(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics)
+    bool ScriptRuntime::Advance(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase)
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         try
         {
             ScriptScene scene(layout,nextId_,physics);
+            if (phase!=ScriptPhase::Update) scene.events=events_;
+            if (pendingFixedCommands_ && phase!=ScriptPhase::LateUpdate) {
+                scene.animatorParameters=animatorParameters_; scene.ikTargets=ikTargets_; scene.rootMotions=rootMotions_;
+            }
             std::set<std::pair<std::string,std::string>> live;
             for (auto& object : layout.objects)
                 for (const auto& script : object.scripts)
@@ -301,6 +319,7 @@ namespace SceneRuntime
                         auto& created=instances_.emplace(key,std::move(instance)).first->second;
                         ScriptContext context{object,created.parameters,created.state,0,&input,&pressed,&scene};
                         context.data=&created.data; context.dataState=&created.dataState;
+                        context.phase=phase;
                         if (definition->second.start) definition->second.start(context);
                         found=instances_.find(key);
                     }
@@ -309,11 +328,14 @@ namespace SceneRuntime
                     instance.data=definition->second.dataFields;
                     for (const auto& [name,value]:script.data) instance.data[name]=value;
                     context.data=&instance.data; context.dataState=&instance.dataState;
-                    if (definition->second.onEvent)
+                    context.phase=phase;
+                    if (phase==ScriptPhase::Update && definition->second.onEvent)
                         for (const auto& event : events_) if (event.target.empty() || event.target==object.id)
                         { context.event=&event; definition->second.onEvent(context); }
                     context.event=nullptr;
-                    definition->second.update(context);
+                    const auto& callback=phase==ScriptPhase::FixedUpdate ? definition->second.fixedUpdate :
+                        phase==ScriptPhase::LateUpdate ? definition->second.lateUpdate : definition->second.update;
+                    if (callback) callback(context);
                     size_t remaining=4096; ScriptValue{instance.dataState}.Validate(0,remaining);
                 }
             for (auto iterator=instances_.begin();iterator!=instances_.end();)
@@ -348,6 +370,7 @@ namespace SceneRuntime
             animatorParameters_=std::move(scene.animatorParameters);
             ikTargets_=std::move(scene.ikTargets);
             rootMotions_=std::move(scene.rootMotions);
+            pendingFixedCommands_=phase==ScriptPhase::FixedUpdate;
             error.clear(); return true;
         }
         catch (const std::exception& exception) { error=exception.what(); return false; }
@@ -370,6 +393,7 @@ namespace SceneRuntime
             catch (...) { Engine::Log::Warning("Script stop callback failed"); }
         }
         instances_.clear();
+        pendingFixedCommands_=false;
         events_.clear(); impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); nextId_=1;
     }
 }

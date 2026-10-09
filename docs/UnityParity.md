@@ -6,7 +6,7 @@
 ## 進捗
 
 - [x] 型付きゲームデータ: 数値、真偽値、文字列、オブジェクト参照、配列、構造化データ、Inspector、複製・Prefab参照
-- [ ] 更新タイミング: FixedUpdate、物理との同期、LateUpdate、Pause・Step、失敗時の状態保持
+- [x] 更新タイミング: FixedUpdate、物理との同期、LateUpdate、Pause・Step、失敗時の状態保持
 - [ ] スクリプト制作: 作成、編集、コンパイル、診断、再読み込み、公開フィールド、配布物への同梱
 - [ ] 汎用UI: InputField、Slider、Toggle、ScrollView、Mask、自動レイアウト
 - [ ] 複数シーン: 追加ロード、アンロード、シーン間の保持、Editor編集
@@ -41,3 +41,20 @@ Inspectorは型ごとの編集と階層からの参照ドラッグ、配列の�
 GPU実行検証にはEditor複製の参照変換、Undoによる保存データ・参照の復元、組み込みFollowTargetの動作を含む。
 Release回帰テストのUI検証に必要なImGuiのリンク漏れをテストプロジェクト側で修正した。
 追加したScriptValueとScriptDataPanelは複雑度基準内。リポジトリ全体の複雑度チェックには既存コードの超過が残っており、全体の静的解析を合格扱いにしない。
+
+## 更新段階
+
+`ScriptDefinition.fixedUpdate` と `lateUpdate` を追加し、通常のupdateがない処理も登録できる。
+Contextのphaseで呼び出された段階を判別する。startは段階をまたいで一回だけ実行する。
+
+固定更新は60Hz。短いフレームは余り時間と押下・ジャンプを保持し、長いフレームは最大0.1秒を固定刻みに分割する。
+押下とジャンプは複数刻みの最初に一回だけ渡す。Pauseとフォーカス喪失では未処理の押下を破棄する。
+各固定コールバックの後に物理を進め、衝突イベントと固定段階のAnimator・IK・RootMotionコマンドを通常更新へ渡す。
+AppとEditorの既存MovePlayers経路を使い、入力移動のないシーンでも固定処理があれば共通SceneEnvironmentから進める。
+
+通常更新、Animator、ルートモーションの後にLateUpdateを呼ぶ。LateUpdateでの生成・削除・コンポーネント変更もリソース準備へ接続する。
+進行済みAnimator状態を引き継ぎ、LateUpdate後に時刻を進めず姿勢・World IKを再評価する。
+通常／Late段階の失敗時は両段階の候補を破棄し、固定段階の失敗時はバッチ全体のScript・シーン・物理・接触・インパルス・余り時間を巻き戻す。
+
+検証: Debug・Development・Releaseのソリューションビルド、Debug／Releaseの全体回帰とScriptデータ・GPU実行検証が成功。
+30fps／120fpsで同じ固定更新回数と物理位置、Pause・Step、押下の保持・解除、リソース失敗後のJoltの位置・速度復元を確認した。

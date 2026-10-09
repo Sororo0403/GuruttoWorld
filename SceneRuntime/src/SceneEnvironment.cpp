@@ -55,7 +55,12 @@ namespace SceneRuntime
     void SceneEnvironment::Update(double deltaSeconds, bool enabled, bool active)
     {
         motionEnabled_=enabled;
+        if (!active) DiscardPendingInput();
         if (!active || !std::isfinite(deltaSeconds) || deltaSeconds<=0) return;
+        const bool physicsReady=physicsAttempted_ ? physicsSucceeded_ :
+            !ScriptRuntime::HasPhase(world_.Layout(),ScriptPhase::FixedUpdate) || world_.MovePlayers(deltaSeconds,0,0);
+        physicsAttempted_=false;
+        if (!physicsReady) { Engine::Log::Warning("FixedUpdate failed; frame update was skipped."); return; }
         if (!world_.UpdateComponents(deltaSeconds)) { Engine::Log::Warning("Component update failed; runtime clocks were preserved."); return; }
         if (enabled) seconds_+=std::min(deltaSeconds,0.1);
         const float elapsed=static_cast<float>(std::min(deltaSeconds,0.1));
