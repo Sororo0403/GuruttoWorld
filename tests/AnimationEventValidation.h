@@ -117,7 +117,7 @@ namespace AnimationEventValidation
         SceneLayout crowded;
         for (int index=0;index<17;++index)
         {
-            auto actor=scene.objects[3]; actor.id="actor"+std::to_string(index); actor.name=actor.id; actor.pointLight.reset(); actor.scripts.clear(); actor.animator->states={{"Idle","Idle",1,true}};
+            auto actor=scene.objects[3]; actor.id="actor"+std::to_string(index); actor.name=actor.id; actor.pointLight.reset(); actor.playerController.reset(); actor.scripts.clear(); actor.animator->states={{"Idle","Idle",1,true}};
             actor.animator->initialState="Idle"; actor.animator->blendTrees.clear(); actor.animator->events.assign(256,Key("Idle","start",0)); crowded.objects.push_back(actor);
         }
         ScenePlacement source; source.id="source"; source.name="Source"; source.scripts={{"script",true,"ValidationEventRollback",{}}}; crowded.objects.push_back(source);

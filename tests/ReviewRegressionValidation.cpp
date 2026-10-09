@@ -40,11 +40,16 @@
 #include "../Editor/src/AssetPreview.h"
 #endif
 #include <SceneRuntime/SceneLayout.h>
+#include "SceneCollectionValidation.h"
+#include "JointValidation.h"
+#include "ScriptAuthoringValidation.h"
 #include <SceneRuntime/SceneTransforms.h>
 #include <SceneRuntime/SceneWorld.h>
 #include "AuthoredViewFixture.h"
 #include "EnvironmentValidation.h"
 #include "UiValidation.h"
+#include "AudioFeatureValidation.h"
+#include "GenreValidation.h"
 #include "AnimationValidation.h"
 #include "PhysicsValidation.h"
 #include "RigidBodyValidation.h"
@@ -1912,6 +1917,7 @@ namespace
                 PhysicsValidation::Runtime(renderer,TestContentRoot());
                 RigidBodyValidation::Runtime(renderer);
                 ScriptValidation::Runtime(renderer);
+                SceneCollectionValidation::Runtime(renderer);
                 PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
                 MaterialValidation::Rendering(renderer);
                 LocalLightValidation::Rendering(renderer); LocalLightValidation::Runtime(renderer);
@@ -3515,6 +3521,14 @@ int main()
     std::string phase="focused validation";
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_GENRE_ONLY",nullptr,0)) {
+            GenreValidation::Schema();Engine::Window window;Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Genre validation",640,480),"genre window");Check(renderer.Initialize(window.GetHandle()),"genre renderer");
+            GenreValidation::Runtime(renderer);CheckGpuMessages(renderer.GetDevice());std::cout<<"PASS: Terrain, Tilemap, navigation and agents regression\n";return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_AUDIO_FEATURES_ONLY",nullptr,0)) {
+            AudioFeatureValidation::Run(); std::cout<<"PASS: 3D audio, mixer effects and streaming regression\n"; return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_SCENE_UI_ONLY",nullptr,0)) {
             ValidateUiCanvasInteraction();
             Engine::Window window; Engine::DirectX12Renderer renderer;
@@ -3728,6 +3742,32 @@ int main()
             std::cout<<"PASS: script registry, parameters, lifecycle, serialization and missing behaviours\n";
             return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_SCRIPT_AUTHORING_ONLY",nullptr,0)) {ScriptAuthoringValidation::Run();std::cout<<"PASS: automatic source watcher, compile diagnostics, Play blocking and Stop reload\n";return 0;}
+        if(GetEnvironmentVariableW(L"WP1_SCENE_COLLECTION_ONLY",nullptr,0)) {
+            SceneCollectionValidation::Schema(); Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden scene collection",640,360) && renderer.Initialize(window.GetHandle()),"scene collection renderer");
+            SceneCollectionValidation::Runtime(renderer); CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: additive ownership, reference remapping, persistent state, Undo and transactional resource failures\n"; return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_JOINT_ONLY",nullptr,0)) {
+            JointValidation::Run();Engine::Window window;Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden planar physics",64,32) && renderer.Initialize(window.GetHandle()),"planar physics renderer");
+            JointValidation::Runtime(renderer);CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: planar rigid bodies, fixed/hinge/distance/swing constraints, autonomous physics and rollback\n";return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_RAGDOLL_ONLY",nullptr,0)) {
+            RagdollValidation::SchemaAndPhysics();Engine::Window window;Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden ragdoll",640,360) && renderer.Initialize(window.GetHandle()),"ragdoll renderer");
+            RagdollValidation::Runtime(renderer);CheckGpuMessages(renderer.GetDevice());std::cout<<"PASS: ragdoll generation, joints, pose, ownership and Undo\n";return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_PARITY_RENDER_ONLY",nullptr,0)) {
+            UiControlValidation::SchemaAndInput();PostEffectValidation::Schema();LocalLightValidation::Schema();
+            Engine::Window window;Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden parity rendering",64,32) && renderer.Initialize(window.GetHandle()),"parity renderer");
+            UiControlValidation::Rendering(renderer,std::filesystem::absolute("Content"));RenderingFeaturesValidation::Rendering(renderer);
+            PostEffectValidation::Rendering(renderer);LocalLightValidation::Rendering(renderer);CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: UI controls, LOD/instances/occlusion, IBL/baking, auto exposure/grading and local shadows\n";return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_RIGID_ONLY",nullptr,0)) {
             Check(Engine::Log::Initialize("generated/tests/rigid-bodies.log"),"rigid body diagnostic log");
             RigidBodyValidation::Run();
@@ -3794,6 +3834,7 @@ int main()
         UiValidation::SchemaAndLayout();
         AnimationValidation::Schema();
         PhysicsValidation::Run();
+        SceneCollectionValidation::Schema(); JointValidation::Run();
         RigidBodyValidation::Run();
         ScriptValidation::Run();
         PrefabValidation::Run();
@@ -3825,5 +3866,9 @@ int main()
         std::cout << "PASS: diagnostics location/overrides, title menu/settings/rendering, mirrored mesh visibility and backface culling\n";
         return 0;
     }
-    catch (const std::exception& error) { std::cerr << phase << ": " << error.what() << '\n'; return 1; }
+    catch (const std::exception& error) {
+        std::cerr << phase << ": " << error.what() << '\n';
+        for(const auto& entry:Engine::Log::Recent()) if(entry.level==Engine::LogLevel::Error || entry.level==Engine::LogLevel::Warning) std::cerr<<entry.text<<'\n';
+        return 1;
+    }
 }

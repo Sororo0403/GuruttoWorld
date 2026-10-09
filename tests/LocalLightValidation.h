@@ -12,6 +12,7 @@ namespace LocalLightValidation
     {
         SceneRuntime::ScenePlacement object; object.id="light"; object.pointLight.emplace(); object.spotLight.emplace();
         object.pointLight->intensity=8; object.spotLight->outerAngle=80;
+        object.pointLight->shadowsEnabled=true; object.spotLight->shadowsEnabled=true;
         SceneRuntime::SceneLayout layout; layout.objects={object};
         const auto parsed=SceneRuntime::SceneLayout::Parse(layout.Serialize());
         Require(parsed.objects[0].SameComponents(object),"Point/Spot properties roundtrip");

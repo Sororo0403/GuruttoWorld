@@ -1,5 +1,6 @@
 #pragma once
 #include <SceneRuntime/SceneUi.h>
+#include "UiControlValidation.h"
 #include <SceneRuntime/SceneAudio.h>
 #include "../App/src/Scenes/AuthoredScene.h"
 #include "EnvironmentValidation.h"
@@ -19,6 +20,7 @@ inline SceneLayout Layout() {
     layout.objects={canvas,panel,audio}; return layout;
 }
 inline void SchemaAndLayout() {
+    UiControlValidation::SchemaAndInput();
     auto authored=SceneLayout::Load("Content/Assets/Scenes/Game.json");
     const auto authoredRoundtrip=SceneLayout::Parse(authored.Serialize());
     Require(authoredRoundtrip.objects.size()==authored.objects.size(),"Game scene survives editor serialization");
@@ -93,6 +95,7 @@ inline void EditingAndAudio(Engine::DirectX12Renderer& renderer,const std::files
     Require(!audio.Initialize(root,layout,error) && !audio.IsPlaying("audio"),"failed audio load is reported without a live voice");
 }
 inline void Rendering(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root) {
+    UiControlValidation::Rendering(renderer,root);
     auto layout=Layout(); SceneUi ui; std::string error;
     Require(ui.Prepare(renderer,root,layout,error),"UI prepares resources outside draw");
     const auto pixel=[&](const UiState& state=UiState{}) {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){ui.Draw(commands,layout,64,32,state);});};

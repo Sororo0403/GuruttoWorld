@@ -1,4 +1,5 @@
 #pragma once
+#include "RenderingFeaturesValidation.h"
 #include <SceneRuntime/MaterialAsset.h>
 #include "EnvironmentValidation.h"
 #include "../Editor/src/ProjectCatalog.h"
@@ -34,6 +35,24 @@ namespace MaterialValidation
         asset.normalTexture="Assets/Textures/../outside.bmp";
         bool invalidNormal=false; try { asset.Validate(); } catch (const std::exception&) { invalidNormal=true; }
         Require(invalidNormal,"normal map rejects path traversal"); asset.normalTexture.clear();
+        for (const auto* name : {"environment.bmp","lightmap.bmp"})
+        {
+            std::ofstream image(root/"Assets/Textures"/name); image<<"schema fixture"; image.close();
+            Engine::AssetDatabase::Ensure(root/"Assets/Textures"/name);
+        }
+        asset.environmentTexture="Assets/Textures/environment.bmp"; asset.lightmap="Assets/Textures/lightmap.bmp"; asset.values.environmentIntensity=2;
+        asset.Save(root,path);
+        const auto indirect=SceneRuntime::MaterialAsset::Load(root,path);
+        Require(indirect.environmentTexture==asset.environmentTexture && indirect.lightmap==asset.lightmap && indirect.values.environmentIntensity==2,"environment panorama and baked map settings roundtrip");
+        for (const auto& name : {std::string("environment"),std::string("lightmap")})
+        {
+            const std::filesystem::path from="Assets/Textures/"+name+".bmp",to="Assets/Textures/"+name+"-renamed.bmp";
+            std::filesystem::remove(root/to); std::filesystem::remove(root/(to.generic_string()+".meta"));
+            Engine::AssetDatabase(root).Move(from,to);
+        }
+        const auto renamed=SceneRuntime::MaterialAsset::Load(root,path);
+        Require(renamed.environmentTexture=="Assets/Textures/environment-renamed.bmp" && renamed.lightmap=="Assets/Textures/lightmap-renamed.bmp","IBL and lightmap references survive GUID asset moves");
+        asset.environmentTexture=renamed.environmentTexture; asset.lightmap=renamed.lightmap;
         const auto saved=restored.values.color;
         asset.values.roughness=std::numeric_limits<float>::quiet_NaN();
         bool rejected=false; try { asset.Save(root,path); } catch (const std::exception&) { rejected=true; }
@@ -158,5 +177,6 @@ namespace MaterialValidation
         Require(renderer.Render({0,0,0,1},[&](auto* commands,float) { session.Draw(commands,64,32); })!=Engine::RenderResult::Failed && renderer.WaitForIdle(),
             "Editor playback renders PBR and normal maps");
         Require(session.Stop() && layout.Serialize()==saved,"stopping PBR playback preserves authored scene");
+        RenderingFeaturesValidation::Rendering(renderer);
     }
 }

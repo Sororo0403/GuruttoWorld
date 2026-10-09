@@ -11,9 +11,11 @@
 #include "IkPlaybackValidation.h"
 #include "RootMotionValidation.h"
 #include "RootMotionPlaybackValidation.h"
+#include "RagdollValidation.h"
 namespace AnimatorValidation {
 inline void Require(bool value,const char* message) { if (!value) throw std::runtime_error(message); }
 inline void Run() {
+    RagdollValidation::SchemaAndPhysics();
     RootMotionValidation::Run();
     IkValidation::Run();
     BlendTreeValidation::Schema();
@@ -53,6 +55,7 @@ inline void Run() {
     Require(restored.objects.back().animator==scene.objects.back().animator,"Animator schema roundtrip");
 }
 inline void Runtime(Engine::DirectX12Renderer& renderer) {
+    RagdollValidation::Runtime(renderer);
     RootMotionPlaybackValidation::Runtime(renderer);
     IkPlaybackValidation::Runtime(renderer);
     AnimationEventValidation::Runtime(renderer);

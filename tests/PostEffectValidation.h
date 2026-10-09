@@ -43,6 +43,9 @@ namespace PostEffectValidation
     {
         SceneRuntime::SceneLayout layout; layout.settings.postEffects.enabled=true; layout.settings.postEffects.exposure=2;
         layout.settings.postEffects.bloomRadius=2; layout.settings.postEffects.toneMapping=Engine::ToneMapping::Reinhard;
+        layout.settings.postEffects.autoExposure=true; layout.settings.postEffects.exposureMinimum=-3;
+        layout.settings.postEffects.exposureMaximum=4; layout.settings.postEffects.contrast=1.2f;
+        layout.settings.postEffects.saturation=.7f; layout.settings.postEffects.colorFilter={1,.8f,.6f};
         Require(SceneRuntime::SceneLayout::Parse(layout.Serialize()).settings==layout.settings,"post effect settings roundtrip");
         auto legacy=Engine::Json::parse(layout.Serialize()); legacy["settings"].erase("postEffects");
         Require(!SceneRuntime::SceneLayout::Parse(legacy.dump()).settings.postEffects.enabled,"old scenes keep post effects disabled");
@@ -100,6 +103,19 @@ namespace PostEffectValidation
         Require(constant(1)[0]>=230 && constant(1)[0]<=232,"filmic curve maps unit radiance using ACES approximation");
         settings.toneMapping=Engine::ToneMapping::None;
         Require(constant(.25f)[0]>=136 && constant(.25f)[0]<=138,"no curve keeps linear to sRGB conversion");
+        settings.autoExposure=true;
+        const auto meteredDark=constant(.01f),meteredBright=constant(16);
+        Require(std::abs(static_cast<int>(meteredDark[0])-static_cast<int>(meteredBright[0]))<=1 &&
+            meteredBright[0]>=116 && meteredBright[0]<=119,"GPU logarithmic metering normalizes dark and bright scenes to middle gray");
+        settings.exposureMinimum=settings.exposureMaximum=0;
+        Require(constant(.25f)[0]>=136 && constant(.25f)[0]<=138,"automatic exposure respects clamped EV limits");
+        settings.autoExposure=false; settings.colorFilter={1,0,0};
+        const auto filtered=constant(.25f); Require(filtered[0]>130 && filtered[1]==0 && filtered[2]==0,"color filter changes output channels");
+        settings.saturation=0;
+        const auto monochrome=constant(.25f); Require(monochrome[0]==monochrome[1] && monochrome[1]==monochrome[2],"zero saturation produces monochrome output");
+        settings.colorFilter={1,1,1}; settings.saturation=1; settings.contrast=0;
+        Require(constant(.8f)[0]>=116 && constant(.8f)[0]<=119,"zero contrast maps every luminance to middle gray");
+        settings.contrast=1;
         const auto invalid=EnvironmentValidation::Pixel(renderer,[&](auto* commands) {
             auto bad=settings; bad.exposure=NAN;
             Require(post.Begin(commands,64,32,{.25f,.25f,.25f,1}) && !post.End(commands,bad),"invalid end settings restore target with safe conversion");
