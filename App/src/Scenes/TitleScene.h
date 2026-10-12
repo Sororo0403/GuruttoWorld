@@ -14,9 +14,9 @@ namespace App
     {
     public:
         /// <summary>
-        /// タイトル画像とシェーダーの基準フォルダーを受け取ります。
+        /// タイトルの資源と共有環境、診断時だけ背景でもシミュレーションする設定を受け取ります。
         /// </summary>
-        explicit TitleScene(std::filesystem::path root, bool playIntro = true, std::filesystem::path scene="Assets/Scenes/TitleStreet.json",std::shared_ptr<SceneRuntime::SceneEnvironment> environment=std::make_shared<SceneRuntime::SceneEnvironment>());
+        explicit TitleScene(std::filesystem::path root, bool playIntro = true, std::filesystem::path scene="Assets/Scenes/TitleStreet.json",std::shared_ptr<SceneRuntime::SceneEnvironment> environment=std::make_shared<SceneRuntime::SceneEnvironment>(),bool simulateInactive=false);
         /// <summary>
         /// タイトル画像と CC0 モデルの街並みを初期化します。
         /// </summary>
@@ -46,5 +46,6 @@ namespace App
         std::shared_ptr<SceneRuntime::SceneEnvironment> environmentOwner_;
         SceneRuntime::SceneEnvironment& environment_;
         TitleAudio audio_;
+        bool simulateInactive_=false;
     };
 }

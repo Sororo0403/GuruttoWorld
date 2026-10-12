@@ -2,6 +2,8 @@
 #include <SceneRuntime/SceneWorld.h>
 #include <SceneRuntime/SceneUi.h>
 #include <cmath>
+#include <cstring>
+#include <span>
 
 namespace SceneRuntime::RenderPlan
 {
@@ -15,9 +17,10 @@ namespace SceneRuntime::RenderPlan
     /// <summary>カメラ距離でLODを選び、保存した個体からそのフレームの描画項目を作ります。</summary>
     inline std::vector<Item> Items(const SceneLayout& layout,const std::vector<Engine::Object3D>& objects,
         const std::map<std::string,std::vector<std::shared_ptr<const Engine::ModelRenderer>>>& levels,
-        const Engine::Camera& camera,const UiState& state)
+        const Engine::Camera& camera,const UiState& state,std::span<const DirectX::XMFLOAT4X4> renderMatrices={})
     {
         std::vector<Item> result;
+        result.reserve(objects.size());
         const auto& eye=camera.GetPosition();
         for (size_t index=0;index<objects.size();++index)
         {
@@ -26,9 +29,11 @@ namespace SceneRuntime::RenderPlan
             const bool visible=placement.meshRenderer ? placement.meshRenderer->enabled && state.Matches(placement.meshRenderer->visibleWhen) :
                 (placement.terrain && placement.terrain->enabled) || (placement.tilemap && placement.tilemap->enabled);
             if (!visible) continue;
-            const auto& world=objects[index].GetWorldMatrix();
+            const auto& world=renderMatrices.empty() ? objects[index].GetWorldMatrix() : renderMatrices[index];
             Item item{objects[index],placement.meshRenderer && placement.meshRenderer->instancing,
                 std::hypot(world._41-eye[0],world._42-eye[1],world._43-eye[2])};
+            if (!renderMatrices.empty() && std::memcmp(&world,&item.object.GetWorldMatrix(),sizeof(world))!=0)
+                item.object.SetWorldMatrix(world);
             item.occlusion=placement.meshRenderer && placement.meshRenderer->occlusionCulling;
             const auto found=levels.find(placement.id);
             if (placement.meshRenderer && found!=levels.end())
@@ -91,12 +96,18 @@ namespace SceneRuntime::RenderPlan
         {
             const auto& item=items[index];
             if (drawn[index] || !item.object.HasMaterialPass(Engine::MaterialPass::Opaque)) continue;
-            std::vector<DirectX::XMFLOAT4X4> instances{item.object.GetWorldMatrix()};
+            std::vector<DirectX::XMFLOAT4X4> instances;
             drawn[index]=true;
-            for (size_t other=index+1;other<items.size() && instances.size()<Engine::SkinPaletteBuffer::Capacity;++other)
-                if (!drawn[other] && Compatible(item,items[other]))
-                { drawn[other]=true; instances.push_back(items[other].object.GetWorldMatrix()); }
-            Count(item.object,Engine::MaterialPass::Opaque,instances.size(),telemetry);
+            if (item.instancing && !item.occlusion && !item.object.GetModel()->Rig())
+            {
+                for (size_t other=index+1;other<items.size() && instances.size()<Engine::SkinPaletteBuffer::Capacity;++other)
+                    if (!drawn[other] && Compatible(item,items[other]))
+                    {
+                        if (instances.empty()) instances.push_back(item.object.GetWorldMatrix());
+                        drawn[other]=true; instances.push_back(items[other].object.GetWorldMatrix());
+                    }
+            }
+            Count(item.object,Engine::MaterialPass::Opaque,instances.empty() ? 1 : instances.size(),telemetry);
             if (item.occlusion) occlusion.Begin(commands,item.object.GetModel()->Bounds(),item.object.GetWorldMatrix(),camera.GetViewProjectionMatrix());
             item.object.GetModel()->Draw(commands,item.object.GetWorldMatrix(),camera.GetViewProjectionMatrix(),light,camera.GetPosition(),{},
                 item.object.GetMaterial().get(),item.object.GetMaterialSlots(),Engine::MaterialPass::Opaque,

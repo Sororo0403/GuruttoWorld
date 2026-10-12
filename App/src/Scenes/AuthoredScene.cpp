@@ -2,6 +2,7 @@
 #include <Engine/Input/Keyboard.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/Profiler.h>
 #include "GameSettings.h"
 #include <SceneRuntime/ProjectSettings.h>
 #include <Engine/Platform/Window.h>
@@ -16,16 +17,23 @@ bool AuthoredScene::Initialize(Engine::DirectX12Renderer& renderer) {
     return true;
 }
 std::string AuthoredScene::Update(double seconds,const Engine::Keyboard& keyboard) {
+    Engine::CpuScope authoredUpdate("App authored update");
     const bool active=keyboard.IsActive();
-    gamepad_.Update(active);
-    input_.Update(Engine::InputActions::Capture(keyboard,&gamepad_,true));
     const bool gameplayInput=active && environment_.Ui().focused.empty();
-    if(gameplayInput) environment_.SetInputActions(input_.Values(),input_.PressedValues());
-    else environment_.SetInputActions({},{});
-    if(active) environment_.MovePlayers(seconds,
+    {
+        Engine::CpuScope inputUpdate("App input");
+        gamepad_.Update(active);
+        input_.Update(Engine::InputActions::Capture(keyboard,&gamepad_,true));
+        if(gameplayInput) environment_.SetInputActions(input_.Values(),input_.PressedValues());
+        else environment_.SetInputActions({},{});
+    }
+    const bool simulationActive=active || simulateInactive_;
+    if(simulationActive) environment_.MovePlayers(seconds,
         gameplayInput?input_.Value("MoveRight")-input_.Value("MoveLeft"):0,
         gameplayInput?input_.Value("MoveForward")-input_.Value("MoveBack"):0,gameplayInput && input_.Pressed("Jump"));
-    environment_.Update(seconds,true,active); environment_.UpdateAudio(active);
+    environment_.Update(seconds,true,simulationActive);
+    { Engine::CpuScope audioUpdate("App audio"); environment_.UpdateAudio(simulationActive); }
+    Engine::CpuScope uiUpdate("App UI input");
     auto& ui=environment_.Ui();
     const auto characters=Engine::Window::ConsumeTextInput(keyboard.WindowHandle());
     const auto wheel=Engine::Window::ConsumeMouseWheel(keyboard.WindowHandle());

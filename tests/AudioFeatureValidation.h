@@ -1,6 +1,10 @@
 #pragma once
 #include <SceneRuntime/SceneAudio.h>
+#include <SceneRuntime/SceneWorld.h>
 #include <Engine/Core/Json.h>
+#include <Engine/Core/Profiler.h>
+#include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
+#include <Engine/Platform/Window.h>
 #include <fstream>
 #include <thread>
 #include <chrono>
@@ -70,9 +74,49 @@ inline void Playback() {
     layout.objects={parent,source,ears,mix}; SceneRuntime::SceneAudio scene; std::string error; Require(scene.Initialize(root,layout,error),"scene spatial streaming initialize");
     scene.Update(layout,{}); Require(scene.IsPlaying("source")&&scene.OutputMatrix("source")[0]>scene.OutputMatrix("source")[1],"world hierarchy left spatial awake");
     Require(scene.Reconcile(root,layout,error)&&scene.IsPlaying("source"),"scene reconciliation preserves live streaming voice");
+    static_cast<void>(Engine::CpuProfiler::Take()); scene.Update(layout,{});
+    for(const auto& sample:Engine::CpuProfiler::Take()) Require(sample.name!="Audio source reconciliation","unchanged audio configuration avoids rebuilding voices and routes");
     layout.objects[0].position={20,0,0}; scene.Update(layout,{}); Require(scene.OutputMatrix("source")[1]>scene.OutputMatrix("source")[0],"parent movement updates 3D output");
+    const auto fallbackMatrix=scene.OutputMatrix("source");
+    Engine::Window window; Engine::DirectX12Renderer renderer;
+    Require(window.Create(L"Audio world matrix regression",320,180)&&renderer.Initialize(window.GetHandle()),"audio world matrix renderer initializes");
+    SceneRuntime::SceneWorld world;
+    Require(world.Initialize(renderer,std::filesystem::absolute(root),layout,std::filesystem::absolute("Content/Shaders/Mesh.hlsl"),&error),"audio cached world initializes");
+    static_cast<void>(Engine::CpuProfiler::Take()); scene.Update(world.Layout(),{},true,&world);
+    const auto cachedMatrix=scene.OutputMatrix("source");
+    Require(cachedMatrix.size()==fallbackMatrix.size(),"cached and standalone spatial output sizes agree");
+    for(size_t i=0;i<cachedMatrix.size();++i) Require(std::abs(cachedMatrix[i]-fallbackMatrix[i])<.0001f,"cached world matrices preserve spatial output");
+    for(const auto& sample:Engine::CpuProfiler::Take()) Require(sample.name!="Audio transform resolution"&&sample.name!="Audio source reconciliation","cached world update avoids resolving the scene or rebuilding voices");
+    Require(world.SetLocalTransform("parent",{10,0,0},{0,0,0},{1,1,1}),"audio cached parent movement commits");
+    scene.Update(world.Layout(),{},true,&world); Require(scene.OutputMatrix("source")[0]>scene.OutputMatrix("source")[1],"cached parent movement follows authoritative world matrices");
+    auto missing=layout; missing.objects[1].audioSource->bus="Master";
+    auto missingTail=source; missingTail.id="missing-tail"; missingTail.audioSource->clip="Assets/Audio/missing.wav";
+    missing.objects.push_back(std::move(missingTail));
+    Require(!scene.Refresh(missing,error)&&scene.IsPlaying("source"),"failed later source retains original playing voice after an earlier route edit");
+    static_cast<void>(Engine::CpuProfiler::Take());
+    scene.Update(layout,{}); Require(scene.IsPlaying("source"),"successful configuration remains usable after failed replacement");
+    bool reconciledAfterFailure=false;
+    for(const auto& sample:Engine::CpuProfiler::Take()) reconciledAfterFailure|=sample.name=="Audio source reconciliation";
+    Require(reconciledAfterFailure,"failed candidate invalidates reconciliation cache so live routes are reapplied on recovery");
     scene.Update(layout,{},false); Require(scene.IsPlaying("source"),"inactive scene pauses stream"); scene.Update(layout,{},true);
+    layout.objects[1].audioSource->volume=.5f; layout.objects[1].audioSource->volumeBinding="sourceVolume";
+    SceneRuntime::UiState bound; bound.values["sourceVolume"]=.4f; scene.Update(layout,bound);
+    Require(std::abs(scene.Volume("source")-.2f)<.0001f,"source volume binding updates after configuration changes");
+    bound.values["sourceVolume"]=.8f; scene.Update(layout,bound);
+    Require(std::abs(scene.Volume("source")-.4f)<.0001f,"source volume binding updates with unchanged configuration");
+    layout.objects[1].audioSource->playOnAwake=false; scene.Stop(); scene.Update(layout,bound);
+    Require(!scene.IsPlaying("source"),"playOnAwake disable is reflected on reused voice");
+    layout.objects[1].audioSource->playOnAwake=true; layout.objects[1].audioSource->volume=.25f;
+    scene.Update(layout,bound,false); Require(!scene.IsPlaying("source"),"inactive configuration change does not start playback");
+    scene.Update(layout,bound,true); Require(scene.IsPlaying("source")&&std::abs(scene.Volume("source")-.2f)<.0001f,"resume starts changed awake source with current binding");
+    layout.objects[1].audioSource->cue="newCue"; scene.Update(layout,bound); scene.Stop(); scene.Cue("newCue");
+    Require(scene.IsPlaying("source"),"cue changes update reused source lookup");
     layout.objects[1].audioSource->enabled=false; scene.Update(layout,{}); Require(!scene.IsPlaying("source")&&scene.BufferedBytes("source")==0,"disabled source unloads stream");
+    layout.objects[1].audioSource->enabled=true; scene.Update(layout,{}); Require(scene.IsPlaying("source"),"reenabled source creates a new playing voice");
+    layout.objects.erase(layout.objects.begin()+1); scene.Update(layout,{}); Require(!scene.IsPlaying("source"),"deleted source unloads voice");
+    static_cast<void>(Engine::CpuProfiler::Take()); scene.Update(layout,{});
+    for(const auto& sample:Engine::CpuProfiler::Take()) Require(sample.name!="Audio transform resolution"&&sample.name!="Audio source reconciliation","empty unchanged audio scene performs no transform or source rebuilding");
+    Require(renderer.WaitForIdle(),"audio matrix regression renderer finishes");
 }
 /// <summary>音響機能回帰を実行します。</summary>
 inline void Run() {Schema(); Playback();}

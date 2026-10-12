@@ -1,7 +1,9 @@
 #include <SceneRuntime/SceneAudio.h>
 #include <SceneRuntime/SceneTransforms.h>
+#include <SceneRuntime/SceneWorld.h>
 #include <algorithm>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/Profiler.h>
 namespace {
 bool AudioEnabled(const SceneRuntime::ScenePlacement& p) {return p.audioSource&&p.audioSource->enabled&&!p.audioSource->clip.empty();}
 std::optional<size_t> SelectListener(const SceneRuntime::SceneLayout& layout) {
@@ -16,7 +18,7 @@ std::optional<size_t> SelectListener(const SceneRuntime::SceneLayout& layout) {
 }
 namespace SceneRuntime {
 bool SceneAudio::Initialize(const std::filesystem::path& root,const SceneLayout& layout,std::string& error) {
-    Stop(); audio_.Shutdown(); sources_.clear(); cues_.clear(); configuredBuses_.clear(); paused_=false; initialized_=false; root_=root;
+    Stop(); audio_.Shutdown(); sources_.clear(); cues_.clear(); configuredBuses_.clear(); configuration_.clear(); configured_=false; paused_=false; initialized_=false; root_=root;
     return Refresh(layout,error);
 }
 bool SceneAudio::Mix(const SceneLayout& layout,const UiState& state) {
@@ -40,7 +42,22 @@ bool SceneAudio::PrepareSource(const ScenePlacement& p,std::map<std::string,Sour
     pending[p.id].awake=c.playOnAwake;
     return audio_.Route(pending[p.id].handle,c.bus);
 }
-bool SceneAudio::Refresh(const SceneLayout& layout,std::string& error) {
+bool SceneAudio::SameConfiguration(const SceneLayout& layout) const {
+    if(!configured_) return false;
+    size_t index=0;
+    for(const auto& p:layout.objects) {
+        if(!p.audioSource&&!p.audioMixer) continue;
+        if(index>=configuration_.size()) return false;
+        const auto& previous=configuration_[index++];
+        if(p.id!=previous.id||p.audioSource!=previous.source||p.audioMixer!=previous.mixer) return false;
+    }
+    return index==configuration_.size();
+}
+bool SceneAudio::Refresh(const SceneLayout& layout,std::string& error,const SceneWorld* world) {
+    if(SameConfiguration(layout)) {Spatial(layout,world); error.clear(); return true;}
+    // A failed candidate may have changed live routing; reapply the last successful configuration on recovery.
+    configured_=false;
+    Engine::CpuScope scope("Audio source reconciliation");
     bool needed=false; for(const auto& p:layout.objects) needed|=AudioEnabled(p);
     if(needed&&!initialized_) {
         if(!audio_.Initialize()) {error="Audio output unavailable"; return false;} initialized_=true;
@@ -57,15 +74,27 @@ bool SceneAudio::Refresh(const SceneLayout& layout,std::string& error) {
         if(!c.cue.empty()) cues.try_emplace(c.cue,p.id);
     }
     for(const auto& [id,s]:sources_) {const auto replacement=pending.find(id); if(replacement==pending.end()||replacement->second.handle!=s.handle) audio_.Unload(s.handle);}
-    sources_=std::move(pending); cues_=std::move(cues); Spatial(layout); error.clear(); return true;
+    sources_=std::move(pending); cues_=std::move(cues);
+    configuration_.clear();
+    for(const auto& p:layout.objects) if(p.audioSource||p.audioMixer) configuration_.push_back({p.id,p.audioSource,p.audioMixer});
+    configured_=true; Spatial(layout,world); error.clear(); return true;
 }
-void SceneAudio::Spatial(const SceneLayout& layout) {
+void SceneAudio::Spatial(const SceneLayout& layout,const SceneWorld* world) {
+    if(sources_.empty()) return;
+    if(world && &world->Layout()!=&layout) world=nullptr;
     std::vector<DirectX::XMFLOAT4X4> matrices; std::string error;
-    if(!SceneTransforms::Resolve(layout,matrices,error)) {Engine::Log::Warning(error); return;}
+    if(!world) {
+        Engine::CpuScope scope("Audio transform resolution");
+        if(!SceneTransforms::Resolve(layout,matrices,error)) {Engine::Log::Warning(error); return;}
+    }
+    const auto matrix=[&](size_t index,DirectX::XMFLOAT4X4& result) {
+        if(world) return world->WorldMatrix(layout.objects[index].id,result);
+        result=matrices[index]; return true;
+    };
     Engine::AudioListener listener;
     const auto selected=SelectListener(layout);
     if(selected) {
-        const auto& m=matrices[*selected]; listener.position={m._41,m._42,m._43};
+        DirectX::XMFLOAT4X4 m; if(!matrix(*selected,m)) return; listener.position={m._41,m._42,m._43};
         const auto front=DirectX::XMVector3Normalize(DirectX::XMVectorSet(m._31,m._32,m._33,0));
         const auto right=DirectX::XMVector3Normalize(DirectX::XMVector3Cross(DirectX::XMVectorSet(m._21,m._22,m._23,0),front));
         const auto up=DirectX::XMVector3Normalize(DirectX::XMVector3Cross(front,right));
@@ -76,13 +105,13 @@ void SceneAudio::Spatial(const SceneLayout& layout) {
     audio_.SetListener(listener);
     for(size_t i=0;i<layout.objects.size();++i) {
         const auto& p=layout.objects[i]; const auto found=sources_.find(p.id); if(found==sources_.end()||!p.audioSource) continue;
-        const auto& c=*p.audioSource; const auto& m=matrices[i];
+        const auto& c=*p.audioSource; DirectX::XMFLOAT4X4 m; if(!matrix(i,m)) return;
         Engine::AudioSpatialSettings settings{{m._41,m._42,m._43},c.spatial,c.minimumDistance,c.maximumDistance,c.spatialBlend,c.pitch,c.lowPass};
         audio_.SetSpatial(found->second.handle,settings);
     }
 }
-void SceneAudio::Update(const SceneLayout& layout,const UiState& state,bool active) {
-    std::string error; if(!Refresh(layout,error)) Engine::Log::Warning(error);
+void SceneAudio::Update(const SceneLayout& layout,const UiState& state,bool active,const SceneWorld* world) {
+    std::string error; if(!Refresh(layout,error,world)) Engine::Log::Warning(error);
     Pause(!active); if(!active) return;
     if(initialized_) Mix(layout,state);
     for(const auto& p:layout.objects) {

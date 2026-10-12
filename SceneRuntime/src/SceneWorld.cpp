@@ -337,9 +337,13 @@ namespace SceneRuntime
         meshTelemetry_={};
         const auto defaults=state ? UiState{} : SceneUi::Defaults(layout_);
         const auto& values=state ? *state : defaults;
-        auto renderObjects=objects_;
-        if(PrepareRenderTransforms()) for(size_t i=0;i<renderObjects.size();++i) renderObjects[i].SetWorldMatrix(renderMatrices_[i]);
-        auto items=RenderPlan::Items(layout_,renderObjects,lodModels_,camera,values);
+        std::vector<RenderPlan::Item> items;
+        {
+            Engine::CpuScope cpu("Render item preparation");
+            const bool interpolated=PrepareRenderTransforms();
+            items=RenderPlan::Items(layout_,objects_,lodModels_,camera,values,
+                interpolated ? std::span<const DirectX::XMFLOAT4X4>(renderMatrices_) : std::span<const DirectX::XMFLOAT4X4>{});
+        }
         auto lighting=light;
         lighting.shadow=nullptr;
         lighting.localShadow=nullptr;

@@ -9,7 +9,7 @@
 
 namespace App
 {
-    TitleScene::TitleScene(std::filesystem::path root, bool playIntro,std::filesystem::path scene,std::shared_ptr<SceneRuntime::SceneEnvironment> environment) : root_(std::move(root)), scene_(std::move(scene)), menu_(playIntro, false, false),environmentOwner_(std::move(environment)),environment_(*environmentOwner_) {}
+    TitleScene::TitleScene(std::filesystem::path root, bool playIntro,std::filesystem::path scene,std::shared_ptr<SceneRuntime::SceneEnvironment> environment,bool simulateInactive) : root_(std::move(root)), scene_(std::move(scene)), menu_(playIntro, false, false),environmentOwner_(std::move(environment)),environment_(*environmentOwner_),simulateInactive_(simulateInactive) {}
 
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)
     {
@@ -69,9 +69,9 @@ namespace App
         std::string assignments; if(menu_.TakeAssignments(assignments)) environment_.Ui().Assign(assignments);
         SyncUi();
         environment_.Ui().hovered=hovered_; environment_.Ui().pressed=pressed_;
-        audio_.Update(environment_,root_, menu_, keyboard.IsActive(), deltaSeconds);
+        audio_.Update(environment_,root_, menu_, keyboard.IsActive() || simulateInactive_, deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
-            keyboard.IsActive());
+            keyboard.IsActive() || simulateInactive_);
         if (action == TitleMenuAction::Start) {
             const auto scene=menu_.PendingTarget();
             if(scene.empty()) Engine::Log::Warning("Menu entry has no scene target. Set the target in Canvas > Menu configuration.");

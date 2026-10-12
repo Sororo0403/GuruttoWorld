@@ -22,7 +22,7 @@ namespace SceneRuntime
         std::array<float,4> Particle(unsigned int index) const;
         UiState& Ui() { return uiState_; }
         bool StartAudio(const std::filesystem::path& root,std::string& error) { return audio_.Initialize(root,world_.Layout(),error); }
-        void UpdateAudio(bool active) { audio_.Update(world_.Layout(),uiState_,active); }
+        void UpdateAudio(bool active) { audio_.Update(world_.Layout(),uiState_,active,&world_); }
         void AudioCue(const std::string& cue) { audio_.Cue(cue); }
         void PauseAudio(bool paused) { audio_.Pause(paused); }
         UiEvent Click(const std::string& object);

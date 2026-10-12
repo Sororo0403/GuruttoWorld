@@ -88,6 +88,13 @@ namespace RenderingFeaturesValidation
         auto invalid=world.Layout(); invalid.objects.front().meshRenderer->lods.front().model="Assets/Models/Missing.obj";
         Require(!world.ReplaceLayout(invalid,root,error),"missing LOD resource fails before committing scene");
         render(); Require(world.Telemetry().draws==1 && world.Telemetry().triangles==2,"failed LOD edit preserves current batch and geometry");
+        auto separate=world.Layout();
+        for (auto& placement:separate.objects) placement.meshRenderer->instancing=false;
+        Require(world.ReplaceLayout(separate,root,error),"single draw mode commits without rebuilding model assets");
+        render(); Require(world.Telemetry().draws==2 && world.Telemetry().triangles==2,"non-instanced objects preserve independent GPU draws and triangle accounting");
+        separate.objects.back().meshRenderer->enabled=false;
+        Require(world.ReplaceLayout(separate,root,error),"hidden duplicate commits");
+        render(); Require(world.Telemetry().draws==1 && world.Telemetry().triangles==1,"hidden duplicate is omitted from render item preparation");
         { std::ofstream file(root/"Assets/Models/Uv.obj"); file<<"v -1 -1 0\nv 0 1 0\nv 1 -1 0\nvn 0 0 1\nvt 0 1\nvt 0.5 0\nvt 1 1\nf 1/1/1 2/2/1 3/3/1\n"; }
         std::vector<Engine::MeshData> source; Require(Engine::ModelLoader::Load(root/"Assets/Models/Uv.obj",source),"bake UV fixture loads");
         const auto normal=source.front().vertices.front().normal;

@@ -263,3 +263,9 @@ ProfilerValidationはCPU描画時間・フレーム数と、完了フェンス�
 
 
 `WP1_PARK_UPDATE_ONLY=1`は通常更新を30回温めた後に240回測定し、`generated/park/updates.csv`へ処理別のCPU時間・呼出回数を保存します。描画とCSV出力はTotal update区間に含みません。Park検証では`LayoutDeltaValidation`により、全検証と差分検証、全世界行列解決と差分解決について正常・不正更新の判定一致と失敗時の出力保持を確認します。`WP1_RIGID_ONLY=1`はActorへの書込み途中の物理失敗で全Actorが元に戻ること、`WP1_SCRIPT_ONLY=1`は候補更新と従来の独立更新の結果一致も検証します。
+
+## 配布Appの負荷計測
+
+`App.exe --profile-park --profile-frames=600 --profile-output=C:/temp/park.csv` は配布Appの本番ループを計測します。タイトルは `--profile-title` を使います。入力フォーカスを取得できない検証環境では `--profile-simulate-inactive` を明示追加し、CSVの `input.active` と `simulation.override` を確認します。背景での物理・スクリプト・音声更新だけ継続し、実入力は非アクティブのままです。`Present wait` と `Frame fence wait` を処理時間から区別し、初期化直後のフレームを除外して比較します。詳細は `docs/ParkAdventure.md` に記録します。
+
+`WP1_AUDIO_FEATURES_ONLY=1` の音声回帰は、設定未変更時の音源再構築省略、確定World行列と単体座標解決の出力一致、親移動への追従、ロード失敗時の再生保持、音量バインディング・awake・cueの変更、停止中の変更と再開、音源の生成・削除を確認します。

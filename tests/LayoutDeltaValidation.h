@@ -86,7 +86,7 @@ namespace LayoutDeltaValidation
         check(baseline,true);
         auto changed=baseline; changed.objects[1].position[0]=2; changed.objects[2].parentId="camera"; check(changed,true);
         changed=baseline; changed.objects[1].playerController->moveSpeed=3; check(changed,true);
-        for (int variant=0;variant<14;++variant)
+        for (int variant=0;variant<16;++variant)
         {
             changed=baseline;
             switch (variant)
@@ -105,6 +105,8 @@ namespace LayoutDeltaValidation
             case 11: changed.objects[0].camera.reset(); break;
             case 12: changed.assetReferences["../escape"]="invalid-id"; break;
             case 13: changed.objects[1].prefab=PrefabLink{}; break;
+            case 14: changed.objects[1].parentId="player"; break;
+            case 15: changed.objects[1].id.clear(); break;
             }
             check(changed,false);
         }

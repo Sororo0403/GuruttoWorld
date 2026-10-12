@@ -7,7 +7,7 @@
 
 namespace App
 {
-    SceneFactory::SceneFactory(std::filesystem::path root) : root_(std::move(root)) {}
+    SceneFactory::SceneFactory(std::filesystem::path root, bool simulateInactive) : root_(std::move(root)), simulateInactive_(simulateInactive) {}
     std::unique_ptr<Engine::IScene> SceneFactory::Create(std::string_view name)
     {
         std::string scene(name);
@@ -17,10 +17,10 @@ namespace App
             const auto path=std::filesystem::path(std::u8string(scene.begin(),scene.end()));
             const auto layout=SceneRuntime::SceneLayout::Load(root_/path);
             if(TitleBindings::Configuration(layout)) {
-                auto title=std::make_unique<TitleScene>(root_,!visited_.contains(scene),path,environment_);
+                auto title=std::make_unique<TitleScene>(root_,!visited_.contains(scene),path,environment_,simulateInactive_);
                 visited_.insert(scene); return title;
             }
-            return std::make_unique<AuthoredScene>(root_,path,environment_);
+            return std::make_unique<AuthoredScene>(root_,path,environment_,simulateInactive_);
         }
         return {};
     }

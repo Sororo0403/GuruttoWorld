@@ -197,15 +197,14 @@ namespace SceneRuntime
                 for (const auto& [path,id] : assetReferences)
                     if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
                         throw std::runtime_error("Invalid asset reference metadata");
-            std::unordered_set<std::string> ids;
-            ids.reserve(objects.size());
+            // Object IDs already match the validated baseline; only parent edits can invalidate its hierarchy.
+            bool parentsChanged=false;
             size_t menus=0,localLights=0;
             for (size_t index=0;index<objects.size();++index)
             {
                 const auto& object=objects[index];
                 const auto& before=validatedBefore.objects[index];
-                if (object.id.empty() || !ids.insert(object.id).second)
-                    throw std::runtime_error("Empty or duplicate object ID: "+object.id);
+                parentsChanged=parentsChanged || object.parentId!=before.parentId;
                 for (const auto& vector : {object.position,object.rotation,object.scale})
                     if (std::any_of(vector.begin(),vector.end(),[](float value) { return !std::isfinite(value); }))
                         throw std::runtime_error("Cannot save nonfinite transform");
@@ -227,7 +226,7 @@ namespace SceneRuntime
                 if (object.pointLight && object.pointLight->enabled) ++localLights;
                 if (object.spotLight && object.spotLight->enabled) ++localLights;
             }
-            ValidateParents(objects);
+            if (parentsChanged) ValidateParents(objects);
             ValidateCamera(*this);
             if (menus>1) throw std::runtime_error("At most one enabled menu Canvas is supported");
             if (localLights>32) throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");

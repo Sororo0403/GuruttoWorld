@@ -498,8 +498,11 @@ namespace Engine
 #if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
         (void)debugUi;
 #endif
-        if (!WaitForFence(frameFenceValues_[index]) ||
-            !Check(allocators_[index]->Reset(), "Reset command allocator") ||
+        {
+            CpuScope cpu("Frame fence wait");
+            if (!WaitForFence(frameFenceValues_[index])) return false;
+        }
+        if (!Check(allocators_[index]->Reset(), "Reset command allocator") ||
             !Check(commands_->Reset(allocators_[index].Get(), nullptr), "Reset command list"))
         {
             return false;
@@ -583,7 +586,11 @@ namespace Engine
         commands_->SetPrivateData(GpuScope::Key,0,nullptr);
         ID3D12CommandList* lists[] = { commands_.Get() };
         queue_->ExecuteCommandLists(1, lists);
-        const HRESULT present = swapChain_->Present(1, 0);
+        HRESULT present;
+        {
+            CpuScope cpu("Present wait");
+            present=swapChain_->Present(1, 0);
+        }
         // このフレームの完了値を記録し、同じバッファーを再利用するときだけ待機します。
         const UINT64 submittedFence = ++fenceValue_;
         if (!SignalGpuFence(device_.Get(), queue_.Get(), fence_.Get(), submittedFence))
