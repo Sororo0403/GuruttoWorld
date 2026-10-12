@@ -242,7 +242,10 @@ namespace SceneRuntime
     }
 
     void SceneLayout::ResolveAssets(const std::filesystem::path& root) {
-        auto document=Json::parse(Serialize()); Engine::AssetDatabase(root).References(document);
+        ResolveAssets(Engine::AssetDatabase(root));
+    }
+    void SceneLayout::ResolveAssets(const Engine::AssetDatabase& index) {
+        auto document=Json::parse(Serialize()); index.References(document);
         *this=Parse(document.dump());
     }
     SceneLayout SceneLayout::Load(const std::filesystem::path& path,const std::filesystem::path& assetsRoot)

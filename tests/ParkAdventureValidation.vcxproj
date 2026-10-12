@@ -90,6 +90,9 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ParkResourceValidation.h" />
+    <ClInclude Include="ShaderCacheValidation.h" />
+    <ClInclude Include="SpriteResourceValidation.h" />
     <ClCompile Include="ParkAdventureValidation.cpp" />
     <ClCompile Include="..\Content\Assets\Scripts\ParkAdventure.cpp" />
   </ItemGroup>

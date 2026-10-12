@@ -257,3 +257,6 @@ ProfilerValidationはCPU描画時間・フレーム数と、完了フェンス�
 実際のJolt物理とゲーム処理でジャンプ・空中停止・戦闘・全収集・落下復帰・スイッチ・クリア・カメラ・再挑戦を確認し、入口と水路の描画画像を保存します。
 
 `$env:WP1_PARK_STUTTER_ONLY='1'`を設定してReleaseのParkAdventureValidationを実行すると、静止・取得・空中停止の実描画付きフレーム計測と144Hz相当の位置更新検証を行います。`generated/park/stutter.csv`と`motion-144.csv`に記録し、完了後は`Remove-Item Env:WP1_PARK_STUTTER_ONLY`で解除します。測定値に合否しきい値は設けず、原因の比較に使用します。内訳と制約は`docs/ParkAdventure.md`に記載しています。
+
+
+`WP1_PARK_RESOURCE_ONLY=1`はシェーダー・描画パイプライン共有、includeの内容変更、日本語パス、実行中の生成・削除・文字変更の資源再利用と失敗時の保持、描画補間・親子追従・直接移動・固定更新上限を検証します。UIのGPU退役と再読み込み失敗時の表示保持は`WP1_SCENE_UI_ONLY=1`、重力・速度変更時のJolt個体保持は`WP1_RIGID_ONLY=1`で確認します。

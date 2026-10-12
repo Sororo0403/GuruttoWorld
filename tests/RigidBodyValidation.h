@@ -1,6 +1,8 @@
 #pragma once
 #include <SceneRuntime/PhysicsWorld.h>
 #include <Engine/Core/Json.h>
+#include <Engine/Core/Profiler.h>
+#include <limits>
 #include <cmath>
 #include <stdexcept>
 #include "../Editor/src/GameSession.h"
@@ -23,9 +25,61 @@ namespace RigidBodyValidation
         else { actor.boxCollider->shape="sphere"; actor.rigidBody.emplace(); actor.rigidBody->mass=2; }
         SceneLayout layout; layout.objects={floor,actor}; return layout;
     }
+    /// <summary>Controllerの動的設定を資源の再構築なしで適用し、形状変更と失敗時の物理状態保持を確認します。</summary>
+    inline void ControllerUpdates()
+    {
+        using namespace SceneRuntime;
+        const auto root=std::filesystem::absolute("Content");
+        auto layout=Layout(true); ScenePhysics::States states; PhysicsWorld world; std::string error;
+        const auto advance=[&](float x=0,bool jump=false) {
+            Require(world.Advance(layout,states,1.0/60,x,0,jump,root,error),"controller update advances");
+        };
+        const auto rebuilds=[]() {
+            unsigned int count=0;
+            for (const auto& sample:Engine::CpuProfiler::Take()) if (sample.name=="Physics world rebuild") count+=sample.calls;
+            return count;
+        };
+        for (int i=0;i<120;++i) advance();
+        advance(0,true);
+        Require(states.at("actor").verticalSpeed>0,"controller starts airborne before settings change");
+        static_cast<void>(rebuilds());
+        auto& controller=*layout.objects[1].playerController;
+        controller.useGravity=false; controller.moveSpeed=3; controller.gravity=30; controller.jumpSpeed=9; controller.stepHeight=0.5f;
+        const auto before=layout.objects[1].position;
+        advance(1);
+        Require(rebuilds()==0,"movement and hover settings reuse existing character and physics world");
+        Require(std::abs(layout.objects[1].position[0]-before[0]-0.05f)<0.003f,"updated controller speed applies immediately");
+        Require(std::abs(layout.objects[1].position[1]-before[1])<0.003f && std::abs(states.at("actor").verticalSpeed)<0.003f,"hover stops vertical motion without character recreation");
+        layout.objects[1].playerController->useGravity=true; advance();
+        Require(rebuilds()==0 && states.at("actor").verticalSpeed<0,"gravity resumes on existing character");
+        const auto saved=layout; const auto savedStates=states;
+        PhysicsWorld reference; auto expected=saved; auto expectedStates=savedStates;
+        Require(reference.Advance(expected,expectedStates,1.0/60,0,0,false,root,error),"rollback reference advances");
+        {
+            auto transaction=world.BeginTransaction(); auto temporary=saved; auto temporaryStates=savedStates;
+            temporary.objects[1].playerController->useGravity=false;
+            Require(world.Advance(temporary,temporaryStates,1.0/60,1,0,false,root,error),"uncommitted hover advances");
+        }
+        advance();
+        Require(std::abs(layout.objects[1].position[1]-expected.objects[1].position[1])<0.003f &&
+            std::abs(states.at("actor").verticalSpeed-expectedStates.at("actor").verticalSpeed)<0.003f,"transaction rollback restores character velocity after hover update");
+        static_cast<void>(rebuilds());
+        auto invalid=layout; invalid.objects[1].playerController->moveSpeed=std::numeric_limits<float>::quiet_NaN();
+        const auto prior=states;
+        Require(!world.Advance(invalid,states,1.0/60,0,0,false,root,error),"invalid dynamic controller setting is rejected");
+        Require(states.at("actor").verticalSpeed==prior.at("actor").verticalSpeed,"invalid controller preserves physical state");
+        advance(); Require(rebuilds()==0,"invalid controller does not discard usable world");
+        layout.objects[1].boxCollider->radius=0.4f; advance();
+        Require(rebuilds()==1,"collider shape changes still rebuild character");
+        layout.objects[1].playerController->maxSlopeDegrees=30; advance();
+        Require(rebuilds()==1,"character construction slope changes still rebuild world");
+        const auto floor=world.Raycast({0,5,0},{0,-1,0},10,0xffffffffu,false,"actor");
+        Require(floor && floor->object=="floor","controller updates preserve collider filter definitions");
+    }
     inline void Run()
     {
         using namespace SceneRuntime;
+        ControllerUpdates();
         const auto root=std::filesystem::absolute("Content");
         auto layout=Layout(); std::string error; ScenePhysics::States states; PhysicsWorld world;
         const auto tick=[&](double seconds=1.0/60,float x=0,float z=0,bool jump=false) {

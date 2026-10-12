@@ -1,4 +1,6 @@
 #pragma once
+#include <Engine/Assets/AssetDatabase.h>
+#include <Engine/Graphics/DirectX12/GpuRetirement.h>
 #include <SceneRuntime/SceneLayout.h>
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
@@ -105,7 +107,11 @@ namespace SceneRuntime
             const std::array<float, 3>& direction, float maxDistance = 220.0f) const;
         // Rotation-only frame: combine ancestor rotations without scale, reflection or shear.
         bool WorldRotation(std::string_view id, DirectX::XMFLOAT4X4& matrix) const;
+        /// <summary>描画補間した親子の回転だけを合成し、Scaleと反転を除外します。</summary>
+        bool RenderWorldRotation(std::string_view id,DirectX::XMFLOAT4X4& matrix) const;
         bool WorldMatrix(std::string_view id, DirectX::XMFLOAT4X4& matrix) const;
+        /// <summary>確定した物理配置を変えず、補間済みの描画用世界行列を取得します。</summary>
+        bool RenderWorldMatrix(std::string_view id,DirectX::XMFLOAT4X4& matrix) const;
         // Convert a world matrix to the parent-relative local SRT, preserving output on failure.
         bool LocalTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const;
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
@@ -113,6 +119,8 @@ namespace SceneRuntime
         struct PreparedLayout
         {
             SceneLayout layout;
+            std::shared_ptr<Engine::AssetDatabase> assets;
+            std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>> materials;
             std::filesystem::path assetsRoot;
             std::vector<Engine::Object3D> objects;
             std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animated;
@@ -147,6 +155,9 @@ namespace SceneRuntime
             const std::map<std::string,AnimatorState>& states,ScriptRuntime& scripts,std::vector<AnimatorFrame>& result,std::string& error) const;
         mutable MeshTelemetry meshTelemetry_;
         std::filesystem::path assetsRoot_;
+        std::shared_ptr<Engine::AssetDatabase> assetIndex_;
+        std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>> materials_;
+        std::shared_ptr<Engine::GpuRetirement> retirement_;
         std::function<bool(const SceneLayout&,std::string&)> prepareRuntime_;
         std::function<bool(const SceneLayout&,const ScriptUiCommands&,std::string&)> prepareUi_;
         bool InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
@@ -165,6 +176,17 @@ namespace SceneRuntime
         std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animatedModels_;
         std::map<std::string,AnimatorState> animatorStates_;
         ScriptRuntime scripts_;
+        struct PhysicalPose { std::array<float,3> position,rotation,scale; std::string parent; };
+        /// <summary>移動体の確定したローカル姿勢だけを保存します。</summary>
+        static std::map<std::string,PhysicalPose> PhysicalPoses(const SceneLayout& layout);
+        /// <summary>補間の行列を描画用に解決し、テレポートは即座に反映します。</summary>
+        bool PrepareRenderTransforms() const;
+        /// <summary>同じ補間条件で描画用のローカル配置と回転を準備します。</summary>
+        bool InterpolatedLocalTransform(const ScenePlacement& placement,DirectX::XMFLOAT4X4& transform,DirectX::XMFLOAT4X4& rotation) const;
+        std::map<std::string,PhysicalPose> previousPhysical_,currentPhysical_;
+        size_t renderVersion_=0;
+        mutable size_t preparedRenderVersion_=static_cast<size_t>(-1);
+        mutable std::vector<DirectX::XMFLOAT4X4> renderMatrices_;
         double fixedSeconds_=0;
         bool fixedJump_=false;
         std::map<std::string,bool> fixedPressed_;

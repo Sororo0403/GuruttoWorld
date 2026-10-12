@@ -18,7 +18,7 @@ namespace SceneRuntime
         const auto* placement=CameraObject(world.Layout());
         if (!placement) return false;
         DirectX::XMFLOAT4X4 transform,rotation;
-        if (!world.WorldMatrix(placement->id,transform) || !world.WorldRotation(placement->id,rotation)) return false;
+        if (!world.RenderWorldMatrix(placement->id,transform) || !world.RenderWorldRotation(placement->id,rotation)) return false;
         std::array<float,3> offset{};
         if (placement->cameraSway && placement->cameraSway->enabled)
             for (size_t axis=0;axis<3;++axis)
@@ -56,7 +56,7 @@ namespace SceneRuntime
             result.specularStrength=config.specular; result.shininess=config.shininess;
             result.shadowsEnabled=config.shadowsEnabled; result.shadowDistance=config.shadowDistance; result.shadowBias=config.shadowBias;
             DirectX::XMFLOAT4X4 rotation;
-            if (world.WorldRotation(found->id,rotation))
+            if (world.RenderWorldRotation(found->id,rotation))
             {
                 DirectX::XMFLOAT3 direction;
                 DirectX::XMStoreFloat3(&direction,DirectX::XMVector3TransformNormal(
@@ -70,7 +70,7 @@ namespace SceneRuntime
             const bool spot=object.spotLight && object.spotLight->enabled;
             if (!point && !spot) continue;
             DirectX::XMFLOAT4X4 transform;
-            if (!world.WorldMatrix(object.id,transform)) continue;
+            if (!world.RenderWorldMatrix(object.id,transform)) continue;
             Engine::LocalLight light; light.position={transform._41,transform._42,transform._43};
             if (point)
             {
@@ -81,7 +81,7 @@ namespace SceneRuntime
             if (spot)
             {
                 DirectX::XMFLOAT4X4 rotation;
-                if (!world.WorldRotation(object.id,rotation)) continue;
+                if (!world.RenderWorldRotation(object.id,rotation)) continue;
                 light.direction={rotation._31,rotation._32,rotation._33}; light.spot=1;
                 light.color=object.spotLight->color; light.intensity=object.spotLight->intensity; light.range=object.spotLight->range;
                 constexpr float radians=std::numbers::pi_v<float>/360;

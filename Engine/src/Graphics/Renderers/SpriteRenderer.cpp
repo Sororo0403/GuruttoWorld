@@ -8,10 +8,23 @@
 #include <cmath>
 #include <format>
 #include <utility>
+#include <map>
+#include <mutex>
+#include <tuple>
 
 namespace
 {
     using Microsoft::WRL::ComPtr;
+    struct SpritePipeline
+    {
+        ComPtr<ID3D12Device> device;
+        ComPtr<ID3D12CommandQueue> queue;
+        ComPtr<ID3D12Resource> mesh;
+        D3D12_VERTEX_BUFFER_VIEW vertex{};
+        D3D12_INDEX_BUFFER_VIEW index{};
+        ComPtr<ID3D12RootSignature> root;
+        ComPtr<ID3D12PipelineState> pipeline, hdrPipeline;
+    };
 
     bool Check(HRESULT result, const char* operation)
     {
@@ -41,21 +54,50 @@ namespace Engine
         {
             return false;
         }
-        depthTest_=depthTest;
-        if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) ||
-            !CreateMeshBuffer(device, queue))
+        std::string revision;
+        if (!GetShaderRevision(shaderPath, revision)) return false;
+        using Key = std::tuple<ID3D12Device*, ID3D12CommandQueue*, std::string, bool>;
+        static std::mutex mutex;
+        static std::map<Key, std::weak_ptr<SpritePipeline>> pipelines;
+        std::lock_guard lock(mutex);
+        std::erase_if(pipelines, [](const auto& item) { return item.second.expired(); });
+        const Key key{ device, queue, std::move(revision), depthTest };
+        std::shared_ptr<SpritePipeline> shared;
+        if (const auto found = pipelines.find(key); found != pipelines.end()) shared = found->second.lock();
+        depthTest_ = depthTest;
+        if (!shared)
         {
-            meshBuffer_.Reset();
-            vertexBufferView_ = {};
-            indexBufferView_ = {};
-            pipelineState_.Reset();
-            hdrPipelineState_.Reset();
-            rootSignature_.Reset();
-            return false;
+            if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) || !CreateMeshBuffer(device, queue))
+            {
+                meshBuffer_.Reset(); vertexBufferView_ = {}; indexBufferView_ = {};
+                pipelineState_.Reset(); hdrPipelineState_.Reset(); rootSignature_.Reset();
+                return false;
+            }
+            shared = std::make_shared<SpritePipeline>();
+            shared->device = device; shared->queue = queue; shared->mesh = meshBuffer_;
+            shared->vertex = vertexBufferView_; shared->index = indexBufferView_;
+            shared->root = rootSignature_; shared->pipeline = pipelineState_; shared->hdrPipeline = hdrPipelineState_;
+            pipelines.insert_or_assign(key, shared);
         }
+        meshBuffer_ = shared->mesh; vertexBufferView_ = shared->vertex; indexBufferView_ = shared->index;
+        rootSignature_ = shared->root; pipelineState_ = shared->pipeline; hdrPipelineState_ = shared->hdrPipeline;
+        sharedPipeline_ = std::move(shared);
         texture_ = std::move(texture);
         initialized_ = true;
         Log::Info("Sprite renderer initialized.");
+        return true;
+    }
+
+    bool SpriteRenderer::InitializeShared(const SpriteRenderer& prototype, std::shared_ptr<const Texture2D> texture)
+    {
+        if (initialized_ || !prototype.initialized_ || !prototype.sharedPipeline_ || !texture || !texture->GetDescriptorHeap()) return false;
+        ComPtr<ID3D12Device> textureDevice, pipelineDevice;
+        if (FAILED(texture->GetDescriptorHeap()->GetDevice(IID_PPV_ARGS(&textureDevice))) ||
+            FAILED(prototype.pipelineState_->GetDevice(IID_PPV_ARGS(&pipelineDevice))) || textureDevice.Get() != pipelineDevice.Get()) return false;
+        sharedPipeline_ = prototype.sharedPipeline_;
+        meshBuffer_ = prototype.meshBuffer_; vertexBufferView_ = prototype.vertexBufferView_; indexBufferView_ = prototype.indexBufferView_;
+        rootSignature_ = prototype.rootSignature_; pipelineState_ = prototype.pipelineState_; hdrPipelineState_ = prototype.hdrPipelineState_;
+        depthTest_ = prototype.depthTest_; texture_ = std::move(texture); initialized_ = true;
         return true;
     }
 

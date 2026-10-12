@@ -38,12 +38,13 @@ namespace SceneRuntime
             for (const auto value : {values.uv.scale[0],values.uv.scale[1],values.uv.rotation,values.uv.translation[0],values.uv.translation[1]})
                 if (!std::isfinite(value) || std::abs(value)>100000) throw std::runtime_error("Invalid material UV transform");
         }
-        static MaterialAsset Load(const std::filesystem::path& root,const std::filesystem::path& path)
+        static MaterialAsset Load(const std::filesystem::path& root,const std::filesystem::path& path,const Engine::AssetDatabase* assetIndex=nullptr)
         {
             if (!ValidPath(path)) throw std::runtime_error("Invalid material path");
             std::ifstream stream(root/path); if (!stream) throw std::runtime_error("Cannot open material");
             auto json=Engine::Json::parse(stream);
-            { Engine::CpuScope scope("Material asset database scan"); Engine::AssetDatabase(root).References(json); }
+            if(assetIndex) assetIndex->References(json);
+            else { Engine::CpuScope scope("Material asset database scan"); Engine::AssetDatabase(root).References(json); }
             MaterialAsset asset;
             const auto& color=Engine::JsonArray(json.at("color")); if (color.size()!=4) throw std::runtime_error("Material color needs four channels");
             for (size_t index=0;index<4;++index) asset.values.color[index]=static_cast<float>(Engine::JsonNumber(color[index]));

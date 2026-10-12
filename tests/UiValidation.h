@@ -1,6 +1,9 @@
 #pragma once
 #include <SceneRuntime/SceneUi.h>
 #include "UiControlValidation.h"
+#include "SpriteResourceValidation.h"
+#include <chrono>
+#include <thread>
 #include <SceneRuntime/SceneAudio.h>
 #include "../App/src/Scenes/AuthoredScene.h"
 #include "EnvironmentValidation.h"
@@ -95,6 +98,38 @@ inline void EditingAndAudio(Engine::DirectX12Renderer& renderer,const std::files
     Require(!audio.Initialize(root,layout,error) && !audio.IsPlaying("audio"),"failed audio load is reported without a live voice");
 }
 inline void Rendering(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root) {
+    SpriteResourceValidation::Run(renderer.GetDevice(),renderer.GetCommandQueue(),root);
+    {
+        const auto staged=std::filesystem::path("generated/park/ui-warm-validation");
+        std::filesystem::create_directories(staged);
+        std::filesystem::copy(root/"Shaders",staged/"Shaders",std::filesystem::copy_options::recursive|std::filesystem::copy_options::overwrite_existing);
+        auto warmLayout=Layout(); warmLayout.objects[1].text.emplace(); warmLayout.objects[1].text->text="initial";
+        SceneUi warm; std::string warmError;
+        Require(warm.Prepare(renderer,staged,warmLayout,warmError),"warm UI initializes shader context");
+        std::ofstream broken(staged/"Shaders/Ui.hlsl",std::ios::binary); broken<<"invalid shader"; broken.close();
+        warmLayout.objects[1].text->text="runtime change";
+        Require(warm.Prepare(renderer,staged,warmLayout,warmError,{},false),"runtime text update does not inspect shader files");
+        const auto warmPixel=[&] {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){warm.Draw(commands,warmLayout,64,32);});};
+        const auto beforeReload=warmPixel();
+        Require(!warm.Prepare(renderer,staged,warmLayout,warmError),"explicit reload detects broken shader");
+        Require(warmPixel()==beforeReload,"failed reload retains cached context and displayed resources");
+        warmLayout.objects[1].text->text="after failed reload";
+        Require(warm.Prepare(renderer,staged,warmLayout,warmError,{},false),"runtime context survives failed shader inspection");
+        Microsoft::WRL::ComPtr<ID3D12Fence> gate;
+        Require(SUCCEEDED(renderer.GetDevice()->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&gate))),"UI upload gate");
+        Require(SUCCEEDED(renderer.GetCommandQueue()->Wait(gate.Get(),1)),"pause UI queue before text upload");
+        std::jthread release([gate] { std::this_thread::sleep_for(std::chrono::milliseconds(500)); gate->Signal(1); });
+        warmLayout.objects[1].image.reset(); warmLayout.objects[1].text->text="█";
+        warmLayout.objects[1].rectTransform->position={20,0};
+        const auto began=std::chrono::steady_clock::now();
+        Require(warm.Prepare(renderer,staged,warmLayout,warmError,{},false),"text upload submits while GPU queue is blocked");
+        const auto elapsed=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-began).count();
+        Require(elapsed<250,"UI text update does not wait for the GPU queue");
+        release.join();
+        const auto uploaded=warmPixel();
+        Require(uploaded[0]>0 && uploaded[1]>0 && uploaded[2]>0,"deferred text upload reaches later draws in queue order");
+        Require(renderer.WaitForIdle(),"warm UI test finishes GPU work");
+    }
     UiControlValidation::Rendering(renderer,root);
     auto layout=Layout(); SceneUi ui; std::string error;
     Require(ui.Prepare(renderer,root,layout,error),"UI prepares resources outside draw");
@@ -170,6 +205,15 @@ inline void Rendering(Engine::DirectX12Renderer& renderer,const std::filesystem:
     const auto textPixel=pixel(); Require(textPixel[0]>0 && textPixel[1]>0 && textPixel[2]>0,"text pixels reach the Game framebuffer");
     layout.objects[1].image.emplace(); layout.objects[1].image->texture="Assets/Textures/missing.png";
     Require(!ui.Prepare(renderer,root,layout,error),"missing UI image reports failure and keeps previous resources");
+    layout.objects[1].image.reset();
+    Require(pixel()==textPixel,"failed UI preparation preserves the previous framebuffer");
+    auto replacement=layout;
+    replacement.objects[1].text->text="updated";
+    Require(ui.Prepare(renderer,root,replacement,error),"changed text reuses cached sprite pipeline");
+    Require(ui.Prepare(renderer,root,layout,error),"text resources can be replaced repeatedly");
+    auto pruned=layout; pruned.objects.clear();
+    Require(ui.Prepare(renderer,root,pruned,error),"removed UI resources retire without a full queue wait");
+    Require(pixel()==std::array<unsigned char,4>{0,0,0,255},"removed UI resource is no longer drawn");
     Require(renderer.WaitForIdle(),"UI GPU work completes before resources are destroyed");
     EditingAndAudio(renderer,root);
     App::AuthoredScene appScene(root,"Assets/Scenes/UiAudioDemo.json");

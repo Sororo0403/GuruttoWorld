@@ -4,9 +4,13 @@
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 #include <filesystem>
+#include <string>
 
 namespace Engine
 {
+    /// <summary>実際に展開された include とソースの内容を取得し、キャッシュの変更検知に使います。</summary>
+    bool GetShaderRevision(const std::filesystem::path& path, std::string& revision);
+
     /// <summary>
     /// HLSL をコンパイルします。警告もエラーとし、Debug ではデバッグ情報を生成します。
     /// </summary>

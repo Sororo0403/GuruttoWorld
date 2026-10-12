@@ -335,13 +335,20 @@ namespace SceneRuntime
                 lock.ReleaseLocks();system.AddConstraint(constraint);constraints.push_back(std::move(constraint));
             }
         }
+        static bool MatchesController(const std::optional<PlayerControllerComponent>& a,const std::optional<PlayerControllerComponent>& b)
+        {
+            if (a.has_value()!=b.has_value()) return false;
+            if (!a) return true;
+            // Movement settings are consumed by Step; only body construction settings invalidate the world.
+            return a->id==b->id && a->enabled==b->enabled && a->usePhysics==b->usePhysics && a->maxSlopeDegrees==b->maxSlopeDegrees;
+        }
         bool Matches(const SceneLayout& layout,const std::vector<Matrix>& matrices) const
         {
             if (layout.objects.size()!=definition.objects.size()) return false;
             for (size_t i=0;i<layout.objects.size();++i)
             {
                 const auto& a=layout.objects[i]; const auto& b=definition.objects[i];
-                if (a.id!=b.id || a.parentId!=b.parentId || a.boxCollider!=b.boxCollider || a.rigidBody!=b.rigidBody || a.playerController!=b.playerController || a.terrain!=b.terrain || a.tilemap!=b.tilemap || a.joint!=b.joint) return false;
+                if (a.id!=b.id || a.parentId!=b.parentId || a.boxCollider!=b.boxCollider || a.rigidBody!=b.rigidBody || !MatchesController(a.playerController,b.playerController) || a.terrain!=b.terrain || a.tilemap!=b.tilemap || a.joint!=b.joint) return false;
                 if (a.boxCollider && a.boxCollider->enabled)
                 {
                     bool baked=false; const auto scale=ColliderPose(a,matrices[i],baked).scale;
@@ -593,6 +600,14 @@ namespace SceneRuntime
         bool saved=false;
         try
         {
+            for (const auto& object:layout.objects) if (object.playerController)
+            {
+                const auto& controller=*object.playerController;
+                const auto bounded=[](float value,float limit) { return std::isfinite(value) && value>=0 && value<=limit; };
+                if (!bounded(controller.moveSpeed,1000) || !bounded(controller.gravity,1000) || !bounded(controller.jumpSpeed,1000) ||
+                    !bounded(controller.stepHeight,10) || !bounded(controller.maxSlopeDegrees,89))
+                    throw std::runtime_error("Invalid PlayerController movement settings");
+            }
             auto candidate=layout; auto candidateStates=states;
             std::unique_ptr<Impl> replacement;
             auto* activeWorld=impl_.get();

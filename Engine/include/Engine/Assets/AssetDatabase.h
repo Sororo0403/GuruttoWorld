@@ -27,6 +27,8 @@ struct AssetMetadata {
 class AssetDatabase final {
     std::filesystem::path root_;
     std::map<std::string,std::filesystem::path> ids_,aliases_;
+    bool snapshot_=false;
+    std::map<std::string,AssetMetadata> metadata_;
 public:
     static std::string Text(const std::filesystem::path& path) { const auto s=path.generic_u8string(); return {s.begin(),s.end()}; }
     static std::filesystem::path Path(const std::string& value) { return std::filesystem::path(std::u8string(value.begin(),value.end())); }
@@ -79,13 +81,15 @@ public:
             path=path.parent_path();
         } return {};
     }
-    explicit AssetDatabase(std::filesystem::path root) : root_(std::move(root)) {
+    /// <summary>snapshot はプレイ中の参照解決用にメタデータを保持します。編集時は既定の最新読み込みを使います。</summary>
+    explicit AssetDatabase(std::filesystem::path root,bool snapshot=false) : root_(std::move(root)),snapshot_(snapshot) {
         for (const auto* folder : {"Assets","Shaders"}) {
             if (!std::filesystem::is_directory(root_/folder)) continue;
             for (const auto& entry : std::filesystem::recursive_directory_iterator(root_/folder)) {
                 if (!entry.is_regular_file() || entry.path().extension()!=".meta") continue;
                 auto source=entry.path(); source.replace_extension(); if (!std::filesystem::is_regular_file(source)) continue;
                 const auto metadata=Read(source); const auto relative=source.lexically_relative(root_);
+                if(snapshot_) metadata_.emplace(Text(relative),metadata);
                 if (!ids_.emplace(metadata.id,relative).second) throw std::runtime_error("Duplicate asset ID: "+metadata.id);
                 for (const auto& alias : metadata.previousPaths) {
                     const auto [found,inserted]=aliases_.emplace(alias,relative);
@@ -100,6 +104,7 @@ public:
             const auto found=ids_.find(id); if (found==ids_.end()) throw std::runtime_error("Missing asset ID: "+id);
             return found->second;
         }
+        if (snapshot_ && metadata_.contains(Text(path))) return path;
         if (std::filesystem::is_regular_file(root_/path)) return path;
         const auto found=aliases_.find(Text(path)); return found==aliases_.end() ? path : found->second;
     }
@@ -112,7 +117,8 @@ public:
                 const auto path=value.get<std::string>(); if (!Valid(Path(path))) return;
                 const auto found=references.find(path); const auto resolved=resolve ? Resolve(Path(path),found==references.end() ? "" : found->second) : Path(path);
                 value=Text(resolved);
-                const auto metadata=Read(root_/resolved);
+                const auto saved=metadata_.find(Text(resolved));
+                const auto metadata=snapshot_ ? (saved==metadata_.end()?AssetMetadata{}:saved->second) : Read(root_/resolved);
                 if (!metadata.id.empty()) updated[Text(resolved)]=metadata.id;
             } else if (value.is_object()) {
                 for (auto& [key,item] : value.items()) {

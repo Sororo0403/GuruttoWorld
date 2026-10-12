@@ -3,6 +3,7 @@
 #include <SceneRuntime/SceneLayout.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
+#include <Engine/Graphics/Camera.h>
 #include <cmath>
 #include "SkinningValidation.h"
 #include "BlendTreeValidation.h"
@@ -54,7 +55,39 @@ inline void Run() {
     const auto restored=SceneLayout::Parse(scene.Serialize());
     Require(restored.objects.back().animator==scene.objects.back().animator,"Animator schema roundtrip");
 }
+/// <summary>Material のみを実行時に変更しても骨格の時計と個体別上書きが継続することを検証します。</summary>
+inline void MaterialDelta(Engine::DirectX12Renderer& renderer) {
+    using namespace SceneRuntime;
+    ScriptDefinition change;
+    change.update=[](ScriptContext& c) {
+        if(c.Pressed("ChangeMaterial")) {
+            c.object.material.emplace();
+            c.object.material->asset="Assets/Materials/Red.mat";
+        }
+    };
+    Require(ScriptRegistry::Register("ValidationAnimatorMaterialDelta",change),"material delta script registers");
+    const auto root=std::filesystem::absolute("Content");
+    auto layout=SceneLayout::Load(root/"Assets/Scenes/AnimatorPlayground.json"); std::string error;
+    auto player=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.id=="Player";});
+    Require(player!=layout.objects.end(),"material delta fixture has animated Player");
+    ScriptComponent script; script.behaviour="ValidationAnimatorMaterialDelta"; player->scripts.push_back(script);
+    SceneWorld world; Require(world.Initialize(renderer,root,layout,root/"Shaders/Mesh.hlsl",&error),error.c_str());
+    Require(world.SetAnimatorParameter("Player","deltaSentinel",.75f),"material delta retains individual overrides");
+    Require(world.UpdateComponents(.15),"animated instance advances before material delta");
+    const auto before=*world.AnimatorStatus("Player");
+    world.SetInputActions({},{{"ChangeMaterial",true}});
+    Require(world.UpdateComponents(.05),"material-only runtime script update succeeds");
+    const auto* after=world.AnimatorStatus("Player");
+    Require(after && after->current==before.current && std::abs(after->time-before.time-.05)<1e-6 &&
+        after->parameterOverrides.at("deltaSentinel")==.75f,"material delta preserves existing Animator clock and state");
+    const auto changed=std::find_if(world.Layout().objects.begin(),world.Layout().objects.end(),[](const auto& p){return p.id=="Player";});
+    Require(changed->Material()==std::filesystem::path("Assets/Materials/Red.mat"),"material delta commits replacement material");
+    Engine::Camera camera; camera.SetPosition({0,3,-10}); camera.SetPerspective(DirectX::XM_PIDIV4,2,.1f,100);
+    Require(renderer.Render({0,0,0,1},[&](auto* commands,float){world.Draw(commands,camera,Engine::DirectionalLight{});})!=Engine::RenderResult::Failed && renderer.WaitForIdle(),
+        "preserved animated instance and replacement material render together");
+}
 inline void Runtime(Engine::DirectX12Renderer& renderer) {
+    MaterialDelta(renderer);
     RagdollValidation::Runtime(renderer);
     RootMotionPlaybackValidation::Runtime(renderer);
     IkPlaybackValidation::Runtime(renderer);

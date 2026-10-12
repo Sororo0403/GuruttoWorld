@@ -1,4 +1,5 @@
 #include <Engine/Core/Profiler.h>
+#include <Engine/Graphics/ShaderCompiler.h>
 #include <SceneRuntime/SceneUi.h>
 #include <SceneRuntime/SceneCanvas.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
@@ -7,14 +8,8 @@
 #include <cstring>
 #include <cmath>
 #include <stdexcept>
-#include <unordered_set>
 #pragma comment(lib,"gdi32.lib")
 namespace {
-void SynchronizeUiResources(const Engine::DirectX12Renderer& renderer) {
-    // Complete earlier rendering on this queue before releasing replaced or unused sprites.
-    Engine::Texture2D fenceTexture;
-    if(!fenceTexture.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),{})) throw std::runtime_error("Cannot synchronize UI resource release");
-}
 std::shared_ptr<Engine::Texture2D> TextTexture(const Engine::DirectX12Renderer& renderer,const SceneRuntime::TextComponent& text,const std::array<float,2>& size) {
     const UINT width=static_cast<UINT>(std::clamp(size[0],1.0f,4096.0f)),height=static_cast<UINT>(std::clamp(size[1],1.0f,4096.0f));
     HDC dc=CreateCompatibleDC(nullptr);
@@ -37,7 +32,7 @@ std::shared_ptr<Engine::Texture2D> TextTexture(const Engine::DirectX12Renderer& 
     for(size_t i=0;i<pixels.size();i+=4) {pixels[i]=pixels[i+1]=pixels[i+2]=255; pixels[i+3]=source[i];}
     SelectObject(dc,oldFont); SelectObject(dc,oldBitmap); DeleteObject(font); DeleteObject(bitmap); DeleteDC(dc);
     auto texture=std::make_shared<Engine::Texture2D>();
-    if(!texture->InitializePixels(renderer.GetDevice(),renderer.GetCommandQueue(),width,height,std::move(pixels))) throw std::runtime_error("Cannot upload UI text");
+    if(!texture->InitializePixels(renderer.GetDevice(),renderer.GetCommandQueue(),width,height,std::move(pixels),{},true)) throw std::runtime_error("Cannot upload UI text");
     return texture;
 }
 std::string Signature(const SceneRuntime::ScenePlacement& p,bool text) {
@@ -85,59 +80,86 @@ std::string SceneUi::Shortcut(const SceneLayout& layout,const std::string& key,u
     return {};
 }
 void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,
-    const ScenePlacement& p,bool text,std::map<std::string,Resource>& pending)
+    const ScenePlacement& p,bool text,std::size_t generation,std::map<std::string,Resource>& pending)
 {
     const auto key=p.id+(text?"/text":"/image"),signature=Signature(p,text);
     const auto old=resources_.find(key);
-    if(old!=resources_.end() && old->second.signature==signature) return;
+    if(old!=resources_.end() && old->second.generation==generation && old->second.signature==signature) { pending.emplace(key,old->second); return; }
     std::shared_ptr<Engine::SpriteRenderer> shared,sharedScene;
     const auto find=[&](const auto& map) {
         for(const auto& [id,resource]:map) {
             static_cast<void>(id);
-            if(resource.signature==signature) {shared=resource.sprite; sharedScene=resource.sceneSprite; break;}
+            if(resource.generation==generation && resource.signature==signature) {shared=resource.sprite; sharedScene=resource.sceneSprite; break;}
         }
     };
     find(resources_); find(pending);
     if(shared) {
-        if(old!=resources_.end()) SynchronizeUiResources(renderer);
-        pending.emplace(key,Resource{signature,std::move(shared),std::move(sharedScene)}); return;
+        pending.emplace(key,Resource{generation,signature,std::move(shared),std::move(sharedScene)}); return;
     }
     Engine::CpuScope rebuildScope("UI resource rebuild");
     auto texture=text?TextTexture(renderer,*p.text,p.rectTransform?p.rectTransform->size:std::array<float,2>{200,60}):std::make_shared<Engine::Texture2D>();
     if(!text && !texture->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),p.image->texture.empty()?std::filesystem::path{}:root/p.image->texture))
         throw std::runtime_error("Cannot load UI image: "+signature);
+    std::shared_ptr<Engine::SpriteRenderer> prototype,scenePrototype;
+    const auto findPrototype=[&](const auto& map) {
+        for(const auto& [id,resource]:map) {
+            static_cast<void>(id);
+            if(resource.generation==generation) { prototype=resource.sprite; scenePrototype=resource.sceneSprite; break; }
+        }
+    };
+    findPrototype(resources_); if(!prototype) findPrototype(pending);
     auto sprite=std::make_shared<Engine::SpriteRenderer>();
-    if(!sprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/Ui.hlsl"))
+    if(!(prototype?sprite->InitializeShared(*prototype,texture):
+        sprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/Ui.hlsl")))
         throw std::runtime_error("Cannot create UI renderer");
     auto sceneSprite=std::make_shared<Engine::SpriteRenderer>();
-    if(!sceneSprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/SceneUi.hlsl",true))
+    if(!(scenePrototype?sceneSprite->InitializeShared(*scenePrototype,texture):
+        sceneSprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/SceneUi.hlsl",true)))
         throw std::runtime_error("Cannot create Scene Canvas renderer");
-    pending.emplace(key,Resource{signature,std::move(sprite),std::move(sceneSprite)});
-}
-void SceneUi::Prune(const Engine::DirectX12Renderer& renderer,const SceneLayout& layout)
-{
-    std::unordered_set<std::string> keys;
-    for(const auto& p:layout.objects) {
-        if(p.image || p.slider || p.toggle || p.inputField) keys.insert(p.id+"/image");
-        if(p.text || p.inputField) keys.insert(p.id+"/text");
-    }
-    if(std::none_of(resources_.begin(),resources_.end(),[&](const auto& item){return !keys.contains(item.first);})) return;
-    SynchronizeUiResources(renderer);
-    std::erase_if(resources_,[&](const auto& item){return !keys.contains(item.first);});
+    pending.emplace(key,Resource{generation,signature,std::move(sprite),std::move(sceneSprite)});
 }
 bool SceneUi::Prepare(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,
-    const SceneLayout& layout,std::string& error,const UiState& state)
+    const SceneLayout& layout,std::string& error,const UiState& state,bool inspectShaders)
 {
     try {
+        if(resources_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& p) {
+            return p.image || p.text || p.slider || p.toggle || p.inputField;
+        })) { error.clear(); return true; }
+        auto retirement=Engine::GpuRetirement::Shared(renderer.GetDevice(),renderer.GetCommandQueue());
+        if(!retirement) throw std::runtime_error("Cannot create UI retirement fence");
+        retirement->Collect();
+        const bool contextChanged=preparedDevice_!=renderer.GetDevice() || preparedQueue_!=renderer.GetCommandQueue() || preparedRoot_!=root;
+        const bool inspected=inspectShaders || contextChanged || contextGeneration_==0;
+        std::string uiRevision,sceneRevision;
+        auto preparedRoot=root;
+        auto generation=contextGeneration_;
+        if(inspected) {
+            if(!Engine::GetShaderRevision(root/"Shaders/Ui.hlsl",uiRevision) ||
+                !Engine::GetShaderRevision(root/"Shaders/SceneUi.hlsl",sceneRevision))
+                throw std::runtime_error("Cannot inspect UI shaders");
+            if(contextChanged || generation==0 || uiRevision!=uiRevision_ || sceneRevision!=sceneRevision_) ++generation;
+        }
         std::map<std::string,Resource> pending;
         for(const auto& source:layout.objects) {
             if(!source.image && !source.text && !source.slider && !source.toggle && !source.inputField) continue;
             const auto p=ControlVisual(source,state);
-            if(p.image) PreparePart(renderer,root,p,false,pending);
-            if(p.text) PreparePart(renderer,root,p,true,pending);
+            if(p.image) PreparePart(renderer,root,p,false,generation,pending);
+            if(p.text) PreparePart(renderer,root,p,true,generation,pending);
         }
-        Prune(renderer,layout);
-        for(auto& [key,value]:pending) resources_.insert_or_assign(key,std::move(value));
+        auto replaced=std::make_shared<std::map<std::string,Resource>>();
+        for(const auto& [key,value]:resources_) {
+            const auto replacement=pending.find(key);
+            if(replacement==pending.end() || replacement->second.sprite!=value.sprite ||
+                replacement->second.sceneSprite!=value.sceneSprite) replaced->emplace(key,value);
+        }
+        // Register the old resources before committing. A failed signal leaves the current UI intact.
+        if(!replaced->empty() && !(retirement_?retirement_:retirement)->Retire(replaced)) throw std::runtime_error("Cannot retire UI resources");
+        retirement_=std::move(retirement);
+        resources_.swap(pending);
+        preparedRoot_.swap(preparedRoot);
+        preparedDevice_=renderer.GetDevice(); preparedQueue_=renderer.GetCommandQueue();
+        contextGeneration_=generation;
+        if(inspected) { uiRevision_.swap(uiRevision); sceneRevision_.swap(sceneRevision); }
         error.clear(); return true;
     } catch(const std::exception& exception) {error=exception.what(); return false;}
 }

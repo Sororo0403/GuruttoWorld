@@ -49,7 +49,7 @@ namespace Engine
     {
         if(!meshes_.empty()||!device||!queue||data.empty()) return false;
         resources_=std::make_shared<MeshResources>();
-        if(!resources_->Initialize(device,shaderPath)) {resources_.reset();return false;}
+        if(!resources_->Initialize(device,shaderPath,queue)) {resources_.reset();return false;}
         device_=device;queue_=queue;return Rebuild(data);
     }
     bool ModelRenderer::Rebuild(const std::vector<MeshData>& data)

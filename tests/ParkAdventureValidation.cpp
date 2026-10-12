@@ -1,3 +1,6 @@
+#include "ShaderCacheValidation.h"
+#include "ParkResourceValidation.h"
+#include "SpriteResourceValidation.h"
 #include <SceneRuntime/SceneEnvironment.h>
 #include <SceneRuntime/ScriptModuleApi.h>
 #include <SceneRuntime/Prefab.h>
@@ -255,15 +258,20 @@ namespace
         SceneEnvironment motion; std::string error;
         Require(motion.Initialize(renderer,root,root/"Assets/Scenes/ParkAdventure.json",error),error);
         int unchanged=0; float previous=Find(motion.World().Layout(),"park-player").position[2];
-        std::ofstream positions("generated/park/motion-144.csv"); positions<<"frame,player_z,delta_z\n";
+        std::ofstream positions("generated/park/motion-144.csv"); positions<<"frame,player_z,delta_z,render_z,render_delta_z\n";
+        float previousRender=previous; int unchangedRender=0;
         for(int frame=0;frame<120;++frame) {
             motion.SetInputActions({{"MoveForward",1.0f}},{});
             Require(motion.MovePlayers(1.0/144,0,1),"High refresh movement"); motion.Update(1.0/144,true,true);
             const float current=Find(motion.World().Layout(),"park-player").position[2];
             if(std::abs(current-previous)<1e-6f) ++unchanged;
-            positions<<frame<<","<<current<<","<<current-previous<<"\n"; previous=current;
+            DirectX::XMFLOAT4X4 render;
+            Require(motion.World().RenderWorldMatrix("park-player",render),"Interpolated player matrix");
+            if(std::abs(render._43-previousRender)<1e-6f) ++unchangedRender;
+            positions<<frame<<","<<current<<","<<current-previous<<","<<render._43<<","<<render._43-previousRender<<"\n";
+            previous=current; previousRender=render._43;
         }
-        std::cout<<"144 Hz update simulation: "<<unchanged<<"/120 frames repeat player position (no render interpolation)\n";
+        std::cout<<"144 Hz update simulation: "<<unchanged<<"/120 physics repeats, "<<unchangedRender<<"/120 render repeats\n";
         Require(static_cast<bool>(output),"Trace saved");
     }
     void Render()
@@ -297,6 +305,14 @@ int main()
         for(const char* name:{"Entrance","Terraces","Canal","SwitchGarden","Vista"}) {
             const auto prefab=SceneLayout::Load(std::filesystem::path("Content/Assets/Prefabs/Park")/(std::string(name)+".prefab"));
             Require(Prefab::Extract(prefab,"module").objects.size()==prefab.objects.size(),"Reusable module hierarchy");
+        }
+        if(GetEnvironmentVariableA("WP1_PARK_RESOURCE_ONLY",nullptr,0)) {
+            Engine::Window window; Engine::DirectX12Renderer renderer; std::string error;
+            Require(window.Create(L"Park resource regression",640,360) && renderer.Initialize(window.GetHandle()),"Resource renderer initializes");
+            Require(ValidateShaderCache(renderer.GetDevice(),renderer.GetCommandQueue(),error),error);
+            SpriteResourceValidation::Run(renderer.GetDevice(),renderer.GetCommandQueue(),std::filesystem::current_path()/"Content");
+            ParkResourceValidation::Run(renderer);
+            std::cout<<"PASS: pipeline sharing, resource deltas and rollback\n"; return 0;
         }
         if(GetEnvironmentVariableA("WP1_PARK_STUTTER_ONLY",nullptr,0)) { StutterTrace(); return 0; }
         ValidationParity(); RemovedScriptOwners();

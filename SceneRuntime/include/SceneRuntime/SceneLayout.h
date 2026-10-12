@@ -16,6 +16,7 @@
 #include <vector>
 #include <algorithm>
 
+namespace Engine { class AssetDatabase; }
 namespace SceneRuntime
 {
     struct ScenePlacement
@@ -136,6 +137,8 @@ namespace SceneRuntime
         std::map<std::string,std::string> assetReferences;
         std::map<std::string,std::vector<std::string>> sceneObjects;
         void ResolveAssets(const std::filesystem::path& root);
+        /// <summary>ロード済み索引で参照を解決し、ディレクトリの再探索を避けます。</summary>
+        void ResolveAssets(const Engine::AssetDatabase& index);
         // 読み込み・検証に失敗した場合は例外。呼び出し元の配置は変更しません。
         static SceneLayout Parse(std::string_view json);
         /// <summary>文字列への変換を行わず、保存時と同じ規則で配置を検証します。</summary>

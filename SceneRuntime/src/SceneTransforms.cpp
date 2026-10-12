@@ -171,12 +171,22 @@ namespace SceneRuntime
     bool SceneTransforms::Resolve(const SceneLayout& layout,
         std::vector<DirectX::XMFLOAT4X4>& output, std::string& error)
     {
+        return Resolve(layout,{},output,error);
+    }
+    bool SceneTransforms::Resolve(const SceneLayout& layout,const std::map<std::string,DirectX::XMFLOAT4X4>& localOverrides,
+        std::vector<DirectX::XMFLOAT4X4>& output,std::string& error)
+    {
         try
         {
             const auto parents=ParentIndices(layout);
             std::vector<DirectX::XMFLOAT4X4> matrices(layout.objects.size());
-            for (size_t index=0;index<layout.objects.size();++index)
-                if (!Compose(layout.objects[index],matrices[index])) throw std::runtime_error("Invalid transform: "+layout.objects[index].id);
+            for (size_t index=0;index<layout.objects.size();++index) {
+                const auto found=localOverrides.find(layout.objects[index].id);
+                if(found!=localOverrides.end()) {
+                    if(!IsUsable(found->second)) throw std::runtime_error("Invalid render transform");
+                    matrices[index]=found->second;
+                } else if (!Compose(layout.objects[index],matrices[index])) throw std::runtime_error("Invalid transform: "+layout.objects[index].id);
+            }
             std::vector<unsigned char> visited(layout.objects.size(),0);
             for (size_t index=0;index<layout.objects.size();++index) ResolveChain(index,parents,visited,matrices);
             output=std::move(matrices);

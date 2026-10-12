@@ -57,6 +57,9 @@ namespace Engine
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
             std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest=false);
 
+        /// <summary>既存スプライトの描画資源を共有し、同じデバイスのテクスチャだけを差し替えます。</summary>
+        bool InitializeShared(const SpriteRenderer& prototype, std::shared_ptr<const Texture2D> texture);
+
         /// <summary>
         /// 深度判定・深度書き込みなしで、アルファ合成した四角形を描画します。後の描画ほど手前になります。
         /// </summary>
@@ -66,6 +69,9 @@ namespace Engine
         /// <param name="parameters">位置、サイズ、回転、色、UV 範囲。</param>
         void Draw(ID3D12GraphicsCommandList* commands, UINT viewportWidth, UINT viewportHeight,
             const SpriteDrawParameters& parameters) const;
+
+        /// <summary>二つのスプライトがメッシュ・描画パイプラインを共有しているかを取得します。</summary>
+        bool SharesPipelineWith(const SpriteRenderer& other) const { return sharedPipeline_ && sharedPipeline_ == other.sharedPipeline_; }
 
     private:
         /// <summary>
@@ -91,6 +97,7 @@ namespace Engine
         /// <returns>生成と転送に成功した場合は true。</returns>
         bool CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue);
 
+        std::shared_ptr<void> sharedPipeline_;
         bool initialized_ = false;
         bool depthTest_ = false;
         std::shared_ptr<const Texture2D> texture_;

@@ -212,6 +212,7 @@
   <ItemGroup>
     <ClCompile Include="src\Graphics\DirectX12\GpuSynchronization.cpp" />
     <ClInclude Include="include\Engine\Graphics\DirectX12\GpuSynchronization.h" />
+    <ClInclude Include="include\Engine\Graphics\DirectX12\GpuRetirement.h" />
     <ClCompile Include="src\Graphics\Renderers\MeshResources.cpp" />
     <ClInclude Include="include\Engine\Graphics\Renderers\MeshResources.h" />
   </ItemGroup>

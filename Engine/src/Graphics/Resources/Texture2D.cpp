@@ -2,6 +2,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
+#include <Engine/Graphics/DirectX12/GpuRetirement.h>
 
 #include <wincodec.h>
 #include <cstring>
@@ -61,17 +62,19 @@ namespace Engine
     }
 
     bool Texture2D::InitializePixels(ID3D12Device* device, ID3D12CommandQueue* queue, UINT width, UINT height,
-        std::vector<unsigned char> pixels,const TextureImportSettings& settings)
+        std::vector<unsigned char> pixels,const TextureImportSettings& settings,bool deferUpload)
     {
         if (resource_ || !device || !queue || queue->GetDesc().Type!=D3D12_COMMAND_LIST_TYPE_DIRECT ||
             !width || !height || width>16384 || height>16384 || pixels.size()!=size_t(width)*height*4) return false;
+        ComPtr<ID3D12Device> queueDevice;
+        if (FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) || queueDevice.Get()!=device) return false;
         std::vector<TextureLevel> levels;
         try { levels=TextureImport::Build({width,height,std::move(pixels)},settings); }
         catch (const std::exception& error) { Log::Error(error.what()); return false; }
         ComPtr<ID3D12Resource> upload;
         std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels.size());
         if (!CreateResource(device,levels,TextureImport::Compressed(settings,levels.front())) || !CreateUploadBuffer(device,levels,upload,footprints) ||
-            !CreateShaderResourceView(device) || !UploadAndWait(device,queue,upload.Get(),footprints))
+            !CreateShaderResourceView(device) || !UploadAndWait(device,queue,upload.Get(),footprints,deferUpload))
         {
             descriptorHeap_.Reset(); cpuDescriptorHeap_.Reset(); resource_.Reset(); return false;
         }
@@ -183,13 +186,13 @@ namespace Engine
     }
 
     bool Texture2D::UploadAndWait(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Resource* upload,
-        const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints)
+        const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints,bool deferUpload)
     {
         ComPtr<ID3D12CommandAllocator> allocator;
         ComPtr<ID3D12GraphicsCommandList> commands;
         ComPtr<ID3D12Fence> fence;
-        std::unique_ptr<void, decltype(&CloseHandle)> event(CreateEventW(nullptr, FALSE, FALSE, nullptr), CloseHandle);
-        if (!event)
+        std::unique_ptr<void, decltype(&CloseHandle)> event(deferUpload?nullptr:CreateEventW(nullptr, FALSE, FALSE, nullptr), CloseHandle);
+        if (!deferUpload && !event)
         {
             Log::Error("Create texture upload event failed.");
             return false;
@@ -223,8 +226,43 @@ namespace Engine
         {
             return false;
         }
+        struct UploadResources
+        {
+            ComPtr<ID3D12CommandAllocator> allocator;
+            ComPtr<ID3D12GraphicsCommandList> commands;
+            ComPtr<ID3D12Resource> upload,destination;
+            ComPtr<ID3D12DescriptorHeap> descriptors,cpuDescriptors;
+        };
+        std::shared_ptr<GpuRetirement> retirement;
+        std::shared_ptr<UploadResources> retained;
+        if(deferUpload)
+        {
+            // Finish all allocations before submission; rollback may destroy this Texture2D immediately.
+            retirement=GpuRetirement::Dedicated(device,queue);
+            if(!retirement) return false;
+            retained=std::make_shared<UploadResources>();
+            retained->allocator=allocator; retained->commands=commands;
+            retained->upload=upload; retained->destination=resource_;
+            retained->descriptors=descriptorHeap_; retained->cpuDescriptors=cpuDescriptorHeap_;
+        }
         ID3D12CommandList* lists[] = { commands.Get() };
         queue->ExecuteCommandLists(1, lists);
+        if(deferUpload)
+        {
+            try
+            {
+                // Retire returns false only after SignalGpuFence has confirmed device loss (or terminated).
+                if(!retirement->Retire(retained)) return false;
+                uploadRetirement_=std::move(retirement);
+                return true;
+            }
+            catch(...)
+            {
+                // The fallback fence already exists: an allocation failure in Retire must not free in-flight resources.
+                if(SignalGpuFence(device,queue,fence.Get(),1)) WaitForGpuFence(device,fence.Get(),1,nullptr);
+                throw;
+            }
+        }
         return SignalGpuFence(device, queue, fence.Get(), 1) &&
             WaitForGpuFence(device, fence.Get(), 1, event.get());
     }
@@ -253,6 +291,7 @@ namespace Engine
 
     ID3D12DescriptorHeap* Texture2D::GetDescriptorHeap() const noexcept
     {
+        if(uploadRetirement_) uploadRetirement_->Collect();
         return descriptorHeap_.Get();
     }
 

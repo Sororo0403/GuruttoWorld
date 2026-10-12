@@ -13,7 +13,7 @@ namespace Engine
     {
     public:
         /// <summary>
-        /// 同一モデル内で共有するパイプラインとテクスチャの所有者を生成します。
+        /// モデル間で共有する不変パイプラインとモデル固有の描画データの所有者を生成します。
         /// </summary>
         MeshResources() = default;
         /// <summary>
@@ -30,12 +30,13 @@ namespace Engine
         MeshResources& operator=(const MeshResources&) = delete;
 
         /// <summary>
-        /// シェーダーを一度だけコンパイルし、共有ルートシグネチャと PSO を生成します。
+        /// 同じデバイス・キュー・シェーダーのルートシグネチャと PSO を弱参照キャッシュで共有します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
         /// <param name="shaderPath">共通メッシュ用シェーダー。</param>
+        /// <param name="queue">共有範囲を分離する描画キュー。省略時は独立した共有範囲。</param>
         /// <returns>初期化に成功した場合は true。</returns>
-        bool Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath);
+        bool Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath, ID3D12CommandQueue* queue = nullptr);
 
         /// <summary>
         /// 正規化したパスに対応する画像を共有します。未登録の場合のみ転送し、完了を待機します。
@@ -93,11 +94,15 @@ namespace Engine
         bool CreatePipelineState(ID3D12Device* device, const std::filesystem::path& shaderPath);
 
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
-        Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
-        Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
-        Microsoft::WRL::ComPtr<ID3D12PipelineState> mirroredPipelineState_;
-        Microsoft::WRL::ComPtr<ID3D12PipelineState> transparentPipelineState_,transparentMirroredPipelineState_;
-        std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>,4> hdrPipelineStates_;
+        struct PipelineBundle
+        {
+            Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
+            Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
+            Microsoft::WRL::ComPtr<ID3D12PipelineState> mirroredPipelineState_;
+            Microsoft::WRL::ComPtr<ID3D12PipelineState> transparentPipelineState_,transparentMirroredPipelineState_;
+            std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>,4> hdrPipelineStates_;
+        };
+        std::shared_ptr<PipelineBundle> pipeline_;
         std::map<std::filesystem::path, std::shared_ptr<Texture2D>, PathLess> textures_;
         std::map<std::filesystem::path,std::pair<std::filesystem::file_time_type,std::filesystem::file_time_type>,PathLess> textureStamps_;
     };

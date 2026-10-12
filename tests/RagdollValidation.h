@@ -44,8 +44,23 @@ namespace RagdollValidation
     {
         using namespace SceneRuntime; const auto root=std::filesystem::absolute("Content"); auto layout=SceneLayout::Load(root/"Assets/Scenes/AnimatorPlayground.json"); std::string error;
         auto owner=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.id=="Player";}); Require(owner!=layout.objects.end(),"ragdoll runtime fixture has a Player"); owner->ragdoll.emplace(); owner->position[1]+=5;
+        ScriptDefinition removal;
+        removal.update=[](ScriptContext& c) {
+            if(c.Pressed("RemoveBoundBody")) {
+                c.scene->Destroy(c.object.ragdoll->bones.back().body);
+                c.object.position[0]+=3;
+            }
+        };
+        Require(ScriptRegistry::Register("ValidationInactiveRagdollBodyRemoval",removal),"inactive ragdoll removal script registers");
+        ScriptComponent script; script.behaviour="ValidationInactiveRagdollBodyRemoval"; owner->scripts.push_back(script);
         SceneWorld world; Require(world.Initialize(renderer,root,layout,root/"Shaders/Mesh.hlsl",&error),error.c_str());
         Require(world.GenerateRagdoll("Player",root,error),error.c_str());
+        const auto inactiveSnapshot=world.Layout().Serialize(); const auto inactiveTime=world.AnimatorStatus("Player")->time;
+        world.SetInputActions({},{{"RemoveBoundBody",true}});
+        Require(!world.UpdateComponents(.05) && world.Layout().Serialize()==inactiveSnapshot && world.AnimatorStatus("Player")->time==inactiveTime,
+            "deleting an inactive ragdoll leaf body rejects the entire candidate and Animator update");
+        world.SetInputActions({},{});
+        Require(world.UpdateComponents(.05),"inactive ragdoll remains usable after rejected body removal");
         auto generated=world.Layout(); auto player=std::find_if(generated.objects.begin(),generated.objects.end(),[](const auto& p){return p.id=="Player";}); player->ragdoll->active=true; const auto ownerPosition=player->position;
         Require(world.ReplaceLayout(generated,root,error,true),error.c_str()); const auto before=world.AnimatorStatus("Player")->pose;
         for(int i=0;i<12;++i) Require(world.MovePlayers(1.0/60,1,1,true) && world.UpdateComponents(1.0/60),"ragdoll fixed physics and animation pose prepare together");

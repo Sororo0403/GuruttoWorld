@@ -27,7 +27,7 @@ namespace SceneRuntime
         void PauseAudio(bool paused) { audio_.Pause(paused); }
         UiEvent Click(const std::string& object);
         /// <summary>実行状態が変化したUI文字列のGPUリソースを描画前に準備します。</summary>
-        bool PrepareUi(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,std::string& error) { return presentation_.PrepareUi(renderer,root,world_.Layout(),error,uiState_); }
+        bool PrepareUi(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,std::string& error) { return presentation_.PrepareUi(renderer,root,world_.Layout(),error,uiState_,false); }
         /// <summary>画面のポインター入力をUI操作とScriptイベントへ反映します。</summary>
         UiEvent UiPointer(unsigned int width,unsigned int height,float x,float y,bool down,bool pressed,bool released,float wheel=0);
         /// <summary>確定した文字を入力欄とScriptイベントへ反映します。</summary>

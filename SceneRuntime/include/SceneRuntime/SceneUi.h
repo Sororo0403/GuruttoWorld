@@ -2,6 +2,7 @@
 #include <SceneRuntime/SceneLayout.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <map>
+#include <Engine/Graphics/DirectX12/GpuRetirement.h>
 namespace Engine { class DirectX12Renderer; class Camera; }
 namespace SceneRuntime {
 class SceneWorld;
@@ -27,7 +28,9 @@ struct UiRect {
 struct UiEvent { std::string object,action,target,sound,event; float value=0; std::string text; };
 class SceneUi final {
 public:
-    bool Prepare(const Engine::DirectX12Renderer&, const std::filesystem::path&, const SceneLayout&, std::string& error,const UiState& state={});
+    /// <summary>変更した UI 資源を準備します。実行中はシェーダー検査を省き、明示再読込時に更新を反映できます。</summary>
+    /// <param name="inspectShaders">true の場合は依存シェーダーの変更を検査します。初回やデバイス・ルート変更時は必ず検査します。</param>
+    bool Prepare(const Engine::DirectX12Renderer&, const std::filesystem::path&, const SceneLayout&, std::string& error,const UiState& state={},bool inspectShaders=true);
     void Draw(ID3D12GraphicsCommandList*,const SceneLayout&,unsigned int width,unsigned int height,const UiState& state={}) const;
     void DrawScene(ID3D12GraphicsCommandList*,const SceneWorld&,const Engine::Camera&,const UiState& state={}) const;
     static UiState Defaults(const SceneLayout&);
@@ -44,10 +47,16 @@ public:
     static std::string InputText(const ScenePlacement&,const UiState&);
     static std::string Shortcut(const SceneLayout&,const std::string& key,unsigned int width,unsigned int height,const UiState& state);
 private:
-    struct Resource {std::string signature; std::shared_ptr<Engine::SpriteRenderer> sprite,sceneSprite;};
-    void Prune(const Engine::DirectX12Renderer&,const SceneLayout&);
-    void PreparePart(const Engine::DirectX12Renderer&,const std::filesystem::path&,const ScenePlacement&,bool text,std::map<std::string,Resource>& pending);
+    struct Resource {std::size_t generation=0; std::string signature; std::shared_ptr<Engine::SpriteRenderer> sprite,sceneSprite;};
+    /// <summary>表示内容が変化した UI 資源だけを候補へ準備します。</summary>
+    void PreparePart(const Engine::DirectX12Renderer&,const std::filesystem::path&,const ScenePlacement&,bool text,std::size_t generation,std::map<std::string,Resource>& pending);
     void DrawPart(ID3D12GraphicsCommandList*,const ScenePlacement&,const UiRect&,unsigned int width,unsigned int height,const UiState&,bool text) const;
+    std::filesystem::path preparedRoot_;
+    ID3D12Device* preparedDevice_=nullptr;
+    ID3D12CommandQueue* preparedQueue_=nullptr;
+    std::string uiRevision_,sceneRevision_;
+    std::size_t contextGeneration_=0;
+    std::shared_ptr<Engine::GpuRetirement> retirement_;
     std::map<std::string,Resource> resources_;
 };
 }

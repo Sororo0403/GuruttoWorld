@@ -21,7 +21,8 @@
 
 namespace
 {
-    void PrepareProcedural(Engine::ModelManager& models,Engine::Object3D& object,const SceneRuntime::ScenePlacement& p,const std::filesystem::path& root,ID3D12Device* device,ID3D12CommandQueue* queue)
+    void PrepareProcedural(Engine::ModelManager& models,Engine::Object3D& object,const SceneRuntime::ScenePlacement& p,const std::filesystem::path& root,ID3D12Device* device,ID3D12CommandQueue* queue,
+        const Engine::AssetDatabase* index=nullptr,std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>>* materials=nullptr)
     {
         if(!p.terrain&&!p.tilemap) return;
         auto model=models.Procedural(p.id,root.generic_string()+SceneRuntime::GenreGeometry::Signature(p),[&] {
@@ -29,19 +30,27 @@ namespace
         });
         object.SetModel(std::move(model));
         if(p.tilemap) {auto material=std::make_shared<Engine::Material>();material->transparent=true;object.SetMaterial(std::move(material));}
-        if(!p.Material().empty()) object.SetMaterial(SceneRuntime::MaterialAsset::Load(root,p.Material()).Prepare(device,queue,root));
+        if(!p.Material().empty()) {
+            std::shared_ptr<const Engine::Material> material;
+            if(materials) {
+                auto found=materials->find(p.Material());
+                if(found==materials->end()) found=materials->emplace(p.Material(),SceneRuntime::MaterialAsset::Load(root,p.Material(),index).Prepare(device,queue,root)).first;
+                material=found->second;
+            } else material=SceneRuntime::MaterialAsset::Load(root,p.Material(),index).Prepare(device,queue,root);
+            object.SetMaterial(std::move(material));
+        }
     }
     constexpr double FixedStepSeconds=1.0/60.0;
     Engine::MaterialSlots PrepareMaterialSlots(const SceneRuntime::ScenePlacement& placement,size_t meshes,
         ID3D12Device* device,ID3D12CommandQueue* queue,const std::filesystem::path& root,
-        std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>>& cache)
+        std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>>& cache,const Engine::AssetDatabase* index=nullptr)
     {
         Engine::MaterialSlots result;
         if(!placement.material || !placement.material->enabled) return result;
         const auto& paths=placement.material->slots;result.resize(std::min(meshes,paths.size()));
         for(size_t i=0;i<result.size();++i) if(!paths[i].empty()) {
             auto found=cache.find(paths[i]);
-            if(found==cache.end()) found=cache.emplace(paths[i],SceneRuntime::MaterialAsset::Load(root,paths[i]).Prepare(device,queue,root)).first;
+            if(found==cache.end()) found=cache.emplace(paths[i],SceneRuntime::MaterialAsset::Load(root,paths[i],index).Prepare(device,queue,root)).first;
             result[i]=found->second;
         }
         return result;
@@ -131,6 +140,8 @@ namespace SceneRuntime
         std::string* diagnostic)
     {
         materialDevice_=renderer.GetDevice(); materialQueue_=renderer.GetCommandQueue();
+        retirement_=Engine::GpuRetirement::Shared(materialDevice_.Get(),materialQueue_.Get());
+        if(!retirement_) { if(diagnostic) *diagnostic="Cannot initialize resource retirement"; return false; }
         modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath) &&
             shadow_.Initialize(renderer.GetDevice(),shaderPath) && localShadow_.Initialize(renderer.GetDevice(),shaderPath,true) && occlusion_.Initialize(renderer.GetDevice(),shaderPath);
         if (!modelsReady_)
@@ -166,6 +177,8 @@ namespace SceneRuntime
         std::swap(shadow_,candidate.shadow_);
         std::swap(localShadow_,candidate.localShadow_);
         std::swap(occlusion_,candidate.occlusion_);
+        assetIndex_.swap(candidate.assetIndex_); materials_.swap(candidate.materials_);
+        ++renderVersion_;
         error.clear();
         return true;
     }
@@ -190,13 +203,14 @@ namespace SceneRuntime
             const auto& previousLayout=previous ? previous->layout : layout_;
             const auto& previousModels=previous ? previous->animated : animatedModels_;
             const auto& previousStates=previous ? previous->states : animatorStates_;
-            { Engine::CpuScope scope("Scene asset resolution"); layout.ResolveAssets(assetsRoot); }
+            auto index=previous && previous->assets && previous->assetsRoot==assetsRoot ? previous->assets : std::make_shared<Engine::AssetDatabase>(assetsRoot,true);
+            { Engine::CpuScope scope("Scene asset resolution"); layout.ResolveAssets(*index); }
             static_cast<void>(layout.Serialize());
             std::vector<DirectX::XMFLOAT4X4> matrices;
             if (!SceneTransforms::Resolve(layout,matrices,error)) throw std::runtime_error(error);
             std::vector<Engine::Object3D> objects;
             objects.reserve(layout.objects.size());
-            std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>> materials;
+            auto materials=previous ? previous->materials : std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>>{};
             std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animated;
             std::map<std::string,AnimatorState> animatorStates;
             std::map<std::string,std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lods;
@@ -232,18 +246,19 @@ namespace SceneRuntime
                     if (!material.empty())
                     {
                         auto found=materials.find(material);
-                        if (found==materials.end()) found=materials.emplace(material,MaterialAsset::Load(assetsRoot,material).Prepare(materialDevice_.Get(),materialQueue_.Get(),assetsRoot)).first;
+                        if (found==materials.end()) found=materials.emplace(material,MaterialAsset::Load(assetsRoot,material,index.get()).Prepare(materialDevice_.Get(),materialQueue_.Get(),assetsRoot)).first;
                         object.SetMaterial(found->second);
                     }
-                    object.SetMaterialSlots(PrepareMaterialSlots(placement,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot,materials));
+                    object.SetMaterialSlots(PrepareMaterialSlots(placement,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot,materials,index.get()));
                 }
-                PrepareProcedural(models_,object,placement,assetsRoot,materialDevice_.Get(),materialQueue_.Get());
+                PrepareProcedural(models_,object,placement,assetsRoot,materialDevice_.Get(),materialQueue_.Get(),index.get(),&materials);
                 if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
                     throw std::runtime_error("Invalid transform: " + placement.id);
                 if (!object.SetWorldMatrix(matrices[objects.size()])) throw std::runtime_error("Invalid world matrix");
                 objects.push_back(std::move(object));
             }
             PreparedLayout prepared; prepared.assetsRoot=assetsRoot; prepared.layout=std::move(layout);
+            prepared.assets=std::move(index); prepared.materials=std::move(materials);
             prepared.animated=std::move(animated); prepared.states=std::move(animatorStates); prepared.objects=std::move(objects);
             prepared.lods=std::move(lods);
             result=std::move(prepared);
@@ -261,7 +276,10 @@ namespace SceneRuntime
     {
         if (!preserveExecution) scripts_.Stop(layout_);
         layout_=std::move(prepared.layout); assetsRoot_=std::move(prepared.assetsRoot);
-        if (!preserveExecution) { physics_.clear(); physicsWorld_.Reset(); fixedSeconds_=0; fixedJump_=false; fixedPressed_.clear(); }
+        assetIndex_=std::move(prepared.assets); materials_=std::move(prepared.materials);
+        if(retirement_) retirement_->Collect();
+        ++renderVersion_;
+        if (!preserveExecution) { previousPhysical_.clear(); currentPhysical_.clear(); physics_.clear(); physicsWorld_.Reset(); fixedSeconds_=0; fixedJump_=false; fixedPressed_.clear(); }
         else std::erase_if(physics_,[&](const auto& pair) { return std::none_of(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==pair.first; }); });
         animatedModels_=std::move(prepared.animated); animatorStates_=std::move(prepared.states); objects_=std::move(prepared.objects);
         lodModels_=std::move(prepared.lods);
@@ -317,7 +335,9 @@ namespace SceneRuntime
         meshTelemetry_={};
         const auto defaults=state ? UiState{} : SceneUi::Defaults(layout_);
         const auto& values=state ? *state : defaults;
-        auto items=RenderPlan::Items(layout_,objects_,lodModels_,camera,values);
+        auto renderObjects=objects_;
+        if(PrepareRenderTransforms()) for(size_t i=0;i<renderObjects.size();++i) renderObjects[i].SetWorldMatrix(renderMatrices_[i]);
+        auto items=RenderPlan::Items(layout_,renderObjects,lodModels_,camera,values);
         auto lighting=light;
         lighting.shadow=nullptr;
         lighting.localShadow=nullptr;
@@ -411,7 +431,7 @@ namespace SceneRuntime
             target.position=source.position; target.rotation=source.rotation; target.scale=source.scale;
             target.parentId=std::move(candidate.objects[index].parentId);
         }
-        objects_=std::move(objects);
+        objects_=std::move(objects); ++renderVersion_;
         return true;
     }
 
@@ -486,6 +506,7 @@ namespace SceneRuntime
                 }
                 for(size_t index=0;index<candidate.objects.size();++index) layout_.objects[index].CopyComponents(candidate.objects[index]);
                 layout_.settings=candidate.settings;
+                ++renderVersion_;
                 error.clear();
                 return true;
             }
@@ -515,23 +536,30 @@ namespace SceneRuntime
         auto pressed=fixedPressed_; for (const auto& [name,value]:inputPressed_) if (value) pressed[name]=true;
         bool pendingJump=fixedJump_ || jump;
         if (pending+1e-10<FixedStepSeconds) {
-            fixedSeconds_=pending; fixedPressed_=std::move(pressed); fixedJump_=pendingJump; return true;
+            fixedSeconds_=pending; ++renderVersion_; fixedPressed_=std::move(pressed); fixedJump_=pendingJump; return true;
         }
         try {
             auto transaction=physicsWorld_.BeginTransaction();
             auto candidate=layout_; auto states=physics_; auto runtime=scripts_;
             std::string error;
-            while (pending+1e-10>=FixedStepSeconds) {
+            auto previousPoses=previousPhysical_,currentPoses=currentPhysical_;
+            unsigned int steps=0;
+            constexpr unsigned int MaximumFixedSteps=4;
+            while (pending+1e-10>=FixedStepSeconds && steps<MaximumFixedSteps) {
+                previousPoses=PhysicalPoses(candidate);
                 if (!FixedTick(candidate,states,runtime,horizontal,vertical,pendingJump,pressed,error)) {
                     Engine::Log::Warning(error); return false;
                 }
+                currentPoses=PhysicalPoses(candidate); ++steps;
                 pending=std::max(0.0,pending-FixedStepSeconds); pendingJump=false; pressed.clear();
             }
+            if(pending+1e-10>=FixedStepSeconds) { pending=std::fmod(pending,FixedStepSeconds); Engine::CpuProfiler::Add("Fixed backlog dropped",0); }
             PreparedLayout prepared;
             if (!PrepareScriptLayout(std::move(candidate),RuntimeLayout(),prepared,error) ||
                 (prepareRuntime_ && !prepareRuntime_(prepared.layout,error))) { Engine::Log::Warning(error); return false; }
             CommitLayout(std::move(prepared),true); physics_=std::move(states); scripts_=std::move(runtime);
-            fixedSeconds_=pending; fixedJump_=pendingJump; fixedPressed_=std::move(pressed); transaction.Commit(); return true;
+            previousPhysical_=std::move(previousPoses); currentPhysical_=std::move(currentPoses);
+            fixedSeconds_=pending; ++renderVersion_; fixedJump_=pendingJump; fixedPressed_=std::move(pressed); transaction.Commit(); return true;
         } catch (const std::exception& error) { Engine::Log::Warning(error.what()); return false; }
     }
     bool SceneWorld::FixedTick(SceneLayout& layout,ScenePhysics::States& states,ScriptRuntime& scripts,float horizontal,float vertical,bool jump,
@@ -601,25 +629,94 @@ namespace SceneRuntime
     SceneWorld::PreparedLayout SceneWorld::RuntimeLayout() const
     {
         PreparedLayout result; result.assetsRoot=assetsRoot_; result.layout=layout_; result.objects=objects_;
+        result.assets=assetIndex_; result.materials=materials_;
         result.animated=animatedModels_; result.states=animatorStates_; result.lods=lodModels_; return result;
     }
     bool SceneWorld::PrepareScriptLayout(SceneLayout layout,const PreparedLayout& previous,PreparedLayout& result,std::string& error)
     {
-        const bool rebuild=layout.objects.size()!=previous.layout.objects.size() ||
-            !std::equal(layout.objects.begin(),layout.objects.end(),previous.layout.objects.begin(),[](const auto& a,const auto& b) {
-                return a.id==b.id && a.meshRenderer==b.meshRenderer && a.material==b.material && a.animator==b.animator;
-            });
-        if (rebuild) {
-            Engine::CpuScope rebuildScope("Script render resource rebuild");
-            Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-            if (FAILED(materialDevice_->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&fence))) ||
-                !Engine::SignalGpuFence(materialDevice_.Get(),materialQueue_.Get(),fence.Get(),1) ||
-                !Engine::WaitForGpuFence(materialDevice_.Get(),fence.Get(),1,nullptr)) { error="Script resource GPU wait failed"; return false; }
-            return PrepareLayout(std::move(layout),assetsRoot_,error,true,result,&previous);
-        }
-        auto candidate=previous; candidate.layout=std::move(layout);
-        if (!PrepareTransforms(candidate.layout,candidate.objects,error)) return false;
-        result=std::move(candidate); return true;
+        Engine::CpuScope scope("Script render resource preparation");
+        try {
+            const bool unchangedResources=layout.objects.size()==previous.layout.objects.size() &&
+                std::equal(layout.objects.begin(),layout.objects.end(),previous.layout.objects.begin(),[](const auto& current,const auto& before) {
+                    return current.id==before.id && current.meshRenderer==before.meshRenderer && current.material==before.material &&
+                        current.animator==before.animator && current.terrain==before.terrain && current.tilemap==before.tilemap;
+                });
+            if(unchangedResources) {
+                auto candidate=previous; candidate.layout=std::move(layout);
+                for(const auto& p:candidate.layout.objects) if(p.animator) {
+                    const auto instance=candidate.animated.find(p.id);
+                    if(instance==candidate.animated.end() || !instance->second->Rig()) throw std::runtime_error("Animator model missing: "+p.id);
+                    Ragdoll::Validate(candidate.layout,p,*instance->second->Rig());
+                }
+                if(!PrepareTransforms(candidate.layout,candidate.objects,error)) return false;
+                result=std::move(candidate); error.clear(); return true;
+            }
+            std::unordered_map<std::string,size_t> old;
+            for(size_t i=0;i<previous.layout.objects.size();++i) old.emplace(previous.layout.objects[i].id,i);
+            bool resolveAssets=false,animatedChange=false;
+            for(const auto& p:layout.objects) {
+                const auto found=old.find(p.id);
+                if(found==old.end()) {resolveAssets=resolveAssets || p.meshRenderer || p.material || p.terrain || p.tilemap; animatedChange=animatedChange || p.animator.has_value(); continue;}
+                const auto& before=previous.layout.objects[found->second];
+                resolveAssets=resolveAssets || p.meshRenderer!=before.meshRenderer || p.material!=before.material;
+                animatedChange=animatedChange || p.animator!=before.animator || (p.animator && (p.meshRenderer!=before.meshRenderer || p.material!=before.material));
+                if(p.terrain!=before.terrain || p.tilemap!=before.tilemap) animatedChange=true;
+            }
+            if(animatedChange) {
+                if(!retirement_->Retire(std::make_shared<std::vector<Engine::Object3D>>(previous.objects))) throw std::runtime_error("Script resource retirement failed");
+                return PrepareLayout(std::move(layout),assetsRoot_,error,true,result,&previous);
+            }
+            if(resolveAssets) {
+                if(!previous.assets) throw std::runtime_error("Runtime asset index missing");
+                layout.ResolveAssets(*previous.assets);
+            }
+            PreparedLayout candidate; candidate.assetsRoot=previous.assetsRoot; candidate.assets=previous.assets;
+            candidate.materials=previous.materials; candidate.layout=std::move(layout);
+            candidate.objects.reserve(candidate.layout.objects.size());
+            bool replaced=false;
+            for(const auto& p:candidate.layout.objects) {
+                const auto found=old.find(p.id);
+                const bool reuse=found!=old.end() && p.meshRenderer==previous.layout.objects[found->second].meshRenderer && p.material==previous.layout.objects[found->second].material;
+                Engine::Object3D object;
+                if(reuse) {
+                    object=previous.objects[found->second];
+                    if(p.animator) {
+                        const auto instance=previous.animated.find(p.id);
+                        if(instance==previous.animated.end() || !instance->second->Rig()) throw std::runtime_error("Animator model missing: "+p.id);
+                        Ragdoll::Validate(candidate.layout,p,*instance->second->Rig());
+                        candidate.animated.emplace(*instance);
+                    }
+                    if(const auto i=previous.states.find(p.id);i!=previous.states.end()) candidate.states.emplace(*i);
+                    if(const auto i=previous.lods.find(p.id);i!=previous.lods.end()) candidate.lods.emplace(*i);
+                } else {
+                    replaced=true;
+                    if(p.meshRenderer) {
+                        const auto model=models_.Load(assetsRoot_/p.Model());
+                        if(!model) throw std::runtime_error("Model could not be loaded: "+p.id);
+                        object.SetModel(model);
+                        for(const auto& lod:p.meshRenderer->lods) {
+                            auto loaded=models_.Load(assetsRoot_/lod.model);
+                            if(!loaded || loaded->Rig()) throw std::runtime_error("Invalid static LOD: "+p.id);
+                            candidate.lods[p.id].push_back(std::move(loaded));
+                        }
+                        const auto& material=p.Material();
+                        if(!material.empty()) {
+                            auto i=candidate.materials.find(material);
+                            if(i==candidate.materials.end()) i=candidate.materials.emplace(material,MaterialAsset::Load(assetsRoot_,material,candidate.assets.get()).Prepare(materialDevice_.Get(),materialQueue_.Get(),assetsRoot_)).first;
+                            object.SetMaterial(i->second);
+                        }
+                        object.SetMaterialSlots(PrepareMaterialSlots(p,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot_,candidate.materials,candidate.assets.get()));
+                    }
+                    PrepareProcedural(models_,object,p,assetsRoot_,materialDevice_.Get(),materialQueue_.Get(),candidate.assets.get(),&candidate.materials);
+                }
+                candidate.objects.push_back(std::move(object));
+            }
+            if(!PrepareTransforms(candidate.layout,candidate.objects,error)) return false;
+            if(replaced || candidate.layout.objects.size()!=previous.layout.objects.size()) {
+                if(!retirement_->Retire(std::make_shared<std::vector<Engine::Object3D>>(previous.objects))) throw std::runtime_error("Script resource retirement failed");
+            }
+            result=std::move(candidate); error.clear(); return true;
+        } catch(const std::exception& exception) {error=exception.what();return false;}
     }
 
     bool SceneWorld::QueueScriptEvent(ScriptEvent event,std::string& error)
@@ -866,6 +963,7 @@ namespace SceneRuntime
         objects_.reserve(objects_.size() + 1);
         layout_.objects.push_back(std::move(placement));
         objects_.push_back(std::move(object));
+        ++renderVersion_;
     }
 
     bool SceneWorld::AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,
@@ -1009,7 +1107,7 @@ namespace SceneRuntime
             objects.push_back(std::move(object));
         }
         if (!PrepareTransforms(candidate,objects,error)) return false;
-        layout_=std::move(candidate); objects_=std::move(objects);
+        layout_=std::move(candidate); objects_=std::move(objects); ++renderVersion_;
         animatedModels_=std::move(animated); animatorStates_=std::move(states);
         lodModels_=std::move(lods);
         nextObjectId_=nextCounter;
@@ -1041,8 +1139,8 @@ namespace SceneRuntime
             objects.push_back(objects_[index]);
         }
         if (!PrepareTransforms(candidate,objects,error)) return false;
-        layout_=std::move(candidate); objects_=std::move(objects);
-        for (const auto& id : removed) { animatedModels_.erase(id); animatorStates_.erase(id); physics_.erase(id); lodModels_.erase(id); }
+        layout_=std::move(candidate); objects_=std::move(objects); ++renderVersion_;
+        for (const auto& id : removed) { animatedModels_.erase(id); animatorStates_.erase(id); physics_.erase(id); lodModels_.erase(id); previousPhysical_.erase(id); currentPhysical_.erase(id); }
         error.clear();
         return true;
     }
@@ -1083,6 +1181,64 @@ namespace SceneRuntime
         return selected;
     }
 
+    std::map<std::string,SceneWorld::PhysicalPose> SceneWorld::PhysicalPoses(const SceneLayout& layout)
+    {
+        std::map<std::string,PhysicalPose> result;
+        for(const auto& p:layout.objects)
+            if((p.playerController && p.playerController->enabled) || (p.rigidBody && p.rigidBody->enabled && p.rigidBody->motion!="static"))
+                result.emplace(p.id,PhysicalPose{p.position,p.rotation,p.scale,p.parentId});
+        return result;
+    }
+    bool SceneWorld::InterpolatedLocalTransform(const ScenePlacement& p,DirectX::XMFLOAT4X4& transform,DirectX::XMFLOAT4X4& rotation) const
+    {
+        if (!(p.playerController && p.playerController->enabled) &&
+            !(p.rigidBody && p.rigidBody->enabled && p.rigidBody->motion!="static")) return false;
+        const auto before=previousPhysical_.find(p.id),now=currentPhysical_.find(p.id);
+        if(before==previousPhysical_.end() || now==currentPhysical_.end()) return false;
+        const auto& a=before->second; const auto& b=now->second;
+        if(p.position!=b.position || p.rotation!=b.rotation || p.scale!=b.scale || p.parentId!=a.parent || p.parentId!=b.parent) return false;
+        float distance=0;
+        for(size_t i=0;i<3;++i) distance+=(b.position[i]-a.position[i])*(b.position[i]-a.position[i]);
+        if(distance>4) return false;
+        // Saving a simulated SRT can introduce a few ULPs of scale error; genuine resize edits still snap above.
+        for(size_t i=0;i<3;++i)
+            if(std::abs(a.scale[i]-b.scale[i])>1e-5f*std::max(1.0f,std::max(std::abs(a.scale[i]),std::abs(b.scale[i])))) return false;
+        const float alpha=static_cast<float>(std::clamp(fixedSeconds_/FixedStepSeconds,0.0,1.0));
+        std::array<float,3> position;
+        for(size_t i=0;i<3;++i) position[i]=a.position[i]+(p.position[i]-a.position[i])*alpha;
+        using namespace DirectX;
+        const auto localRotation=[](const auto& angles) {return XMMatrixRotationX(angles[0])*XMMatrixRotationY(angles[1])*XMMatrixRotationZ(angles[2]);};
+        const auto orientation=XMQuaternionSlerp(XMQuaternionRotationMatrix(localRotation(a.rotation)),XMQuaternionRotationMatrix(localRotation(p.rotation)),alpha);
+        const auto interpolatedRotation=XMMatrixRotationQuaternion(orientation);
+        XMStoreFloat4x4(&rotation,interpolatedRotation);
+        XMStoreFloat4x4(&transform,XMMatrixScaling(p.scale[0],p.scale[1],p.scale[2])*interpolatedRotation*XMMatrixTranslation(position[0],position[1],position[2]));
+        return true;
+    }
+    bool SceneWorld::PrepareRenderTransforms() const
+    {
+        if(preparedRenderVersion_==renderVersion_) return true;
+        std::map<std::string,DirectX::XMFLOAT4X4> overrides;
+        for(const auto& p:layout_.objects) {
+            DirectX::XMFLOAT4X4 matrix,rotation;
+            if(InterpolatedLocalTransform(p,matrix,rotation)) overrides.emplace(p.id,matrix);
+        }
+        if(overrides.empty()) {
+            renderMatrices_.clear(); renderMatrices_.reserve(objects_.size());
+            for(const auto& object:objects_) renderMatrices_.push_back(object.GetWorldMatrix());
+        } else {
+            std::string error;
+            if(!SceneTransforms::Resolve(layout_,overrides,renderMatrices_,error)) {Engine::Log::Warning(error);return false;}
+        }
+        preparedRenderVersion_=renderVersion_; return true;
+    }
+    bool SceneWorld::RenderWorldMatrix(std::string_view id,DirectX::XMFLOAT4X4& matrix) const
+    {
+        if(!PrepareRenderTransforms()) return false;
+        const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),[&](const auto& p){return p.id==id;});
+        if(found==layout_.objects.end()) return false;
+        matrix=renderMatrices_[static_cast<size_t>(found-layout_.objects.begin())]; return true;
+    }
+
     bool SceneWorld::WorldRotation(std::string_view id, DirectX::XMFLOAT4X4& matrix) const
     {
         auto rotation=DirectX::XMMatrixIdentity();
@@ -1096,6 +1252,31 @@ namespace SceneRuntime
             const auto& angles=found->rotation;
             rotation=rotation*DirectX::XMMatrixRotationX(angles[0])*DirectX::XMMatrixRotationY(angles[1])*
                 DirectX::XMMatrixRotationZ(angles[2]);
+            current=found->parentId;
+        } while (!current.empty());
+        DirectX::XMFLOAT4X4 candidate;
+        DirectX::XMStoreFloat4x4(&candidate,rotation);
+        if (!SceneTransforms::IsUsable(candidate)) return false;
+        matrix=candidate;
+        return true;
+    }
+
+    bool SceneWorld::RenderWorldRotation(std::string_view id, DirectX::XMFLOAT4X4& matrix) const
+    {
+        auto rotation=DirectX::XMMatrixIdentity();
+        auto current=std::string(id);
+        size_t remaining=layout_.objects.size();
+        do
+        {
+            const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),
+                [&](const auto& placement) { return placement.id==current; });
+            if (found==layout_.objects.end() || remaining--==0) return false;
+            DirectX::XMFLOAT4X4 transform,local;
+            if (InterpolatedLocalTransform(*found,transform,local)) rotation=rotation*DirectX::XMLoadFloat4x4(&local);
+            else {
+                const auto& angles=found->rotation;
+                rotation=rotation*DirectX::XMMatrixRotationX(angles[0])*DirectX::XMMatrixRotationY(angles[1])*DirectX::XMMatrixRotationZ(angles[2]);
+            }
             current=found->parentId;
         } while (!current.empty());
         DirectX::XMFLOAT4X4 candidate;
