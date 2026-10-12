@@ -228,7 +228,7 @@ namespace SceneRuntime
         std::erase_if(ikTargets,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         std::erase_if(rootMotions,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         if (destroyed_.contains(layout_.settings.mainCamera)) layout_.settings.mainCamera.clear();
-        static_cast<void>(layout_.Serialize());
+        layout_.Validate();
     }
     void ScriptScene::SetUiValue(const std::string& key,float value)
     {
@@ -422,16 +422,23 @@ namespace SceneRuntime
                 }
                 iterator=instances_.erase(iterator);
             }
-            auto previous=layout;
+            // Stop callbacks need the former owner only when its object is removed.
+            std::vector<ScenePlacement> previousOwners;
+            for(const auto& [key,instance]:instances_) {
+                static_cast<void>(key);
+                if(!Registry().at(instance.behaviour).stop) continue;
+                const auto* owner=scene.Find(instance.owner);
+                if(owner) previousOwners.push_back(*owner);
+            }
             scene.Commit();
             for (auto iterator=instances_.begin();iterator!=instances_.end();)
                 if (scene.Find(iterator->second.owner)) ++iterator;
                 else
                 {
                     auto& instance=iterator->second;
-                    const auto owner=std::find_if(previous.objects.begin(),previous.objects.end(),[&](const auto& item) { return item.id==instance.owner; });
+                    const auto owner=std::find_if(previousOwners.begin(),previousOwners.end(),[&](const auto& item) { return item.id==instance.owner; });
                     const auto& definition=Registry().at(instance.behaviour);
-                    if (owner!=previous.objects.end() && definition.stop)
+                    if (owner!=previousOwners.end() && definition.stop)
                     { ScriptContext context{*owner,instance.parameters,instance.state,0}; context.data=&instance.data; context.dataState=&instance.dataState; definition.stop(context); }
                     iterator=instances_.erase(iterator);
                 }

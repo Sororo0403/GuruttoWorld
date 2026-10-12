@@ -81,11 +81,10 @@ namespace
 
 namespace SceneRuntime
 {
-    SceneLayout SceneLayout::Parse(std::string_view json)
+    static SceneLayout ParseDocument(const Json& document)
     {
         try
         {
-            const auto document = Json::parse(json);
             JsonObject(document);
             const double version=JsonNumber(document.at("version"));
             if (version!=2.0 && version!=3.0 && version!=4.0)
@@ -153,6 +152,34 @@ namespace SceneRuntime
         {
             throw std::runtime_error("Invalid layout JSON: " + std::string(error.what()));
         }
+    }
+
+    SceneLayout SceneLayout::Parse(std::string_view json)
+    {
+        try { return ParseDocument(Json::parse(json)); }
+        catch(const Json::exception& error) { throw std::runtime_error("Invalid layout JSON: "+std::string(error.what())); }
+    }
+
+    static Json LayoutDocument(const SceneLayout& layout)
+    {
+        Json document={{"version",4},{"settings",WriteSceneSettings(layout.settings)},
+            {"objects",Json::array()},{"assetReferences",layout.assetReferences},{"sceneObjects",layout.sceneObjects}};
+        for(const auto& p:layout.objects) {
+            Json object={{"id",p.id},{"name",p.name},{"parent",p.parentId},
+                {"components",WriteSceneComponents(p)},{"position",p.position},{"rotation",p.rotation},{"scale",p.scale}};
+            if(p.persistent) object["persistent"]=true;
+            if(p.prefab) object["prefab"]={{"asset",p.prefab->asset},{"source",p.prefab->sourceId},{"root",p.prefab->rootId},{"baseline",p.prefab->baseline}};
+            for(const auto& vector:{p.position,p.rotation,p.scale})
+                if(std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);}))
+                    throw std::runtime_error("Cannot save nonfinite transform");
+            document["objects"].push_back(std::move(object));
+        }
+        return document;
+    }
+
+    void SceneLayout::Validate() const
+    {
+        static_cast<void>(ParseDocument(LayoutDocument(*this)));
     }
 
     std::string SceneLayout::Serialize() const

@@ -138,6 +138,8 @@ namespace SceneRuntime
         void ResolveAssets(const std::filesystem::path& root);
         // 読み込み・検証に失敗した場合は例外。呼び出し元の配置は変更しません。
         static SceneLayout Parse(std::string_view json);
+        /// <summary>文字列への変換を行わず、保存時と同じ規則で配置を検証します。</summary>
+        void Validate() const;
         std::string Serialize() const;
         // With overwrite=false, the final atomic commit also refuses an existing destination.
         void Save(const std::filesystem::path& path, bool overwrite = true) const;

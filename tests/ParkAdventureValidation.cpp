@@ -6,6 +6,8 @@
 #include <Engine/Platform/Window.h>
 #include <Engine/Core/Log.h>
 #include <algorithm>
+#include <chrono>
+#include <limits>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -24,6 +26,50 @@ namespace
     {
         const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object){return object.id==id;});
         Require(found!=layout.objects.end(),"Missing object: "+id); return *found;
+    }
+    void ValidationParity()
+    {
+        const auto valid=SceneLayout::Load("Content/Assets/Scenes/ParkAdventure.json");
+        valid.Validate();
+        for(int variant=0;variant<7;++variant) {
+            auto layout=valid;
+            switch(variant) {
+            case 0: layout.objects[0].position[0]=std::numeric_limits<float>::quiet_NaN(); break;
+            case 1: layout.objects[0].scale[1]=0; break;
+            case 2: layout.objects[1].id=layout.objects[0].id; break;
+            case 3: layout.objects[0].parentId="missing-parent"; break;
+            case 4: layout.objects[0].parentId=layout.objects[1].id; layout.objects[1].parentId=layout.objects[0].id; break;
+            case 5: layout.settings.mainCamera="missing-camera"; break;
+            case 6: Find(layout,"park-player").playerController->moveSpeed=-1; break;
+            }
+            bool direct=false,serialized=false;
+            try { layout.Validate(); } catch(const std::exception&) { direct=true; }
+            try { static_cast<void>(layout.Serialize()); } catch(const std::exception&) { serialized=true; }
+            Require(direct && serialized,"Runtime and serialized validation reject invalid layout equally");
+        }
+    }
+    void RemovedScriptOwners()
+    {
+        static int stopped=0;
+        static float sum=0;
+        stopped=0; sum=0;
+        ScriptDefinition definition;
+        definition.update=[](ScriptContext& context) {
+            context.object.position[0]=3;
+            if(context.Pressed("Remove") && context.object.id=="root") context.scene->Destroy("root");
+        };
+        definition.stop=[](ScriptContext& context) { ++stopped; sum+=context.object.position[0]; };
+        Require(ScriptRegistry::Register("ParkOwnerRetentionTest",definition),"Owner test registers");
+        ScenePlacement root; root.id="root"; root.name="root";
+        ScriptComponent script; script.id="script"; script.behaviour="ParkOwnerRetentionTest";
+        root.scripts.push_back(script);
+        auto child=root; child.id="child"; child.parentId="root";
+        SceneLayout layout; layout.objects={root,child};
+        ScriptRuntime runtime; std::string error;
+        Require(runtime.Update(layout,1.0/60,error,{},{{"Remove",true}}),error);
+        Require(layout.objects.empty() && stopped==2 && sum==6,"Subtree stop retains updated owners exactly once");
+        runtime.Stop(layout);
+        Require(stopped==2,"Removed scripts are not stopped twice");
     }
     struct Simulation
     {
@@ -162,9 +208,11 @@ namespace
         SceneEnvironment scene;std::string error;
         const auto root=std::filesystem::absolute("Content");
         Require(scene.Initialize(renderer,root,root/"Assets/Scenes/ParkAdventure.json",error),error);
+        const auto begin=std::chrono::steady_clock::now();
         for(int frame=0;frame<40;++frame) {
             Require(scene.MovePlayers(1.0/60,0,0),"Environment fixed update");scene.Update(1.0/60,true,true);
         }
+        std::cout<<"CPU scene update: "<<std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count()/40<<" ms/frame (40 stationary frames)\n";
         Capture(renderer,scene,"entrance");
         auto layout=SceneLayout::Load(root/"Assets/Scenes/ParkAdventure.json");
         Find(layout,"park-player").position={0,1.05f,35};
@@ -185,6 +233,7 @@ int main()
             const auto prefab=SceneLayout::Load(std::filesystem::path("Content/Assets/Prefabs/Park")/(std::string(name)+".prefab"));
             Require(Prefab::Extract(prefab,"module").objects.size()==prefab.objects.size(),"Reusable module hierarchy");
         }
+        ValidationParity(); RemovedScriptOwners();
         if (!GetEnvironmentVariableA("WP1_PARK_RENDER_ONLY",nullptr,0)) Playthrough();
         Render();std::cout<<"PASS: park validation\n";return 0;
     } catch(const std::exception& error) {

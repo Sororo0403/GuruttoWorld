@@ -79,10 +79,13 @@ def coin(identity, position):
     return result
 
 
+def nature(identity, position, model, scale=1):
+    return obj(identity, position, [scale] * 3, [component("MeshRenderer",
+        model=f"Assets/Models/Park/KenneyNature/{model}.obj", instancing=True)])
+
+
 def tree(identity, x, z):
-    return [box(identity + "-trunk", [x, 1.25, z], [.5, 2.5, .5], "Wood"),
-            ball(identity + "-canopy", [x, 3.3, z], [3.4, 3.3, 3.4], "Leaf"),
-            ball(identity + "-crown", [x + .25, 4.0, z], [2.8, 2.4, 2.8], "LeafLight")]
+    return [nature(identity, [x, 0, z], "tree_oak", 3)]
 
 
 def platform(identity, start, end, width=20):
@@ -214,9 +217,8 @@ def assemble(seed, scene_path="Assets/Scenes/ParkAdventure.json"):
                 x = side * rng.uniform(8, 9.5)
                 z = origin + local_z + rng.uniform(-1, 1)
                 objects.extend(tree(f"tree-{kind}-{side}-{number}", x, z))
-                for petal in range(3):
-                    objects.append(ball(f"flower-{kind}-{side}-{number}-{petal}",
-                        [side * 6.6 + petal * .18, .15, z + 1.5], [.35, .3, .35], "Petal"))
+                objects.append(nature(f"flower-{kind}-{side}-{number}",
+                    [side * 6.6, 0, z + 1.5], "flower_yellowC" if side > 0 else "flower_purpleC", 4))
         for side in (-1, 1):
             objects.append(box(f"bench-{kind}-{side}", [side * 5.1, .6, origin + 2], [.9, .25, 2], "Wood"))
             objects.append(box(f"bench-back-{kind}-{side}", [side * 5.55, 1, origin + 2], [.15, 1.1, 2], "Wood"))
