@@ -255,3 +255,5 @@ ProfilerValidationはCPU描画時間・フレーム数と、完了フェンス�
 `MSBuild tests/ParkAdventureValidation.vcxproj /p:Configuration=Release /p:Platform=x64`で専用検証をビルドし、
 `generated/tests/outputs/x64/Release/ParkAdventureValidation/ParkAdventureValidation.exe`をリポジトリルートから実行します。
 実際のJolt物理とゲーム処理でジャンプ・空中停止・戦闘・全収集・落下復帰・スイッチ・クリア・カメラ・再挑戦を確認し、入口と水路の描画画像を保存します。
+
+`$env:WP1_PARK_STUTTER_ONLY='1'`を設定してReleaseのParkAdventureValidationを実行すると、静止・取得・空中停止の実描画付きフレーム計測と144Hz相当の位置更新検証を行います。`generated/park/stutter.csv`と`motion-144.csv`に記録し、完了後は`Remove-Item Env:WP1_PARK_STUTTER_ONLY`で解除します。測定値に合否しきい値は設けず、原因の比較に使用します。内訳と制約は`docs/ParkAdventure.md`に記載しています。

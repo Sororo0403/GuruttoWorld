@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Profiler.h>
 #include <Engine/Graphics/Materials/Material.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/AssetDatabase.h>
@@ -41,7 +42,9 @@ namespace SceneRuntime
         {
             if (!ValidPath(path)) throw std::runtime_error("Invalid material path");
             std::ifstream stream(root/path); if (!stream) throw std::runtime_error("Cannot open material");
-            auto json=Engine::Json::parse(stream); Engine::AssetDatabase(root).References(json); MaterialAsset asset;
+            auto json=Engine::Json::parse(stream);
+            { Engine::CpuScope scope("Material asset database scan"); Engine::AssetDatabase(root).References(json); }
+            MaterialAsset asset;
             const auto& color=Engine::JsonArray(json.at("color")); if (color.size()!=4) throw std::runtime_error("Material color needs four channels");
             for (size_t index=0;index<4;++index) asset.values.color[index]=static_cast<float>(Engine::JsonNumber(color[index]));
             asset.values.roughness=static_cast<float>(Engine::JsonNumber(json.at("roughness")));

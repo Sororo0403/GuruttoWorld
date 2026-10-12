@@ -190,7 +190,7 @@ namespace SceneRuntime
             const auto& previousLayout=previous ? previous->layout : layout_;
             const auto& previousModels=previous ? previous->animated : animatedModels_;
             const auto& previousStates=previous ? previous->states : animatorStates_;
-            layout.ResolveAssets(assetsRoot);
+            { Engine::CpuScope scope("Scene asset resolution"); layout.ResolveAssets(assetsRoot); }
             static_cast<void>(layout.Serialize());
             std::vector<DirectX::XMFLOAT4X4> matrices;
             if (!SceneTransforms::Resolve(layout,matrices,error)) throw std::runtime_error(error);
@@ -610,6 +610,7 @@ namespace SceneRuntime
                 return a.id==b.id && a.meshRenderer==b.meshRenderer && a.material==b.material && a.animator==b.animator;
             });
         if (rebuild) {
+            Engine::CpuScope rebuildScope("Script render resource rebuild");
             Microsoft::WRL::ComPtr<ID3D12Fence> fence;
             if (FAILED(materialDevice_->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&fence))) ||
                 !Engine::SignalGpuFence(materialDevice_.Get(),materialQueue_.Get(),fence.Get(),1) ||

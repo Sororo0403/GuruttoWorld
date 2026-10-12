@@ -1,3 +1,4 @@
+#include <Engine/Core/Profiler.h>
 #include <SceneRuntime/SceneUi.h>
 #include <SceneRuntime/SceneCanvas.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
@@ -101,6 +102,7 @@ void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::f
         if(old!=resources_.end()) SynchronizeUiResources(renderer);
         pending.emplace(key,Resource{signature,std::move(shared),std::move(sharedScene)}); return;
     }
+    Engine::CpuScope rebuildScope("UI resource rebuild");
     auto texture=text?TextTexture(renderer,*p.text,p.rectTransform?p.rectTransform->size:std::array<float,2>{200,60}):std::make_shared<Engine::Texture2D>();
     if(!text && !texture->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),p.image->texture.empty()?std::filesystem::path{}:root/p.image->texture))
         throw std::runtime_error("Cannot load UI image: "+signature);

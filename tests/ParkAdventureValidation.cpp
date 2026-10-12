@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <chrono>
 #include <limits>
+#include <Engine/Core/Profiler.h>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -23,6 +24,11 @@ namespace
     bool Register(void*,const char* name,const ScriptDefinition* definition)
     { return ScriptRegistry::Register(name,*definition); }
     ScenePlacement& Find(SceneLayout& layout,const std::string& id)
+    {
+        const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object){return object.id==id;});
+        Require(found!=layout.objects.end(),"Missing object: "+id); return *found;
+    }
+    const ScenePlacement& Find(const SceneLayout& layout,const std::string& id)
     {
         const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object){return object.id==id;});
         Require(found!=layout.objects.end(),"Missing object: "+id); return *found;
@@ -201,6 +207,65 @@ namespace
         for(UINT y=0;y<height;++y) for(UINT x=0;x<width;++x) output.write(reinterpret_cast<char*>(pixels+y*pitch+x*4),3);
         const D3D12_RANGE empty{0,0};readback->Unmap(0,&empty);Require(static_cast<bool>(output),"Capture saved");
     }
+    void StutterTrace()
+    {
+        Engine::Window window; Engine::DirectX12Renderer renderer;
+        Require(window.Create(L"Park stutter trace",1280,720) && renderer.Initialize(window.GetHandle()),"Trace renderer initializes");
+        const auto root=std::filesystem::absolute("Content");
+        std::filesystem::create_directories("generated/park");
+        std::ofstream output("generated/park/stutter.csv");
+        output<<"scenario,frame,objects,update_ms,render_present_ms,gpu_ms,physics_ms,components_ms,render_rebuild_ms,physics_rebuild_ms,ui_rebuild_ms,scene_assets_ms,material_scan_ms,material_scan_calls,player_z,player_y,use_gravity\n";
+        const auto milliseconds=[](auto start) { return std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count(); };
+        for(int scenario=0;scenario<3;++scenario) {
+            SceneEnvironment scene; std::string error;
+            auto layout=SceneLayout::Load(root/"Assets/Scenes/ParkAdventure.json");
+            const auto position=scenario==1?std::array<float,3>{-2,1.05f,4}:scenario==2?std::array<float,3>{3,1.05f,34}:std::array<float,3>{0,1.05f,1};
+            Find(layout,"park-player").position=position;
+            Find(layout,"park-camera").position={position[0]*.55f,10,position[2]-13};
+            Require(scene.Initialize(renderer,root,layout,error),error);
+            double updateTotal=0,updateMaximum=0,gpuMaximum=0; int worst=0;
+            float maximumHeight=position[1]; bool floated=false;
+            for(int frame=0;frame<120;++frame) {
+                static_cast<void>(Engine::CpuProfiler::Take());
+                const float movement=scenario==1 && frame<90?.35f:0;
+                const bool jump=scenario==2 && frame==30,held=scenario==2 && frame>=30 && frame<100;
+                scene.SetInputActions({{"MoveForward",movement},{"Jump",held?1.0f:0.0f}},{{"Jump",jump}});
+                const auto begin=std::chrono::steady_clock::now();
+                Require(scene.MovePlayers(1.0/60,0,movement,jump),"Trace fixed update"); scene.Update(1.0/60,true,true);
+                const double update=milliseconds(begin);
+                const auto renderBegin=std::chrono::steady_clock::now();
+                Require(renderer.Render(scene.World().Layout().settings.background,[&](ID3D12GraphicsCommandList* commands,float) {
+                    scene.Draw(commands,1280,720);
+                })!=Engine::RenderResult::Failed,"Trace renders");
+                const auto& telemetry=renderer.Telemetry();
+                const auto scope=[&](const char* name) { for(const auto& sample:telemetry.cpuScopes) if(sample.name==name) return sample.milliseconds; return 0.0; };
+                output<<scenario<<","<<frame<<","<<scene.World().Layout().objects.size()<<","<<update<<","<<milliseconds(renderBegin)<<",";
+                if(telemetry.gpuSample) output<<telemetry.gpuMilliseconds;
+                output<<","<<scope("Physics and player movement")<<","<<scope("Components update")<<","<<scope("Script render resource rebuild")<<","<<scope("Physics world rebuild")<<","<<scope("UI resource rebuild")<<","<<scope("Scene asset resolution")<<","<<scope("Material asset database scan")<<",";
+                unsigned int scans=0; for(const auto& sample:telemetry.cpuScopes) if(sample.name=="Material asset database scan") scans=sample.calls;
+                const auto& player=Find(scene.World().Layout(),"park-player");
+                maximumHeight=std::max(maximumHeight,player.position[1]); floated=floated || !player.playerController->useGravity;
+                output<<scans<<","<<player.position[2]<<","<<player.position[1]<<","<<player.playerController->useGravity<<"\n";
+                if(frame>=10) { updateTotal+=update; if(update>updateMaximum) { updateMaximum=update;worst=frame; } if(telemetry.gpuSample) gpuMaximum=std::max(gpuMaximum,telemetry.gpuMilliseconds); }
+            }
+            std::cout<<"Scenario "<<scenario<<": update mean "<<updateTotal/110<<" ms, max "<<updateMaximum<<" ms at frame "<<worst<<", GPU max "<<gpuMaximum<<" ms\n";
+            if(scenario==2) Require(maximumHeight>1.3f && floated,"Trace executes actual jump and hover");
+            Require(renderer.WaitForIdle(),"Trace GPU finishes");
+        }
+        SceneEnvironment motion; std::string error;
+        Require(motion.Initialize(renderer,root,root/"Assets/Scenes/ParkAdventure.json",error),error);
+        int unchanged=0; float previous=Find(motion.World().Layout(),"park-player").position[2];
+        std::ofstream positions("generated/park/motion-144.csv"); positions<<"frame,player_z,delta_z\n";
+        for(int frame=0;frame<120;++frame) {
+            motion.SetInputActions({{"MoveForward",1.0f}},{});
+            Require(motion.MovePlayers(1.0/144,0,1),"High refresh movement"); motion.Update(1.0/144,true,true);
+            const float current=Find(motion.World().Layout(),"park-player").position[2];
+            if(std::abs(current-previous)<1e-6f) ++unchanged;
+            positions<<frame<<","<<current<<","<<current-previous<<"\n"; previous=current;
+        }
+        std::cout<<"144 Hz update simulation: "<<unchanged<<"/120 frames repeat player position (no render interpolation)\n";
+        Require(static_cast<bool>(output),"Trace saved");
+    }
     void Render()
     {
         Engine::Window window;Engine::DirectX12Renderer renderer;
@@ -233,6 +298,7 @@ int main()
             const auto prefab=SceneLayout::Load(std::filesystem::path("Content/Assets/Prefabs/Park")/(std::string(name)+".prefab"));
             Require(Prefab::Extract(prefab,"module").objects.size()==prefab.objects.size(),"Reusable module hierarchy");
         }
+        if(GetEnvironmentVariableA("WP1_PARK_STUTTER_ONLY",nullptr,0)) { StutterTrace(); return 0; }
         ValidationParity(); RemovedScriptOwners();
         if (!GetEnvironmentVariableA("WP1_PARK_RENDER_ONLY",nullptr,0)) Playthrough();
         Render();std::cout<<"PASS: park validation\n";return 0;

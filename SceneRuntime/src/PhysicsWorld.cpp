@@ -598,6 +598,7 @@ namespace SceneRuntime
             auto* activeWorld=impl_.get();
             if (!activeWorld || !activeWorld->Matches(layout,matrices))
             {
+                Engine::CpuScope rebuildScope("Physics world rebuild");
                 static_cast<void>(layout.Serialize()); replacement=std::make_unique<Impl>(layout);
                 replacement->Build(matrices,root,impl_.get(),states); activeWorld=replacement.get();
             }
