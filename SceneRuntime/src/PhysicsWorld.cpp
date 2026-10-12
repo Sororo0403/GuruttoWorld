@@ -36,6 +36,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <iterator>
+#include <cstring>
 
 namespace
 {
@@ -351,8 +352,11 @@ namespace SceneRuntime
                 if (a.id!=b.id || a.parentId!=b.parentId || a.boxCollider!=b.boxCollider || a.rigidBody!=b.rigidBody || !MatchesController(a.playerController,b.playerController) || a.terrain!=b.terrain || a.tilemap!=b.tilemap || a.joint!=b.joint) return false;
                 if (a.boxCollider && a.boxCollider->enabled)
                 {
+                    const auto& entry=entries.at(a.id);
+                    // The immutable construction matrix already passed shape validation.
+                    if (std::memcmp(&matrices[i],&entry.basis,sizeof(Matrix))==0) continue;
                     bool baked=false; const auto scale=ColliderPose(a,matrices[i],baked).scale;
-                    const auto& entry=entries.at(a.id); const auto& stored=entry.pose.scale;
+                    const auto& stored=entry.pose.scale;
                     if (baked!=entry.baked) return false;
                     if (baked) for (size_t row=0;row<3;++row) for (size_t column=0;column<3;++column)
                         if (matrices[i].m[row][column]!=entry.basis.m[row][column]) return false;
@@ -396,13 +400,17 @@ namespace SceneRuntime
             auto& bodies=system.GetBodyInterface();
             for (auto& [id,entry] : entries)
             {
-                bool baked=false; auto pose=ColliderPose(layout.objects[entry.index],matrices[entry.index],baked);
-                const bool moved=entry.baked ? !pose.position.IsClose(entry.pose.position) : !SceneTransforms::Matches(WorldMatrix(entry.pose),matrices[entry.index]);
+                const auto& matrix=matrices[entry.index];
+                const bool moved=entry.baked ? !JPH::Vec3(matrix._41,matrix._42,matrix._43).IsClose(entry.pose.position) :
+                    !SceneTransforms::Matches(WorldMatrix(entry.pose),matrix);
+                auto pose=entry.pose;
+                const bool kinematic=!entry.character && bodies.GetMotionType(entry.body)==JPH::EMotionType::Kinematic;
+                if (moved || kinematic) { bool baked=false; pose=ColliderPose(layout.objects[entry.index],matrix,baked); }
                 if (entry.character)
                 {
                     if (moved) { entry.character->SetPosition(pose.position); entry.character->SetRotation(pose.rotation); }
                 }
-                else if (bodies.GetMotionType(entry.body)==JPH::EMotionType::Kinematic)
+                else if (kinematic)
                 {
                     const auto& body=layout.objects[entry.index].rigidBody;
                     if (body && body->enabled)
@@ -417,6 +425,7 @@ namespace SceneRuntime
                 const auto impulse=impulses.find(id);
                 if (impulse!=impulses.end() && bodies.GetMotionType(entry.body)==JPH::EMotionType::Dynamic) bodies.AddImpulse(entry.body,V(impulse->second));
             }
+            Engine::CpuScope simulationScope("Physics simulation");
             const int steps=std::max(1,static_cast<int>(std::ceil(seconds*120))); const float tick=seconds/static_cast<float>(steps);
             const float magnitude=std::max(1.0f,std::hypot(horizontal,vertical));
             for (int step=0;step<steps;++step)
@@ -591,8 +600,11 @@ namespace SceneRuntime
         const std::filesystem::path& root,std::string& error)
     {
         if (!std::isfinite(seconds) || seconds<=0 || !std::isfinite(horizontal) || !std::isfinite(vertical)) { error="Invalid physics input"; return false; }
+        Engine::CpuScope advanceScope("Physics advance");
         std::vector<Matrix> matrices;
         if (!SceneTransforms::Resolve(layout,matrices,error)) return false;
+        struct TransformBackup { size_t index; std::array<float,3> position,rotation,scale; };
+        std::vector<TransformBackup> transforms;
         JPH::StateRecorderImpl snapshot;
         std::map<std::string,JPH::StateRecorderImpl> characters;
         std::set<Contact> previousContacts;
@@ -608,7 +620,16 @@ namespace SceneRuntime
                     !bounded(controller.stepHeight,10) || !bounded(controller.maxSlopeDegrees,89))
                     throw std::runtime_error("Invalid PlayerController movement settings");
             }
-            auto candidate=layout; auto candidateStates=states;
+            auto candidateStates=states;
+            // Step only writes physical placements; save those fields rather than cloning every component.
+            transforms.reserve(layout.objects.size());
+            for (size_t i=0;i<layout.objects.size();++i)
+            {
+                const auto& object=layout.objects[i];
+                if ((object.playerController && object.playerController->enabled && object.playerController->usePhysics) ||
+                    (object.rigidBody && object.rigidBody->enabled))
+                    transforms.push_back({i,object.position,object.rotation,object.scale});
+            }
             std::unique_ptr<Impl> replacement;
             auto* activeWorld=impl_.get();
             if (!activeWorld || !activeWorld->Matches(layout,matrices))
@@ -620,18 +641,24 @@ namespace SceneRuntime
             auto& world=*activeWorld;
             if (!replacement)
             {
+                Engine::CpuScope snapshotScope("Physics rollback snapshot");
                 world.system.SaveState(snapshot); previousContacts=world.contacts;
                 for (const auto& [id,entry] : world.entries) { previousPoses[id]=entry.pose; if (entry.character) entry.character->SaveState(characters[id]); }
                 saved=true;
             }
             std::vector<PhysicsContactEvent> events;
-            world.Step(candidate,candidateStates,matrices,static_cast<float>(std::min(seconds,0.1)),std::clamp(horizontal,-1.0f,1.0f),std::clamp(vertical,-1.0f,1.0f),jump,impulses_,events);
-            if (!SceneTransforms::Resolve(candidate,matrices,error)) throw std::runtime_error(error);
+            world.Step(layout,candidateStates,matrices,static_cast<float>(std::min(seconds,0.1)),std::clamp(horizontal,-1.0f,1.0f),std::clamp(vertical,-1.0f,1.0f),jump,impulses_,events);
+            if (!SceneTransforms::Resolve(layout,matrices,error)) throw std::runtime_error(error);
             if (replacement) impl_=std::move(replacement);
-            layout=std::move(candidate); states=std::move(candidateStates); events_=std::move(events); impulses_.clear(); error.clear(); return true;
+            states=std::move(candidateStates); events_=std::move(events); impulses_.clear(); error.clear(); return true;
         }
         catch (const std::exception& exception)
         {
+            for (const auto& transform:transforms)
+            {
+                auto& object=layout.objects[transform.index];
+                object.position=transform.position; object.rotation=transform.rotation; object.scale=transform.scale;
+            }
             if (saved)
             {
                 snapshot.Rewind(); impl_->system.RestoreState(snapshot); impl_->contacts=std::move(previousContacts);

@@ -210,25 +210,30 @@ namespace SceneRuntime
         if(uiCommands.values.size()+uiCommands.texts.size()>256) throw std::runtime_error("Too many UI commands");
         for(const auto& [key,value]:uiCommands.values) SetUiValue(key,value);
         for(const auto& [key,text]:uiCommands.texts) SetUiText(key,text);
-        for (auto& item : layout_.objects)
+        if (!components_.empty()) for (auto& item : layout_.objects)
         {
             const auto found=components_.find(item.id);
             if (found!=components_.end()) item.CopyComponents(found->second);
         }
         for (auto& item : spawned_) layout_.objects.push_back(std::move(item));
-        bool changed=true;
-        while (changed)
+        if (!destroyed_.empty())
         {
-            changed=false;
-            for (const auto& item : layout_.objects)
-                if (destroyed_.contains(item.parentId) && destroyed_.insert(item.id).second) changed=true;
+            bool changed=true;
+            while (changed)
+            {
+                changed=false;
+                for (const auto& item : layout_.objects)
+                    if (destroyed_.contains(item.parentId) && destroyed_.insert(item.id).second) changed=true;
+            }
+            std::erase_if(layout_.objects,[&](const auto& item) { return destroyed_.contains(item.id); });
         }
-        std::erase_if(layout_.objects,[&](const auto& item) { return destroyed_.contains(item.id); });
         std::erase_if(animatorParameters,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         std::erase_if(ikTargets,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         std::erase_if(rootMotions,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         if (destroyed_.contains(layout_.settings.mainCamera)) layout_.settings.mainCamera.clear();
-        layout_.Validate();
+        Engine::CpuScope validationScope("Script layout validation");
+        if (validatedBefore_) layout_.ValidateChanges(*validatedBefore_);
+        else layout_.Validate();
     }
     void ScriptScene::SetUiValue(const std::string& key,float value)
     {
@@ -342,21 +347,28 @@ namespace SceneRuntime
     }
     bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase)
     {
-        Engine::CpuScope scope("Scripts");
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
         { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); error.clear(); return true; }
         auto candidate=layout;
         auto runtime=*this;
-        if (!runtime.Advance(candidate,seconds,error,input,pressed,physics,phase)) return false;
+        if (!runtime.UpdateCandidate(candidate,seconds,error,input,pressed,physics,phase)) return false;
         layout=std::move(candidate); *this=std::move(runtime); return true;
     }
-    bool ScriptRuntime::Advance(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase)
+    bool ScriptRuntime::UpdateCandidate(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore)
+    {
+        Engine::CpuScope scope("Scripts");
+        if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
+        if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
+        { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); error.clear(); return true; }
+        return Advance(layout,seconds,error,input,pressed,physics,phase,validatedBefore);
+    }
+    bool ScriptRuntime::Advance(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore)
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         try
         {
-            ScriptScene scene(layout,nextId_,physics);
+            ScriptScene scene(layout,nextId_,physics,validatedBefore);
             scene.sceneCommands=sceneCommands_;
             scene.uiCommands=uiCommands_;
             if (phase!=ScriptPhase::Update) scene.events=events_;

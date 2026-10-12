@@ -76,10 +76,31 @@ namespace RigidBodyValidation
         const auto floor=world.Raycast({0,5,0},{0,-1,0},10,0xffffffffu,false,"actor");
         Require(floor && floor->object=="floor","controller updates preserve collider filter definitions");
     }
+    /// <summary>物理結果を局所変換に保存できない失敗でも、先行Actorの変更と全Componentを復元します。</summary>
+    inline void PartialTransformRollback()
+    {
+        using namespace SceneRuntime;
+        const auto root=std::filesystem::absolute("Content");
+        auto layout=Layout();
+        layout.objects[1].rigidBody->velocity={1,0,0};
+        ScenePlacement parent; parent.id="parent"; parent.name="Parent"; parent.scale={2,1,1};
+        auto child=layout.objects[1]; child.id="rotating-child"; child.name="Rotating child";
+        child.parentId=parent.id; child.position={5,4,0}; child.rigidBody->velocity={0,0,0};
+        child.rigidBody->angularVelocity={0,0,2}; child.rigidBody->gravityScale=0;
+        layout.objects.push_back(parent); layout.objects.push_back(child);
+        const auto original=layout.Serialize();
+        ScenePhysics::States states; PhysicsWorld world; std::string error;
+        Require(!world.Advance(layout,states,1.0/60,0,0,false,root,error),"nonuniform parent rejects rotating physical result");
+        Require(layout.Serialize()==original && states.empty(),"partial physics placement writes roll back all actor transforms and components");
+        layout.objects.back().rigidBody->angularVelocity={0,0,0};
+        Require(world.Advance(layout,states,1.0/60,0,0,false,root,error),"valid physics resumes after result conversion failure");
+        Require(layout.objects[1].position[0]>0,"first actor advances after rollback recovery");
+    }
     inline void Run()
     {
         using namespace SceneRuntime;
         ControllerUpdates();
+        PartialTransformRollback();
         const auto root=std::filesystem::absolute("Content");
         auto layout=Layout(); std::string error; ScenePhysics::States states; PhysicsWorld world;
         const auto tick=[&](double seconds=1.0/60,float x=0,float z=0,bool jump=false) {

@@ -139,7 +139,7 @@ namespace SceneRuntime
         /// <summary>配置・モデル・初期Animatorを候補へ構築し、現在のシーンを保持します。</summary>
         bool PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result,const PreparedLayout* previous=nullptr);
         /// <summary>実行段階の変更を直前の候補から準備し、進行したAnimator状態を保持します。</summary>
-        bool PrepareScriptLayout(SceneLayout layout,const PreparedLayout& previous,PreparedLayout& result,std::string& error);
+        bool PrepareScriptLayout(SceneLayout layout,const PreparedLayout* previous,PreparedLayout& result,std::string& error);
         /// <summary>現在の実行リソースと状態を更新候補へ参照共有します。</summary>
         PreparedLayout RuntimeLayout() const;
         /// <summary>固定コールバック・物理・衝突イベントを候補へ進めます。</summary>
@@ -164,7 +164,8 @@ namespace SceneRuntime
             std::string* error);
         bool ReparentPlacement(ScenePlacement& placement, std::string parentId, std::string& error) const;
         bool TranslatePlacement(ScenePlacement& placement, const std::array<float,3>& delta) const;
-        static bool PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error);
+        /// <summary>配置の世界行列を準備し、検証済みの前回配置がある場合は未変更の行列を再利用します。</summary>
+        static bool PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects, std::string& error,const SceneLayout* validatedBefore=nullptr);
         bool SetPlacementTransform(std::string_view id, const ScenePlacement& placement);
         bool CommitTransforms(SceneLayout candidate);
         bool TransformObjectsWorld(const std::vector<std::string>& ids, const DirectX::XMFLOAT4X4& delta);

@@ -21,7 +21,7 @@ namespace SceneRuntime
     class ScriptScene final
     {
     public:
-        explicit ScriptScene(SceneLayout& layout,size_t& nextId,const PhysicsWorld* physics=nullptr) : layout_(layout),nextId_(nextId),physics_(physics) {}
+        explicit ScriptScene(SceneLayout& layout,size_t& nextId,const PhysicsWorld* physics=nullptr,const SceneLayout* validatedBefore=nullptr) : layout_(layout),nextId_(nextId),physics_(physics),validatedBefore_(validatedBefore) {}
         /// <summary>IDから現在のオブジェクトを参照します。参照はコールバック中だけ有効です。</summary>
         const ScenePlacement* Find(const std::string& id) const;
         /// <summary>指定したメンバーに対応する型付きComponentを取得します。</summary>
@@ -78,6 +78,7 @@ namespace SceneRuntime
         SceneLayout& layout_;
         size_t& nextId_;
         const PhysicsWorld* physics_;
+        const SceneLayout* validatedBefore_;
         std::vector<ScenePlacement> spawned_;
         std::set<std::string> destroyed_;
         std::map<std::string,ScenePlacement> components_;
@@ -133,6 +134,10 @@ namespace SceneRuntime
         bool Update(SceneLayout& layout,double seconds,std::string& error,
             const std::map<std::string,float>& input={},const std::map<std::string,bool>& pressed={},const PhysicsWorld* physics=nullptr,
             ScriptPhase phase=ScriptPhase::Update);
+        /// <summary>外側で配置・実行状態・物理の取引候補を所有する更新を実行します。検証済みの変更前配置は差分検証に使用し、失敗時は全候補を破棄してください。</summary>
+        bool UpdateCandidate(SceneLayout& layout,double seconds,std::string& error,
+            const std::map<std::string,float>& input={},const std::map<std::string,bool>& pressed={},const PhysicsWorld* physics=nullptr,
+            ScriptPhase phase=ScriptPhase::Update,const SceneLayout* validatedBefore=nullptr);
         /// <summary>指定した更新段階を持つ有効な処理があるか調べます。</summary>
         static bool HasPhase(const SceneLayout& layout,ScriptPhase phase);
         void Stop(SceneLayout& layout) noexcept;
@@ -154,7 +159,7 @@ namespace SceneRuntime
         const std::map<std::string,std::optional<bool>>& RootMotions() const { return rootMotions_; }
     private:
         bool Advance(SceneLayout& layout,double seconds,std::string& error,
-            const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase);
+            const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore);
         bool pendingFixedCommands_=false;
         struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; ScriptValue::Object data,dataState; };
         std::map<std::pair<std::string,std::string>,Instance> instances_;

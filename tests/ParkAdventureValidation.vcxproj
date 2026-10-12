@@ -91,6 +91,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ParkResourceValidation.h" />
+    <ClInclude Include="LayoutDeltaValidation.h" />
     <ClInclude Include="ShaderCacheValidation.h" />
     <ClInclude Include="SpriteResourceValidation.h" />
     <ClCompile Include="ParkAdventureValidation.cpp" />

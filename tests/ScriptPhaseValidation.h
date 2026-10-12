@@ -44,6 +44,15 @@ namespace ScriptPhaseValidation
         const auto saved=layout.Serialize();
         Require(!runtime.Update(layout,0.1,error,{},{{"Fail",true}},nullptr,ScriptPhase::LateUpdate) && layout.Serialize()==saved,"failed late callback preserves scene");
         Require(runtime.Update(layout,0.1,error,{},{},nullptr,ScriptPhase::LateUpdate) && layout.objects[0].position[0]==2,"failed late callback preserves internal state");
+        // World owns these disposable copies, including failed internal script state.
+        const auto validated=layout;
+        auto candidate=validated; auto candidateRuntime=runtime;
+        Require(!candidateRuntime.UpdateCandidate(candidate,0.1,error,{},{{"Fail",true}},nullptr,ScriptPhase::LateUpdate,&validated),"candidate failure is reported to the outer transaction");
+        Require(layout.Serialize()==validated.Serialize(),"discarded candidate cannot change the committed layout");
+        candidate=validated; candidateRuntime=runtime;
+        Require(candidateRuntime.UpdateCandidate(candidate,0.1,error,{},{},nullptr,ScriptPhase::LateUpdate,&validated) && candidate.objects[0].position[0]==3,"discarding failed candidate preserves committed script state");
+        auto transactional=validated; auto transactionalRuntime=runtime;
+        Require(transactionalRuntime.Update(transactional,0.1,error,{},{},nullptr,ScriptPhase::LateUpdate) && transactional.Serialize()==candidate.Serialize(),"candidate and standalone transactional updates produce identical layouts");
         layout.objects[0].scripts[0].enabled=false;
         Require(!ScriptRuntime::HasPhase(layout,ScriptPhase::FixedUpdate),"disabled phase not scheduled"); runtime.Stop(layout);
     }

@@ -143,6 +143,8 @@ namespace SceneRuntime
         static SceneLayout Parse(std::string_view json);
         /// <summary>文字列への変換を行わず、保存時と同じ規則で配置を検証します。</summary>
         void Validate() const;
+        /// <summary>検証済みの変更前配置との成分差分を検証します。未検証の配置を変更前に指定してはいけません。</summary>
+        void ValidateChanges(const SceneLayout& validatedBefore) const;
         std::string Serialize() const;
         // With overwrite=false, the final atomic commit also refuses an existing destination.
         void Save(const std::filesystem::path& path, bool overwrite = true) const;

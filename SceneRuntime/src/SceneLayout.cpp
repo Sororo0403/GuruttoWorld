@@ -34,6 +34,7 @@ namespace
     void ValidateParents(const std::vector<SceneRuntime::ScenePlacement>& objects)
     {
         std::unordered_map<std::string,size_t> indices;
+        indices.reserve(objects.size());
         for (size_t index=0;index<objects.size();++index) indices.emplace(objects[index].id,index);
         std::vector<std::optional<size_t>> parents(objects.size());
         for (size_t index=0;index<objects.size();++index)
@@ -46,9 +47,11 @@ namespace
             parents[index]=found->second;
         }
         std::vector<unsigned char> visited(objects.size(),0);
+        std::vector<size_t> chain;
+        chain.reserve(objects.size());
         for (size_t index=0;index<objects.size();++index)
         {
-            std::vector<size_t> chain;
+            chain.clear();
             std::optional<size_t> current=index;
             while (current && visited[*current]==0)
             {
@@ -180,6 +183,59 @@ namespace SceneRuntime
     void SceneLayout::Validate() const
     {
         static_cast<void>(ParseDocument(LayoutDocument(*this)));
+    }
+
+    void SceneLayout::ValidateChanges(const SceneLayout& validatedBefore) const
+    {
+        if (objects.size()!=validatedBefore.objects.size()) { Validate(); return; }
+        for (size_t index=0;index<objects.size();++index)
+            if (objects[index].id!=validatedBefore.objects[index].id) { Validate(); return; }
+        try
+        {
+            if (settings!=validatedBefore.settings) static_cast<void>(ReadSceneSettings(WriteSceneSettings(settings)));
+            if (assetReferences!=validatedBefore.assetReferences)
+                for (const auto& [path,id] : assetReferences)
+                    if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
+                        throw std::runtime_error("Invalid asset reference metadata");
+            std::unordered_set<std::string> ids;
+            ids.reserve(objects.size());
+            size_t menus=0,localLights=0;
+            for (size_t index=0;index<objects.size();++index)
+            {
+                const auto& object=objects[index];
+                const auto& before=validatedBefore.objects[index];
+                if (object.id.empty() || !ids.insert(object.id).second)
+                    throw std::runtime_error("Empty or duplicate object ID: "+object.id);
+                for (const auto& vector : {object.position,object.rotation,object.scale})
+                    if (std::any_of(vector.begin(),vector.end(),[](float value) { return !std::isfinite(value); }))
+                        throw std::runtime_error("Cannot save nonfinite transform");
+                if (std::any_of(object.scale.begin(),object.scale.end(),[](float value) { return std::abs(value)<0.000001f; }))
+                    throw std::runtime_error("Transform contains an invalid number or zero scale");
+                if (!object.SameComponents(before))
+                {
+                    ScenePlacement checked;
+                    ReadSceneComponents(Json{{"components",WriteSceneComponents(object)}},checked,false);
+                }
+                if (object.prefab!=before.prefab && object.prefab &&
+                    (!Prefab::ValidPath(object.prefab->asset) || object.prefab->sourceId.empty() ||
+                        object.prefab->rootId.empty() || object.prefab->baseline.empty() || object.prefab->baseline.size()>1048576))
+                    throw std::runtime_error("Invalid prefab link");
+                if ((object.terrain && object.tilemap) || ((object.terrain || object.tilemap) && object.meshRenderer))
+                    throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
+                if (object.ragdoll && !object.animator) throw std::runtime_error("Ragdoll requires an Animator");
+                if (object.canvas && object.canvas->enabled && object.canvas->menu) ++menus;
+                if (object.pointLight && object.pointLight->enabled) ++localLights;
+                if (object.spotLight && object.spotLight->enabled) ++localLights;
+            }
+            ValidateParents(objects);
+            ValidateCamera(*this);
+            if (menus>1) throw std::runtime_error("At most one enabled menu Canvas is supported");
+            if (localLights>32) throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
+        }
+        catch (const Json::exception& error)
+        {
+            throw std::runtime_error("Invalid layout JSON: "+std::string(error.what()));
+        }
     }
 
     std::string SceneLayout::Serialize() const

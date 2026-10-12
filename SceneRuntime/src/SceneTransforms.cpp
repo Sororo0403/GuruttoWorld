@@ -12,6 +12,7 @@ namespace
     std::vector<std::optional<size_t>> ParentIndices(const SceneRuntime::SceneLayout& layout)
     {
         std::unordered_map<std::string,size_t> indices;
+        indices.reserve(layout.objects.size());
         for (size_t index=0;index<layout.objects.size();++index)
         {
             const auto& id=layout.objects[index].id;
@@ -84,9 +85,9 @@ namespace
         return true;
     }
     void ResolveChain(size_t start, const std::vector<std::optional<size_t>>& parents,
-        std::vector<unsigned char>& visited, std::vector<Matrix>& matrices)
+        std::vector<unsigned char>& visited, std::vector<Matrix>& matrices, std::vector<size_t>& chain)
     {
-        std::vector<size_t> chain;
+        chain.clear();
         std::optional<size_t> current=start;
         while (current && visited[*current]==0)
         {
@@ -188,11 +189,73 @@ namespace SceneRuntime
                 } else if (!Compose(layout.objects[index],matrices[index])) throw std::runtime_error("Invalid transform: "+layout.objects[index].id);
             }
             std::vector<unsigned char> visited(layout.objects.size(),0);
-            for (size_t index=0;index<layout.objects.size();++index) ResolveChain(index,parents,visited,matrices);
+            std::vector<size_t> chain;
+            chain.reserve(layout.objects.size());
+            for (size_t index=0;index<layout.objects.size();++index) ResolveChain(index,parents,visited,matrices,chain);
             output=std::move(matrices);
             error.clear();
             return true;
         }
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
+    bool SceneTransforms::ResolveChanges(const SceneLayout& layout,const SceneLayout& validatedBefore,
+        const std::vector<DirectX::XMFLOAT4X4>& previousWorldMatrices,
+        std::vector<DirectX::XMFLOAT4X4>& output,std::string& error)
+    {
+        if (layout.objects.size()!=validatedBefore.objects.size() || layout.objects.size()!=previousWorldMatrices.size())
+            return Resolve(layout,output,error);
+        for (size_t index=0;index<layout.objects.size();++index)
+            if (layout.objects[index].id!=validatedBefore.objects[index].id ||
+                layout.objects[index].parentId!=validatedBefore.objects[index].parentId)
+                return Resolve(layout,output,error);
+        try
+        {
+            const auto parents=ParentIndices(layout);
+            auto matrices=previousWorldMatrices;
+            std::vector<unsigned char> dirty(layout.objects.size(),0),visited(layout.objects.size(),0);
+            for (size_t index=0;index<layout.objects.size();++index)
+            {
+                const auto& current=layout.objects[index];
+                const auto& before=validatedBefore.objects[index];
+                dirty[index]=current.position!=before.position || current.rotation!=before.rotation || current.scale!=before.scale;
+            }
+            std::vector<size_t> chain;
+            chain.reserve(layout.objects.size());
+            for (size_t start=0;start<layout.objects.size();++start)
+            {
+                chain.clear();
+                std::optional<size_t> current=start;
+                while (current && visited[*current]==0)
+                {
+                    visited[*current]=1;
+                    chain.push_back(*current);
+                    current=parents[*current];
+                }
+                if (current && visited[*current]==1) throw std::runtime_error("Transform parent cycle detected");
+                for (auto item=chain.rbegin();item!=chain.rend();++item)
+                {
+                    const auto index=*item;
+                    if (parents[index] && dirty[*parents[index]]) dirty[index]=1;
+                    if (dirty[index])
+                    {
+                        if (!Compose(layout.objects[index],matrices[index]))
+                            throw std::runtime_error("Invalid transform: "+layout.objects[index].id);
+                        if (parents[index])
+                        {
+                            DirectX::XMStoreFloat4x4(&matrices[index],DirectX::XMLoadFloat4x4(&matrices[index]) *
+                                DirectX::XMLoadFloat4x4(&matrices[*parents[index]]));
+                            if (!IsUsable(matrices[index]))
+                                throw std::runtime_error("Inherited transform is outside the supported range");
+                        }
+                    }
+                    visited[index]=2;
+                }
+            }
+            output=std::move(matrices);
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& exception) { error=exception.what(); return false; }
+    }
+
 }

@@ -260,3 +260,6 @@ ProfilerValidationはCPU描画時間・フレーム数と、完了フェンス�
 
 
 `WP1_PARK_RESOURCE_ONLY=1`はシェーダー・描画パイプライン共有、includeの内容変更、日本語パス、実行中の生成・削除・文字変更の資源再利用と失敗時の保持、描画補間・親子追従・直接移動・固定更新上限を検証します。UIのGPU退役と再読み込み失敗時の表示保持は`WP1_SCENE_UI_ONLY=1`、重力・速度変更時のJolt個体保持は`WP1_RIGID_ONLY=1`で確認します。
+
+
+`WP1_PARK_UPDATE_ONLY=1`は通常更新を30回温めた後に240回測定し、`generated/park/updates.csv`へ処理別のCPU時間・呼出回数を保存します。描画とCSV出力はTotal update区間に含みません。Park検証では`LayoutDeltaValidation`により、全検証と差分検証、全世界行列解決と差分解決について正常・不正更新の判定一致と失敗時の出力保持を確認します。`WP1_RIGID_ONLY=1`はActorへの書込み途中の物理失敗で全Actorが元に戻ること、`WP1_SCRIPT_ONLY=1`は候補更新と従来の独立更新の結果一致も検証します。

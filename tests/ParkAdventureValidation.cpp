@@ -1,5 +1,6 @@
 #include "ShaderCacheValidation.h"
 #include "ParkResourceValidation.h"
+#include "LayoutDeltaValidation.h"
 #include "SpriteResourceValidation.h"
 #include <SceneRuntime/SceneEnvironment.h>
 #include <SceneRuntime/ScriptModuleApi.h>
@@ -210,6 +211,35 @@ namespace
         for(UINT y=0;y<height;++y) for(UINT x=0;x<width;++x) output.write(reinterpret_cast<char*>(pixels+y*pitch+x*4),3);
         const D3D12_RANGE empty{0,0};readback->Unmap(0,&empty);Require(static_cast<bool>(output),"Capture saved");
     }
+    void UpdateTrace()
+    {
+        Engine::Window window; Engine::DirectX12Renderer renderer;
+        Require(window.Create(L"Park steady update trace",640,360) && renderer.Initialize(window.GetHandle()),"Update trace renderer");
+        SceneEnvironment scene; std::string error; const auto root=std::filesystem::absolute("Content");
+        Require(scene.Initialize(renderer,root,root/"Assets/Scenes/ParkAdventure.json",error),error);
+        const auto tick=[&] { Require(scene.MovePlayers(1.0/60,0,0),"Steady fixed update"); scene.Update(1.0/60,true,true); };
+        for(int i=0;i<30;++i) tick();
+        static_cast<void>(Engine::CpuProfiler::Take());
+        std::filesystem::create_directories("generated/park");
+        std::ofstream output("generated/park/updates.csv"); output<<"frame,scope,milliseconds,calls\n";
+        std::map<std::string,Engine::ProfileSample> totals;
+        double total=0,maximum=0;
+        constexpr int Frames=240;
+        for(int frame=0;frame<Frames;++frame) {
+            const auto begin=std::chrono::steady_clock::now(); tick();
+            const double elapsed=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count();
+            total+=elapsed; maximum=std::max(maximum,elapsed);
+            output<<frame<<",Total update,"<<elapsed<<",1\n";
+            for(const auto& sample:Engine::CpuProfiler::Take()) {
+                auto& sum=totals[sample.name]; sum.name=sample.name; sum.milliseconds+=sample.milliseconds; sum.calls+=sample.calls;
+                output<<frame<<","<<sample.name<<","<<sample.milliseconds<<","<<sample.calls<<"\n";
+            }
+        }
+        std::cout<<"Steady CPU update: "<<total/Frames<<" ms/frame, max "<<maximum<<" ms\n";
+        for(const auto& [name,sample]:totals) std::cout<<name<<": "<<sample.milliseconds/Frames<<" ms/frame, "<<double(sample.calls)/Frames<<" calls/frame\n";
+        Require(static_cast<bool>(output) && renderer.WaitForIdle(),"Steady trace saved");
+    }
+
     void StutterTrace()
     {
         Engine::Window window; Engine::DirectX12Renderer renderer;
@@ -306,6 +336,7 @@ int main()
             const auto prefab=SceneLayout::Load(std::filesystem::path("Content/Assets/Prefabs/Park")/(std::string(name)+".prefab"));
             Require(Prefab::Extract(prefab,"module").objects.size()==prefab.objects.size(),"Reusable module hierarchy");
         }
+        LayoutDeltaValidation::Run();
         if(GetEnvironmentVariableA("WP1_PARK_RESOURCE_ONLY",nullptr,0)) {
             Engine::Window window; Engine::DirectX12Renderer renderer; std::string error;
             Require(window.Create(L"Park resource regression",640,360) && renderer.Initialize(window.GetHandle()),"Resource renderer initializes");
@@ -314,6 +345,7 @@ int main()
             ParkResourceValidation::Run(renderer);
             std::cout<<"PASS: pipeline sharing, resource deltas and rollback\n"; return 0;
         }
+        if(GetEnvironmentVariableA("WP1_PARK_UPDATE_ONLY",nullptr,0)) { UpdateTrace(); return 0; }
         if(GetEnvironmentVariableA("WP1_PARK_STUTTER_ONLY",nullptr,0)) { StutterTrace(); return 0; }
         ValidationParity(); RemovedScriptOwners();
         if (!GetEnvironmentVariableA("WP1_PARK_RENDER_ONLY",nullptr,0)) Playthrough();
