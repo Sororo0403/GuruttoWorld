@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "color": [
+    0.24,
+    0.58,
+    0.32,
+    1
+  ],
+  "roughness": 0.8,
+  "metallic": 0,
+  "transparent": false,
+  "texture": ""
+}

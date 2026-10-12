@@ -248,3 +248,10 @@ PBRの正面照明をGGXの解析値と比較し、金属の反射色・粗さ�
 AnimatorValidationはglTF読み込み、ボーン変形・法線、補間・ループ・状態遷移、GPU更新、複製・削除と不正クリップ時の保持を確認します。`WP1_ANIMATOR_ONLY=1`で単独実行します。AssetDatabaseValidationは参照ID保存、改名後の旧パス・ID解決、倍率・UV反転、上書き・パス逸脱・ID欠損の拒否を確認します。`WP1_ASSET_ONLY=1`で単独実行します。
 
 ProfilerValidationはCPU描画時間・フレーム数と、完了フェンスに同期したGPUタイムスタンプの読み戻しを確認します。`WP1_PROFILER_ONLY=1`で単独実行します。`scripts/BuildPlayer.ps1 -Configuration Release` は配布物を生成し、そのAppを `--validate-package` で起動して実際のリソース読み込み・描画を検証します。package.jsonに同梱ファイルのサイズ・SHA-256を記録します。
+
+## 公園ステージの検証
+
+`python -m unittest discover -s tests -p test_park_generation.py -v`で100個のSeedと不正なコースの拒否を確認します。
+`MSBuild tests/ParkAdventureValidation.vcxproj /p:Configuration=Release /p:Platform=x64`で専用検証をビルドし、
+`generated/tests/outputs/x64/Release/ParkAdventureValidation/ParkAdventureValidation.exe`をリポジトリルートから実行します。
+実際のJolt物理とゲーム処理でジャンプ・空中停止・戦闘・全収集・落下復帰・スイッチ・クリア・カメラ・再挑戦を確認し、入口と水路の描画画像を保存します。

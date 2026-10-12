@@ -1,5 +1,12 @@
 # 街の配置エディター
 
+## こもれび公園の基準ステージ
+
+タイトルのSTARTから公園の基準ステージを遊べます。EditorではAssets/Scenes/ParkAdventure.jsonを開いてPlayし、Gameへフォーカスを置きます。
+WASD・左スティックで移動、Space・Aでジャンプ、J・Xで攻撃、R・Startで再挑戦、Esc・Bでタイトルへ戻ります。
+ジャンプ中の長押しで一定時間空中停止できます。左右のスイッチで出口を開き、花のかけら12個を探します。
+Seedからの制作時生成、Prefab編集、ゲーム処理のビルドと制約は[公園ステージの説明](../docs/ParkAdventure.md)を参照してください。
+
 ## C++ゲーム処理の制作
 
 「C++ゲーム処理」から処理名を入力して作成すると、Assets/ScriptsにC++ソースを作成します。「ソースを開く」で関連付けされたエディターへ開きます。
@@ -17,7 +24,7 @@ Start、FixedUpdate、LateUpdate、Event、Stopも定義できます。オブジ
 
 ## ゲームシーンの編集
 
-`Assets/Scenes/Game.json`が通常のゲーム開始先です。モデル・Transform・Rotator・Camera・照明・粒子・Image・音源をエディターで編集して保存できます。`EngineDemo`という旧名も同じ編集可能なGameシーンを開きます。C++による別の配置・描画経路は削除しました。
+`Assets/Scenes/ParkAdventure.json`が通常のゲーム開始先です。`Assets/Scenes/Game.json`はモデル表示を切り替える編集可能なサンプルです。モデル・Transform・Rotator・Camera・照明・粒子・Image・音源をエディターで編集して保存できます。`EngineDemo`という旧名も同じ編集可能なGameシーンを開きます。C++による別の配置・描画経路は削除しました。
 タイトルCanvasの「メニュー設定 → 項目・遷移先」で開始先のJSONを変更します。ButtonのGame event `menu:番号` はメニュー項目を呼び出し、Canvas側で指定した動作・遷移先をAppとEditor Playの両方で使用します。メニュー以外の直接遷移はButtonの`loadScene`とTargetを使います。
 MeshRendererの表示条件には`model=0`のような状態条件を設定できます。Canvasの初期状態とButtonの状態値設定でモデルの表示を切り替えられます。非表示モデルは影も描画しません。
 Buttonの入力Action名と「ファイル → プロジェクト設定 → 入力Action」でキー・パッド・スティック・トリガー・マウスを割り当てます。旧Space／Escape／1／2はJump／Cancel／SelectModel1／SelectModel2へ読み込み時に移行します。無効・非表示のボタンは反応しません。Editorでは再生中にGameへフォーカスを置いて操作します。

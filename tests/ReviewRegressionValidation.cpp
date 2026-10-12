@@ -233,7 +233,7 @@ namespace
     {
         using namespace App;
         auto layout=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
-        Check(TitleBindings::StartScene(layout)=="Assets/Scenes/Game.json","START follows authored target");
+        Check(TitleBindings::StartScene(layout)=="Assets/Scenes/ParkAdventure.json","START follows authored park target");
         auto items=TitleBindings::Items(layout);
         Check(items.size()==3,"authored menu exposes three roles");
         for(auto& object:layout.objects) if(TitleBindings::Item(object)==TitleMenuItem::Settings) {
@@ -2984,7 +2984,7 @@ void ValidateEditorTitlePreview()
     input.buttons=0; input.pressedButtons=0; actions.Update(input);
     result.reset();
     for(int i=0;i<10 && !result;++i) result=title.Update(actions,true,0.1,state);
-    Check(result && result->action=="loadScene" && result->target=="Assets/Scenes/Game.json",
+    Check(result && result->action=="loadScene" && result->target=="Assets/Scenes/ParkAdventure.json",
         "editor START follows authored scene target");
     const auto game=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Content/Assets/Scenes/Game.json"));
     Check(!SceneRuntime::SceneUi::Shortcut(game,"action:Jump",1280,720,{}).empty() &&

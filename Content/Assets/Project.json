@@ -3,5 +3,112 @@
   "startupScene": "Assets/Scenes/TitleStreet.json",
   "width": 1280,
   "height": 720,
-  "assetReferences": {"Assets/Scenes/TitleStreet.json": "1f0e809df9d447e8b2eab18c11c18317"}
+  "assetReferences": {
+    "Assets/Scenes/TitleStreet.json": "1f0e809df9d447e8b2eab18c11c18317"
+  },
+  "inputActions": {
+    "MoveLeft": {
+      "keys": [
+        30,
+        203
+      ],
+      "buttons": 4,
+      "axis": -1,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "MoveRight": {
+      "keys": [
+        32,
+        205
+      ],
+      "buttons": 8,
+      "axis": 1,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "MoveForward": {
+      "keys": [
+        17,
+        200
+      ],
+      "buttons": 1,
+      "axis": 2,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "MoveBack": {
+      "keys": [
+        31,
+        208
+      ],
+      "buttons": 2,
+      "axis": -2,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "Jump": {
+      "keys": [
+        57
+      ],
+      "buttons": 4096,
+      "axis": 0,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "Confirm": {
+      "keys": [
+        28
+      ],
+      "buttons": 4096,
+      "axis": 0,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "Cancel": {
+      "keys": [
+        1
+      ],
+      "buttons": 8192,
+      "axis": 0,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "SelectModel1": {
+      "keys": [
+        2
+      ],
+      "buttons": 0,
+      "axis": 0,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "SelectModel2": {
+      "keys": [
+        3
+      ],
+      "buttons": 0,
+      "axis": 0,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "Attack": {
+      "keys": [
+        36
+      ],
+      "buttons": 16384,
+      "axis": 0,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    },
+    "Restart": {
+      "keys": [
+        19
+      ],
+      "buttons": 512,
+      "axis": 0,
+      "threshold": 0.5,
+      "mouseButtons": 0
+    }
+  }
 }
