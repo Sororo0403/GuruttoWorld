@@ -9,4 +9,11 @@
     <Copy SourceFiles="@(SharedShaders)" DestinationFiles="@(SharedShaders->'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(JoltLicense)" DestinationFiles="@(JoltLicense->'$(OutDir)Licenses\Jolt-LICENSE.txt')" SkipUnchangedFiles="true" />
   </Target>
+  <!-- 本体と同じヘッダー・ライブラリでDLLを作り、古いContentのDLLを最後に置き換える。 -->
+  <Target Name="BuildSharedScripts" AfterTargets="CopySharedContent" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <ScriptOutputContent>$([System.IO.Path]::GetFullPath('$(OutDir).'))</ScriptOutputContent>
+    </PropertyGroup>
+    <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\BuildScripts.ps1&quot; -Configuration &quot;$(Configuration)&quot; -Content &quot;$(MSBuildThisFileDirectory).&quot; -OutputContent &quot;$(ScriptOutputContent)&quot;" />
+  </Target>
 </Project>

@@ -52,11 +52,10 @@ python scripts/GenerateParkAdventure.py --seed 20261012 --output Content/Assets/
 
 `Content/Assets/Scripts/ParkAdventure.cpp` を既存のC++ゲーム処理の自動コンパイル機能で読み込みます。
 Editorを起動するとソースの変更が検出され、対応構成のモジュールがコンパイルされます。
-Appを直接実行する場合は、Appをビルドした後で、対応するゲーム処理を実行先に出力します。
+AppとEditorのビルドでは、Contentの配置後に同じ構成のゲーム処理DLLを自動コンパイルして実行先へ出力します。エンジンの公開ヘッダーを変更した場合も、本体とDLLのABIが揃うため、別途DLLを手動配置する必要はありません。
 
 ```powershell
 MSBuild App/App.vcxproj /p:Configuration=Development /p:Platform=x64
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/BuildScripts.ps1 -Configuration Development -OutputContent generated/outputs/x64/Development/App
 ```
 
 配布は既存の `scripts/BuildPlayer.ps1` を使用します。保存済みC++ソースを配布用にコンパイルし、DLLとCRTを同梱します。
