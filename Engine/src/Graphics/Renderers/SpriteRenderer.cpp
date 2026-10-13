@@ -39,6 +39,22 @@ namespace
     }
 }
 
+namespace {
+bool MatchingDevices(const ID3D12Device *device, ID3D12CommandQueue *queue, const Engine::Texture2D &texture)
+{
+    using Microsoft::WRL::ComPtr;
+    ComPtr<ID3D12Device> textureDevice;
+    ComPtr<ID3D12Device> queueDevice;
+    if (queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT ||
+        FAILED(texture.GetDescriptorHeap()->GetDevice(IID_PPV_ARGS(&textureDevice))) || textureDevice.Get() != device ||
+        FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) || queueDevice.Get() != device)
+    {
+        return false;
+    }
+    return true;
+}
+}
+
 namespace Engine
 {
     bool SpriteRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
@@ -48,14 +64,7 @@ namespace Engine
         {
             return false;
         }
-        ComPtr<ID3D12Device> textureDevice;
-        ComPtr<ID3D12Device> queueDevice;
-        if (queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT ||
-            FAILED(texture->GetDescriptorHeap()->GetDevice(IID_PPV_ARGS(&textureDevice))) || textureDevice.Get() != device ||
-            FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) || queueDevice.Get() != device)
-        {
-            return false;
-        }
+        if(!MatchingDevices(device,queue,*texture)) return false;
         std::string revision;
         if (!GetShaderRevision(shaderPath, revision)) return false;
         using Key = std::tuple<ID3D12Device*, ID3D12CommandQueue*, std::string, bool, bool>;

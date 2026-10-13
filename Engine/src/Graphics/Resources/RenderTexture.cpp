@@ -8,6 +8,9 @@
 
 namespace
 {
+bool ValidTarget(UINT width, UINT height, DXGI_FORMAT format) {
+    return width && height && width <= D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION && height <= D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION && (format == Engine::RenderTexture::Format || format == Engine::RenderTexture::HdrFormat);
+}
     bool Check(HRESULT result, const char* operation)
     {
         if (SUCCEEDED(result)) return true;
@@ -67,8 +70,7 @@ namespace Engine
 
     bool RenderTexture::Initialize(ID3D12Device* device,UINT width,UINT height,DXGI_FORMAT format)
     {
-        if (resources_ || !device || !width || !height || width>D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION ||
-            height>D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION || (format!=Format && format!=HdrFormat)) return false;
+        if (resources_ || !device || !ValidTarget(width,height,format)) return false;
         auto candidate=std::make_unique<Resources>();
         candidate->width=width; candidate->height=height; candidate->format=format; candidate->device=device;
         if (!CreateColor(device,*candidate) || !CreateViews(device,*candidate)) return false;
@@ -77,9 +79,7 @@ namespace Engine
     bool RenderTexture::Resize(DirectX12Renderer& renderer, UINT width, UINT height,DXGI_FORMAT format)
     {
         auto* device = renderer.GetDevice();
-        if (recording_ || !device || !width || !height ||
-            width > D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION || height > D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION ||
-            (format!=Format && format!=HdrFormat)) return false;
+        if (recording_ || !device || !ValidTarget(width,height,format)) return false;
         if (resources_ && resources_->device.Get() != device) return false;
         if (resources_ && resources_->width == width && resources_->height == height && resources_->format==format) return true;
         auto candidate = std::make_unique<Resources>();

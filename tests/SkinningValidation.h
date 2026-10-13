@@ -63,7 +63,7 @@ namespace SkinningValidation
             const auto matrices=Skeleton::Matrices(rig,pose); const auto palette=Skeleton::Palette(rig,source,matrices);
             MeshRenderer cpu; Require(cpu.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),Skeleton::Skin(rig,source,matrices),shader),"CPU oracle initializes");
             const auto expected=Capture(renderer,[&](auto* commands) { cpu.Draw(commands,identity,identity,light); });
-            const auto actual=Capture(renderer,[&](auto* commands) { gpu.Draw(commands,identity,identity,light,{0,0,-3.5f},{},nullptr,palette); });
+            const auto actual=Capture(renderer,[&](auto* commands) { gpu.Draw(commands,identity,identity,light,{0,0,-3.5f},{},nullptr,{palette}); });
             size_t visible=0;
             for (size_t pixel=0;pixel<actual.size();++pixel) { Require(std::abs(int(actual[pixel])-int(expected[pixel]))<=2,"GPU positions and inverse-transpose normals match CPU image"); if (pixel%4==0 && actual[pixel]>0) ++visible; }
             Require(visible>100,"skin fixture produces visible pixels");
@@ -83,13 +83,13 @@ namespace SkinningValidation
             Require(covered>100,"posed geometry casts real shadow depth");
             auto later=palette; for (auto& value : later) value.position._41+=4;
             const auto retained=Capture(renderer,[&](auto* commands) {
-                gpu.Draw(commands,identity,identity,light,{0,0,-3.5f},{},nullptr,palette);
-                gpu.Draw(commands,identity,identity,light,{0,0,-3.5f},{},nullptr,later);
+                gpu.Draw(commands,identity,identity,light,{0,0,-3.5f},{},nullptr,{palette});
+                gpu.Draw(commands,identity,identity,light,{0,0,-3.5f},{},nullptr,{later});
             });
             Require(retained==actual,"different palettes in same frame preserve earlier draw");
             Require(gpu.GeometryResource()==geometry,"pose changes keep immutable GPU vertices");
             for (int frame=0;frame<6;++frame)
-                Require(renderer.Render({0,0,0,1},[&](auto* commands,float) { gpu.Draw(commands,identity,identity,light,{0,0,-3.5f},{},nullptr,frame%2 ? palette : later); })!=RenderResult::Failed,"poses support multiple in-flight frames");
+                Require(renderer.Render({0,0,0,1},[&](auto* commands,float) { gpu.Draw(commands,identity,identity,light,{0,0,-3.5f},{},nullptr,{frame%2 ? palette : later}); })!=RenderResult::Failed,"poses support multiple in-flight frames");
             Require(renderer.WaitForIdle(),"skin frame resources finish");
         }
     }

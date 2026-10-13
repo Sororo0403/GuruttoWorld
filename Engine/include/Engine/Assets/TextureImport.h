@@ -41,6 +41,12 @@ class TextureImport final {
     }
     static uint16_t Pack(const std::array<unsigned char,4>& p) { return uint16_t((unsigned(p[0])>>3)<<11 | (unsigned(p[1])>>2)<<5 | (unsigned(p[2])>>3)); }
     static std::array<int,3> Unpack(uint16_t p) { return {int((p>>11)*255/31),int(((p>>5)&63)*255/63),int((p&31)*255/31)}; }
+    static std::array<int, 8> AlphaPalette(unsigned char high, unsigned char low, unsigned char *output) {
+        output[0] = high; output[1] = low; std::array<int, 8> alpha{high, low};
+        if (high > low) for (int i = 2; i < 8; ++i) alpha[size_t(i)] = ((8 - i) * high + (i - 1) * low) / 7;
+        else { for (int i = 2; i < 6; ++i) alpha[size_t(i)] = ((6 - i) * high + (i - 1) * low) / 5; alpha[6] = 0; alpha[7] = 255; }
+        return alpha;
+    }
     static TextureLevel Compress(const TextureLevel& input) {
         TextureLevel result{input.width,input.height,std::vector<unsigned char>(size_t((input.width+3)/4)*((input.height+3)/4)*16)};
         size_t offset=0;
@@ -52,9 +58,7 @@ class TextureImport final {
                 const auto v=input.pixels[(size_t(sy)*input.width+sx)*4+c]; block[i][c]=v; low[c]=std::min(low[c],v); high[c]=std::max(high[c],v);
             }
             auto* output=result.pixels.data()+offset; offset+=16;
-            output[0]=high[3]; output[1]=low[3]; std::array<int,8> alpha{high[3],low[3]};
-            if (high[3]>low[3]) for (int i=2;i<8;++i) alpha[size_t(i)]=((8-i)*high[3]+(i-1)*low[3])/7;
-            else { for (int i=2;i<6;++i) alpha[size_t(i)]=((6-i)*high[3]+(i-1)*low[3])/5; alpha[6]=0; alpha[7]=255; }
+            const auto alpha=AlphaPalette(high[3],low[3],output);
             uint64_t alphaBits=0;
             const uint16_t a=Pack(high),b=Pack(low); output[8]=static_cast<unsigned char>(a); output[9]=static_cast<unsigned char>(a>>8); output[10]=static_cast<unsigned char>(b); output[11]=static_cast<unsigned char>(b>>8);
             std::array<std::array<int,3>,4> colors{Unpack(a),Unpack(b)};

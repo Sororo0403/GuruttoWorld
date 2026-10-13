@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include <Engine/Animation/TwoBoneIk.h>
 #include <algorithm>
 #include <cmath>
@@ -43,28 +44,38 @@ namespace
             XMVectorSet(rotation[0],rotation[1],rotation[2],rotation[3]),Between(current,target))));
         pose[bone].rotation={solved.x,solved.y,solved.z,solved.w};
     }
+    void ValidateChain(const Engine::SkeletonData &rig, const std::vector<Engine::BonePose> &pose, const Engine::TwoBoneIkConstraint &constraint)
+    {
+        const auto count = rig.nodes.size();
+        if (pose.size() != count || constraint.root >= count || constraint.middle >= count || constraint.tip >= count ||
+            rig.nodes[constraint.middle].parent != static_cast<int>(constraint.root) || rig.nodes[constraint.tip].parent != static_cast<int>(constraint.middle) ||
+            !Engine::InRange(constraint.weight, 0, 1))
+            throw std::runtime_error("Invalid two-bone IK chain or weight");
+        for (const auto &point : {constraint.target, constraint.hint})
+            if (std::ranges::any_of(point, [](float entry) { return !Engine::InRange(entry, -1000000, 1000000); })) throw std::runtime_error("Invalid IK target or hint");
+    }
+
+    void ValidateAncestors(const Engine::SkeletonData &rig, const std::vector<Engine::BonePose> &pose, const Engine::TwoBoneIkConstraint &constraint)
+    {
+        for (int ancestor = static_cast<int>(constraint.tip); ancestor >= 0; ancestor = rig.nodes[static_cast<size_t>(ancestor)].parent)
+        {
+            const auto &scale = pose[static_cast<size_t>(ancestor)].scale;
+            const auto &rotation = pose[static_cast<size_t>(ancestor)].rotation;
+            const float norm = std::inner_product(rotation.begin(), rotation.end(), rotation.begin(), 0.0f);
+            if (!std::isfinite(norm) || norm < 1e-12f) throw std::runtime_error("Invalid IK ancestor rotation");
+            if (scale[0] <= 0 || std::abs(scale[1] - scale[0]) > 1e-5f * scale[0] || std::abs(scale[2] - scale[0]) > 1e-5f * scale[0])
+                throw std::runtime_error("Two-bone IK requires positive uniform ancestor scales");
+        }
+    }
+
 }
 namespace Engine
 {
     std::vector<BonePose> TwoBoneIk::Solve(const SkeletonData& rig,const std::vector<BonePose>& pose,const TwoBoneIkConstraint& constraint)
     {
-        const auto count=rig.nodes.size();
-        if (pose.size()!=count || constraint.root>=count || constraint.middle>=count || constraint.tip>=count ||
-            rig.nodes[constraint.middle].parent!=static_cast<int>(constraint.root) || rig.nodes[constraint.tip].parent!=static_cast<int>(constraint.middle) ||
-            !std::isfinite(constraint.weight) || constraint.weight<0 || constraint.weight>1)
-            throw std::runtime_error("Invalid two-bone IK chain or weight");
-        for (const auto& point : {constraint.target,constraint.hint})
-            if (std::ranges::any_of(point,[](float entry) { return !std::isfinite(entry) || std::abs(entry)>1000000; })) throw std::runtime_error("Invalid IK target or hint");
+        ValidateChain(rig,pose,constraint);
         const auto matrices=Skeleton::Matrices(rig,pose);
-        for (int ancestor=static_cast<int>(constraint.tip);ancestor>=0;ancestor=rig.nodes[static_cast<size_t>(ancestor)].parent)
-        {
-            const auto& scale=pose[static_cast<size_t>(ancestor)].scale;
-            const auto& rotation=pose[static_cast<size_t>(ancestor)].rotation;
-            const float norm=std::inner_product(rotation.begin(),rotation.end(),rotation.begin(),0.0f);
-            if (!std::isfinite(norm) || norm<1e-12f) throw std::runtime_error("Invalid IK ancestor rotation");
-            if (scale[0]<=0 || std::abs(scale[1]-scale[0])>1e-5f*scale[0] || std::abs(scale[2]-scale[0])>1e-5f*scale[0])
-                throw std::runtime_error("Two-bone IK requires positive uniform ancestor scales");
-        }
+        ValidateAncestors(rig,pose,constraint);
         const auto origin=Position(matrices[constraint.root]),middle=Position(matrices[constraint.middle]),tip=Position(matrices[constraint.tip]);
         const float first=Length(XMVectorSubtract(middle,origin)),second=Length(XMVectorSubtract(tip,middle));
         if (!std::isfinite(first+second) || first<1e-6f || second<1e-6f) throw std::runtime_error("Degenerate two-bone IK lengths");

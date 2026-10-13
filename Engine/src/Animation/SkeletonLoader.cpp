@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include <Engine/Animation/Skeleton.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <assimp/Importer.hpp>
@@ -64,9 +65,65 @@ namespace
     float Time(double ticks,double frequency)
     {
         const auto value=ticks/frequency;
-        if (!std::isfinite(value) || value<0 || value>1000000) throw std::runtime_error("Invalid skeletal key time");
+        if (!Engine::InRange(value,0,1000000)) throw std::runtime_error("Invalid skeletal key time");
         return static_cast<float>(value);
     }
+    void ReadMeshes(const aiScene &scene, const std::filesystem::path &path, SkeletonData &rig, const std::map<std::string, size_t> &names, const std::vector<size_t> &owners)
+    {
+        for (unsigned int meshIndex = 0; meshIndex < scene.mNumMeshes; ++meshIndex)
+        {
+            const auto &source = *scene.mMeshes[meshIndex];
+            if (!(source.mPrimitiveTypes & aiPrimitiveType_TRIANGLE)) continue;
+            RiggedMesh mesh; mesh.node = owners[meshIndex]; mesh.mesh = Geometry(scene, source, path); mesh.weights.resize(source.mNumVertices);
+            if (source.mNumBones > 256) throw std::runtime_error("Mesh exceeds 256 bones");
+            std::vector<std::vector<std::pair<unsigned int, float>>> influences(source.mNumVertices);
+            for (unsigned int bone = 0; bone < source.mNumBones; ++bone)
+            {
+                const auto &joint = *source.mBones[bone]; const auto found = names.find(joint.mName.C_Str());
+                if (found == names.end()) throw std::runtime_error("Bone node missing");
+                mesh.joints.push_back(found->second); mesh.inverseBind.push_back(Matrix(joint.mOffsetMatrix));
+                for (unsigned int weight = 0; weight < joint.mNumWeights; ++weight)
+                {
+                    const auto &value = joint.mWeights[weight];
+                    if (!std::isfinite(value.mWeight) || value.mWeight < 0) throw std::runtime_error("Invalid imported bone weight");
+                    influences.at(value.mVertexId).emplace_back(bone, value.mWeight);
+                }
+            }
+            for (size_t vertex = 0; vertex < mesh.weights.size(); ++vertex)
+            {
+                auto &values = influences[vertex]; std::stable_sort(values.begin(), values.end(), [](const auto &a, const auto &b) { return a.second > b.second; });
+                for (size_t weight = 0; weight < std::min(size_t(4), values.size()); ++weight)
+                { mesh.weights[vertex].joints[weight] = values[weight].first; mesh.weights[vertex].weights[weight] = values[weight].second; }
+            }
+            rig.meshes.push_back(std::move(mesh));
+        }
+    }
+
+    void ReadClips(const aiScene &scene, SkeletonData &rig, const std::map<std::string, size_t> &names)
+    {
+        for (unsigned int index = 0; index < scene.mNumAnimations; ++index)
+        {
+            const auto &source = *scene.mAnimations[index]; const double frequency = source.mTicksPerSecond > 0 ? source.mTicksPerSecond : 25;
+            SkeletalClip clip; clip.name = source.mName.length ? source.mName.C_Str() : "Clip" + std::to_string(index);
+            if (std::any_of(rig.clips.begin(), rig.clips.end(), [&](const auto &value) { return value.name == clip.name; })) clip.name += "-" + std::to_string(index);
+            clip.duration = std::max(0.0001f, Time(source.mDuration, frequency));
+            for (unsigned int channel = 0; channel < source.mNumChannels; ++channel)
+            {
+                const auto &sourceTrack = *source.mChannels[channel]; const auto node = names.find(sourceTrack.mNodeName.C_Str());
+                if (node == names.end()) throw std::runtime_error("Animation node missing");
+                BoneTrack track;
+                for (unsigned int key = 0; key < sourceTrack.mNumPositionKeys; ++key)
+                { const auto &value = sourceTrack.mPositionKeys[key]; track.positions.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z}}); }
+                for (unsigned int key = 0; key < sourceTrack.mNumScalingKeys; ++key)
+                { const auto &value = sourceTrack.mScalingKeys[key]; track.scales.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z}}); }
+                for (unsigned int key = 0; key < sourceTrack.mNumRotationKeys; ++key)
+                { const auto &value = sourceTrack.mRotationKeys[key]; track.rotations.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z, value.mValue.w}}); }
+                clip.tracks[node->second] = std::move(track);
+            }
+            rig.clips.push_back(std::move(clip));
+        }
+    }
+
 }
 namespace Engine
 {
@@ -83,55 +140,9 @@ namespace Engine
             Nodes(*scene->mRootNode,-1,*rig,names,owners);
             const auto root=Matrix(scene->mRootNode->mTransformation);
             DirectX::XMStoreFloat4x4(&rig->inverseRoot,DirectX::XMMatrixInverse(nullptr,DirectX::XMLoadFloat4x4(&root)));
-            for (unsigned int meshIndex=0;meshIndex<scene->mNumMeshes;++meshIndex)
-            {
-                const auto& source=*scene->mMeshes[meshIndex];
-                if (!(source.mPrimitiveTypes&aiPrimitiveType_TRIANGLE)) continue;
-                RiggedMesh mesh; mesh.node=owners[meshIndex]; mesh.mesh=Geometry(*scene,source,path); mesh.weights.resize(source.mNumVertices);
-                if (source.mNumBones>256) throw std::runtime_error("Mesh exceeds 256 bones");
-                std::vector<std::vector<std::pair<unsigned int,float>>> influences(source.mNumVertices);
-                for (unsigned int bone=0;bone<source.mNumBones;++bone)
-                {
-                    const auto& joint=*source.mBones[bone]; const auto found=names.find(joint.mName.C_Str());
-                    if (found==names.end()) throw std::runtime_error("Bone node missing");
-                    mesh.joints.push_back(found->second); mesh.inverseBind.push_back(Matrix(joint.mOffsetMatrix));
-                    for (unsigned int weight=0;weight<joint.mNumWeights;++weight)
-                    {
-                        const auto& value=joint.mWeights[weight];
-                        if (!std::isfinite(value.mWeight) || value.mWeight<0) throw std::runtime_error("Invalid imported bone weight");
-                        influences.at(value.mVertexId).emplace_back(bone,value.mWeight);
-                    }
-                }
-                for (size_t vertex=0;vertex<mesh.weights.size();++vertex)
-                {
-                    auto& values=influences[vertex]; std::stable_sort(values.begin(),values.end(),[](const auto& a,const auto& b) { return a.second>b.second; });
-                    for (size_t weight=0;weight<std::min(size_t(4),values.size());++weight)
-                    { mesh.weights[vertex].joints[weight]=values[weight].first; mesh.weights[vertex].weights[weight]=values[weight].second; }
-                }
-                rig->meshes.push_back(std::move(mesh));
-            }
+            ReadMeshes(*scene,path,*rig,names,owners);
             if (rig->meshes.empty()) throw std::runtime_error("No skeletal triangles");
-            for (unsigned int index=0;index<scene->mNumAnimations;++index)
-            {
-                const auto& source=*scene->mAnimations[index]; const double frequency=source.mTicksPerSecond>0 ? source.mTicksPerSecond : 25;
-                SkeletalClip clip; clip.name=source.mName.length ? source.mName.C_Str() : "Clip"+std::to_string(index);
-                if (std::any_of(rig->clips.begin(),rig->clips.end(),[&](const auto& value) { return value.name==clip.name; })) clip.name+="-"+std::to_string(index);
-                clip.duration=std::max(0.0001f,Time(source.mDuration,frequency));
-                for (unsigned int channel=0;channel<source.mNumChannels;++channel)
-                {
-                    const auto& sourceTrack=*source.mChannels[channel]; const auto node=names.find(sourceTrack.mNodeName.C_Str());
-                    if (node==names.end()) throw std::runtime_error("Animation node missing");
-                    BoneTrack track;
-                    for (unsigned int key=0;key<sourceTrack.mNumPositionKeys;++key)
-                    { const auto& value=sourceTrack.mPositionKeys[key]; track.positions.push_back({Time(value.mTime,frequency),{value.mValue.x,value.mValue.y,value.mValue.z}}); }
-                    for (unsigned int key=0;key<sourceTrack.mNumScalingKeys;++key)
-                    { const auto& value=sourceTrack.mScalingKeys[key]; track.scales.push_back({Time(value.mTime,frequency),{value.mValue.x,value.mValue.y,value.mValue.z}}); }
-                    for (unsigned int key=0;key<sourceTrack.mNumRotationKeys;++key)
-                    { const auto& value=sourceTrack.mRotationKeys[key]; track.rotations.push_back({Time(value.mTime,frequency),{value.mValue.x,value.mValue.y,value.mValue.z,value.mValue.w}}); }
-                    clip.tracks[node->second]=std::move(track);
-                }
-                rig->clips.push_back(std::move(clip));
-            }
+            ReadClips(*scene,*rig,names);
             const auto settings=AssetDatabase::Read(path);
             rig->importScale=settings.scale;
             const auto assetRoot=AssetDatabase::Root(path);

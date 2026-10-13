@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Validation.h>
 #include <Engine/Input/Keyboard.h>
 #include <Engine/Input/Gamepad.h>
 #include <Engine/Core/Json.h>
@@ -50,7 +51,7 @@ namespace Engine
             for (const auto& [name,binding] : bindings)
                 if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || binding.keys.size()>4 ||
                     std::any_of(binding.keys.begin(),binding.keys.end(),[](unsigned int key) { return key>=256; }) ||
-                    binding.buttons>65535 || binding.mouseButtons>31 || binding.axis<-4 || binding.axis>6 || !std::isfinite(binding.threshold) || binding.threshold<0.05f || binding.threshold>1)
+                    binding.buttons>65535 || binding.mouseButtons>31 || binding.axis<-4 || binding.axis>6 || !Engine::InRange(binding.threshold,0.05f,1))
                     throw std::runtime_error("Invalid input action: "+name);
         }
         static Json Serialize(const Bindings& bindings)
@@ -65,21 +66,7 @@ namespace Engine
             Bindings result;
             for (const auto& [name,definition] : JsonObject(value).items())
             {
-                InputBinding binding;
-                for (const auto& key : JsonArray(definition.at("keys")))
-                {
-                    if (!key.is_number_integer() || JsonNumber(key)<0 || JsonNumber(key)>255) throw std::runtime_error("Invalid input key");
-                    binding.keys.push_back(key.get<unsigned int>());
-                }
-                const auto& buttons=definition.at("buttons"); const auto& axis=definition.at("axis");
-                if (!buttons.is_number_integer() || JsonNumber(buttons)<0 || JsonNumber(buttons)>65535 ||
-                    !axis.is_number_integer() || JsonNumber(axis)<-4 || JsonNumber(axis)>6) throw std::runtime_error("Invalid input binding");
-                binding.buttons=buttons.get<unsigned int>(); binding.axis=axis.get<int>(); binding.threshold=static_cast<float>(JsonNumber(definition.at("threshold")));
-                if(definition.contains("mouseButtons")) {
-                    const auto& mouse=definition.at("mouseButtons");
-                    if(!mouse.is_number_integer() || JsonNumber(mouse)<0 || JsonNumber(mouse)>31) throw std::runtime_error("Invalid mouse binding");
-                    binding.mouseButtons=mouse.get<unsigned int>();
-                }
+                auto binding=ParseBinding(definition);
                 result[name]=std::move(binding);
             }
             Validate(result); return result;
@@ -118,19 +105,8 @@ namespace Engine
             for (const auto& [name,binding] : bindings_)
             {
                 float value=0; bool edge=false;
-                for (const auto key : binding.keys) { if (snapshot.down[key]) value=1; edge=edge || snapshot.pressed[key]; }
-                if (binding.buttons && (snapshot.buttons&binding.buttons)==binding.buttons)
-                { value=1; edge=edge || (snapshot.pressedButtons&binding.buttons)!=0; }
-                if(binding.mouseButtons && (snapshot.mouseButtons&binding.mouseButtons)==binding.mouseButtons) {
-                    value=1;edge=edge || (previousMouse_&binding.mouseButtons)!=binding.mouseButtons;
-                }
-                float analog=0;
-                const auto axis=std::abs(binding.axis);
-                if(axis==1 || axis==2) analog=snapshot.stick[axis-1];
-                else if(axis==3 || axis==4) analog=snapshot.rightStick[axis-3];
-                else if(axis==5 || axis==6) analog=snapshot.triggers[axis-5];
-                if(binding.axis<0) analog=-analog;
-                if(!std::isfinite(analog)) analog=0;
+                DigitalInput(snapshot,binding,value,edge);
+                const float analog=AnalogInput(snapshot,binding);
                 if (analog>=binding.threshold)
                 { value=std::max(value,std::clamp(analog,0.0f,1.0f)); edge=edge || (previousGamepad_ && Value(name)<binding.threshold); }
                 pressed_[name]=initialized_ && edge; values_[name]=value;
@@ -142,6 +118,50 @@ namespace Engine
         bool Down(const std::string& name) const { return Value(name)>0; }
         bool Pressed(const std::string& name) const { const auto found=pressed_.find(name); return found!=pressed_.end() && found->second; }
     private:
+      static bool IntegerRange(const Json &value, double minimum, double maximum) { return value.is_number_integer() && JsonNumber(value) >= minimum && JsonNumber(value) <= maximum; }
+
+      static InputBinding ParseBinding(const Json &definition)
+      {
+          InputBinding binding;
+          for (const auto &key : JsonArray(definition.at("keys")))
+          {
+              if (!IntegerRange(key, 0, 255)) throw std::runtime_error("Invalid input key");
+              binding.keys.push_back(key.get<unsigned int>());
+          }
+          const auto &buttons = definition.at("buttons"); const auto &axis = definition.at("axis");
+          if (!IntegerRange(buttons, 0, 65535) ||
+              !IntegerRange(axis, -4, 6)) throw std::runtime_error("Invalid input binding");
+          binding.buttons = buttons.get<unsigned int>(); binding.axis = axis.get<int>(); binding.threshold = static_cast<float>(JsonNumber(definition.at("threshold")));
+          if (definition.contains("mouseButtons")) {
+              const auto &mouse = definition.at("mouseButtons");
+              if (!IntegerRange(mouse, 0, 31)) throw std::runtime_error("Invalid mouse binding");
+              binding.mouseButtons = mouse.get<unsigned int>();
+          }
+          return binding;
+      }
+
+      void DigitalInput(const InputSnapshot &snapshot, const InputBinding &binding, float &value, bool &edge) const
+      {
+          for (const auto key : binding.keys) { if (snapshot.down[key]) value = 1; edge = edge || snapshot.pressed[key]; }
+          if (binding.buttons && (snapshot.buttons & binding.buttons) == binding.buttons)
+          { value = 1; edge = edge || (snapshot.pressedButtons & binding.buttons) != 0; }
+          if (binding.mouseButtons && (snapshot.mouseButtons & binding.mouseButtons) == binding.mouseButtons) {
+              value = 1;edge = edge || (previousMouse_ & binding.mouseButtons) != binding.mouseButtons;
+          }
+      }
+
+      static float AnalogInput(const InputSnapshot &snapshot, const InputBinding &binding)
+      {
+          float analog = 0;
+          const auto axis = std::abs(binding.axis);
+          if (axis == 1 || axis == 2) analog = snapshot.stick[axis - 1];
+          else if (axis == 3 || axis == 4) analog = snapshot.rightStick[axis - 3];
+          else if (axis == 5 || axis == 6) analog = snapshot.triggers[axis - 5];
+          if (binding.axis < 0) analog = -analog;
+          if (!std::isfinite(analog)) analog = 0;
+          return analog;
+      }
+
         Bindings bindings_;
         std::map<std::string,float> values_;
         std::map<std::string,bool> pressed_;

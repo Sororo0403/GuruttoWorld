@@ -27,6 +27,34 @@ namespace
         return true;
     }
 
+    bool ValidPixelUpload(const ID3D12Device *device, ID3D12CommandQueue *queue, UINT width, UINT height, const std::vector<unsigned char> &pixels)
+    {
+        if (!device || !queue || queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT ||
+            !width || !height || width > 16384 || height > 16384 || pixels.size() != size_t(width) * height * 4) return false;
+        ComPtr<ID3D12Device> queueDevice;
+        if (FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) || queueDevice.Get() != device) return false;
+        return true;
+    }
+    void RecordTextureCopy(ID3D12GraphicsCommandList *commands, ID3D12Resource *upload, ID3D12Resource *destinationResource, const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> &footprints)
+    {
+        D3D12_TEXTURE_COPY_LOCATION source{};
+        source.pResource = upload;
+        source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        D3D12_TEXTURE_COPY_LOCATION destination{};
+        destination.pResource = destinationResource;
+        destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        for (size_t index = 0; index < footprints.size(); ++index) {
+            source.PlacedFootprint = footprints[index]; destination.SubresourceIndex = static_cast<UINT>(index);
+            commands->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+        }
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = destinationResource;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        commands->ResourceBarrier(1, &barrier);
+    }
     struct ComApartment
     {
         HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -64,10 +92,7 @@ namespace Engine
     bool Texture2D::InitializePixels(ID3D12Device* device, ID3D12CommandQueue* queue, UINT width, UINT height,
         std::vector<unsigned char> pixels,const TextureImportSettings& settings,bool deferUpload)
     {
-        if (resource_ || !device || !queue || queue->GetDesc().Type!=D3D12_COMMAND_LIST_TYPE_DIRECT ||
-            !width || !height || width>16384 || height>16384 || pixels.size()!=size_t(width)*height*4) return false;
-        ComPtr<ID3D12Device> queueDevice;
-        if (FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) || queueDevice.Get()!=device) return false;
+        if(resource_ || !ValidPixelUpload(device,queue,width,height,pixels)) return false;
         std::vector<TextureLevel> levels;
         try { levels=TextureImport::Build({width,height,std::move(pixels)},settings); }
         catch (const std::exception& error) { Log::Error(error.what()); return false; }
@@ -205,23 +230,7 @@ namespace Engine
         {
             return false;
         }
-        D3D12_TEXTURE_COPY_LOCATION source{};
-        source.pResource = upload;
-        source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-        D3D12_TEXTURE_COPY_LOCATION destination{};
-        destination.pResource = resource_.Get();
-        destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        for (size_t index=0;index<footprints.size();++index) {
-            source.PlacedFootprint=footprints[index]; destination.SubresourceIndex=static_cast<UINT>(index);
-            commands->CopyTextureRegion(&destination,0,0,0,&source,nullptr);
-        }
-        D3D12_RESOURCE_BARRIER barrier{};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource = resource_.Get();
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        commands->ResourceBarrier(1, &barrier);
+        RecordTextureCopy(commands.Get(),upload,resource_.Get(),footprints);
         if (!Check(commands->Close(), "Close texture upload commands"))
         {
             return false;

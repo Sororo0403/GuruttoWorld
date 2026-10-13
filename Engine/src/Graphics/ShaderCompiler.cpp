@@ -239,6 +239,37 @@ namespace Engine
 
     catch (...) { revision.clear(); return false; }
 
+    static bool CompileBytecode(const std::filesystem::path &path, const std::string &revision, const char *entry, const char *target, UINT flags, Microsoft::WRL::ComPtr<ID3DBlob> &shader)
+    {
+        CpuScope scope("Shader compilation");
+        Microsoft::WRL::ComPtr<ID3DBlob> errors;
+        const auto sourceName = Utf8Path(path);
+        const HRESULT result = D3DCompile(revision.data(), revision.size(), sourceName.c_str(), nullptr,
+                                          nullptr, entry, target, flags, 0, &shader, &errors);
+        if (errors) Log::Error(static_cast<const char *>(errors->GetBufferPointer()));
+        if (FAILED(result))
+        {
+            shader.Reset();
+            Log::Error(std::format("{} failed: 0x{:08X}", entry, static_cast<unsigned long>(result)));
+            return false;
+        }
+        return true;
+    }
+    static bool ExportCachedShader(const std::filesystem::path &path, const std::string &revision, const char *entry, const char *target, UINT flags, ID3DBlob *shader)
+    {
+        if (exportingCache)
+        {
+            const auto compiler = CompilerIdentity();
+            const auto persistentKey = compiler.empty() ? std::string{} : Digest(
+                    "WP1SHD01\n" + compiler + "\n" + entry + "\n" + target + "\n" + std::to_string(flags) + "\n" + revision);
+            if (!SaveBytecode(PackagedCache(path), persistentKey, shader)) return false;
+        }
+        return true;
+    }
+    template <class Cache, class Key> static void RememberShader(Cache &cache, Key key, const Microsoft::WRL::ComPtr<ID3DBlob> &shader) {
+        if (cache.size() >= 128) cache.clear();
+        cache.emplace(std::move(key), shader);
+    }
     bool CompileShader(const std::filesystem::path& path, const char* entry, const char* target,
         Microsoft::WRL::ComPtr<ID3DBlob>& shader) try
     {
@@ -260,13 +291,7 @@ namespace Engine
         if (const auto found = cache.find(key); found != cache.end())
         {
             shader = found->second;
-            if (exportingCache)
-            {
-                const auto compiler = CompilerIdentity();
-                const auto persistentKey = compiler.empty() ? std::string{} : Digest(
-                    "WP1SHD01\n" + compiler + "\n" + entry + "\n" + target + "\n" + std::to_string(flags) + "\n" + revision);
-                if (!SaveBytecode(PackagedCache(path), persistentKey, shader.Get())) return false;
-            }
+            if(!ExportCachedShader(path,revision,entry,target,flags,shader.Get())) return false;
             return true;
         }
         const auto compiler = CompilerIdentity();
@@ -282,30 +307,17 @@ namespace Engine
         if (loaded)
         {
             if (exportingCache && !SaveBytecode(packaged, persistentKey, shader.Get())) return false;
-            if (cache.size() >= 128) cache.clear();
-            cache.emplace(std::move(key), shader);
+            RememberShader(cache,std::move(key),shader);
             return true;
         }
-        CpuScope scope("Shader compilation");
-        Microsoft::WRL::ComPtr<ID3DBlob> errors;
-        const auto sourceName = Utf8Path(path);
-        const HRESULT result = D3DCompile(revision.data(), revision.size(), sourceName.c_str(), nullptr,
-            nullptr, entry, target, flags, 0, &shader, &errors);
-        if (errors) Log::Error(static_cast<const char*>(errors->GetBufferPointer()));
-        if (FAILED(result))
-        {
-            shader.Reset();
-            Log::Error(std::format("{} failed: 0x{:08X}", entry, static_cast<unsigned long>(result)));
-            return false;
-        }
+        if(!CompileBytecode(path,revision,entry,target,flags,shader)) return false;
         if (exportingCache)
         {
             if (!SaveBytecode(packaged, persistentKey, shader.Get())) return false;
         }
         else SaveBytecode(local, persistentKey, shader.Get());
         // Bytecode does not own a device. Bound the cache when Editor shader revisions accumulate.
-        if (cache.size() >= 128) cache.clear();
-        cache.emplace(std::move(key), shader);
+        RememberShader(cache,std::move(key),shader);
         return true;
     }
     catch (...) { shader.Reset(); return false; }

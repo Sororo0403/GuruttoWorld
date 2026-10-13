@@ -245,7 +245,7 @@ namespace
             if (!sceneTexture.Begin(commands, world.Layout().settings.background)) return false;
             const auto* runtime=gameSession.Runtime();
             if (runtime) runtime->Draw(commands,sceneTexture.GetWidth(),sceneTexture.GetHeight(),&camera.GetCamera(),showSceneUi);
-            else if (presentation) presentation->Draw(commands,world,sceneTexture.GetWidth(),sceneTexture.GetHeight(),&camera.GetCamera(),0,true,nullptr,showSceneUi);
+            else if (presentation) presentation->Draw(commands,world,sceneTexture.GetWidth(),sceneTexture.GetHeight(),{&camera.GetCamera(),0,true,nullptr,showSceneUi});
             return sceneTexture.End(commands);
         }
 

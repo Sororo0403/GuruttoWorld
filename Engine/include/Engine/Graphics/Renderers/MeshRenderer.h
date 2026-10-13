@@ -14,6 +14,10 @@
 
 namespace Engine
 {
+    struct MeshDeformation {
+        std::span<const SkinMatrix> palette;
+        std::span<const DirectX::XMFLOAT4X4> instances;
+    };
     class MeshRenderer final
     {
     public:
@@ -71,8 +75,7 @@ namespace Engine
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
             const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
-            const UvTransform& uvTransform = {},const Material* material=nullptr,std::span<const SkinMatrix> palette={},
-            std::span<const DirectX::XMFLOAT4X4> instances={}) const;
+            const UvTransform& uvTransform = {},const Material* material=nullptr,const MeshDeformation& deformation={}) const;
 
         /// <summary>同じメッシュの実形状を光源視点の深度へ描画します。</summary>
         void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,std::span<const SkinMatrix> palette={}) const;
@@ -80,11 +83,31 @@ namespace Engine
         ID3D12Resource* GeometryResource() const noexcept { return meshBuffer_.Get(); }
         size_t TriangleCount() const noexcept {return indexCount_/3;}
     private:
+        struct TransformConstants
+        {
+            DirectX::XMFLOAT4X4 worldViewProjection;
+            DirectX::XMFLOAT4 worldRows[3];
+            std::array<float,4> color{1,1,1,1};
+        };
+        struct DrawBindings {
+            bool mirrored,hdr;
+            const Material* material;
+            const TransformConstants* transform;
+            const std::array<float,26>* lighting;
+            const UvTransform* uv;
+            ID3D12DescriptorHeap* heap;
+        };
+        static TransformConstants MakeTransforms(DirectX::FXMMATRIX worldMatrix,const DirectX::XMFLOAT4X4& viewProjection,const Material* material);
+        ID3D12DescriptorHeap* SurfaceBindings(const DirectionalLight& light,const Material* material,const LocalLightView& lights,const SkinPaletteView& skin,const SkinPaletteView& instances) const;
+        void BindDraw(ID3D12GraphicsCommandList* commands,const DrawBindings& bindings) const;
+
+        bool PrepareLocalLighting(ID3D12GraphicsCommandList* commands,const DirectionalLight& light,const Material* material,std::array<float,26>& constants,LocalLightView& lights) const;
+        bool PrepareDeformation(ID3D12GraphicsCommandList* commands,const MeshDeformation& deformation,const DirectX::XMFLOAT4X4& viewProjection,bool mirrored,SkinPaletteView& view) const;
         /// <summary>色・法線・影・局所ライトの不変ディスクリプターを共有します。</summary>
         ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture,
             const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights,const SkinPaletteView& palette,
             const SkinPaletteView& instances={},const ShadowMap* localShadow=nullptr,
-            const std::shared_ptr<const Texture2D>& environment={},const std::shared_ptr<const Texture2D>& lightmap={}) const;
+            const std::array<std::shared_ptr<const Texture2D>,2>& surfaceImages={}) const;
         struct Binding { Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap; std::shared_ptr<const Texture2D> texture,normal,environment,lightmap; };
         mutable std::map<std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*,ID3D12Resource*,ID3D12Resource*,ID3D12Resource*,ID3D12Resource*,const Texture2D*,const Texture2D*>,Binding> bindings_;
         size_t requiredPaletteSize_=1;

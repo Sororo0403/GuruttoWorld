@@ -15,6 +15,11 @@
 
 namespace Engine
 {
+    struct ModelDrawOptions {
+        std::span<const std::shared_ptr<const Material>> slots;
+        MaterialPass pass=MaterialPass::All;
+        std::span<const DirectX::XMFLOAT4X4> instances;
+    };
     class ModelRenderer final
     {
     public:
@@ -86,8 +91,7 @@ namespace Engine
             const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
             const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
             const UvTransform& uvTransform = {},const Material* material=nullptr,
-            std::span<const std::shared_ptr<const Material>> slots={},MaterialPass pass=MaterialPass::All,
-            std::span<const DirectX::XMFLOAT4X4> instances={}) const;
+            const ModelDrawOptions& options={}) const;
 
         size_t MeshCount() const { return meshes_.size(); }
         size_t TriangleCount() const { return triangleCount_; }

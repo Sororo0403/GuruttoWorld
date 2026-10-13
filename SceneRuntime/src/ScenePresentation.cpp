@@ -177,24 +177,31 @@ namespace SceneRuntime
         if (!postEffects_.Initialize(device_.Get(),postShader_)) { error="Post effect pipeline could not be initialized"; return false; }
         return true;
     }
-    void ScenePresentation::Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world,
-        unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, double seconds, bool motionEnabled, const UiState* uiState, bool showSceneUi) const
+    bool ScenePresentation::BeginPostEffects(ID3D12GraphicsCommandList *commands, const SceneLayout &layout, unsigned int width, unsigned int height, Engine::PostEffectRenderer *&post) const
     {
-        if (!width || !height) return;
-        auto* post=&postEffects_;
-        if(!world.Layout().settings.postShader.empty()) {
-            const auto found=customPost_.find(world.Layout().settings.postShader);
-            if(found!=customPost_.end()) post=found->second.get();
+        post = &postEffects_;
+        if (!layout.settings.postShader.empty()) {
+            const auto found = customPost_.find(layout.settings.postShader);
+            if (found != customPost_.end()) post = found->second.get();
         }
-        bool processing=false;
-        if (world.Layout().settings.postEffects.enabled)
+        bool processing = false;
+        if (layout.settings.postEffects.enabled)
         {
-            std::string error; auto clear=world.Layout().settings.background;
-            for (size_t channel=0;channel<3;++channel)
-                clear[channel]=clear[channel]<=.04045f ? clear[channel]/12.92f : std::pow((clear[channel]+.055f)/1.055f,2.4f);
-            processing=PrepareEffects(world.Layout(),error) && post->Begin(commands,width,height,clear);
+            std::string error; auto clear = layout.settings.background;
+            for (size_t channel = 0; channel < 3; ++channel)
+                clear[channel] = clear[channel] <= .04045f ? clear[channel] / 12.92f : std::pow((clear[channel] + .055f) / 1.055f, 2.4f);
+            processing = PrepareEffects(layout, error) && post->Begin(commands, width, height, clear);
             if (!processing) Engine::Log::Warning(error.empty() ? "Post effect target could not be prepared" : error);
         }
+        return processing;
+    }
+    void ScenePresentation::Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world,
+        unsigned int width, unsigned int height,const SceneDrawOptions& options) const
+    {
+        const auto& [sceneCamera,seconds,motionEnabled,uiState,showSceneUi]=options;
+        if (!width || !height) return;
+        Engine::PostEffectRenderer* post=nullptr;
+        const bool processing=BeginPostEffects(commands,world.Layout(),width,height,post);
         Engine::Camera gameCamera;
         const bool hasCamera=sceneCamera || SceneView::Camera(world,float(width)/height,seconds,gameCamera);
         const auto* activeCamera=sceneCamera ? sceneCamera : hasCamera ? &gameCamera : nullptr;

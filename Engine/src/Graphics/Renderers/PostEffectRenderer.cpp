@@ -9,6 +9,15 @@
 #include <limits>
 #include <vector>
 
+namespace {
+bool CurrentTarget(ID3D12GraphicsCommandList *commands, UINT width, UINT height, Engine::RenderFrameContext &context, Engine::RenderTargetBinding &prior)
+{
+    if (!width || !height || !Engine::RenderFrameContext::Current(commands, context) ||
+        !Engine::RenderTargetBinding::Current(commands, prior) || !prior.color.ptr) return false;
+    return true;
+}
+}
+
 namespace Engine
 {
     struct PostEffectRenderer::Impl
@@ -96,6 +105,30 @@ namespace Engine
             if (FAILED(input->CreateGraphicsPipelineState(&pipeline,IID_PPV_ARGS(&hdr)))) return false;
             device=input; return true;
         }
+        bool ApplyEffects(ID3D12GraphicsCommandList *list, Targets &targets, const PostEffectSettings &settings, bool valid) const
+        {
+            bool processed = valid;
+            if (valid && settings.autoExposure)
+            {
+                processed = targets.meter.Begin(list, {0, 0, 0, 1});
+                if (processed)
+                {
+                    Draw(list, targets.bindings[1].Get(), settings, 4, targets.scene.GetWidth(), targets.scene.GetHeight(), true);
+                    processed = targets.meter.End(list);
+                }
+            }
+            if (valid && settings.bloomEnabled && settings.bloomIntensity > 0)
+            {
+                const auto pass = [&](RenderTexture &output, const RenderTexture &source, size_t binding, float mode) {
+                    if (!output.Begin(list, {0, 0, 0, 1})) return false;
+                    Draw(list, targets.bindings[binding].Get(), settings, mode, source.GetWidth(), source.GetHeight(), true);
+                    return output.End(list);
+                };
+                processed = processed && pass(targets.bright, targets.scene, 1, 1) && pass(targets.temporary, targets.bright, 2, 2) &&
+                            pass(targets.bright, targets.temporary, 3, 3);
+            }
+            return processed;
+        }
         void Draw(ID3D12GraphicsCommandList* list,ID3D12DescriptorHeap* binding,const PostEffectSettings& settings,float pass,
             UINT width,UINT height,bool hdrOutput) const
         {
@@ -122,8 +155,7 @@ namespace Engine
     bool PostEffectRenderer::Begin(ID3D12GraphicsCommandList* commands,UINT width,UINT height,const std::array<float,4>& clear)
     {
         RenderFrameContext context; RenderTargetBinding prior;
-        if (!impl_ || impl_->active || !width || !height || !RenderFrameContext::Current(commands,context) ||
-            !RenderTargetBinding::Current(commands,prior) || !prior.color.ptr) return false;
+        if(!impl_ || impl_->active || !CurrentTarget(commands,width,height,context,prior)) return false;
         auto& frame=impl_->frames[context.slot]; if (frame.serial!=context.serial) { frame.serial=context.serial; frame.used=0; }
         if (frame.used>=16) return false;
         if (frame.used==frame.entries.size()) frame.entries.push_back(nullptr);
@@ -144,26 +176,7 @@ namespace Engine
         auto& targets=*impl_->active;
         if (!targets.scene.End(commands)) return false;
         const bool valid=settings.Valid();
-        bool processed=valid;
-        if (valid && settings.autoExposure)
-        {
-            processed=targets.meter.Begin(commands,{0,0,0,1});
-            if (processed)
-            {
-                impl_->Draw(commands,targets.bindings[1].Get(),settings,4,targets.scene.GetWidth(),targets.scene.GetHeight(),true);
-                processed=targets.meter.End(commands);
-            }
-        }
-        if (valid && settings.bloomEnabled && settings.bloomIntensity>0)
-        {
-            const auto pass=[&](RenderTexture& output,const RenderTexture& source,size_t binding,float mode) {
-                if (!output.Begin(commands,{0,0,0,1})) return false;
-                impl_->Draw(commands,targets.bindings[binding].Get(),settings,mode,source.GetWidth(),source.GetHeight(),true);
-                return output.End(commands);
-            };
-            processed=processed && pass(targets.bright,targets.scene,1,1) && pass(targets.temporary,targets.bright,2,2) &&
-                pass(targets.bright,targets.temporary,3,3);
-        }
+        const bool processed=impl_->ApplyEffects(commands,targets,settings,valid);
         impl_->prior.Bind(commands);
         auto applied=valid ? settings : PostEffectSettings{};
         if (!processed) {applied.bloomEnabled=false;applied.autoExposure=false;}

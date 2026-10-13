@@ -3,6 +3,7 @@
 #include <Engine/Graphics/Resources/RenderFrameContext.h>
 #include <Engine/Graphics/Renderers/ShadowMap.h>
 #include <wrl/client.h>
+#include <Engine/Core/Validation.h>
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -22,10 +23,7 @@ namespace Engine
             std::array<float,2> environment={})
         {
             RenderFrameContext context;
-            if (!device || (lights.empty() && environment[0]<=0) || lights.size()>Capacity || !RenderFrameContext::Current(commands,context)) return {};
-            if (!std::isfinite(environment[0]) || environment[0]<0 || environment[0]>100 ||
-                !std::isfinite(environment[1]) || environment[1]<0 || environment[1]>32) return {};
-            if (!std::ranges::all_of(lights,Valid)) return {};
+            if(!ValidRequest(device,commands,lights,environment,context)) return {};
             auto& frame=frames_[context.slot];
             if (frame.serial!=context.serial) { frame.serial=context.serial; frame.used=0; }
             for (size_t index=0;index<frame.used;++index)
@@ -38,29 +36,31 @@ namespace Engine
                 frame.entries.push_back(std::move(entry));
             }
             auto& entry=*frame.entries[frame.used];
-            Packet packet; packet.header[0]=static_cast<float>(lights.size());
-            packet.header[1]=environment[0]; packet.header[2]=environment[1];
-            std::copy(lights.begin(),lights.end(),packet.lights.begin());
-            if (shadows) packet.matrices=shadows->LocalMatrices();
-            void* data=nullptr; const D3D12_RANGE read{0,0};
-            if (FAILED(entry.resource->Map(0,&read,&data))) return {};
-            std::memcpy(data,&packet,sizeof(packet));
-            const D3D12_RANGE written{0,sizeof(packet)}; entry.resource->Unmap(0,&written);
-            entry.lights.assign(lights.begin(),lights.end()); entry.shadowed=shadows!=nullptr; entry.environment=environment; ++frame.used;
+            if(!Upload(entry,lights,shadows,environment)) return {};
+            ++frame.used;
             return entry.View();
         }
     private:
+      static bool ValidRequest(const ID3D12Device *device, ID3D12GraphicsCommandList *commands, std::span<const LocalLight> lights, std::array<float, 2> environment, RenderFrameContext &context)
+      {
+          if (!device || (lights.empty() && environment[0] <= 0) || lights.size() > Capacity || !RenderFrameContext::Current(commands, context)) return false;
+          if (!Engine::InRange(environment[0], 0, 100) || !Engine::InRange(environment[1], 0, 32)) return false;
+          if (!std::ranges::all_of(lights, Valid)) return false;
+          return true;
+      }
         /// <summary>GPU照明計算で不正な値やゼロの到達距離を使わないよう検証します。</summary>
         static bool Valid(const LocalLight& light)
         {
             const auto finite=[](float value) { return std::isfinite(value); };
-            const auto color=[](float value) { return std::isfinite(value) && value>=0 && value<=1; };
+            const auto color=[](float value) { return Engine::InRange(value,0,1); };
             return std::ranges::all_of(light.position,finite) && std::ranges::all_of(light.direction,finite) &&
                 std::ranges::all_of(light.color,color) && finite(light.intensity) && light.intensity>=0 &&
                 finite(light.range) && light.range>0 && (light.spot==0 || light.spot==1) &&
                 ValidShadow(light) &&
-                (light.spot==0 || (finite(light.innerCosine) && finite(light.outerCosine) && light.innerCosine<=1 &&
-                    light.outerCosine>=-1 && light.innerCosine>light.outerCosine));
+                ValidCone(light);
+        }
+        static bool ValidCone(const LocalLight &light) {
+            return light.spot == 0 || (std::isfinite(light.innerCosine) && std::isfinite(light.outerCosine) && light.innerCosine <= 1 && light.outerCosine >= -1 && light.innerCosine > light.outerCosine);
         }
         /// <summary>局所影のアトラス範囲と面数を検証します。</summary>
         static bool ValidShadow(const LocalLight& light)
@@ -102,6 +102,19 @@ namespace Engine
             size_t used=0;
             std::vector<std::unique_ptr<Entry>> entries;
         };
+        static bool Upload(Entry &entry, std::span<const LocalLight> lights, const ShadowMap *shadows, std::array<float, 2> environment)
+        {
+            Packet packet; packet.header[0] = static_cast<float>(lights.size());
+            packet.header[1] = environment[0]; packet.header[2] = environment[1];
+            std::copy(lights.begin(), lights.end(), packet.lights.begin());
+            if (shadows) packet.matrices = shadows->LocalMatrices();
+            void *data = nullptr; const D3D12_RANGE read{0, 0};
+            if (FAILED(entry.resource->Map(0, &read, &data))) return false;
+            std::memcpy(data, &packet, sizeof(packet));
+            const D3D12_RANGE written{0, sizeof(packet)}; entry.resource->Unmap(0, &written);
+            entry.lights.assign(lights.begin(), lights.end()); entry.shadowed = shadows != nullptr; entry.environment = environment;
+            return true;
+        }
         std::array<Frame,RenderFrameContext::SlotCount> frames_;
     };
 }

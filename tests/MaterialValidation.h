@@ -103,7 +103,7 @@ namespace MaterialValidation
         auto fallback=std::make_shared<Engine::Material>();fallback->color={1,0,0,1};
         auto slotOverride=std::make_shared<Engine::Material>();slotOverride->color={0,1,0,1};slotOverride->transparent=true;
         Engine::MaterialSlots slots{nullptr,slotOverride};
-        const auto slotSample=[&](Engine::MaterialPass pass) {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){slotModel->Draw(commands,identity,identity,light,{0,0,-3.5f},{},fallback.get(),slots,pass);});};
+        const auto slotSample=[&](Engine::MaterialPass pass) {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){slotModel->Draw(commands,identity,identity,light,{0,0,-3.5f},{},fallback.get(),{slots,pass});});};
         Require(slotSample(Engine::MaterialPass::Opaque)==std::array<unsigned char,4>{255,0,0,255},"opaque pass renders default material and excludes transparent slot");
         Require(slotSample(Engine::MaterialPass::Transparent)==std::array<unsigned char,4>{0,255,0,255},"transparent pass renders only the per-mesh override");
         Engine::Object3D first;first.SetModel(slotModel);first.SetMaterial(fallback);first.SetMaterialSlots(slots);

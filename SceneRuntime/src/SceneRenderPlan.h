@@ -14,6 +14,10 @@ namespace SceneRuntime::RenderPlan
         float distance=0;
         bool occlusion=false;
     };
+    inline bool Visible(const ScenePlacement &placement, const UiState &state) {
+        return placement.meshRenderer ? placement.meshRenderer->enabled && state.Matches(placement.meshRenderer->visibleWhen) :
+            (placement.terrain && placement.terrain->enabled) || (placement.tilemap && placement.tilemap->enabled);
+    }
     /// <summary>カメラ距離でLODを選び、保存した個体からそのフレームの描画項目を作ります。</summary>
     inline std::vector<Item> Items(const SceneLayout& layout,const std::vector<Engine::Object3D>& objects,
         const std::map<std::string,std::vector<std::shared_ptr<const Engine::ModelRenderer>>>& levels,
@@ -26,8 +30,7 @@ namespace SceneRuntime::RenderPlan
         {
             const auto& placement=layout.objects[index];
             if (!objects[index].GetModel()) continue;
-            const bool visible=placement.meshRenderer ? placement.meshRenderer->enabled && state.Matches(placement.meshRenderer->visibleWhen) :
-                (placement.terrain && placement.terrain->enabled) || (placement.tilemap && placement.tilemap->enabled);
+            const bool visible=Visible(placement,state);
             if (!visible) continue;
             const auto& world=renderMatrices.empty() ? objects[index].GetWorldMatrix() : renderMatrices[index];
             Item item{objects[index],placement.meshRenderer && placement.meshRenderer->instancing,
@@ -87,6 +90,19 @@ namespace SceneRuntime::RenderPlan
         }
         return next>0;
     }
+    inline void GatherInstances(const std::vector<Item> &items, size_t index, std::vector<bool> &drawn, std::vector<DirectX::XMFLOAT4X4> &instances)
+    {
+        const auto &item = items[index];
+        if (item.instancing && !item.occlusion && !item.object.GetModel()->Rig())
+        {
+            for (size_t other = index + 1; other < items.size() && instances.size() < Engine::SkinPaletteBuffer::Capacity; ++other)
+                if (!drawn[other] && Compatible(item, items[other]))
+                {
+                    if (instances.empty()) instances.push_back(item.object.GetWorldMatrix());
+                    drawn[other] = true; instances.push_back(items[other].object.GetWorldMatrix());
+                }
+        }
+    }
     /// <summary>不透明個体の互換グループをGPUインスタンシングで描画します。</summary>
     inline void Opaque(ID3D12GraphicsCommandList* commands,const Engine::Camera& camera,const Engine::DirectionalLight& light,
         const std::vector<Item>& items,MeshTelemetry& telemetry,Engine::OcclusionRenderer& occlusion)
@@ -98,20 +114,12 @@ namespace SceneRuntime::RenderPlan
             if (drawn[index] || !item.object.HasMaterialPass(Engine::MaterialPass::Opaque)) continue;
             std::vector<DirectX::XMFLOAT4X4> instances;
             drawn[index]=true;
-            if (item.instancing && !item.occlusion && !item.object.GetModel()->Rig())
-            {
-                for (size_t other=index+1;other<items.size() && instances.size()<Engine::SkinPaletteBuffer::Capacity;++other)
-                    if (!drawn[other] && Compatible(item,items[other]))
-                    {
-                        if (instances.empty()) instances.push_back(item.object.GetWorldMatrix());
-                        drawn[other]=true; instances.push_back(items[other].object.GetWorldMatrix());
-                    }
-            }
+            GatherInstances(items,index,drawn,instances);
             Count(item.object,Engine::MaterialPass::Opaque,instances.empty() ? 1 : instances.size(),telemetry);
             if (item.occlusion) occlusion.Begin(commands,item.object.GetModel()->Bounds(),item.object.GetWorldMatrix(),camera.GetViewProjectionMatrix());
             item.object.GetModel()->Draw(commands,item.object.GetWorldMatrix(),camera.GetViewProjectionMatrix(),light,camera.GetPosition(),{},
-                item.object.GetMaterial().get(),item.object.GetMaterialSlots(),Engine::MaterialPass::Opaque,
-                instances.size()>1 ? std::span<const DirectX::XMFLOAT4X4>(instances) : std::span<const DirectX::XMFLOAT4X4>{});
+                item.object.GetMaterial().get(),{item.object.GetMaterialSlots(),Engine::MaterialPass::Opaque,
+                instances.size()>1 ? std::span<const DirectX::XMFLOAT4X4>(instances) : std::span<const DirectX::XMFLOAT4X4>{}});
             if (item.occlusion) Engine::OcclusionRenderer::End(commands);
         }
     }

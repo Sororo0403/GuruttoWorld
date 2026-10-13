@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Validation.h>
 #include <iterator>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/TextureImport.h>
@@ -53,14 +54,14 @@ public:
             result.texture.maxSize=static_cast<unsigned int>(limit); result.texture.compression=value.value("compression",std::string("none"));
         }
         result.texture.Validate();
-        if (!ValidId(result.id) || !std::isfinite(result.scale) || result.scale<0.0001f || result.scale>10000 || result.previousPaths.size()>1024)
+        if (!ValidId(result.id) || !Engine::InRange(result.scale,0.0001f,10000) || result.previousPaths.size()>1024)
             throw std::runtime_error("Invalid asset metadata: "+Text(path));
         if (std::any_of(std::begin(result.previousPaths),std::end(result.previousPaths),[](const auto& previous) {return !Valid(previous);})) throw std::runtime_error("Invalid asset alias");
         return result;
     }
     static void Write(const std::filesystem::path& path,const AssetMetadata& metadata) {
         metadata.texture.Validate();
-        if (!ValidId(metadata.id) || !std::isfinite(metadata.scale) || metadata.scale<0.0001f || metadata.scale>10000) throw std::runtime_error("Invalid import settings");
+        if (!ValidId(metadata.id) || !Engine::InRange(metadata.scale,0.0001f,10000)) throw std::runtime_error("Invalid import settings");
         auto target=Sidecar(path),temporary=target; temporary+=".tmp."+std::to_string(GetCurrentProcessId());
         std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
         output<<Json{{"version",1},{"id",metadata.id},{"scale",metadata.scale},{"flipV",metadata.flipV},{"previousPaths",metadata.previousPaths},{"texture",{{"mipmaps",metadata.texture.mipmaps},{"srgb",metadata.texture.srgb},{"maxSize",metadata.texture.maxSize},{"compression",metadata.texture.compression}}}}.dump(2)<<'\n'; output.close();
@@ -113,55 +114,17 @@ public:
         std::map<std::string,std::string> references;
         if (json.contains("assetReferences")) references=json.at("assetReferences").get<decltype(references)>();
         auto updated=references;
-        const auto walk=[&](auto&& self,Json& value)->void {
-            if (value.is_string()) {
-                const auto path=value.get<std::string>(); if (!Valid(Path(path))) return;
-                const auto found=references.find(path); const auto resolved=resolve ? Resolve(Path(path),found==references.end() ? "" : found->second) : Path(path);
-                value=Text(resolved);
-                const auto saved=metadata_.find(Text(resolved));
-                const auto metadata=snapshot_ ? (saved==metadata_.end()?AssetMetadata{}:saved->second) : Read(root_/resolved);
-                if (!metadata.id.empty()) updated[Text(resolved)]=metadata.id;
-            } else if (value.is_object()) {
-                for (auto& [key,item] : value.items()) {
-                    if (key=="baseline" && item.is_string()) {
-                        auto baseline=Json::parse(item.get<std::string>()); References(baseline,capture,resolve); item=baseline.dump();
-                    } else self(self,item);
-                }
-            } else if (value.is_array()) for (auto& item : value) self(self,item);
-        };
-        if (json.contains("objects")) walk(walk,json["objects"]);
-        else for (const auto* key : {"texture","normalTexture","environmentTexture","lightmap","startupScene"}) if (json.contains(key)) walk(walk,json[key]);
+
+        if (json.contains("objects")) WalkReferences(json["objects"],references,updated,capture,resolve);
+        else for (const auto* key : {"texture","normalTexture","environmentTexture","lightmap","startupScene"}) if (json.contains(key)) WalkReferences(json[key],references,updated,capture,resolve);
         if (capture) json["assetReferences"]=updated;
     }
     void Move(const std::filesystem::path& from,const std::filesystem::path& to) {
-        if (!Valid(from) || !Valid(to) || from.extension()!=to.extension() || *from.begin()!=*to.begin() || from==to || std::next(from.begin())==from.end() || std::next(to.begin())==to.end() || *std::next(from.begin())!=*std::next(to.begin()) || std::filesystem::exists(root_/to) || std::filesystem::exists(Sidecar(root_/to)))
-            throw std::runtime_error("Invalid asset destination or destination exists");
-        const auto base=std::filesystem::weakly_canonical(root_);
-        for (const auto& path : {from,to}) {
-            const auto relative=std::filesystem::weakly_canonical(root_/path).lexically_relative(base);
-            if (relative.empty() || relative.is_absolute() || *relative.begin()=="..") throw std::runtime_error("Asset destination leaves project root");
-        }
+        ValidateDestination(from,to);
         auto metadata=Ensure(root_/from); const auto originalMetadata=metadata; metadata.previousPaths.push_back(Text(from));
         std::filesystem::create_directories((root_/to).parent_path());
         std::string original,revised;
-        if (from.parent_path()!=to.parent_path() && (from.extension()==".gltf" || from.extension()==".obj")) {
-            std::ifstream input(root_/from,std::ios::binary); original={std::istreambuf_iterator<char>(input),{}};
-            if (from.extension()==".gltf") {
-                auto json=Json::parse(original);
-                for (const auto* key : {"buffers","images"}) if (json.contains(key)) for (auto& resource : json[key]) {
-                    if (!resource.contains("uri")) continue;
-                    const auto uri=resource["uri"].get<std::string>();
-                    if (uri.starts_with("data:") || uri.find(":")!=std::string::npos) continue;
-                    resource["uri"]=Text((from.parent_path()/Path(uri)).lexically_normal().lexically_relative(to.parent_path()));
-                } revised=json.dump(2)+"\n";
-            } else {
-                std::istringstream lines(original); std::string line;
-                while (std::getline(lines,line)) {
-                    if (line.starts_with("mtllib ")) line="mtllib "+Text((from.parent_path()/Path(line.substr(7))).lexically_normal().lexically_relative(to.parent_path()));
-                    revised+=line+"\n";
-                }
-            }
-        }
+        RewriteDependencies(from,to,original,revised);
         std::filesystem::rename(root_/from,root_/to);
         try {
             std::filesystem::rename(Sidecar(root_/from),Sidecar(root_/to)); Write(root_/to,metadata);
@@ -176,5 +139,57 @@ public:
             throw;
         }
     }
+private:
+  void WalkReferences(Json &value, const std::map<std::string, std::string> &references, std::map<std::string, std::string> &updated, bool capture, bool resolve) const
+  {
+      if (value.is_string()) {
+          const auto path = value.get<std::string>(); if (!Valid(Path(path))) return;
+          const auto found = references.find(path); const auto resolved = resolve ? Resolve(Path(path), found == references.end() ? "" : found->second) : Path(path);
+          value = Text(resolved);
+          const auto saved = metadata_.find(Text(resolved));
+          const auto metadata = snapshot_ ? (saved == metadata_.end() ? AssetMetadata{} : saved->second) : Read(root_ / resolved);
+          if (!metadata.id.empty()) updated[Text(resolved)] = metadata.id;
+      } else if (value.is_object()) {
+          for (auto &[key, item] : value.items()) {
+              if (key == "baseline" && item.is_string()) {
+                  auto baseline = Json::parse(item.get<std::string>()); References(baseline, capture, resolve); item = baseline.dump();
+              } else WalkReferences(item, references, updated, capture, resolve);
+          }
+      } else if (value.is_array()) for (auto &item : value) WalkReferences(item, references, updated, capture, resolve);
+
+    }
+
+  void ValidateDestination(const std::filesystem::path &from, const std::filesystem::path &to) const
+  {
+      if (!Valid(from) || !Valid(to) || from.extension() != to.extension() || *from.begin() != *to.begin() || from == to || std::next(from.begin()) == from.end() || std::next(to.begin()) == to.end() || *std::next(from.begin()) != *std::next(to.begin()) || std::filesystem::exists(root_ / to) || std::filesystem::exists(Sidecar(root_ / to)))
+          throw std::runtime_error("Invalid asset destination or destination exists");
+      const auto base = std::filesystem::weakly_canonical(root_);
+      for (const auto &path : {from, to}) {
+          const auto relative = std::filesystem::weakly_canonical(root_ / path).lexically_relative(base);
+          if (relative.empty() || relative.is_absolute() || *relative.begin() == "..") throw std::runtime_error("Asset destination leaves project root");
+      }
+  }
+
+  void RewriteDependencies(const std::filesystem::path &from, const std::filesystem::path &to, std::string &original, std::string &revised) const
+  {
+      if (from.parent_path() != to.parent_path() && (from.extension() == ".gltf" || from.extension() == ".obj")) {
+          std::ifstream input(root_ / from, std::ios::binary); original = {std::istreambuf_iterator<char>(input), {}};
+          if (from.extension() == ".gltf") {
+              auto json = Json::parse(original);
+              for (const auto *key : {"buffers", "images"}) if (json.contains(key)) for (auto &resource : json[key]) {
+                          if (!resource.contains("uri")) continue;
+                          const auto uri = resource["uri"].get<std::string>();
+                          if (uri.starts_with("data:") || uri.find(":") != std::string::npos) continue;
+                          resource["uri"] = Text((from.parent_path() / Path(uri)).lexically_normal().lexically_relative(to.parent_path()));
+                      } revised = json.dump(2) + "\n";
+          } else {
+              std::istringstream lines(original); std::string line;
+              while (std::getline(lines, line)) {
+                  if (line.starts_with("mtllib ")) line = "mtllib " + Text((from.parent_path() / Path(line.substr(7))).lexically_normal().lexically_relative(to.parent_path()));
+                  revised += line + "\n";
+              }
+          }
+      }
+  }
 };
 }

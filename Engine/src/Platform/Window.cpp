@@ -141,6 +141,24 @@ namespace Engine
         if(!window) return 0;
         const float result=window->mouseWheel_; window->mouseWheel_=0; return result;
     }
+    void Window::HandleInputMessage(HWND handle, UINT message, WPARAM wParam)
+    {
+        auto *inputWindow = reinterpret_cast<Window *>(GetWindowLongPtrW(handle, GWLP_USERDATA));
+        if (inputWindow) {
+            if (message == WM_KILLFOCUS) {inputWindow->textInput_.clear(); inputWindow->highSurrogate_ = 0; inputWindow->mouseWheel_ = 0;}
+            if (message == WM_MOUSEWHEEL) inputWindow->mouseWheel_ += static_cast<SHORT>(HIWORD(wParam)) / static_cast<float>(WHEEL_DELTA);
+            if (message == WM_CHAR && inputWindow->textInput_.size() < 4096) {
+                const auto character = static_cast<char32_t>(wParam);
+                if (character >= 0xd800 && character <= 0xdbff) inputWindow->highSurrogate_ = character;
+                else {
+                    if (character >= 0xdc00 && character <= 0xdfff) {
+                        if (inputWindow->highSurrogate_ != 0) inputWindow->textInput_.push_back(0x10000 + ((inputWindow->highSurrogate_ - 0xd800) << 10) + (character - 0xdc00));
+                    } else inputWindow->textInput_.push_back(character);
+                    inputWindow->highSurrogate_ = 0;
+                }
+            }
+        }
+    }
     LRESULT CALLBACK Window::WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARAM lParam)
     {
         if (message == WM_NCCREATE)
@@ -168,21 +186,7 @@ namespace Engine
             }
             SetWindowLongPtrW(handle, GWLP_USERDATA, 0);
         }
-        auto* inputWindow=reinterpret_cast<Window*>(GetWindowLongPtrW(handle,GWLP_USERDATA));
-        if(inputWindow) {
-            if(message==WM_KILLFOCUS) {inputWindow->textInput_.clear(); inputWindow->highSurrogate_=0; inputWindow->mouseWheel_=0;}
-            if(message==WM_MOUSEWHEEL) inputWindow->mouseWheel_+=static_cast<SHORT>(HIWORD(wParam))/static_cast<float>(WHEEL_DELTA);
-            if(message==WM_CHAR && inputWindow->textInput_.size()<4096) {
-                const auto character=static_cast<char32_t>(wParam);
-                if(character>=0xd800 && character<=0xdbff) inputWindow->highSurrogate_=character;
-                else {
-                    if(character>=0xdc00 && character<=0xdfff) {
-                        if(inputWindow->highSurrogate_!=0) inputWindow->textInput_.push_back(0x10000+((inputWindow->highSurrogate_-0xd800)<<10)+(character-0xdc00));
-                    } else inputWindow->textInput_.push_back(character);
-                    inputWindow->highSurrogate_=0;
-                }
-            }
-        }
+        HandleInputMessage(handle,message,wParam);
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         if (ImGuiLayer::ProcessMessage(handle, message, wParam, lParam))
         {

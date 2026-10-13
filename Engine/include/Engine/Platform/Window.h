@@ -79,6 +79,7 @@ namespace Engine
         static float ConsumeMouseWheel(HWND handle);
 
     private:
+        static void HandleInputMessage(HWND handle,UINT message,WPARAM wParam);
         /// <summary>
         /// ウィンドウへのメッセージを処理し、閉じる操作を終了要求として記録します。
         /// </summary>

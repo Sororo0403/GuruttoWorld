@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include <Engine/Audio/AudioSystem.h>
 #include <numeric>
 #include <iterator>
@@ -46,7 +47,7 @@ bool AudioSystem::SetSpatial(SoundHandle handle,const AudioSpatialSettings& sett
     if(found==sounds_.end()||!Finite(settings.position)||!Unit(settings.blend)||!Unit(settings.lowPass)||
         !std::isfinite(settings.minimumDistance)||!std::isfinite(settings.maximumDistance)||settings.minimumDistance<=0||
         settings.maximumDistance<=settings.minimumDistance||settings.maximumDistance>1000000||
-        !std::isfinite(settings.pitch)||settings.pitch<.25f||settings.pitch>2) return false;
+        !Engine::InRange(settings.pitch,.25f,2)) return false;
     found->second.spatial=settings; return ApplySpatial(found->second);
 }
 bool AudioSystem::EnsureBus(const std::string& name) {

@@ -31,6 +31,41 @@ namespace
         }
         return true;
     }
+    bool ReadGeometry(const aiMesh &source, const Engine::AssetMetadata &settings, const aiColor3D &diffuse, Engine::MeshData &mesh)
+    {
+        mesh.vertices.reserve(source.mNumVertices);
+        for (unsigned int i = 0; i < source.mNumVertices; ++i)
+        {
+            const auto &position = source.mVertices[i];
+            const auto &normal = source.mNormals[i];
+            const aiVector3D uv = source.HasTextureCoords(0) ? source.mTextureCoords[0][i] : aiVector3D{};
+            mesh.vertices.push_back({{position.x * settings.scale, position.y * settings.scale, position.z * settings.scale}, {normal.x, normal.y, normal.z},
+                    {uv.x, settings.flipV ? 1 - uv.y : uv.y}, {diffuse.r, diffuse.g, diffuse.b, 1.0f}});
+        }
+        mesh.indices.reserve(static_cast<size_t>(source.mNumFaces) * 3);
+        for (unsigned int i = 0; i < source.mNumFaces; ++i)
+        {
+            const aiFace &face = source.mFaces[i];
+            if (face.mNumIndices != 3)
+            {
+                Engine::Log::Error("Model contains a non-triangle face after triangulation.");
+                return false;
+            }
+            mesh.indices.insert(mesh.indices.end(), face.mIndices, face.mIndices + 3);
+        }
+        return true;
+    }
+
+    bool ResolveTextures(const std::filesystem::path &path, std::vector<Engine::MeshData> &loaded)
+    {
+        using namespace Engine;
+        try {
+            const auto root = AssetDatabase::Root(path);
+            if (!root.empty()) { AssetDatabase database(root); for (auto &mesh : loaded) if (!mesh.texturePath.empty()) mesh.texturePath = root / database.Resolve(std::filesystem::absolute(mesh.texturePath).lexically_relative(root)); }
+        } catch (const std::exception &error) { Log::Error(error.what()); return false; }
+        return true;
+    }
+
 }
 
 namespace Engine
@@ -61,26 +96,7 @@ namespace Engine
             MeshData mesh;
             aiColor3D diffuse(1.0f, 1.0f, 1.0f);
             if (!ReadMaterial(*scene, source, path, mesh, diffuse)) return false;
-            mesh.vertices.reserve(source.mNumVertices);
-            for (unsigned int i = 0; i < source.mNumVertices; ++i)
-            {
-                const auto& position = source.mVertices[i];
-                const auto& normal = source.mNormals[i];
-                const aiVector3D uv = source.HasTextureCoords(0) ? source.mTextureCoords[0][i] : aiVector3D{};
-                mesh.vertices.push_back({ {position.x*settings.scale, position.y*settings.scale, position.z*settings.scale}, {normal.x, normal.y, normal.z},
-                    {uv.x, settings.flipV ? 1-uv.y : uv.y}, {diffuse.r, diffuse.g, diffuse.b, 1.0f} });
-            }
-            mesh.indices.reserve(static_cast<size_t>(source.mNumFaces) * 3);
-            for (unsigned int i = 0; i < source.mNumFaces; ++i)
-            {
-                const aiFace& face = source.mFaces[i];
-                if (face.mNumIndices != 3)
-                {
-                    Engine::Log::Error("Model contains a non-triangle face after triangulation.");
-                    return false;
-                }
-                mesh.indices.insert(mesh.indices.end(), face.mIndices, face.mIndices + 3);
-            }
+            if(!ReadGeometry(source,settings,diffuse,mesh)) return false;
             if (!mesh.indices.empty())
             {
                 loaded.push_back(std::move(mesh));
@@ -92,10 +108,7 @@ namespace Engine
             return false;
         }
         Log::Info(std::format("OBJ loaded: {} meshes.", loaded.size()));
-        try {
-            const auto root=AssetDatabase::Root(path);
-            if (!root.empty()) { AssetDatabase database(root); for (auto& mesh : loaded) if (!mesh.texturePath.empty()) mesh.texturePath=root/database.Resolve(std::filesystem::absolute(mesh.texturePath).lexically_relative(root)); }
-        } catch (const std::exception& error) { Log::Error(error.what()); return false; }
+        if(!ResolveTextures(path,loaded)) return false;
         meshes = std::move(loaded);
         return true;
     }

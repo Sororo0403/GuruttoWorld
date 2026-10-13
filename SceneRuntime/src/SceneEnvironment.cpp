@@ -281,6 +281,6 @@ namespace SceneRuntime
     }
     void SceneEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, bool showSceneUi) const
     {
-        presentation_.Draw(commands,world_,width,height,sceneCamera,seconds_,motionEnabled_,&uiState_,showSceneUi);
+        presentation_.Draw(commands,world_,width,height,{sceneCamera,seconds_,motionEnabled_,&uiState_,showSceneUi});
     }
 }

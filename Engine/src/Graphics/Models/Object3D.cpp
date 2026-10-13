@@ -83,7 +83,7 @@ namespace Engine
     void Object3D::Draw(ID3D12GraphicsCommandList* commands, const Camera& camera,
         const DirectionalLight& light, const UvTransform& uvTransform,MaterialPass pass) const
     {
-        if (model_) model_->Draw(commands, world_, camera.GetViewProjectionMatrix(), light, camera.GetPosition(), material_ ? material_->uv : uvTransform,material_.get(),materialSlots_,pass);
+        if (model_) model_->Draw(commands, world_, camera.GetViewProjectionMatrix(), light, camera.GetPosition(), material_ ? material_->uv : uvTransform,material_.get(),{materialSlots_,pass});
     }
     bool Object3D::HasMaterialPass(MaterialPass pass) const {
         if(!model_) return false;

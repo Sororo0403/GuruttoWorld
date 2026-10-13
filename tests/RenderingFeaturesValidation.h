@@ -22,7 +22,7 @@ namespace RenderingFeaturesValidation
         const std::array<DirectX::XMFLOAT4X4,2> transforms{offscreen,identity};
         for (size_t frame=0;frame<4;++frame)
             Require(EnvironmentValidation::Pixel(renderer,[&](auto* commands) {
-                mesh.Draw(commands,offscreen,identity,light,{0,0,-3.5f},{},&material,{},transforms);
+                mesh.Draw(commands,offscreen,identity,light,{0,0,-3.5f},{},&material,{{},transforms});
             })==std::array<unsigned char,4>{255,0,0,255},"second GPU instance uses its own matrix across frame slots");
         Engine::OcclusionRenderer occlusion; Require(occlusion.Initialize(renderer.GetDevice(),shader),"occlusion pipeline initializes");
         const DirectX::BoundingBox bounds{{0,0,.6f},{.2f,.2f,.1f}};

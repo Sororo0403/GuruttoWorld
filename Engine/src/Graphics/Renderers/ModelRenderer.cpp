@@ -178,14 +178,15 @@ namespace Engine
     void ModelRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
         const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
         const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,const Material* material,
-        std::span<const std::shared_ptr<const Material>> slots,MaterialPass pass,std::span<const DirectX::XMFLOAT4X4> instances) const
+        const ModelDrawOptions& options) const
     {
+        const auto& [slots,pass,instances]=options;
         for (size_t index=0;index<meshes_.size();++index)
         {
             const auto* selected=MaterialForSlot(index,material,slots);
             if(!MatchesMaterialPass(selected,pass)) continue;
             meshes_[index]->Draw(commands, world, viewProjection, light, cameraPosition, selected?selected->uv:uvTransform,selected,
-                rig_ ? std::span<const SkinMatrix>(palettes_[index]) : std::span<const SkinMatrix>{},instances);
+                {rig_ ? std::span<const SkinMatrix>(palettes_[index]) : std::span<const SkinMatrix>{},instances});
         }
     }
     bool ModelRenderer::IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction,

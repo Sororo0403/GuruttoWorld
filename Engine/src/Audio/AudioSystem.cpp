@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include <Engine/Audio/AudioSystem.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Audio/AudioDecoder.h>
@@ -153,7 +154,7 @@ namespace Engine
     bool AudioSystem::SetVolume(SoundHandle handle, float volume)
     {
         const auto found = sounds_.find(handle);
-        if (found == sounds_.end() || !std::isfinite(volume) || volume < 0.0f || volume > 1.0f) return false;
+        if (found == sounds_.end() || !Engine::InRange(volume,0.0f,1.0f)) return false;
         if (found->second.voice != nullptr && !Check(found->second.voice->SetVolume(volume), "Set sound volume")) return false;
         found->second.volume = volume;
         return true;

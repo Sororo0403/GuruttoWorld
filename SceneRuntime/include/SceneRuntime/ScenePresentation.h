@@ -7,12 +7,19 @@
 
 namespace SceneRuntime
 {
+    struct SceneDrawOptions {
+        const Engine::Camera* sceneCamera=nullptr;
+        double seconds=0;
+        bool motionEnabled=true;
+        const UiState* uiState=nullptr;
+        bool showSceneUi=true;
+    };
     class ScenePresentation final
     {
     public:
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root, std::string& error);
         void Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width,
-            unsigned int height, const Engine::Camera* sceneCamera=nullptr, double seconds=0, bool motionEnabled=true, const UiState* uiState=nullptr, bool showSceneUi=true) const;
+            unsigned int height,const SceneDrawOptions& options={}) const;
         /// <summary>UI を準備します。明示的な初期化・再読込ではシェーダーの変更も検査します。</summary>
         bool PrepareUi(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,const SceneLayout& layout,std::string& error,const UiState& state={},bool inspectShaders=true)
         { return PrepareEffects(layout,error) && ui_.Prepare(renderer,root,layout,error,state,inspectShaders); }
@@ -28,6 +35,7 @@ namespace SceneRuntime
         static std::array<float,4> Particle(const SceneWorld& world, const ScenePlacement& placement,
             unsigned int index, double seconds);
     private:
+        bool BeginPostEffects(ID3D12GraphicsCommandList* commands,const SceneLayout& layout,unsigned int width,unsigned int height,Engine::PostEffectRenderer*& post) const;
         /// <summary>有効化したシーンにだけポストエフェクトのパイプラインを準備します。</summary>
         bool PrepareEffects(const SceneLayout& layout,std::string& error) const;
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
