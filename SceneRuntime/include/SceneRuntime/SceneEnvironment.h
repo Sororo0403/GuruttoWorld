@@ -56,6 +56,8 @@ namespace SceneRuntime
         void SeekAnimation(float sceneSeconds, float motionSeconds, float startSeconds = -1);
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height, const Engine::Camera* sceneCamera=nullptr, bool showSceneUi=true) const;
     private:
+        void ApplyCameraFocus(const MenuConfiguration* menu);
+
         /// <summary>Script更新のUI候補を現在の描画資源から分離して準備します。</summary>
         bool PrepareRuntimeUi(const SceneLayout&,const ScriptUiCommands&,std::string& error);
         /// <summary>成功したフレームのbinding変更と準備したUI資源を確定します。</summary>

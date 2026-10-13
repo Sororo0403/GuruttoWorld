@@ -23,15 +23,15 @@ namespace AnimationEventValidation
         Animator::Advance(animator,state,rig,.1,{}); Require(state.events.empty(),"start does not repeat next tick");
         Animator::Advance(animator,state,rig,.1,{}); Require(state.events.size()==1 && state.events[0].name=="middle","interval crossing emits marker once");
         Animator::Advance(animator,state,rig,0,{}); Require(state.events.empty(),"zero step clears last events without replay");
-        const auto boundary=AnimationEvents::Collect(animator.events,rig,"Idle",{{"Idle",1,1}},.9,1.1,true,false);
+        const auto boundary=AnimationEvents::Collect(animator.events,rig,"Idle",{{"Idle",1,1}},{.9,1.1,true,false});
         Require(boundary.size()==2 && boundary[0].name=="end" && boundary[0].cycle==0 && boundary[1].name=="start" && boundary[1].cycle==1,"loop end precedes next start at exact boundary");
-        const auto loops=AnimationEvents::Collect({Key("Idle","step",.25f)},rig,"Idle",{{"Idle",1,1}},.1,3.3,true,false);
+        const auto loops=AnimationEvents::Collect({Key("Idle","step",.25f)},rig,"Idle",{{"Idle",1,1}},{.1,3.3,true,false});
         Require(loops.size()==4 && loops[0].cycle==0 && loops.back().cycle==3,"several loops crossed by one tick emit every occurrence");
-        Require(AnimationEvents::Collect({Key("Idle","filtered",0,1)},rig,"Idle",{{"Idle",1,1}},0,50000,true,false,0,1).size()==1,"minimum blend weight filters large cycle interval before capacity validation");
-        Require(AnimationEvents::Collect({Key("Idle","rounding",.3f)},rig,"Idle",{{"Idle",1,1}},.2,3*static_cast<double>(.1f),true,false).size()==1 &&
-            AnimationEvents::Collect({Key("Idle","rounding",.3f)},rig,"Idle",{{"Idle",1,1}},3*static_cast<double>(.1f),.4,true,false).empty(),"float timestamp rounding does not delay or duplicate a marker");
-        const auto single=AnimationEvents::Collect(animator.events,rig,"Idle",{{"Idle",1,1}},.9,2.5,false,false);
-        Require(single.size()==1 && single[0].name=="end" && AnimationEvents::Collect(animator.events,rig,"Idle",{{"Idle",1,1}},2.5,3,false,false).empty(),"nonlooping end fires once even as clock continues");
+        Require(AnimationEvents::Collect({Key("Idle","filtered",0,1)},rig,"Idle",{{"Idle",1,1}},{0,50000,true,false,0,1}).size()==1,"minimum blend weight filters large cycle interval before capacity validation");
+        Require(AnimationEvents::Collect({Key("Idle","rounding",.3f)},rig,"Idle",{{"Idle",1,1}},{.2,3*static_cast<double>(.1f),true,false}).size()==1 &&
+            AnimationEvents::Collect({Key("Idle","rounding",.3f)},rig,"Idle",{{"Idle",1,1}},{3*static_cast<double>(.1f),.4,true,false}).empty(),"float timestamp rounding does not delay or duplicate a marker");
+        const auto single=AnimationEvents::Collect(animator.events,rig,"Idle",{{"Idle",1,1}},{.9,2.5,false,false});
+        Require(single.size()==1 && single[0].name=="end" && AnimationEvents::Collect(animator.events,rig,"Idle",{{"Idle",1,1}},{2.5,3,false,false}).empty(),"nonlooping end fires once even as clock continues");
         AnimatorBlendTree tree; tree.name="mix"; tree.type=AnimatorBlendType::Direct;
         tree.children={BlendTreeValidation::Motion("Idle",0,{},"a"),BlendTreeValidation::Motion("Idle",0,{},"b"),BlendTreeValidation::Motion("Walk",0,{},"c")};
         animator.blendTrees={tree}; animator.states[0].clip.clear(); animator.states[0].blendTree="mix"; animator.events={Key("Idle","idle",.01f,.5f),Key("Walk","walk",.02f,.5f)};

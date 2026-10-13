@@ -53,6 +53,13 @@ bool SceneAudio::SameConfiguration(const SceneLayout& layout) const {
     }
     return index==configuration_.size();
 }
+void SceneAudio::UnloadReplacedSources(const std::map<std::string, Source> &pending) {
+    for (const auto &[id, s] : sources_) {const auto replacement = pending.find(id); if (replacement == pending.end() || replacement->second.handle != s.handle) audio_.Unload(s.handle);}
+}
+void SceneAudio::CaptureConfiguration(const SceneLayout &layout) {
+    configuration_.clear();
+    for (const auto &p : layout.objects) if (p.audioSource || p.audioMixer) configuration_.push_back({p.id, p.audioSource, p.audioMixer});
+}
 bool SceneAudio::Refresh(const SceneLayout& layout,std::string& error,const SceneWorld* world) {
     if(SameConfiguration(layout)) {Spatial(layout,world); error.clear(); return true;}
     // A failed candidate may have changed live routing; reapply the last successful configuration on recovery.
@@ -73,10 +80,9 @@ bool SceneAudio::Refresh(const SceneLayout& layout,std::string& error,const Scen
         const auto& c=*p.audioSource;
         if(!c.cue.empty()) cues.try_emplace(c.cue,p.id);
     }
-    for(const auto& [id,s]:sources_) {const auto replacement=pending.find(id); if(replacement==pending.end()||replacement->second.handle!=s.handle) audio_.Unload(s.handle);}
+    UnloadReplacedSources(pending);
     sources_=std::move(pending); cues_=std::move(cues);
-    configuration_.clear();
-    for(const auto& p:layout.objects) if(p.audioSource||p.audioMixer) configuration_.push_back({p.id,p.audioSource,p.audioMixer});
+    CaptureConfiguration(layout);
     configured_=true; Spatial(layout,world); error.clear(); return true;
 }
 void SceneAudio::Spatial(const SceneLayout& layout,const SceneWorld* world) {

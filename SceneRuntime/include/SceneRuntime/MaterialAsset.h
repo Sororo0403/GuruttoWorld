@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Validation.h>
 #include <array>
 #include <iterator>
 #include <Engine/Core/Profiler.h>
@@ -27,22 +28,26 @@ namespace SceneRuntime
             return !path.is_absolute() && !path.has_root_name() && value.starts_with("Assets/Materials/") && path.extension()==".mat" &&
                 std::none_of(path.begin(),path.end(),[](const auto& part) { return part==".."; });
         }
+        void ValidateTextures() const
+        {
+            for (const auto &image : {texture, normalTexture, environmentTexture, lightmap})
+            {
+                const auto text = image.generic_u8string(); const std::string path(text.begin(), text.end());
+                if (!image.empty() && (image.is_absolute() || image.has_root_name() || !path.starts_with("Assets/Textures/") ||
+                                       std::any_of(image.begin(), image.end(), [](const auto &part) { return part == ".."; }))) throw std::runtime_error("Invalid material texture path");
+            }
+        }
         void Validate() const
         {
             if(!shader.empty() && (shader.is_absolute() || shader.has_root_name() || !shader.generic_u8string().starts_with(u8"Shaders/") || shader.extension()!=".hlsl" ||
                 std::any_of(shader.begin(),shader.end(),[](const auto& part){return part=="..";}))) throw std::runtime_error("Invalid material shader path");
-            if (std::any_of(std::begin(values.color),std::end(values.color),[](const float channel) {return !std::isfinite(channel) || channel<0 || channel>1;})) throw std::runtime_error("Invalid material color");
-            if (!std::isfinite(values.roughness) || values.roughness<0.04f || values.roughness>1 ||
-                !std::isfinite(values.metallic) || values.metallic<0 || values.metallic>1) throw std::runtime_error("Invalid material surface");
-            if (!std::isfinite(values.environmentIntensity) || values.environmentIntensity<0 || values.environmentIntensity>100) throw std::runtime_error("Invalid environment intensity");
-            for (const auto& image : {texture,normalTexture,environmentTexture,lightmap})
-            {
-                const auto text=image.generic_u8string(); const std::string path(text.begin(),text.end());
-                if (!image.empty() && (image.is_absolute() || image.has_root_name() || !path.starts_with("Assets/Textures/") ||
-                    std::any_of(image.begin(),image.end(),[](const auto& part) { return part==".."; }))) throw std::runtime_error("Invalid material texture path");
-            }
+            if (std::any_of(std::begin(values.color),std::end(values.color),[](const float channel) {return !Engine::InRange(channel,0,1);})) throw std::runtime_error("Invalid material color");
+            if (!Engine::InRange(values.roughness,0.04f,1) ||
+                !Engine::InRange(values.metallic,0,1)) throw std::runtime_error("Invalid material surface");
+            if (!Engine::InRange(values.environmentIntensity,0,100)) throw std::runtime_error("Invalid environment intensity");
+            ValidateTextures();
             const auto validationValues1=std::array{values.uv.scale[0],values.uv.scale[1],values.uv.rotation,values.uv.translation[0],values.uv.translation[1]};
-            if (std::any_of(validationValues1.begin(),validationValues1.end(),[](const auto value) {return !std::isfinite(value) || std::abs(value)>100000;})) throw std::runtime_error("Invalid material UV transform");
+            if (std::any_of(validationValues1.begin(),validationValues1.end(),[](const auto value) {return !Engine::InRange(value,-100000,100000);})) throw std::runtime_error("Invalid material UV transform");
         }
         static MaterialAsset Load(const std::filesystem::path& root,const std::filesystem::path& path,const Engine::AssetDatabase* assetIndex=nullptr)
         {

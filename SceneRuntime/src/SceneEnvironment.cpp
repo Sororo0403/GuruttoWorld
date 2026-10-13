@@ -137,16 +137,20 @@ namespace SceneRuntime
         else focusSeconds_+=elapsed;
         if (!world_.Animate(uiState_.values)) Engine::Log::Warning("Animation rejected an invalid transform.");
         if (!focusEngaged_ || startSeconds_>=0) return;
-        camera=SceneView::CameraObject(world_.Layout());
+        ApplyCameraFocus(menu);
+    }
+    void SceneEnvironment::ApplyCameraFocus(const MenuConfiguration *menu)
+    {
+        const auto *camera = SceneView::CameraObject(world_.Layout());
         if (!camera || !camera->animation || !camera->animation->enabled) return;
-        if(!menu) return;
-        const auto entry=std::find_if(menu->entries.begin(),menu->entries.end(),[&](const auto& e){return e.focus==focusRequested_;});
-        if(entry==menu->entries.end() || entry->focusClock.empty()) return;
-        const auto& clock=entry->focusClock;
-        const auto pose=SampleCameraFocus(*camera,clock,focusSeconds_,focusPosition_,focusRotation_);
-        if (!world_.SetLocalTransform(camera->id,pose.position,pose.rotation,camera->scale))
+        if (!menu) return;
+        const auto entry = std::find_if(menu->entries.begin(), menu->entries.end(), [&](const auto &e){ return e.focus == focusRequested_; });
+        if (entry == menu->entries.end() || entry->focusClock.empty()) return;
+        const auto &clock = entry->focusClock;
+        const auto pose = SampleCameraFocus(*camera, clock, focusSeconds_, focusPosition_, focusRotation_);
+        if (!world_.SetLocalTransform(camera->id, pose.position, pose.rotation, camera->scale))
             Engine::Log::Warning("Camera focus rejected an invalid transform.");
-        if (entry->view==0 && focusSeconds_>=pose.duration) focusEngaged_=false;
+        if (entry->view == 0 && focusSeconds_ >= pose.duration) focusEngaged_ = false;
     }
     void SceneEnvironment::SeekAnimation(float sceneSeconds,float motionSeconds,float startSeconds)
     {
@@ -259,7 +263,7 @@ namespace SceneRuntime
         const auto pressedObject=uiState_.pressed;
         const auto found=std::find_if(world_.Layout().objects.begin(),world_.Layout().objects.end(),[&](const auto& p){return p.id==pressedObject;});
         const bool button=found!=world_.Layout().objects.end() && found->button && found->button->enabled && !found->toggle && !found->inputField;
-        auto event=SceneUi::Pointer(world_.Layout(),width,height,x,y,down,pressed,released && !button,wheel,uiState_);
+        auto event=SceneUi::Pointer(world_.Layout(),width,height,{x,y,down,pressed,released && !button,wheel},uiState_);
         if(released && button) {
             if(pressedObject==uiState_.hovered) event=Click(pressedObject);
             uiState_.pressed.clear();

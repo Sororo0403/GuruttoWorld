@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include "EnvironmentJson.h"
 #include <cmath>
 #include <stdexcept>
@@ -172,7 +173,7 @@ namespace
     {
         auto emitter=ReadBase(object,placement.particleEmitter);
         const auto count=JsonNumber(object.at("count"));
-        if (!std::isfinite(count) || count<0 || count>1024 || std::floor(count)!=count)
+        if (!Engine::InRange(count,0,1024) || std::floor(count)!=count)
             throw std::runtime_error("Particle count must be an integer within [0,1024]");
         emitter.count=static_cast<unsigned int>(count);
         emitter.color=Vector<4>(object,"color",0,1);

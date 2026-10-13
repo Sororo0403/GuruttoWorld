@@ -109,6 +109,30 @@ namespace
             visited[index]=2;
         }
     }
+    bool SameHierarchy(const SceneRuntime::SceneLayout &layout, const SceneRuntime::SceneLayout &validatedBefore, size_t previousCount)
+    {
+        if (layout.objects.size() != validatedBefore.objects.size() || layout.objects.size() != previousCount)
+            return false;
+        for (size_t index = 0; index < layout.objects.size(); ++index)
+            if (layout.objects[index].id != validatedBefore.objects[index].id ||
+                layout.objects[index].parentId != validatedBefore.objects[index].parentId)
+                return false;
+        return true;
+    }
+
+    void ComposeChanged(const SceneRuntime::SceneLayout &layout, size_t index, const std::vector<std::optional<size_t>> &parents, std::vector<Matrix> &matrices)
+    {
+        if (!SceneRuntime::SceneTransforms::Compose(layout.objects[index], matrices[index]))
+            throw std::runtime_error("Invalid transform: " + layout.objects[index].id);
+        if (parents[index])
+        {
+            DirectX::XMStoreFloat4x4(&matrices[index], DirectX::XMLoadFloat4x4(&matrices[index]) *
+                                                           DirectX::XMLoadFloat4x4(&matrices[*parents[index]]));
+            if (!SceneRuntime::SceneTransforms::IsUsable(matrices[index]))
+                throw std::runtime_error("Inherited transform is outside the supported range");
+        }
+    }
+
 }
 
 namespace SceneRuntime
@@ -202,12 +226,7 @@ namespace SceneRuntime
         const std::vector<DirectX::XMFLOAT4X4>& previousWorldMatrices,
         std::vector<DirectX::XMFLOAT4X4>& output,std::string& error)
     {
-        if (layout.objects.size()!=validatedBefore.objects.size() || layout.objects.size()!=previousWorldMatrices.size())
-            return Resolve(layout,output,error);
-        for (size_t index=0;index<layout.objects.size();++index)
-            if (layout.objects[index].id!=validatedBefore.objects[index].id ||
-                layout.objects[index].parentId!=validatedBefore.objects[index].parentId)
-                return Resolve(layout,output,error);
+        if(!SameHierarchy(layout,validatedBefore,previousWorldMatrices.size())) return Resolve(layout,output,error);
         try
         {
             const auto parents=ParentIndices(layout);
@@ -238,15 +257,7 @@ namespace SceneRuntime
                     if (parents[index] && dirty[*parents[index]]) dirty[index]=1;
                     if (dirty[index])
                     {
-                        if (!Compose(layout.objects[index],matrices[index]))
-                            throw std::runtime_error("Invalid transform: "+layout.objects[index].id);
-                        if (parents[index])
-                        {
-                            DirectX::XMStoreFloat4x4(&matrices[index],DirectX::XMLoadFloat4x4(&matrices[index]) *
-                                DirectX::XMLoadFloat4x4(&matrices[*parents[index]]));
-                            if (!IsUsable(matrices[index]))
-                                throw std::runtime_error("Inherited transform is outside the supported range");
-                        }
+                        ComposeChanged(layout,index,parents,matrices);
                     }
                     visited[index]=2;
                 }

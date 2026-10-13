@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include "SceneSettingsJson.h"
 #include <iterator>
 #include <algorithm>
@@ -19,7 +20,7 @@ namespace
         for (uint32_t index=0;index<N;++index)
         {
             const auto value=JsonNumber(values.at(index));
-            if (!std::isfinite(value) || value<0 || value>1) throw std::runtime_error("Scene color must be within [0,1]");
+            if (!Engine::InRange(value,0,1)) throw std::runtime_error("Scene color must be within [0,1]");
             result[index]=static_cast<float>(value);
         }
         return result;
@@ -46,7 +47,7 @@ namespace
     {
         if(object.contains("gravity")) {
             result.gravity=object.at("gravity").get<std::array<float,3>>();
-            if (std::any_of(std::begin(result.gravity),std::end(result.gravity),[](const auto value) {return !std::isfinite(value) || std::abs(value)>1000;})) throw std::runtime_error("Invalid world gravity");
+            if (std::any_of(std::begin(result.gravity),std::end(result.gravity),[](const auto value) {return !Engine::InRange(value,-1000,1000);})) throw std::runtime_error("Invalid world gravity");
         }
         if(object.contains("fixedStep")) result.fixedStep=Number(object,"fixedStep",1.0f/240.0f,.1f);
         if(object.contains("maximumFixedSteps")) {const auto count=Number(object,"maximumFixedSteps",1,32);if(std::floor(count)!=count) throw std::runtime_error("Invalid fixed step count");result.maximumFixedSteps=static_cast<unsigned int>(count);}

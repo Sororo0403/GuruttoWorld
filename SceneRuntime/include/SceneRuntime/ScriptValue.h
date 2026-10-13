@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Validation.h>
 #include <cmath>
 #include <map>
 #include <stdexcept>
@@ -46,7 +47,7 @@ namespace SceneRuntime
     private:
         /// <summary>数値の有限性と保存範囲を検証します。</summary>
         static void ValidateItem(float item,size_t,size_t&)
-        { if (!std::isfinite(item) || std::abs(item)>1000000) throw std::runtime_error("Invalid script data number"); }
+        { if (!Engine::InRange(item,-1000000,1000000)) throw std::runtime_error("Invalid script data number"); }
         /// <summary>真偽値は常に有効です。</summary>
         static void ValidateItem(bool,size_t,size_t&) {}
         /// <summary>文字列の保存範囲を検証します。</summary>

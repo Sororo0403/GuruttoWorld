@@ -75,6 +75,8 @@ namespace SceneRuntime
         std::map<std::string,std::map<std::string,std::optional<AnimatorIkTarget>>> ikTargets;
         std::map<std::string,std::optional<bool>> rootMotions;
     private:
+        void DestroyQueuedObjects();
+
         SceneLayout& layout_;
         size_t& nextId_;
         const PhysicsWorld* physics_;
@@ -162,6 +164,21 @@ namespace SceneRuntime
             const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore);
         bool pendingFixedCommands_=false;
         struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; ScriptValue::Object data,dataState; };
+        struct TickContext {
+            TickContext(const std::map<std::string, float> &values, const std::map<std::string, bool> &edges, ScriptScene &candidate, ScriptPhase callbackPhase, double elapsed)
+                : input(values), pressed(edges), scene(candidate), phase(callbackPhase), seconds(elapsed) {}
+            const std::map<std::string,float>& input;
+            const std::map<std::string,bool>& pressed;
+            ScriptScene& scene;
+            ScriptPhase phase;
+            double seconds;
+        };
+        Instance& GetInstance(ScenePlacement& object,const ScriptComponent& script,const ScriptDefinition& definition,const TickContext& tick);
+        void TickScript(ScenePlacement& object,const ScriptComponent& script,const ScriptDefinition& definition,const TickContext& tick);
+        void StopInactive(const std::set<std::pair<std::string,std::string>>& live,SceneLayout& layout);
+        std::vector<ScenePlacement> CaptureStopOwners(const ScriptScene& scene) const;
+        void StopDestroyed(const ScriptScene& scene,std::vector<ScenePlacement>& previousOwners);
+
         std::map<std::pair<std::string,std::string>,Instance> instances_;
         size_t nextId_=1;
         std::vector<ScriptEvent> events_;

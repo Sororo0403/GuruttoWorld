@@ -53,12 +53,16 @@ namespace
             (object.position!=baseline.position || object.rotation!=baseline.rotation || object.scale!=baseline.scale));
     }
     using Engine::Json;
+    bool IncompatibleComponentTypes(const Json &old, const Json &current, const Json &source)
+    {
+        return (old.contains("type") && current.contains("type") && source.contains("type") &&
+                (old.at("type") != current.at("type") || old.at("type") != source.at("type")));
+    }
     Json MergeProperty(const Json& old,const Json& current,const Json& source)
     {
         if (current==old) return source;
         if (!old.is_object() || !current.is_object() || !source.is_object()) return current;
-        if (old.contains("type") && current.contains("type") && source.contains("type") &&
-            (old.at("type")!=current.at("type") || old.at("type")!=source.at("type"))) return current;
+        if(IncompatibleComponentTypes(old,current,source)) return current;
         Json result=source;
         for (const auto& [key,value] : current.items())
         {
@@ -155,17 +159,22 @@ namespace SceneRuntime
         return !path.is_absolute() && !path.has_root_name() && value.starts_with("Assets/Prefabs/") && path.extension()==".prefab" &&
             std::none_of(path.begin(),path.end(),[](const auto& part) { return part==".."; });
     }
+    static std::set<std::string> Descendants(const SceneLayout &scene, const std::string &rootId)
+    {
+        std::set<std::string> selected{rootId};
+        bool changed = true;
+        while (changed)
+        {
+            changed = false;
+            for (const auto &object : scene.objects)
+                if (selected.contains(object.parentId) && selected.insert(object.id).second) changed = true;
+        }
+        return selected;
+    }
     SceneLayout Prefab::Extract(const SceneLayout& scene,const std::string& rootId)
     {
         auto copy=scene; const auto& root=Find(copy,rootId);
-        std::set<std::string> selected{root.id};
-        bool changed=true;
-        while (changed)
-        {
-            changed=false;
-            for (const auto& object : scene.objects)
-                if (selected.contains(object.parentId) && selected.insert(object.id).second) changed=true;
-        }
+        const auto selected=Descendants(scene,root.id);
         SceneLayout asset; std::map<std::string,std::string> remap;
         for (const auto& object : scene.objects) if (selected.contains(object.id))
             remap[object.id]=object.prefab && object.prefab->rootId==rootId ? object.prefab->sourceId : object.id;
@@ -200,6 +209,46 @@ namespace SceneRuntime
         }
         static_cast<void>(candidate.Serialize()); scene=std::move(candidate); return root;
     }
+    static std::set<std::string> MergeInstance(SceneLayout &candidate, const SceneLayout &source, const std::map<std::string, std::string> &ids, const std::string &rootId, const std::filesystem::path &path)
+    {
+        std::set<std::string> live;
+        for (auto object : source.objects)
+        {
+            const auto sourceId = object.id; live.insert(sourceId);
+            const auto baseline = Baseline(object); Remap(object, ids); object.id = ids.at(sourceId);
+            const auto found = std::find_if(candidate.objects.begin(), candidate.objects.end(), [&](const auto &value) { return value.id == object.id; });
+            if (found == candidate.objects.end())
+            { object.prefab = PrefabLink{path, sourceId, rootId, baseline}; candidate.objects.push_back(std::move(object)); continue; }
+            if (!found->prefab) throw std::runtime_error("Prefab update conflicts with an existing object ID");
+            auto old = SceneLayout::Parse(found->prefab->baseline).objects.at(0); Remap(old, ids);
+            const bool isRoot = found->id == rootId;
+            if (found->name == old.name) found->name = object.name;
+            MergeComponents(*found, old, object);
+            if (!isRoot)
+            {
+                if (found->position == old.position) found->position = object.position;
+                if (found->rotation == old.rotation) found->rotation = object.rotation;
+                if (found->scale == old.scale) found->scale = object.scale;
+                // Parent links are structural; source changes restore the source hierarchy.
+                found->parentId = object.parentId;
+            }
+            found->prefab = PrefabLink{path, sourceId, rootId, baseline};
+        }
+        return live;
+    }
+
+    static void RemoveDeletedSources(SceneLayout &candidate, const std::set<std::string> &live, const std::map<std::string, std::string> &ids, const std::string &rootId)
+    {
+        std::set<std::string> removed;
+        for (auto &object : candidate.objects) if (object.prefab && object.prefab->rootId == rootId && !live.contains(object.prefab->sourceId))
+            {
+                auto old = SceneLayout::Parse(object.prefab->baseline).objects.at(0); Remap(old, ids);
+                if (Modified(object, old, object.id == rootId)) object.prefab.reset();
+                else removed.insert(object.id);
+            }
+        for (auto &object : candidate.objects) if (removed.contains(object.parentId)) object.parentId = rootId;
+        std::erase_if(candidate.objects, [&](const auto &object) { return removed.contains(object.id); });
+    }
     void Prefab::Refresh(SceneLayout& scene,const std::filesystem::path& assetsRoot)
     {
         auto candidate=scene;
@@ -221,38 +270,8 @@ namespace SceneRuntime
             }
             ids[sourceRoot]=rootId;
             for (const auto& object : source.objects) if (!ids.contains(object.id)) ids[object.id]=Unique(candidate,rootId+"-"+object.id);
-            std::set<std::string> live;
-            for (auto object : source.objects)
-            {
-                const auto sourceId=object.id; live.insert(sourceId);
-                const auto baseline=Baseline(object); Remap(object,ids); object.id=ids.at(sourceId);
-                const auto found=std::find_if(candidate.objects.begin(),candidate.objects.end(),[&](const auto& value) { return value.id==object.id; });
-                if (found==candidate.objects.end())
-                { object.prefab=PrefabLink{path,sourceId,rootId,baseline}; candidate.objects.push_back(std::move(object)); continue; }
-                if (!found->prefab) throw std::runtime_error("Prefab update conflicts with an existing object ID");
-                auto old=SceneLayout::Parse(found->prefab->baseline).objects.at(0); Remap(old,ids);
-                const bool isRoot=found->id==rootId;
-                if (found->name==old.name) found->name=object.name;
-                MergeComponents(*found,old,object);
-                if (!isRoot)
-                {
-                    if (found->position==old.position) found->position=object.position;
-                    if (found->rotation==old.rotation) found->rotation=object.rotation;
-                    if (found->scale==old.scale) found->scale=object.scale;
-                    // Parent links are structural; source changes restore the source hierarchy.
-                    found->parentId=object.parentId;
-                }
-                found->prefab=PrefabLink{path,sourceId,rootId,baseline};
-            }
-            std::set<std::string> removed;
-            for (auto& object : candidate.objects) if (object.prefab && object.prefab->rootId==rootId && !live.contains(object.prefab->sourceId))
-            {
-                auto old=SceneLayout::Parse(object.prefab->baseline).objects.at(0); Remap(old,ids);
-                if (Modified(object,old,object.id==rootId)) object.prefab.reset();
-                else removed.insert(object.id);
-            }
-            for (auto& object : candidate.objects) if (removed.contains(object.parentId)) object.parentId=rootId;
-            std::erase_if(candidate.objects,[&](const auto& object) { return removed.contains(object.id); });
+            const auto live=MergeInstance(candidate,source,ids,rootId,path);
+            RemoveDeletedSources(candidate,live,ids,rootId);
         }
         static_cast<void>(candidate.Serialize()); scene=std::move(candidate);
     }

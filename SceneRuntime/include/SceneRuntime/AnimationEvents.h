@@ -23,6 +23,11 @@ namespace SceneRuntime
         size_t keyIndex=0;
         bool operator==(const AnimatorEventOccurrence&) const = default;
     };
+    struct AnimationEventInterval {
+        double from=0,to=0;
+        bool loop=false,atStart=false;
+        float fromBlendWeight=1,toBlendWeight=1;
+    };
     class AnimationEvents final
     {
     public:
@@ -33,7 +38,6 @@ namespace SceneRuntime
         static void ValidateOccurrence(const AnimatorEventOccurrence& event);
         /// <summary>進んだ区間のイベントを時刻順に取得します。同じクリップの重みは合算し、各キーを1ループに1度通知します。</summary>
         static std::vector<AnimatorEventOccurrence> Collect(const std::vector<AnimatorEventKey>& keys,const Engine::SkeletonData& rig,
-            const std::string& state,const std::vector<AnimatorMotionSample>& motions,double from,double to,bool loop,bool atStart,
-            float fromBlendWeight=1,float toBlendWeight=1);
+            const std::string& state,const std::vector<AnimatorMotionSample>& motions,const AnimationEventInterval& interval);
     };
 }

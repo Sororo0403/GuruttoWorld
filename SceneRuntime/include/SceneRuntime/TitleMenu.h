@@ -77,6 +77,9 @@ namespace SceneRuntime
         /// <summary>保存に失敗したか返します。</summary>
         bool SaveFailed() const { return saveFailed_; }
     private:
+        void CaptureSelectedTarget();
+        void ChangeVolumeUi();
+
         SceneRuntime::MenuConfiguration configuration_=SceneRuntime::DefaultMenuConfiguration();
         std::string pendingTarget_, assignments_;
         void ChangeSetting(int direction, bool confirm);

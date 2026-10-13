@@ -5,6 +5,7 @@
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
 #include <optional>
+#include <unordered_map>
 #include <SceneRuntime/ScenePhysics.h>
 #include <SceneRuntime/ScriptRuntime.h>
 #include <SceneRuntime/PhysicsWorld.h>
@@ -130,6 +131,17 @@ namespace SceneRuntime
             std::map<std::string,AnimatorState> states;
             std::map<std::string,std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lods;
         };
+        struct LayoutView {
+            const decltype(PreparedLayout::layout)& layout;
+            const decltype(PreparedLayout::objects)& objects;
+            const decltype(PreparedLayout::assetsRoot)& root;
+            const decltype(PreparedLayout::assets)& assets;
+            const decltype(PreparedLayout::materials)& materials;
+            const decltype(PreparedLayout::animated)& animated;
+            const decltype(PreparedLayout::states)& states;
+            const decltype(PreparedLayout::lods)& lods;
+        };
+        LayoutView BaselineView(const PreparedLayout* previous) const;
         struct AnimatorFrame
         {
             std::string id;
@@ -139,6 +151,11 @@ namespace SceneRuntime
             Engine::ModelRenderer::PreparedPose pose;
             bool applyPose=false;
         };
+        Engine::Object3D BuildLayoutObject(const ScenePlacement& placement,const SceneLayout& layout,const DirectX::XMFLOAT4X4& matrix,PreparedLayout& prepared,const LayoutView& baseline,bool preserveExecution);
+        void InitializeAnimatorObject(Engine::Object3D& object,const ScenePlacement& placement,const SceneLayout& layout,const DirectX::XMFLOAT4X4& matrix,PreparedLayout& prepared,const LayoutView& baseline,bool preserveExecution);
+        static void ApplyAnimatorOverrides(const std::string& id,const ScriptRuntime& scripts,AnimatorState& state);
+        std::map<std::string,float> AnimatorInputs(const SceneLayout& layout,const std::string& id) const;
+        static void AdvanceAnimatorFrame(const SceneLayout& layout,const ScenePlacement& placement,AnimatorFrame& frame,double seconds,const std::map<std::string,float>& parameters,const DirectX::XMFLOAT4X4& matrix);
         /// <summary>配置・モデル・初期Animatorを候補へ構築し、現在のシーンを保持します。</summary>
         bool PrepareLayout(SceneLayout layout,const std::filesystem::path& assetsRoot,std::string& error,bool preserveExecution,PreparedLayout& result,const PreparedLayout* previous=nullptr);
         /// <summary>実行段階の変更を直前の候補から準備し、進行したAnimator状態を保持します。</summary>
@@ -156,6 +173,26 @@ namespace SceneRuntime
         /// <summary>全個体の姿勢とイベントを検証し、Scriptの候補キューへ予約します。</summary>
         bool PrepareAnimators(const SceneLayout& layout,double seconds,const std::map<std::string,std::shared_ptr<Engine::ModelRenderer>>& models,
             const std::map<std::string,AnimatorState>& states,ScriptRuntime& scripts,std::vector<AnimatorFrame>& result,std::string& error) const;
+        std::map<std::string,bool> FixedRootOverrides(SceneLayout& layout,const ScriptRuntime& scripts) const;
+        bool SynchronizeRagdolls(SceneLayout& layout,std::string& error) const;
+        static std::map<std::string,std::array<bool,3>> DisableRagdollOwners(SceneLayout& layout,ScenePhysics::States& states);
+        bool AdvanceLegacyPlayers(SceneLayout& layout,ScenePhysics::States& states,float horizontal,float vertical,bool jump) const;
+        static void RestoreRagdollOwners(SceneLayout& layout,const std::map<std::string,std::array<bool,3>>& ragdollOwnerEnabled);
+        static void RotateComponents(SceneLayout& candidate,double seconds);
+        bool UpdateLateComponents(double seconds,PreparedLayout& prepared,ScriptRuntime& runtime,std::vector<AnimatorFrame>& frames,std::map<std::string,std::array<float,3>>& impulses,std::string& error);
+        static bool ApplyRootDelta(ScenePlacement& placement,const AnimatorFrame& frame);
+        static void ConstrainRootFrames(PreparedLayout& prepared,std::vector<AnimatorFrame>& frames,const std::vector<DirectX::XMFLOAT4X4>& matrices);
+        Engine::Object3D BuildAddedObject(const ScenePlacement& placement,const SceneLayout& validation,const DirectX::XMFLOAT4X4& matrix,const std::filesystem::path& assetsRoot,PreparedLayout& prepared);
+        static void RemapDuplicateLinks(ScenePlacement& placement,const std::unordered_map<std::string,std::string>& copies);
+        void InitializeAddedAnimator(Engine::Object3D& object,const ScenePlacement& placement,const SceneLayout& validation,const DirectX::XMFLOAT4X4& matrix,const std::shared_ptr<const Engine::ModelRenderer>& model,PreparedLayout& prepared);
+        void CommitAnimatorFrames(std::vector<AnimatorFrame>& frames);
+        static bool SameRenderResources(const SceneLayout& layout,const SceneLayout& before);
+        static void ValidateAnimatorModels(const PreparedLayout& candidate);
+        struct ResourceChanges {bool resolveAssets=false,animatedChange=false;};
+        static ResourceChanges DetectResourceChanges(const SceneLayout& layout,const SceneLayout& before,const std::unordered_map<std::string,size_t>& old);
+        static Engine::Object3D ReuseRuntimeObject(const ScenePlacement& p,PreparedLayout& candidate,const LayoutView& baseline,size_t index);
+        Engine::Object3D BuildStaticRuntimeObject(const ScenePlacement& p,PreparedLayout& candidate);
+        bool PrepareRuntimeObjects(PreparedLayout& candidate,const LayoutView& baseline,const std::unordered_map<std::string,size_t>& old);
         mutable MeshTelemetry meshTelemetry_;
         std::filesystem::path assetsRoot_;
         std::shared_ptr<Engine::AssetDatabase> assetIndex_;

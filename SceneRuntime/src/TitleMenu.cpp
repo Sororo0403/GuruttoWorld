@@ -55,7 +55,7 @@ namespace SceneRuntime
                 cue_ = TitleMenuCue::Confirm;
                 finished_ = true;
                 pending_ = TitleMenuAction::Start;
-                if(const auto* entry=SelectedEntry()) pendingTarget_=entry->target;
+                CaptureSelectedTarget();
             }
             return TitleMenuAction::None;
         }
@@ -83,19 +83,24 @@ namespace SceneRuntime
         return UpdateMainMenu(pressed);
     }
 
+    void TitleMenu::ChangeVolumeUi()
+    {
+        const auto found = std::find_if(configuration_.settings.begin(), configuration_.settings.end(), [](const auto &s){ return s.key == "volume"; });
+        if (found != configuration_.settings.end()) {settingsRow_ = static_cast<int>(found - configuration_.settings.begin()); ChangeSetting(1, true);}
+    }
+    void TitleMenu::CaptureSelectedTarget() {if (const auto *entry = SelectedEntry()) pendingTarget_ = entry->target;}
     TitleMenuAction TitleMenu::ActivateUi(std::string_view event)
     {
         if(finished_) return TitleMenuAction::None;
         if(introSeconds_<introDuration_) {introSeconds_=introDuration_; return TitleMenuAction::None;}
         if(pressAnyButton_ && event=="start") {
-            cue_=TitleMenuCue::Confirm; finished_=true; pending_=TitleMenuAction::Start; if(const auto* entry=SelectedEntry()) pendingTarget_=entry->target; return TitleMenuAction::None;
+            cue_=TitleMenuCue::Confirm; finished_=true; pending_=TitleMenuAction::Start; CaptureSelectedTarget(); return TitleMenuAction::None;
         }
         if(event=="back" && settingsOpen_) {
             draft_=saved_; settingsOpen_=false; saveFailed_=false; cue_=TitleMenuCue::Back; return TitleMenuAction::None;
         }
         if(event=="volume" && settingsOpen_) {
-            const auto found=std::find_if(configuration_.settings.begin(),configuration_.settings.end(),[](const auto& s){return s.key=="volume";});
-            if(found!=configuration_.settings.end()) {settingsRow_=static_cast<int>(found-configuration_.settings.begin()); ChangeSetting(1,true);}
+            ChangeVolumeUi();
             return TitleMenuAction::None;
         }
         if(const auto row=UiRow(event,"menu:"); row && !settingsOpen_ &&

@@ -41,6 +41,13 @@ namespace
         };
         return first==second || ancestor(first,second) || ancestor(second,first);
     }
+    bool OverlapSides(const Bounds &moving, const Bounds &fixed, size_t axis)
+    {
+        bool overlap = true;
+        for (size_t side = 0; side < 3; ++side)
+            if (side != axis && (moving.high[side] <= fixed.low[side] + 0.00001f || moving.low[side] >= fixed.high[side] - 0.00001f)) overlap = false;
+        return overlap;
+    }
     float Sweep(const SceneLayout& layout,const std::vector<Matrix>& matrices,size_t index,size_t axis,float distance)
     {
         const auto& object=layout.objects[index];
@@ -53,9 +60,7 @@ namespace
             const auto& own=*object.boxCollider;
             if (!(own.mask&(1u<<collider->layer)) || !(collider->mask&(1u<<own.layer))) continue;
             const auto fixed=Box(*collider,matrices[other]);
-            bool overlap=true;
-            for (size_t side=0;side<3;++side)
-                if (side!=axis && (moving.high[side]<=fixed.low[side]+0.00001f || moving.low[side]>=fixed.high[side]-0.00001f)) overlap=false;
+            const bool overlap=OverlapSides(moving,fixed,axis);
             if (!overlap) continue;
             if (distance>0 && moving.high[axis]<=fixed.low[axis]+0.00001f)
                 distance=std::min(distance,std::max(0.0f,fixed.low[axis]-moving.high[axis]));
@@ -83,6 +88,45 @@ namespace
         std::string error;
         return SceneTransforms::Resolve(layout,matrices,error);
     }
+    struct PlayerInput {float horizontal,vertical,length,tick;bool jump;};
+    bool MoveController(SceneLayout &layout, std::vector<Matrix> &matrices, size_t index, const PlayerControllerComponent &controller, const PlayerInput &input)
+    {
+        const auto &[horizontal, vertical, length, tick, jump] = input;
+        DirectX::XMFLOAT3 movement;
+        const float inputSpeed = layout.objects[index].animator && layout.objects[index].animator->enabled && layout.objects[index].animator->rootMotion ? 0.0f : controller.moveSpeed;
+        DirectX::XMStoreFloat3(&movement, DirectX::XMVector3TransformNormal(
+                                              DirectX::XMVectorSet(horizontal / length * inputSpeed * tick, 0, vertical / length * inputSpeed * tick, 0), Parent(layout, matrices, index)));
+        for (const auto axis : {size_t(0), size_t(2)})
+        {
+            const float distance = axis == 0 ? movement.x : movement.z;
+            if (!Move(layout, matrices, index, axis, Sweep(layout, matrices, index, axis, distance))) return false;
+        }
+        // Parent rotation can also give the authored horizontal plane a vertical component.
+        if (!Move(layout, matrices, index, 1, Sweep(layout, matrices, index, 1, movement.y))) return false;
+        return true;
+    }
+    bool UsesAdvancedPhysics(const std::optional<PlayerControllerComponent> &controller) { return controller && controller->enabled && controller->usePhysics; }
+    bool AdvancePlayer(SceneLayout &layout, ScenePhysics::States &states, std::vector<Matrix> &matrices, size_t index, int step, const PlayerInput &input)
+    {
+        const auto &[horizontal, vertical, length, tick, jump] = input;
+        const auto &controller = layout.objects[index].playerController;
+        if (UsesAdvancedPhysics(controller)) return true;
+        if (!controller || !controller->enabled) { states.erase(layout.objects[index].id); return true; }
+        auto &body = states[layout.objects[index].id];
+        const bool collider = layout.objects[index].boxCollider && layout.objects[index].boxCollider->enabled;
+        body.grounded = collider && Sweep(layout, matrices, index, 1, -0.001f) > -0.001f;
+        if (controller->useGravity && step == 0 && jump && body.grounded) { body.verticalSpeed = controller->jumpSpeed; body.grounded = false; }
+        if (!MoveController(layout, matrices, index, *controller, input)) return false;
+        if (!controller->useGravity) { body.verticalSpeed = 0; return true; }
+        body.verticalSpeed -= controller->gravity * tick;
+        const float requested = body.verticalSpeed * tick;
+        const float accepted = Sweep(layout, matrices, index, 1, requested);
+        if (!Move(layout, matrices, index, 1, accepted)) return false;
+        if (accepted != requested) { body.grounded = requested < 0; body.verticalSpeed = 0; }
+
+        return true;
+    }
+
 }
 namespace SceneRuntime
 {
@@ -99,30 +143,7 @@ namespace SceneRuntime
         for (int step=0;step<steps;++step)
             for (size_t index=0;index<layout.objects.size();++index)
             {
-                const auto& controller=layout.objects[index].playerController;
-                if (controller && controller->enabled && controller->usePhysics) continue;
-                if (!controller || !controller->enabled) { states.erase(layout.objects[index].id); continue; }
-                auto& body=states[layout.objects[index].id];
-                const bool collider=layout.objects[index].boxCollider && layout.objects[index].boxCollider->enabled;
-                body.grounded=collider && Sweep(layout,matrices,index,1,-0.001f)>-0.001f;
-                if (controller->useGravity && step==0 && jump && body.grounded) { body.verticalSpeed=controller->jumpSpeed; body.grounded=false; }
-                DirectX::XMFLOAT3 movement;
-                const float inputSpeed=layout.objects[index].animator && layout.objects[index].animator->enabled && layout.objects[index].animator->rootMotion ? 0.0f : controller->moveSpeed;
-                DirectX::XMStoreFloat3(&movement,DirectX::XMVector3TransformNormal(
-                    DirectX::XMVectorSet(horizontal/length*inputSpeed*tick,0,vertical/length*inputSpeed*tick,0),Parent(layout,matrices,index)));
-                for (const auto axis : {size_t(0),size_t(2)})
-                {
-                    const float distance=axis==0 ? movement.x : movement.z;
-                    if (!Move(layout,matrices,index,axis,Sweep(layout,matrices,index,axis,distance))) return false;
-                }
-                // Parent rotation can also give the authored horizontal plane a vertical component.
-                if (!Move(layout,matrices,index,1,Sweep(layout,matrices,index,1,movement.y))) return false;
-                if (!controller->useGravity) { body.verticalSpeed=0; continue; }
-                body.verticalSpeed-=controller->gravity*tick;
-                const float requested=body.verticalSpeed*tick;
-                const float accepted=Sweep(layout,matrices,index,1,requested);
-                if (!Move(layout,matrices,index,1,accepted)) return false;
-                if (accepted!=requested) { body.grounded=requested<0; body.verticalSpeed=0; }
+                if(!AdvancePlayer(layout,states,matrices,index,step,{horizontal,vertical,length,tick,jump})) return false;
             }
         return true;
     }

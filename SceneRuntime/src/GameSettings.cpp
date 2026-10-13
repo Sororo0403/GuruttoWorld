@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include <SceneRuntime/GameSettings.h>
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Windows.h>
@@ -24,7 +25,7 @@ SceneRuntime::GameSettings JsonSettings(const std::string& content) {
     SceneRuntime::GameSettings settings{static_cast<int>(volume),document.at("backgroundMotion").get<bool>()};
     if(document.contains("volumeGain")) {
         const double gain=Engine::JsonNumber(document.at("volumeGain"));
-        if(!std::isfinite(gain) || gain < -1 || gain > 1) return {};
+        if(!Engine::InRange(gain,-1,1)) return {};
         settings.volumeGain=static_cast<float>(gain);
     }
     settings.loaded=true;
@@ -33,7 +34,7 @@ SceneRuntime::GameSettings JsonSettings(const std::string& content) {
         if(values.size()>128) return {};
         for(const auto& [key,value]:values.items()) {
             const auto number=Engine::JsonNumber(value);
-            if(key.empty() || key.size()>128 || key.find_first_of("=&")!=std::string::npos || key.find('\0')!=std::string::npos || !std::isfinite(number) || std::abs(number)>100000) return {};
+            if(!Engine::ValidString(key,128,true) || key.find_first_of("=&")!=std::string::npos || !Engine::InRange(number,-100000,100000)) return {};
             settings.values[key]=static_cast<float>(number);
         }
     }
@@ -63,8 +64,8 @@ namespace SceneRuntime
     }
     bool GameSettings::Save(const std::filesystem::path& path) const
     {
-        if (path.empty() || volume < 0 || volume > 10 || values.size()>128 || !std::isfinite(volumeGain) || volumeGain < -1 || volumeGain > 1) return false;
-        for(const auto& [key,value]:values) if(key.empty() || key.size()>128 || key.find_first_of("=&")!=std::string::npos || key.find('\0')!=std::string::npos || !std::isfinite(value) || std::abs(value)>100000) return false;
+        if (path.empty() || volume < 0 || volume > 10 || values.size()>128 || !Engine::InRange(volumeGain,-1,1)) return false;
+        for(const auto& [key,value]:values) if(!Engine::ValidString(key,128,true) || key.find_first_of("=&")!=std::string::npos || !Engine::InRange(value,-100000,100000)) return false;
         std::error_code error;
         if (!path.parent_path().empty()) std::filesystem::create_directories(path.parent_path(), error);
         if (error) return false;

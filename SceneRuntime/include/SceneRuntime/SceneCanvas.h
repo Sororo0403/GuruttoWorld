@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Validation.h>
 #include <SceneRuntime/SceneWorld.h>
 #include <Engine/Graphics/Camera.h>
 #include <algorithm>
@@ -45,7 +46,7 @@ namespace SceneRuntime
             const float dz=farPoint.z-nearPoint.z;
             if(std::abs(dz)<1e-7f) return std::nullopt;
             const float t=-nearPoint.z/dz;
-            if(!std::isfinite(t) || t<0 || t>1) return std::nullopt;
+            if(!Engine::InRange(t,0,1)) return std::nullopt;
             return std::array<float,2>{std::lerp(nearPoint.x,farPoint.x,t),std::lerp(nearPoint.y,farPoint.y,t)};
         }
     };

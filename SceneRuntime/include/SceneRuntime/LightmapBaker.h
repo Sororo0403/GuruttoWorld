@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Validation.h>
 #include <SceneRuntime/SceneView.h>
 #include <Engine/Graphics/Models/ModelLoader.h>
 #include <fstream>
@@ -106,7 +107,7 @@ namespace SceneRuntime
             const auto& a=triangle[0].uv; const auto& b=triangle[1].uv; const auto& c=triangle[2].uv;
             for (const auto& vertex : triangle)
                 for (const float uv : vertex.uv)
-                    if (!std::isfinite(uv) || uv<0 || uv>1) throw std::runtime_error("Lightmap UVs must be finite and within [0,1]");
+                    if (!Engine::InRange(uv,0,1)) throw std::runtime_error("Lightmap UVs must be finite and within [0,1]");
             const float determinant=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
             if (std::abs(determinant)<1e-10f) return false;
             const auto matrix=DirectX::XMLoadFloat4x4(&transform),normalMatrix=DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr,matrix));

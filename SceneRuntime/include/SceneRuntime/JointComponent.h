@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Validation.h>
 #include <array>
 #include <string>
 #include <cmath>
@@ -19,7 +20,7 @@ namespace SceneRuntime
         {
             if(type!="fixed" && type!="hinge" && type!="distance" && type!="swingTwist") throw std::runtime_error("Unknown Joint type");
             for(const auto& vector:{anchor,connectedAnchor,axis})
-                if(std::any_of(vector.begin(),vector.end(),[](float v){return !std::isfinite(v) || std::abs(v)>100000;})) throw std::runtime_error("Invalid Joint vector");
+                if(std::any_of(vector.begin(),vector.end(),[](float v){return !Engine::InRange(v,-100000,100000);})) throw std::runtime_error("Invalid Joint vector");
             const float length=axis[0]*axis[0]+axis[1]*axis[1]+axis[2]*axis[2];
             if(length<0.000001f || !std::isfinite(length)) throw std::runtime_error("Joint axis cannot be zero");
             ValidateLimits();

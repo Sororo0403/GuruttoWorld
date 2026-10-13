@@ -32,6 +32,93 @@ namespace
         if (number<(std::numeric_limits<int>::min)() || number>(std::numeric_limits<int>::max)()) throw std::runtime_error("Animation event integer overflow");
         return static_cast<int>(number);
     }
+    void ReadIkConstraints(const Engine::Json &component, SceneRuntime::AnimatorComponent &animator)
+    {
+        using namespace SceneRuntime; using Engine::JsonArray; using Engine::JsonNumber;
+        if (component.contains("ik"))
+        {
+            const auto &constraints = JsonArray(component.at("ik"));
+            if (constraints.size() > 16) throw std::runtime_error("Too many IK constraints");
+            for (const auto &item : constraints)
+            {
+                Engine::JsonObject(item); AnimatorIkConstraint constraint;
+                constraint.name = item.at("name").get<std::string>(); constraint.root = item.at("root").get<std::string>();
+                constraint.middle = item.at("middle").get<std::string>(); constraint.tip = item.at("tip").get<std::string>();
+                if (item.contains("enabled")) constraint.enabled = item.at("enabled").get<bool>();
+                if (item.contains("weight")) constraint.weight = static_cast<float>(JsonNumber(item.at("weight")));
+                if (item.contains("worldSpace")) constraint.worldSpace = item.at("worldSpace").get<bool>();
+                for (const auto &key : {"target", "hint"})
+                {
+                    const auto &point = JsonArray(item.at(key)); if (point.size() != 3) throw std::runtime_error("IK point requires three coordinates");
+                    auto &destination = std::string(key) == "target" ? constraint.target : constraint.hint;
+                    for (size_t axis = 0; axis < 3; ++axis) destination[axis] = static_cast<float>(JsonNumber(point[axis]));
+                }
+                animator.ik.push_back(std::move(constraint));
+            }
+        }
+    }
+
+    void ReadEventKeys(const Engine::Json &component, SceneRuntime::AnimatorComponent &animator)
+    {
+        using namespace SceneRuntime; using Engine::JsonArray; using Engine::JsonNumber;
+        if (component.contains("events"))
+        {
+            const auto &events = JsonArray(component.at("events")); if (events.size() > 256) throw std::runtime_error("Too many animation event keys");
+            for (const auto &item : events)
+            {
+                Engine::JsonObject(item); AnimatorEventKey key;
+                key.clip = item.at("clip").get<std::string>(); key.name = item.at("name").get<std::string>(); key.time = static_cast<float>(JsonNumber(item.at("time")));
+                if (item.contains("value")) key.value = static_cast<float>(JsonNumber(item.at("value")));
+                if (item.contains("minimumWeight")) key.minimumWeight = static_cast<float>(JsonNumber(item.at("minimumWeight")));
+                if (item.contains("stringValue")) key.stringValue = item.at("stringValue").get<std::string>();
+                if (item.contains("intValue")) key.intValue = Integer(item.at("intValue"));
+                animator.events.push_back(std::move(key));
+            }
+        }
+    }
+
+    SceneRuntime::AnimatorBlendMotion ReadBlendMotion(const Engine::Json &source)
+    {
+        using SceneRuntime::AnimatorBlendMotion; using Engine::JsonArray; using Engine::JsonNumber;
+                    Engine::JsonObject(source);
+        AnimatorBlendMotion child;
+        if (source.contains("clip")) child.clip = source.at("clip").get<std::string>();
+        if (source.contains("blendTree")) child.blendTree = source.at("blendTree").get<std::string>();
+        if (source.contains("parameter")) child.parameter = source.at("parameter").get<std::string>();
+        if (source.contains("threshold")) child.threshold = static_cast<float>(JsonNumber(source.at("threshold")));
+        if (source.contains("speed")) child.speed = static_cast<float>(JsonNumber(source.at("speed")));
+        if (source.contains("position"))
+        {
+            const auto &position = JsonArray(source.at("position")); if (position.size() != 2) throw std::runtime_error("Blend Tree position requires two coordinates");
+            child.position = {static_cast<float>(JsonNumber(position[0])), static_cast<float>(JsonNumber(position[1]))};
+        }
+        return child;
+    }
+    void ReadBlendTrees(const Engine::Json &component, SceneRuntime::AnimatorComponent &animator)
+    {
+        using namespace SceneRuntime; using Engine::JsonArray; using Engine::JsonNumber;
+        if (component.contains("blendTrees"))
+        {
+            const auto &trees = JsonArray(component.at("blendTrees"));
+            if (trees.size() > 32) throw std::runtime_error("Too many Blend Trees");
+            for (const auto &item : trees)
+            {
+                Engine::JsonObject(item);
+                AnimatorBlendTree tree; tree.name = item.at("name").get<std::string>(); tree.type = ReadType(item.at("type").get<std::string>());
+                if (item.contains("parameterX")) tree.parameterX = item.at("parameterX").get<std::string>();
+                if (item.contains("parameterY")) tree.parameterY = item.at("parameterY").get<std::string>();
+                const auto &children = JsonArray(item.at("children"));
+                if (children.size() > 32) throw std::runtime_error("Too many Blend Tree children");
+                for (const auto &source : children)
+                {
+                    auto child = ReadBlendMotion(source);
+                    tree.children.push_back(std::move(child));
+                }
+                animator.blendTrees.push_back(std::move(tree));
+            }
+        }
+    }
+
 }
 namespace SceneRuntime
 {
@@ -41,27 +128,7 @@ namespace SceneRuntime
         AnimatorComponent animator; animator.id=id; animator.enabled=enabled;
         if (component.contains("rootMotion")) animator.rootMotion=component.at("rootMotion").get<bool>();
         if (component.contains("rootBone")) animator.rootBone=component.at("rootBone").get<std::string>();
-        if (component.contains("ik"))
-        {
-            const auto& constraints=JsonArray(component.at("ik"));
-            if (constraints.size()>16) throw std::runtime_error("Too many IK constraints");
-            for (const auto& item : constraints)
-            {
-                Engine::JsonObject(item); AnimatorIkConstraint constraint;
-                constraint.name=item.at("name").get<std::string>(); constraint.root=item.at("root").get<std::string>();
-                constraint.middle=item.at("middle").get<std::string>(); constraint.tip=item.at("tip").get<std::string>();
-                if (item.contains("enabled")) constraint.enabled=item.at("enabled").get<bool>();
-                if (item.contains("weight")) constraint.weight=static_cast<float>(JsonNumber(item.at("weight")));
-                if (item.contains("worldSpace")) constraint.worldSpace=item.at("worldSpace").get<bool>();
-                for (const auto& key : {"target","hint"})
-                {
-                    const auto& point=JsonArray(item.at(key)); if (point.size()!=3) throw std::runtime_error("IK point requires three coordinates");
-                    auto& destination=std::string(key)=="target" ? constraint.target : constraint.hint;
-                    for (size_t axis=0;axis<3;++axis) destination[axis]=static_cast<float>(JsonNumber(point[axis]));
-                }
-                animator.ik.push_back(std::move(constraint));
-            }
-        }
+        ReadIkConstraints(component,animator);
         if (component.contains("parameters"))
         {
             const auto& parameters=Engine::JsonObject(component.at("parameters"));
@@ -80,51 +147,8 @@ namespace SceneRuntime
         for (const auto& transition : transitions)
             animator.transitions.push_back({transition.at("from").get<std::string>(),transition.at("to").get<std::string>(),transition.at("parameter").get<std::string>(),
                 transition.at("comparison").get<std::string>(),static_cast<float>(JsonNumber(transition.at("value"))),static_cast<float>(JsonNumber(transition.at("blendSeconds"))),static_cast<float>(JsonNumber(transition.at("exitTime")))});
-        if (component.contains("events"))
-        {
-            const auto& events=JsonArray(component.at("events")); if (events.size()>256) throw std::runtime_error("Too many animation event keys");
-            for (const auto& item : events)
-            {
-                Engine::JsonObject(item); AnimatorEventKey key;
-                key.clip=item.at("clip").get<std::string>(); key.name=item.at("name").get<std::string>(); key.time=static_cast<float>(JsonNumber(item.at("time")));
-                if (item.contains("value")) key.value=static_cast<float>(JsonNumber(item.at("value")));
-                if (item.contains("minimumWeight")) key.minimumWeight=static_cast<float>(JsonNumber(item.at("minimumWeight")));
-                if (item.contains("stringValue")) key.stringValue=item.at("stringValue").get<std::string>();
-                if (item.contains("intValue")) key.intValue=Integer(item.at("intValue"));
-                animator.events.push_back(std::move(key));
-            }
-        }
-        if (component.contains("blendTrees"))
-        {
-            const auto& trees=JsonArray(component.at("blendTrees"));
-            if (trees.size()>32) throw std::runtime_error("Too many Blend Trees");
-            for (const auto& item : trees)
-            {
-                Engine::JsonObject(item);
-                AnimatorBlendTree tree; tree.name=item.at("name").get<std::string>(); tree.type=ReadType(item.at("type").get<std::string>());
-                if (item.contains("parameterX")) tree.parameterX=item.at("parameterX").get<std::string>();
-                if (item.contains("parameterY")) tree.parameterY=item.at("parameterY").get<std::string>();
-                const auto& children=JsonArray(item.at("children"));
-                if (children.size()>32) throw std::runtime_error("Too many Blend Tree children");
-                for (const auto& source : children)
-                {
-                    Engine::JsonObject(source);
-                    AnimatorBlendMotion child;
-                    if (source.contains("clip")) child.clip=source.at("clip").get<std::string>();
-                    if (source.contains("blendTree")) child.blendTree=source.at("blendTree").get<std::string>();
-                    if (source.contains("parameter")) child.parameter=source.at("parameter").get<std::string>();
-                    if (source.contains("threshold")) child.threshold=static_cast<float>(JsonNumber(source.at("threshold")));
-                    if (source.contains("speed")) child.speed=static_cast<float>(JsonNumber(source.at("speed")));
-                    if (source.contains("position"))
-                    {
-                        const auto& position=JsonArray(source.at("position")); if (position.size()!=2) throw std::runtime_error("Blend Tree position requires two coordinates");
-                        child.position={static_cast<float>(JsonNumber(position[0])),static_cast<float>(JsonNumber(position[1]))};
-                    }
-                    tree.children.push_back(std::move(child));
-                }
-                animator.blendTrees.push_back(std::move(tree));
-            }
-        }
+        ReadEventKeys(component,animator);
+        ReadBlendTrees(component,animator);
         Animator::Validate(animator); return animator;
     }
     Engine::Json WriteAnimator(const AnimatorComponent& animator)

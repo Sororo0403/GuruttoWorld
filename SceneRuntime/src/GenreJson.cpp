@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include "GenreJson.h"
 #include <cmath>
 #include <stdexcept>
@@ -25,7 +26,7 @@ template<size_t N> std::array<float,N> Vector(const Json& o,const char* key,floa
 }
 std::vector<float> Heights(const Json& o,size_t count) {
     const auto& values=Engine::JsonArray(o.at("heights")); if(values.size()!=count) throw std::runtime_error("Height grid size mismatch"); std::vector<float> result;
-    for(const auto& value:values) {const auto number=Engine::JsonNumber(value); if(!std::isfinite(number)||std::abs(number)>100000) throw std::runtime_error("Height grid range"); result.push_back(static_cast<float>(number));} return result;
+    for(const auto& value:values) {const auto number=Engine::JsonNumber(value); if(!Engine::InRange(number,-100000,100000)) throw std::runtime_error("Height grid range"); result.push_back(static_cast<float>(number));} return result;
 }
 Json Base(const std::string& id,bool enabled,const char* type) {return {{"id",id},{"enabled",enabled},{"type",type}};}
 void ReadTerrain(const Json& o,SceneRuntime::ScenePlacement& p) {

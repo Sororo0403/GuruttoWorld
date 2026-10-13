@@ -41,6 +41,18 @@ void Put(Json& o,const char* k,bool v){o[k]=v;}
 void Put(Json& o,const char* k,const std::string& v){o[k]=v;}
 void Put(Json& o,const char* k,const std::filesystem::path& v){auto u=v.generic_u8string(); Put(o,k,std::string(u.begin(),u.end()));}
 template<size_t N> void Put(Json& o,const char* k,const std::array<float,N>& v){o[k]=v;}
+void ReadCanvasMenu(const Json &o, SceneRuntime::CanvasComponent &c) {
+    if (o.contains("menu")) {
+        for (const auto &entry : JsonArray(o.at("menu").at("entries"))) {
+            const auto &index = entry.at("index");
+            if (!index.is_number_integer() || JsonNumber(index) < 0 || JsonNumber(index) >= 128) throw std::runtime_error("Invalid menu index");
+        }
+        c.menu = o.at("menu").get<SceneRuntime::MenuConfiguration>(); SceneRuntime::ValidateMenu(*c.menu);
+        for (const auto &entry : c.menu->entries) if (entry.action == "setState") {
+                SceneRuntime::UiState state; if (!state.Assign(entry.target)) throw std::runtime_error("Invalid menu state assignment");
+            }
+    }
+}
 void ReadCanvas(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.canvas) throw std::runtime_error("Duplicate Canvas");
     SceneRuntime::CanvasComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
@@ -52,16 +64,7 @@ void ReadCanvas(const Json& o,SceneRuntime::ScenePlacement& p) {
             throw std::runtime_error("Invalid Canvas state key");
         c.stateDefaults[key]=Number(o.at("stateDefaults"),key.c_str(),-100000,100000);
     }
-    if(o.contains("menu")) {
-        for(const auto& entry:JsonArray(o.at("menu").at("entries"))) {
-            const auto& index=entry.at("index");
-            if(!index.is_number_integer() || JsonNumber(index)<0 || JsonNumber(index)>=128) throw std::runtime_error("Invalid menu index");
-        }
-        c.menu=o.at("menu").get<SceneRuntime::MenuConfiguration>(); SceneRuntime::ValidateMenu(*c.menu);
-        for(const auto& entry:c.menu->entries) if(entry.action=="setState") {
-            SceneRuntime::UiState state; if(!state.Assign(entry.target)) throw std::runtime_error("Invalid menu state assignment");
-        }
-    }
+    ReadCanvasMenu(o,c);
     p.canvas=std::move(c);
 }
 void WriteCanvas(Json& a,const SceneRuntime::CanvasComponent& c) {
@@ -139,6 +142,18 @@ void WriteText(Json& a,const SceneRuntime::TextComponent& c) {
     Put(o,"color",c.color);
     a.push_back(o);
 }
+void SetLegacyButtonInput(SceneRuntime::ButtonComponent &c) {
+    if (c.inputAction.empty()) {
+        if (c.shortcut == "space") c.inputAction = "Jump";
+        else if (c.shortcut == "escape") c.inputAction = "Cancel";
+        else if (c.shortcut == "1") c.inputAction = "SelectModel1";
+        else if (c.shortcut == "2") c.inputAction = "SelectModel2";
+    }
+}
+void ValidateButtonTarget(const SceneRuntime::ButtonComponent &c) {
+    if ((c.action == "loadScene" || c.action == "loadSceneAdditive" || c.action == "unloadScene") && (!c.target.starts_with("Assets/Scenes/") || std::filesystem::path(c.target).extension() != ".json" || std::filesystem::path(c.target).has_root_name() || c.target.find("..") != std::string::npos)) throw std::runtime_error("Scene target must be relative to Assets/Scenes");
+    SceneRuntime::UiState check; if (c.action == "setState" && !check.Assign(c.target)) throw std::runtime_error("Invalid state assignment");
+}
 void ReadButton(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(p.button) throw std::runtime_error("Duplicate Button");
     SceneRuntime::ButtonComponent c; c.id=String(o,"id"); c.enabled=o.at("enabled").get<bool>();
@@ -147,12 +162,7 @@ void ReadButton(const Json& o,SceneRuntime::ScenePlacement& p) {
     if(o.contains("event")) c.event=String(o,"event");
     if(o.contains("shortcut")) c.shortcut=String(o,"shortcut");
     if(o.contains("inputAction")) c.inputAction=String(o,"inputAction");
-    if(c.inputAction.empty()) {
-        if(c.shortcut=="space") c.inputAction="Jump";
-        else if(c.shortcut=="escape") c.inputAction="Cancel";
-        else if(c.shortcut=="1") c.inputAction="SelectModel1";
-        else if(c.shortcut=="2") c.inputAction="SelectModel2";
-    }
+    SetLegacyButtonInput(c);
     if(c.inputAction.size()>128 || c.inputAction.find('\0')!=std::string::npos) throw std::runtime_error("Invalid button input action");
     const std::array<std::string_view,5> shortcuts{"","space","escape","1","2"};
     if(std::find(shortcuts.begin(),shortcuts.end(),c.shortcut)==shortcuts.end()) throw std::runtime_error("Unsupported button shortcut");
@@ -161,8 +171,7 @@ void ReadButton(const Json& o,SceneRuntime::ScenePlacement& p) {
     c.pressedColor=Vector<4>(o,"pressedColor",0.0f,1.0f);
     const std::array<std::string_view,10> actions{"click","show","hide","toggle","playAudio","loadScene","loadSceneAdditive","unloadScene","quit","setState"};
     if(std::find(actions.begin(),actions.end(),c.action)==actions.end()) throw std::runtime_error("Unsupported button action");
-    if((c.action=="loadScene" || c.action=="loadSceneAdditive" || c.action=="unloadScene") && (!c.target.starts_with("Assets/Scenes/") || std::filesystem::path(c.target).extension()!=".json" || std::filesystem::path(c.target).has_root_name() || c.target.find("..")!=std::string::npos)) throw std::runtime_error("Scene target must be relative to Assets/Scenes");
-    SceneRuntime::UiState check; if(c.action=="setState" && !check.Assign(c.target)) throw std::runtime_error("Invalid state assignment");
+    ValidateButtonTarget(c);
     p.button=std::move(c);
 }
 void WriteButton(Json& a,const SceneRuntime::ButtonComponent& c) {

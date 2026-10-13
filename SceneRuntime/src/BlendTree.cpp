@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include <SceneRuntime/BlendTree.h>
 #include <algorithm>
 #include <cmath>
@@ -94,6 +95,48 @@ namespace
     {
         if (!std::isfinite(sample.weight) || sample.weight<0 || !std::isfinite(sample.speed) || sample.speed<=0) throw std::runtime_error("Invalid Blend Tree sample");
     }
+    void ValidateMotion(const SceneRuntime::AnimatorBlendMotion &child)
+    {
+        if (!Engine::ValidString(child.clip, 256) || !Engine::ValidString(child.blendTree, 128) ||
+            (!child.clip.empty() && !child.blendTree.empty()) || !Engine::InRange(child.speed, .001f, 1000) ||
+            !Engine::InRange(child.threshold, -1000000, 1000000) ||
+            std::ranges::any_of(child.position, [](float value) { return !Engine::InRange(value, -1000000, 1000000); })) throw std::runtime_error("Invalid Blend Tree motion");
+    }
+    void ValidateMotions(const SceneRuntime::AnimatorBlendTree &tree, const Engine::SkeletonData *rig)
+    {
+        using namespace SceneRuntime;
+        std::set<float> thresholds; std::set<std::array<float, 2>> points;
+        for (const auto &child : tree.children)
+        {
+            ValidateMotion(child);
+            if (tree.type == AnimatorBlendType::OneDimensional && !thresholds.insert(child.threshold).second) throw std::runtime_error("Duplicate Blend Tree threshold");
+            if (tree.type == AnimatorBlendType::Cartesian2D && !points.insert(child.position).second) throw std::runtime_error("Duplicate Blend Tree position");
+            if (tree.type == AnimatorBlendType::Direct && !Identifier(child.parameter)) throw std::runtime_error("Direct Blend Tree parameter missing");
+            if (rig && child.blendTree.empty()) ClipDuration(*rig, child.clip);
+        }
+
+    }
+
+    struct BlendValidationGraph
+    {
+        explicit BlendValidationGraph(const std::vector<SceneRuntime::AnimatorBlendTree> &source) : trees(source) {}
+        const std::vector<SceneRuntime::AnimatorBlendTree>& trees;
+        std::map<std::string,std::pair<size_t,size_t>> dimensions; std::set<std::string> visiting;
+        std::pair<size_t, size_t> Visit(const std::string &name)
+        {
+            if (const auto found = dimensions.find(name); found != dimensions.end()) return found->second;
+            if (!visiting.insert(name).second) throw std::runtime_error("Cyclic Blend Tree reference");
+            size_t depth = 1, leaves = 0;
+            for (const auto &child : Tree(trees, name).children)
+            {
+                if (child.blendTree.empty()) ++leaves;
+                else { const auto nested = Visit(child.blendTree); depth = std::max(depth, nested.first + 1); leaves += nested.second; }
+                if (depth > 8 || leaves > 256) throw std::runtime_error("Blend Tree expansion exceeds limit");
+            }
+            visiting.erase(name); const auto result = std::pair{depth, leaves}; dimensions.emplace(name, result); return result;
+        }
+    };
+
 }
 namespace SceneRuntime
 {
@@ -107,34 +150,10 @@ namespace SceneRuntime
                 (tree.type!=AnimatorBlendType::OneDimensional && tree.type!=AnimatorBlendType::Cartesian2D && tree.type!=AnimatorBlendType::Direct)) throw std::runtime_error("Invalid Blend Tree");
             if (tree.type!=AnimatorBlendType::Direct && !Identifier(tree.parameterX)) throw std::runtime_error("Blend Tree parameter missing");
             if (tree.type==AnimatorBlendType::Cartesian2D && !Identifier(tree.parameterY)) throw std::runtime_error("2D Blend Tree parameter missing");
-            std::set<float> thresholds; std::set<std::array<float,2>> points;
-            for (const auto& child : tree.children)
-            {
-                if (child.clip.size()>256 || child.clip.find('\0')!=std::string::npos || child.blendTree.size()>128 || child.blendTree.find('\0')!=std::string::npos ||
-                    (!child.clip.empty() && !child.blendTree.empty()) || !std::isfinite(child.speed) || child.speed<.001f || child.speed>1000 ||
-                    !std::isfinite(child.threshold) || std::abs(child.threshold)>1000000 ||
-                    std::ranges::any_of(child.position,[](float value) { return !std::isfinite(value) || std::abs(value)>1000000; })) throw std::runtime_error("Invalid Blend Tree motion");
-                if (tree.type==AnimatorBlendType::OneDimensional && !thresholds.insert(child.threshold).second) throw std::runtime_error("Duplicate Blend Tree threshold");
-                if (tree.type==AnimatorBlendType::Cartesian2D && !points.insert(child.position).second) throw std::runtime_error("Duplicate Blend Tree position");
-                if (tree.type==AnimatorBlendType::Direct && !Identifier(child.parameter)) throw std::runtime_error("Direct Blend Tree parameter missing");
-                if (rig && child.blendTree.empty()) ClipDuration(*rig,child.clip);
-            }
+            ValidateMotions(tree,rig);
         }
-        std::map<std::string,std::pair<size_t,size_t>> dimensions; std::set<std::string> visiting;
-        std::function<std::pair<size_t,size_t>(const std::string&)> visit=[&](const std::string& name)
-        {
-            if (const auto found=dimensions.find(name);found!=dimensions.end()) return found->second;
-            if (!visiting.insert(name).second) throw std::runtime_error("Cyclic Blend Tree reference");
-            size_t depth=1,leaves=0;
-            for (const auto& child : Tree(trees,name).children)
-            {
-                if (child.blendTree.empty()) ++leaves;
-                else { const auto nested=visit(child.blendTree); depth=std::max(depth,nested.first+1); leaves+=nested.second; }
-                if (depth>8 || leaves>256) throw std::runtime_error("Blend Tree expansion exceeds limit");
-            }
-            visiting.erase(name); const auto result=std::pair{depth,leaves}; dimensions.emplace(name,result); return result;
-        };
-        for (const auto& tree : trees) visit(tree.name);
+        BlendValidationGraph graph{trees};
+        for (const auto& tree : trees) graph.Visit(tree.name);
     }
     std::vector<AnimatorMotionSample> BlendTree::Samples(const std::vector<AnimatorBlendTree>& trees,const std::string& name,const std::map<std::string,float>& parameters)
     {

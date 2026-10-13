@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include <SceneRuntime/Ragdoll.h>
 #include <iterator>
 #include <SceneRuntime/SceneTransforms.h>
@@ -39,19 +40,41 @@ namespace
     {
         for(size_t i=1;;++i) {const auto id=base+"-"+std::to_string(i); if(std::none_of(layout.objects.begin(),layout.objects.end(),[&](const auto& p){return p.id==id;})) return id;}
     }
+    std::set<size_t> SelectedBones(const Engine::SkeletonData &rig)
+    {
+        std::set<size_t> selected;
+        for (const auto &mesh : rig.meshes) for (const auto joint : mesh.joints) selected.insert(joint);
+        if (selected.empty()) for (size_t i = 0; i < rig.nodes.size(); ++i) if (!rig.nodes[i].name.empty()) selected.insert(i);
+        if (selected.empty() || selected.size() > 256) throw std::runtime_error("Ragdoll requires between 1 and 256 named bones");
+        return selected;
+    }
+
+    void AttachJoints(SceneLayout &candidate, const Engine::SkeletonData &rig, const std::set<size_t> &selected, const std::map<size_t, std::string> &bodies, const std::map<size_t, Matrix> &bodyMatrices, const RagdollComponent &settings)
+    {
+        for (const auto bone : selected) {
+            int parent = rig.nodes[bone].parent; while (parent >= 0 && !selected.contains(static_cast<size_t>(parent))) parent = rig.nodes[static_cast<size_t>(parent)].parent;
+            if (parent < 0) continue;
+            auto &body = candidate.objects[Index(candidate, bodies.at(bone))]; body.joint.emplace(); auto &joint = *body.joint;
+            joint.type = "swingTwist"; joint.target = bodies.at(static_cast<size_t>(parent)); joint.enabled = settings.enabled && settings.active; joint.swing = settings.swing; joint.minimum = -settings.twist; joint.maximum = settings.twist;
+            const auto &matrix = bodyMatrices.at(bone);
+            const auto anchor = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(matrix._41, matrix._42, matrix._43, 1), DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&bodyMatrices.at(static_cast<size_t>(parent)))));
+            DirectX::XMFLOAT3 local; DirectX::XMStoreFloat3(&local, anchor); joint.connectedAnchor = {local.x, local.y, local.z};
+        }
+    }
+
 }
 namespace SceneRuntime
 {
     void RagdollComponent::Validate() const
     {
-        if(!std::isfinite(weight) || weight<0 || weight>1 || !std::isfinite(bodyMass) || bodyMass<=0 || bodyMass>100000 ||
-            !std::isfinite(radius) || radius<=0 || radius>100 || !std::isfinite(swing) || swing<0 || swing>180 || !std::isfinite(twist) || twist<0 || twist>180 || bones.size()>256)
+        if(!Engine::InRange(weight,0,1) || !Engine::PositiveRange(bodyMass,100000) ||
+            !Engine::PositiveRange(radius,100) || !Engine::InRange(swing,0,180) || !Engine::InRange(twist,0,180) || bones.size()>256)
             throw std::runtime_error("Invalid Ragdoll settings");
         std::set<std::string> names,bodies;
         for(const auto& bone:bones) {
-            if(bone.bone.empty() || bone.body.empty() || bone.bone.size()>128 || bone.body.size()>256 || bone.bone.find('\0')!=std::string::npos || bone.body.find('\0')!=std::string::npos || !names.insert(bone.bone).second || !bodies.insert(bone.body).second)
+            if(!Engine::ValidString(bone.bone,128,true) || !Engine::ValidString(bone.body,256,true) || !names.insert(bone.bone).second || !bodies.insert(bone.body).second)
                 throw std::runtime_error("Invalid or duplicate Ragdoll binding");
-            if (std::any_of(std::begin(bone.bindOffset),std::end(bone.bindOffset),[](const auto value) {return !std::isfinite(value) || std::abs(value)>100000;})) throw std::runtime_error("Invalid Ragdoll bind offset");
+            if (std::any_of(std::begin(bone.bindOffset),std::end(bone.bindOffset),[](const auto value) {return !Engine::InRange(value,-100000,100000);})) throw std::runtime_error("Invalid Ragdoll bind offset");
             if(!SceneTransforms::IsUsable(Offset(bone))) throw std::runtime_error("Singular Ragdoll bind offset");
         }
     }
@@ -72,10 +95,7 @@ namespace SceneRuntime
             if(!owner.ragdoll || !owner.ragdoll->bones.empty()) throw std::runtime_error("Add an empty Ragdoll before generating bodies");
             Validate(candidate,owner,rig); const auto& settings=*owner.ragdoll;
             const auto pose=BasePose(rig,current); const auto boneMatrices=Engine::Skeleton::Matrices(rig,pose);
-            std::set<size_t> selected;
-            for(const auto& mesh:rig.meshes) for(const auto joint:mesh.joints) selected.insert(joint);
-            if(selected.empty()) for(size_t i=0;i<rig.nodes.size();++i) if(!rig.nodes[i].name.empty()) selected.insert(i);
-            if(selected.empty() || selected.size()>256) throw std::runtime_error("Ragdoll requires between 1 and 256 named bones");
+            const auto selected=SelectedBones(rig);
             std::map<size_t,std::string> bodies; std::map<size_t,Matrix> bodyMatrices;
             for(const auto bone:selected) {
                 BoneIndex(rig,rig.nodes.at(bone).name);
@@ -98,15 +118,7 @@ namespace SceneRuntime
                 }
                 bodies[bone]=body.id; bodyMatrices[bone]=bodyMatrix; candidate.objects.push_back(std::move(body));
             }
-            for(const auto bone:selected) {
-                int parent=rig.nodes[bone].parent; while(parent>=0 && !selected.contains(static_cast<size_t>(parent))) parent=rig.nodes[static_cast<size_t>(parent)].parent;
-                if(parent<0) continue;
-                auto& body=candidate.objects[Index(candidate,bodies.at(bone))]; body.joint.emplace(); auto& joint=*body.joint;
-                joint.type="swingTwist"; joint.target=bodies.at(static_cast<size_t>(parent)); joint.enabled=settings.enabled && settings.active; joint.swing=settings.swing; joint.minimum=-settings.twist; joint.maximum=settings.twist;
-                const auto& matrix=bodyMatrices.at(bone);
-                const auto anchor=DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(matrix._41,matrix._42,matrix._43,1),DirectX::XMMatrixInverse(nullptr,DirectX::XMLoadFloat4x4(&bodyMatrices.at(static_cast<size_t>(parent)))));
-                DirectX::XMFLOAT3 local; DirectX::XMStoreFloat3(&local,anchor); joint.connectedAnchor={local.x,local.y,local.z};
-            }
+            AttachJoints(candidate,rig,selected,bodies,bodyMatrices,settings);
             candidate.objects[ownerIndex].ragdoll=std::move(owner.ragdoll); static_cast<void>(candidate.Serialize());
             Validate(candidate,candidate.objects[ownerIndex],rig); layout=std::move(candidate); error.clear(); return true;
         } catch(const std::exception& exception) {error=exception.what(); return false;}

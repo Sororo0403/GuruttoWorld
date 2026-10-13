@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <Engine/Core/Validation.h>
 #include <vector>
 #include <array>
 #include <stdexcept>
@@ -67,33 +68,40 @@ inline float EvaluateMenuBinding(const MenuStateBinding& binding,float value,con
     if(binding.operation!="emphasis") value*=factor;
     return std::clamp(value*binding.scale+binding.offset,binding.minimum,binding.maximum);
 }
-inline void ValidateMenu(const MenuConfiguration& c) {
-    const auto validString=[](const std::string& s){return s.size()<=128 && s.find('\0')==std::string::npos;};
-    const auto key=[&](const std::string& s){return !s.empty() && validString(s) && s.find_first_of("=&")==std::string::npos;};
-    const auto number=[](float f){return std::isfinite(f) && std::abs(f)<=100000;};
-    const auto require=[](bool ok){if(!ok) throw std::runtime_error("Invalid menu configuration");};
-    require(c.entries.size()<=128 && c.settings.size()<=128 && c.bindings.size()<=256);
+namespace MenuValidation {
+inline void Require(bool ok) {if (!ok) throw std::runtime_error("Invalid menu configuration");}
+inline bool Key(const std::string &value) { return Engine::ValidString(value, 128, true) && value.find_first_of("=&") == std::string::npos; }
+inline bool Number(float value) { return Engine::InRange(value, -100000, 100000); }
+inline void Entry(const MenuEntry &entry, std::set<int> &indices) {
+    Require(entry.index >= 0 && entry.index < 128 && indices.insert(entry.index).second && Number(entry.focus) && Number(entry.view) && Engine::ValidString(entry.focusClock, 128));
+    Require(Engine::OneOf(entry.action, {"loadScene", "quit", "settings", "setState"}));
+    Require(Engine::ValidString(entry.target, 16384));
+    if (entry.action == "loadScene" && !entry.target.empty())
+        Require(entry.target.starts_with("Assets/Scenes/") && entry.target.ends_with(".json") && entry.target.find("..") == std::string::npos && entry.target.find('\\') == std::string::npos && entry.target.find(':') == std::string::npos);
+}
+inline void Setting(const MenuSetting &setting, std::set<std::string> &keys) {
+    Require(Engine::OneOf(setting.action, {"number", "toggle", "save"}));
+    Require(setting.action == "save" || (Key(setting.key) && keys.insert(setting.key).second));
+    Require(Number(setting.minimum) && Number(setting.maximum) && Number(setting.step) && Number(setting.initial) && setting.minimum < setting.maximum && setting.step > 0 && Engine::InRange(setting.initial, setting.minimum, setting.maximum));
+}
+inline void Binding(const MenuStateBinding &binding, std::set<std::string> &keys) {
+    Require(Key(binding.key) && keys.insert(binding.key).second && Key(binding.source) && Engine::ValidString(binding.factor, 128));
+    Require(Engine::OneOf(binding.operation, {"value", "equal", "notEqual", "emphasis"}));
+    for (const auto value : {binding.compare, binding.scale, binding.offset, binding.minimum, binding.maximum, binding.factorDefault}) Require(Number(value));
+    Require(binding.minimum <= binding.maximum);
+}
+}
+inline void ValidateMenu(const MenuConfiguration& configuration) {
+    using namespace MenuValidation;
+    Require(configuration.entries.size()<=128 && configuration.settings.size()<=128 && configuration.bindings.size()<=256);
     std::set<int> indices;
-    for(const auto& e:c.entries) {
-        require(e.index>=0 && e.index<128 && indices.insert(e.index).second && number(e.focus) && number(e.view) && validString(e.focusClock));
-        require(e.action=="loadScene" || e.action=="quit" || e.action=="settings" || e.action=="setState");
-        require(e.target.size()<=16384 && e.target.find('\0')==std::string::npos);
-        if(e.action=="loadScene" && !e.target.empty()) require(e.target.starts_with("Assets/Scenes/") && e.target.ends_with(".json") && e.target.find("..") == std::string::npos && e.target.find('\\')==std::string::npos && e.target.find(':')==std::string::npos);
-    }
+    for(const auto& entry:configuration.entries) Entry(entry,indices);
     std::set<std::string> keys;
-    for(const auto& s:c.settings) {
-        require(s.action=="number" || s.action=="toggle" || s.action=="save");
-        require(s.action=="save" || (key(s.key) && keys.insert(s.key).second));
-        require(number(s.minimum) && number(s.maximum) && number(s.step) && number(s.initial) && s.minimum<s.maximum && s.step>0 && s.initial>=s.minimum && s.initial<=s.maximum);
-    }
+    for(const auto& setting:configuration.settings) Setting(setting,keys);
     keys.clear();
-    for(const auto& b:c.bindings) {
-        require(key(b.key) && keys.insert(b.key).second && key(b.source) && validString(b.factor));
-        require(b.operation=="value" || b.operation=="equal" || b.operation=="notEqual" || b.operation=="emphasis");
-        require(number(b.compare) && number(b.scale) && number(b.offset) && number(b.minimum) && number(b.maximum) && number(b.factorDefault) && b.minimum<=b.maximum);
-    }
-    for(const auto& s:c.inputs) require(validString(s));
-    for(const auto& s:c.cues) require(validString(s));
-    require(key(c.focusState));
+    for(const auto& binding:configuration.bindings) Binding(binding,keys);
+    for(const auto& input:configuration.inputs) Require(Engine::ValidString(input,128));
+    for(const auto& cue:configuration.cues) Require(Engine::ValidString(cue,128));
+    Require(Key(configuration.focusState));
 }
 }

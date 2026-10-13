@@ -1,4 +1,5 @@
 #pragma once
+#include <tuple>
 #include <SceneRuntime/SceneComponents.h>
 #include <SceneRuntime/GenreComponents.h>
 #include <SceneRuntime/JointComponent.h>
@@ -73,13 +74,13 @@ namespace SceneRuntime
             return std::any_of(found.begin(),found.end(),[](bool value){return value;}) ||
                 std::any_of(scripts.begin(),scripts.end(),[&](const auto& script) { return script.id==componentId; });
         }
+        auto Components() const
+        {
+            return std::tie(ragdoll, inputField, slider, toggle, scrollView, mask, layoutGroup, joint, persistent, meshRenderer, material, rotator, playerController, boxCollider, rigidBody, scripts, camera, directionalLight, pointLight, spotLight, sky, particleEmitter, cameraSway, canvas, rectTransform, image, text, button, terrain, tilemap, navMesh, navAgent, audioSource, audioListener, audioMixer, animation, animator);
+        }
         bool SameComponents(const ScenePlacement& other) const
         {
-            if(ragdoll!=other.ragdoll) return false;
-            if(inputField!=other.inputField || slider!=other.slider || toggle!=other.toggle || scrollView!=other.scrollView || mask!=other.mask || layoutGroup!=other.layoutGroup) return false;
-            return joint==other.joint && persistent==other.persistent && meshRenderer==other.meshRenderer && material==other.material && rotator==other.rotator && playerController==other.playerController && boxCollider==other.boxCollider && rigidBody==other.rigidBody && scripts==other.scripts && camera==other.camera &&
-                directionalLight==other.directionalLight && pointLight==other.pointLight && spotLight==other.spotLight && sky==other.sky && particleEmitter==other.particleEmitter &&
-                cameraSway==other.cameraSway && canvas==other.canvas && rectTransform==other.rectTransform && image==other.image && text==other.text && button==other.button && terrain==other.terrain && tilemap==other.tilemap && navMesh==other.navMesh && navAgent==other.navAgent && audioSource==other.audioSource && audioListener==other.audioListener && audioMixer==other.audioMixer && animation==other.animation && animator==other.animator;
+            return Components()==other.Components();
         }
         void CopyComponents(const ScenePlacement& other)
         {

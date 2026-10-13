@@ -1,3 +1,4 @@
+#include <Engine/Core/Validation.h>
 #include <SceneRuntime/Animator.h>
 #include <Engine/Core/Profiler.h>
 #include <Engine/Animation/TwoBoneIk.h>
@@ -62,6 +63,43 @@ namespace
         }
         return pose;
     }
+    void ValidateIk(const SceneRuntime::AnimatorIkConstraint &item, std::set<std::string> &ikNames, const Engine::SkeletonData *rig)
+    {
+        for (const auto &name : {item.name, item.root, item.middle, item.tip})
+            if (!Engine::ValidString(name, 256, true)) throw std::runtime_error("Invalid IK name");
+        if (!ikNames.insert(item.name).second || !Engine::InRange(item.weight, 0, 1))
+            throw std::runtime_error("Invalid IK weight or duplicate name");
+        for (const auto &point : {item.target, item.hint})
+            if (std::ranges::any_of(point, [](float value) { return !Engine::InRange(value, -1000000, 1000000); })) throw std::runtime_error("Invalid IK point");
+        if (item.root == item.middle || item.root == item.tip || item.middle == item.tip) throw std::runtime_error("Invalid IK chain");
+        if (rig)
+        {
+            const auto root = Bone(*rig, item.root), middle = Bone(*rig, item.middle), tip = Bone(*rig, item.tip);
+            if (rig->nodes[middle].parent != static_cast<int>(root) || rig->nodes[tip].parent != static_cast<int>(middle)) throw std::runtime_error("IK bones must be directly connected");
+        }
+
+    }
+
+    void ValidateState(const SceneRuntime::AnimatorStateDefinition &state, std::set<std::string> &names, const SceneRuntime::AnimatorComponent &component, const Engine::SkeletonData *rig)
+    {
+        if (!Engine::ValidString(state.name, 128, true) || state.name == "*" || !names.insert(state.name).second ||
+            !Engine::ValidString(state.clip, 256) || !Engine::ValidString(state.blendTree, 128) || !Engine::InRange(state.speed, 0, 1000)) throw std::runtime_error("Invalid Animator state");
+        if (rig && !state.clip.empty() && std::none_of(rig->clips.begin(), rig->clips.end(), [&](const auto &clip) { return clip.name == state.clip; })) throw std::runtime_error("Animator clip missing: " + state.clip);
+        if (!state.blendTree.empty() && std::none_of(component.blendTrees.begin(), component.blendTrees.end(), [&](const auto &tree) { return tree.name == state.blendTree; }))
+            throw std::runtime_error("Animator Blend Tree missing: " + state.blendTree);
+
+    }
+
+    void ValidateTransition(const SceneRuntime::AnimatorTransition &transition, const std::set<std::string> &names)
+    {
+        const std::set<std::string> comparisons{">", ">=", "<", "<=", "==", "!="};
+        if ((transition.from != "*" && !names.contains(transition.from)) || !names.contains(transition.to) || !comparisons.contains(transition.comparison) ||
+            !Engine::ValidString(transition.parameter, 128) || !Engine::InRange(transition.value, -1000000, 1000000) ||
+            !Engine::InRange(transition.blendSeconds, 0, 60) ||
+            !Engine::InRange(transition.exitTime, -1, 100)) throw std::runtime_error("Invalid Animator transition");
+
+    }
+
     const SceneRuntime::AnimatorStateDefinition& State(const SceneRuntime::AnimatorComponent& component,const std::string& name)
     {
         const auto found=std::find_if(component.states.begin(),component.states.end(),[&](const auto& state) { return state.name==name; });
@@ -93,6 +131,93 @@ namespace
         return definition.blendTree.empty() ? Engine::Skeleton::Sample(rig,definition.clip,state.time,definition.loop) :
             SceneRuntime::BlendTree::SamplePose(Motions(component,definition,parameters),rig,state.normalizedTime,definition.loop);
     }
+    void StripRoot(const SceneRuntime::AnimatorComponent &component, const Engine::SkeletonData &rig, std::vector<Engine::BonePose> &pose)
+    {
+        if (!component.rootMotion) return;
+        using namespace DirectX;
+        const auto bone = Bone(rig, component.rootBone);
+        const auto current = Engine::RootMotion::PoseFrame(rig, pose, bone), rest = Engine::RootMotion::Sample(rig, bone, "", 0, false, true);
+        const auto normalization = XMMatrixInverse(nullptr, XMLoadFloat4x4(&current)) * XMLoadFloat4x4(&rest);
+        XMVECTOR scale, rotation, position;
+        if (!XMMatrixDecompose(&scale, &rotation, &position, normalization)) throw std::runtime_error("Invalid root normalization");
+        for (size_t index = 0; index < pose.size(); ++index) if (rig.nodes[index].parent == -1)
+            {
+                auto &value = pose[index]; XMFLOAT3 translated; XMFLOAT4 oriented;
+                XMStoreFloat3(&translated, XMVector3TransformCoord(XMVectorSet(value.position[0], value.position[1], value.position[2], 1), normalization));
+                XMStoreFloat4(&oriented, XMQuaternionNormalize(XMQuaternionMultiply(XMVectorSet(value.rotation[0], value.rotation[1], value.rotation[2], value.rotation[3]), rotation)));
+                value.position = {translated.x, translated.y, translated.z}; value.rotation = {oriented.x, oriented.y, oriented.z, oriented.w};
+            }
+        if (rig.nodes[bone].parent == -1) { pose[bone].position = rig.nodes[bone].rest.position; pose[bone].rotation = rig.nodes[bone].rest.rotation; }
+
+    }
+
+    void ApplyIkOverrides(SceneRuntime::AnimatorComponent &effective, const SceneRuntime::AnimatorState &next)
+    {
+        if (next.ikOverrides.size() > 16) throw std::runtime_error("Too many IK overrides");
+        for (const auto &[name, target] : next.ikOverrides)
+        {
+            SceneRuntime::Animator::ValidateIkTarget(target);
+            const auto found = std::ranges::find_if(effective.ik, [&](const auto &item) { return item.name == name; });
+            if (found == effective.ik.end()) throw std::runtime_error("IK override constraint missing: " + name);
+            found->target = target.target; found->hint = target.hint; found->weight = target.weight; found->worldSpace = target.worldSpace;
+        }
+    }
+
+    void ApplyTransition(const SceneRuntime::AnimatorComponent &component, SceneRuntime::AnimatorState &next, const Engine::SkeletonData &rig, const SceneRuntime::AnimatorStateDefinition &before, const std::map<std::string, float> &values, bool initializing, double duration)
+    {
+        for (const auto &transition : component.transitions)
+        {
+            const double phase = before.blendTree.empty() ? next.time / duration : next.normalizedTime;
+            if (initializing || (transition.from != "*" && transition.from != next.current) || transition.to == next.current ||
+                (transition.exitTime >= 0 && phase < transition.exitTime) || !Condition(transition, values)) continue;
+            next.previousPose = next.basePose.empty() ? Sample(component, before, next, rig, values) : next.basePose;
+            StripRoot(component, rig, next.previousPose);
+            if (component.rootMotion)
+            {
+                next.previousRootMotions = Motions(component, before, values); next.previousRootPhase = phase;
+                next.previousRootSpeed = before.speed; next.previousRootLoop = before.loop;
+            }
+            next.current = transition.to; next.time = next.normalizedTime = 0; next.blendElapsed = 0; next.blendDuration = transition.blendSeconds; next.eventsAtStart = true;
+            break;
+        }
+    }
+
+    void UpdateRootDelta(const SceneRuntime::AnimatorComponent &component, SceneRuntime::AnimatorState &next, const Engine::SkeletonData &rig, const SceneRuntime::AnimatorStateDefinition &definition, double from, float tick, std::array<float, 2> weights, std::vector<Engine::BonePose> &pose)
+    {
+        const auto [fromWeight, toWeight] = weights;
+        if (component.rootMotion)
+        {
+            const auto bone = Bone(rig, component.rootBone);
+            next.rootDelta = RootDelta(rig, bone, next.motions, from, next.normalizedTime, definition.loop);
+            if (!next.previousRootMotions.empty() && next.blendDuration > 0 && fromWeight < 1)
+            {
+                const double previousTo = next.previousRootPhase + tick * next.previousRootSpeed / SceneRuntime::BlendTree::Duration(next.previousRootMotions, rig);
+                const auto outgoing = RootDelta(rig, bone, next.previousRootMotions, next.previousRootPhase, previousTo, next.previousRootLoop);
+                next.previousRootPhase = previousTo;
+                next.rootDelta = Engine::Skeleton::Blend({outgoing}, {next.rootDelta}, (fromWeight + toWeight) * .5f).front();
+            }
+            StripRoot(component, rig, pose);
+        }
+    }
+
+    float BlendWeight(const SceneRuntime::AnimatorState &state) { return state.previousPose.empty() || state.blendDuration <= 0 ? 1 : std::clamp(state.blendElapsed / state.blendDuration, 0.0f, 1.0f); }
+
+    void BlendPreviousPose(SceneRuntime::AnimatorState &next, float tick, std::vector<Engine::BonePose> &pose)
+    {
+        if (!next.previousPose.empty() && next.blendDuration > 0)
+        {
+            next.blendElapsed = std::min(next.blendElapsed + tick, next.blendDuration);
+            pose = Engine::Skeleton::Blend(next.previousPose, pose, next.blendElapsed / next.blendDuration);
+            if (next.blendElapsed >= next.blendDuration) next.previousPose.clear();
+        }
+        else next.previousPose.clear();
+    }
+
+    void ValidateClock(const SceneRuntime::AnimatorState &next)
+    {
+        if (!std::isfinite(next.time) || next.time < 0 || !std::isfinite(next.normalizedTime) || next.normalizedTime < 0) throw std::runtime_error("Invalid Animator clock");
+    }
+
 }
 namespace SceneRuntime
 {
@@ -133,15 +258,15 @@ namespace SceneRuntime
     }
     void Animator::ValidateIkTarget(const AnimatorIkTarget& target)
     {
-        if (!std::isfinite(target.weight) || target.weight<0 || target.weight>1) throw std::runtime_error("Invalid IK target weight");
+        if (!Engine::InRange(target.weight,0,1)) throw std::runtime_error("Invalid IK target weight");
         for (const auto& point : {target.target,target.hint})
-            if (std::ranges::any_of(point,[](float value) { return !std::isfinite(value) || std::abs(value)>1000000; })) throw std::runtime_error("Invalid IK target point");
+            if (std::ranges::any_of(point,[](float value) { return !Engine::InRange(value,-1000000,1000000); })) throw std::runtime_error("Invalid IK target point");
     }
     void Animator::ValidateParameters(const std::map<std::string,float>& parameters)
     {
         if (parameters.size()>64) throw std::runtime_error("Too many Animator parameters");
         for (const auto& [name,value] : parameters)
-            if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || !std::isfinite(value) || std::abs(value)>1000000)
+            if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || !Engine::InRange(value,-1000000,1000000))
                 throw std::runtime_error("Invalid Animator parameter");
     }
     void Animator::Validate(const AnimatorComponent& component,const Engine::SkeletonData* rig)
@@ -154,39 +279,11 @@ namespace SceneRuntime
         if (rig && component.rootMotion) static_cast<void>(Bone(*rig,component.rootBone));
         if (component.ik.size()>16) throw std::runtime_error("Too many IK constraints");
         std::set<std::string> ikNames;
-        for (const auto& item : component.ik)
-        {
-            for (const auto& name : {item.name,item.root,item.middle,item.tip})
-                if (name.empty() || name.size()>256 || name.find('\0')!=std::string::npos) throw std::runtime_error("Invalid IK name");
-            if (!ikNames.insert(item.name).second || !std::isfinite(item.weight) || item.weight<0 || item.weight>1)
-                throw std::runtime_error("Invalid IK weight or duplicate name");
-            for (const auto& point : {item.target,item.hint})
-                if (std::ranges::any_of(point,[](float value) { return !std::isfinite(value) || std::abs(value)>1000000; })) throw std::runtime_error("Invalid IK point");
-            if (item.root==item.middle || item.root==item.tip || item.middle==item.tip) throw std::runtime_error("Invalid IK chain");
-            if (rig)
-            {
-                const auto root=Bone(*rig,item.root),middle=Bone(*rig,item.middle),tip=Bone(*rig,item.tip);
-                if (rig->nodes[middle].parent!=static_cast<int>(root) || rig->nodes[tip].parent!=static_cast<int>(middle)) throw std::runtime_error("IK bones must be directly connected");
-            }
-        }
+        for (const auto& item : component.ik) ValidateIk(item,ikNames,rig);
         std::set<std::string> names;
-        for (const auto& state : component.states)
-        {
-            if (state.name.empty() || state.name.size()>128 || state.name=="*" || state.name.find('\0')!=std::string::npos || !names.insert(state.name).second ||
-                state.clip.size()>256 || state.clip.find('\0')!=std::string::npos || state.blendTree.size()>128 || state.blendTree.find('\0')!=std::string::npos || !std::isfinite(state.speed) || state.speed<0 || state.speed>1000) throw std::runtime_error("Invalid Animator state");
-            if (rig && !state.clip.empty() && std::none_of(rig->clips.begin(),rig->clips.end(),[&](const auto& clip) { return clip.name==state.clip; })) throw std::runtime_error("Animator clip missing: "+state.clip);
-            if (!state.blendTree.empty() && std::none_of(component.blendTrees.begin(),component.blendTrees.end(),[&](const auto& tree) { return tree.name==state.blendTree; }))
-                throw std::runtime_error("Animator Blend Tree missing: "+state.blendTree);
-        }
+        for (const auto& state : component.states) ValidateState(state,names,component,rig);
         if (!names.contains(component.initialState)) throw std::runtime_error("Animator initial state missing");
-        for (const auto& transition : component.transitions)
-        {
-            const std::set<std::string> comparisons{">",">=","<","<=","==","!="};
-            if ((transition.from!="*" && !names.contains(transition.from)) || !names.contains(transition.to) || !comparisons.contains(transition.comparison) ||
-                transition.parameter.size()>128 || transition.parameter.find('\0')!=std::string::npos || !std::isfinite(transition.value) || std::abs(transition.value)>1000000 ||
-                !std::isfinite(transition.blendSeconds) || transition.blendSeconds<0 || transition.blendSeconds>60 ||
-                !std::isfinite(transition.exitTime) || transition.exitTime<-1 || transition.exitTime>100) throw std::runtime_error("Invalid Animator transition");
-        }
+        for (const auto& transition : component.transitions) ValidateTransition(transition,names);
     }
     std::vector<Engine::BonePose> Animator::Advance(const AnimatorComponent& authored,AnimatorState& state,
         const Engine::SkeletonData& rig,double seconds,const std::map<std::string,float>& parameters,const DirectX::XMFLOAT4X4* modelWorld)
@@ -198,14 +295,7 @@ namespace SceneRuntime
         auto next=state;
         next.rootDelta={};
         auto effective=component;
-        if (next.ikOverrides.size()>16) throw std::runtime_error("Too many IK overrides");
-        for (const auto& [name,target] : next.ikOverrides)
-        {
-            ValidateIkTarget(target);
-            const auto found=std::ranges::find_if(effective.ik,[&](const auto& item) { return item.name==name; });
-            if (found==effective.ik.end()) throw std::runtime_error("IK override constraint missing: "+name);
-            found->target=target.target; found->hint=target.hint; found->weight=target.weight; found->worldSpace=target.worldSpace;
-        }
+        ApplyIkOverrides(effective,next);
         next.events.clear();
         ValidateParameters(next.parameterOverrides);
         auto values=component.parameters;
@@ -213,78 +303,30 @@ namespace SceneRuntime
         for (const auto& [name,value] : next.parameterOverrides) values[name]=value;
         const bool initializing=next.current.empty();
         if (initializing) next.current=component.initialState;
-        if (!std::isfinite(next.time) || next.time<0 || !std::isfinite(next.normalizedTime) || next.normalizedTime<0) throw std::runtime_error("Invalid Animator clock");
+        ValidateClock(next);
         const auto& before=State(component,next.current);
-        const auto StripRoot=[&](std::vector<Engine::BonePose>& pose) {
-            if (!component.rootMotion) return;
-            using namespace DirectX;
-            const auto bone=Bone(rig,component.rootBone);
-            const auto current=Engine::RootMotion::PoseFrame(rig,pose,bone),rest=Engine::RootMotion::Sample(rig,bone,"",0,false,true);
-            const auto normalization=XMMatrixInverse(nullptr,XMLoadFloat4x4(&current))*XMLoadFloat4x4(&rest);
-            XMVECTOR scale,rotation,position;
-            if (!XMMatrixDecompose(&scale,&rotation,&position,normalization)) throw std::runtime_error("Invalid root normalization");
-            for (size_t index=0;index<pose.size();++index) if (rig.nodes[index].parent==-1)
-            {
-                auto& value=pose[index]; XMFLOAT3 translated; XMFLOAT4 oriented;
-                XMStoreFloat3(&translated,XMVector3TransformCoord(XMVectorSet(value.position[0],value.position[1],value.position[2],1),normalization));
-                XMStoreFloat4(&oriented,XMQuaternionNormalize(XMQuaternionMultiply(XMVectorSet(value.rotation[0],value.rotation[1],value.rotation[2],value.rotation[3]),rotation)));
-                value.position={translated.x,translated.y,translated.z}; value.rotation={oriented.x,oriented.y,oriented.z,oriented.w};
-            }
-            if (rig.nodes[bone].parent==-1) { pose[bone].position=rig.nodes[bone].rest.position; pose[bone].rotation=rig.nodes[bone].rest.rotation; }
-        };
+
         if (!component.enabled)
         {
-            if (next.pose.empty()) { next.basePose=Sample(component,before,next,rig,values); StripRoot(next.basePose); next.pose=SolveIk(effective,rig,next.basePose,modelWorld); next.motions=Motions(component,before,values); }
+            if (next.pose.empty()) { next.basePose=Sample(component,before,next,rig,values); StripRoot(component,rig,next.basePose); next.pose=SolveIk(effective,rig,next.basePose,modelWorld); next.motions=Motions(component,before,values); }
             auto pose=next.pose; state=std::move(next); return pose;
         }
         const double duration=BlendTree::Duration(Motions(component,before,values),rig);
-        for (const auto& transition : component.transitions)
-        {
-            const double phase=before.blendTree.empty() ? next.time/duration : next.normalizedTime;
-            if (initializing || (transition.from!="*" && transition.from!=next.current) || transition.to==next.current ||
-                (transition.exitTime>=0 && phase<transition.exitTime) || !Condition(transition,values)) continue;
-            next.previousPose=next.basePose.empty() ? Sample(component,before,next,rig,values) : next.basePose;
-            StripRoot(next.previousPose);
-            if (component.rootMotion)
-            {
-                next.previousRootMotions=Motions(component,before,values); next.previousRootPhase=phase;
-                next.previousRootSpeed=before.speed; next.previousRootLoop=before.loop;
-            }
-            next.current=transition.to; next.time=next.normalizedTime=0; next.blendElapsed=0; next.blendDuration=transition.blendSeconds; next.eventsAtStart=true;
-            break;
-        }
+        ApplyTransition(component,next,rig,before,values,initializing,duration);
         const auto& definition=State(component,next.current);
         next.motions=Motions(component,definition,values);
         const double cycleDuration=BlendTree::Duration(next.motions,rig);
         const double from=definition.blendTree.empty() ? next.time/cycleDuration : next.normalizedTime;
-        const float fromWeight=next.previousPose.empty() || next.blendDuration<=0 ? 1 : std::clamp(next.blendElapsed/next.blendDuration,0.0f,1.0f);
+        const float fromWeight=BlendWeight(next);
         const float tick=static_cast<float>(std::min(seconds,0.1)); next.time+=tick*definition.speed;
         next.normalizedTime=definition.blendTree.empty() ? next.time/cycleDuration : next.normalizedTime+tick*definition.speed/cycleDuration;
         auto pose=definition.blendTree.empty() ? Engine::Skeleton::Sample(rig,definition.clip,next.time,definition.loop) :
             BlendTree::SamplePose(next.motions,rig,next.normalizedTime,definition.loop);
-        if (!next.previousPose.empty() && next.blendDuration>0)
-        {
-            next.blendElapsed=std::min(next.blendElapsed+tick,next.blendDuration);
-            pose=Engine::Skeleton::Blend(next.previousPose,pose,next.blendElapsed/next.blendDuration);
-            if (next.blendElapsed>=next.blendDuration) next.previousPose.clear();
-        }
-        else next.previousPose.clear();
-        const float toWeight=next.previousPose.empty() || next.blendDuration<=0 ? 1 : std::clamp(next.blendElapsed/next.blendDuration,0.0f,1.0f);
-        next.events=AnimationEvents::Collect(component.events,rig,next.current,next.motions,from,next.normalizedTime,definition.loop,next.eventsAtStart,fromWeight,toWeight);
+        BlendPreviousPose(next,tick,pose);
+        const float toWeight=BlendWeight(next);
+        next.events=AnimationEvents::Collect(component.events,rig,next.current,next.motions,{from,next.normalizedTime,definition.loop,next.eventsAtStart,fromWeight,toWeight});
         if (next.normalizedTime>from) next.eventsAtStart=false;
-        if (component.rootMotion)
-        {
-            const auto bone=Bone(rig,component.rootBone);
-            next.rootDelta=RootDelta(rig,bone,next.motions,from,next.normalizedTime,definition.loop);
-            if (!next.previousRootMotions.empty() && next.blendDuration>0 && fromWeight<1)
-            {
-                const double previousTo=next.previousRootPhase+tick*next.previousRootSpeed/BlendTree::Duration(next.previousRootMotions,rig);
-                const auto outgoing=RootDelta(rig,bone,next.previousRootMotions,next.previousRootPhase,previousTo,next.previousRootLoop);
-                next.previousRootPhase=previousTo;
-                next.rootDelta=Engine::Skeleton::Blend({outgoing},{next.rootDelta},(fromWeight+toWeight)*.5f).front();
-            }
-            StripRoot(pose);
-        }
+        UpdateRootDelta(component,next,rig,definition,from,tick,{fromWeight,toWeight},pose);
         if (!component.rootMotion || toWeight>=1) next.previousRootMotions.clear();
         next.basePose=pose; pose=SolveIk(effective,rig,std::move(pose),modelWorld);
         next.pose=pose; state=std::move(next); return pose;

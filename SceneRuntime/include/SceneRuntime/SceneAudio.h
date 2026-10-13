@@ -34,6 +34,8 @@ public:
     void Stop();
 private:
     struct Source {Engine::SoundHandle handle=0; bool loop=false,awake=false,started=false,streaming=false; std::filesystem::path clip;};
+    void UnloadReplacedSources(const std::map<std::string,Source>& pending);
+    void CaptureConfiguration(const SceneLayout& layout);
     struct Configuration {std::string id; std::optional<AudioSourceComponent> source; std::optional<AudioMixerComponent> mixer;};
     /// <summary>音源とミキサーの設定が最後に成功した反映内容と一致するか確認します。</summary>
     bool SameConfiguration(const SceneLayout& layout) const;

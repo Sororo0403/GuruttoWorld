@@ -85,6 +85,73 @@ namespace
 
 namespace SceneRuntime
 {
+static bool ValidPrefabLink(const PrefabLink &link) {
+    return Prefab::ValidPath(link.asset) && !link.sourceId.empty() && !link.rootId.empty() && !link.baseline.empty() && link.baseline.size() <= 1048576;
+}
+static void ReadPrefabLink(const Json &object, ScenePlacement &placement)
+{
+    if (object.contains("prefab"))
+    {
+        const auto &prefabValue = JsonObject(object.at("prefab"));
+        const auto asset = prefabValue.at("asset").get<std::string>();
+        PrefabLink link; link.asset = std::filesystem::path(std::u8string(asset.begin(), asset.end()));
+        link.sourceId = prefabValue.at("source").get<std::string>(); link.rootId = prefabValue.at("root").get<std::string>();
+        link.baseline = prefabValue.at("baseline").get<std::string>();
+        if (!ValidPrefabLink(link))
+            throw std::runtime_error("Invalid prefab link");
+        placement.prefab = std::move(link);
+    }
+}
+
+static ScenePlacement ReadPlacement(const Json &value, double version, std::unordered_set<std::string> &ids)
+{
+    const auto &object = JsonObject(value);
+    ScenePlacement placement;
+    placement.id = object.at("id").get<std::string>();
+    if (placement.id.empty() || !ids.insert(placement.id).second)
+        throw std::runtime_error("Empty or duplicate object ID: " + placement.id);
+    try
+    {
+        placement.name = object.at("name").get<std::string>();
+        if (object.contains("persistent")) placement.persistent = object.at("persistent").get<bool>();
+        if (object.contains("parent")) placement.parentId = object.at("parent").get<std::string>();
+        ReadSceneComponents(object, placement, version == 2.0);
+        ReadPrefabLink(object, placement);
+        placement.position = ReadVector(object, "position");
+        placement.rotation = ReadVector(object, "rotation");
+        placement.scale = ReadVector(object, "scale", true);
+    }
+    catch (const std::exception &error)
+    {
+        throw std::runtime_error(placement.id + ": " + error.what());
+    }
+    return placement;
+}
+
+static void ValidateSceneCounts(const SceneLayout &layout)
+{
+    const auto menus = std::count_if(layout.objects.begin(), layout.objects.end(), [](const auto &object) {
+                return object.canvas && object.canvas->enabled && object.canvas->menu;
+            });
+    if (menus > 1) throw std::runtime_error("At most one enabled menu Canvas is supported");
+    size_t localLights = 0;
+    for (const auto &object : layout.objects)
+    {
+        if (object.pointLight && object.pointLight->enabled) ++localLights;
+        if (object.spotLight && object.spotLight->enabled) ++localLights;
+    }
+    if (localLights > 32) throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
+}
+static void ValidateLayoutContents(const SceneLayout &layout)
+{
+    if (std::any_of(layout.objects.begin(), layout.objects.end(), [](const auto &p) {
+                return (p.terrain && p.tilemap) || ((p.terrain || p.tilemap) && p.meshRenderer);
+            })) throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
+    ValidateParents(layout.objects);
+    if (std::any_of(std::begin(layout.objects), std::end(layout.objects), [](const auto &object) { return object.ragdoll && !object.animator; })) throw std::runtime_error("Ragdoll requires an Animator");
+    ValidateCamera(layout);
+    ValidateSceneCounts(layout);
+}
     static SceneLayout ParseDocument(const Json& document)
     {
         try
@@ -102,55 +169,10 @@ namespace SceneRuntime
             std::unordered_set<std::string> ids;
             for (const auto& value : JsonArray(document.at("objects")))
             {
-                const auto& object = JsonObject(value);
-                ScenePlacement placement;
-                placement.id = object.at("id").get<std::string>();
-                if (placement.id.empty() || !ids.insert(placement.id).second)
-                    throw std::runtime_error("Empty or duplicate object ID: " + placement.id);
-                try
-                {
-                    placement.name = object.at("name").get<std::string>();
-                    if (object.contains("persistent")) placement.persistent=object.at("persistent").get<bool>();
-                    if (object.contains("parent")) placement.parentId = object.at("parent").get<std::string>();
-                    ReadSceneComponents(object,placement,version==2.0);
-                    if (object.contains("prefab"))
-                    {
-                        const auto& prefabValue=JsonObject(object.at("prefab"));
-                        const auto asset=prefabValue.at("asset").get<std::string>();
-                        PrefabLink link; link.asset=std::filesystem::path(std::u8string(asset.begin(),asset.end()));
-                        link.sourceId=prefabValue.at("source").get<std::string>(); link.rootId=prefabValue.at("root").get<std::string>();
-                        link.baseline=prefabValue.at("baseline").get<std::string>();
-                        if (!Prefab::ValidPath(link.asset) || link.sourceId.empty() || link.rootId.empty() || link.baseline.empty() || link.baseline.size()>1048576)
-                            throw std::runtime_error("Invalid prefab link");
-                        placement.prefab=std::move(link);
-                    }
-                    placement.position = ReadVector(object, "position");
-                    placement.rotation = ReadVector(object, "rotation");
-                    placement.scale = ReadVector(object, "scale", true);
-                }
-                catch (const std::exception& error)
-                {
-                    throw std::runtime_error(placement.id + ": " + error.what());
-                }
+                auto placement=ReadPlacement(value,version,ids);
                 layout.objects.push_back(std::move(placement));
             }
-            if(std::any_of(layout.objects.begin(),layout.objects.end(),[](const auto& p) {
-                return (p.terrain&&p.tilemap)||((p.terrain||p.tilemap)&&p.meshRenderer);
-            })) throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
-            ValidateParents(layout.objects);
-            if (std::any_of(std::begin(layout.objects),std::end(layout.objects),[](const auto& object) {return object.ragdoll && !object.animator;})) throw std::runtime_error("Ragdoll requires an Animator");
-            ValidateCamera(layout);
-            const auto menus=std::count_if(layout.objects.begin(),layout.objects.end(),[](const auto& object) {
-                return object.canvas && object.canvas->enabled && object.canvas->menu;
-            });
-            if(menus>1) throw std::runtime_error("At most one enabled menu Canvas is supported");
-            size_t localLights=0;
-            for (const auto& object : layout.objects)
-            {
-                if (object.pointLight && object.pointLight->enabled) ++localLights;
-                if (object.spotLight && object.spotLight->enabled) ++localLights;
-            }
-            if (localLights>32) throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
+            ValidateLayoutContents(layout);
             return layout;
         }
         catch (const Json::exception& error)
@@ -185,6 +207,36 @@ namespace SceneRuntime
         static_cast<void>(ParseDocument(LayoutDocument(*this)));
     }
 
+    static void ValidateObjectChanges(const ScenePlacement &object, const ScenePlacement &before)
+    {
+        for (const auto &vector : {object.position, object.rotation, object.scale}) if (std::any_of(vector.begin(), vector.end(), [](float value) { return !std::isfinite(value); })) throw std::runtime_error("Cannot save nonfinite transform");
+        if (std::any_of(object.scale.begin(), object.scale.end(), [](float value) { return std::abs(value) < 0.000001f; }))
+            throw std::runtime_error("Transform contains an invalid number or zero scale");
+        if (!object.SameComponents(before))
+        {
+            ScenePlacement checked;
+            ReadSceneComponents(Json{{"components", WriteSceneComponents(object)}}, checked, false);
+        }
+        if (object.prefab != before.prefab && object.prefab &&
+            (!ValidPrefabLink(*object.prefab)))
+            throw std::runtime_error("Invalid prefab link");
+        if ((object.terrain && object.tilemap) || ((object.terrain || object.tilemap) && object.meshRenderer))
+            throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
+        if (object.ragdoll && !object.animator) throw std::runtime_error("Ragdoll requires an Animator");
+    }
+    static void ValidateChangedAssetReferences(const SceneLayout &layout, const SceneLayout &validatedBefore)
+    {
+        if (layout.assetReferences != validatedBefore.assetReferences)
+            for (const auto &[path, id] : layout.assetReferences)
+                if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
+                    throw std::runtime_error("Invalid asset reference metadata");
+    }
+    static void CountSceneComponents(const ScenePlacement &object, size_t &menus, size_t &localLights)
+    {
+        if (object.canvas && object.canvas->enabled && object.canvas->menu) ++menus;
+        if (object.pointLight && object.pointLight->enabled) ++localLights;
+        if (object.spotLight && object.spotLight->enabled) ++localLights;
+    }
     void SceneLayout::ValidateChanges(const SceneLayout& validatedBefore) const
     {
         if (objects.size()!=validatedBefore.objects.size()) { Validate(); return; }
@@ -193,10 +245,7 @@ namespace SceneRuntime
         try
         {
             if (settings!=validatedBefore.settings) static_cast<void>(ReadSceneSettings(WriteSceneSettings(settings)));
-            if (assetReferences!=validatedBefore.assetReferences)
-                for (const auto& [path,id] : assetReferences)
-                    if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
-                        throw std::runtime_error("Invalid asset reference metadata");
+            ValidateChangedAssetReferences(*this,validatedBefore);
             // Object IDs already match the validated baseline; only parent edits can invalidate its hierarchy.
             bool parentsChanged=false;
             size_t menus=0,localLights=0;
@@ -205,24 +254,8 @@ namespace SceneRuntime
                 const auto& object=objects[index];
                 const auto& before=validatedBefore.objects[index];
                 parentsChanged=parentsChanged || object.parentId!=before.parentId;
-                for (const auto& vector:{object.position,object.rotation,object.scale}) if (std::any_of(vector.begin(),vector.end(),[](float value) { return !std::isfinite(value); })) throw std::runtime_error("Cannot save nonfinite transform");
-                if (std::any_of(object.scale.begin(),object.scale.end(),[](float value) { return std::abs(value)<0.000001f; }))
-                    throw std::runtime_error("Transform contains an invalid number or zero scale");
-                if (!object.SameComponents(before))
-                {
-                    ScenePlacement checked;
-                    ReadSceneComponents(Json{{"components",WriteSceneComponents(object)}},checked,false);
-                }
-                if (object.prefab!=before.prefab && object.prefab &&
-                    (!Prefab::ValidPath(object.prefab->asset) || object.prefab->sourceId.empty() ||
-                        object.prefab->rootId.empty() || object.prefab->baseline.empty() || object.prefab->baseline.size()>1048576))
-                    throw std::runtime_error("Invalid prefab link");
-                if ((object.terrain && object.tilemap) || ((object.terrain || object.tilemap) && object.meshRenderer))
-                    throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
-                if (object.ragdoll && !object.animator) throw std::runtime_error("Ragdoll requires an Animator");
-                if (object.canvas && object.canvas->enabled && object.canvas->menu) ++menus;
-                if (object.pointLight && object.pointLight->enabled) ++localLights;
-                if (object.spotLight && object.spotLight->enabled) ++localLights;
+                ValidateObjectChanges(object,before);
+                CountSceneComponents(object,menus,localLights);
             }
             if (parentsChanged) ValidateParents(objects);
             ValidateCamera(*this);
