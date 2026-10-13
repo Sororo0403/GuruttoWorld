@@ -37,11 +37,56 @@
 #include <cstdio>
 #include <iterator>
 #include <cstring>
+#include <fstream>
+#include <Engine/Core/Json.h>
+#include <Engine/Assets/AssetDatabase.h>
+#include <cctype>
 
 namespace
 {
     using namespace SceneRuntime;
     using Matrix=DirectX::XMFLOAT4X4;
+    using QueryFiles=std::map<std::filesystem::path,std::pair<std::filesystem::file_time_type,std::uintmax_t>>;
+    auto QueryFileStamp(const std::filesystem::path& path)
+    {
+        return std::filesystem::exists(path) ? std::pair{std::filesystem::last_write_time(path),std::filesystem::file_size(path)} :
+            std::pair{std::filesystem::file_time_type::min(),std::uintmax_t{0}};
+    }
+    Engine::Json GeometryDocument(const std::filesystem::path& path)
+    {
+        auto extension=path.extension().string();
+        std::transform(extension.begin(),extension.end(),extension.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
+        std::ifstream input(path,std::ios::binary);
+        if(extension==".gltf") return Engine::Json::parse(input);
+        if(extension!=".glb") return Engine::Json::object();
+        std::array<std::uint32_t,5> header{};input.read(reinterpret_cast<char*>(header.data()),sizeof(header));
+        if(!input || header[0]!=0x46546c67 || header[1]!=2 || header[4]!=0x4e4f534a || header[3]>std::filesystem::file_size(path)-sizeof(header))
+            throw std::runtime_error("Invalid collider GLB JSON chunk");
+        std::string json(header[3],'\0');input.read(json.data(),static_cast<std::streamsize>(json.size()));
+        if(!input) throw std::runtime_error("Cannot read collider GLB dependencies");
+        return Engine::Json::parse(json);
+    }
+    QueryFiles QueryGeometryFiles(const SceneLayout& layout,const std::filesystem::path& root)
+    {
+        QueryFiles files;
+        for(const auto& object:layout.objects) {
+            if(!object.boxCollider || !object.boxCollider->enabled || object.boxCollider->shape!="mesh" || object.terrain || object.tilemap) continue;
+            const auto path=root/(object.boxCollider->model.empty()?object.Model():object.boxCollider->model);
+            files[path]=QueryFileStamp(path);auto metadata=path;metadata+=".meta";files[metadata]=QueryFileStamp(metadata);
+            const auto document=GeometryDocument(path);
+            if(!document.contains("buffers")) continue;
+            for(const auto& buffer:document.at("buffers")) {
+                const auto uri=buffer.value("uri",std::string{});
+                if(uri.empty() || uri.starts_with("data:")) continue;
+                const auto dependency=path.parent_path()/Engine::AssetDatabase::Path(uri);files[dependency]=QueryFileStamp(dependency);
+            }
+        }
+        return files;
+    }
+    bool QueryFilesMatch(const QueryFiles& files)
+    {
+        return std::all_of(files.begin(),files.end(),[](const auto& file){return QueryFileStamp(file.first)==file.second;});
+    }
     JPH::Vec3 V(const std::array<float,3>& p) { return {p[0],p[1],p[2]}; }
     std::array<float,3> A(JPH::Vec3Arg p) { return {p.GetX(),p.GetY(),p.GetZ()}; }
     bool Finite(const std::array<float,3>& value) { return std::all_of(value.begin(),value.end(),[](float f) { return std::isfinite(f); }); }
@@ -413,6 +458,7 @@ namespace SceneRuntime
         }
         static bool MatchesDefinition(const ScenePlacement &a, const ScenePlacement &b)
         {
+            if(a.boxCollider && a.boxCollider->shape=="mesh" && a.Model()!=b.Model()) return false;
             return !(a.id != b.id || a.parentId != b.parentId || a.boxCollider != b.boxCollider || a.rigidBody != b.rigidBody || !MatchesController(a.playerController, b.playerController) || a.terrain != b.terrain || a.tilemap != b.tilemap || a.joint != b.joint);
         }
         bool MatchesShape(const ScenePlacement &a, const Matrix &matrix) const
@@ -442,6 +488,18 @@ namespace SceneRuntime
                 }
             }
             return true;
+        }
+        void SynchronizeQueries(const SceneLayout& layout,const std::vector<Matrix>& matrices)
+        {
+            for(auto& [id,entry]:entries) {
+                static_cast<void>(id);
+                const auto& matrix=matrices.at(entry.index);
+                if(std::memcmp(&matrix,&entry.basis,sizeof(Matrix))==0) continue;
+                bool baked=false;const auto pose=ColliderPose(layout.objects.at(entry.index),matrix,baked);
+                if(entry.character) {entry.character->SetPosition(pose.position);entry.character->SetRotation(pose.rotation);}
+                else system.GetBodyInterface().SetPositionAndRotation(entry.body,pose.position,pose.rotation,JPH::EActivation::DontActivate);
+                entry.pose=pose;entry.basis=matrix;
+            }
         }
         void Gather(std::vector<PhysicsContactEvent>& events)
         {
@@ -508,8 +566,10 @@ namespace SceneRuntime
             auto &result = resolved.objects[index]; result.position = placement.position; result.rotation = placement.rotation; result.scale = placement.scale;
             if (const auto entry = entries.find(object.id); entry != entries.end())
             {
-                if (entry->second.character) entry->second.character->SetPosition(actual.position);
+                if (entry->second.character) {entry->second.character->SetPosition(actual.position);entry->second.character->SetRotation(actual.rotation);}
                 else system.GetBodyInterface().SetPositionAndRotation(entry->second.body, actual.position, actual.rotation, JPH::EActivation::Activate);
+                entry->second.pose.position=actual.position;entry->second.pose.rotation=actual.rotation;
+                entry->second.basis=WorldMatrix(entry->second.pose);
             }
             return true;
         }
@@ -703,7 +763,7 @@ namespace SceneRuntime
     PhysicsWorld::Transaction PhysicsWorld::BeginTransaction() { return Transaction(*this); }
     PhysicsWorld::PhysicsWorld() { Register(); }
     PhysicsWorld::~PhysicsWorld()=default;
-    void PhysicsWorld::Reset() { impl_.reset(); impulses_.clear(); events_.clear(); }
+    void PhysicsWorld::Reset() { impl_.reset(); rootQueries_.reset(); impulses_.clear(); events_.clear(); }
     bool PhysicsWorld::ConstrainRootMotion(const SceneLayout& before,SceneLayout& candidate,const std::vector<size_t>& actors,
         const std::filesystem::path& root,std::string& error) const
     {
@@ -714,7 +774,13 @@ namespace SceneRuntime
             if (std::none_of(actors.begin(),actors.end(),solid)) { error.clear(); return true; }
             std::vector<Matrix> start,desired;
             if (!SceneTransforms::Resolve(before,start,error) || !SceneTransforms::Resolve(candidate,desired,error)) return false;
-            Impl world(before); world.Build(start,root,nullptr,{});
+            if(!rootQueries_ || rootQueryRoot_!=root || !QueryFilesMatch(rootQueryFiles_) || !rootQueries_->Matches(before,start)) {
+                Engine::CpuScope rebuild("Root collision world rebuild");
+                auto replacement=std::make_shared<Impl>(before);replacement->Build(start,root,nullptr,{});
+                auto files=QueryGeometryFiles(before,root);
+                rootQueries_=std::move(replacement);rootQueryRoot_=root;rootQueryFiles_=std::move(files);
+            }
+            auto& world=*rootQueries_;world.SynchronizeQueries(before,start);
             auto resolved=candidate;
             auto ordered=actors;
             std::stable_sort(ordered.begin(),ordered.end(),[&](size_t first,size_t second){return ObjectDepth(before,first)<ObjectDepth(before,second);});

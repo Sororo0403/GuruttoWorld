@@ -46,7 +46,7 @@ namespace SceneRuntime
             const std::filesystem::path& root,std::string& error);
         /// <summary>次回の物理更新で適用するワールド空間のインパルスを予約します。</summary>
         bool AddImpulse(const std::string& object,const std::array<float,3>& impulse);
-        /// <summary>ルート移動を一時的な衝突ワールドで制限します。物理時計・速度・接触履歴は変更しません。</summary>
+        /// <summary>ルート移動を独立した再利用可能な衝突ワールドで制限します。物理時計・速度・接触履歴は変更しません。</summary>
         bool ConstrainRootMotion(const SceneLayout& before,SceneLayout& candidate,const std::vector<size_t>& actors,
             const std::filesystem::path& root,std::string& error) const;
         /// <summary>レイヤー・Trigger・除外IDを考慮し、最も近いColliderの交点を返します。</summary>
@@ -59,6 +59,9 @@ namespace SceneRuntime
     private:
         struct Impl;
         std::shared_ptr<Impl> impl_;
+        mutable std::shared_ptr<Impl> rootQueries_;
+        mutable std::filesystem::path rootQueryRoot_;
+        mutable std::map<std::filesystem::path,std::pair<std::filesystem::file_time_type,std::uintmax_t>> rootQueryFiles_;
         std::map<std::string,std::array<float,3>> impulses_;
         std::vector<PhysicsContactEvent> events_;
     };
