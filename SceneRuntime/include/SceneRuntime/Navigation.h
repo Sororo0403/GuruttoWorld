@@ -3,7 +3,7 @@
 namespace SceneRuntime {
 class Navigation final {
 public:
-    /// <summary>地形の傾斜とワールドColliderの障害物をナビゲーションセルへ焼き込みます。</summary>
+    /// <summary>親の姿勢を含めたワールド傾斜と、ワールド単位のAgent半径で障害物をセルへ焼き込みます。</summary>
     static bool Bake(const SceneLayout& layout,ScenePlacement& mesh,std::string& error);
     /// <summary>ワールド座標の始点・終点からセル面上の経路を求めます。</summary>
     static std::vector<std::array<float,3>> Path(const SceneLayout& layout,const std::string& mesh,

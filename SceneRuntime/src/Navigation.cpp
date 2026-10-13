@@ -34,11 +34,47 @@ std::vector<Obstacle> Obstacles(const SceneLayout& layout,const std::vector<Dire
 }
 bool Blocked(const std::array<float,3>& point,const std::vector<Obstacle>& obstacles,float radius) {
     for(const auto& obstacle:obstacles) {
-        const auto local=Point(point,DirectX::XMLoadFloat4x4(&obstacle.inverse));const auto& c=obstacle.box;
-        if(std::abs(local[0]-c.center[0])<=c.size[0]*.5f+radius&&std::abs(local[2]-c.center[2])<=c.size[2]*.5f+radius&&
-            local[1]+1.8f>=c.center[1]-c.size[1]*.5f&&local[1]+.05f<c.center[1]+c.size[1]*.5f) return true;
+        auto bottom=point,top=point;bottom[1]+=.05f;top[1]+=1.8f;
+        const auto low=Point(bottom,DirectX::XMLoadFloat4x4(&obstacle.inverse));
+        const auto high=Point(top,DirectX::XMLoadFloat4x4(&obstacle.inverse));const auto& c=obstacle.box;
+        bool overlap=true;
+        for(size_t axis=0;axis<3;++axis) {
+            // Project the world-space agent cylinder into each box-local axis.
+            const float extent=radius*std::hypot(obstacle.inverse.m[0][axis],obstacle.inverse.m[2][axis]);
+            overlap=overlap && std::max(low[axis],high[axis])+extent>=c.center[axis]-c.size[axis]*.5f &&
+                std::min(low[axis],high[axis])-extent<c.center[axis]+c.size[axis]*.5f;
+        }
+        if(overlap) return true;
     }
     return false;
+}
+float SurfaceSlope(float dx,float dz,DirectX::FXMMATRIX transform) {
+    const auto x=DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(1,dx,0,0),transform);
+    const auto z=DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(0,dz,1,0),transform);
+    DirectX::XMFLOAT3 normal;DirectX::XMStoreFloat3(&normal,DirectX::XMVector3Cross(z,x));
+    return std::atan2(std::hypot(normal.x,normal.z),std::abs(normal.y))*180/DirectX::XM_PI;
+}
+using Displacements=std::map<std::string,std::array<float,3>>;
+std::array<float,3> ParentDisplacement(std::string id,const std::map<std::string,std::string>& parents,Displacements& moves) {
+    // Navigation changes translation only; non-agent descendants inherit their nearest moving ancestor's world delta.
+    std::vector<std::string> chain;
+    while(!id.empty() && !moves.contains(id)) {chain.push_back(id);id=parents.at(id);}
+    const auto delta=id.empty()?std::array<float,3>{}:moves.at(id);
+    for(const auto& child:chain) moves.emplace(child,delta);
+    return delta;
+}
+void LocalAgentPositions(const SceneLayout& layout,const std::vector<DirectX::XMFLOAT4X4>& matrices,Displacements& targets,Displacements moves) {
+    std::map<std::string,std::string> parents;std::map<std::string,size_t> indices;
+    for(size_t i=0;i<layout.objects.size();++i) {parents.emplace(layout.objects[i].id,layout.objects[i].parentId);indices.emplace(layout.objects[i].id,i);}
+    for(const auto& p:layout.objects) {
+        const auto target=targets.find(p.id);if(target==targets.end()) continue;
+        auto parent=DirectX::XMMatrixIdentity();
+        if(!p.parentId.empty()) {
+            auto matrix=matrices[indices.at(p.parentId)];const auto delta=ParentDisplacement(p.parentId,parents,moves);
+            matrix._41+=delta[0];matrix._42+=delta[1];matrix._43+=delta[2];parent=DirectX::XMLoadFloat4x4(&matrix);
+        }
+        target->second=Point(target->second,DirectX::XMMatrixInverse(nullptr,parent));
+    }
 }
 std::vector<size_t> Neighbors(const NavMeshComponent& mesh,size_t cell) {
     const int x=static_cast<int>(cell%mesh.columns),z=static_cast<int>(cell/mesh.columns);std::vector<size_t> result;
@@ -82,14 +118,14 @@ bool Navigation::Bake(const SceneLayout& layout,ScenePlacement& owner,std::strin
         DirectX::XMFLOAT4X4 transform;if(found==layout.objects.end()) {if(!SceneTransforms::Compose(owner,transform)) throw std::runtime_error("Invalid NavMesh transform");}else transform=matrices[static_cast<size_t>(found-layout.objects.begin())];
         const auto obstacles=Obstacles(layout,matrices,owner.id);
         for(unsigned int z=0;z<candidate.rows;++z) for(unsigned int x=0;x<candidate.columns;++x) {
-            const float px=(x+.5f)*candidate.cellSize,pz=(z+.5f)*candidate.cellSize;float height=0,slope=0;
+            const float px=(x+.5f)*candidate.cellSize,pz=(z+.5f)*candidate.cellSize;float height=0,dx=0,dz=0;
             if(owner.terrain) {
                 const auto& terrain=*owner.terrain;height=TerrainHeight(terrain,px,pz);
-                const float dx=(TerrainHeight(terrain,px+candidate.cellSize*.5f,pz)-TerrainHeight(terrain,px-candidate.cellSize*.5f,pz))/candidate.cellSize;
-                const float dz=(TerrainHeight(terrain,px,pz+candidate.cellSize*.5f)-TerrainHeight(terrain,px,pz-candidate.cellSize*.5f))/candidate.cellSize;
-                slope=std::atan(std::hypot(dx,dz))*180/DirectX::XM_PI;
+                dx=(TerrainHeight(terrain,px+candidate.cellSize*.5f,pz)-TerrainHeight(terrain,px-candidate.cellSize*.5f,pz))/candidate.cellSize;
+                dz=(TerrainHeight(terrain,px,pz+candidate.cellSize*.5f)-TerrainHeight(terrain,px,pz-candidate.cellSize*.5f))/candidate.cellSize;
             }
             const size_t cell=z*candidate.columns+x;candidate.heights[cell]=height;
+            const float slope=SurfaceSlope(dx,dz,DirectX::XMLoadFloat4x4(&transform));
             candidate.walkable[cell]=slope<=candidate.maxSlope&&!Blocked(Point({px,height,pz},DirectX::XMLoadFloat4x4(&transform)),obstacles,candidate.agentRadius);
         }
         candidate.baked=true;owner.navMesh=std::move(candidate);error.clear();return true;
@@ -109,15 +145,19 @@ bool Navigation::Advance(SceneLayout& layout,double seconds,std::string& error) 
     try {
         if(!std::isfinite(seconds)||seconds<=0) throw std::runtime_error("Invalid navigation delta");
         std::vector<DirectX::XMFLOAT4X4> matrices;if(!SceneTransforms::Resolve(layout,matrices,error)) return false;
+        // All agents plan from the same pre-step hierarchy and NavMesh, regardless of object order.
+        Displacements targets,moves;std::vector<size_t> stopped;
         for(size_t i=0;i<layout.objects.size();++i) {
-            auto& p=layout.objects[i];if(!p.navAgent||!p.navAgent->enabled||!p.navAgent->moving) continue;auto& agent=*p.navAgent;
+            const auto& p=layout.objects[i];if(!p.navAgent||!p.navAgent->enabled||!p.navAgent->moving) continue;const auto& agent=*p.navAgent;
             const std::array<float,3> start{matrices[i]._41,matrices[i]._42,matrices[i]._43};
-            if(std::hypot(start[0]-agent.destination[0],start[1]-agent.destination[1],start[2]-agent.destination[2])<=agent.stoppingDistance) {agent.moving=false;continue;}
+            if(std::hypot(start[0]-agent.destination[0],start[1]-agent.destination[1],start[2]-agent.destination[2])<=agent.stoppingDistance) {stopped.push_back(i);continue;}
             const auto path=Path(layout,agent.mesh,start,agent.destination);if(path.empty()) continue;
             const auto current=FollowPath(start,path,agent.speed*seconds);
-            auto parent=DirectX::XMMatrixIdentity();if(!p.parentId.empty()) {const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& item){return item.id==p.parentId;});parent=DirectX::XMLoadFloat4x4(&matrices[static_cast<size_t>(found-layout.objects.begin())]);}
-            p.position=Point(current,DirectX::XMMatrixInverse(nullptr,parent));
+            targets.emplace(p.id,current);moves.emplace(p.id,std::array<float,3>{current[0]-start[0],current[1]-start[1],current[2]-start[2]});
         }
+        LocalAgentPositions(layout,matrices,targets,std::move(moves));
+        for(auto& p:layout.objects) if(const auto found=targets.find(p.id);found!=targets.end()) p.position=found->second;
+        for(const auto index:stopped) layout.objects[index].navAgent->moving=false;
         error.clear();return true;
     }catch(const std::exception& exception) {error=exception.what();return false;}
 }

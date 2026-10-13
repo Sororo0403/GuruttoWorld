@@ -6,6 +6,7 @@
 #include <Engine/Core/Json.h>
 #include <cmath>
 #include "FollowupStateValidation.h"
+#include "NavigationTransformValidation.h"
 namespace GenreValidation {
 /// <summary>ジャンル支援のテスト条件を確認します。</summary>
 inline void Require(bool condition,const char* message) {if(!condition) throw std::runtime_error(message);}
@@ -62,5 +63,5 @@ inline void Runtime(Engine::DirectX12Renderer& renderer) {
     Require(scene.World().Telemetry().draws>=2,"terrain and tilemap actual draw calls");
 }
 /// <summary>ジャンル支援回帰を実行します。</summary>
-inline void Schema() {SchemaGeometry();NavigationPaths();}
+inline void Schema() {SchemaGeometry();NavigationPaths();NavigationTransformValidation::Run();}
 }
