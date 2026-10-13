@@ -9,7 +9,10 @@
 namespace SceneRuntime
 {
     struct ScenePlacement;
-    struct AnimationProperty {const char* name; const char* label; float minimum,maximum; unsigned int channels;};
+    struct AnimationProperty {
+        const char* name=""; const char* label=""; float minimum=0,maximum=0; unsigned int channels=1;
+        bool (*apply)(ScenePlacement&,const std::array<float,4>&)=nullptr;
+    };
     struct AnimationKey
     {
         float time = 0;
