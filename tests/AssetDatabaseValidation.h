@@ -7,7 +7,28 @@
 #include <SceneRuntime/MaterialAsset.h>
 namespace AssetDatabaseValidation {
 inline void Require(bool value,const char* message) { if (!value) throw std::runtime_error(message); }
+inline void AliasLimit() {
+    using Engine::AssetDatabase;
+    const auto root=std::filesystem::absolute("generated/tests/asset-alias-limit/"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
+    const auto source=std::filesystem::path("Assets/Models/A.obj"),target=std::filesystem::path("Assets/Models/Moved/B.obj");
+    std::filesystem::create_directories((root/source).parent_path());{std::ofstream file(root/source);file<<"# unchanged model\n";}
+    auto metadata=AssetDatabase::Ensure(root/source);
+    for(int i=0;i<1024;++i) metadata.previousPaths.push_back("Assets/Models/Old"+std::to_string(i)+".obj");
+    AssetDatabase::Write(root/source,metadata);bool rejected=false;
+    try{AssetDatabase(root).Move(source,target);}catch(const std::exception&){rejected=true;}
+    Require(rejected&&std::filesystem::exists(root/source)&&!std::filesystem::exists(root/target.parent_path()),"full alias history rejects move before filesystem changes");
+    Require(AssetDatabase(root).Resolve(source,metadata.id)==source&&AssetDatabase::Read(root/source).previousPaths==metadata.previousPaths,"rejected move preserves metadata and index");
+    auto invalid=metadata;invalid.previousPaths.push_back("Assets/Models/Overflow.obj");rejected=false;
+    try{AssetDatabase::Write(root/source,invalid);}catch(const std::exception&){rejected=true;}
+    Require(rejected&&AssetDatabase::Read(root/source).previousPaths==metadata.previousPaths,"oversized alias write preserves sidecar");
+    invalid=metadata;invalid.previousPaths[0]="../Escape.obj";rejected=false;
+    try{AssetDatabase::Write(root/source,invalid);}catch(const std::exception&){rejected=true;}
+    Require(rejected&&AssetDatabase::Read(root/source).previousPaths==metadata.previousPaths,"invalid alias write preserves sidecar");
+    metadata.previousPaths.back()=AssetDatabase::Text(source);AssetDatabase::Write(root/source,metadata);AssetDatabase(root).Move(source,target);
+    Require(AssetDatabase::Read(root/target).previousPaths.size()==1024&&AssetDatabase(root).Resolve(source,metadata.id)==target,"known alias at limit remains movable without duplicate history");
+}
 inline void Run() {
+    AliasLimit();
     using namespace Engine; using namespace SceneRuntime;
     const auto root=std::filesystem::absolute("generated/tests/asset-ids/"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
     std::filesystem::create_directories(root/"Assets/Models"); std::filesystem::create_directories(root/"Assets/Scenes");

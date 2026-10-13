@@ -64,6 +64,8 @@ public:
     static void Write(const std::filesystem::path& path,const AssetMetadata& metadata) {
         metadata.texture.Validate();
         if (!ValidId(metadata.id) || !Engine::InRange(metadata.scale,0.0001f,10000)) throw std::runtime_error("Invalid import settings");
+        if(metadata.previousPaths.size()>1024 || std::any_of(metadata.previousPaths.begin(),metadata.previousPaths.end(),[](const auto& previous){return !Valid(previous);}))
+            throw std::runtime_error("Invalid asset alias history (maximum 1024 paths)");
         auto target=Sidecar(path),temporary=target; temporary+=".tmp."+std::to_string(GetCurrentProcessId());
         std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
         output<<Json{{"version",1},{"id",metadata.id},{"scale",metadata.scale},{"flipV",metadata.flipV},{"previousPaths",metadata.previousPaths},{"texture",{{"mipmaps",metadata.texture.mipmaps},{"srgb",metadata.texture.srgb},{"maxSize",metadata.texture.maxSize},{"compression",metadata.texture.compression}}}}.dump(2)<<'\n'; output.close();
@@ -126,7 +128,11 @@ public:
     }
     void Move(const std::filesystem::path& from,const std::filesystem::path& to) {
         ValidateDestination(from,to);
-        auto metadata=Ensure(root_/from); const auto originalMetadata=metadata; metadata.previousPaths.push_back(Text(from));
+        auto metadata=Ensure(root_/from); const auto originalMetadata=metadata;
+        if(std::find(metadata.previousPaths.begin(),metadata.previousPaths.end(),Text(from))==metadata.previousPaths.end()) {
+            if(metadata.previousPaths.size()>=1024) throw std::runtime_error("Asset alias history is full (maximum 1024 paths)");
+            metadata.previousPaths.push_back(Text(from));
+        }
         std::filesystem::create_directories((root_/to).parent_path());
         std::string original,revised;
         RewriteDependencies(from,to,original,revised);

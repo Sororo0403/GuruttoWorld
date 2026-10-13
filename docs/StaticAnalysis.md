@@ -118,3 +118,22 @@ Debug・Releaseで通常回帰、既存25シーンの保存・再読み込みと
 3構成のAppでタイトル60フレーム、公園300フレームと移動・ジャンプ・攻撃・フォーカス喪失／復帰の入力リプレイを確認しました。隔離したScript自動コンパイル検証、ネイティブモジュールの読み込み・再読み込み・旧コールバックの寿命保持・ABI不一致拒否も成功しました。Pythonの公園生成4テストとシーン変換8テストも成功しています。ログは`generated/followup-fixes-app-*.log`、`generated/followup-fixes-script-authoring.log`、`generated/followup-fixes-native-validation.log`、`generated/followup-fixes-python-*.log`です。
 
 既存履歴を保持し、シーン編集とPrefab、アセット参照とモデル移動、Scriptの参照と定義キャッシュ・回帰テストの3コミットに分割します。
+
+## ナビゲーションの座標変換とアセット移動履歴の修正（2026-10-13）
+
+追加調査で再現した4件を修正しました。
+
+1. 親子のNavAgentは同じ更新前の配置から移動先を計算し、移動後の親行列で子のローカル位置へ変換します。通常オブジェクトを挟んだ階層や逆順のオブジェクト一覧でも、子の移動に親の移動が二重加算されません。予定位置だけを保持し、シーン全体の追加コピーを避けています。
+2. 障害物の判定では、ワールド単位のAgent半径と高さを障害物の逆行列で投影します。親の拡大・縮小・反転を含めて同じ半径で判定します。
+3. 最大傾斜は地形の接線をワールドへ変換した後の法線から求めます。親の縮尺と回転を反映し、回転した平面のNavMeshにも同じ最大傾斜を適用します。
+4. アセットの旧パス履歴は重複を追加せず、既存の1024件上限を維持します。新しい履歴が上限を超える移動はディレクトリ作成・モデル移動の前に拒否し、元のファイル・ID・履歴を保持します。メタデータの直接保存でも上限とパスの妥当性を検証し、読み込めない`.meta`を生成しません。
+
+`tests/NavigationTransformValidation.h`に親子の逆順・中間親・通常の子孫・親の回転と非一様縮尺・拡大／縮小／反転した障害物・縮尺のある地形・回転した平面・失敗時の配置保持の回帰を追加しました。`tests/AssetDatabaseValidation.h`には履歴上限での移動拒否と元データ保持、不正な履歴の保存拒否、上限でも既知の旧パスを再利用できることの回帰を追加しました。Debug・Releaseの`WP1_GENRE_ONLY`と`WP1_ASSET_ONLY`がすべて終了コード0です。
+
+最終静的解析は`AnalyzeCode.ps1 -Label navigation-fixes-final -Jobs 4`で、Debug・Development・ReleaseのCppcheckとLizardがすべて終了コード0です。CCN 15・関数長100・引数8、解析対象・警告抑制は変更していません。2,025関数・警告0件です。ログは`generated/navigation-fixes-analysis.log`と`generated/analysis/*-navigation-fixes-final*.txt`です。
+
+最終コードのDevelopment全体ビルド、Debug・Releaseの検証プログラムとAppのビルドが成功しました。DevelopmentのEditorの再リンクで一時的なLNK1104が発生しましたが、再ビルドで正常にリンクできています。既存のContent用ネイティブScriptも各構成のビルドで成功し、SDKのABI 6を維持しています。ビルドログは`generated/navigation-fixes-{debug,release,development}-final-build.log`です。
+
+Debug・Releaseで通常回帰、既存25シーンの保存・再読み込みと物理・Script・アニメーション・音声更新・D3D12描画、公園1,924フレームで12/12収集、海の描画・音声・互換性がすべて終了コード0です。機能別回帰はDebugの8モードとReleaseの27モードが成功しました。ログは`generated/navigation-fixes-{debug,release}-regressions.log`です。
+
+3構成のAppでタイトル60フレームと公園300フレーム、移動・ジャンプ・攻撃・フォーカス喪失／復帰の入力リプレイを確認し、すべて終了コード0でした。ログは`generated/navigation-fixes-app-{Debug,Development,Release}.log`です。検証中に追加された別作業のプロジェクト分離・ビルド設定の変更は、本節の2コミットに含めません。
