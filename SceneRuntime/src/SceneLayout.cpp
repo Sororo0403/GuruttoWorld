@@ -142,8 +142,18 @@ static void ValidateSceneCounts(const SceneLayout &layout)
     }
     if (localLights > 32) throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
 }
+static void ValidateSceneOwnership(const SceneLayout &layout)
+{
+    std::set<std::string> membership;
+    for(const auto& [name,ids]:layout.sceneObjects) {
+        if(name.empty() || name.size()>4096 || name.find('\0')!=std::string::npos) throw std::runtime_error("Invalid scene ownership name");
+        const auto duplicate=std::find_if(ids.begin(),ids.end(),[&](const auto& id){return !membership.insert(id).second;});
+        if(duplicate!=ids.end()) throw std::runtime_error("Duplicate scene ownership object: "+*duplicate);
+    }
+}
 static void ValidateLayoutContents(const SceneLayout &layout)
 {
+    ValidateSceneOwnership(layout);
     if (std::any_of(layout.objects.begin(), layout.objects.end(), [](const auto &p) {
                 return (p.terrain && p.tilemap) || ((p.terrain || p.tilemap) && p.meshRenderer);
             })) throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
@@ -246,6 +256,7 @@ static void ValidateLayoutContents(const SceneLayout &layout)
         {
             if (settings!=validatedBefore.settings) static_cast<void>(ReadSceneSettings(WriteSceneSettings(settings)));
             ValidateChangedAssetReferences(*this,validatedBefore);
+            if(sceneObjects!=validatedBefore.sceneObjects) ValidateSceneOwnership(*this);
             // Object IDs already match the validated baseline; only parent edits can invalidate its hierarchy.
             bool parentsChanged=false;
             size_t menus=0,localLights=0;

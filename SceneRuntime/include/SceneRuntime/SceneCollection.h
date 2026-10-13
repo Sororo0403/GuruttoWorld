@@ -102,6 +102,9 @@ namespace SceneRuntime
         /// <summary>実行中に生成された個体を親またはアクティブシーンへ所属させます。</summary>
         void Synchronize(const SceneLayout& layout)
         {
+            std::set<std::string> live;
+            for(const auto& object:layout.objects) live.insert(object.id);
+            for(auto& entry:entries_) std::erase_if(entry.objects,[&](const auto& id){return !live.contains(id);});
             for(const auto& object:layout.objects)
             {
                 if(object.persistent || std::any_of(entries_.begin(),entries_.end(),[&](const auto& e){return e.objects.contains(object.id);})) continue;
