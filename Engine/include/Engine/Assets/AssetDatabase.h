@@ -13,6 +13,7 @@
 #include <sstream>
 #include <set>
 #include <cmath>
+#include <cctype>
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -28,7 +29,8 @@ struct AssetMetadata {
 };
 class AssetDatabase final {
     std::filesystem::path root_;
-    std::map<std::string,std::filesystem::path> ids_,aliases_;
+    std::map<std::string,std::filesystem::path> ids_;
+    std::map<std::string,std::set<std::filesystem::path>> aliases_;
     bool snapshot_=false;
     std::map<std::string,AssetMetadata> metadata_;
 public:
@@ -94,8 +96,7 @@ public:
                 if(snapshot_) metadata_.emplace(Text(relative),metadata);
                 if (!ids_.emplace(metadata.id,relative).second) throw std::runtime_error("Duplicate asset ID: "+metadata.id);
                 for (const auto& alias : metadata.previousPaths) {
-                    const auto [found,inserted]=aliases_.emplace(alias,relative);
-                    if (!inserted && found->second!=relative) throw std::runtime_error("Ambiguous asset alias: "+alias);
+                    aliases_[alias].insert(relative);
                 }
             }
         }
@@ -108,12 +109,15 @@ public:
         }
         if (snapshot_ && metadata_.contains(Text(path))) return path;
         if (std::filesystem::is_regular_file(root_/path)) return path;
-        const auto found=aliases_.find(Text(path)); return found==aliases_.end() ? path : found->second;
+        const auto found=aliases_.find(Text(path));
+        if(found==aliases_.end()) return path;
+        if(found->second.size()!=1) throw std::runtime_error("Ambiguous asset alias: "+Text(path));
+        return *found->second.begin();
     }
     void References(Json& json,bool capture=true,bool resolve=true) const {
         std::map<std::string,std::string> references;
         if (json.contains("assetReferences")) references=json.at("assetReferences").get<decltype(references)>();
-        auto updated=references;
+        std::map<std::string,std::string> updated;
 
         if (json.contains("objects")) WalkReferences(json["objects"],references,updated,capture,resolve);
         else for (const auto* key : {"shader","texture","normalTexture","environmentTexture","lightmap","startupScene"}) if (json.contains(key)) WalkReferences(json[key],references,updated,capture,resolve);
@@ -180,6 +184,7 @@ private:
           const auto saved = metadata_.find(Text(resolved));
           const auto metadata = snapshot_ ? (saved == metadata_.end() ? AssetMetadata{} : saved->second) : Read(root_ / resolved);
           if (!metadata.id.empty()) updated[Text(resolved)] = metadata.id;
+          else if(!resolve && found!=references.end()) updated[Text(resolved)]=found->second;
   }
   void WalkReferences(Json &value, const std::map<std::string, std::string> &references, std::map<std::string, std::string> &updated, bool capture, bool resolve) const
   {
@@ -205,9 +210,11 @@ private:
 
   void RewriteDependencies(const std::filesystem::path &from, const std::filesystem::path &to, std::string &original, std::string &revised) const
   {
-      if (from.parent_path() != to.parent_path() && (from.extension() == ".gltf" || from.extension() == ".obj")) {
+      auto extension=Text(from.extension());
+      std::transform(extension.begin(),extension.end(),extension.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
+      if (from.parent_path() != to.parent_path() && (extension == ".gltf" || extension == ".obj")) {
           std::ifstream input(root_ / from, std::ios::binary); original = {std::istreambuf_iterator<char>(input), {}};
-          if (from.extension() == ".gltf") {
+          if (extension == ".gltf") {
               auto json = Json::parse(original);
               for (const auto *key : {"buffers", "images"}) if (json.contains(key)) for (auto &resource : json[key]) {
                           if (!resource.contains("uri")) continue;
