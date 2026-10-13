@@ -8,7 +8,7 @@ namespace AuthoredViewFixture
 {
     inline SceneRuntime::ScenePlacement Camera()
     {
-        const auto layout=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+        const auto layout=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
         const auto* placement=SceneRuntime::SceneView::CameraObject(layout);
         if (!placement) throw std::runtime_error("title fixture requires an authored camera");
         return *placement;
@@ -28,7 +28,7 @@ namespace AuthoredViewFixture
     }
     inline Engine::DirectionalLight Light()
     {
-        const auto layout=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+        const auto layout=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
         const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& placement) { return placement.directionalLight.has_value(); });
         if (found==layout.objects.end()) throw std::runtime_error("title fixture requires authored lighting");
         const auto& settings=*found->directionalLight;

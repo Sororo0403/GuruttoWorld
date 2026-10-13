@@ -1,5 +1,8 @@
 # 街の配置エディター
 
+エディター開発は `Editor.slnx`、既存ゲームは `Game.slnx` で独立してビルドできます。
+外部のゲーム専用ソリューションの作成・編集・配布は[ゲームプロジェクトの説明](../docs/GameProjects.md)を参照してください。
+
 ## シーン・ゲーム設定の編集
 
 Hierarchyの空白を選ぶと、シーン設定で共通重力、物理更新間隔、最大物理更新数、プレイヤー入力Action、影解像度、Scene／Gameの描画倍率・連続描画を設定できます。連続描画OFFのビューはフォーカス中・編集後・リサイズ後に更新します。これらはシーンに保存され、Undo／Redoに対応します。Pause中のStepも設定した物理更新間隔を使用します。
@@ -53,7 +56,7 @@ Canvasの「メニューを使用」を有効にすると、そのシーンはAp
 
 タイトル生成スクリプトは通常ビルドでは実行しません。手動実行時も`generated/authoring`に下書きを作り、編集中のTitleStreet.jsonは上書きしません。配置・UI・Animation・音源・メニューの通常の変更はエディターから行います。
 
-ファイル → プロジェクト設定で、Appの起動シーン・ウィンドウタイトル・幅・高さを編集できます。保存先は`Content/Assets/Project.json`で、次回のビルドでAppへコピーされます。保存は現在のシーンの保存と独立しています。存在しない起動シーン、不正なサイズ、保存失敗はエラーを表示し、以前の設定ファイルを保持します。
+ファイル → プロジェクト設定で、Appの起動シーン・ウィンドウタイトル・幅・高さを編集できます。保存先は`Games/GuruttoWorld/Assets/Project.json`で、次回のビルドでAppへコピーされます。保存は現在のシーンの保存と独立しています。存在しない起動シーン、不正なサイズ、保存失敗はエラーを表示し、以前の設定ファイルを保持します。
 
 
 `WP1.slnx` の Debug または Development をビルドし、
@@ -141,7 +144,7 @@ Appへの配置は `Content/Content.targets` が行います。
 開発環境のEditorは実行ファイルから上位へ探索して、元の `Content` を読みます。
 元のContentが見つからない配布環境では、実行ファイルに同梱されたデータを読みます。
 このため開発時に扱うJSONは、ビルド出力にあるコピーではなく
-`Content/Assets/Scenes/TitleStreet.json` です。
+`Games/GuruttoWorld/Assets/Scenes/TitleStreet.json` です。
 
 ## 編集状態
 
@@ -292,7 +295,7 @@ ProjectはModel/Scene/Texture/Audio/Shader/Fontを種類別に表示し、Assets
 
 ## 機能拡張前の画面確認
 
-[手動チェックリスト](ManualChecks.md)と`Content/Assets/Scenes/EditorAcceptance.json`を使用してください。親子・複数選択・Play・Inspector・保存・ドッキングの確認を項目別に進められます。自動テストの成功と画面確認の完了は別に記録します。
+[手動チェックリスト](ManualChecks.md)と`Games/GuruttoWorld/Assets/Scenes/EditorAcceptance.json`を使用してください。親子・複数選択・Play・Inspector・保存・ドッキングの確認を項目別に進められます。自動テストの成功と画面確認の完了は別に記録します。
 
 ## アセットの実表示プレビュー
 
@@ -397,7 +400,7 @@ C++のJSON処理はnlohmann/json 3.12.0へ統一しています。依存ヘッ�
 
 英数字はFira Mono Regular、日本語はM PLUS 1p Regularを同じImGuiフォントへ合成し、16pxを基準に表示します。Fira MonoのASCIIを維持し、同梱の日本語フォントでひらがな・カタカナ・漢字・日本語記号を補います。ImGui 1.92の動的字形読み込みを使い、旧GetGlyphRangesJapaneseの常用漢字リストで制限しません。
 
-フォントはContent/Assets/Fontsから読み込み、配布ビルドにもTTFとOFLライセンスをコピーします。Windowsへのフォントインストールは不要です。欠損時は起動エラーを表示し、別のフォントへの無言の置き換えは行いません。フォントを更新した場合はEditorを起動し直してください。出典とSHA-256はContent/Assets/Fonts/README.mdに記録しています。
+フォントはGames/GuruttoWorld/Assets/Fontsから読み込み、配布ビルドにもTTFとOFLライセンスをコピーします。Windowsへのフォントインストールは不要です。欠損時は起動エラーを表示し、別のフォントへの無言の置き換えは行いません。フォントを更新した場合はEditorを起動し直してください。出典とSHA-256はGames/GuruttoWorld/Assets/Fonts/README.mdに記録しています。
 
 エディターのメニュー、パネル、ツールバー、コンポーネントの設定項目、保存確認、操作結果は日本語で表示します。ドッキングの標準メニュー・説明も日本語です。InputTextは既存のWin32 Unicode／IME入力を使ってUTF-8の値を編集します。英語表記の旧パネル配置は読み込み時に移行し、位置・サイズ・ドッキング・選択タブを引き継ぎます。
 
@@ -495,7 +498,7 @@ Projectの一覧更新時にアセットの隣へ `.meta` を作成し、32桁�
 
 ## Scriptの初期値と入力用途
 
-公園Scriptの初期値・範囲・型付きデータは`Content/Assets/Scripts/ParkScriptSchema.schema.json`を正とします。
+公園Scriptの初期値・範囲・型付きデータは`Games/GuruttoWorld/Assets/Scripts/ParkScriptSchema.schema.json`を正とします。
 シーン生成はこのJSONを直接読み、通常ビルドとScriptの自動コンパイルは`GenerateScriptSchemas.ps1`で同じ定義から`ParkScriptSchema.generated.h`を再生成します。
 生成ヘッダーは直接編集しません。JSON変更も「C++ゲーム処理」の変更監視・再コンパイル対象で、一覧から開けます。
 既存シーンで編集・保存した値は生成時に上書きしません。

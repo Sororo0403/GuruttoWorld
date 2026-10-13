@@ -412,3 +412,9 @@ FodyWeavers.xsd
 
 # Script modules are rebuilt from tracked C++ sources for each configuration.
 /Content/Assets/Scripts/Bin/
+
+# Independent game project source assets and generated files.
+!Games/**/Assets/Models/**/*.obj
+!Games/**/*.meta
+/Games/*/generated/
+/Games/*/Assets/Scripts/Bin/

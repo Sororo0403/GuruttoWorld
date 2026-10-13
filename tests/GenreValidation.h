@@ -53,10 +53,10 @@ inline void Runtime(Engine::DirectX12Renderer& renderer) {
     FollowupStateValidation::ProceduralEdits(renderer);
     auto layout=Layout();std::string error;Require(SceneRuntime::Navigation::Bake(layout,layout.objects[0],error),"runtime bake");
     SceneRuntime::ScenePlacement agent;agent.id="agent";agent.position={.5f,0,.5f};agent.navAgent.emplace();agent.navAgent->mesh="ground";agent.navAgent->destination={3.5f,0,.5f};layout.objects.push_back(agent);
-    SceneRuntime::SceneEnvironment scene;Require(scene.Initialize(renderer,"Content",layout,error),"procedural scene GPU resources");
+    SceneRuntime::SceneEnvironment scene;Require(scene.Initialize(renderer,"Games/GuruttoWorld",layout,error),"procedural scene GPU resources");
     const auto pick=scene.World().PickRay({2,5,2},{0,-1,0});Require(pick=="ground","procedural terrain triangle picking");
     scene.Update(1.0/30,true,true);Require(scene.World().Layout().objects.back().position[0]>.5f,"SceneEnvironment advances NavAgent without player input");
-    SceneRuntime::PhysicsWorld physics;SceneRuntime::ScenePhysics::States states;Require(physics.Advance(layout,states,1.0/60,0,0,false,"Content",error),"Jolt heightfield collider build");
+    SceneRuntime::PhysicsWorld physics;SceneRuntime::ScenePhysics::States states;Require(physics.Advance(layout,states,1.0/60,0,0,false,"Games/GuruttoWorld",error),"Jolt heightfield collider build");
     const auto hit=physics.Raycast({2,5,2},{0,-1,0},10);Require(hit&&hit->object=="ground"&&std::abs(hit->position[1])<.01f,"Jolt terrain raycast hits generated triangles");
     Engine::Camera camera;camera.SetPosition({2,4,-6});camera.SetRotation(0,-.35f);
     Require(renderer.Render({0,0,0,1},[&](auto* commands,float){scene.World().Draw(commands,camera,{});})!=Engine::RenderResult::Failed&&renderer.WaitForIdle(),"procedural GPU frame submits");

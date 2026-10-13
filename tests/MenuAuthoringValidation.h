@@ -26,7 +26,7 @@ inline void Presentation(const Engine::DirectX12Renderer& renderer,const std::fi
 }
 inline void Run() {
     const auto check=[](bool ok,const char* message){if(!ok) throw std::runtime_error(message);};
-    auto layout=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    auto layout=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
     auto canvas=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& o){return o.canvas && o.canvas->menu;});
     check(canvas!=layout.objects.end(),"title contains editable menu configuration");
     auto config=*canvas->canvas->menu;
@@ -112,7 +112,7 @@ inline void Run() {
     App::SceneFactory factory(root);
     auto scene=factory.Create("Assets/Scenes/RenamedTitle.json");
     check(dynamic_cast<App::TitleScene*>(scene.get()),"renamed title selects menu runtime by saved configuration");
-    const auto normal=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/Game.json");
+    const auto normal=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/Game.json");
     normal.Save(root/"Assets/Scenes/Game.json");
     scene=factory.Create("EngineDemo");
     check(dynamic_cast<App::AuthoredScene*>(scene.get()),"legacy engine demo uses editor-authored scene");

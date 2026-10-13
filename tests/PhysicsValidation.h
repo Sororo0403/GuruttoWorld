@@ -57,7 +57,7 @@ namespace PhysicsValidation
     inline void Run()
     {
         using namespace SceneRuntime;
-        const auto playground=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/PhysicsPlayground.json");
+        const auto playground=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/PhysicsPlayground.json");
         Require(SceneRuntime::SceneLayout::Parse(playground.Serialize()).objects.back().playerController->useGravity,"physics playground is valid");
         auto layout=Layout();
         const auto serialized=layout.Serialize();

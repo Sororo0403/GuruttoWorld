@@ -62,7 +62,7 @@ int main()
     try
     {
         using namespace SceneRuntime;
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         const auto authored=SceneLayout::Load(root/"Assets/Scenes/OceanSunset.json");
         authored.Validate();
         Require(SceneLayout::Parse(authored.Serialize()).Serialize()==authored.Serialize(),"Ocean roundtrip");

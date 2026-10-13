@@ -130,7 +130,7 @@ namespace ScriptValidation
         };
         static bool registered=false;
         if (!registered) { Require(ScriptRegistry::Register("ValidationRuntimeSpawner",definition),"runtime spawner registers"); registered=true; }
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=SceneLayout::Load(root/"Assets/Scenes/ScriptPlayground.json",root);
         ScenePlacement cube; cube.id="cube"; cube.name="Cube"; cube.SetModel("Assets/Models/Cube.obj");
         ScenePlacement spawner; spawner.id="spawner"; spawner.name="Spawner"; spawner.scripts.push_back({"script",true,"ValidationRuntimeSpawner",{}});

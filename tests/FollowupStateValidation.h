@@ -95,7 +95,7 @@ inline void PersistentPrefabs() {
     scene.objects[0].persistent=false;Prefab::RevertInstance(scene,id,root);Require(scene.objects[0].persistent,"Whole-instance revert restores persistence");
 }
 inline void ModelMoves() {
-    using namespace Engine;const auto root=Root("models");std::ifstream input("Content/Assets/Models/AnimatedBox.gltf");auto document=Json::parse(input);
+    using namespace Engine;const auto root=Root("models");std::ifstream input("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf");auto document=Json::parse(input);
     const auto uri=document.at("buffers").at(0).at("uri").get<std::string>();const std::string alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     std::string bytes;unsigned int accumulator=0;int bits=-8;
     for(const auto character:uri.substr(uri.find(',')+1)) {const auto index=alphabet.find(character);if(index==std::string::npos) break;accumulator=(accumulator<<6)|static_cast<unsigned int>(index);bits+=6;if(bits>=0){bytes+=static_cast<char>(accumulator>>bits);bits-=8;}}
@@ -109,7 +109,7 @@ inline void ModelMoves() {
     Require(line=="mtllib ../Material.mtl","Uppercase OBJ move rewrites its material dependency");
 }
 inline void EditorOwnership(Engine::DirectX12Renderer& renderer) {
-    using namespace SceneRuntime;const auto root=std::filesystem::absolute("Content");std::string error;
+    using namespace SceneRuntime;const auto root=std::filesystem::absolute("Games/GuruttoWorld");std::string error;
     SceneLayout main;ScenePlacement first;first.id="first";ScenePlacement removed;removed.id="removed";main.objects={first,removed};
     SceneLayout other;ScenePlacement foreign;foreign.id="foreign";other.objects={foreign};SceneCollection collection;collection.Reset(main,"Main");
     const auto merged=collection.Add(main,other,"Other");SceneWorld world;Require(world.Initialize(renderer,root,merged,root/"Shaders/Mesh.hlsl",&error),"Editor ownership world initializes");
@@ -122,7 +122,7 @@ inline void EditorOwnership(Engine::DirectX12Renderer& renderer) {
     collection.Reset(duplicated,"Main");const auto withoutMain=collection.Unload(duplicated,"Main");Require(withoutMain.objects.size()==1 && withoutMain.objects[0].id=="foreign","Duplicate unloads with its original owner");
 }
 inline void ProceduralEdits(Engine::DirectX12Renderer& renderer) {
-    using namespace SceneRuntime;const auto root=std::filesystem::absolute("Content");std::string error;
+    using namespace SceneRuntime;const auto root=std::filesystem::absolute("Games/GuruttoWorld");std::string error;
     SceneLayout layout;ScenePlacement ground;ground.id="ground";ground.terrain.emplace();ground.terrain->columns=2;ground.terrain->rows=2;ground.terrain->heights.assign(4,0);layout.objects={ground};
     SceneWorld world;Require(world.Initialize(renderer,root,layout,root/"Shaders/Mesh.hlsl",&error),"Terrain edit fixture initializes");
     ground.terrain->heights.assign(4,2);Require(world.SetComponents("ground",ground,root,error),"Terrain editor change succeeds");

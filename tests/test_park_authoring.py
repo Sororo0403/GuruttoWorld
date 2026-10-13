@@ -15,7 +15,7 @@ spec.loader.exec_module(authoring)
 
 class ParkAuthoringTests(unittest.TestCase):
     def setUp(self):
-        self.scene = json.loads((ROOT / "Content/Assets/Scenes/ParkAdventure.json").read_text(encoding="utf-8-sig"))
+        self.scene = json.loads((ROOT / "Games/GuruttoWorld/Assets/Scenes/ParkAdventure.json").read_text(encoding="utf-8-sig"))
 
     def test_existing_authored_values_are_preserved(self):
         self.assertEqual(authoring.configure_scene(copy.deepcopy(self.scene)), self.scene)
@@ -39,7 +39,7 @@ class ParkAuthoringTests(unittest.TestCase):
         self.assertEqual(len(script["data"]["value"]["coins"]["value"]), 12)
 
     def test_generated_header_is_current_and_generation_is_idempotent(self):
-        schema_path = ROOT / "Content/Assets/Scripts/ParkScriptSchema.schema.json"
+        schema_path = ROOT / "Games/GuruttoWorld/Assets/Scripts/ParkScriptSchema.schema.json"
         with tempfile.TemporaryDirectory() as directory:
             scripts = Path(directory) / "Assets/Scripts"
             scripts.mkdir(parents=True)

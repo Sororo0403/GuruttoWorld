@@ -178,6 +178,7 @@
     <ClInclude Include="src\ObjectPanel.h" />
     <ClInclude Include="src\ScriptDataPanel.h" />
     <ClInclude Include="src\ScriptAuthoringPanel.h" />
+    <ClInclude Include="src\GameProject.h" />
     <ClInclude Include="src\JointPanel.h" />
     <ClInclude Include="src\CameraPanel.h" />
     <ProjectReference Include="..\Engine\Engine.vcxproj">
@@ -187,6 +188,9 @@
       <Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}</Project>
     </ProjectReference>
   </ItemGroup>
+  <PropertyGroup>
+    <SkipGameScripts>true</SkipGameScripts>
+  </PropertyGroup>
   <Import Project="..\Content\Content.targets" />
   <Target Name="CopyImGuizmoLicense" AfterTargets="Build">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)externals\ImGuizmo\LICENSE" DestinationFiles="$(OutDir)Licenses\ImGuizmo.txt" SkipUnchangedFiles="true" />

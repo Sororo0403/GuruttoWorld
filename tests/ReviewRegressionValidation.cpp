@@ -233,7 +233,7 @@ namespace
     void ValidateTitleAuthoring()
     {
         using namespace App;
-        auto layout=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+        auto layout=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
         Check(TitleBindings::StartScene(layout)=="Assets/Scenes/ParkAdventure.json","START follows authored park target");
         auto items=TitleBindings::Items(layout);
         Check(items.size()==3,"authored menu exposes three roles");
@@ -455,7 +455,7 @@ namespace
         Check(audio.Initialize(), "title audio device");
         for (const auto* file : { "Bgm.wav", "Select.wav", "Confirm.wav", "Back.wav", "Error.wav" })
         {
-            const auto sound = audio.Load(std::filesystem::path("Content/Assets/Audio/Title") / file);
+            const auto sound = audio.Load(std::filesystem::path("Games/GuruttoWorld/Assets/Audio/Title") / file);
             Check(sound != 0, "title sound decoding");
             Check(audio.SetVolume(sound, 0.0f) && audio.GetVolume(sound) == 0.0f, "title sound mute");
             Check(audio.Play(sound, true) && audio.IsPlaying(sound), "title sound loop playback silently");
@@ -1146,7 +1146,7 @@ namespace
 #if defined(_DEBUG)
     void ValidateAssetPreview(Engine::DirectX12Renderer& renderer)
     {
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         Editor::AssetPreview preview;
         const Editor::ProjectAsset model{"Assets/Models/Title/Surface/Commercial/building-k.obj",Editor::AssetKind::Model};
         preview.Request(model);
@@ -1176,7 +1176,7 @@ namespace
         Engine::RenderTexture gameTarget;
 #if defined(_DEBUG)
         SceneRuntime::SceneWorld hierarchyWorld;
-        const auto hierarchyRoot=std::filesystem::absolute("Content");
+        const auto hierarchyRoot=std::filesystem::absolute("Games/GuruttoWorld");
         Check(hierarchyWorld.Initialize(renderer,hierarchyRoot,hierarchyRoot/"Assets/Scenes/TitleStreet.json",
             hierarchyRoot/"Shaders/Mesh.hlsl"), "Hierarchy panel test world loads");
         auto nested=hierarchyWorld.Layout();
@@ -1637,7 +1637,7 @@ namespace
 
     void ValidateEnvironmentMotion(Engine::DirectX12Renderer& renderer)
     {
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
         for (auto& object:layout.objects) object.animation.reset(); // Isolate CameraSway and ParticleEmitter invariants.
         SceneRuntime::SceneEnvironment environment; std::string error;
@@ -1678,7 +1678,7 @@ namespace
 
     void ValidateSceneView(Engine::DirectX12Renderer& renderer)
     {
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         SceneRuntime::SceneLayout layout;
         SceneRuntime::ScenePlacement parent; parent.id="rig"; parent.name="Rig";
         parent.position={3,4,5}; parent.rotation={0,DirectX::XM_PIDIV2,0}; parent.scale={2,3,4};
@@ -1734,7 +1734,7 @@ namespace
 
     void ValidateComponents(Engine::DirectX12Renderer& renderer)
     {
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/ComponentDemo.json");
         SceneRuntime::SceneWorld world;
         std::string error;
@@ -1821,7 +1821,7 @@ namespace
 
     void ValidateEmptyObjects(Engine::DirectX12Renderer& renderer)
     {
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         SceneRuntime::SceneWorld world;
         std::string error,created;
         Check(world.Initialize(renderer,root,SceneRuntime::SceneLayout{},root/"Shaders/Mesh.hlsl",&error), "empty world initializes");
@@ -1862,14 +1862,14 @@ namespace
             file << "mtllib triangle.mtl\nv 0 0 0\nv " << size << " 0 0\nv 0 " << size << " 0\nusemtl preview\nf 1 2 3\n";
         };
         { std::ofstream file(models/"triangle.mtl"); file << "newmtl preview\nKd 1 1 1\nmap_Kd preview.png\n"; }
-        const auto source=std::filesystem::absolute("Content/Assets/Models/Title/Surface/Textures/plaster.png");
+        const auto source=std::filesystem::absolute("Games/GuruttoWorld/Assets/Models/Title/Surface/Textures/plaster.png");
         std::filesystem::copy_file(source,models/"preview.png",std::filesystem::copy_options::overwrite_existing);
         writeModel(1);
         SceneRuntime::ScenePlacement placement;
         placement.id="unsaved"; placement.name="Unsaved name";
         placement.SetModel("Assets/Models/Title/triangle.obj"); placement.position={4,5,6};
         SceneRuntime::SceneLayout layout; layout.objects={placement};
-        const auto shader=std::filesystem::absolute("Content/Shaders/Mesh.hlsl");
+        const auto shader=std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl");
         SceneRuntime::SceneWorld world;
         std::string error;
         Check(world.Initialize(renderer,root,layout,shader,&error), "asset reload fixture initializes");
@@ -1919,24 +1919,24 @@ namespace
                 RigidBodyValidation::Runtime(renderer);
                 ScriptValidation::Runtime(renderer);
                 SceneCollectionValidation::Runtime(renderer);
-                PrefabValidation::Runtime(renderer,std::filesystem::absolute("Content"));
+                PrefabValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
                 MaterialValidation::Rendering(renderer);
                 LocalLightValidation::Rendering(renderer); LocalLightValidation::Runtime(renderer);
                 PostEffectValidation::Rendering(renderer); PostEffectValidation::Runtime(renderer);
                 AnimatorValidation::Runtime(renderer);
                 TextureImportValidation::Run(renderer); ProfilerValidation::Run(renderer);
-                TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
-            MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Content"));
+                TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+            MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
-                ValidatePlaySnapshot(renderer,std::filesystem::absolute("Content"));
-                ValidateGameSession(renderer,std::filesystem::absolute("Content"));
-                ValidateSceneDocument(renderer,std::filesystem::absolute("Content"));
-                ValidateInheritedRendering(renderer,std::filesystem::absolute("Content"));
+                ValidatePlaySnapshot(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                ValidateGameSession(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                ValidateSceneDocument(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                ValidateInheritedRendering(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
             }
             {
                 SceneRuntime::SceneWorld editorWorld;
-                const auto content = std::filesystem::absolute("Content");
+                const auto content = std::filesystem::absolute("Games/GuruttoWorld");
                 Check(editorWorld.Initialize(renderer, content, content / "Assets/Scenes/TitleStreet.json",
                     content / "Shaders/Mesh.hlsl"), "shared scene loads without App content");
                 Engine::RenderTexture sceneTarget;
@@ -2282,7 +2282,7 @@ namespace
         };
         data.indices = {0, 1, 2};
         Engine::MeshRenderer mesh;
-        Check(mesh.Initialize(device.Get(), queue.Get(), data, "Content/Shaders/Mesh.hlsl"), "mesh initialization");
+        Check(mesh.Initialize(device.Get(), queue.Get(), data, "Games/GuruttoWorld/Shaders/Mesh.hlsl"), "mesh initialization");
 
         ComPtr<ID3D12Resource> target;
         D3D12_HEAP_PROPERTIES heap{};
@@ -2385,7 +2385,7 @@ void ValidateEditorCamera()
 
 void ValidateSceneLayout()
 {
-    const auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    const auto layout = SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
     Check(std::count_if(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.meshRenderer.has_value();}) >= 80, "authored title includes a full three-dimensional town");
     Check(layout.objects.front().id == "ground" && !layout.settings.mainCamera.empty(),
         "title has ground and an authored main camera");
@@ -2498,7 +2498,7 @@ void ValidateAssetChangeBatching()
         captured.contains(root/"Assets/shape.MTL") && captured.contains(root/"Shaders/test.HLSL"),
         "watching includes material and shader dependencies but ignores scenes and temporary saves case-insensitively");
     std::string error;
-    Check(Editor::ValidateProjectShaders(std::filesystem::absolute("Content"),error), "project shader entry points compile");
+    Check(Editor::ValidateProjectShaders(std::filesystem::absolute("Games/GuruttoWorld"),error), "project shader entry points compile");
     Editor::AssetChanges background;
     const auto pump=[&](const auto& condition) {
         const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
@@ -2522,14 +2522,14 @@ void ValidateAssetChangeBatching()
 
 void ValidateEditorAcceptanceScene()
 {
-    const auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/EditorAcceptance.json");
+    const auto layout = SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/EditorAcceptance.json");
     const auto restored = SceneRuntime::SceneLayout::Parse(layout.Serialize());
     std::vector<DirectX::XMFLOAT4X4> worlds;
     std::string error;
     Check(SceneRuntime::SceneTransforms::Resolve(restored, worlds, error),
         "manual acceptance scene resolves after serialization");
     for (const auto& object : restored.objects)
-        if (object.meshRenderer) Check(std::filesystem::is_regular_file(std::filesystem::path("Content") / object.Model()),
+        if (object.meshRenderer) Check(std::filesystem::is_regular_file(std::filesystem::path("Games/GuruttoWorld") / object.Model()),
             "manual acceptance scene references an existing model");
     const auto matrix = [&](const std::string& id) -> const DirectX::XMFLOAT4X4& {
         const auto found = std::find_if(restored.objects.begin(), restored.objects.end(),
@@ -2642,7 +2642,7 @@ void ValidateHierarchyRows()
 
 void ValidateParentData()
 {
-    auto rootSource=SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    auto rootSource=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
     for (auto& object : rootSource.objects) object.parentId.clear();
     const auto rootLayout=SceneRuntime::SceneLayout::Parse(rootSource.Serialize());
     Check(std::all_of(rootLayout.objects.begin(),rootLayout.objects.end(),[](const auto& object) { return object.parentId.empty(); }),
@@ -2704,7 +2704,7 @@ void ValidateParentData()
 
 void ValidateSceneFiles()
 {
-    auto layout = SceneRuntime::SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    auto layout = SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
     layout.objects.front().name = "テスト\"看板\n二行目";
     layout.objects.front().rotation = { 0.1234567f, -0.9876543f, 1.234567f };
     const auto directory = std::filesystem::absolute("generated/tests/layout-io");
@@ -2960,7 +2960,7 @@ void ValidateMaterialDocuments()
 
 void ValidateEditorTitlePreview()
 {
-    const auto layout=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Content/Assets/Scenes/TitleStreet.json"));
+    const auto layout=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json"));
     auto state=SceneRuntime::SceneUi::Defaults(layout);
     Editor::TitlePreview title;
     title.Initialize(layout,state);
@@ -2987,7 +2987,7 @@ void ValidateEditorTitlePreview()
     for(int i=0;i<10 && !result;++i) result=title.Update(actions,true,0.1,state);
     Check(result && result->action=="loadScene" && result->target=="Assets/Scenes/ParkAdventure.json",
         "editor START follows authored scene target");
-    const auto game=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Content/Assets/Scenes/Game.json"));
+    const auto game=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Games/GuruttoWorld/Assets/Scenes/Game.json"));
     Check(!SceneRuntime::SceneUi::Shortcut(game,"action:Jump",1280,720,{}).empty() &&
         !SceneRuntime::SceneUi::Shortcut(game,"action:Cancel",1280,720,{}).empty(),
         "sample Game connects gamepad actions to authored UI buttons");
@@ -3240,14 +3240,14 @@ void ValidateEditorIntegrity()
 void ValidateBuildCancellation()
 {
     const auto root=std::filesystem::absolute("generated/tests/build-cancel-"+std::to_string(GetTickCount64()));
-    std::filesystem::create_directories(root/"Content");std::filesystem::create_directories(root/"scripts");
+    std::filesystem::create_directories(root/"Games/GuruttoWorld");std::filesystem::create_directories(root/"scripts");
     {std::ofstream script(root/"scripts/BuildPlayer.ps1");script<<R"(param([string]$Configuration,[string]$RunId)
 $child=Start-Process -FilePath (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 30' -WindowStyle Hidden -PassThru
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'parent.pid'),[string]$PID)
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'child.pid'),[string]$child.Id)
 Start-Sleep -Seconds 30
 )";}
-    Editor::BuildPanel build;build.Start(root/"Content");
+    Editor::BuildPanel build;build.Start(root/"Games/GuruttoWorld");
     const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(10);
     DWORD parent=0,child=0;
     while(std::chrono::steady_clock::now()<deadline) {
@@ -3588,7 +3588,7 @@ int main()
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_ADVENTURE_ONLY",nullptr,0)) {
-            const auto root=std::filesystem::absolute("Content");
+            const auto root=std::filesystem::absolute("Games/GuruttoWorld");
             const auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/AdventureDemo.json",root);
             Check(std::any_of(layout.objects.begin(),layout.objects.end(),[](const auto& object){return object.material.has_value();}),
                 "adventure scene loads independent Material components");
@@ -3774,7 +3774,7 @@ int main()
             UiControlValidation::SchemaAndInput();PostEffectValidation::Schema();LocalLightValidation::Schema();
             Engine::Window window;Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden parity rendering",64,32) && renderer.Initialize(window.GetHandle()),"parity renderer");
-            UiControlValidation::Rendering(renderer,std::filesystem::absolute("Content"));RenderingFeaturesValidation::Rendering(renderer);
+            UiControlValidation::Rendering(renderer,std::filesystem::absolute("Games/GuruttoWorld"));RenderingFeaturesValidation::Rendering(renderer);
             PostEffectValidation::Rendering(renderer);LocalLightValidation::Rendering(renderer);CheckGpuMessages(renderer.GetDevice());
             std::cout<<"PASS: UI controls, LOD/instances/occlusion, IBL/baking, auto exposure/grading and local shadows\n";return 0;
         }
@@ -3818,8 +3818,8 @@ int main()
             Check(window.Create(L"Hidden title presentation",1280,720),"focused title window");
             Check(renderer.Initialize(window.GetHandle()),"focused title renderer");
             ShadowValidation::Run(renderer);
-            TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Content"));
-            MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Content"));
+            TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+            MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
             Check(renderer.WaitForIdle(),"focused title GPU completion");
             CheckGpuMessages(renderer.GetDevice());
             std::cout << "PASS: START/CONFIG/QUIT menu, camera overshoot/reversal and three-aspect title presentation\n";

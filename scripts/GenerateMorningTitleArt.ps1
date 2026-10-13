@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $morningRoot = Split-Path $PSScriptRoot -Parent
-$morningOutput = Join-Path $morningRoot 'Content/Assets/Textures/Title/Morning'
+$morningOutput = Join-Path $morningRoot 'Games/GuruttoWorld/Assets/Textures/Title/Morning'
 New-Item -ItemType Directory -Force $morningOutput | Out-Null
 $morningFonts = [System.Drawing.Text.PrivateFontCollection]::new()
 $morningFonts.AddFontFile((Join-Path $morningRoot 'App/Assets/Fonts/MPlus1p/MPLUS1p-Black.ttf'))

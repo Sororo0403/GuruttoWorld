@@ -123,7 +123,7 @@ namespace EnvironmentValidation
     }
     inline void Run(Engine::DirectX12Renderer& renderer)
     {
-        const auto content=std::filesystem::absolute("Content");
+        const auto content=std::filesystem::absolute("Games/GuruttoWorld");
         const auto root=std::filesystem::absolute("generated/tests/environment");
         std::filesystem::create_directories(root/"Assets/Models");
         auto layout=Layout(); std::string error;

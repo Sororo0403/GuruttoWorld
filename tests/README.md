@@ -96,7 +96,7 @@ Release でも実行してください。診断保存先が LocalAppData/WP1 に
 
 WARP 上のオクルージョンクエリで、通常の三角形と X／XY 鏡映した三角形が同じサンプル数を描画すること、裏向きの面は引き続き除去されることを確認します。Debug では利用可能な D3D12 InfoQueue のエラーも確認します。音量の取得・ミュート・再初期化後の状態は AudioValidation で検証します。
 
-タイトルUIは全構成で Content/Assets/Textures/Title/Morning の Logo.png と StartBand.png を使用します。再生成する場合のみ PowerShell 7で scripts/GenerateMorningTitleArt.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。未使用になった Title.png・UiAtlas.png・Caption.png・Slash.png は削除済みです。
+タイトルUIは全構成で Games/GuruttoWorld/Assets/Textures/Title/Morning の Logo.png と StartBand.png を使用します。再生成する場合のみ PowerShell 7で scripts/GenerateMorningTitleArt.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。未使用になった Title.png・UiAtlas.png・Caption.png・Slash.png は削除済みです。
 
 タイトルの回帰検証では1280×720、1024×768、720×1280の非表示ウィンドウで初期化と描画を確認します。
 
@@ -284,3 +284,8 @@ ProfilerValidationはCPU描画時間・フレーム数と、完了フェンス�
 2026-10-13の追加検証: `WP1_SCENE_UI_ONLY=1` は文字再表示・色変更・整数ラスタ寸法・候補失敗時の履歴保持・32種類/16MiB上限をGPU描画と生成回数で確認します。`WP1_INPUT_ONLY=1` は診断Keyboardの押下/保持/解放とフォーカス復帰抑止も確認します。`WP1_PARK_RESOURCE_ONLY=1` は日本語の入れ子includeと別の配置先・作業フォルダーでも同じシェーダーrevision/バイトコードになることを確認します。時間の上限を合否条件にはしません。
 
 配布Appの `--profile-replay-input` は決定的な診断入力です。実キー・マウスの計測ではこのオプションと `--profile-simulate-inactive` を外し、`input.device.active=1`、`input.diagnostic.replay=0`、`simulation.override=0` と実際の押下・座標・UI状態を確認します。診断再生のフォーカス検証では、`replay.update.index` で210～229、230、231を結合します。シェーダー事前生成はpackage.jsonのハッシュ記録前に実行されます。
+
+## 外部ゲームプロジェクト
+
+`powershell -NoProfile -ExecutionPolicy Bypass -File tests/TestGameProjects.ps1` は、空白を含むパスでプロジェクトを作成し、参照先・既存フォルダーの保護・テンプレート検証・元Contentの保持を確認します。
+`-Build` を追加すると、ゲーム専用ソリューションのDebug／Development／Releaseビルド、ゲーム側素材と設定・DLLの配置、起動シーン検証まで実行します。

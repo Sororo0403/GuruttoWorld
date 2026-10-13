@@ -1,4 +1,4 @@
-param([string]$Content=(Join-Path (Split-Path $PSScriptRoot -Parent) 'Content'))
+param([string]$Content=(Join-Path (Split-Path $PSScriptRoot -Parent) 'Games/GuruttoWorld'))
 $ErrorActionPreference='Stop'
 $culture=[Globalization.CultureInfo]::InvariantCulture
 function Cpp-String([string]$Value) {

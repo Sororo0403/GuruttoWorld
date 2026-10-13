@@ -26,7 +26,7 @@ Blend Treeでは共通の位相から各クリップの時刻を求める。同�
 通常の更新では頂点バッファーを再作成しない。イベントは通常のScript通知と合わせて、1シーンの更新につき4096件まで予約できる。
 App／Editor共通の環境時計も、拒否されたComponent更新では進めない。
 
-`Content/Assets/Scenes/AnimationEventPlayground.json`はイベントを受けて各キャラクターのライトを点滅させる。
+`Games/GuruttoWorld/Assets/Scenes/AnimationEventPlayground.json`はイベントを受けて各キャラクターのライトを点滅させる。
 登録済みの`AnimationEventPulse` Scriptを使用し、`duration`と`peak`で光の長さと強さを調整できる。
 `scripts/GenerateAnimationEventPlayground.py`で比較シーンを再生成できる。
 `WP1_ANIMATION_EVENTS_ONLY=1`で、ループ・重み・引数・保存編集・App/Editor・更新失敗時の保持を検証する。

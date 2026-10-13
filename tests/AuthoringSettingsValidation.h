@@ -67,14 +67,14 @@ inline void Run() {
     AnimationRegistry();
     ScriptPurposeWidgets();
     RegisteredParameterDefaults();
-    for(const auto& entry:std::filesystem::directory_iterator("Content/Assets/Scenes")) {
+    for(const auto& entry:std::filesystem::directory_iterator("Games/GuruttoWorld/Assets/Scenes")) {
         if(entry.path().extension()!=".json") continue;
         const auto layout=SceneLayout::Load(entry.path());
         Require(SceneLayout::Parse(layout.Serialize()).Serialize()==layout.Serialize(),"Existing scene roundtrip changed behavior data");
     }
     const std::filesystem::path output="generated/tests/authoring-settings";
     std::filesystem::create_directories(output);
-    auto scene=SceneLayout::Load("Content/Assets/Scenes/OceanSunset.json");
+    auto scene=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/OceanSunset.json");
     scene.settings.gravity={2,-9.81f,1};scene.settings.fixedStep=.02f;scene.settings.maximumFixedSteps=8;
     scene.settings.shadowResolution=1024;scene.settings.localShadowResolution=256;
     scene.settings.sceneRenderScale=.5f;scene.settings.gameRenderScale=.75f;scene.settings.sceneRealtime=false;
@@ -105,7 +105,7 @@ inline void Run() {
     Require(SceneLayout::Parse(animated.Serialize()).objects[0].animation->tracks[0].clock=="customFocusClock","Custom clock did not save");
     MaterialAsset material;material.shader="Shaders/Mesh.hlsl";
     const auto materialRoot=output/"material";std::filesystem::create_directories(materialRoot/"Shaders");
-    std::filesystem::copy_file("Content/Shaders/Mesh.hlsl",materialRoot/material.shader,std::filesystem::copy_options::overwrite_existing);
+    std::filesystem::copy_file("Games/GuruttoWorld/Shaders/Mesh.hlsl",materialRoot/material.shader,std::filesystem::copy_options::overwrite_existing);
     material.Save(materialRoot,"Assets/Materials/Shader.mat");
     Require(MaterialAsset::Load(materialRoot,"Assets/Materials/Shader.mat").shader==material.shader,"Material shader did not save");
     ScriptDefinition definition;definition.update=[](ScriptContext& c){if(std::get<bool>(c.Data("customFlag")->value)) c.object.position[0]=7;};
@@ -135,10 +135,10 @@ inline void Run() {
     ScenePlacement body;body.id="body";body.name="Body";body.position={0,3,0};body.boxCollider.emplace();body.rigidBody.emplace();
     SceneLayout physical;physical.objects={body};physical.settings.gravity={0,0,0};
     PhysicsWorld physics;ScenePhysics::States states;
-    Require(physics.Advance(physical,states,.05,0,0,false,"Content",error),"Zero gravity physics failed");
+    Require(physics.Advance(physical,states,.05,0,0,false,"Games/GuruttoWorld",error),"Zero gravity physics failed");
     Require(std::abs(physical.objects[0].position[1]-3)<.001f,"World gravity setting was ignored");
     physical.settings.gravity={0,-10,0};
-    Require(physics.Advance(physical,states,.05,0,0,false,"Content",error),"Changed world gravity physics failed");
+    Require(physics.Advance(physical,states,.05,0,0,false,"Games/GuruttoWorld",error),"Changed world gravity physics failed");
     Require(physical.objects[0].position[1]<3,"Changed world gravity was not applied");
 }
 }

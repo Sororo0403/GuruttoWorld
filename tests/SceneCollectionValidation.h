@@ -50,9 +50,9 @@ namespace SceneCollectionValidation
         FollowupStateValidation::EditorOwnership(renderer);
         using namespace SceneRuntime; const auto root=std::filesystem::absolute("generated/tests/scene-collection");
         std::filesystem::create_directories(root/"Assets/Scenes"); std::filesystem::create_directories(root/"Shaders");
-        for(const auto& entry:std::filesystem::recursive_directory_iterator("Content/Shaders"))
+        for(const auto& entry:std::filesystem::recursive_directory_iterator("Games/GuruttoWorld/Shaders"))
             if(entry.is_regular_file()) {
-                const auto target=root/"Shaders"/entry.path().lexically_relative("Content/Shaders");
+                const auto target=root/"Shaders"/entry.path().lexically_relative("Games/GuruttoWorld/Shaders");
                 std::filesystem::create_directories(target.parent_path());std::filesystem::copy_file(entry.path(),target,std::filesystem::copy_options::overwrite_existing);
             }
         auto stopped=std::make_shared<int>(0);

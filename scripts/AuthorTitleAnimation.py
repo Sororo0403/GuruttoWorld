@@ -58,7 +58,7 @@ def apply_animation(layout):
 
 
 if __name__ == "__main__":
-    path = Path(__file__).resolve().parent.parent / "Content/Assets/Scenes/TitleStreet.json"
+    path = Path(__file__).resolve().parent.parent / "Games/GuruttoWorld/Assets/Scenes/TitleStreet.json"
     scene = json.loads(path.read_text(encoding="utf-8"))
     apply_animation(scene)
     path=Path(__file__).resolve().parent.parent / "generated/authoring/TitleAnimation.json"

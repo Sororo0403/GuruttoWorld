@@ -4,7 +4,7 @@ import shutil
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-DEST = ROOT / "Content/Assets/Models/Title/EmergencyExit"
+DEST = ROOT / "Games/GuruttoWorld/Assets/Models/Title/EmergencyExit"
 DEST.mkdir(parents=True, exist_ok=True)
 for extension in ("svg", "png"):
     shutil.copy2(ROOT / f"generated/title-assets/exit-sign.{extension}", DEST / f"Source.{extension}")

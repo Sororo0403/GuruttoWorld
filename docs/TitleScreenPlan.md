@@ -37,7 +37,7 @@ Editorの平行光源Inspectorから影の有効・描画範囲・深度バイ�
 
 ## 編集・再生成
 
-通常はContent/Assets/Scenes/TitleStreet.jsonをEditorで編集する。通常ビルドはアセットを再生成しない。
+通常はGames/GuruttoWorld/Assets/Scenes/TitleStreet.jsonをEditorで編集する。通常ビルドはアセットを再生成しない。
 scripts/AuthorTitleMenu.pyはメニュー・施設・初期カメラ移動を明示的に再設定する制作ツール。
 scripts/GenerateMorningTitleArt.ps1は同梱M PLUS 1p Blackからロゴを生成する。メニューは装飾帯を使わない白いテキスト。
 影のための画像生成や再ベイクは不要。

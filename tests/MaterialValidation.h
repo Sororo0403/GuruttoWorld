@@ -90,7 +90,7 @@ namespace MaterialValidation
         Engine::MeshData data;
         data.vertices={{{-1,-1,0},{0,0,-1},{0,0}},{{0,1,0},{0,0,-1},{0,0}},{{1,-1,0},{0,0,-1},{0,0}}}; data.indices={0,1,2};
         Engine::MeshRenderer mesh;
-        Require(mesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,std::filesystem::absolute("Content/Shaders/Mesh.hlsl")),"material mesh fixture initializes");
+        Require(mesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),"material mesh fixture initializes");
         Engine::DirectionalLight light; light.enabled=false;
         DirectX::XMFLOAT4X4 identity; DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());
         Engine::Material material; material.color={1,0,0,1};
@@ -99,7 +99,7 @@ namespace MaterialValidation
         {std::ofstream file(slotRoot/"Slots.mtl");file<<"newmtl First\nKd 1 1 1\nnewmtl Second\nKd 1 1 1\n";}
         {std::ofstream file(slotRoot/"Slots.obj");file<<"mtllib Slots.mtl\nv -1 -1 -0.3\nv 0 1 -0.3\nv 1 -1 -0.3\nv -1 -1 -0.5\nv 0 1 -0.5\nv 1 -1 -0.5\nvn 0 0 1\no First\nusemtl First\nf 1//1 3//1 2//1\no Second\nusemtl Second\nf 4//1 6//1 5//1\n";}
         auto slotModel=std::make_shared<Engine::ModelRenderer>();
-        Require(slotModel->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),slotRoot/"Slots.obj",std::filesystem::absolute("Content/Shaders/Mesh.hlsl")) && slotModel->MeshCount()==2,"two-mesh material-slot fixture initializes");
+        Require(slotModel->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),slotRoot/"Slots.obj",std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")) && slotModel->MeshCount()==2,"two-mesh material-slot fixture initializes");
         auto fallback=std::make_shared<Engine::Material>();fallback->color={1,0,0,1};
         auto slotOverride=std::make_shared<Engine::Material>();slotOverride->color={0,1,0,1};slotOverride->transparent=true;
         Engine::MaterialSlots slots{nullptr,slotOverride};
@@ -145,7 +145,7 @@ namespace MaterialValidation
 
         Engine::MeshRenderer mappedMesh;
         data.vertices[0].uv={0,1}; data.vertices[1].uv={.5f,0}; data.vertices[2].uv={1,1};
-        Require(mappedMesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,std::filesystem::absolute("Content/Shaders/Mesh.hlsl")),"normal mapped mesh initializes");
+        Require(mappedMesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),"normal mapped mesh initializes");
         auto normalImage=std::make_shared<Engine::Texture2D>();
         Require(normalImage->InitializePixels(renderer.GetDevice(),renderer.GetCommandQueue(),1,1,{128,218,218,255}),"linear tangent-space normal initializes");
         material=Engine::Material{}; material.color={.5f,.5f,.5f,1}; material.normalTexture=normalImage;
@@ -165,7 +165,7 @@ namespace MaterialValidation
         Require(unlit[0]>=127 && unlit[0]<=128 && unlit[1]==unlit[0] && unlit[2]==unlit[0] && unlit[3]==255,
             "normal flag does not accidentally enable disabled lighting");
         Require(renderer.WaitForIdle(),"material GPU complete before resource release");
-        const auto content=std::filesystem::absolute("Content");
+        const auto content=std::filesystem::absolute("Games/GuruttoWorld");
         const auto layout=SceneRuntime::SceneLayout::Load(content/"Assets/Scenes/RenderingPlayground.json",content);
         const auto saved=layout.Serialize(); std::string error;
         SceneRuntime::SceneEnvironment environment;

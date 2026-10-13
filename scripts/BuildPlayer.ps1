@@ -2,11 +2,34 @@ param(
     [ValidateSet('Release','Development')][string]$Configuration='Release',
     [ValidatePattern('^[a-f0-9]{32}$')][string]$RunId=([Guid]::NewGuid().ToString('N')),
     [string]$StartupScene,
+    [string]$Content,
+    [string]$Project,
+    [string]$WorkRoot,
     [switch]$SkipBuild
 )
 $ErrorActionPreference='Stop'
 $repoRoot=Split-Path $PSScriptRoot -Parent
-$buildRoot=Join-Path $repoRoot 'generated/builds'
+if (!$Content) { $Content=Join-Path $repoRoot 'Games/GuruttoWorld' }
+if (!$WorkRoot) { $WorkRoot=$repoRoot }
+$Content=[IO.Path]::GetFullPath($Content)
+$WorkRoot=[IO.Path]::GetFullPath($WorkRoot)
+$gameName='App'
+$playerProject=Join-Path $repoRoot 'App/App.vcxproj'
+$playerRoot=$repoRoot
+if ($Project) {
+    $Project=[IO.Path]::GetFullPath($Project)
+    $descriptor=Get-Content -LiteralPath (Join-Path $Project 'WP1.project.json') -Raw | ConvertFrom-Json
+    if ($descriptor.version -ne 1 -or $descriptor.name -notmatch '^[A-Za-z][A-Za-z0-9_]{0,63}$' -or $descriptor.project -ne "$($descriptor.name).vcxproj") { throw 'Invalid game project descriptor.' }
+    $projectEngineRoot=$descriptor.engineRoot
+    if (![IO.Path]::IsPathRooted($projectEngineRoot)) { $projectEngineRoot=Join-Path $Project $projectEngineRoot }
+    if ([IO.Path]::GetFullPath($projectEngineRoot).TrimEnd('\') -ne [IO.Path]::GetFullPath($repoRoot).TrimEnd('\')) { throw 'Game project uses a different engine checkout.' }
+    $gameName=$descriptor.name
+    $playerProject=Join-Path $Project $descriptor.project
+    $playerRoot=$Project
+    $Content=$Project
+    $WorkRoot=$Project
+}
+$buildRoot=Join-Path $WorkRoot 'generated/builds'
 New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
 $resultPath=Join-Path $buildRoot "$RunId.json"
 $logPath=Join-Path $buildRoot "$RunId.log"
@@ -25,7 +48,7 @@ try {
     New-Item -ItemType Directory -Path $staging | Out-Null
     Set-BuildProgress 0 '保存済みContentのスナップショットを作成中'
     . (Join-Path $PSScriptRoot 'BuildContentSnapshot.ps1')
-    Copy-BuildContentSnapshot -Content (Join-Path $repoRoot 'Content') -Destination $staging
+    Copy-BuildContentSnapshot -Content $Content -Destination $staging
     if ($StartupScene) {
         $stagedProjectPath=Join-Path $staging 'Assets/Project.json'
         $stagedProject=Get-Content -LiteralPath $stagedProjectPath -Raw | ConvertFrom-Json
@@ -39,15 +62,15 @@ try {
     if (!$installation) { throw 'Visual Studio with MSBuild is required.' }
     $msbuild=Join-Path $installation 'MSBuild/Current/Bin/MSBuild.exe'
     if (!$SkipBuild) {
-        & $msbuild (Join-Path $repoRoot 'App/App.vcxproj') "/p:Configuration=$Configuration" '/p:Platform=x64' '/m' '/v:minimal' '/nologo'
+        & $msbuild $playerProject "/p:Configuration=$Configuration" '/p:Platform=x64' '/m:1' '/nr:false' '/v:minimal' '/nologo'
         if ($LASTEXITCODE -ne 0) { throw "MSBuild failed ($LASTEXITCODE)." }
     }
-    $executable=Join-Path $repoRoot "generated/outputs/x64/$Configuration/App/App.exe"
+    $executable=Join-Path $playerRoot "generated/outputs/x64/$Configuration/App/$gameName.exe"
     if (!(Test-Path -LiteralPath $executable)) { throw 'Built App.exe is missing.' }
     Set-BuildProgress 2 '配布用C++ゲーム処理をコンパイル中'
     $scriptShell=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
-    & $scriptShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'BuildScripts.ps1') -Configuration $Configuration -Content $staging -OutputContent $staging -RunId "$RunId-scripts"
-    $scriptResult=Get-Content -LiteralPath (Join-Path $repoRoot "generated/script-builds/$RunId-scripts.json") -Raw | ConvertFrom-Json
+    & $scriptShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'BuildScripts.ps1') -Configuration $Configuration -Content $staging -OutputContent $staging -WorkRoot $WorkRoot -RunId "$RunId-scripts"
+    $scriptResult=Get-Content -LiteralPath (Join-Path $WorkRoot "generated/script-builds/$RunId-scripts.json") -Raw | ConvertFrom-Json
     if (!$scriptResult.success) { throw $scriptResult.error }
     Set-BuildProgress 2 '実行ファイル・ランタイムをパッケージ中'
     Copy-Item -LiteralPath $executable -Destination (Join-Path $staging 'App.exe')

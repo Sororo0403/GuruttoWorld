@@ -56,7 +56,7 @@ namespace AnimationEventValidation
         auto shortRig=rig; shortRig.clips[0].duration=.0001f;
         state={}; bool rejected=false; try { Animator::Advance(animator,state,shortRig,.1,{}); } catch (const std::exception&) { rejected=true; }
         Require(rejected && state.current.empty() && state.time==0 && state.eventsAtStart,"event overflow preserves complete Animator state");
-        const auto scene=SceneLayout::Load("Content/Assets/Scenes/AnimationEventPlayground.json");
+        const auto scene=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/AnimationEventPlayground.json");
         const auto restored=SceneLayout::Parse(scene.Serialize());
         for (size_t index=0;index<scene.objects.size();++index) Require(scene.objects[index].animator==restored.objects[index].animator,"event arguments and thresholds roundtrip JSON");
         auto json=Engine::Json::parse(scene.Serialize());
@@ -75,7 +75,7 @@ namespace AnimationEventValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto content=std::filesystem::absolute("Content"); std::string error;
+        const auto content=std::filesystem::absolute("Games/GuruttoWorld"); std::string error;
         auto scene=SceneLayout::Load(content/"Assets/Scenes/AnimationEventPlayground.json",content);
         SceneWorld world; Require(world.Initialize(renderer,content,scene,content/"Shaders/Mesh.hlsl",&error),error.c_str());
         Require(world.UpdateComponents(.1),"event scene advances first marker");

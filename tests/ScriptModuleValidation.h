@@ -51,7 +51,7 @@ namespace ScriptModuleValidation
         ScenePlacement object; object.id="native"; object.name="Native";
         object.scripts.push_back({"script",true,"ValidationNativeMover",{{"speed",8.0f}}});
         SceneLayout scene; scene.objects={object}; Editor::GameSession session;
-        Require(session.Play(renderer,std::filesystem::absolute("Content"),scene,error),"native behaviour starts in common App and Editor runtime");
+        Require(session.Play(renderer,std::filesystem::absolute("Games/GuruttoWorld"),scene,error),"native behaviour starts in common App and Editor runtime");
         session.Update(0.1,true);
         Require(std::abs(session.Runtime()->World().Layout().objects[0].position[0]-0.8f)<1e-5,"native callback reads host context parameters and changes live scene");
         Require(session.Stop(),"native script runtime stops before reload");

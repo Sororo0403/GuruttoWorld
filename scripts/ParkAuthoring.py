@@ -5,7 +5,7 @@ from copy import deepcopy
 
 
 def configure_scene(scene):
-    schema_path = Path(__file__).resolve().parents[1] / "Content/Assets/Scripts/ParkScriptSchema.schema.json"
+    schema_path = Path(__file__).resolve().parents[1] / "Games/GuruttoWorld/Assets/Scripts/ParkScriptSchema.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8-sig"))
     if schema.get("version") != 1:
         raise ValueError("Unsupported park script schema version")
@@ -42,6 +42,6 @@ def configure_scene(scene):
 
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
-    path = root / "Content/Assets/Scenes/ParkAdventure.json"
+    path = root / "Games/GuruttoWorld/Assets/Scenes/ParkAdventure.json"
     scene = configure_scene(json.loads(path.read_text(encoding="utf-8-sig")))
     path.write_text(json.dumps(scene, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

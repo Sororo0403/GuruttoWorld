@@ -119,7 +119,7 @@ I・JもOK／NG／未確認で報告してください。
 1. New sceneを作る。背景だけでCamera・Sky・粒が自動生成されないことを確認する。
 2. 空オブジェクトへCameraを追加し、位置[0,3,-10]・回転[6,0,0]度へ変更する。別の空オブジェクトへDirectionalLightを追加する。原点付近にモデル、別の空オブジェクトにSkyも追加してGameに表示する。必要ならParticleEmitterとCameraSwayを追加する。
 3. 別名保存 → 別シーンを開く → 作ったシーンを開き直す。環境と配置・親子が再現する。
-4. Content/Shaders/Sky.hlsl・GlowParticle.hlsl・Mesh.hlslを退避してから編集し、Reload assetsを確認する。確認後は退避した内容へ戻す。空・モデル・粒が更新し、未保存のシーン・選択・履歴が維持される。構文エラー時は以前の表示を維持し、復旧後に更新する。Play中の更新はStop後に反映する。
+4. Games/GuruttoWorld/Shaders/Sky.hlsl・GlowParticle.hlsl・Mesh.hlslを退避してから編集し、Reload assetsを確認する。確認後は退避した内容へ戻す。空・モデル・粒が更新し、未保存のシーン・選択・履歴が維持される。構文エラー時は以前の表示を維持し、復旧後に更新する。Play中の更新はStop後に反映する。
 5. TitleStreet.jsonをAppで使う設定へ保存する場合は原本を退避して行う。次のビルドでAppの背景へ反映し、背景演出OFFで揺れ・雲の移動が止まり粒が消える。UIと音声は従来どおり。確認後に退避した原本を戻す。
 
 K〜Mも手動で操作した項目だけOKとし、未操作は未確認のままにしてください。

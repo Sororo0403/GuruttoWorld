@@ -43,7 +43,7 @@ namespace JointValidation
     {
         auto layout=Body();layout.objects[0].rigidBody->planar=true;
         SceneRuntime::SceneEnvironment environment;std::string error;
-        Require(environment.Initialize(renderer,std::filesystem::absolute("Content"),layout,error),"2D environment initializes");
+        Require(environment.Initialize(renderer,std::filesystem::absolute("Games/GuruttoWorld"),layout,error),"2D environment initializes");
         for(int tick=0;tick<60;++tick) environment.Update(1.0/60,true,true);
         const auto& position=environment.World().Layout().objects[0].position;
         Require(position[1]<-5 && std::abs(position[2]-3)<1e-5f,"SceneEnvironment automatically advances standalone 2D physics without Script or external MovePlayers");

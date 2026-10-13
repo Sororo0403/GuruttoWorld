@@ -11,7 +11,7 @@ namespace RenderingFeaturesValidation
     /// <summary>インスタンス行列と現フレームの遮蔽結果がGPU描画へ反映されることを確認します。</summary>
     inline void Rendering(Engine::DirectX12Renderer& renderer)
     {
-        const auto shader=std::filesystem::absolute("Content/Shaders/Mesh.hlsl");
+        const auto shader=std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl");
         Engine::MeshData data; data.vertices={{{-1,-1,.1f},{0,0,-1}},{{0,1,.1f},{0,0,-1}},{{1,-1,.1f},{0,0,-1}}}; data.indices={0,1,2};
         Engine::MeshRenderer mesh; Require(mesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,shader),"instancing fixture initializes");
         DirectX::XMFLOAT4X4 identity,offscreen;

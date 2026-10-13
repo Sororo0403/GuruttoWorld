@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "name": "GuruttoWorld",
+  "engineRoot": "../..",
+  "project": "GuruttoWorld.vcxproj",
+  "solution": "GuruttoWorld.slnx"
+}

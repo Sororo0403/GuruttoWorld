@@ -10,7 +10,7 @@ import uuid
 import wave
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTENT = ROOT / "Content"
+CONTENT = ROOT / "Games/GuruttoWorld"
 
 
 def solar_position(date, latitude, longitude):

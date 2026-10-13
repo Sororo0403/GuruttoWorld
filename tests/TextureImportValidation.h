@@ -24,7 +24,7 @@ namespace TextureImportValidation {
         Require(compressed->InitializePixels(renderer.GetDevice(),renderer.GetCommandQueue(),8,8,red,settings),"BC3 mip texture uploads");
         Require(compressed->GetFormat()==DXGI_FORMAT_BC3_UNORM && compressed->GetMipLevels()==4,"BC3 resource exposes full mip chain");
         settings.compression="none"; Require(plain->InitializePixels(renderer.GetDevice(),renderer.GetCommandQueue(),8,8,red,settings),"RGBA mip texture uploads");
-        SpriteRenderer first,second; const auto shader=std::filesystem::absolute("Content/Shaders/Sprite.hlsl");
+        SpriteRenderer first,second; const auto shader=std::filesystem::absolute("Games/GuruttoWorld/Shaders/Sprite.hlsl");
         Require(first.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),compressed,shader) && second.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),plain,shader),"texture comparison sprites initialize");
         SpriteDrawParameters draw; draw.position={16,8}; draw.size={8,8};
         const auto actual=SkinningValidation::Capture(renderer,[&](auto* commands){first.Draw(commands,64,32,draw);});

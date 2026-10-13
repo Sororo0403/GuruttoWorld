@@ -18,6 +18,12 @@ class BuildPanel final {
     std::optional<bool> completed_;
     const char* Folder() const { return scripts_ ? "generated/script-builds" : "generated/builds"; }
     static std::filesystem::path RepositoryRoot(const std::filesystem::path& content) {
+        if(std::filesystem::is_regular_file(content/"WP1.project.json")) {
+            std::ifstream input(content/"WP1.project.json");
+            const auto project=Engine::Json::parse(input);
+            const auto engine=Engine::AssetDatabase::Path(project.at("engineRoot").get<std::string>());
+            return engine.is_absolute()?engine:std::filesystem::absolute(content/engine).lexically_normal();
+        }
         auto path=std::filesystem::absolute(content).parent_path();
         while(!path.empty() && path!=path.root_path()) {
             if(std::filesystem::is_regular_file(path/"WP1.slnx")) return path;
@@ -76,13 +82,15 @@ public:
         if (!std::filesystem::is_regular_file(script)) throw std::runtime_error("Build requires the source repository and Visual Studio.");
         runId_.clear(); std::random_device random; constexpr char hex[]="0123456789abcdef";
         for (size_t i=0;i<32;++i) runId_+=hex[random()%16];
-        repository_=repo;log_=repo/Folder()/(runId_+".log"); package_.clear(); completed_.reset();
+        const bool external=std::filesystem::is_regular_file(content/"WP1.project.json");
+        repository_=external?content:repo;log_=repository_/Folder()/(runId_+".log"); package_.clear(); completed_.reset();
         std::array<wchar_t,32768> system{}; const auto length=GetSystemDirectoryW(system.data(),static_cast<UINT>(system.size()));
         if (!length || length>=system.size()) throw std::runtime_error("Cannot locate PowerShell");
         const auto executable=std::filesystem::path(system.data())/"WindowsPowerShell/v1.0/powershell.exe";
         const std::wstring configuration=scripts_ ? Engine::AssetDatabase::Path(scriptConfiguration_).wstring() : configuration_==0 ? L"Release" : L"Development";
         std::wstring command=L"\""+executable.wstring()+L"\" -NoProfile -ExecutionPolicy Bypass -File \""+script.wstring()+L"\" -Configuration "+configuration+L" -RunId "+std::wstring(runId_.begin(),runId_.end());
-        if (scripts_) command+=L" -Content \""+content.wstring()+L"\"";
+        command+=L" -Content \""+content.wstring()+L"\" -WorkRoot \""+repository_.wstring()+L"\"";
+        if(external && !scripts_) command+=L" -Project \""+content.wstring()+L"\"";
         STARTUPINFOW startup{}; startup.cb=sizeof(startup); startup.dwFlags=STARTF_USESHOWWINDOW; startup.wShowWindow=SW_HIDE;
         PROCESS_INFORMATION information{};
         auto job=CreateJobObjectW(nullptr,nullptr);
@@ -117,7 +125,7 @@ public:
     void Draw(const std::filesystem::path& content,bool saved) {
         if (!open) return;
         if (ImGui::Begin(scripts_ ? "ゲーム処理のコンパイル###Build scripts" : "ビルド###Build player",&open)) {
-            ImGui::TextWrapped("%s",scripts_ ? "Assets/ScriptsのC++ゲーム処理をコンパイルします。再生中の結果は停止後に反映します。" : "保存済みContentとAppをビルドし、generated/buildsに新しい配布用フォルダーを作成します。");
+            ImGui::TextWrapped("%s",scripts_ ? "Assets/ScriptsのC++ゲーム処理をコンパイルします。再生中の結果は停止後に反映します。" : "開いているゲームの保存済み素材とプレイヤーをビルドし、generated/buildsに新しい配布用フォルダーを作成します。");
             if (scripts_) ImGui::Text("構成: %s",scriptConfiguration_.c_str());
             else { ImGui::BeginDisabled(Running()); ImGui::Combo("構成###Configuration",&configuration_,"Release\0Development\0"); ImGui::EndDisabled(); }
             if (!saved && !scripts_) ImGui::TextUnformatted("シーンを保存してからビルドしてください。");

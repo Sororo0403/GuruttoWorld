@@ -125,10 +125,10 @@ namespace BlendTreeValidation
         Require(state.current=="Idle","tree exit time waits for normalized phase");
         Animator::Advance(animator,state,rig,.1,{{"x",.25f}});
         Require(state.current=="Jump" && state.blendElapsed>0 && state.blendElapsed<state.blendDuration,"tree transitions retain crossfade and exit time");
-        const auto layout=SceneLayout::Load("Content/Assets/Scenes/BlendTreePlayground.json");
+        const auto layout=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/BlendTreePlayground.json");
         const auto restored=SceneLayout::Parse(layout.Serialize());
         for (size_t object=0;object<layout.objects.size();++object) Require(layout.objects[object].animator==restored.objects[object].animator,"all Blend Tree definitions roundtrip scene JSON");
-        const auto original=SceneLayout::Load("Content/Assets/Scenes/AnimatorPlayground.json");
+        const auto original=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/AnimatorPlayground.json");
         Require(original.objects.back().animator->blendTrees.empty() && original.objects.back().animator->states.front().blendTree.empty(),"legacy Animator format remains compatible");
         auto json=Engine::Json::parse(layout.Serialize());
         auto& treeJson=json["objects"].back()["components"].back()["blendTrees"][0]; treeJson["type"]="unknown";
@@ -144,7 +144,7 @@ namespace BlendTreeValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto content=std::filesystem::absolute("Content"); auto scene=SceneLayout::Load(content/"Assets/Scenes/BlendTreePlayground.json",content); std::string error;
+        const auto content=std::filesystem::absolute("Games/GuruttoWorld"); auto scene=SceneLayout::Load(content/"Assets/Scenes/BlendTreePlayground.json",content); std::string error;
         SceneWorld world; Require(world.Initialize(renderer,content,scene,content/"Shaders/Mesh.hlsl",&error),error.c_str());
         world.SetInputActions({{"MoveRight",.5f},{"MoveForward",.5f}},{});
         Require(world.UpdateComponents(.05),"scene drives blend weights from action values");

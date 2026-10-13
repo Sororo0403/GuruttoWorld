@@ -60,7 +60,7 @@ namespace PostEffectValidation
     inline void Rendering(Engine::DirectX12Renderer& renderer)
     {
         Engine::MeshData data; data.vertices={{{-1,-1,0},{0,0,-1}},{{0,1,0},{0,0,-1}},{{1,-1,0},{0,0,-1}}}; data.indices={0,1,2};
-        Engine::MeshRenderer mesh; Require(mesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,std::filesystem::absolute("Content/Shaders/Mesh.hlsl")),"HDR mesh initializes");
+        Engine::MeshRenderer mesh; Require(mesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),"HDR mesh initializes");
         DirectX::XMFLOAT4X4 identity; DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());
         auto world=identity;
         Engine::Material material; material.physicallyBased=true;
@@ -75,18 +75,18 @@ namespace PostEffectValidation
         DirectX::XMStoreFloat4x4(&world,DirectX::XMMatrixIdentity());
         Require(std::abs(HdrPixel(renderer,draw)[0]-2)<.02f,"transparent regular HDR pipeline blends linear radiance");
         auto white=std::make_shared<Engine::Texture2D>(); Require(white->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),{}),"HDR white fixture initializes");
-        Engine::SpriteRenderer sprite; Require(sprite.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),white,std::filesystem::absolute("Content/Shaders/Sprite.hlsl")),"HDR sprite initializes");
+        Engine::SpriteRenderer sprite; Require(sprite.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),white,std::filesystem::absolute("Games/GuruttoWorld/Shaders/Sprite.hlsl")),"HDR sprite initializes");
         Engine::SpriteDrawParameters parameters; parameters.size={64,32}; parameters.color={.5f,.5f,.5f,1};
         const auto gray=HdrPixel(renderer,[&](auto* commands) { sprite.Draw(commands,64,32,parameters); });
         Require(std::abs(gray[0]-.214041f)<.001f,"sprite converts authored sRGB into linear HDR");
-        Engine::ParticleRenderer particles; Require(particles.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),white,std::filesystem::absolute("Content/Shaders/GlowParticle.hlsl")),"HDR particles initialize");
+        Engine::ParticleRenderer particles; Require(particles.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),white,std::filesystem::absolute("Games/GuruttoWorld/Shaders/GlowParticle.hlsl")),"HDR particles initialize");
         DirectX::XMFLOAT4X4 particleMatrix; DirectX::XMStoreFloat4x4(&particleMatrix,DirectX::XMMatrixScaling(2,2,1));
         const auto glow=HdrPixel(renderer,[&](auto* commands) { particles.Draw(commands,particleMatrix,{1,0,0,1}); particles.Draw(commands,particleMatrix,{1,0,0,1}); });
         Require(glow[0]>1.9f && glow[1]==0,"additive glow particles retain HDR brightness");
 
         Engine::PostEffectRenderer post;
         Require(!post.Initialize(renderer.GetDevice(),"generated/tests/missing-post-shader.hlsl") && !post.Ready(),"post pipeline failure is retryable");
-        Require(post.Initialize(renderer.GetDevice(),std::filesystem::absolute("Content/Shaders/PostEffects.hlsl")),"post pipeline initializes");
+        Require(post.Initialize(renderer.GetDevice(),std::filesystem::absolute("Games/GuruttoWorld/Shaders/PostEffects.hlsl")),"post pipeline initializes");
         Engine::PostEffectSettings settings; settings.enabled=true; settings.bloomEnabled=false; settings.toneMapping=Engine::ToneMapping::Reinhard;
         const auto constant=[&](float value) { return EnvironmentValidation::Pixel(renderer,[&](auto* commands) {
             Engine::RenderTargetBinding before,after; Require(Engine::RenderTargetBinding::Current(commands,before),"post caller target recorded");
@@ -140,7 +140,7 @@ namespace PostEffectValidation
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
-        const auto root=std::filesystem::absolute("Content"); std::string error;
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld"); std::string error;
         auto layout=EnvironmentValidation::Layout(); layout.objects[0].sky->horizon={.5f,.5f,.5f}; layout.objects[0].sky->zenith={.5f,.5f,.5f};
         layout.settings.postEffects.enabled=true; layout.settings.postEffects.bloomEnabled=false;
         layout.settings.postEffects.exposure=1; layout.settings.postEffects.toneMapping=Engine::ToneMapping::Reinhard;

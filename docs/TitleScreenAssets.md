@@ -2,7 +2,7 @@
 
 - Openclipart「security」by yves_guillou: https://openclipart.org/detail/92155/security-by-yves_guillou-92155
 - CC0公開方針: https://openclipart.org/share
-- Content/Assets/Models/Title/EmergencyExit に原SVG・PNG、出典とライセンス、EXIT文字を加えた看板素材を保存。
+- Games/GuruttoWorld/Assets/Models/Title/EmergencyExit に原SVG・PNG、出典とライセンス、EXIT文字を加えた看板素材を保存。
 - 枠・支柱は自作の3D形状。scripts/AuthorEmergencyExit.pyで再生成（明示実行のみ）。
 - 青／水色のSTART／CONFIG帯を撤去。3ボタンは白い通常テキストに変更。
 
@@ -37,7 +37,7 @@
 - 背景は既存Kenney City Kit Commercial／RoadsのCC0モデルを再配置。新しい外部ダウンロードはない。
 - 近景の商店、広場の市庁舎風の建物・カフェ・ひさし・街灯、遠景のbuilding-skyscraper-a／b／d／e、道路・歩道・橋を使用。
 - 自作の夜景ビル、人物・群衆・シルエット画像は撤去。キャラクター用モデルを追加していない。
-- Content/Assets/Textures/Title/MorningのLogo・StartBand・Caption・Slashは、同梱M PLUS 1p BlackとSystem.Drawingのベクター図形から生成したプロジェクト独自のUI部品。
+- Games/GuruttoWorld/Assets/Textures/Title/MorningのLogo・StartBand・Caption・Slashは、同梱M PLUS 1p BlackとSystem.Drawingのベクター図形から生成したプロジェクト独自のUI部品。
 - 生成元はscripts/GenerateMorningTitleArt.ps1。同梱フォントのライセンスはApp/Assets/Fonts/MPlus1p/OFL.txt。既存の使用フォント・ライセンスを継承し、新規フォントを取得していない。
 - 朝の空と雲は既存Sky Component、日差しはDirectionalLight、霞はFogで編集可能。画像を背景一枚に焼き込まない。
 - タイトル音源は従来のプロジェクト内の生成音源を継続。P5Rの音源・ロゴ・ゲーム画像は採用していない。
@@ -86,7 +86,7 @@
 
 ## 終了ゲート（2026-10-05）
 
-- Kenney Castle Kit 2.0 の `wall-narrow-gate.obj` を採用。門本体のOBJ・MTL・Textures/colormap.pngは無編集で `Content/Assets/Models/Title/Exit/Castle` に保存。
+- Kenney Castle Kit 2.0 の `wall-narrow-gate.obj` を採用。門本体のOBJ・MTL・Textures/colormap.pngは無編集で `Games/GuruttoWorld/Assets/Models/Title/Exit/Castle` に保存。
 - 配布ページ: https://kenney.nl/assets/castle-kit 。CC0表記と同梱License.txtを確認し、同じフォルダーに保存した。
 - 取得元: https://kenney.nl/media/pages/assets/castle-kit/a395102d20-1711543616/kenney_castle-kit.zip
 - 横道は撤去。門は高架の先の右側一棟分を置き換え、建物と同じ列の(4.8, 0.08, 26)に配置し、正面を通りへ向ける。手前のZ=12の区画には元の建物を復元。高架本体は保持し、両端に重なる右Z=19・左Z=20の建物を撤去。終了の視点は(-0.8, 1.8, 20)、ヨー0.56。門の倍率は4。
@@ -107,7 +107,7 @@
 ## BGM・操作効果音（段階12、2026-09-30）
 
 - 外部サンプルや既存楽曲を使用せず、scripts/GenerateTitleAudio.pyで波形・音列を生成したオリジナルの仮音源。モデル素材のCC0とは別に、本プロジェクト内で生成した素材として記録する。
-- Content/Assets/Audio/Title/Bgm.wav：120 BPM、8小節・16秒のループ。短い鍵盤風コード、ベース、控えめな打楽器。Select.wav、Confirm.wav、Back.wav、Error.wav：選択・決定・取消・保存失敗の短い電子音。
+- Games/GuruttoWorld/Assets/Audio/Title/Bgm.wav：120 BPM、8小節・16秒のループ。短い鍵盤風コード、ベース、控えめな打楽器。Select.wav、Confirm.wav、Back.wav、Error.wav：選択・決定・取消・保存失敗の短い電子音。
 - 全てモノラルPCM16、32 kHz。再生成はPython 3で `py -3.11 scripts/GenerateTitleAudio.py`。標準ライブラリのみ使用し、乱数シードを固定。通常ビルドは生成済みWAVをコピーする。
 - 音量設定は編集中もBGM・効果音へ反映する。0%は無音、取消で保存済み音量へ戻す。最大設定時の再生倍率はBGM0.30、効果音0.35。
 - BGMは0.4秒で立ち上がり、開始・終了ワイプに合わせて音量が下がる。非アクティブ時は全音を停止し、復帰時はBGMの先頭からフェード再生する。シーン破棄時はAudioSystemの破棄で全音声を解放する。
@@ -153,7 +153,7 @@
 
 - TitleStreet.jsonのCanvas・RectTransform・Imageがロゴ、サブタイトル、帯、矢印、日本語ラベル、Enter案内を別々に配置し、SceneUiが描画する。1280×720を基準に縦横比を維持して拡縮し、余白を中央へ配分する。
 - 仮タイトルは NEW WORLD、サブタイトルは「まだ見ぬ世界へ」。AI画像は使わず、フォントの輪郭と自作の幾何図形で制作した。
-- 素材：Content/Assets/Textures/Title/UiAtlas.png（2048×2048、透明PNG）。全UI部品を1枚にまとめ、UV範囲を切り出して描画する。
+- 素材：Games/GuruttoWorld/Assets/Textures/Title/UiAtlas.png（2048×2048、透明PNG）。全UI部品を1枚にまとめ、UV範囲を切り出して描画する。
 - 再生成：PowerShell 7で `pwsh -NoProfile -File scripts/GenerateTitleUi.ps1`。System.Drawing と同梱フォントを使用する。OSへのフォントインストールやネット接続は不要。通常ビルドは生成済みPNGをコピーする。
 - 元の Title.png と GenerateTitleTexture.ps1 は以前のサンプルとして残るが、現在の TitleScene は読み込まない。
 - この段階は見た目の実装。Enterで開始する既存操作を維持し、設定・終了は無効表示。上下選択・ゲームパッド・終了処理は段階8、設定画面は段階9で接続する。
@@ -193,8 +193,8 @@ Release実機でロゴ・各ラベル・帯・矢印・操作案内と、背後�
 - 取得日：2026-09-30
 - ZIP の SHA-256：FA7974A0D342BFE63C38664BA9F8EC1A4AAB8EA25F099BDC56870E33588C4D9D
 - 配布ページと同梱 License.txt の両方で CC0 を確認。同梱文書のバージョン表記は Nature Kit (2.1)。
-- 保存先：Content/Assets/Models/Title/Nature
-- 同梱ライセンス：[License.txt](../Content/Assets/Models/Title/Nature/License.txt)
+- 保存先：Games/GuruttoWorld/Assets/Models/Title/Nature
+- 同梱ライセンス：[License.txt](../Games/GuruttoWorld/Assets/Models/Title/Nature/License.txt)
 
 Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_small.obj/.mtl、plant_bush.obj/.mtl を無編集でコピーし、ZIP 直下の License.txt を添えた。MTL は Kd の材質色を指定し、画像を参照しない。透明画像を使わず、草・葉・花はメッシュとして描画する。透過テクスチャ対応を追加したわけではない。
 
@@ -202,7 +202,7 @@ Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_s
 
 ### 看板：取得済み City Kit (Roads) 2.1
 
-既存の Roads 取得 ZIP から Models/OBJ format/road-sign-street.obj/.mtl と road-sign-empty.obj/.mtl を無編集で追加。Content/Assets/Models/Title/Roads に置き、同梱の colormap.png と License.txt を共有する。出典と取得記録は下記の道路素材の節を参照。
+既存の Roads 取得 ZIP から Models/OBJ format/road-sign-street.obj/.mtl と road-sign-empty.obj/.mtl を無編集で追加。Games/GuruttoWorld/Assets/Models/Title/Roads に置き、同梱の colormap.png と License.txt を共有する。出典と取得記録は下記の道路素材の節を参照。
 
 看板は手前右と左奥に1本ずつ配置。独自の文字・ロゴは追加していない。
 
@@ -217,7 +217,7 @@ Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_s
 
 ## CC0 の遠景（段階4）
 
-既存の Kenney City Kit (Commercial) 2.1 の取得 ZIP から、Models/OBJ format/building-skyscraper-a.obj/.mtl と building-skyscraper-e.obj/.mtl の計4ファイルを無編集で追加した。保存先は Content/Assets/Models/Title/Commercial。既存の Textures/colormap.png、License.txt、下記配布元・取得記録を共有する。
+既存の Kenney City Kit (Commercial) 2.1 の取得 ZIP から、Models/OBJ format/building-skyscraper-a.obj/.mtl と building-skyscraper-e.obj/.mtl の計4ファイルを無編集で追加した。保存先は Games/GuruttoWorld/Assets/Models/Title/Commercial。既存の Textures/colormap.png、License.txt、下記配布元・取得記録を共有する。
 
 - 高層モデル a：元座標の高さ 2.88。左右の遠景に4棟を配置。
 - 高層モデル e：元座標の高さ 4.08。通りの奥 (2, 0.08, 94) に、拡縮 (5, 10, 5) で1棟を配置。環状の塔の再現ではなく、既存CC0高層ビルを目印にしている。
@@ -233,14 +233,14 @@ Models/OBJ format から grass_large.obj/.mtl、flower_yellowA.obj/.mtl、tree_s
 - 取得日：2026-09-29
 - 取得 ZIP の SHA-256：F8B09B081C2BB88BCC126E2DEC1CB40FD0DAD7E7E591B6C26AAEFE96FB35276B
 - 配布ページと同梱 License.txt の両方で Creative Commons Zero（CC0）を確認した。
-- 同梱ライセンス：[License.txt](../Content/Assets/Models/Title/Commercial/License.txt)
+- 同梱ライセンス：[License.txt](../Games/GuruttoWorld/Assets/Models/Title/Commercial/License.txt)
 
 | 採用ファイル | ZIP 内の元ファイル | 用途 |
 |---|---|---|
-| Content/Assets/Models/Title/Commercial/building-c.obj | Models/OBJ format/building-c.obj | タイトル用の最初の建物1棟 |
-| Content/Assets/Models/Title/Commercial/building-c.mtl | Models/OBJ format/building-c.mtl | 材質と画像の相対参照 |
-| Content/Assets/Models/Title/Commercial/Textures/colormap.png | Models/OBJ format/Textures/colormap.png | 同梱の色テクスチャ |
-| Content/Assets/Models/Title/Commercial/License.txt | License.txt | 配布時のライセンス記録 |
+| Games/GuruttoWorld/Assets/Models/Title/Commercial/building-c.obj | Models/OBJ format/building-c.obj | タイトル用の最初の建物1棟 |
+| Games/GuruttoWorld/Assets/Models/Title/Commercial/building-c.mtl | Models/OBJ format/building-c.mtl | 材質と画像の相対参照 |
+| Games/GuruttoWorld/Assets/Models/Title/Commercial/Textures/colormap.png | Models/OBJ format/Textures/colormap.png | 同梱の色テクスチャ |
+| Games/GuruttoWorld/Assets/Models/Title/Commercial/License.txt | License.txt | 配布時のライセンス記録 |
 
 採用した4ファイルは元データをそのままコピーしており、変換・編集はしていない。OBJ の mtllib と MTL の Textures/colormap.png という相対参照を維持する。OBJ の元座標範囲は X=-0.441794～0.441794、Y=0～0.893、Z=-0.545～0.545。Y=0 が底面。読み込み時には既存 Assimp 設定で左手系へ変換する。
 
@@ -262,8 +262,8 @@ AI のランタイム素材・タイトル専用音源・新規フォントは�
 - 取得日：2026-09-30
 - ZIP の SHA-256：22058AF3D68173A7CF9BDA9F0E243A8CEF6BD68168C302EBC76327063849674E
 - 配布ページと同梱 License.txt で CC0 を確認した。
-- 保存先：Content/Assets/Models/Title/Roads
-- 同梱ライセンス：[License.txt](../Content/Assets/Models/Title/Roads/License.txt)
+- 保存先：Games/GuruttoWorld/Assets/Models/Title/Roads
+- 同梱ライセンス：[License.txt](../Games/GuruttoWorld/Assets/Models/Title/Roads/License.txt)
 
 Models/OBJ format 内の road-straight.obj/.mtl、road-bridge.obj/.mtl、tile-low.obj/.mtl、Textures/colormap.png、および ZIP 直下の License.txt を無編集で採用した。MTL とテクスチャの相対参照を維持している。
 

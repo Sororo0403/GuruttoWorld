@@ -31,6 +31,7 @@
 #include "EditorFonts.h"
 #include "PlaySnapshot.h"
 #include "ProjectSettingsPanel.h"
+#include "GameProject.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <SceneRuntime/ScenePresentation.h>
 #include <SceneRuntime/SceneView.h>
@@ -57,17 +58,25 @@ namespace
         // 開発時は元のContentを使い、将来の保存先もビルド出力のコピーにしません。
         for (auto parent = directory; !parent.empty(); parent = parent.parent_path())
         {
-            if (std::filesystem::exists(parent / "Content/Assets/Models/Title")) return parent / "Content";
+            if (std::filesystem::is_directory(parent / "Content/Assets/Fonts")) return parent / "Content";
             if (parent == parent.parent_path()) break;
         }
         return directory; // 配布時はEditorに同梱されたContentを読みます。
     }
 
+    std::filesystem::path DefaultGameRoot()
+    {
+        const auto project=ContentRoot().parent_path()/"Games/GuruttoWorld";
+        if(std::filesystem::is_regular_file(project/"WP1.project.json")) return Editor::GameProject::Open(project);
+        throw std::runtime_error("Open a game project with --project <folder>.");
+    }
+
     class StreetEditor final
     {
     public:
-        explicit StreetEditor(const std::filesystem::path& scene="Assets/Scenes/TitleStreet.json")
+        explicit StreetEditor(const std::filesystem::path& content, std::filesystem::path scene={}) : root(content)
         {
+            if(scene.empty()) scene=Engine::AssetDatabase::Path(SceneRuntime::ProjectSettings::Load(root).startupScene);
             if (scene.is_absolute() || scene.has_root_name() || scene.extension()!=".json" ||
                 !Editor::ProjectCatalog::Text(scene).starts_with("Assets/Scenes/") ||
                 std::any_of(scene.begin(),scene.end(),[](const auto& part){return part=="..";}))
@@ -482,7 +491,7 @@ namespace
         {
             if (!initialized)
             {
-                if(!Editor::EditorFonts::Initialize(root,fileStatus)) {LogResult(false); return false;}
+                if(!Editor::EditorFonts::Initialize(ContentRoot(),fileStatus)) {LogResult(false); return false;}
                 Editor::Language::Initialize();
                 const auto settingsRoot = Engine::GetDiagnosticsRoot();
                 Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{} : settingsRoot / "Editor/layout.ini");
@@ -1172,6 +1181,9 @@ namespace
         void DrawFileMenu(bool enabled)
         {
             if (!ImGui::BeginMenu("ファイル###File")) return;
+            if (ImGui::MenuItem("ゲームプロジェクトを開く（別ウィンドウ）…###Open game project")) {
+                try {Editor::GameProject::BrowseAndOpen();} catch(const std::exception& error) {ReportStatus(error.what(),false);}
+            }
             if (ImGui::MenuItem("新規シーン###New scene", nullptr, false, CommandContextEnabled())) newScenePopupRequested=true;
             DrawOpenMenu(CommandContextEnabled());
             if(ImGui::MenuItem("プロジェクト設定…###Project settings",nullptr,false,CommandContextEnabled())) projectSettingsPanel.Open(root);
@@ -1382,7 +1394,7 @@ namespace
             }
         }
 
-        const std::filesystem::path root = ContentRoot();
+        const std::filesystem::path root;
         SceneRuntime::SceneWorld world;
         Engine::DebugCamera camera;
         Editor::CameraPanel cameraPanel;
@@ -1454,15 +1466,37 @@ namespace
     };
 }
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int)
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
+    bool validateProject=false;
     try {
-        auto arguments=std::wstring_view(commandLine?commandLine:L"");
-        std::filesystem::path scene="Assets/Scenes/TitleStreet.json";
-        if (arguments.starts_with(L"--scene=")) scene=arguments.substr(8);
-        StreetEditor editor(scene);
+        std::filesystem::path scene,project;
+        int count=0;
+        auto arguments=CommandLineToArgvW(GetCommandLineW(),&count);
+        if(!arguments) throw std::runtime_error("Cannot parse editor arguments.");
+        try {
+            for(int i=1;i<count;++i) {
+                const std::wstring_view argument(arguments[i]);
+                if(argument==L"--project" && i+1<count) project=arguments[++i];
+                else if(argument.starts_with(L"--project=")) project=argument.substr(10);
+                else if(argument==L"--scene" && i+1<count) scene=arguments[++i];
+                else if(argument.starts_with(L"--scene=")) scene=argument.substr(8);
+                else if(argument==L"--validate-project") validateProject=true;
+                else throw std::runtime_error("Usage: Editor.exe [--project folder] [--scene Assets/Scenes/name.json]");
+            }
+        } catch(...) {LocalFree(arguments);throw;}
+        LocalFree(arguments);
+        const auto content=project.empty()?DefaultGameRoot():Editor::GameProject::Open(project);
+        if(validateProject) {
+            if(project.empty()) throw std::runtime_error("Project validation requires --project.");
+            const auto settings=SceneRuntime::ProjectSettings::Load(content);
+            SceneRuntime::SceneLayout::Load(content/Engine::AssetDatabase::Path(settings.startupScene),content);
+            return 0;
+        }
+        StreetEditor editor(content,scene);
         return editor.Run();
     } catch(const std::exception& error) {
+        if(validateProject) {Engine::Log::Error(error.what());return 1;}
         MessageBoxA(nullptr,error.what(),"Editor startup error",MB_OK|MB_ICONERROR);
         return 1;
     }

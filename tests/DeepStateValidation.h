@@ -74,7 +74,7 @@ inline void RootQueries() {
 }
 inline void GeometryFiles() {
     using namespace SceneRuntime;
-    std::ifstream input("Content/Assets/Models/AnimatedBox.gltf");auto document=Engine::Json::parse(input);
+    std::ifstream input("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf");auto document=Engine::Json::parse(input);
     const auto uri=document.at("buffers").at(0).at("uri").get<std::string>();
     const std::string alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     std::string bytes;unsigned int accumulator=0;int bits=-8;

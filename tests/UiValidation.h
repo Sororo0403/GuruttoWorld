@@ -25,7 +25,7 @@ inline SceneLayout Layout() {
 }
 inline void SchemaAndLayout() {
     UiControlValidation::SchemaAndInput();
-    auto authored=SceneLayout::Load("Content/Assets/Scenes/Game.json");
+    auto authored=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/Game.json");
     const auto authoredRoundtrip=SceneLayout::Parse(authored.Serialize());
     Require(authoredRoundtrip.objects.size()==authored.objects.size(),"Game scene survives editor serialization");
     auto defaults=SceneUi::Defaults(authored);
@@ -68,7 +68,7 @@ inline void SchemaAndLayout() {
     try{invalid.Serialize();}catch(...){rejected=true;} Require(rejected,"audio validates volume");
     invalid=layout; invalid.objects[1].button->action="loadScene"; invalid.objects[1].button->target="../outside.json"; rejected=false;
     try{invalid.Serialize();}catch(...){rejected=true;} Require(rejected,"button scene target stays inside scenes");
-    const auto title=SceneLayout::Load("Content/Assets/Scenes/TitleStreet.json");
+    const auto title=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
     Require(std::count_if(title.objects.begin(),title.objects.end(),[](const auto& p){return p.audioSource.has_value();})==5,"all title sounds are authored");
     Require(std::any_of(title.objects.begin(),title.objects.end(),[](const auto& p){return p.canvas.has_value();}),"title canvas is authored");
 }

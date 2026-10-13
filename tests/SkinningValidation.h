@@ -41,7 +41,7 @@ namespace SkinningValidation
     inline void Rendering(Engine::DirectX12Renderer& renderer)
     {
         using namespace Engine; using namespace DirectX;
-        const auto shader=std::filesystem::absolute("Content/Shaders/Mesh.hlsl");
+        const auto shader=std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl");
         SkeletonData rig; rig.nodes={{"mesh",-1,{}},{"first",-1,{}},{"second",-1,{}}}; rig.importScale=.7f;
         XMStoreFloat4x4(&rig.inverseRoot,XMMatrixTranslation(.1f,0,0));
         RiggedMesh source; source.node=0; source.joints={1,2}; source.inverseBind.resize(2);
@@ -96,7 +96,7 @@ namespace SkinningValidation
     inline void Model(Engine::DirectX12Renderer& renderer)
     {
         using namespace Engine; using namespace DirectX;
-        ModelRenderer model; Require(model.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),std::filesystem::absolute("Content/Assets/Models/AnimatedBox.gltf"),std::filesystem::absolute("Content/Shaders/Mesh.hlsl")),"GPU animated model initializes");
+        ModelRenderer model; Require(model.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),std::filesystem::absolute("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf"),std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),"GPU animated model initializes");
         const auto copy=model.AnimatedCopy(renderer.GetDevice(),renderer.GetCommandQueue());
         Require(copy && copy->GeometryResource(0)==model.GeometryResource(0),"animated instances share immutable geometry");
         ModelRenderer::PreparedPose prepared;
@@ -130,7 +130,7 @@ namespace SkinningValidation
         for (const auto& source : model.Rig()->meshes)
         {
             auto mesh=std::make_unique<MeshRenderer>();
-            Require(mesh->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),Skeleton::Skin(*model.Rig(),source,matrices),std::filesystem::absolute("Content/Shaders/Mesh.hlsl")),"model CPU comparison initializes");
+            Require(mesh->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),Skeleton::Skin(*model.Rig(),source,matrices),std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),"model CPU comparison initializes");
             bakedMeshes.push_back(std::move(mesh));
         }
         const auto box=model.Bounds(); const float scale=.6f/std::max({box.Extents.x,box.Extents.y,box.Extents.z});

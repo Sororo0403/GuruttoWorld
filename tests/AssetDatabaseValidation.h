@@ -51,7 +51,7 @@ inline void Run() {
     Require(watcher.Pending(),"saved import metadata requests reload");
     watcher.Observe(Editor::AssetChanges::Capture(root)); Require(watcher.TakeReady(true),"stable import metadata reloads once");
     const auto skeletal=root/"Assets/Models/Skeleton.gltf";
-    std::filesystem::copy_file("Content/Assets/Models/AnimatedBox.gltf",skeletal);
+    std::filesystem::copy_file("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf",skeletal);
     auto skeletalSettings=AssetDatabase::Ensure(skeletal); skeletalSettings.scale=2; AssetDatabase::Write(skeletal,skeletalSettings);
     std::string error; const auto rig=Skeleton::Load(skeletal,error); Require(rig!=nullptr,"skeletal import settings load");
     const auto skinned=Skeleton::Skin(*rig,rig->meshes[0],Skeleton::Matrices(*rig,Skeleton::Sample(*rig,"",0,false)));

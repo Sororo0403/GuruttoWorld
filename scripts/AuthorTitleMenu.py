@@ -8,7 +8,7 @@ from PIL import Image
 from AuthorTitleAnimation import track
 
 ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "Content/Assets/Scenes/TitleStreet.json"
+PATH = ROOT / "Games/GuruttoWorld/Assets/Scenes/TitleStreet.json"
 
 
 def save_scene(scene):
@@ -37,7 +37,7 @@ def author(scene):
 
     # A genuine CC0 cog from Kenney Factory Kit; retain its material and licence.
     source = ROOT / "generated/title-assets/factory"
-    dest = ROOT / "Content/Assets/Models/Title/Factory"
+    dest = ROOT / "Games/GuruttoWorld/Assets/Models/Title/Factory"
     dest.mkdir(parents=True, exist_ok=True)
     for name in ("cog-a.obj", "cog-a.mtl"):
         shutil.copy2(source / "Models/OBJ format" / name, dest / name)

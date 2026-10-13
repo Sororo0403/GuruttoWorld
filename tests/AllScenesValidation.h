@@ -24,7 +24,7 @@ inline void CheckDiagnostics(ID3D12Device* device,const std::string& scene) {
     queue->ClearStoredMessages();
 }
 inline void Run() {
-    const auto root=std::filesystem::absolute("Content");
+    const auto root=std::filesystem::absolute("Games/GuruttoWorld");
     const auto output=std::filesystem::absolute("generated/tests/all-scenes");std::filesystem::create_directories(output);
     std::vector<std::filesystem::path> paths;
     for(const auto& entry:std::filesystem::directory_iterator(root/"Assets/Scenes")) if(entry.path().extension()==".json") paths.push_back(entry.path());

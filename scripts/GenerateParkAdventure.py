@@ -8,7 +8,7 @@ import random
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-CONTENT = REPO / "Content"
+CONTENT = REPO / "Games/GuruttoWorld"
 MODULES = CONTENT / "Assets/Prefabs/Park"
 ORDER = ("Entrance", "Terraces", "Canal", "SwitchGarden", "Vista")
 ORIGINS = (0, 16, 32, 48, 64)
@@ -302,7 +302,7 @@ def main():
         parser.error("Output must stay within the WP1 workspace")
     if destination.suffix != ".json" or not (destination.is_relative_to(REPO / "generated") or
                                             destination.is_relative_to(CONTENT / "Assets/Scenes")):
-        parser.error("Output must be a .json scene under generated or Content/Assets/Scenes")
+        parser.error("Output must be a .json scene under generated or Games/GuruttoWorld/Assets/Scenes")
     if destination.exists() and not args.overwrite:
         parser.error("Output exists; pass --overwrite to replace it")
     if args.author_library:

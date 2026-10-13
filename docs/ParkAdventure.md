@@ -18,7 +18,7 @@ Editor ではこのシーンを開き、Game にフォーカスを置いて Play
 
 ## モジュールと生成
 
-`Content/Assets/Prefabs/Park` に5つの編集可能なPrefabを保存しています。
+`Games/GuruttoWorld/Assets/Prefabs/Park` に5つの編集可能なPrefabを保存しています。
 生成器はこれらを読み、モジュールのルートをワールド座標へ焼き込んだ通常のシーンを出力します。
 キャラクターの目・足などの親子関係は維持します。生成した配置とPrefabはライブ接続されません。
 Prefabを編集してから生成すると、その内容を使って次の候補を作れます。
@@ -34,13 +34,13 @@ python scripts/GenerateParkAdventure.py --seed 7 --output generated/park/Candida
 出力するシーン内の再挑戦先も、そのシーン自身に設定されます。
 
 ```powershell
-python scripts/GenerateParkAdventure.py --seed 7 --output Content/Assets/Scenes/ParkCandidate7.json
+python scripts/GenerateParkAdventure.py --seed 7 --output Games/GuruttoWorld/Assets/Scenes/ParkCandidate7.json
 ```
 
 標準の基準ステージを再生成する場合:
 
 ```powershell
-python scripts/GenerateParkAdventure.py --seed 20261012 --output Content/Assets/Scenes/ParkAdventure.json --overwrite
+python scripts/GenerateParkAdventure.py --seed 20261012 --output Games/GuruttoWorld/Assets/Scenes/ParkAdventure.json --overwrite
 ```
 
 `--author-library` はモデル・マテリアル・Prefabの初期ライブラリも再作成します。
@@ -50,7 +50,7 @@ python scripts/GenerateParkAdventure.py --seed 20261012 --output Content/Assets/
 
 ## ゲーム処理のビルド
 
-`Content/Assets/Scripts/ParkAdventure.cpp` を既存のC++ゲーム処理の自動コンパイル機能で読み込みます。
+`Games/GuruttoWorld/Assets/Scripts/ParkAdventure.cpp` を既存のC++ゲーム処理の自動コンパイル機能で読み込みます。
 Editorを起動するとソースの変更が検出され、対応構成のモジュールがコンパイルされます。
 AppとEditorのビルドでは、Contentの配置後に同じ構成のゲーム処理DLLを自動コンパイルして実行先へ出力します。エンジンの公開ヘッダーを変更した場合も、本体とDLLのABIが揃うため、別途DLLを手動配置する必要はありません。
 
@@ -90,7 +90,7 @@ C++検証は実際のJoltキャラクターとゲーム処理でコースを進�
 
 ## 軽量化とCC0モデル（2026-10-12）
 
-木と花はKenney公式のNature Kit（CC0 1.0）のOBJ/MTLを使用する。元の色を保ち、テクスチャを必要としない低ポリゴンモデルを選択した。配布元は https://kenney.nl/assets/nature-kit 。`Content/Assets/Models/Park/KenneyNature/License.txt`に元ライセンス、`Source.json`に取得URLとZIPのSHA-256を保存している。プレイヤー・敵・ベンチ・地形は従来の自作形状。
+木と花はKenney公式のNature Kit（CC0 1.0）のOBJ/MTLを使用する。元の色を保ち、テクスチャを必要としない低ポリゴンモデルを選択した。配布元は https://kenney.nl/assets/nature-kit 。`Games/GuruttoWorld/Assets/Models/Park/KenneyNature/License.txt`に元ライセンス、`Source.json`に取得URLとZIPのSHA-256を保存している。プレイヤー・敵・ベンチ・地形は従来の自作形状。
 
 装飾の木と花は複数の球体から各1モデルへ統合し、ステージのオブジェクト数は246から162に減った。木は1本196三角形、花は黄色78三角形。コライダー、ルート、収集物、攻略条件を維持する。
 

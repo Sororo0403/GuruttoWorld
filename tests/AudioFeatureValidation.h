@@ -81,7 +81,7 @@ inline void Playback() {
     Engine::Window window; Engine::DirectX12Renderer renderer;
     Require(window.Create(L"Audio world matrix regression",320,180)&&renderer.Initialize(window.GetHandle()),"audio world matrix renderer initializes");
     SceneRuntime::SceneWorld world;
-    Require(world.Initialize(renderer,std::filesystem::absolute(root),layout,std::filesystem::absolute("Content/Shaders/Mesh.hlsl"),&error),"audio cached world initializes");
+    Require(world.Initialize(renderer,std::filesystem::absolute(root),layout,std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl"),&error),"audio cached world initializes");
     static_cast<void>(Engine::CpuProfiler::Take()); scene.Update(world.Layout(),{},true,&world);
     const auto cachedMatrix=scene.OutputMatrix("source");
     Require(cachedMatrix.size()==fallbackMatrix.size(),"cached and standalone spatial output sizes agree");

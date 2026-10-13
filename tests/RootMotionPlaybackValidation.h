@@ -10,7 +10,7 @@ namespace RootMotionPlaybackValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime; using namespace Engine; using namespace DirectX;
-        const auto content=std::filesystem::absolute("Content"); std::string error;
+        const auto content=std::filesystem::absolute("Games/GuruttoWorld"); std::string error;
         const auto scene=SceneLayout::Load(content/"Assets/Scenes/RootMotionPlayground.json",content);
         SceneWorld world; Require(world.Initialize(renderer,content,scene,content/"Shaders/Mesh.hlsl",&error),error.c_str());
         for (int frame=0;frame<13;++frame) Require(world.UpdateComponents(.1),"root motion object advances");

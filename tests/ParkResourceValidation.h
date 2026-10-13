@@ -64,7 +64,7 @@ namespace ParkResourceValidation
     inline void RotationInterpolation(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         ScenePlacement actor; actor.id="rotation-parent"; actor.position={0,5,0}; actor.scale={2,1,3};
         actor.boxCollider.emplace(); actor.boxCollider->shape="sphere";
         actor.rigidBody.emplace(); actor.rigidBody->gravityScale=0; actor.rigidBody->angularDamping=0;
@@ -101,7 +101,7 @@ namespace ParkResourceValidation
     inline void Run(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=SceneLayout::Load(root/"Assets/Scenes/ParkAdventure.json",root);
         for (auto& object:layout.objects) { object.scripts.clear(); object.rotator.reset(); object.animation.reset(); }
         const auto coin=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return item.name=="ParkCoin"; });

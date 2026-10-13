@@ -29,7 +29,7 @@ namespace RigidBodyValidation
     inline void ControllerUpdates()
     {
         using namespace SceneRuntime;
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=Layout(true); ScenePhysics::States states; PhysicsWorld world; std::string error;
         const auto advance=[&](float x=0,bool jump=false) {
             Require(world.Advance(layout,states,1.0/60,x,0,jump,root,error),"controller update advances");
@@ -80,7 +80,7 @@ namespace RigidBodyValidation
     inline void PartialTransformRollback()
     {
         using namespace SceneRuntime;
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=Layout();
         layout.objects[1].rigidBody->velocity={1,0,0};
         ScenePlacement parent; parent.id="parent"; parent.name="Parent"; parent.scale={2,1,1};
@@ -101,7 +101,7 @@ namespace RigidBodyValidation
         using namespace SceneRuntime;
         ControllerUpdates();
         PartialTransformRollback();
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=Layout(); std::string error; ScenePhysics::States states; PhysicsWorld world;
         const auto tick=[&](double seconds=1.0/60,float x=0,float z=0,bool jump=false) {
             if (!world.Advance(layout,states,seconds,x,z,jump,root,error)) throw std::runtime_error("rigid tick: "+error);
@@ -184,7 +184,7 @@ namespace RigidBodyValidation
         script.onEvent=[](ScriptContext& c) { if (c.event->name=="collisionEnter") { c.state["hits"]+=1; c.object.name="Contacts "+std::to_string(static_cast<int>(c.state["hits"])); } };
         static bool registered=false;
         if (!registered) { Require(ScriptRegistry::Register("ValidationPhysicsEvents",script),"physics event script registers"); registered=true; }
-        const auto root=std::filesystem::absolute("Content");
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=SceneLayout::Load(root/"Assets/Scenes/RigidBodyPlayground.json",root);
         const auto floor=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return item.id=="Floor"; });
         floor->scripts.push_back({"events",true,"ValidationPhysicsEvents",{}});

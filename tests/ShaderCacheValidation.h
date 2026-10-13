@@ -63,7 +63,7 @@ inline bool ValidateShaderCache(ID3D12Device* device, ID3D12CommandQueue* queue,
     if (!require(!Engine::CompileShader(shader, "PSMain", "vs_5_0", changed) && !changed, "target change is independently validated")) return false;
 
     Engine::MeshResources one, two, separateQueue;
-    const auto meshShader = std::filesystem::absolute("Content/Shaders/Mesh.hlsl");
+    const auto meshShader = std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl");
     if (!require(one.Initialize(device, meshShader, queue) && two.Initialize(device, meshShader, queue), "mesh resource initializes") ||
         !require(one.GetRootSignature() == two.GetRootSignature(), "mesh root signature shared")) return false;
     for (const bool hdr : {false, true}) for (const bool transparent : {false, true}) for (const bool mirrored : {false, true})

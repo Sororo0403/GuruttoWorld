@@ -29,7 +29,7 @@ namespace ShadowValidation
         Require(restored.objects.back().directionalLight==savedLight.directionalLight,"shadow enable/range/bias survive JSON save and reload");
         SceneRuntime::SceneWorld world;
         std::string error;
-        Require(world.Initialize(renderer,root,layout,std::filesystem::absolute("Content/Shaders/Mesh.hlsl"),&error),"shadow GPU fixture initializes");
+        Require(world.Initialize(renderer,root,layout,std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl"),&error),"shadow GPU fixture initializes");
         Engine::Camera camera;
         Require(camera.SetPosition({0,5,-8}) && camera.SetOrientation({0,-5,8},{0,1,0}),"shadow fixture camera");
         Engine::DirectionalLight light;

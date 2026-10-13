@@ -10,7 +10,7 @@ inline void Run(Engine::DirectX12Renderer& renderer) {
     const auto scopes=Engine::CpuProfiler::Take();
     const auto child=std::find_if(scopes.begin(),scopes.end(),[](const auto& s){return s.name=="test child";});
     if(child==scopes.end() || child->calls!=2 || child->milliseconds<0 || !Engine::CpuProfiler::Take().empty()) throw std::runtime_error("CPU scopes aggregation/reset failed");
-    const auto content=std::filesystem::absolute("Content"); auto scene=SceneRuntime::SceneLayout::Load(content/"Assets/Scenes/RootMotionPlayground.json",content);
+    const auto content=std::filesystem::absolute("Games/GuruttoWorld"); auto scene=SceneRuntime::SceneLayout::Load(content/"Assets/Scenes/RootMotionPlayground.json",content);
     scene.settings.postEffects.enabled=true; SceneRuntime::SceneEnvironment environment; std::string error;
     if(!environment.Initialize(renderer,content,scene,error)) throw std::runtime_error(error);
     for(int frame=0;frame<6;++frame) {

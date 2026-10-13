@@ -34,7 +34,7 @@ namespace LocalLightValidation
     {
         Engine::MeshData data; data.vertices={{{-1,-1,0},{0,0,-1}},{{0,1,0},{0,0,-1}},{{1,-1,0},{0,0,-1}}}; data.indices={0,1,2};
         Engine::MeshRenderer mesh;
-        Require(mesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,std::filesystem::absolute("Content/Shaders/Mesh.hlsl")),"local light GPU fixture initializes");
+        Require(mesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),"local light GPU fixture initializes");
         DirectX::XMFLOAT4X4 identity; DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());
         Engine::DirectionalLight lighting; lighting.intensity=0; lighting.ambientIntensity=0; lighting.specularStrength=0;
         Engine::LocalLight point; point.position={0,0,-1}; point.color={1,0,0}; point.intensity=.5f; point.range=10;
@@ -78,7 +78,7 @@ namespace LocalLightValidation
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
-        const auto root=std::filesystem::absolute("Content"); std::string error;
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld"); std::string error;
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/LocalLightPlayground.json",root);
         const auto saved=layout.Serialize();
         Editor::GameSession session; Require(session.Play(renderer,root,layout,error),"local light scene enters Editor play");

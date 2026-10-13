@@ -83,7 +83,7 @@ namespace ScriptPhaseValidation
         };
         static bool registered=false;
         if (!registered) { Require(ScriptRegistry::Register("ValidationFixedDriver",driver),"runtime fixed driver registers"); registered=true; }
-        const auto root=std::filesystem::absolute("Content"); const auto scene=Layout(); const auto saved=scene.Serialize(); std::string error;
+        const auto root=std::filesystem::absolute("Games/GuruttoWorld"); const auto scene=Layout(); const auto saved=scene.Serialize(); std::string error;
         Editor::GameSession thirty,oneTwenty;
         Require(thirty.Play(renderer,root,scene,error) && oneTwenty.Play(renderer,root,scene,error),"fixed comparison sessions start");
         for (int frame=0;frame<30;++frame) thirty.Update(1.0/30,true);

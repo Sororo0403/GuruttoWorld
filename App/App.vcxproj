@@ -15,9 +15,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <GameContentRoot Condition="'$(GameContentRoot)' == ''">$(MSBuildThisFileDirectory)..\Games\GuruttoWorld\</GameContentRoot>
+    <WP1Root Condition="'$(WP1Root)' == ''">$(MSBuildThisFileDirectory)..\</WP1Root>
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{da59faf5-f726-4558-9946-c19f7819fd94}</ProjectGuid>
+    <ProjectGuid Condition="'$(ProjectGuid)' == ''">{da59faf5-f726-4558-9946-c19f7819fd94}</ProjectGuid>
     <RootNamespace>App</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -58,8 +60,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <OutDir>$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-    <IntDir>$(MSBuildThisFileDirectory)..\generated\intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir Condition="'$(GameProjectRoot)' == ''">$(WP1Root)generated\outputs\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <IntDir Condition="'$(GameProjectRoot)' == ''">$(WP1Root)generated\intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir Condition="'$(GameProjectRoot)' != ''">$(GameProjectRoot)generated\outputs\$(Platform)\$(Configuration)\App\</OutDir>
+    <IntDir Condition="'$(GameProjectRoot)' != ''">$(GameProjectRoot)generated\intermediate\$(Platform)\$(Configuration)\App\</IntDir>
+    <TargetName Condition="'$(GameName)' != ''">$(GameName)</TargetName>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -72,7 +77,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WP1Root)SceneRuntime\include;$(WP1Root)Engine\externals\imgui;$(WP1Root)Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
@@ -97,7 +102,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WP1Root)SceneRuntime\include;$(WP1Root)Engine\externals\imgui;$(WP1Root)Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
@@ -119,7 +124,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WP1Root)SceneRuntime\include;$(WP1Root)Engine\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
@@ -133,67 +138,70 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="$(WP1Root)App\src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Engine\Engine.vcxproj">
+    <ProjectReference Include="$(WP1Root)Engine\Engine.vcxproj">
       <Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Triangle.hlsl" />
-    <None Include="..\Content\Shaders\Sprite.hlsl" />
-    <None Include="Shaders\Sphere.hlsl" />
-    <None Include="..\Content\Shaders\Mesh.hlsl" />
-    <None Include="..\Content\Shaders\Sky.hlsl" />
-    <None Include="..\Content\Shaders\GlowParticle.hlsl" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-c.obj" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-c.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\Textures\colormap.png" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\License.txt" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-e.obj" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-e.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-h.obj" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-h.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-k.obj" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-k.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Roads\road-straight.obj" />
-    <None Include="..\Content\Assets\Models\Title\Roads\road-straight.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Roads\road-bridge.obj" />
-    <None Include="..\Content\Assets\Models\Title\Roads\road-bridge.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Roads\tile-low.obj" />
-    <None Include="..\Content\Assets\Models\Title\Roads\tile-low.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Roads\Textures\colormap.png" />
-    <None Include="..\Content\Assets\Models\Title\Roads\License.txt" />
-    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.obj" />
-    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-street.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-empty.obj" />
-    <None Include="..\Content\Assets\Models\Title\Roads\road-sign-empty.mtl" />
+    <None Include="$(WP1Root)App\Shaders\Triangle.hlsl" />
+    <None Include="$(GameContentRoot)Shaders\Sprite.hlsl" />
+    <None Include="$(WP1Root)App\Shaders\Sphere.hlsl" />
+    <None Include="$(GameContentRoot)Shaders\Mesh.hlsl" />
+    <None Include="$(GameContentRoot)Shaders\Sky.hlsl" />
+    <None Include="$(GameContentRoot)Shaders\GlowParticle.hlsl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-c.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-c.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\Textures\colormap.png" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\License.txt" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-e.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-e.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-h.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-h.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-k.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-k.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-straight.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-straight.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-bridge.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-bridge.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\tile-low.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\tile-low.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\Textures\colormap.png" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\License.txt" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-sign-street.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-sign-street.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-sign-empty.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-sign-empty.mtl" />
     <None Include="Assets\Models\Cube.obj" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-a.obj" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-a.mtl" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-e.obj" />
-    <None Include="..\Content\Assets\Models\Title\Commercial\building-skyscraper-e.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-a.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-a.mtl" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-e.obj" />
+    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-e.mtl" />
     <None Include="Assets\Models\Pyramid.obj" />
     <None Include="Assets\Models\Cube.mtl" />
-    <None Include="..\Content\Shaders\Common\UvTransform.hlsli" />
+    <None Include="$(GameContentRoot)Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
     <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf" />
     <None Include="Assets\Fonts\MPlus1p\OFL.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\DevTools\DebugPanel.cpp">
+    <ClCompile Include="$(WP1Root)App\src\DevTools\DebugPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="src\DevTools\DebugPanel.h" />
-    <ClInclude Include="src\DevTools\LightingPanel.h" />
-    <ClInclude Include="src\DevTools\UvTransformPanel.h" />
-    <ClCompile Include="src\DevTools\LightingPanel.cpp">
+    <ClInclude Include="$(WP1Root)App\src\DevTools\DebugPanel.h" />
+    <ClInclude Include="$(WP1Root)App\src\DevTools\LightingPanel.h" />
+    <ClInclude Include="$(WP1Root)App\src\DevTools\UvTransformPanel.h" />
+    <ClCompile Include="$(WP1Root)App\src\DevTools\LightingPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="src\DevTools\UvTransformPanel.cpp">
+    <ClCompile Include="$(WP1Root)App\src\DevTools\UvTransformPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup Condition="'$(GameProjectRoot)' != ''">
+    <None Include="$(GameContentRoot)Assets\**\*" Exclude="$(GameContentRoot)Assets\Scripts\Bin\**\*" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyShaders" AfterTargets="Build">
@@ -206,7 +214,7 @@
     </ItemGroup>
     <Copy SourceFiles="@(ModelAssets)" DestinationFiles="@(ModelAssets-&gt;'$(OutDir)Assets\Models\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(OutDir)Licenses" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\Engine\externals\assimp\LICENSE.txt;$(MSBuildThisFileDirectory)..\Engine\externals\assimp\zlib-LICENSE.txt" DestinationFolder="$(OutDir)Licenses" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(WP1Root)Engine\externals\assimp\LICENSE.txt;$(WP1Root)Engine\externals\assimp\zlib-LICENSE.txt" DestinationFolder="$(OutDir)Licenses" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyTitleFontLicense" AfterTargets="Build">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)Assets\Fonts\MPlus1p\OFL.txt" DestinationFolder="$(OutDir)Licenses\MPlus1p" SkipUnchangedFiles="true" />
@@ -221,10 +229,10 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="src\DevTools\AudioPanel.cpp">
+    <ClCompile Include="$(WP1Root)App\src\DevTools\AudioPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="src\DevTools\AudioPanel.h" />
+    <ClInclude Include="$(WP1Root)App\src\DevTools\AudioPanel.h" />
     <None Include="Assets\Audio\Sample.wav" />
   </ItemGroup>
   <Target Name="CopyAudio" AfterTargets="Build">
@@ -234,42 +242,42 @@
     <Copy SourceFiles="@(AudioAssets)" DestinationFiles="@(AudioAssets-&gt;'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
-    <ClCompile Include="src\DevTools\InputPanel.cpp">
+    <ClCompile Include="$(WP1Root)App\src\DevTools\InputPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="src\DevTools\InputPanel.h" />
+    <ClInclude Include="$(WP1Root)App\src\DevTools\InputPanel.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\DevTools\CameraPanel.cpp">
+    <ClCompile Include="$(WP1Root)App\src\DevTools\CameraPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClInclude Include="src\DevTools\CameraPanel.h" />
+    <ClInclude Include="$(WP1Root)App\src\DevTools\CameraPanel.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Content\Shaders\Particle.hlsl" />
+    <None Include="$(GameContentRoot)Shaders\Particle.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Game.h" />
-    <ClInclude Include="src\PackageValidation.h" />
-    <ClCompile Include="src\Game.cpp" />
-    <ClInclude Include="src\Scenes\TitleScene.h" />
-    <ClCompile Include="src\Scenes\TitleScene.cpp" />
-    <ClCompile Include="src\Scenes\AuthoredScene.cpp" />
-    <ClInclude Include="src\Scenes\AuthoredScene.h" />
-    <ClCompile Include="src\Scenes\TitleAudio.cpp" />
-    <ClInclude Include="src\Scenes\TitleMenu.h" />
-    <ClInclude Include="src\Scenes\TitleAudio.h" />
-    <ClInclude Include="src\Scenes\GameSettings.h" />
-    <ClInclude Include="src\Scenes\TitleUi.h" />
-    <ClInclude Include="src\Scenes\TitleBindings.h" />
-    <None Include="..\Content\Assets\Scenes\TitleStreet.json" />
-    <ClInclude Include="src\Scenes\SceneFactory.h" />
-    <ClCompile Include="src\Scenes\SceneFactory.cpp" />
+    <ClInclude Include="$(WP1Root)App\src\Game.h" />
+    <ClInclude Include="$(WP1Root)App\src\PackageValidation.h" />
+    <ClCompile Include="$(WP1Root)App\src\Game.cpp" />
+    <ClInclude Include="$(WP1Root)App\src\Scenes\TitleScene.h" />
+    <ClCompile Include="$(WP1Root)App\src\Scenes\TitleScene.cpp" />
+    <ClCompile Include="$(WP1Root)App\src\Scenes\AuthoredScene.cpp" />
+    <ClInclude Include="$(WP1Root)App\src\Scenes\AuthoredScene.h" />
+    <ClCompile Include="$(WP1Root)App\src\Scenes\TitleAudio.cpp" />
+    <ClInclude Include="$(WP1Root)App\src\Scenes\TitleMenu.h" />
+    <ClInclude Include="$(WP1Root)App\src\Scenes\TitleAudio.h" />
+    <ClInclude Include="$(WP1Root)App\src\Scenes\GameSettings.h" />
+    <ClInclude Include="$(WP1Root)App\src\Scenes\TitleUi.h" />
+    <ClInclude Include="$(WP1Root)App\src\Scenes\TitleBindings.h" />
+    <None Include="$(GameContentRoot)Assets\Scenes\TitleStreet.json" />
+    <ClInclude Include="$(WP1Root)App\src\Scenes\SceneFactory.h" />
+    <ClCompile Include="$(WP1Root)App\src\Scenes\SceneFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj">
+    <ProjectReference Include="$(WP1Root)SceneRuntime\SceneRuntime.vcxproj">
       <Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}</Project>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="..\Content\Content.targets" />
+  <Import Project="$(WP1Root)Content\Content.targets" />
 </Project>

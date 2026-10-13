@@ -26,7 +26,7 @@ try {
     Write-Host "MSVC analysis definition: _MSC_VER=$MsvcVersion"
     $output = "generated/analysis"
     New-Item -ItemType Directory -Force $output | Out-Null
-    $sources = @(rg --files Engine App Editor SceneRuntime Content/Assets/Scripts -g '*.cpp' -g '!**/externals/**' -g '!**/Bin/**')
+    $sources = @(rg --files Engine App Editor SceneRuntime Games/GuruttoWorld/Assets/Scripts -g '*.cpp' -g '!**/externals/**' -g '!**/Bin/**')
     if ($LASTEXITCODE -ne 0) { throw "Source discovery failed." }
     $sources | Set-Content "$output/translation-units.txt" -Encoding ascii
     $arguments = @(
@@ -59,7 +59,7 @@ try {
         Write-Host "$configuration cppcheck exit: $LASTEXITCODE"
     }
     $ErrorActionPreference = "Stop"
-    & $Lizard -C 15 -L 100 -a 8 -x '*/externals/*' Engine App Editor SceneRuntime Content/Assets/Scripts > "$output/lizard-$Label.txt"
+    & $Lizard -C 15 -L 100 -a 8 -x '*/externals/*' Engine App Editor SceneRuntime Games/GuruttoWorld/Assets/Scripts > "$output/lizard-$Label.txt"
     $lizardExit = $LASTEXITCODE
     Write-Host "cppcheck exit: $cppcheckExit; lizard exit: $lizardExit"
     Write-Host "Reports: $root/$output/*-$Label*.txt"

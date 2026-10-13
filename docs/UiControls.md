@@ -1,6 +1,6 @@
 # 汎用UI
 
-`Content/Assets/Scenes/UiControlsDemo.json` をEditorで開き、PlayしてGameビューを操作すると、入力欄・Slider・Toggle・スクロールと自動レイアウトを試せます。配布Appも同じSceneRuntime経路を使います。
+`Games/GuruttoWorld/Assets/Scenes/UiControlsDemo.json` をEditorで開き、PlayしてGameビューを操作すると、入力欄・Slider・Toggle・スクロールと自動レイアウトを試せます。配布Appも同じSceneRuntime経路を使います。
 
 Inspectorの「コンポーネントを追加」から各UIを追加できます。RectTransformも自動追加されます。Canvasの子孫に配置してください。編集・保存・複製・Prefab・Undo/Redoは通常のComponentと同じ経路です。
 

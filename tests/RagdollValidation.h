@@ -42,7 +42,7 @@ namespace RagdollValidation
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
-        using namespace SceneRuntime; const auto root=std::filesystem::absolute("Content"); auto layout=SceneLayout::Load(root/"Assets/Scenes/AnimatorPlayground.json"); std::string error;
+        using namespace SceneRuntime; const auto root=std::filesystem::absolute("Games/GuruttoWorld"); auto layout=SceneLayout::Load(root/"Assets/Scenes/AnimatorPlayground.json"); std::string error;
         auto owner=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.id=="Player";}); Require(owner!=layout.objects.end(),"ragdoll runtime fixture has a Player"); owner->ragdoll.emplace(); owner->position[1]+=5;
         ScriptDefinition removal;
         removal.update=[](ScriptContext& c) {

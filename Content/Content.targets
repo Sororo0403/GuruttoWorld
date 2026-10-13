@@ -1,9 +1,14 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <GameContentRoot Condition="'$(GameContentRoot)' == ''">$(MSBuildThisFileDirectory)</GameContentRoot>
+    <GameWorkRoot Condition="'$(GameProjectRoot)' == ''">$(MSBuildThisFileDirectory)..\</GameWorkRoot>
+    <GameWorkRoot Condition="'$(GameProjectRoot)' != ''">$(GameProjectRoot)</GameWorkRoot>
+  </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)ScriptSchemas.targets" />
   <Target Name="CopySharedContent" AfterTargets="Build">
     <ItemGroup>
-      <SharedAssets Include="$(MSBuildThisFileDirectory)Assets\**\*" />
-      <SharedShaders Include="$(MSBuildThisFileDirectory)Shaders\**\*" />
+      <SharedAssets Include="$(GameContentRoot)Assets\**\*" />
+      <SharedShaders Include="$(GameContentRoot)Shaders\**\*" />
       <JoltLicense Include="$(MSBuildThisFileDirectory)..\generated\dependencies\jolt-src\LICENSE" Condition="Exists('$(MSBuildThisFileDirectory)..\generated\dependencies\jolt-src\LICENSE')" />
     </ItemGroup>
     <Copy SourceFiles="@(SharedAssets)" DestinationFiles="@(SharedAssets->'$(OutDir)Assets\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
@@ -11,10 +16,10 @@
     <Copy SourceFiles="@(JoltLicense)" DestinationFiles="@(JoltLicense->'$(OutDir)Licenses\Jolt-LICENSE.txt')" SkipUnchangedFiles="true" />
   </Target>
   <!-- 本体と同じヘッダー・ライブラリでDLLを作り、古いContentのDLLを最後に置き換える。 -->
-  <Target Name="BuildSharedScripts" AfterTargets="CopySharedContent" Condition="'$(DesignTimeBuild)' != 'true'">
+  <Target Name="BuildSharedScripts" AfterTargets="CopySharedContent" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipGameScripts)' != 'true'">
     <PropertyGroup>
       <ScriptOutputContent>$([System.IO.Path]::GetFullPath('$(OutDir).'))</ScriptOutputContent>
     </PropertyGroup>
-    <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\BuildScripts.ps1&quot; -Configuration &quot;$(Configuration)&quot; -Content &quot;$(MSBuildThisFileDirectory).&quot; -OutputContent &quot;$(ScriptOutputContent)&quot;" />
+    <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\BuildScripts.ps1&quot; -Configuration &quot;$(Configuration)&quot; -Content &quot;$(GameContentRoot).&quot; -OutputContent &quot;$(ScriptOutputContent)&quot; -WorkRoot &quot;$(GameWorkRoot).&quot;" />
   </Target>
 </Project>

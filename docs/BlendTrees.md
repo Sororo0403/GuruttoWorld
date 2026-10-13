@@ -32,7 +32,7 @@ Inspectorのパラメーター一覧で保存値を指定できる。保存値�
 Scriptの変更はコールバック後に適用し、オブジェクト削除時に破棄する。上限超過ではScriptの状態とシーンも保持する。
 `SceneWorld::AnimatorStatus`で現在の位相・Motion重み・姿勢を確認できる。
 
-`Content/Assets/Scenes/BlendTreePlayground.json`では、左のPlayerが入れ子の1D、中央が2D、右がDirectを使用する。
+`Games/GuruttoWorld/Assets/Scenes/BlendTreePlayground.json`では、左のPlayerが入れ子の1D、中央が2D、右がDirectを使用する。
 WASDやアナログ入力で比較する。右のDirectは`MoveRight`・`MoveForward`・`speed`でIdle・Walk・Jumpを混ぜる。
 `scripts/GenerateBlendTreePlayground.py`で同じ比較シーンを再生成できる。
 

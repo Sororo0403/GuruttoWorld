@@ -10,7 +10,7 @@ namespace IkPlaybackValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace Engine; using namespace SceneRuntime; using namespace DirectX;
-        const auto content=std::filesystem::absolute("Content"); std::string error;
+        const auto content=std::filesystem::absolute("Games/GuruttoWorld"); std::string error;
         const auto scene=SceneLayout::Load(content/"Assets/Scenes/IkPlayground.json",content);
         const auto authored=scene.Serialize();
         Require(SceneLayout::Parse(scene.Serialize()).Serialize()==scene.Serialize(),"IK scene roundtrip");

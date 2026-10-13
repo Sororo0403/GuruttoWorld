@@ -23,7 +23,7 @@ inline void Run() {
     AnimationEventValidation::Schema();
     using namespace Engine; using namespace SceneRuntime;
     std::string error;
-    const auto rig=Skeleton::Load(std::filesystem::absolute("Content/Assets/Models/AnimatedBox.gltf"),error);
+    const auto rig=Skeleton::Load(std::filesystem::absolute("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf"),error);
     Require(rig && rig->clips.size()==3 && !rig->meshes.empty(),"glTF skeleton and clips import");
     const auto rest=Skeleton::Sample(*rig,"",0,true);
     const auto bent=Skeleton::Sample(*rig,"Walk",0.5,false);
@@ -51,7 +51,7 @@ inline void Run() {
     Animator::Advance(animator,state,*rig,1,{{"speed",0.0f}}); Require(state.time==time,"disabled Animator clock frozen");
     animator.enabled=true; animator.states[1].clip="missing"; bool rejected=false;
     try { Animator::Validate(animator,rig.get()); } catch (...) { rejected=true; } Require(rejected,"unknown clips rejected");
-    const auto scene=SceneLayout::Load("Content/Assets/Scenes/AnimatorPlayground.json");
+    const auto scene=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/AnimatorPlayground.json");
     const auto restored=SceneLayout::Parse(scene.Serialize());
     Require(restored.objects.back().animator==scene.objects.back().animator,"Animator schema roundtrip");
 }
@@ -66,7 +66,7 @@ inline void MaterialDelta(Engine::DirectX12Renderer& renderer) {
         }
     };
     Require(ScriptRegistry::Register("ValidationAnimatorMaterialDelta",change),"material delta script registers");
-    const auto root=std::filesystem::absolute("Content");
+    const auto root=std::filesystem::absolute("Games/GuruttoWorld");
     auto layout=SceneLayout::Load(root/"Assets/Scenes/AnimatorPlayground.json"); std::string error;
     auto player=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.id=="Player";});
     Require(player!=layout.objects.end(),"material delta fixture has animated Player");
@@ -96,7 +96,7 @@ inline void Runtime(Engine::DirectX12Renderer& renderer) {
     SkinningValidation::Rendering(renderer);
     SkinningValidation::Model(renderer);
     using namespace SceneRuntime;
-    const auto content=std::filesystem::absolute("Content");
+    const auto content=std::filesystem::absolute("Games/GuruttoWorld");
     auto scene=SceneLayout::Load(content/"Assets/Scenes/AnimatorPlayground.json"); std::string error;
     SceneWorld world; Require(world.Initialize(renderer,content,scene,content/"Shaders/Mesh.hlsl",&error),error.c_str());
     std::string copy; Require(world.DuplicateObject("Player",{3,0,0},copy,error),"skeletal instance duplicates");
