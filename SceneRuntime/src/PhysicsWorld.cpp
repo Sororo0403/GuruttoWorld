@@ -212,7 +212,7 @@ namespace SceneRuntime
         std::vector<JPH::Ref<JPH::Constraint>> constraints;
         std::set<Contact> contacts;
         explicit Impl(const SceneLayout& layout) : definition(layout)
-        { system.Init(8192,0,32768,32768,layers,broadFilter,pairFilter); system.SetGravity({0,-20,0}); system.SetContactListener(this); }
+        { system.Init(8192,0,32768,32768,layers,broadFilter,pairFilter); system.SetGravity({layout.settings.gravity[0],layout.settings.gravity[1],layout.settings.gravity[2]}); system.SetContactListener(this); }
         ~Impl()
         {
             for(const auto& constraint:constraints) system.RemoveConstraint(constraint);
@@ -345,6 +345,7 @@ namespace SceneRuntime
         }
         bool Matches(const SceneLayout& layout,const std::vector<Matrix>& matrices) const
         {
+            if(layout.settings.gravity!=definition.settings.gravity) return false;
             if (layout.objects.size()!=definition.objects.size()) return false;
             for (size_t i=0;i<layout.objects.size();++i)
             {

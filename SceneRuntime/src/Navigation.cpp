@@ -1,4 +1,5 @@
 #include <SceneRuntime/Navigation.h>
+#include <iterator>
 #include <SceneRuntime/SceneTransforms.h>
 #include <queue>
 #include <limits>
@@ -101,7 +102,7 @@ std::vector<std::array<float,3>> Navigation::Path(const SceneLayout& layout,cons
     const auto world=DirectX::XMLoadFloat4x4(&matrices[static_cast<size_t>(found-layout.objects.begin())]);const auto inverse=DirectX::XMMatrixInverse(nullptr,world);
     const auto localStart=Point(start,inverse),localEnd=Point(destination,inverse);const auto cells=Search(mesh,Cell(mesh,localStart),Cell(mesh,localEnd));
     std::vector<std::array<float,3>> result;
-    for(const auto cell:cells) result.push_back(Point({(static_cast<float>(cell%mesh.columns)+.5f)*mesh.cellSize,mesh.heights[cell],(static_cast<float>(cell/mesh.columns)+.5f)*mesh.cellSize},world));
+    std::transform(cells.begin(),cells.end(),std::back_inserter(result),[&](const auto cell) {return Point({(static_cast<float>(cell%mesh.columns)+.5f)*mesh.cellSize,mesh.heights[cell],(static_cast<float>(cell/mesh.columns)+.5f)*mesh.cellSize},world);});
     if(!result.empty()) result.back()=Point({localEnd[0],mesh.heights[cells.back()],localEnd[2]},world);return result;
 }
 bool Navigation::Advance(SceneLayout& layout,double seconds,std::string& error) {

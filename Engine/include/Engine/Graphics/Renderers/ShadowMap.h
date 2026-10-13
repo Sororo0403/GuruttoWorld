@@ -13,7 +13,8 @@ namespace Engine
         static constexpr UINT Resolution=2048;
         static constexpr UINT LocalResolution=512,LocalFaces=32;
         /// <summary>光源視点の深度テクスチャと深度専用パイプラインを生成します。</summary>
-        bool Initialize(ID3D12Device* device,const std::filesystem::path& shader,bool localAtlas=false);
+        bool Initialize(ID3D12Device* device,const std::filesystem::path& shader,bool localAtlas=false,UINT resolution=0);
+        UINT Size() const {return resolution_;}
         /// <summary>カメラ近傍を覆う光源視点を計算し、深度描画を開始します。</summary>
         bool Begin(ID3D12GraphicsCommandList* commands,const Camera& camera,const DirectionalLight& light);
         /// <summary>点光源の立方体面またはスポット円錐の深度描画を開始します。</summary>

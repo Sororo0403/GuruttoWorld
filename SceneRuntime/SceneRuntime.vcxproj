@@ -139,6 +139,11 @@
   <ItemGroup>
     <ClInclude Include="include\SceneRuntime\Animation.h" />
     <ClCompile Include="src\Animation.cpp" />
+    <ClCompile Include="src\AnimationProperties.cpp" />
+    <ClCompile Include="src\TitleMenu.cpp" />
+    <ClCompile Include="src\TitleUi.cpp" />
+    <ClCompile Include="src\GameSettings.cpp" />
+
     <ClCompile Include="src\Animator.cpp" />
     <ClInclude Include="include\SceneRuntime\Animator.h" />
     <ClCompile Include="src\AnimationEvents.cpp" />

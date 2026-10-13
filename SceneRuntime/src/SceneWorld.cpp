@@ -1,4 +1,5 @@
 #include <SceneRuntime/SceneWorld.h>
+#include <iterator>
 #include <Engine/Graphics/Resources/GpuProfiler.h>
 #include <SceneRuntime/SceneTransforms.h>
 #include <SceneRuntime/SceneUi.h>
@@ -22,6 +23,20 @@
 
 namespace
 {
+    void ApplySurfaceOverride(Engine::Object3D& object,const SceneRuntime::ScenePlacement& placement)
+    {
+        if(!placement.material || !placement.material->enabled || !placement.material->surfaceOverride) return;
+        const auto& surface=*placement.material;
+        const auto apply=[&](const std::shared_ptr<const Engine::Material>& original) -> std::shared_ptr<const Engine::Material> {
+            if(original && original->color==surface.color && original->roughness==surface.roughness && original->metallic==surface.metallic) return original;
+            auto material=original ? std::make_shared<Engine::Material>(*original) : std::make_shared<Engine::Material>();
+            material->color=surface.color;material->roughness=surface.roughness;material->metallic=surface.metallic;
+            return material;
+        };
+        object.SetMaterial(apply(object.GetMaterial()));
+        auto slots=object.GetMaterialSlots(); for(auto& slot:slots) if(slot) slot=apply(slot);
+        object.SetMaterialSlots(std::move(slots));
+    }
     void PrepareProcedural(Engine::ModelManager& models,Engine::Object3D& object,const SceneRuntime::ScenePlacement& p,const std::filesystem::path& root,ID3D12Device* device,ID3D12CommandQueue* queue,
         const Engine::AssetDatabase* index=nullptr,std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>>* materials=nullptr)
     {
@@ -41,7 +56,7 @@ namespace
             object.SetMaterial(std::move(material));
         }
     }
-    constexpr double FixedStepSeconds=1.0/60.0;
+
     Engine::MaterialSlots PrepareMaterialSlots(const SceneRuntime::ScenePlacement& placement,size_t meshes,
         ID3D12Device* device,ID3D12CommandQueue* queue,const std::filesystem::path& root,
         std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>>& cache,const Engine::AssetDatabase* index=nullptr)
@@ -60,24 +75,23 @@ namespace
     {
         return placement.animation && placement.animation->enabled &&
             std::any_of(placement.animation->tracks.begin(),placement.animation->tracks.end(),[](const auto& track) {
-                return track.property=="position" || track.property=="rotation";
+                return !track.property.starts_with("ui") && track.property!="opacity";
             });
     }
     bool ApplyTransformAnimation(SceneRuntime::ScenePlacement& placement,const std::map<std::string,float>& clocks)
     {
         if (!HasTransformAnimation(placement)) return false;
-        const auto position=placement.position,rotation=placement.rotation;
+        const auto before=placement;
         for (const auto& track:placement.animation->tracks)
         {
-            if (track.property!="position" && track.property!="rotation") continue;
+            if (track.property.starts_with("ui") || track.property=="opacity") continue;
             const auto clock=clocks.find(track.clock);
             if (clock==clocks.end() || clock->second<track.delay) continue;
             const auto value=SceneRuntime::Animation::Sample(track,clocks);
             if (!value) continue;
-            auto& target=track.property=="position" ? placement.position : placement.rotation;
-            target={(*value)[0],(*value)[1],(*value)[2]};
+            SceneRuntime::Animation::Apply(placement,track.property,*value);
         }
-        return position!=placement.position || rotation!=placement.rotation;
+        return before.position!=placement.position || before.rotation!=placement.rotation || before.scale!=placement.scale || !before.SameComponents(placement);
     }
     bool IsRotation(const DirectX::XMFLOAT4X4& rotation)
     {
@@ -143,8 +157,9 @@ namespace SceneRuntime
         materialDevice_=renderer.GetDevice(); materialQueue_=renderer.GetCommandQueue();
         retirement_=Engine::GpuRetirement::Shared(materialDevice_.Get(),materialQueue_.Get());
         if(!retirement_) { if(diagnostic) *diagnostic="Cannot initialize resource retirement"; return false; }
+        meshShader_=shaderPath;shadow_=std::make_shared<Engine::ShadowMap>();localShadow_=std::make_shared<Engine::ShadowMap>();
         modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath) &&
-            shadow_.Initialize(renderer.GetDevice(),shaderPath) && localShadow_.Initialize(renderer.GetDevice(),shaderPath,true) && occlusion_.Initialize(renderer.GetDevice(),shaderPath);
+            shadow_->Initialize(renderer.GetDevice(),shaderPath) && localShadow_->Initialize(renderer.GetDevice(),shaderPath,true) && occlusion_.Initialize(renderer.GetDevice(),shaderPath);
         if (!modelsReady_)
         {
             if (diagnostic) *diagnostic = "Scene renderer could not be initialized. Check shaders and restart.";
@@ -158,7 +173,14 @@ namespace SceneRuntime
         auto candidate=layout_;
         bool changed=false;
         for (auto& placement:candidate.objects) changed=ApplyTransformAnimation(placement,clocks) || changed;
-        return !changed || CommitTransforms(std::move(candidate));
+        if(!changed) return true;
+        try {candidate.ValidateChanges(layout_);} catch(const std::exception& error) {Engine::Log::Warning(error.what());return false;}
+        if(!CommitTransforms(candidate)) return false;
+        for(size_t i=0;i<candidate.objects.size();++i) {
+            layout_.objects[i].CopyComponents(candidate.objects[i]);
+            ApplySurfaceOverride(objects_[i],layout_.objects[i]);
+        }
+        return true;
     }
 
     bool SceneWorld::Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath,
@@ -175,8 +197,8 @@ namespace SceneRuntime
         if (!candidate.InitializeModels(renderer,shaderPath,&error) || !candidate.ReplaceLayout(layout_,assetsRoot,error)) return false;
         models_.Swap(candidate.models_);
         layout_=std::move(candidate.layout_); objects_.swap(candidate.objects_); animatedModels_.swap(candidate.animatedModels_); animatorStates_.swap(candidate.animatorStates_); lodModels_.swap(candidate.lodModels_);
-        std::swap(shadow_,candidate.shadow_);
-        std::swap(localShadow_,candidate.localShadow_);
+        shadow_.swap(candidate.shadow_);
+        localShadow_.swap(candidate.localShadow_);
         std::swap(occlusion_,candidate.occlusion_);
         assetIndex_.swap(candidate.assetIndex_); materials_.swap(candidate.materials_);
         ++renderVersion_;
@@ -253,6 +275,7 @@ namespace SceneRuntime
                     object.SetMaterialSlots(PrepareMaterialSlots(placement,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot,materials,index.get()));
                 }
                 PrepareProcedural(models_,object,placement,assetsRoot,materialDevice_.Get(),materialQueue_.Get(),index.get(),&materials);
+                ApplySurfaceOverride(object,placement);
                 if (!object.SetTransform(placement.position, placement.rotation, placement.scale))
                     throw std::runtime_error("Invalid transform: " + placement.id);
                 if (!object.SetWorldMatrix(matrices[objects.size()])) throw std::runtime_error("Invalid world matrix");
@@ -262,6 +285,7 @@ namespace SceneRuntime
             prepared.assets=std::move(index); prepared.materials=std::move(materials);
             prepared.animated=std::move(animated); prepared.states=std::move(animatorStates); prepared.objects=std::move(objects);
             prepared.lods=std::move(lods);
+            if(!PrepareShadows(prepared.layout.settings,prepared.shadow,prepared.localShadow,error)) return false;
             result=std::move(prepared);
             error.clear();
             return true;
@@ -276,6 +300,8 @@ namespace SceneRuntime
     void SceneWorld::CommitLayout(PreparedLayout&& prepared,bool preserveExecution)
     {
         if (!preserveExecution) scripts_.Stop(layout_);
+        if(prepared.shadow && prepared.shadow!=shadow_) {if(retirement_) retirement_->Retire(shadow_);shadow_=std::move(prepared.shadow);}
+        if(prepared.localShadow && prepared.localShadow!=localShadow_) {if(retirement_) retirement_->Retire(localShadow_);localShadow_=std::move(prepared.localShadow);}
         layout_=std::move(prepared.layout); assetsRoot_=std::move(prepared.assetsRoot);
         assetIndex_=std::move(prepared.assets); materials_=std::move(prepared.materials);
         if(retirement_) retirement_->Collect();
@@ -309,8 +335,9 @@ namespace SceneRuntime
                     for (const auto& [name,target] : changes->second)
                     { if (target) frame.state.ikOverrides[name]=*target; else frame.state.ikOverrides.erase(name); }
                 auto parameters=inputValues_;
-                const auto input=[&](const char* name) { const auto found=inputValues_.find(name); return found==inputValues_.end() ? 0.0f : found->second; };
-                parameters["moveX"]=input("MoveRight")-input("MoveLeft"); parameters["moveY"]=input("MoveForward")-input("MoveBack");
+                const auto input=[&](const std::string& name) { const auto found=inputValues_.find(name); return found==inputValues_.end() ? 0.0f : found->second; };
+                const auto& mapping=layout.settings.playerInputs;
+                parameters["moveX"]=input(mapping[0])-input(mapping[1]); parameters["moveY"]=input(mapping[2])-input(mapping[3]);
                 parameters["speed"]=std::hypot(parameters["moveX"],parameters["moveY"]);
                 const auto body=physics_.find(placement.id); parameters["grounded"]=body==physics_.end() ? 1.0f : (body->second.grounded ? 1.0f : 0.0f);
                 for (const auto& [name,pressed] : inputPressed_) parameters["pressed:"+name]=pressed ? 1.0f : 0.0f;
@@ -347,19 +374,18 @@ namespace SceneRuntime
         auto lighting=light;
         lighting.shadow=nullptr;
         lighting.localShadow=nullptr;
-        if (light.enabled && light.shadowsEnabled && shadow_.Begin(commands,camera,light))
+        if (light.enabled && light.shadowsEnabled && shadow_->Begin(commands,camera,light))
         {
             Engine::GpuScope gpu(commands,"Shadows"); Engine::CpuScope cpu("Shadows");
-            for (const auto& item : items)
-                if (item.object.HasMaterialPass(Engine::MaterialPass::Opaque))
+            for (const auto& item:items) if (item.object.HasMaterialPass(Engine::MaterialPass::Opaque))
                 {
                     RenderPlan::Count(item.object,Engine::MaterialPass::Opaque,1,meshTelemetry_);
-                    item.object.GetModel()->DrawShadow(commands,item.object.GetWorldMatrix(),shadow_,item.object.GetMaterial().get(),item.object.GetMaterialSlots());
+                    item.object.GetModel()->DrawShadow(commands,item.object.GetWorldMatrix(),*shadow_,item.object.GetMaterial().get(),item.object.GetMaterialSlots());
                 }
-            shadow_.End(commands);
-            lighting.shadow=&shadow_;
+            shadow_->End(commands);
+            lighting.shadow=shadow_.get();
         }
-        if (RenderPlan::LocalShadows(commands,lighting,items,localShadow_,meshTelemetry_)) lighting.localShadow=&localShadow_;
+        if (RenderPlan::LocalShadows(commands,lighting,items,*localShadow_,meshTelemetry_)) lighting.localShadow=localShadow_.get();
         {
         Engine::GpuScope gpu(commands,"Opaque meshes"); Engine::CpuScope cpu("Opaque meshes");
         std::stable_sort(items.begin(),items.end(),[](const auto& first,const auto& second) { return first.distance<second.distance; });
@@ -378,7 +404,7 @@ namespace SceneRuntime
         std::vector<DirectX::XMFLOAT4X4> matrices;
         if(validatedBefore) {
             std::vector<DirectX::XMFLOAT4X4> previous; previous.reserve(objects.size());
-            for(const auto& object:objects) previous.push_back(object.GetWorldMatrix());
+            std::transform(objects.begin(),objects.end(),std::back_inserter(previous),[](const auto& object) {return object.GetWorldMatrix();});
             if(!SceneTransforms::ResolveChanges(layout,*validatedBefore,previous,matrices,error)) return false;
         } else if (!SceneTransforms::Resolve(layout,matrices,error)) return false;
         if (objects.size()!=matrices.size()) { error="Placement and draw object counts differ"; return false; }
@@ -448,7 +474,7 @@ namespace SceneRuntime
         return true;
     }
 
-    bool SceneWorld::SetParent(std::string_view id, std::string parentId, std::string& error)
+    bool SceneWorld::SetParent(std::string_view id, const std::string& parentId, std::string& error)
     {
         return SetParents({std::string(id)},parentId,error);
     }
@@ -474,6 +500,17 @@ namespace SceneRuntime
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
 
+    bool SceneWorld::PrepareShadows(const SceneSettings& settings,std::shared_ptr<Engine::ShadowMap>& directional,std::shared_ptr<Engine::ShadowMap>& local,std::string& error) const
+    {
+        directional=shadow_;local=localShadow_;
+        const auto prepare=[&](auto& map,unsigned int resolution,bool atlas) {
+            if(map && map->Size()==resolution) return true;
+            auto candidate=std::make_shared<Engine::ShadowMap>();
+            if(!candidate->Initialize(materialDevice_.Get(),meshShader_,atlas,resolution)) {error="Shadow resources could not be initialized";return false;}
+            map=std::move(candidate);return true;
+        };
+        return prepare(directional,settings.shadowResolution,false) && prepare(local,settings.localShadowResolution,true);
+    }
     bool SceneWorld::SetSettings(const SceneSettings& settings, std::string& error)
     {
         try
@@ -481,7 +518,13 @@ namespace SceneRuntime
             auto candidate=layout_;
             candidate.settings=settings;
             static_cast<void>(candidate.Serialize());
+            std::shared_ptr<Engine::ShadowMap> directional,local;
+            if(!PrepareShadows(settings,directional,local,error)) return false;
+            if(directional!=shadow_) {if(retirement_ && !retirement_->Retire(shadow_)) return false;shadow_=std::move(directional);}
+            if(local!=localShadow_) {if(retirement_ && !retirement_->Retire(localShadow_)) return false;localShadow_=std::move(local);}
+            if(layout_.settings.fixedStep!=settings.fixedStep) {fixedSeconds_=0;previousPhysical_.clear();currentPhysical_.clear();}
             layout_.settings=settings;
+            ++renderVersion_;
             error.clear();
             return true;
         }
@@ -512,7 +555,7 @@ namespace SceneRuntime
             static_cast<void>(candidate.Serialize());
             if (!rebuild)
             {
-                for(const auto& object:candidate.objects) if(object.ragdoll) {
+                for (const auto& object:candidate.objects) if (object.ragdoll) {
                     const auto model=animatedModels_.find(object.id);
                     if(model==animatedModels_.end()) throw std::runtime_error("Ragdoll requires a loaded Animator model");
                     Ragdoll::Validate(candidate,object,*model->second->Rig());
@@ -548,7 +591,7 @@ namespace SceneRuntime
         auto pending=std::min(seconds,0.1)+fixedSeconds_;
         auto pressed=fixedPressed_; for (const auto& [name,value]:inputPressed_) if (value) pressed[name]=true;
         bool pendingJump=fixedJump_ || jump;
-        if (pending+1e-10<FixedStepSeconds) {
+        if (pending+1e-10<FixedStep()) {
             fixedSeconds_=pending; ++renderVersion_; fixedPressed_=std::move(pressed); fixedJump_=pendingJump; return true;
         }
         try {
@@ -557,16 +600,16 @@ namespace SceneRuntime
             std::string error;
             auto previousPoses=previousPhysical_,currentPoses=currentPhysical_;
             unsigned int steps=0;
-            constexpr unsigned int MaximumFixedSteps=4;
-            while (pending+1e-10>=FixedStepSeconds && steps<MaximumFixedSteps) {
+            const auto MaximumFixedSteps=layout_.settings.maximumFixedSteps;
+            while (pending+1e-10>=FixedStep() && steps<MaximumFixedSteps) {
                 previousPoses=PhysicalPoses(candidate);
                 if (!FixedTick(candidate,states,runtime,horizontal,vertical,pendingJump,pressed,error)) {
                     Engine::Log::Warning(error); return false;
                 }
                 currentPoses=PhysicalPoses(candidate); ++steps;
-                pending=std::max(0.0,pending-FixedStepSeconds); pendingJump=false; pressed.clear();
+                pending=std::max(0.0,pending-FixedStep()); pendingJump=false; pressed.clear();
             }
-            if(pending+1e-10>=FixedStepSeconds) { pending=std::fmod(pending,FixedStepSeconds); Engine::CpuProfiler::Add("Fixed backlog dropped",0); }
+            if(pending+1e-10>=FixedStep()) { pending=std::fmod(pending,FixedStep()); Engine::CpuProfiler::Add("Fixed backlog dropped",0); }
             PreparedLayout prepared;
             if (!PrepareScriptLayout(std::move(candidate),nullptr,prepared,error) ||
                 (prepareRuntime_ && !prepareRuntime_(prepared.layout,error))) { Engine::Log::Warning(error); return false; }
@@ -580,10 +623,10 @@ namespace SceneRuntime
     {
         const bool hasFixedUpdate=ScriptRuntime::HasPhase(layout,ScriptPhase::FixedUpdate);
         if (hasFixedUpdate &&
-            !scripts.UpdateCandidate(layout,FixedStepSeconds,error,inputValues_,pressed,&physicsWorld_,ScriptPhase::FixedUpdate,&layout_)) return false;
+            !scripts.UpdateCandidate(layout,FixedStep(),error,inputValues_,pressed,&physicsWorld_,ScriptPhase::FixedUpdate,&layout_)) return false;
         if(std::any_of(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.navAgent && p.navAgent->enabled && p.navAgent->moving;})) {
             Engine::CpuScope navigationScope("Navigation update");
-            if(!Navigation::Advance(layout,FixedStepSeconds,error)) return false;
+            if(!Navigation::Advance(layout,FixedStep(),error)) return false;
         }
         std::map<std::string,bool> savedRootMotion;
         for (auto& object:layout.objects) if (object.animator) {
@@ -596,7 +639,7 @@ namespace SceneRuntime
         if (hasFixedUpdate)
             for (const auto& [id,impulse]:scripts.Impulses()) if (!physicsWorld_.AddImpulse(id,impulse)) { error="FixedUpdate impulse rejected"; return false; }
         try {
-            std::vector<std::string> owners; for(const auto& object:layout.objects) if(object.ragdoll && !object.ragdoll->bones.empty()) owners.push_back(object.id);
+            std::vector<std::string> owners; for (const auto& object:layout.objects) if (object.ragdoll && !object.ragdoll->bones.empty()) owners.push_back(object.id);
             for(const auto& id:owners) {
                 const auto model=animatedModels_.find(id); const auto state=animatorStates_.find(id);
                 if(model==animatedModels_.end() || state==animatorStates_.end()) throw std::runtime_error("Ragdoll Animator is missing");
@@ -613,9 +656,9 @@ namespace SceneRuntime
         }
         if(std::any_of(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.playerController && p.playerController->enabled && !p.playerController->usePhysics;})) {
             Engine::CpuScope legacyScope("Legacy player movement");
-            if(!ScenePhysics::Advance(layout,states,FixedStepSeconds,horizontal,vertical,jump)) return false;
+            if(!ScenePhysics::Advance(layout,states,FixedStep(),horizontal,vertical,jump)) return false;
         } else std::erase_if(states,[&](const auto& item){return std::none_of(layout.objects.begin(),layout.objects.end(),[&](const auto& p){return p.id==item.first && p.playerController && p.playerController->enabled;});});
-        if(!physicsWorld_.Advance(layout,states,FixedStepSeconds,horizontal,vertical,jump,assetsRoot_,error)) return false;
+        if(!physicsWorld_.Advance(layout,states,FixedStep(),horizontal,vertical,jump,assetsRoot_,error)) return false;
         for(auto& object:layout.objects) if(const auto saved=ragdollOwnerEnabled.find(object.id);saved!=ragdollOwnerEnabled.end()) {
             if(object.playerController) object.playerController->enabled=saved->second[0];
             if(object.boxCollider) object.boxCollider->enabled=saved->second[1];
@@ -627,7 +670,7 @@ namespace SceneRuntime
     bool SceneWorld::QueueContacts(const SceneLayout& layout,ScriptRuntime& scripts,std::string& error) const
     {
         std::set<std::string> listeners;
-        for (const auto& object : layout.objects) for (const auto& script : object.scripts) if (script.enabled)
+        for (const auto& object : layout.objects) for (const auto& script:object.scripts) if (script.enabled)
         {
             const auto definition=ScriptRegistry::Definitions().find(script.behaviour);
             if (definition!=ScriptRegistry::Definitions().end() && definition->second.onEvent) listeners.insert(object.id);
@@ -649,7 +692,7 @@ namespace SceneRuntime
     {
         PreparedLayout result; result.assetsRoot=assetsRoot_; result.layout=layout_; result.objects=objects_;
         result.assets=assetIndex_; result.materials=materials_;
-        result.animated=animatedModels_; result.states=animatorStates_; result.lods=lodModels_; return result;
+        result.animated=animatedModels_; result.states=animatorStates_; result.lods=lodModels_; result.shadow=shadow_;result.localShadow=localShadow_;return result;
     }
     bool SceneWorld::PrepareScriptLayout(SceneLayout layout,const PreparedLayout* previous,PreparedLayout& result,std::string& error)
     {
@@ -738,6 +781,7 @@ namespace SceneRuntime
                     }
                     PrepareProcedural(models_,object,p,assetsRoot_,materialDevice_.Get(),materialQueue_.Get(),candidate.assets.get(),&candidate.materials);
                 }
+                ApplySurfaceOverride(object,p);
                 candidate.objects.push_back(std::move(object));
             }
             if(!PrepareTransforms(candidate.layout,candidate.objects,error)) return false;
@@ -1047,6 +1091,7 @@ namespace SceneRuntime
                 object.SetMaterialSlots(PrepareMaterialSlots(placement,model->MeshCount(),materialDevice_.Get(),materialQueue_.Get(),assetsRoot,materials));
             }
             PrepareProcedural(models_,object,placement,assetsRoot,materialDevice_.Get(),materialQueue_.Get());
+            ApplySurfaceOverride(object,placement);
             const auto id = placement.id;
             Append(std::move(placement), std::move(object));
             layout_.assetReferences=std::move(validation.assetReferences);
@@ -1233,7 +1278,7 @@ namespace SceneRuntime
         // Saving a simulated SRT can introduce a few ULPs of scale error; genuine resize edits still snap above.
         for(size_t i=0;i<3;++i)
             if(std::abs(a.scale[i]-b.scale[i])>1e-5f*std::max(1.0f,std::max(std::abs(a.scale[i]),std::abs(b.scale[i])))) return false;
-        const float alpha=static_cast<float>(std::clamp(fixedSeconds_/FixedStepSeconds,0.0,1.0));
+        const float alpha=static_cast<float>(std::clamp(fixedSeconds_/FixedStep(),0.0,1.0));
         std::array<float,3> position;
         for(size_t i=0;i<3;++i) position[i]=a.position[i]+(p.position[i]-a.position[i])*alpha;
         using namespace DirectX;
@@ -1254,7 +1299,7 @@ namespace SceneRuntime
         }
         if(overrides.empty()) {
             renderMatrices_.clear(); renderMatrices_.reserve(objects_.size());
-            for(const auto& object:objects_) renderMatrices_.push_back(object.GetWorldMatrix());
+            std::transform(objects_.begin(),objects_.end(),std::back_inserter(renderMatrices_),[](const auto& object) {return object.GetWorldMatrix();});
         } else {
             std::string error;
             if(!SceneTransforms::Resolve(layout_,overrides,renderMatrices_,error)) {Engine::Log::Warning(error);return false;}

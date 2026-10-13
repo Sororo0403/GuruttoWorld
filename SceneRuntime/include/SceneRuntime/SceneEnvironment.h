@@ -59,7 +59,7 @@ namespace SceneRuntime
         /// <summary>Script更新のUI候補を現在の描画資源から分離して準備します。</summary>
         bool PrepareRuntimeUi(const SceneLayout&,const ScriptUiCommands&,std::string& error);
         /// <summary>成功したフレームのbinding変更と準備したUI資源を確定します。</summary>
-        void ApplyUiCommands(ScriptUiCommands commands);
+        void ApplyUiCommands(const ScriptUiCommands& commands);
         /// <summary>失敗したフレームのUI予約と候補描画資源を破棄します。</summary>
         void DiscardPreparedUi();
         /// <summary>候補の所属と配置をリソース準備後に反映します。</summary>

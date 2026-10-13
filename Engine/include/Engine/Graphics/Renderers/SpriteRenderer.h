@@ -19,8 +19,8 @@ namespace Engine
         std::array<float, 4> uvRect{ 0.0f, 0.0f, 1.0f, 1.0f };
         // UV 範囲で切り出した座標に変換を適用します。
         UvTransform uvTransform;
-        // Optional pixel shader b1 constants (9 float4s); the standard sprite shader ignores them.
-        std::array<float,36> pixelConstants{};
+        // Optional b1 constants; the standard sprite shader ignores them.
+        std::array<float,96> pixelConstants{};
     };
 
     class SpriteRenderer final
@@ -53,15 +53,16 @@ namespace Engine
         /// <param name="queue">メッシュの転送に使用する DIRECT 型キュー。</param>
         /// <param name="texture">同一デバイスで読み込み済みの共有テクスチャ。画像の再読み込みは行いません。</param>
         /// <param name="shaderPath">スプライト用の VSMain・PSMain を定義した HLSL ファイル。</param>
+        /// <param name="depthWrite">depthTestが有効な場合だけ、シェーダーが返す深度を書き込みます。既定は書き込みません。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-            std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest=false);
+            std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest=false, bool depthWrite=false);
 
         /// <summary>既存スプライトの描画資源を共有し、同じデバイスのテクスチャだけを差し替えます。</summary>
         bool InitializeShared(const SpriteRenderer& prototype, std::shared_ptr<const Texture2D> texture);
 
         /// <summary>
-        /// 深度判定・深度書き込みなしで、アルファ合成した四角形を描画します。後の描画ほど手前になります。
+        /// 既定では深度判定・書き込みなしで描画します。明示的な深度設定は初期化時のものを使います。
         /// </summary>
         /// <param name="commands">シーンと同じ描画先・ビューポート・シザーが設定済みのコマンドリスト。</param>
         /// <param name="viewportWidth">描画領域の幅（ピクセル）。</param>
@@ -100,6 +101,7 @@ namespace Engine
         std::shared_ptr<void> sharedPipeline_;
         bool initialized_ = false;
         bool depthTest_ = false;
+        bool depthWrite_ = false;
         std::shared_ptr<const Texture2D> texture_;
         Microsoft::WRL::ComPtr<ID3D12Resource> meshBuffer_;
         D3D12_VERTEX_BUFFER_VIEW vertexBufferView_{};

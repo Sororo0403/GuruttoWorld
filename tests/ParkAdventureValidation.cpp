@@ -2,6 +2,7 @@
 #include "ParkResourceValidation.h"
 #include "LayoutDeltaValidation.h"
 #include "SpriteResourceValidation.h"
+#include "AllScenesValidation.h"
 #include <SceneRuntime/SceneEnvironment.h>
 #include <SceneRuntime/ScriptModuleApi.h>
 #include <SceneRuntime/Prefab.h>
@@ -57,6 +58,29 @@ namespace
             try { static_cast<void>(layout.Serialize()); } catch(const std::exception&) { serialized=true; }
             Require(direct && serialized,"Runtime and serialized validation reject invalid layout equally");
         }
+    }
+    void EditableRules()
+    {
+        auto layout=SceneLayout::Load("Content/Assets/Scenes/ParkAdventure.json");
+        auto& player=Find(layout,"park-player");auto& script=player.scripts.front();
+        script.parameters["maxHp"]=7;
+        script.data["statsTemplate"]={std::string("{hp}:{coins}")};
+        script.data["returnScene"]={std::string("Assets/Scenes/Game.json")};
+        script.data["enemies"]={ScriptValue::Array{}};script.data["switches"]={ScriptValue::Array{}};
+        script.data["checkpoints"]={ScriptValue::Array{}};script.data["useNameLookup"]={false};
+        const auto coinId=std::get<ScriptObjectReference>(std::get<ScriptValue::Array>(script.data.at("coins").value).front().value).id;
+        const auto position=Find(layout,coinId).position;
+        auto& coin=Find(layout,coinId);coin.id="renamed-collectible";coin.name="Custom collectible";
+        for(auto& object:layout.objects) if(object.parentId==coinId) object.parentId=coin.id;
+        script.data["coins"]={ScriptValue::Array{{ScriptObjectReference{coin.id}}}};
+        player.position=position;
+        ScriptRuntime runtime;std::string error;
+        Require(runtime.Update(layout,.01,error),error);
+        Require(Find(layout,"park-stats").text->text=="7:1","Saved health/template/explicit reference rules apply");
+        Require(std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& p){return p.id=="renamed-collectible";}),"Renamed collectible is found through its reference");
+        Require(runtime.Update(layout,.01,error,{},{{"Cancel",true}}),error);
+        const auto commands=runtime.TakeSceneCommands();
+        Require(commands.size()==1 && commands[0].scene=="Assets/Scenes/Game.json","Editable return scene applies");
     }
     void RemovedScriptOwners()
     {
@@ -332,6 +356,7 @@ int main()
     try {
         Require(Engine::Log::Initialize("generated/park/validation.log"),"Validation log opens");
         Require(Register_ParkAdventure(nullptr,Register),"Game scripts register");
+        if(GetEnvironmentVariableA("WP1_ALL_SCENES_ONLY",nullptr,0)) {AllScenesValidation::Run();return 0;}
         for(const char* name:{"Entrance","Terraces","Canal","SwitchGarden","Vista"}) {
             const auto prefab=SceneLayout::Load(std::filesystem::path("Content/Assets/Prefabs/Park")/(std::string(name)+".prefab"));
             Require(Prefab::Extract(prefab,"module").objects.size()==prefab.objects.size(),"Reusable module hierarchy");
@@ -347,7 +372,7 @@ int main()
         }
         if(GetEnvironmentVariableA("WP1_PARK_UPDATE_ONLY",nullptr,0)) { UpdateTrace(); return 0; }
         if(GetEnvironmentVariableA("WP1_PARK_STUTTER_ONLY",nullptr,0)) { StutterTrace(); return 0; }
-        ValidationParity(); RemovedScriptOwners();
+        ValidationParity(); EditableRules(); RemovedScriptOwners();
         if (!GetEnvironmentVariableA("WP1_PARK_RENDER_ONLY",nullptr,0)) Playthrough();
         Render();std::cout<<"PASS: park validation\n";return 0;
     } catch(const std::exception& error) {

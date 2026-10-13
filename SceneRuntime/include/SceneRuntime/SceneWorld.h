@@ -51,7 +51,7 @@ namespace SceneRuntime
         // Scale around a pivot along orthonormal world axes with positive factors; selected descendants follow once.
         bool ScaleObjectsWorld(const std::vector<std::string>& ids, const std::array<float,3>& pivot,
             const DirectX::XMFLOAT4X4& axes, const std::array<float,3>& factors);
-        bool SetParent(std::string_view id, std::string parentId, std::string& error);
+        bool SetParent(std::string_view id, const std::string& parentId, std::string& error);
         bool SetParents(const std::vector<std::string>& ids,const std::string& parentId,std::string& error);
         bool SetComponentBatch(const std::vector<ScenePlacement>& settings,const std::filesystem::path& assetsRoot,std::string& error);
         // 表示名だけを変更します。ID・描画リソースは維持します。
@@ -92,6 +92,8 @@ namespace SceneRuntime
             unsigned int mask=0xffffffffu,bool triggers=false,const std::string& ignore={}) const { return physicsWorld_.Raycast(origin,direction,distance,mask,triggers,ignore); }
         /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
         bool Animate(const std::map<std::string, float>& clocks);
+        size_t RenderVersion() const {return renderVersion_;}
+        double PhysicsStepSeconds() const {return FixedStep();}
         bool RenameObject(std::string_view id, std::string name);
         // GPU完了を待った後、描画の外で呼びます。
         bool AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,
@@ -122,6 +124,7 @@ namespace SceneRuntime
             std::shared_ptr<Engine::AssetDatabase> assets;
             std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>> materials;
             std::filesystem::path assetsRoot;
+            std::shared_ptr<Engine::ShadowMap> shadow,localShadow;
             std::vector<Engine::Object3D> objects;
             std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animated;
             std::map<std::string,AnimatorState> states;
@@ -177,7 +180,7 @@ namespace SceneRuntime
         std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animatedModels_;
         std::map<std::string,AnimatorState> animatorStates_;
         ScriptRuntime scripts_;
-        struct PhysicalPose { std::array<float,3> position,rotation,scale; std::string parent; };
+        struct PhysicalPose { std::array<float,3> position{},rotation{},scale{1,1,1}; std::string parent; };
         /// <summary>移動体の確定したローカル姿勢だけを保存します。</summary>
         static std::map<std::string,PhysicalPose> PhysicalPoses(const SceneLayout& layout);
         /// <summary>補間の行列を描画用に解決し、テレポートは即座に反映します。</summary>
@@ -196,8 +199,10 @@ namespace SceneRuntime
         Microsoft::WRL::ComPtr<ID3D12Device> materialDevice_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> materialQueue_;
         bool modelsReady_ = false;
-        mutable Engine::ShadowMap shadow_;
-        mutable Engine::ShadowMap localShadow_;
+        std::shared_ptr<Engine::ShadowMap> shadow_,localShadow_;
+        std::filesystem::path meshShader_;
+        bool PrepareShadows(const SceneSettings& settings,std::shared_ptr<Engine::ShadowMap>& directional,std::shared_ptr<Engine::ShadowMap>& local,std::string& error) const;
+        double FixedStep() const {return layout_.settings.fixedStep==1.0f/60.0f ? 1.0/60.0 : static_cast<double>(layout_.settings.fixedStep);}
         mutable Engine::OcclusionRenderer occlusion_;
         SceneLayout layout_;
         Engine::ModelManager models_;

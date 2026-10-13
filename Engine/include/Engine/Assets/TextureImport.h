@@ -1,4 +1,5 @@
 #pragma once
+#include <iterator>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -80,7 +81,7 @@ public:
         }
         std::vector<TextureLevel> levels; levels.push_back(std::move(source));
         if(settings.mipmaps) while(levels.back().width>1 || levels.back().height>1) levels.push_back(Resize(levels.back(),std::max(1u,levels.back().width/2),std::max(1u,levels.back().height/2),settings.srgb));
-        if(Compressed(settings,levels.front())) for(auto& level:levels) level=Compress(level);
+        if(Compressed(settings,levels.front())) std::transform(levels.begin(),levels.end(),levels.begin(),[](const auto& level) {return Compress(level);});
         return levels;
     }
 };

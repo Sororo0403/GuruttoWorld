@@ -1,4 +1,5 @@
 #include <SceneRuntime/Ragdoll.h>
+#include <iterator>
 #include <SceneRuntime/SceneTransforms.h>
 #include <algorithm>
 #include <cmath>
@@ -27,7 +28,7 @@ namespace
     std::vector<Engine::BonePose> BasePose(const Engine::SkeletonData& rig,const std::vector<Engine::BonePose>& pose)
     {
         if(pose.size()==rig.nodes.size()) return pose;
-        std::vector<Engine::BonePose> result; for(const auto& bone:rig.nodes) result.push_back(bone.rest); return result;
+        std::vector<Engine::BonePose> result; std::transform(rig.nodes.begin(),rig.nodes.end(),std::back_inserter(result),[](const auto& bone) {return bone.rest;}); return result;
     }
     std::vector<Matrix> World(const SceneLayout& layout)
     {
@@ -50,7 +51,7 @@ namespace SceneRuntime
         for(const auto& bone:bones) {
             if(bone.bone.empty() || bone.body.empty() || bone.bone.size()>128 || bone.body.size()>256 || bone.bone.find('\0')!=std::string::npos || bone.body.find('\0')!=std::string::npos || !names.insert(bone.bone).second || !bodies.insert(bone.body).second)
                 throw std::runtime_error("Invalid or duplicate Ragdoll binding");
-            for(const auto value:bone.bindOffset) if(!std::isfinite(value) || std::abs(value)>100000) throw std::runtime_error("Invalid Ragdoll bind offset");
+            if (std::any_of(std::begin(bone.bindOffset),std::end(bone.bindOffset),[](const auto value) {return !std::isfinite(value) || std::abs(value)>100000;})) throw std::runtime_error("Invalid Ragdoll bind offset");
             if(!SceneTransforms::IsUsable(Offset(bone))) throw std::runtime_error("Singular Ragdoll bind offset");
         }
     }

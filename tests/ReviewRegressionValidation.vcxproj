@@ -126,10 +126,7 @@
     <ClCompile Include="..\Editor\src\UiCanvasPanel.cpp" />
     <ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp" />
     <ClCompile Include="..\App\src\Scenes\SceneFactory.cpp" />
-    <ClCompile Include="..\App\src\Scenes\TitleUi.cpp" />
-    <ClCompile Include="..\App\src\Scenes\TitleMenu.cpp" />
     <ClCompile Include="..\App\src\Scenes\TitleAudio.cpp" />
-    <ClCompile Include="..\App\src\Scenes\GameSettings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">

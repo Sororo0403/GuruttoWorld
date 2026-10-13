@@ -28,9 +28,10 @@ std::string AuthoredScene::Update(double seconds,const Engine::Keyboard& keyboar
         else environment_.SetInputActions({},{});
     }
     const bool simulationActive=active || simulateInactive_;
+    const auto& playerInputs=environment_.World().Layout().settings.playerInputs;
     if(simulationActive) environment_.MovePlayers(seconds,
-        gameplayInput?input_.Value("MoveRight")-input_.Value("MoveLeft"):0,
-        gameplayInput?input_.Value("MoveForward")-input_.Value("MoveBack"):0,gameplayInput && input_.Pressed("Jump"));
+        gameplayInput?input_.Value(playerInputs[0])-input_.Value(playerInputs[1]):0,
+        gameplayInput?input_.Value(playerInputs[2])-input_.Value(playerInputs[3]):0,gameplayInput && input_.Pressed(playerInputs[4]));
     environment_.Update(seconds,true,simulationActive);
     { Engine::CpuScope audioUpdate("App audio"); environment_.UpdateAudio(simulationActive); }
     Engine::CpuScope uiUpdate("App UI input");

@@ -6,7 +6,7 @@ namespace SceneRuntime
 {
     struct ScriptModuleAbi
     {
-        uint32_t version=3;
+        uint32_t version=4;
         uint32_t compiler=_MSC_VER;
         uint32_t iteratorDebug=_ITERATOR_DEBUG_LEVEL;
         uint32_t contextBytes=sizeof(ScriptContext);

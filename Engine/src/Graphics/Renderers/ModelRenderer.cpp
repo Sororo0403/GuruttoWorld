@@ -1,4 +1,6 @@
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
+#include <array>
+#include <iterator>
 #include <Engine/Graphics/Models/ModelLoader.h>
 #include <limits>
 #include <Engine/Core/Log.h>
@@ -31,7 +33,7 @@ namespace Engine
         {
             std::string error; rig=Skeleton::Load(modelPath,error);
             if (!rig) { Log::Error(error); return false; }
-            try { for (const auto& mesh : rig->meshes) data.push_back(Skeleton::BindMesh(mesh)); }
+            try { std::transform(rig->meshes.begin(),rig->meshes.end(),std::back_inserter(data),[](const auto& mesh) {return Skeleton::BindMesh(mesh);}); }
             catch (const std::exception& exception) { Log::Error(exception.what()); return false; }
         }
         else if (!ModelLoader::Load(modelPath,data)) return false;
@@ -80,7 +82,7 @@ namespace Engine
             for (const auto index : mesh.indices)
             {
                 const auto& vertex=mesh.vertices.at(index);
-                for (const auto value : vertex.position) if (!std::isfinite(value)) throw std::runtime_error("Nonfinite bind position");
+                if (std::any_of(std::begin(vertex.position),std::end(vertex.position),[](const auto value) {return !std::isfinite(value);})) throw std::runtime_error("Nonfinite bind position");
                 const DirectX::XMFLOAT3 point{vertex.position[0],vertex.position[1],vertex.position[2]};
                 const auto add=[&](size_t group)
                 {
@@ -157,8 +159,8 @@ namespace Engine
             bounds.Extents.x+=std::max(1.0e-5f,std::abs(bounds.Center.x)*1.0e-6f+bounds.Extents.x*1.0e-6f);
             bounds.Extents.y+=std::max(1.0e-5f,std::abs(bounds.Center.y)*1.0e-6f+bounds.Extents.y*1.0e-6f);
             bounds.Extents.z+=std::max(1.0e-5f,std::abs(bounds.Center.z)*1.0e-6f+bounds.Extents.z*1.0e-6f);
-            for (const float value : {bounds.Center.x,bounds.Center.y,bounds.Center.z,bounds.Extents.x,bounds.Extents.y,bounds.Extents.z})
-                if (!std::isfinite(value)) throw std::runtime_error("Overflowed posed bounds");
+            const auto validationValues1=std::array{bounds.Center.x,bounds.Center.y,bounds.Center.z,bounds.Extents.x,bounds.Extents.y,bounds.Extents.z};
+            if (std::any_of(validationValues1.begin(),validationValues1.end(),[](const float value) {return !std::isfinite(value);})) throw std::runtime_error("Overflowed posed bounds");
             PreparedPose prepared; prepared.owner_=this; prepared.rig_=rig_; prepared.pose_=pose;
             prepared.palettes_=std::move(palettes); prepared.matrices_=std::move(matrices); prepared.bounds_=bounds;
             result=std::move(prepared);

@@ -1,114 +1,114 @@
 {
-  "title": "ぐるっとワールド",
-  "startupScene": "Assets/Scenes/TitleStreet.json",
-  "width": 1280,
-  "height": 720,
   "assetReferences": {
-    "Assets/Scenes/TitleStreet.json": "1f0e809df9d447e8b2eab18c11c18317"
+    "Assets/Scenes/OceanSunset.json": "2ceb0e6424fd4b74a9cb37f75316f2d2"
   },
+  "height": 720,
   "inputActions": {
-    "MoveLeft": {
+    "Attack": {
+      "axis": 0,
+      "buttons": 16384,
       "keys": [
-        30,
-        203
+        36
       ],
-      "buttons": 4,
-      "axis": -1,
-      "threshold": 0.5,
-      "mouseButtons": 0
+      "mouseButtons": 0,
+      "threshold": 0.5
     },
-    "MoveRight": {
+    "Cancel": {
+      "axis": 0,
+      "buttons": 8192,
       "keys": [
-        32,
-        205
+        1
       ],
-      "buttons": 8,
-      "axis": 1,
-      "threshold": 0.5,
-      "mouseButtons": 0
+      "mouseButtons": 0,
+      "threshold": 0.5
     },
-    "MoveForward": {
+    "Confirm": {
+      "axis": 0,
+      "buttons": 4096,
       "keys": [
-        17,
-        200
+        28
       ],
-      "buttons": 1,
-      "axis": 2,
-      "threshold": 0.5,
-      "mouseButtons": 0
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "Jump": {
+      "axis": 0,
+      "buttons": 4096,
+      "keys": [
+        57
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
     },
     "MoveBack": {
+      "axis": -2,
+      "buttons": 2,
       "keys": [
         31,
         208
       ],
-      "buttons": 2,
-      "axis": -2,
-      "threshold": 0.5,
-      "mouseButtons": 0
+      "mouseButtons": 0,
+      "threshold": 0.5
     },
-    "Jump": {
+    "MoveForward": {
+      "axis": 2,
+      "buttons": 1,
       "keys": [
-        57
+        17,
+        200
       ],
-      "buttons": 4096,
-      "axis": 0,
-      "threshold": 0.5,
-      "mouseButtons": 0
+      "mouseButtons": 0,
+      "threshold": 0.5
     },
-    "Confirm": {
+    "MoveLeft": {
+      "axis": -1,
+      "buttons": 4,
       "keys": [
-        28
+        30,
+        203
       ],
-      "buttons": 4096,
-      "axis": 0,
-      "threshold": 0.5,
-      "mouseButtons": 0
+      "mouseButtons": 0,
+      "threshold": 0.5
     },
-    "Cancel": {
+    "MoveRight": {
+      "axis": 1,
+      "buttons": 8,
       "keys": [
-        1
+        32,
+        205
       ],
-      "buttons": 8192,
-      "axis": 0,
-      "threshold": 0.5,
-      "mouseButtons": 0
-    },
-    "SelectModel1": {
-      "keys": [
-        2
-      ],
-      "buttons": 0,
-      "axis": 0,
-      "threshold": 0.5,
-      "mouseButtons": 0
-    },
-    "SelectModel2": {
-      "keys": [
-        3
-      ],
-      "buttons": 0,
-      "axis": 0,
-      "threshold": 0.5,
-      "mouseButtons": 0
-    },
-    "Attack": {
-      "keys": [
-        36
-      ],
-      "buttons": 16384,
-      "axis": 0,
-      "threshold": 0.5,
-      "mouseButtons": 0
+      "mouseButtons": 0,
+      "threshold": 0.5
     },
     "Restart": {
+      "axis": 0,
+      "buttons": 512,
       "keys": [
         19
       ],
-      "buttons": 512,
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "SelectModel1": {
       "axis": 0,
-      "threshold": 0.5,
-      "mouseButtons": 0
+      "buttons": 0,
+      "keys": [
+        2
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "SelectModel2": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        3
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
     }
-  }
+  },
+  "startupScene": "Assets/Scenes/OceanSunset.json",
+  "title": "ぐるっとワールド",
+  "width": 1280
 }

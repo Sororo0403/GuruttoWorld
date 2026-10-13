@@ -1,5 +1,17 @@
 # カメラ・パーティクルの検証
 
+## 静的解析（2026-10-13）
+
+`scripts/AnalyzeCode.ps1 -Label authoring-final` は、Engine・SceneRuntime・App・Editor・C++ゲーム処理の全101ソースをCppcheck 2.21.0で解析します。MSVCのDebug・Development・Releaseの定義をそれぞれ指定し、Jolt・Assimpの実際のインクルード先を使用します。外部ライブラリ自体の診断は対象外です。4並列と構成別キャッシュで再検査でき、結果は`generated/analysis/cppcheck-authoring-final-<構成>.txt`に保存します。構成を指定しない解析はJSONライブラリの未使用条件の組合せを検査して長時間化するため、実際のビルド条件を明示しています。
+
+修正後のCppcheck診断は3構成とも0件です。値渡しによるコピー、構造体の既定値、重複条件、検証・変換ループを見直しました。シェーダーincludeは保持用コンテナーへ格納してから呼び出し元へポインターを返します。DLLの寿命を保持する`ModuleCallback::lifetime`は削除せず、用途をコメントに記載して当該メンバーの`unusedStructMember`誤検出だけを抑制しています。
+
+Lizard 1.23.0の基準は分岐数15・行数100・引数数8です。これを超える関数は修正前130、修正後129で、`generated/analysis/lizard-authoring-final.txt`に全件を記録します。UI項目・JSON種別の分岐、既存描画APIの引数などへの保守性の注意であり、これだけで実行不具合を示すものではありません。閾値の超過は残るため、スクリプトの終了はLizardの注意を理由に失敗として報告します。Cppcheckの診断とは別の結果です。
+
+AuthoringSettingsValidationは全既存シーンの保存復元、物理・影・ビュー品質・入力・シェーダー設定、海の品質・形状、追加型付きデータ、任意のAnimation時計と対象、Editor Playのメニュー保存・復元・失敗表示、共通重力の実行反映を検証します。ReviewRegressionValidationの通常実行と`WP1_AUTHORING_ONLY=1`に含まれます。ParkAdventureValidationは変更したHP・UI文言・改名した参照対象・戻り先に加え、既存公園の通しプレイを確認します。OceanSunsetValidationは低品質設定・太陽光・シェーダー選択をD3D12描画で検証します。
+
+`WP1_ALL_SCENES_ONLY=1`を設定してParkAdventureValidationを実行すると、全25既存シーンを個別に保存・再読込・初期化し、6フレームずつ物理・ゲーム処理・アニメーション・音声・GPU描画を実行します。実行中の警告・エラーとD3D12のエラーも検査し、元のシーンが変更されていないことを確認します。長い操作シーケンスは公園の通しプレイと個別機能の回帰検証で補います。
+
 ScriptModuleValidationはモジュール単位の登録、名前競合と不正設定時の既存登録保持、ソース作成と上書き拒否をScriptValidationに含めます。
 実DLLの確認は `WP1_SCRIPT_MODULE_SETUP=1` で検証用ソースを作成し、`scripts/BuildScripts.ps1 -Configuration Debug -Content generated/tests/native-script-project/Content` でコンパイルした後、`WP1_SCRIPT_MODULE_ONLY=1` で実行します。
 Releaseも同じ構成のDLLを用意します。ホストContextでの移動、再読み込み後の古いコールバックの寿命、ABI不一致・パス逸脱・読み込み失敗時の登録保持を検証します。

@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <string>
+#include <optional>
 
 namespace SceneRuntime
 {
@@ -54,6 +55,38 @@ namespace SceneRuntime
         float size=1;
         bool operator==(const CloudBank&) const = default;
     };
+    /// <summary>メートル・秒・度で保存する、カメラに追従した海と夕空の環境。</summary>
+    struct OceanSkySettings
+    {
+        float sunElevation=1.4f, sunAzimuth=250.0f, sunDiameter=0.533f;
+        float refractiveIndex=1.333f, seaLevel=0, waveAmplitude=0.075f, wavePeriod=4.5f;
+        float cloudCoverage=0.56f, cloudSpeed=4.0f, haze=1.0f;
+        float cloudBase=1000, cloudThickness=1300, cloudExtinction=.004f;
+        float ozoneStrength=1, cloudAnisotropy=.65f;
+        std::array<float,3> waterColor{0.018f,0.045f,0.065f};
+        unsigned int atmosphereSteps=16;
+        unsigned int solarSteps=8;
+        unsigned int cloudSteps=24;
+        unsigned int cloudLightSteps=4;
+        unsigned int waveCount=9;
+        unsigned int seaSteps=18;
+        unsigned int seaRefineSteps=12;
+        float solarIntensity=20.0f;
+        float waveDirection=0.7f;
+        float waveSpread=2.39996323f;
+        float wavePeriodRatio=0.72f;
+        float waveAmplitudeRatio=0.42f;
+        float wavePhase=4.13f;
+        float cloudScale=0.00045f;
+        float traceDistance=120000.0f;
+        float cloudDistance=60000.0f;
+        std::array<float,3> solarColor{1.0f,1.0f,1.0f};
+        std::array<float,2> cloudWind{1.0f,0.23f};
+        std::array<float,3> cloudNoiseWeights{0.63f,0.25f,0.12f};
+        std::array<float,3> cloudNoiseFrequencies{1.0f,2.17f,4.63f};
+        std::array<float,3> cloudNoiseOffsets{0.0f,13.7f,37.1f};
+        bool operator==(const OceanSkySettings&) const = default;
+    };
     struct SkyComponent
     {
         std::string id="sky";
@@ -71,6 +104,7 @@ namespace SceneRuntime
         std::array<CloudBank,3> clouds{{{{0.20f,0.24f},1.05f},{{0.51f,0.12f},0.85f},{{0.90f,0.31f},1.20f}}};
         std::array<float,2> cloudVelocity{}; // UV per second; zero keeps clouds stationary.
         float referenceAspect=16.0f/9.0f;
+        std::optional<OceanSkySettings> ocean;
         bool operator==(const SkyComponent&) const = default;
     };
     struct ParticleEmitterComponent

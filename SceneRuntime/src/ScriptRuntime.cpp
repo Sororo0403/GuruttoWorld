@@ -106,7 +106,7 @@ namespace
         size_t remaining=4096; ScriptValue{script.data}.Validate(0,remaining);
         for (const auto& [name,value]:script.data) {
             const auto field=definition.dataFields.find(name);
-            if (field==definition.dataFields.end() || field->second.value.index()!=value.value.index())
+            if (field!=definition.dataFields.end() && field->second.value.index()!=value.value.index())
                 throw std::runtime_error("Unknown or incompatible script data field: "+name);
         }
         for (const auto& [name,field] : definition.fields)

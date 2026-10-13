@@ -59,10 +59,11 @@ namespace AnimationValidation
         UiValidation::Require(session.Play(renderer,root,layout,error),"animated scene initializes in Editor");
         UiValidation::Require(session.Runtime()->MovePlayers(0.1,1,1),"player movement accepted");
         const auto moved=session.Runtime()->World().Layout().objects.back().position;
-        UiValidation::Require(std::abs(std::hypot(moved[0],moved[2])-0.5f)<0.0001f,"diagonal player movement normalized");
+        const float maximumDistance=player.playerController->moveSpeed*static_cast<float>(session.Runtime()->World().PhysicsStepSeconds()*layout.settings.maximumFixedSteps);
+        UiValidation::Require(std::abs(std::hypot(moved[0],moved[2])-maximumDistance)<0.0001f,"diagonal player movement normalized");
         UiValidation::Require(!session.Runtime()->MovePlayers(-1,1,0),"negative movement time rejected");
         UiValidation::Require(session.Runtime()->MovePlayers(10,0,1),"long player tick accepted");
-        UiValidation::Require(std::abs(session.Runtime()->World().Layout().objects.back().position[2]-moved[2]-0.5f)<0.0001f,"long player tick capped");
+        UiValidation::Require(std::abs(session.Runtime()->World().Layout().objects.back().position[2]-moved[2]-maximumDistance)<0.0001f,"long player tick capped");
         session.Runtime()->SeekAnimation(0.5f,0.5f);
         UiValidation::Require(session.Runtime()->CameraPosition()==std::array<float,3>{2,1,-9},"camera keyframe preview");
         session.Pause();

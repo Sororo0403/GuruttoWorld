@@ -1,4 +1,6 @@
 #pragma once
+#include <iterator>
+#include <algorithm>
 #include <SceneRuntime/SceneLayout.h>
 #include <Engine/Core/Json.h>
 #include <cmath>
@@ -42,10 +44,10 @@ namespace SceneRuntime
         } else if(type=="Slider") {
             ReadUiControlAs(object,p.slider); const auto& c=*p.slider;
             if(c.minimum>=c.maximum || c.value<c.minimum || c.value>c.maximum) throw std::runtime_error("Invalid Slider range");
-            for(const auto value:c.fillColor) if(value<0 || value>1) throw std::runtime_error("Invalid Slider color");
+            if (std::any_of(std::begin(c.fillColor),std::end(c.fillColor),[](const auto value) {return value<0 || value>1;})) throw std::runtime_error("Invalid Slider color");
         } else if(type=="Toggle") {
             ReadUiControlAs(object,p.toggle);
-            for(const auto value:p.toggle->checkedColor) if(value<0 || value>1) throw std::runtime_error("Invalid Toggle color");
+            if (std::any_of(std::begin(p.toggle->checkedColor),std::end(p.toggle->checkedColor),[](const auto value) {return value<0 || value>1;})) throw std::runtime_error("Invalid Toggle color");
         } else if(type=="ScrollView") {
             ReadUiControlAs(object,p.scrollView); const auto& c=*p.scrollView;
             if(c.contentSize[0]<0 || c.contentSize[1]<0 || c.offset[0]<0 || c.offset[1]<0 || c.wheelSpeed<0) throw std::runtime_error("Invalid ScrollView size");
@@ -55,9 +57,9 @@ namespace SceneRuntime
             ReadUiControlAs(object,p.layoutGroup); const auto& c=*p.layoutGroup;
             if(c.direction!="horizontal" && c.direction!="vertical" && c.direction!="grid") throw std::runtime_error("Invalid layout direction");
             if(!object.at("columns").is_number_integer() || c.columns<1 || c.columns>1024) throw std::runtime_error("Invalid grid columns");
-            for(const auto value:c.spacing) if(value<0) throw std::runtime_error("Negative layout spacing");
-            for(const auto value:c.padding) if(value<0) throw std::runtime_error("Negative layout padding");
-            for(const auto value:c.cellSize) if(value<=0) throw std::runtime_error("Invalid grid cell size");
+            if (std::any_of(std::begin(c.spacing),std::end(c.spacing),[](const auto value) {return value<0;})) throw std::runtime_error("Negative layout spacing");
+            if (std::any_of(std::begin(c.padding),std::end(c.padding),[](const auto value) {return value<0;})) throw std::runtime_error("Negative layout padding");
+            if (std::any_of(std::begin(c.cellSize),std::end(c.cellSize),[](const auto value) {return value<=0;})) throw std::runtime_error("Invalid grid cell size");
         } else return false;
         return true;
     }

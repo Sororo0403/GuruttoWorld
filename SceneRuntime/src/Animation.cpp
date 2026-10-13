@@ -8,9 +8,9 @@ namespace
     bool ValidConfiguration(const SceneRuntime::AnimationTrack& track)
     {
         using namespace std::literals;
-        constexpr std::array properties{"position"sv,"rotation"sv,"uiPosition"sv,"uiSize"sv,"uiRotation"sv,"opacity"sv};
+        const auto properties=SceneRuntime::Animation::Properties();
         constexpr std::array easings{"linear"sv,"smooth"sv,"outCubic"sv,"outBack"sv};
-        if (std::find(properties.begin(),properties.end(),track.property)==properties.end() ||
+        if (std::none_of(properties.begin(),properties.end(),[&](const auto& p){return track.property==p.name;}) ||
             std::find(easings.begin(),easings.end(),track.easing)==easings.end()) return false;
         return !track.clock.empty() && track.clock.size()<=128 &&
             track.clock.find_first_of("=&\0",0,3)==std::string::npos &&
@@ -20,10 +20,12 @@ namespace
     bool ValidValue(const SceneRuntime::AnimationKey& key,const std::string& property)
     {
         if (!std::all_of(key.value.begin(),key.value.end(),[](float value) {
-            return std::isfinite(value) && std::abs(value)<=100000;
+            return std::isfinite(value) && std::abs(value)<=1000000;
         })) return false;
-        if (property=="uiSize") return key.value[0]>=0 && key.value[1]>=0;
-        if (property=="opacity") return key.value[0]>=0 && key.value[0]<=1;
+        const auto properties=SceneRuntime::Animation::Properties();
+        const auto info=std::find_if(properties.begin(),properties.end(),[&](const auto& p){return property==p.name;});
+        if(info==properties.end()) return false;
+        for(unsigned int i=0;i<info->channels;++i) if(key.value[i]<info->minimum || key.value[i]>info->maximum || (property=="scale" && std::abs(key.value[i])<.00001f)) return false;
         return true;
     }
 }

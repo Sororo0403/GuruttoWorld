@@ -123,6 +123,14 @@ namespace SceneRuntime
     };
     struct SceneSettings
     {
+        std::array<float,3> gravity{0,-20,0};
+        float fixedStep=1.0f/60.0f;
+        unsigned int maximumFixedSteps=4;
+        unsigned int shadowResolution=2048,localShadowResolution=512;
+        float sceneRenderScale=1,gameRenderScale=1;
+        bool sceneRealtime=true,gameRealtime=true;
+        std::filesystem::path skyShader,oceanShader,particleShader,postShader;
+        std::array<std::string,5> playerInputs{"MoveRight","MoveLeft","MoveForward","MoveBack","Jump"};
         std::array<float,4> background{0.66f,0.79f,0.83f,1};
         std::string mainCamera;
         FogSettings fog;

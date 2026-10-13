@@ -42,6 +42,13 @@ namespace Editor
             if (document.Dirty()) ImGui::TextUnformatted("Materialに未保存の変更があります。");
             if (document.Conflict()) ImGui::TextWrapped("外部の変更と競合しています。再読み込みでは編集中の値を破棄します。");
             ImGui::BeginDisabled(!enabled || !document.Loaded() || !error_.empty());
+            if(ImGui::BeginCombo("メッシュシェーダー###Mesh shader",asset_.shader.empty()?"標準":ProjectCatalog::Text(asset_.shader).c_str())) {
+                if(ImGui::Selectable("標準###Default",asset_.shader.empty())) asset_.shader.clear();
+                for(const auto& entry:catalog.Assets()) if(entry.kind==AssetKind::Shader && entry.path.extension()==".hlsl")
+                    if(ImGui::Selectable(ProjectCatalog::Text(entry.path).c_str(),asset_.shader==entry.path)) asset_.shader=entry.path;
+                ImGui::EndCombo();
+            }
+            ImGui::TextWrapped("シェーダーはMesh.hlslと同じ頂点入力・定数・テクスチャのインターフェースを使用してください。");
             ImGui::ColorEdit4("色・透明度###Material color",asset_.values.color.data());
             ImGui::SliderFloat("粗さ###Roughness",&asset_.values.roughness,0.04f,1,"%.2f");
             ImGui::SliderFloat("金属感###Metallic",&asset_.values.metallic,0,1,"%.2f");

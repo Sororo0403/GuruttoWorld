@@ -1,4 +1,5 @@
 #include "AudioJson.h"
+#include <iterator>
 #include <cmath>
 #include <algorithm>
 #include <set>
@@ -74,7 +75,7 @@ void WriteAudioComponents(Json& array,const ScenePlacement& p) {
     if(p.audioListener) {const auto& c=*p.audioListener; auto o=Base(c.id,c.enabled,"AudioListener"); o["volume"]=c.volume; array.push_back(std::move(o));}
     if(p.audioMixer) {
         const auto& c=*p.audioMixer; auto o=Base(c.id,c.enabled,"AudioMixer"); auto groups=Json::array();
-        for(const auto& g:c.groups) groups.push_back({{"name",g.name},{"volumeBinding",g.volumeBinding},{"volume",g.volume},{"lowPass",g.lowPass},{"reverb",g.reverb},{"mute",g.mute}});
+        std::transform(c.groups.begin(),c.groups.end(),std::back_inserter(groups),[](const auto& g) {return Json{{"name",g.name},{"volumeBinding",g.volumeBinding},{"volume",g.volume},{"lowPass",g.lowPass},{"reverb",g.reverb},{"mute",g.mute}};});
         o["groups"]=std::move(groups); array.push_back(std::move(o));
     }
 }

@@ -1,6 +1,9 @@
 #pragma once
+#include <array>
+#include <iterator>
 #include <Engine/Core/Profiler.h>
 #include <Engine/Graphics/Materials/Material.h>
+#include <Engine/Graphics/Renderers/MeshResources.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <fstream>
@@ -17,6 +20,7 @@ namespace SceneRuntime
         std::filesystem::path texture;
         std::filesystem::path normalTexture;
         std::filesystem::path environmentTexture,lightmap;
+        std::filesystem::path shader;
         static bool ValidPath(const std::filesystem::path& path)
         {
             const auto utf8=path.generic_u8string(); const std::string value(utf8.begin(),utf8.end());
@@ -25,7 +29,9 @@ namespace SceneRuntime
         }
         void Validate() const
         {
-            for (const float channel : values.color) if (!std::isfinite(channel) || channel<0 || channel>1) throw std::runtime_error("Invalid material color");
+            if(!shader.empty() && (shader.is_absolute() || shader.has_root_name() || !shader.generic_u8string().starts_with(u8"Shaders/") || shader.extension()!=".hlsl" ||
+                std::any_of(shader.begin(),shader.end(),[](const auto& part){return part=="..";}))) throw std::runtime_error("Invalid material shader path");
+            if (std::any_of(std::begin(values.color),std::end(values.color),[](const float channel) {return !std::isfinite(channel) || channel<0 || channel>1;})) throw std::runtime_error("Invalid material color");
             if (!std::isfinite(values.roughness) || values.roughness<0.04f || values.roughness>1 ||
                 !std::isfinite(values.metallic) || values.metallic<0 || values.metallic>1) throw std::runtime_error("Invalid material surface");
             if (!std::isfinite(values.environmentIntensity) || values.environmentIntensity<0 || values.environmentIntensity>100) throw std::runtime_error("Invalid environment intensity");
@@ -35,8 +41,8 @@ namespace SceneRuntime
                 if (!image.empty() && (image.is_absolute() || image.has_root_name() || !path.starts_with("Assets/Textures/") ||
                     std::any_of(image.begin(),image.end(),[](const auto& part) { return part==".."; }))) throw std::runtime_error("Invalid material texture path");
             }
-            for (const auto value : {values.uv.scale[0],values.uv.scale[1],values.uv.rotation,values.uv.translation[0],values.uv.translation[1]})
-                if (!std::isfinite(value) || std::abs(value)>100000) throw std::runtime_error("Invalid material UV transform");
+            const auto validationValues1=std::array{values.uv.scale[0],values.uv.scale[1],values.uv.rotation,values.uv.translation[0],values.uv.translation[1]};
+            if (std::any_of(validationValues1.begin(),validationValues1.end(),[](const auto value) {return !std::isfinite(value) || std::abs(value)>100000;})) throw std::runtime_error("Invalid material UV transform");
         }
         static MaterialAsset Load(const std::filesystem::path& root,const std::filesystem::path& path,const Engine::AssetDatabase* assetIndex=nullptr)
         {
@@ -46,6 +52,7 @@ namespace SceneRuntime
             if(assetIndex) assetIndex->References(json);
             else { Engine::CpuScope scope("Material asset database scan"); Engine::AssetDatabase(root).References(json); }
             MaterialAsset asset;
+            const auto shader=json.value("shader",std::string{});asset.shader=std::filesystem::path(std::u8string(shader.begin(),shader.end()));
             const auto& color=Engine::JsonArray(json.at("color")); if (color.size()!=4) throw std::runtime_error("Material color needs four channels");
             for (size_t index=0;index<4;++index) asset.values.color[index]=static_cast<float>(Engine::JsonNumber(color[index]));
             asset.values.roughness=static_cast<float>(Engine::JsonNumber(json.at("roughness")));
@@ -76,8 +83,9 @@ namespace SceneRuntime
         void Save(const std::filesystem::path& root,const std::filesystem::path& path) const
         {
             Validate();
-            for (const auto& image : {texture,normalTexture,environmentTexture,lightmap})
-                if (!image.empty() && !std::filesystem::is_regular_file(root/image)) throw std::runtime_error("Material texture does not exist");
+            if(!shader.empty() && !std::filesystem::is_regular_file(root/shader)) throw std::runtime_error("Material shader does not exist");
+            const auto validationValues2=std::array{texture,normalTexture,environmentTexture,lightmap};
+            if (std::any_of(validationValues2.begin(),validationValues2.end(),[&root](const auto& image) {return !image.empty() && !std::filesystem::is_regular_file(root/image);})) throw std::runtime_error("Material texture does not exist");
             if (!ValidPath(path)) throw std::runtime_error("Invalid material path");
             std::filesystem::create_directories((root/path).parent_path());
             const auto text=texture.generic_u8string();
@@ -88,6 +96,7 @@ namespace SceneRuntime
                 {"normalTexture",std::string(normal.begin(),normal.end())},
                 {"environmentTexture",environmentTexture},{"environmentIntensity",values.environmentIntensity},{"lightmap",lightmap},
                 {"uv",{{"scale",values.uv.scale},{"rotation",values.uv.rotation},{"translation",values.uv.translation}}}};
+            if(!shader.empty()) {const auto bytes=shader.generic_u8string();json["shader"]=std::string(bytes.begin(),bytes.end());}
             Engine::AssetDatabase(root).References(json);
             auto temporary=root/path; temporary+=".tmp";
             std::ofstream output(temporary,std::ios::binary|std::ios::trunc); output<<json.dump(2)<<'\n'; output.close();
@@ -97,6 +106,11 @@ namespace SceneRuntime
         std::shared_ptr<const Engine::Material> Prepare(ID3D12Device* device,ID3D12CommandQueue* queue,const std::filesystem::path& root) const
         {
             Validate(); auto result=std::make_shared<Engine::Material>(values);
+            if(!shader.empty()) {
+                auto resources=std::make_shared<Engine::MeshResources>();
+                if(!resources->Initialize(device,root/shader,queue)) throw std::runtime_error("Cannot initialize material shader (Mesh shader interface required)");
+                result->shaderResources=std::move(resources);
+            }
             if (!texture.empty())
             {
                 auto image=std::make_shared<Engine::Texture2D>();
@@ -109,8 +123,7 @@ namespace SceneRuntime
                 if (!image->Initialize(device,queue,root/normalTexture)) throw std::runtime_error("Cannot load material normal texture");
                 result->normalTexture=std::move(image);
             }
-            for (const auto& entry : {std::pair{environmentTexture,&result->environmentTexture},std::pair{lightmap,&result->lightmap}})
-                if (!entry.first.empty())
+            for (const auto& entry:{std::pair{environmentTexture,&result->environmentTexture},std::pair{lightmap,&result->lightmap}}) if (!entry.first.empty())
                 {
                     auto image=std::make_shared<Engine::Texture2D>();
                     if (!image->Initialize(device,queue,root/entry.first)) throw std::runtime_error("Cannot load material lighting texture");

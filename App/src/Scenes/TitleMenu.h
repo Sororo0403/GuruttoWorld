@@ -1,113 +1,17 @@
 #pragma once
 #include "GameSettings.h"
-#include <string_view>
-#include <vector>
-#include <SceneRuntime/MenuConfiguration.h>
-#include <map>
-
-namespace App
-{
-    enum class TitleMenuCue { None, Select, Confirm, Back, Error };
-    enum class TitleMenuItem { Start, Settings, Exit };
-    enum class TitleMenuAction { None, Start, Exit, SaveSettings };
-    enum TitleMenuButton : unsigned int { MenuUp = 1, MenuDown = 2, MenuConfirm = 4, MenuLeft = 8, MenuRight = 16, MenuBack = 32 };
-
-    struct TitleMenuInput
-    {
-        bool active = false;
-        bool gamepadConnected = false;
-        unsigned int keyboardButtons = 0;
-        unsigned int gamepadButtons = 0;
-        float stickY = 0.0f;
-        float stickX = 0.0f;
-        bool anyButtonPressed = false;
-    };
-
-    class TitleMenu final
-    {
-    public:
-        /// <summary>初回だけ登場演出を有効にします。</summary>
-        explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false, bool twoItems = false)
-            : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton)
-        { if(twoItems) items_.pop_back(); LoadSettings({}); }
-        /// <summary>ポインターの選択を反映します。設定中・開始中は変更しません。</summary>
-        void SelectUi(TitleMenuItem item);
-        bool UsesPressAnyButton() const { return pressAnyButton_; }
-        /// <summary>登場演出の進行率を返します。</summary>
-        float IntroProgress() const { return introSeconds_ / introDuration_; }
-        /// <summary>選択時の強調量を返します。</summary>
-        float SelectionPulse() const { return selectionSeconds_ / selectionDuration_; }
-        /// <summary>画面遷移の進行率を返します。</summary>
-        float TransitionProgress() const { return transitionSeconds_ / transitionDuration_; }
-        /// <summary>シーンに保存した開始演出の長さを設定します。不正値は無視します。</summary>
-        void SetTransitionDuration(float seconds);
-        void SetPresentationDurations(float intro, float selection);
-        void SetItems(std::vector<TitleMenuItem> items);
-        void Configure(SceneRuntime::MenuConfiguration configuration);
-        const SceneRuntime::MenuConfiguration& Configuration() const { return configuration_; }
-        const SceneRuntime::MenuEntry* SelectedEntry() const;
-        const std::map<std::string,float>& SettingValues() const { return draft_.values; }
-        const std::string& PendingTarget() const { return pendingTarget_; }
-        bool TakeAssignments(std::string& result) { result=std::move(assignments_); assignments_.clear(); return !result.empty(); }
-        void LoadSettings(const GameSettings& settings);
-        /// <summary>
-        /// 入力の立ち上がりで選択・決定します。初回・復帰・接続直後の押下は抑止します。
-        /// </summary>
-        TitleMenuAction Update(const TitleMenuInput& input, double deltaSeconds = 0.0);
-        TitleMenuAction ActivateUi(std::string_view event);
-        /// <summary>
-        /// 現在の選択項目を返します。
-        /// </summary>
-        TitleMenuItem GetSelected() const { return selected_; }
-        /// <summary>
-        /// 最後に操作した入力がゲームパッドかを返します。
-        /// </summary>
-        bool UsesGamepad() const { return usesGamepad_; }
-        /// <summary>設定画面を表示中か返します。</summary>
-        bool IsSettingsOpen() const { return settingsOpen_; }
-        /// <summary>設定画面の選択行を返します。</summary>
-        int GetSettingsRow() const { return settingsRow_; }
-        /// <summary>編集中の設定を返します。</summary>
-        const GameSettings& GetSettings() const { return draft_; }
-        /// <summary>この更新で発生した操作音を返します。</summary>
-        TitleMenuCue GetCue() const { return cue_; }
-        /// <summary>保存済み設定を読み込みます。</summary>
-        /// <summary>保存成功時だけ設定画面を閉じます。</summary>
-        void CompleteSave(bool success) { cue_ = success ? TitleMenuCue::Confirm : TitleMenuCue::Error; saveFailed_ = !success; if (success) { saved_ = draft_; settingsOpen_ = false; } }
-        /// <summary>保存に失敗したか返します。</summary>
-        bool SaveFailed() const { return saveFailed_; }
-    private:
-        SceneRuntime::MenuConfiguration configuration_=SceneRuntime::DefaultMenuConfiguration();
-        std::string pendingTarget_, assignments_;
-        void ChangeSetting(int direction, bool confirm);
-        TitleMenuAction UpdateTransition(float elapsed);
-        void MoveSelection(unsigned int direction);
-        unsigned int ReadPressedButtons(const TitleMenuInput& input);
-        TitleMenuAction UpdateSettings(unsigned int pressed);
-        TitleMenuAction UpdateMainMenu(unsigned int pressed);
-        TitleMenuCue cue_ = TitleMenuCue::None;
-        float introSeconds_ = 0.65f;
-        float introDuration_=0.65f, selectionDuration_=0.16f;
-        float selectionSeconds_ = 0.0f;
-        float transitionSeconds_ = 0.0f;
-        float transitionDuration_ = 0.32f;
-        TitleMenuAction pending_ = TitleMenuAction::None;
-        bool transitionEmitted_ = false;
-        GameSettings saved_;
-        GameSettings draft_;
-        int settingsRow_ = 0;
-        bool settingsOpen_ = false;
-        bool saveFailed_ = false;
-        unsigned int stickXPrevious_ = 0;
-        TitleMenuItem selected_ = TitleMenuItem::Start;
-        unsigned int keyboardPrevious_ = 0;
-        unsigned int gamepadPrevious_ = 0;
-        unsigned int stickPrevious_ = 0;
-        bool ready_ = false;
-        bool connectedPrevious_ = false;
-        bool usesGamepad_ = false;
-        bool finished_ = false;
-        bool pressAnyButton_ = false;
-        std::vector<TitleMenuItem> items_{TitleMenuItem::Start,TitleMenuItem::Settings,TitleMenuItem::Exit};
-    };
+#include <SceneRuntime/TitleMenu.h>
+namespace App {
+using SceneRuntime::TitleMenu;
+using SceneRuntime::TitleMenuCue;
+using SceneRuntime::TitleMenuItem;
+using SceneRuntime::TitleMenuAction;
+using SceneRuntime::TitleMenuButton;
+using SceneRuntime::TitleMenuInput;
+using SceneRuntime::MenuUp;
+using SceneRuntime::MenuDown;
+using SceneRuntime::MenuConfirm;
+using SceneRuntime::MenuLeft;
+using SceneRuntime::MenuRight;
+using SceneRuntime::MenuBack;
 }

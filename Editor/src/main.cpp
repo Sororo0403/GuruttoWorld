@@ -131,10 +131,11 @@ namespace
                     pendingUiEvent=*event;
                 if (input) gameSession.Runtime()->SetInputActions(playerInputs.Values(),playerInputs.PressedValues());
                 else gameSession.Runtime()->SetInputActions({},{});
+                const auto& mapping=gameSession.Runtime()->World().Layout().settings.playerInputs;
                 gameSession.Runtime()->MovePlayers(seconds,
-                    input ? playerInputs.Value("MoveRight")-playerInputs.Value("MoveLeft") : 0,
-                    input ? playerInputs.Value("MoveForward")-playerInputs.Value("MoveBack") : 0,
-                    input && playerInputs.Pressed("Jump"));
+                    input ? playerInputs.Value(mapping[0])-playerInputs.Value(mapping[1]) : 0,
+                    input ? playerInputs.Value(mapping[2])-playerInputs.Value(mapping[3]) : 0,
+                    input && playerInputs.Pressed(mapping[4]));
             }
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             if(gameSession.State().IsEditing()) recovery.Poll(RecoveryDirectory(),document.Path(),SceneJson(),sceneLoaded && editState.HasChanges(),seconds);
@@ -149,6 +150,11 @@ namespace
             return rendered ? result : Engine::RenderResult::Failed;
         }
 
+        static bool RefreshViewport(bool valid,bool changed,bool realtime,bool focused)
+        {
+            return valid && (changed || realtime || focused);
+        }
+
         bool RenderViews(ID3D12GraphicsCommandList* commands, const Engine::DirectX12Renderer& renderer)
         {
             if (preview)
@@ -157,8 +163,11 @@ namespace
                 return true;
             }
             bool success=projectPanel.RenderPreview(commands);
-            if (sceneViewport.Valid()) success=DrawSceneTexture(commands) && success;
-            if (gamePanel.Viewport().Valid()) success=DrawGameTexture(commands) && success;
+            const auto signature=std::to_string(world.RenderVersion())+","+std::to_string(reinterpret_cast<uintptr_t>(gameSession.Runtime()))+","+std::to_string(sceneTexture.GetWidth())+","+std::to_string(sceneTexture.GetHeight())+","+std::to_string(gameTexture.GetWidth())+","+std::to_string(gameTexture.GetHeight());
+            const bool refresh=signature!=viewSignature;
+            viewSignature=signature;
+            if (RefreshViewport(sceneViewport.Valid(),refresh,DisplayedWorld().Layout().settings.sceneRealtime,scenePanel.Focused())) success=DrawSceneTexture(commands) && success;
+            if (RefreshViewport(gamePanel.Viewport().Valid(),refresh,DisplayedWorld().Layout().settings.gameRealtime,gamePanel.Focused())) success=DrawGameTexture(commands) && success;
             if (uiEditorPanel.Visible() && presentation) {
                 if (!uiTexture.Begin(commands,{.12f,.12f,.14f,1})) return false;
                 presentation->DrawUi(commands,world.Layout(),uiTexture.GetWidth(),uiTexture.GetHeight(),uiEditorPanel.PreviewState());
@@ -182,8 +191,10 @@ namespace
         bool PrepareSceneTexture(Engine::DirectX12Renderer& renderer)
         {
             if (!requestedSceneSize[0] || !requestedSceneSize[1]) return true;
-            if (sceneTexture.GetWidth() == requestedSceneSize[0] && sceneTexture.GetHeight() == requestedSceneSize[1]) return true;
-            if (!sceneTexture.Resize(renderer, requestedSceneSize[0], requestedSceneSize[1]))
+            const auto scale=DisplayedWorld().Layout().settings.sceneRenderScale;
+            const unsigned int width=std::max(1U,static_cast<unsigned int>(requestedSceneSize[0]*scale)),height=std::max(1U,static_cast<unsigned int>(requestedSceneSize[1]*scale));
+            if (sceneTexture.GetWidth() == width && sceneTexture.GetHeight() == height) return true;
+            if (!sceneTexture.Resize(renderer, width, height))
             {
                 ReportStatus("シーンの描画テクスチャをリサイズできませんでした。",false);
                 return sceneTexture.GetResource() != nullptr;
@@ -195,8 +206,10 @@ namespace
         bool PrepareGameTexture(Engine::DirectX12Renderer& renderer)
         {
             if (!requestedGameSize[0] || !requestedGameSize[1]) return true;
-            if (gameTexture.GetWidth()==requestedGameSize[0] && gameTexture.GetHeight()==requestedGameSize[1]) return true;
-            if (!gameTexture.Resize(renderer,requestedGameSize[0],requestedGameSize[1]))
+            const auto scale=DisplayedWorld().Layout().settings.gameRenderScale;
+            const unsigned int width=std::max(1U,static_cast<unsigned int>(requestedGameSize[0]*scale)),height=std::max(1U,static_cast<unsigned int>(requestedGameSize[1]*scale));
+            if (gameTexture.GetWidth()==width && gameTexture.GetHeight()==height) return true;
+            if (!gameTexture.Resize(renderer,width,height))
             {
                 ReportStatus("ゲームの描画テクスチャをリサイズできませんでした。",false);
                 return gameTexture.GetResource()!=nullptr;
@@ -685,12 +698,12 @@ namespace
                 for (const auto& [name,binding] : playerInputs.GetBindings()) {
                     static_cast<void>(binding);
                     if (!playerInputs.Pressed(name)) continue;
-                    const auto object=SceneRuntime::SceneUi::Shortcut(runtime->World().Layout(),"action:"+name,static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),ui);
+                    const auto object=SceneRuntime::SceneUi::Shortcut(runtime->World().Layout(),"action:"+name,gameTexture.GetWidth(),gameTexture.GetHeight(),ui);
                     if (!object.empty()) { pendingUiEvent=runtime->Click(object); break; }
                 }
             }
             const bool inside=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered();
-            const auto event=runtime->UiPointer(static_cast<unsigned int>(v.width),static_cast<unsigned int>(v.height),inside?mouse.x-v.x:-100000,inside?mouse.y-v.y:-100000,
+            const auto event=runtime->UiPointer(gameTexture.GetWidth(),gameTexture.GetHeight(),inside?(mouse.x-v.x)*gameTexture.GetWidth()/v.width:-100000,inside?(mouse.y-v.y)*gameTexture.GetHeight()/v.height:-100000,
                 ImGui::IsMouseDown(ImGuiMouseButton_Left),ImGui::IsMouseClicked(ImGuiMouseButton_Left),ImGui::IsMouseReleased(ImGuiMouseButton_Left),inside?ImGui::GetIO().MouseWheel:0);
             if(!event.object.empty()) pendingUiEvent=event;
             if(gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
@@ -1301,6 +1314,7 @@ namespace
         Editor::AudioPreview audioPreview;
         Editor::UiCanvasPanel uiCanvasPanel;
         bool showSceneUi=true;
+        std::string viewSignature;
         Editor::UiEditorPanel uiEditorPanel;
         Engine::RenderTexture uiTexture;
         UINT64 uiTextureId=0;

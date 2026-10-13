@@ -1,4 +1,5 @@
 #include <Engine/Animation/Skeleton.h>
+#include <iterator>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -32,7 +33,7 @@ namespace Engine
     {
         if (!std::isfinite(seconds) || seconds<0) throw std::runtime_error("Invalid skeletal animation time");
         std::vector<BonePose> pose;
-        for (const auto& node : rig.nodes) pose.push_back(node.rest);
+        std::transform(rig.nodes.begin(),rig.nodes.end(),std::back_inserter(pose),[](const auto& node) {return node.rest;});
         if (name.empty()) return pose;
         const auto clip=std::find_if(rig.clips.begin(),rig.clips.end(),[&](const auto& value) { return value.name==name; });
         if (clip==rig.clips.end()) throw std::runtime_error("Unknown skeletal clip: "+name);
@@ -77,7 +78,7 @@ namespace Engine
                 DirectX::XMMatrixTranslation(value.position[0],value.position[1],value.position[2]);
             if (parent>=0) matrix=matrix*DirectX::XMLoadFloat4x4(&matrices[static_cast<size_t>(parent)]);
             DirectX::XMStoreFloat4x4(&matrices[node],matrix);
-            for (const auto& row : matrices[node].m) for (const float entry : row) if (!std::isfinite(entry)) throw std::runtime_error("Nonfinite skeleton matrix");
+            if(!FiniteMatrix(matrices[node])) throw std::runtime_error("Nonfinite skeleton matrix");
         }
         return matrices;
     }
@@ -115,9 +116,7 @@ namespace Engine
             if (!std::isfinite(determinant) || determinant==0) throw std::runtime_error("Singular skin transform");
             DirectX::XMStoreFloat4x4(&palette[index].position,matrix*scale);
             DirectX::XMStoreFloat4x4(&palette[index].normal,DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr,matrix)));
-            for (const auto* value : {&palette[index].position,&palette[index].normal})
-                for (const auto& row : value->m) for (const float entry : row)
-                    if (!std::isfinite(entry)) throw std::runtime_error("Nonfinite GPU skin matrix");
+            if(!FiniteMatrix(palette[index].position) || !FiniteMatrix(palette[index].normal)) throw std::runtime_error("Nonfinite GPU skin matrix");
         }
         return palette;
     }
@@ -153,8 +152,8 @@ namespace Engine
             DirectX::XMFLOAT3 outPosition,outNormal;
             DirectX::XMStoreFloat3(&outPosition,position); DirectX::XMStoreFloat3(&outNormal,DirectX::XMVector3Normalize(normal));
             result.vertices[vertex].position={outPosition.x*rig.importScale,outPosition.y*rig.importScale,outPosition.z*rig.importScale}; result.vertices[vertex].normal={outNormal.x,outNormal.y,outNormal.z};
-            for (float entry : result.vertices[vertex].position) if (!std::isfinite(entry)) throw std::runtime_error("Nonfinite skinned position");
-            for (float entry : result.vertices[vertex].normal) if (!std::isfinite(entry)) throw std::runtime_error("Nonfinite skinned normal");
+            if (std::any_of(std::begin(result.vertices[vertex].position),std::end(result.vertices[vertex].position),[](float entry) {return !std::isfinite(entry);})) throw std::runtime_error("Nonfinite skinned position");
+            if (std::any_of(std::begin(result.vertices[vertex].normal),std::end(result.vertices[vertex].normal),[](float entry) {return !std::isfinite(entry);})) throw std::runtime_error("Nonfinite skinned normal");
         }
         return result;
     }

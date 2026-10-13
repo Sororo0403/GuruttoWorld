@@ -6,6 +6,19 @@
 #include <numbers>
 #include <Engine/Core/Log.h>
 
+namespace
+{
+    template<class Cache,class Initialize>
+    bool PrepareRenderer(const std::filesystem::path& path,Cache& cache,Initialize initialize,std::string& error,const char* message)
+    {
+        if(path.empty() || cache.contains(path)) return true;
+        auto renderer=std::make_shared<typename Cache::mapped_type::element_type>();
+        if(!initialize(*renderer)) {error=message;return false;}
+        cache.emplace(path,std::move(renderer));
+        return true;
+    }
+}
+
 namespace SceneRuntime
 {
     bool ScenePresentation::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root, std::string& error)
@@ -15,12 +28,13 @@ namespace SceneRuntime
             !sky_.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/Sky.hlsl") ||
             !particles_.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/GlowParticle.hlsl"))
         { error="Scene sky or particle renderer could not be initialized"; return false; }
-        device_=renderer.GetDevice(); postShader_=root/"Shaders/PostEffects.hlsl";
+        root_=root;device_=renderer.GetDevice(); postShader_=root/"Shaders/PostEffects.hlsl";
+        queue_=renderer.GetCommandQueue(); environmentTexture_=texture; oceanShader_=root/"Shaders/OceanSunset.hlsl";
         error.clear();
         return true;
     }
     void ScenePresentation::DrawSky(ID3D12GraphicsCommandList* commands, const SceneLayout& layout,
-        unsigned int width, unsigned int height, double seconds) const
+        unsigned int width, unsigned int height, double seconds,const Engine::Camera* camera) const
     {
         const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[](const auto& object) {
             return object.sky && object.sky->enabled;
@@ -29,6 +43,43 @@ namespace SceneRuntime
         const auto& sky=*found->sky;
         Engine::SpriteDrawParameters parameters;
         parameters.size={static_cast<float>(width),static_cast<float>(height)};
+        if (sky.ocean && camera && oceanReady_)
+        {
+            using namespace DirectX;
+            const auto& ocean=*sky.ocean;
+            XMFLOAT4X4 basis,projection;
+            XMStoreFloat4x4(&basis,XMMatrixInverse(nullptr,camera->GetViewMatrix()));
+            XMStoreFloat4x4(&projection,camera->GetProjectionMatrix());
+            auto& values=parameters.pixelConstants;
+            const auto put=[&](size_t offset,const std::array<float,3>& rgb,float last) {
+                std::copy(rgb.begin(),rgb.end(),values.begin()+offset); values[offset+3]=last;
+            };
+            put(0,camera->GetPosition(),static_cast<float>(seconds));
+            put(4,{basis._11,basis._12,basis._13},1.0f/projection._11);
+            put(8,{basis._21,basis._22,basis._23},1.0f/projection._22);
+            put(12,{basis._31,basis._32,basis._33},ocean.seaLevel);
+            constexpr float radians=std::numbers::pi_v<float>/180.0f;
+            const float elevation=ocean.sunElevation*radians,azimuth=ocean.sunAzimuth*radians;
+            put(16,{std::sin(azimuth)*std::cos(elevation),std::sin(elevation),std::cos(azimuth)*std::cos(elevation)},ocean.sunDiameter*radians*0.5f);
+            put(20,{ocean.cloudBase,ocean.cloudThickness,ocean.cloudExtinction},ocean.haze);
+            put(24,{ocean.ozoneStrength,ocean.cloudAnisotropy,0},ocean.waveAmplitude);
+            put(28,ocean.waterColor,ocean.wavePeriod);
+            values[32]=ocean.cloudCoverage; values[33]=ocean.cloudSpeed;
+            values[34]=ocean.refractiveIndex; values[35]=sky.cloudOpacity;
+            values[36]=static_cast<float>(ocean.atmosphereSteps);values[37]=static_cast<float>(ocean.solarSteps);
+            values[38]=static_cast<float>(ocean.cloudSteps);values[39]=static_cast<float>(ocean.cloudLightSteps);
+            values[40]=static_cast<float>(ocean.waveCount);values[41]=static_cast<float>(ocean.seaSteps);
+            values[42]=static_cast<float>(ocean.seaRefineSteps);values[43]=ocean.solarIntensity;
+            put(44,{ocean.waveDirection,ocean.waveSpread,ocean.wavePeriodRatio},ocean.waveAmplitudeRatio);
+            put(48,{ocean.cloudScale,ocean.cloudWind[0],ocean.cloudWind[1]},ocean.wavePhase);
+            put(52,ocean.solarColor,ocean.traceDistance);
+            put(56,ocean.cloudNoiseWeights,ocean.cloudDistance);
+            put(60,ocean.cloudNoiseFrequencies,0);put(64,ocean.cloudNoiseOffsets,0);
+            parameters.color={projection._33,projection._43,0,1};
+            if(layout.settings.oceanShader.empty()) ocean_.Draw(commands,width,height,parameters);
+            else if(const auto pipeline=customOcean_.find(layout.settings.oceanShader);pipeline!=customOcean_.end()) pipeline->second->Draw(commands,width,height,parameters);
+            return;
+        }
         const float span=std::max(1.0f,sky.referenceAspect/(parameters.size[0]/parameters.size[1]));
         parameters.uvRect={0,0.5f-span*0.5f,1,0.5f+span*0.5f};
         auto& values=parameters.pixelConstants;
@@ -53,7 +104,8 @@ namespace SceneRuntime
             }
             values[offset+2]=sky.clouds[index].size;
         }
-        sky_.Draw(commands,width,height,parameters);
+        if(layout.settings.skyShader.empty()) sky_.Draw(commands,width,height,parameters);
+        else if(const auto pipeline=customSky_.find(layout.settings.skyShader);pipeline!=customSky_.end()) pipeline->second->Draw(commands,width,height,parameters);
     }
     std::array<float,4> ScenePresentation::Particle(const SceneWorld& world, const ScenePlacement& placement,
         unsigned int index, double seconds)
@@ -92,12 +144,35 @@ namespace SceneRuntime
                 XMFLOAT4X4 matrix;
                 XMStoreFloat4x4(&matrix,XMMatrixScaling(emitter.size,emitter.size,emitter.size)*billboard*
                     XMMatrixTranslation(particle[0],particle[1],particle[2])*viewProjection);
-                particles_.Draw(commands,matrix,{emitter.color[0],emitter.color[1],emitter.color[2],particle[3]});
+                const auto& shader=world.Layout().settings.particleShader;
+                if(shader.empty()) particles_.Draw(commands,matrix,{emitter.color[0],emitter.color[1],emitter.color[2],particle[3]});
+                else if(const auto found=customParticles_.find(shader);found!=customParticles_.end()) found->second->Draw(commands,matrix,{emitter.color[0],emitter.color[1],emitter.color[2],particle[3]});
             }
         }
     }
     bool ScenePresentation::PrepareEffects(const SceneLayout& layout,std::string& error) const
     {
+        const bool ocean=std::any_of(layout.objects.begin(),layout.objects.end(),[](const auto& object) {
+            return object.sky && object.sky->enabled && object.sky->ocean.has_value();
+        });
+        const auto sprite=[&](const auto& path,auto& cache,bool depth) {
+            return PrepareRenderer(path,cache,[&](auto& renderer) {
+                return renderer.Initialize(device_.Get(),queue_.Get(),environmentTexture_,root_/path,depth,depth);
+            },error,"Scene sprite shader could not be initialized");
+        };
+        if(!sprite(layout.settings.skyShader,customSky_,false) || (ocean && !sprite(layout.settings.oceanShader,customOcean_,true))) return false;
+        if(!PrepareRenderer(layout.settings.particleShader,customParticles_,[&](auto& renderer) {
+            return renderer.Initialize(device_.Get(),queue_.Get(),environmentTexture_,root_/layout.settings.particleShader);
+        },error,"Scene particle shader could not be initialized")) return false;
+        if(layout.settings.postEffects.enabled && !PrepareRenderer(layout.settings.postShader,customPost_,[&](auto& renderer) {
+            return renderer.Initialize(device_.Get(),root_/layout.settings.postShader);
+        },error,"Scene post effect shader could not be initialized")) return false;
+        if (ocean && !oceanReady_)
+        {
+            if (!ocean_.Initialize(device_.Get(),queue_.Get(),environmentTexture_,oceanShader_,true,true))
+            { error="Ocean sunset pipeline could not be initialized"; return false; }
+            oceanReady_=true;
+        }
         if (!layout.settings.postEffects.enabled || postEffects_.Ready()) return true;
         if (!postEffects_.Initialize(device_.Get(),postShader_)) { error="Post effect pipeline could not be initialized"; return false; }
         return true;
@@ -106,24 +181,31 @@ namespace SceneRuntime
         unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, double seconds, bool motionEnabled, const UiState* uiState, bool showSceneUi) const
     {
         if (!width || !height) return;
+        auto* post=&postEffects_;
+        if(!world.Layout().settings.postShader.empty()) {
+            const auto found=customPost_.find(world.Layout().settings.postShader);
+            if(found!=customPost_.end()) post=found->second.get();
+        }
         bool processing=false;
         if (world.Layout().settings.postEffects.enabled)
         {
             std::string error; auto clear=world.Layout().settings.background;
             for (size_t channel=0;channel<3;++channel)
                 clear[channel]=clear[channel]<=.04045f ? clear[channel]/12.92f : std::pow((clear[channel]+.055f)/1.055f,2.4f);
-            processing=PrepareEffects(world.Layout(),error) && postEffects_.Begin(commands,width,height,clear);
+            processing=PrepareEffects(world.Layout(),error) && post->Begin(commands,width,height,clear);
             if (!processing) Engine::Log::Warning(error.empty() ? "Post effect target could not be prepared" : error);
         }
-        { Engine::GpuScope gpu(commands,"Sky"); Engine::CpuScope cpu("Sky"); DrawSky(commands,world.Layout(),width,height,seconds); }
         Engine::Camera gameCamera;
-        if (sceneCamera || SceneView::Camera(world,float(width)/height,seconds,gameCamera))
+        const bool hasCamera=sceneCamera || SceneView::Camera(world,float(width)/height,seconds,gameCamera);
+        const auto* activeCamera=sceneCamera ? sceneCamera : hasCamera ? &gameCamera : nullptr;
+        { Engine::GpuScope gpu(commands,"Sky"); Engine::CpuScope cpu("Sky"); DrawSky(commands,world.Layout(),width,height,seconds,activeCamera); }
+        if (hasCamera)
         {
             const auto& camera=sceneCamera ? *sceneCamera : gameCamera;
             world.Draw(commands,camera,SceneView::Light(world),uiState);
             if (motionEnabled) { Engine::GpuScope gpu(commands,"Particles"); Engine::CpuScope cpu("Particles"); DrawParticles(commands,world,camera,seconds); }
         }
-        if (processing) { Engine::GpuScope gpu(commands,"Post effects"); Engine::CpuScope cpu("Post effects"); if (!postEffects_.End(commands,world.Layout().settings.postEffects)) Engine::Log::Warning("Post effect rendering failed"); }
+        if (processing) { Engine::GpuScope gpu(commands,"Post effects"); Engine::CpuScope cpu("Post effects"); if (!post->End(commands,world.Layout().settings.postEffects)) Engine::Log::Warning("Post effect rendering failed"); }
         if (sceneCamera) { Engine::GpuScope gpu(commands,"Scene UI"); Engine::CpuScope cpu("Scene UI"); if (showSceneUi) ui_.DrawScene(commands,world,*sceneCamera,uiState?*uiState:UiState{}); }
         else { Engine::GpuScope gpu(commands,"Game UI"); Engine::CpuScope cpu("Game UI"); DrawUi(commands,world.Layout(),width,height,uiState?*uiState:UiState{}); }
     }

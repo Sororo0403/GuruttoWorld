@@ -81,6 +81,12 @@ namespace Editor
         if (!candidate.material || !ImGui::CollapsingHeader("マテリアル割り当て###Material",ImGuiTreeNodeFlags_DefaultOpen)) return false;
         auto& material=*candidate.material; ImGui::PushID(material.id.c_str());
         bool edited=ImGui::Checkbox("有効###Enabled",&material.enabled);
+        edited=ImGui::Checkbox("このオブジェクトの表面を上書き###Override surface",&material.surfaceOverride) || edited;
+        if(material.surfaceOverride) {
+            edited=ImGui::ColorEdit4("色・透明度###Override color",material.color.data()) || edited;
+            edited=ImGui::SliderFloat("粗さ###Override roughness",&material.roughness,.04f,1) || edited;
+            edited=ImGui::SliderFloat("金属感###Override metallic",&material.metallic,0,1) || edited;
+        }
         const auto label=material.asset.empty() ? std::string("モデルの設定") : ProjectCatalog::Text(material.asset.filename());
         if (ImGui::BeginCombo("Materialアセット###Material asset",label.c_str())) {
             if (ImGui::Selectable("モデルの設定",material.asset.empty())) { material.asset.clear(); edited=true; }
@@ -107,7 +113,7 @@ namespace Editor
             ImGui::SameLine();if(!material.slots.empty() && ImGui::Button("末尾のスロットを削除###Remove last material slot")) {material.slots.pop_back();edited=true;}
             ImGui::TreePop();
         }
-        if (ImGui::Button("割り当てを初期化###Reset material binding")) {material.enabled=true; material.asset.clear();material.slots.clear(); edited=true;}
+        if (ImGui::Button("割り当てを初期化###Reset material binding")) {const auto id=material.id;material=SceneRuntime::MaterialComponent{};material.id=id;edited=true;}
         ImGui::SameLine();
         if (ImGui::Button("割り当てを削除###Remove material binding")) {candidate.material.reset(); edited=true;}
         if (!candidate.meshRenderer) ImGui::TextWrapped("メッシュ描画を追加すると、この割り当てで描画します。");
@@ -264,10 +270,19 @@ namespace Editor
                 if (definition!=SceneRuntime::ScriptRegistry::Definitions().end()) {
                     for (const auto& [name,initial]:definition->second.dataFields) {
                         auto value=script.data.contains(name) ? script.data.at(name) : initial;
-                        if (ScriptDataPanel::Draw(state,name.c_str(),value)) { script.data[name]=std::move(value); edited=true; }
+                        if (ScriptDataPanel::Draw(state,name.c_str(),value,catalog,false)) { script.data[name]=std::move(value); edited=true; }
+                    }
+                    SceneRuntime::ScriptValue::Object extras=script.data;
+                    for(const auto& [name,initial]:definition->second.dataFields) {static_cast<void>(initial);extras.erase(name);}
+                    SceneRuntime::ScriptValue extraValue{extras};
+                    if(ScriptDataPanel::Draw(state,"追加データ###Additional data",extraValue,catalog,false)) {
+                        for(const auto& [name,value]:extras) {static_cast<void>(value);script.data.erase(name);}
+                        for(auto& [name,value]:std::get<SceneRuntime::ScriptValue::Object>(extraValue.value))
+                            if(!definition->second.dataFields.contains(name)) script.data[name]=std::move(value);
+                        edited=true;
                     }
                 } else {
-                    for (auto& [name,value]:script.data) edited=ScriptDataPanel::Draw(state,name.c_str(),value) || edited;
+                    for (auto& [name,value]:script.data) edited=ScriptDataPanel::Draw(state,name.c_str(),value,catalog) || edited;
                 }
                 remove=ImGui::Button("削除###Remove Script");
             }

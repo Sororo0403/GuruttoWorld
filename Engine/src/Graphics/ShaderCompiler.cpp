@@ -159,8 +159,9 @@ namespace
     {
     public:
         explicit ShaderIncludes(std::filesystem::path source) : source_(std::move(source)) {}
-        HRESULT __stdcall Open(D3D_INCLUDE_TYPE, LPCSTR name, LPCVOID parent, LPCVOID* data, UINT* bytes) override try
+        HRESULT __stdcall Open(D3D_INCLUDE_TYPE, LPCSTR name, LPCVOID parent, LPCVOID* data, UINT* bytes) override
         {
+            try {
             auto base = source_.parent_path();
             if (const auto found = opened_.find(parent); found != opened_.end()) base = found->second.first.parent_path();
             std::error_code error;
@@ -169,12 +170,15 @@ namespace
             auto content = std::make_unique<std::string>();
             if (!Read(path, *content) || content->size() > std::numeric_limits<UINT>::max()) return E_FAIL;
             dependencies[path] = *content;
-            *bytes = static_cast<UINT>(content->size());
-            *data = content->data();
-            opened_.emplace(*data, std::make_pair(path, std::move(content)));
+            const auto address=content->data();
+            const auto [stored,inserted]=opened_.emplace(address,std::make_pair(path,std::move(content)));
+            if(!inserted) return E_FAIL;
+            *bytes=static_cast<UINT>(stored->second.second->size());
+            *data=stored->second.second->data();
             return S_OK;
         }
         catch (...) { return E_FAIL; }
+        }
         HRESULT __stdcall Close(LPCVOID data) override
         {
             return opened_.erase(data) == 1 ? S_OK : E_FAIL;

@@ -1,4 +1,5 @@
 #include <Engine/Core/Profiler.h>
+#include <iterator>
 #include <Engine/Graphics/ShaderCompiler.h>
 #include <SceneRuntime/SceneUi.h>
 #include <SceneRuntime/SceneCanvas.h>
@@ -91,10 +92,11 @@ UiRect SliderFill(const ScenePlacement& p,const UiRect& rect,const UiState& stat
 std::string SceneUi::Shortcut(const SceneLayout& layout,const std::string& key,unsigned int width,unsigned int height,const UiState& state)
 {
     if(key.empty()) return {};
-    for(const auto& object:layout.objects)
-        if(object.rectTransform && object.button && object.button->enabled && (key.starts_with("action:") ? object.button->inputAction==key.substr(7) : object.button->shortcut==key) &&
-            Resolve(layout,object,width,height,state).visible) return object.id;
-    return {};
+    const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object) {
+        return object.rectTransform && object.button && object.button->enabled && (key.starts_with("action:") ? object.button->inputAction==key.substr(7) : object.button->shortcut==key) &&
+            Resolve(layout,object,width,height,state).visible;
+    });
+    return found==layout.objects.end()?std::string{}:found->id;
 }
 void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,
     const ScenePlacement& p,bool text,std::size_t generation,std::map<std::string,Resource>& pending)
@@ -122,8 +124,7 @@ void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::f
     }
     Engine::CpuScope rebuildScope("UI resource rebuild");
     auto texture=text?TextTexture(renderer,*p.text,p.rectTransform?p.rectTransform->size:std::array<float,2>{200,60}):std::make_shared<Engine::Texture2D>();
-    if(!text && !texture->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),p.image->texture.empty()?std::filesystem::path{}:root/p.image->texture))
-        throw std::runtime_error("Cannot load UI image: "+signature);
+    if(!text && !texture->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),p.image->texture.empty()?std::filesystem::path{}:root/p.image->texture)) throw std::runtime_error("Cannot load UI image: "+signature);
     std::shared_ptr<Engine::SpriteRenderer> prototype,scenePrototype;
     const auto findPrototype=[&](const auto& map) {
         for(const auto& [id,resource]:map) {

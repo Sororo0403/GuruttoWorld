@@ -1,6 +1,7 @@
 #include "EnvironmentJson.h"
 #include <cmath>
 #include <stdexcept>
+#include <tuple>
 
 namespace
 {
@@ -95,6 +96,55 @@ namespace
         placement.spotLight=std::move(light);
         if (object.contains("shadowsEnabled")) placement.spotLight->shadowsEnabled=object.at("shadowsEnabled").get<bool>();
     }
+    SceneRuntime::OceanSkySettings ReadOcean(const Json& value) {
+        SceneRuntime::OceanSkySettings ocean;
+            ocean.sunElevation=Number(value,"sunElevation",-6,85);
+            ocean.sunAzimuth=Number(value,"sunAzimuth",0,360);
+            ocean.sunDiameter=Number(value,"sunDiameter",0.1f,2);
+            ocean.refractiveIndex=Number(value,"refractiveIndex",1.01f,2);
+            ocean.seaLevel=Number(value,"seaLevel",-10000,10000);
+            ocean.waveAmplitude=Number(value,"waveAmplitude",0,1);
+            ocean.wavePeriod=Number(value,"wavePeriod",1,20);
+            ocean.cloudCoverage=Number(value,"cloudCoverage",0,1);
+            ocean.cloudSpeed=Number(value,"cloudSpeed",0,30);
+            ocean.haze=Number(value,"haze",0.1f,5);
+            if(value.contains("solarColor")) ocean.solarColor=Vector<3>(value,"solarColor",0.0f,1.0f);
+            if(value.contains("cloudWind")) ocean.cloudWind=Vector<2>(value,"cloudWind",-10.0f,10.0f);
+            if(value.contains("cloudNoiseWeights")) ocean.cloudNoiseWeights=Vector<3>(value,"cloudNoiseWeights",0.0f,1.0f);
+            if(value.contains("cloudNoiseFrequencies")) ocean.cloudNoiseFrequencies=Vector<3>(value,"cloudNoiseFrequencies",0.01f,100.0f);
+            if(value.contains("cloudNoiseOffsets")) ocean.cloudNoiseOffsets=Vector<3>(value,"cloudNoiseOffsets",-1000.0f,1000.0f);
+            ocean.waterColor=Vector<3>(value,"waterColor",0,1);
+        const std::tuple<const char*,unsigned int*,float,float> counts[]{
+            {"atmosphereSteps",&ocean.atmosphereSteps,1.0f,64.0f},
+            {"solarSteps",&ocean.solarSteps,1.0f,32.0f},
+            {"cloudSteps",&ocean.cloudSteps,1.0f,96.0f},
+            {"cloudLightSteps",&ocean.cloudLightSteps,1.0f,32.0f},
+            {"waveCount",&ocean.waveCount,1.0f,16.0f},
+            {"seaSteps",&ocean.seaSteps,1.0f,64.0f},
+            {"seaRefineSteps",&ocean.seaRefineSteps,1.0f,32.0f}};
+        for(const auto& [name,target,low,high]:counts) if(value.contains(name)) {
+            const float count=Number(value,name,low,high);
+            if(std::floor(count)!=count) throw std::runtime_error("Ocean samples must be integers");
+            *target=static_cast<unsigned int>(count);
+        }
+        const std::tuple<const char*,float*,float,float> scalars[]{
+            {"cloudBase",&ocean.cloudBase,100.0f,12000.0f},
+            {"cloudThickness",&ocean.cloudThickness,100.0f,6000.0f},
+            {"cloudExtinction",&ocean.cloudExtinction,.0001f,.03f},
+            {"ozoneStrength",&ocean.ozoneStrength,0.0f,3.0f},
+            {"cloudAnisotropy",&ocean.cloudAnisotropy,0.0f,.9f},
+            {"solarIntensity",&ocean.solarIntensity,0.0f,1000.0f},
+            {"waveDirection",&ocean.waveDirection,-6.284f,6.284f},
+            {"waveSpread",&ocean.waveSpread,-6.284f,6.284f},
+            {"wavePeriodRatio",&ocean.wavePeriodRatio,0.2f,0.99f},
+            {"waveAmplitudeRatio",&ocean.waveAmplitudeRatio,0.01f,0.95f},
+            {"wavePhase",&ocean.wavePhase,0.0f,20.0f},
+            {"cloudScale",&ocean.cloudScale,1e-05f,0.1f},
+            {"traceDistance",&ocean.traceDistance,1000.0f,1000000.0f},
+            {"cloudDistance",&ocean.cloudDistance,1000.0f,1000000.0f}};
+        for(const auto& [name,target,low,high]:scalars) if(value.contains(name)) *target=Number(value,name,low,high);
+        return ocean;
+    }
     void ReadSky(const Json& object, SceneRuntime::ScenePlacement& placement)
     {
         auto sky=ReadBase(object,placement.sky);
@@ -115,6 +165,7 @@ namespace
             sky.clouds[index].center=Vector<2>(cloud,"center",-10,10);
             sky.clouds[index].size=Number(cloud,"size",0,10);
         }
+        if(object.contains("ocean")) sky.ocean=ReadOcean(JsonObject(object.at("ocean")));
         placement.sky=std::move(sky);
     }
     void ReadEmitter(const Json& object, SceneRuntime::ScenePlacement& placement)
@@ -151,7 +202,41 @@ namespace
         {
             Json bank; Put(bank,"center",cloud.center); Put(bank,"size",cloud.size); clouds.push_back(bank);
         }
-        object["clouds"]=clouds; array.push_back(object);
+        object["clouds"]=clouds;
+        if (sky.ocean)
+        {
+            const auto& ocean=*sky.ocean;
+            object["ocean"]={{"sunElevation",ocean.sunElevation},{"sunAzimuth",ocean.sunAzimuth},
+                {"sunDiameter",ocean.sunDiameter},{"refractiveIndex",ocean.refractiveIndex},
+                {"seaLevel",ocean.seaLevel},{"waveAmplitude",ocean.waveAmplitude},{"wavePeriod",ocean.wavePeriod},
+                {"cloudCoverage",ocean.cloudCoverage},{"cloudSpeed",ocean.cloudSpeed},{"haze",ocean.haze},
+                {"cloudBase",ocean.cloudBase},{"cloudThickness",ocean.cloudThickness},{"cloudExtinction",ocean.cloudExtinction},
+                {"ozoneStrength",ocean.ozoneStrength},{"cloudAnisotropy",ocean.cloudAnisotropy},
+                {"waterColor",ocean.waterColor}};
+            object["ocean"]["atmosphereSteps"]=ocean.atmosphereSteps;
+            object["ocean"]["solarSteps"]=ocean.solarSteps;
+            object["ocean"]["cloudSteps"]=ocean.cloudSteps;
+            object["ocean"]["cloudLightSteps"]=ocean.cloudLightSteps;
+            object["ocean"]["waveCount"]=ocean.waveCount;
+            object["ocean"]["seaSteps"]=ocean.seaSteps;
+            object["ocean"]["seaRefineSteps"]=ocean.seaRefineSteps;
+            object["ocean"]["solarIntensity"]=ocean.solarIntensity;
+            object["ocean"]["waveDirection"]=ocean.waveDirection;
+            object["ocean"]["waveSpread"]=ocean.waveSpread;
+            object["ocean"]["wavePeriodRatio"]=ocean.wavePeriodRatio;
+            object["ocean"]["waveAmplitudeRatio"]=ocean.waveAmplitudeRatio;
+            object["ocean"]["wavePhase"]=ocean.wavePhase;
+            object["ocean"]["cloudScale"]=ocean.cloudScale;
+            object["ocean"]["traceDistance"]=ocean.traceDistance;
+            object["ocean"]["cloudDistance"]=ocean.cloudDistance;
+            object["ocean"]["solarColor"]=ocean.solarColor;
+            object["ocean"]["cloudWind"]=ocean.cloudWind;
+            object["ocean"]["cloudNoiseWeights"]=ocean.cloudNoiseWeights;
+            object["ocean"]["cloudNoiseFrequencies"]=ocean.cloudNoiseFrequencies;
+            object["ocean"]["cloudNoiseOffsets"]=ocean.cloudNoiseOffsets;
+
+        }
+        array.push_back(object);
     }
     void WriteEmitter(Json& array, const SceneRuntime::ParticleEmitterComponent& emitter)
     {

@@ -166,8 +166,7 @@ namespace Engine
         }
         impl_->prior.Bind(commands);
         auto applied=valid ? settings : PostEffectSettings{};
-        if (!processed) applied.bloomEnabled=false;
-        if (!processed) applied.autoExposure=false;
+        if (!processed) {applied.bloomEnabled=false;applied.autoExposure=false;}
         if (!valid) applied.toneMapping=ToneMapping::None;
         if (applied.bloomIntensity==0) applied.bloomEnabled=false;
         impl_->Draw(commands,targets.bindings[0].Get(),applied,0,targets.scene.GetWidth(),targets.scene.GetHeight(),impl_->prior.format==RenderTexture::HdrFormat);

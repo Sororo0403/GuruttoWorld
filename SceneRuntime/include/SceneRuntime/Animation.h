@@ -4,9 +4,12 @@
 #include <string>
 #include <optional>
 #include <map>
+#include <span>
 
 namespace SceneRuntime
 {
+    struct ScenePlacement;
+    struct AnimationProperty {const char* name; const char* label; float minimum,maximum; unsigned int channels;};
     struct AnimationKey
     {
         float time = 0;
@@ -38,5 +41,7 @@ namespace SceneRuntime
             const std::map<std::string, float>& clocks);
         /// <summary>プロパティ・補間・時刻・値の保存可能性を検証します。</summary>
         static bool Valid(const AnimationTrack& track);
+        static std::span<const AnimationProperty> Properties();
+        static bool Apply(ScenePlacement& placement,const std::string& property,const std::array<float,4>& value);
     };
 }

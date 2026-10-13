@@ -53,7 +53,7 @@ namespace Editor
         {
             return mode_==Mode::Playing && Tick(seconds);
         }
-        bool Step() { return CanStep() && Tick(StepSeconds); }
+        bool Step(double seconds=StepSeconds) { return CanStep() && Tick(seconds); }
     private:
         bool Tick(double seconds)
         {

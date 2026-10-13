@@ -117,10 +117,11 @@ namespace Engine
         view.Buffer.NumElements=1; view.Buffer.StructureByteStride=sizeof(SkinMatrix);
         device->CreateShaderResourceView(nullptr,&view,emptyPalette_->GetCPUDescriptorHandleForHeapStart()); return true;
     }
-    bool ShadowMap::Initialize(ID3D12Device* device,const std::filesystem::path& shader,bool localAtlas)
+    bool ShadowMap::Initialize(ID3D12Device* device,const std::filesystem::path& shader,bool localAtlas,UINT resolution)
     {
         if (!device || depth_) return false;
         if (localAtlas) { resolution_=LocalResolution; layers_=LocalFaces; }
+        if(resolution) {if(resolution<128 || resolution>4096 || (resolution&(resolution-1))!=0) return false;resolution_=resolution;}
         return CreateDepth(device) && CreatePipeline(device,shader);
     }
     bool ShadowMap::BeginLocal(ID3D12GraphicsCommandList* commands,const LocalLight& light,UINT slice,UINT face)
@@ -160,18 +161,18 @@ namespace Engine
         const auto reference=std::abs(XMVectorGetY(z))>.95f ? XMVectorSet(0,0,1,0) : XMVectorSet(0,1,0,0);
         const auto x=XMVector3Normalize(XMVector3Cross(reference,z));
         const auto y=XMVector3Cross(z,x);
-        const float radius=std::clamp(light.shadowDistance,10.0f,200.0f),texel=2*radius/Resolution;
+        const float radius=std::clamp(light.shadowDistance,10.0f,200.0f),texel=2*radius/resolution_;
         const auto inverseView=XMMatrixInverse(nullptr,camera.GetViewMatrix());
         auto center=inverseView.r[3]+inverseView.r[2]*(radius*.4f)+XMVectorSet(0,radius*.25f,0,0);
         // Align light-space XY to texels so camera motion does not crawl across fixed surfaces.
         center+=x*(std::round(XMVectorGetX(XMVector3Dot(center,x))/texel)*texel-XMVectorGetX(XMVector3Dot(center,x)));
         center+=y*(std::round(XMVectorGetX(XMVector3Dot(center,y))/texel)*texel-XMVectorGetX(XMVector3Dot(center,y)));
         XMStoreFloat4x4(&viewProjection_,XMMatrixLookToLH(center-z*(2*radius),z,y)*XMMatrixOrthographicLH(2*radius,2*radius,0,4*radius));
-        constants_={XMVectorGetX(center),XMVectorGetY(center),XMVectorGetZ(center),radius,light.shadowBias,1.0f/Resolution};
+        constants_={XMVectorGetX(center),XMVectorGetY(center),XMVectorGetZ(center),radius,light.shadowBias,1.0f/resolution_};
         Transition(commands,D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_DEPTH_WRITE);
         const auto depth=dsv_->GetCPUDescriptorHandleForHeapStart();
         commands->ClearDepthStencilView(depth,D3D12_CLEAR_FLAG_DEPTH,1,0,0,nullptr);
-        RenderTargetBinding{{},depth,{0,0,float(Resolution),float(Resolution),0,1},{0,0,Resolution,Resolution}}.Bind(commands);
+        RenderTargetBinding{{},depth,{0,0,float(resolution_),float(resolution_),0,1},{0,0,static_cast<LONG>(resolution_),static_cast<LONG>(resolution_)}}.Bind(commands);
         return true;
     }
     void ShadowMap::End(ID3D12GraphicsCommandList* commands)

@@ -82,8 +82,9 @@ bool SceneAudio::Refresh(const SceneLayout& layout,std::string& error,const Scen
 void SceneAudio::Spatial(const SceneLayout& layout,const SceneWorld* world) {
     if(sources_.empty()) return;
     if(world && &world->Layout()!=&layout) world=nullptr;
-    std::vector<DirectX::XMFLOAT4X4> matrices; std::string error;
+    std::vector<DirectX::XMFLOAT4X4> matrices;
     if(!world) {
+        std::string error;
         Engine::CpuScope scope("Audio transform resolution");
         if(!SceneTransforms::Resolve(layout,matrices,error)) {Engine::Log::Warning(error); return;}
     }

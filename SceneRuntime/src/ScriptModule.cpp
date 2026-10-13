@@ -36,7 +36,9 @@ namespace
     }
     struct ModuleCallback
     {
+        // Ownership is the use: keeping this member alive prevents unloading callback code.
         // The callback must be destroyed before releasing its DLL.
+        // cppcheck-suppress unusedStructMember
         std::shared_ptr<ModuleLifetime> lifetime;
         std::function<void(SceneRuntime::ScriptContext&)> callback;
         void operator()(SceneRuntime::ScriptContext& context) const { callback(context); }

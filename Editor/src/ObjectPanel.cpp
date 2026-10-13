@@ -1,4 +1,5 @@
 #include "ObjectPanel.h"
+#include "SceneSettingsPanel.h"
 #include "PrefabPanel.h"
 #include "MultiComponentPanel.h"
 #include "PanelLayout.h"
@@ -164,7 +165,7 @@ namespace Editor
             {
                 DrawMultiInspector(world,state,enabled);
             }
-            else if (found == objects.end()) DrawSettings(world,state,enabled);
+            else if (found == objects.end()) DrawSettings(world,state,enabled,catalog_);
             else
             {
                 ImGui::PushID(found->id.c_str());
@@ -191,12 +192,13 @@ namespace Editor
         ImGui::End();
     }
 
-    void ObjectPanel::DrawSettings(SceneRuntime::SceneWorld& world, EditState& state, bool enabled)
+    void ObjectPanel::DrawSettings(SceneRuntime::SceneWorld& world, EditState& state, bool enabled,const ProjectCatalog* catalog)
     {
         ImGui::BeginDisabled(!enabled);
         ImGui::TextUnformatted("シーン設定");
         auto settings=world.Layout().settings;
         bool settingsEdited=ImGui::ColorEdit4("背景色###Background",settings.background.data());
+        settingsEdited=SceneSettingsPanel::Inputs(state,settings) || settingsEdited;
         TrackInspectorEdit(state);
         const auto label=settings.mainCamera.empty() ? std::string("最初の有効なカメラ") : settings.mainCamera;
         if (ImGui::BeginCombo("ゲームカメラ###Game camera",label.c_str()))
@@ -211,6 +213,8 @@ namespace Editor
             }
             ImGui::EndCombo();
         }
+        settingsEdited=SceneSettingsPanel::Simulation(state,settings) || settingsEdited;
+        settingsEdited=SceneSettingsPanel::Rendering(state,settings,catalog) || settingsEdited;
         settingsEdited=ImGui::Checkbox("霧を有効化###Fog enabled",&settings.fog.enabled) || settingsEdited;
         settingsEdited=ImGui::ColorEdit3("霧の色###Fog color",settings.fog.color.data()) || settingsEdited;
         TrackInspectorEdit(state);

@@ -5,6 +5,7 @@
 
 #include <Engine/Graphics/Resources/IndexedMeshBuffer.h>
 #include <Engine/Graphics/Resources/RenderTargetBinding.h>
+#include <Engine/Graphics/Resources/ConstantBuffer.h>
 #include <cmath>
 #include <format>
 #include <utility>
@@ -24,6 +25,7 @@ namespace
         D3D12_INDEX_BUFFER_VIEW index{};
         ComPtr<ID3D12RootSignature> root;
         ComPtr<ID3D12PipelineState> pipeline, hdrPipeline;
+        mutable Engine::ConstantBuffer constants;
     };
 
     bool Check(HRESULT result, const char* operation)
@@ -40,9 +42,9 @@ namespace
 namespace Engine
 {
     bool SpriteRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-        std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest)
+        std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest, bool depthWrite)
     {
-        if (device == nullptr || queue == nullptr || initialized_ || !texture || texture->GetDescriptorHeap() == nullptr)
+        if (device == nullptr || queue == nullptr || initialized_ || !texture || texture->GetDescriptorHeap() == nullptr || (depthWrite && !depthTest))
         {
             return false;
         }
@@ -56,15 +58,16 @@ namespace Engine
         }
         std::string revision;
         if (!GetShaderRevision(shaderPath, revision)) return false;
-        using Key = std::tuple<ID3D12Device*, ID3D12CommandQueue*, std::string, bool>;
+        using Key = std::tuple<ID3D12Device*, ID3D12CommandQueue*, std::string, bool, bool>;
         static std::mutex mutex;
         static std::map<Key, std::weak_ptr<SpritePipeline>> pipelines;
         std::lock_guard lock(mutex);
         std::erase_if(pipelines, [](const auto& item) { return item.second.expired(); });
-        const Key key{ device, queue, std::move(revision), depthTest };
+        const Key key{ device, queue, std::move(revision), depthTest, depthWrite };
         std::shared_ptr<SpritePipeline> shared;
         if (const auto found = pipelines.find(key); found != pipelines.end()) shared = found->second.lock();
         depthTest_ = depthTest;
+        depthWrite_ = depthWrite;
         if (!shared)
         {
             if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) || !CreateMeshBuffer(device, queue))
@@ -97,7 +100,7 @@ namespace Engine
         sharedPipeline_ = prototype.sharedPipeline_;
         meshBuffer_ = prototype.meshBuffer_; vertexBufferView_ = prototype.vertexBufferView_; indexBufferView_ = prototype.indexBufferView_;
         rootSignature_ = prototype.rootSignature_; pipelineState_ = prototype.pipelineState_; hdrPipelineState_ = prototype.hdrPipelineState_;
-        depthTest_ = prototype.depthTest_; texture_ = std::move(texture); initialized_ = true;
+        depthTest_ = prototype.depthTest_; depthWrite_=prototype.depthWrite_; texture_ = std::move(texture); initialized_ = true;
         return true;
     }
 
@@ -112,7 +115,8 @@ namespace Engine
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
         parameters[0].Constants.Num32BitValues = 16;
-        parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+        // Ray-generation pixel shaders also use viewport and projection constants.
+        parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
         parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
         parameters[1].DescriptorTable.pDescriptorRanges = &textureRange;
@@ -121,9 +125,8 @@ namespace Engine
         parameters[2].Constants.ShaderRegister = 2;
         parameters[2].Constants.Num32BitValues = 8;
         parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-        parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        parameters[3].Constants.ShaderRegister = 1;
-        parameters[3].Constants.Num32BitValues = 36;
+        parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        parameters[3].Descriptor.ShaderRegister = 1;
         parameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
         parameters[4].ParameterType=D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[4].Constants.ShaderRegister=3; parameters[4].Constants.Num32BitValues=1;
@@ -192,7 +195,7 @@ namespace Engine
         blend.LogicOp = D3D12_LOGIC_OP_NOOP;
         blend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
         description.DepthStencilState.DepthEnable = depthTest_ ? TRUE : FALSE;
-        description.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+        description.DepthStencilState.DepthWriteMask = depthWrite_ ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
         description.DepthStencilState.DepthFunc = depthTest_ ? D3D12_COMPARISON_FUNC_LESS_EQUAL : D3D12_COMPARISON_FUNC_ALWAYS;
         description.DepthStencilState.StencilEnable = FALSE;
         description.SampleMask = UINT_MAX;
@@ -240,7 +243,10 @@ namespace Engine
         commands->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(constants.size()), constants.data(), 0);
         const auto uvConstants = parameters.uvTransform.GetConstants();
         commands->SetGraphicsRoot32BitConstants(2, 8, uvConstants.data(), 0);
-        commands->SetGraphicsRoot32BitConstants(3,36,parameters.pixelConstants.data(),0);
+        const auto shared=std::static_pointer_cast<SpritePipeline>(sharedPipeline_);
+        const auto pixelConstants=shared->constants.Prepare(shared->device.Get(),commands,parameters.pixelConstants);
+        if(!pixelConstants) {Log::Error("Cannot prepare sprite constants");return;}
+        commands->SetGraphicsRootConstantBufferView(3,pixelConstants);
         commands->SetGraphicsRoot32BitConstants(4,1,&hdr,0);
         ID3D12DescriptorHeap* heaps[] = { texture_->GetDescriptorHeap() };
         commands->SetDescriptorHeaps(1, heaps);

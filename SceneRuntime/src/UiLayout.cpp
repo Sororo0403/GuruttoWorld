@@ -1,4 +1,5 @@
 #include <SceneRuntime/SceneUi.h>
+#include <iterator>
 #include <algorithm>
 #include <cmath>
 #include <sstream>
@@ -250,7 +251,7 @@ std::string SceneUi::InputText(const ScenePlacement& p,const UiState& state) {
     const auto& c=*p.inputField; const auto key=c.binding.empty()?p.id:c.binding;
     const auto found=state.strings.find(key); std::string text=found==state.strings.end()?c.text:found->second;
     if(text.empty()) return c.placeholder;
-    if(c.password) {size_t count=0; for(const unsigned char character:text) if((character&0xc0)!=0x80) ++count; text.assign(count,'*');}
+    if(c.password) {const auto count=std::count_if(text.begin(),text.end(),[](const unsigned char character) {return (character&0xc0)!=0x80;}); text.assign(count,'*');}
     if(state.focused==p.id && !c.readOnly) text+='|';
     return text;
 }
@@ -268,7 +269,7 @@ UiEvent SceneUi::TextInput(const SceneLayout& layout,char32_t character,UiState&
     if(character==8) {
         if(!text.empty()) {size_t index=text.size()-1; while(index>0 && (static_cast<unsigned char>(text[index])&0xc0)==0x80) --index; text.erase(index);}
     } else if((character>=32 || character=='\n') && character<=0x10ffff && !(character>=0xd800 && character<=0xdfff)) {
-        size_t count=0; for(const unsigned char byte:text) if((byte&0xc0)!=0x80) ++count;
+        const auto count=static_cast<size_t>(std::count_if(text.begin(),text.end(),[](const unsigned char byte) {return (byte&0xc0)!=0x80;}));
         if(count>=c.maxLength) return {};
         if(character<=0x7f) text+=static_cast<char>(character);
         else if(character<=0x7ff) {text+=static_cast<char>(0xc0|(character>>6)); text+=static_cast<char>(0x80|(character&0x3f));}

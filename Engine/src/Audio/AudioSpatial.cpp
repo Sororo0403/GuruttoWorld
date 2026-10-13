@@ -1,4 +1,6 @@
 #include <Engine/Audio/AudioSystem.h>
+#include <numeric>
+#include <iterator>
 #include <Engine/Core/Log.h>
 #include <xaudio2fx.h>
 #include <algorithm>
@@ -60,7 +62,7 @@ bool AudioSystem::EnsureBus(const std::string& name) {
         const bool master=name=="Master";
         if(!master&&!send.pOutputVoice) return false;
         if(FAILED(engine_->CreateSubmixVoice(&bus.voice,outputChannels_,outputSampleRate_,XAUDIO2_VOICE_USEFILTER,master?1:0,master?nullptr:&sends,&chain))) return false;
-        found=buses_.emplace(name,bus).first;
+        buses_.emplace(name,bus);
     }
     return true;
 }
@@ -152,6 +154,6 @@ void AudioSystem::Update() {
 std::vector<float> AudioSystem::OutputMatrix(SoundHandle handle) const {const auto found=sounds_.find(handle); return found==sounds_.end()?std::vector<float>{}:found->second.matrix;}
 size_t AudioSystem::BufferedBytes(SoundHandle handle) const {
     const auto found=sounds_.find(handle); if(found==sounds_.end()) return 0;
-    size_t bytes=0; for(const auto& chunk:found->second.chunks) bytes+=chunk.size(); return bytes;
+    return std::accumulate(found->second.chunks.begin(),found->second.chunks.end(),size_t{},[](size_t bytes,const auto& chunk) {return bytes+chunk.size();});
 }
 }

@@ -7,9 +7,11 @@
 
 namespace Engine
 {
+    class MeshResources;
     enum class MaterialPass {All,Opaque,Transparent};
     struct Material
     {
+        std::shared_ptr<MeshResources> shaderResources;
         std::array<float,4> color{1,1,1,1};
         float roughness=0.5f,metallic=0;
         bool transparent=false;

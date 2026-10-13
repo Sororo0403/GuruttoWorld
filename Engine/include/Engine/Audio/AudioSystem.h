@@ -136,11 +136,11 @@ namespace Engine
         /// <summary>ボイスの実際の出力行列とフィルタを更新します。</summary>
         bool ApplySpatial(Sound& sound);
         /// <summary>ストリーミングの送信済みチャンクを解放し補充します。</summary>
-        bool FillStream(Sound& sound);
+        static bool FillStream(Sound& sound);
         /// <summary>実際のミキサーsubmixボイスを作成します。</summary>
         bool EnsureBus(const std::string& name);
         /// <summary>次のデコードチャンクを送信します。</summary>
-        bool QueueStreamChunk(Sound& sound);
+        static bool QueueStreamChunk(Sound& sound);
         std::map<std::string,Bus> buses_;
         AudioListener listener_;
         bool outputPaused_=false;

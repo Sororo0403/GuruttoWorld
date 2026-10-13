@@ -1,4 +1,6 @@
 #include <SceneRuntime/SceneEnvironment.h>
+#include <SceneRuntime/TitleBindings.h>
+#include <iterator>
 #include <SceneRuntime/Navigation.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
@@ -11,7 +13,7 @@ namespace
 {
     struct CameraPose
     {
-        std::array<float,3> position,rotation;
+        std::array<float,3> position{},rotation{};
         float duration=0;
     };
     CameraPose SampleCameraFocus(const SceneRuntime::ScenePlacement& camera,const std::string& clock,float seconds,
@@ -71,7 +73,7 @@ namespace SceneRuntime
         if(!presentation_.PrepareUiCandidate(*renderer_,root_,layout,error,candidate,resources)) return false;
         pendingUiResources_=std::move(resources); return true;
     }
-    void SceneEnvironment::ApplyUiCommands(ScriptUiCommands commands)
+    void SceneEnvironment::ApplyUiCommands(const ScriptUiCommands& commands)
     {
         for(const auto& [key,value]:commands.values) uiState_.values[key]=value;
         for(const auto& [key,text]:commands.texts) uiState_.strings[key]=text;
@@ -111,9 +113,9 @@ namespace SceneRuntime
         AnimateCameraFocus(elapsed);
     }
     void SceneEnvironment::SetTransitionState(float progress) {
-        for(const auto& object:world_.Layout().objects) if(object.canvas && object.canvas->enabled && object.canvas->menu) {
+        if(const auto* menu=TitleBindings::Configuration(world_.Layout())) {
             const auto defaults=uiState_.values;
-            for(const auto& binding:object.canvas->menu->bindings) if(binding.source=="transition")
+            for (const auto& binding:menu->bindings) if (binding.source=="transition")
                 uiState_.values[binding.key]=EvaluateMenuBinding(binding,progress,defaults);
             return;
         }
@@ -125,8 +127,7 @@ namespace SceneRuntime
         const auto* camera=SceneView::CameraObject(world_.Layout());
         const auto position=camera ? camera->position : std::array<float,3>{};
         const auto rotation=camera ? camera->rotation : std::array<float,3>{};
-        const MenuConfiguration* menu=nullptr;
-        for(const auto& object:world_.Layout().objects) if(object.canvas && object.canvas->enabled && object.canvas->menu) {menu=&*object.canvas->menu; break;}
+        const auto* menu=TitleBindings::Configuration(world_.Layout());
         const float requested=uiState_.Value(menu?menu->focusState:"cameraFocus");
         if (requested!=focusRequested_)
         {
@@ -223,8 +224,7 @@ namespace SceneRuntime
         uiPreparationOverride_=previousOverride;
         scenes_=std::move(scenes); uiState_=std::move(candidateUi);
         ApplyUiCommands({});
-        if(resetUi) world_.DiscardUiCommands();
-        if(resetUi) {seconds_=0;sceneSeconds_=0;startSeconds_=-1;focusRequested_=0;focusEngaged_=false;focusSeconds_=0;}
+        if(resetUi) {world_.DiscardUiCommands();seconds_=0;sceneSeconds_=0;startSeconds_=-1;focusRequested_=0;focusEngaged_=false;focusSeconds_=0;}
         if(!audio_.Reconcile(root_,world_.Layout(),error)) Engine::Log::Warning(error);
         error.clear(); return true;
     }
@@ -235,14 +235,14 @@ namespace SceneRuntime
             const auto relative=scene.lexically_normal();
             if(relative.is_absolute() || relative.has_root_name() || relative.extension()!=".json" ||
                 !relative.generic_string().starts_with("Assets/Scenes/") ||
-                std::any_of(relative.begin(),relative.end(),[](const auto& part){return part=="..";}))
-                throw std::runtime_error("Invalid scene path");
+                std::any_of(relative.begin(),relative.end(),[](const auto& part){return part=="..";})) throw std::runtime_error("Invalid scene path");
             auto incoming=SceneLayout::Load(root_/relative,root_); auto collection=scenes_; auto layout=world_.Layout();
             std::set<std::string> reserved;
             if(!additive)
             {
                 for(const auto& object:layout.objects) reserved.insert(object.id);
-                const auto entries=collection.Entries(); for(const auto& entry:entries) layout=collection.Unload(layout,entry.name);
+                const auto entries=collection.Entries();
+                std::for_each(entries.begin(),entries.end(),[&](const auto& entry) {layout=collection.Unload(layout,entry.name);});
             }
             layout=collection.Add(layout,std::move(incoming),relative.generic_string(),!additive,reserved);
             return ApplySceneLayout(std::move(layout),std::move(collection),error,!additive);

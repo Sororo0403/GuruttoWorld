@@ -17,7 +17,9 @@ public:
         candidate.keys[index].time=std::clamp(time,low,high);
         if(track.property=="opacity" && channel==0) value=std::clamp(value,0.0f,1.0f);
         else if(track.property=="uiSize" && channel<2) value=std::max(0.0f,value);
-        candidate.keys[index].value[channel]=std::clamp(value,-100000.0f,100000.0f);
+        const auto properties=SceneRuntime::Animation::Properties();
+        const auto info=std::find_if(properties.begin(),properties.end(),[&](const auto& p){return track.property==p.name;});
+        candidate.keys[index].value[channel]=info!=properties.end() && channel<info->channels ? std::clamp(value,info->minimum,info->maximum) : std::clamp(value,-1000000.0f,1000000.0f);
         if(!SceneRuntime::Animation::Valid(candidate)) return false;
         track=std::move(candidate);return true;
     }

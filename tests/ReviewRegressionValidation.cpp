@@ -68,6 +68,7 @@
 #include "EditorFontValidation.h"
 #include "ProjectSettingsValidation.h"
 #include "MenuAuthoringValidation.h"
+#include "AuthoringSettingsValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -3788,6 +3789,7 @@ int main()
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_AUTHORING_ONLY",nullptr,0)) {
+            AuthoringSettingsValidation::Run();
             UiValidation::SchemaAndLayout();
             ValidateTitleAuthoring();
             MenuAuthoringValidation::Run();
@@ -3814,6 +3816,7 @@ int main()
             std::cout << "PASS: START/CONFIG/QUIT menu, camera overshoot/reversal and three-aspect title presentation\n";
             return 0;
         }
+        phase="AuthoringSettingsValidation"; AuthoringSettingsValidation::Run();
         phase="MenuAuthoringValidation"; MenuAuthoringValidation::Run();
         phase="ValidateTransformDecomposition"; ValidateTransformDecomposition();
         phase="ValidateSceneViewport"; ValidateSceneViewport();

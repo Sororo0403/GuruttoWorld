@@ -52,11 +52,22 @@ namespace Editor
         /// <summary>対象・時計・補間とキーフレームを編集します。</summary>
         static bool DrawTrack(EditState& state,SceneRuntime::AnimationTrack& track)
         {
-            bool edited=Choose("対象###Property",track.property,
-                {"position","rotation","uiPosition","uiSize","uiRotation","opacity"},
-                {"3D位置","3D回転","UI位置","UIサイズ","UI回転","不透明度"});
+            bool edited=false;
+            if(ImGui::BeginCombo("対象###Property",track.property.c_str())) {
+                for(const auto& property:SceneRuntime::Animation::Properties()) if(ImGui::Selectable(property.label,track.property==property.name)) {
+                    track.property=property.name;
+                    for(auto& key:track.keys) for(unsigned int i=0;i<property.channels;++i)
+                        key.value[i]=track.property=="scale" ? 1.0f : std::clamp(key.value[i],property.minimum,property.maximum);
+                    edited=true;
+                }
+                ImGui::EndCombo();
+            }
             edited=Choose("時計###Clock",track.clock,{"sceneTime","motionTime","startTime"},
                 {"登場・経過時間","待機（背景演出OFFで停止）","開始（決定後）"}) || edited;
+            std::array<char,129> clock{};
+            std::copy_n(track.clock.data(),std::min(track.clock.size(),clock.size()-1),clock.data());
+            if(ImGui::InputText("時計名（任意）###Custom clock",clock.data(),clock.size())) {track.clock=clock.data();edited=true;}
+            Track(state);
             edited=Choose("補間###Easing",track.easing,{"linear","smooth","outCubic","outBack"},
                 {"等速","滑らか","素早く動いて減速","少し行き過ぎて止まる"}) || edited;
             edited=ImGui::DragFloat("遅延（秒）###Delay",&track.delay,0.01f,0,600,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited; Track(state);
@@ -75,7 +86,15 @@ namespace Editor
                 ImGui::PushID(static_cast<int>(key));
                 auto& frame=track.keys[key];
                 edited=ImGui::DragFloat("時刻（秒）###Time",&frame.time,0.01f,0,600,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited; Track(state);
-                edited=ImGui::DragFloat4("値（X / Y / Z / W）###Value",frame.value.data(),0.1f,-100000,100000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited; Track(state);
+                const auto properties=SceneRuntime::Animation::Properties();
+                const auto info=std::find_if(properties.begin(),properties.end(),[&](const auto& p){return track.property==p.name;});
+                if(info!=properties.end()) {
+                    if(ImGui::DragFloat4("値（X / Y / Z / W）###Value",frame.value.data(),.1f,-1000000,1000000,"%.3f",ImGuiSliderFlags_AlwaysClamp)) {
+                        for(unsigned int i=0;i<info->channels;++i) frame.value[i]=std::clamp(frame.value[i],info->minimum,info->maximum);
+                        edited=true;
+                    }
+                }
+                Track(state);
                 if (track.keys.size()>1 && ImGui::Button("キーを削除###Delete key"))
                 { track.keys.erase(track.keys.begin()+key); edited=true; ImGui::PopID(); break; }
                 ImGui::PopID();

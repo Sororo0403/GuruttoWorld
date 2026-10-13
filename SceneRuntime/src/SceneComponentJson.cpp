@@ -38,7 +38,8 @@ namespace
         if (kind=="reference") return {SceneRuntime::ScriptObjectReference{value.get<std::string>()}};
         if (kind=="array") {
             Value::Array result;
-            for (const auto& child:JsonArray(value)) result.push_back(ReadScriptValue(child,depth+1,remaining));
+            const auto& children=JsonArray(value);
+            std::transform(children.begin(),children.end(),std::back_inserter(result),[&](const auto& child) {return ReadScriptValue(child,depth+1,remaining);});
             return {std::move(result)};
         }
         if (kind=="object") {
@@ -59,7 +60,7 @@ namespace
             else if constexpr (std::is_same_v<T,SceneRuntime::ScriptObjectReference>) return {{"kind","reference"},{"value",value.id}};
             else if constexpr (std::is_same_v<T,Value::Array>) {
                 Json array=Json::array();
-                for (const auto& child:value) array.push_back(WriteScriptValue(child));
+                std::transform(value.begin(),value.end(),std::back_inserter(array),[](const auto& child) {return WriteScriptValue(child);});
                 return {{"kind","array"},{"value",std::move(array)}};
             } else {
                 Json object=Json::object();
@@ -180,6 +181,12 @@ namespace
             const auto path=std::filesystem::path(std::u8string(text.begin(),text.end()));
             if (!path.empty() && !SceneRuntime::MaterialAsset::ValidPath(path)) throw std::runtime_error("Invalid material asset path");
             placement.material=SceneRuntime::MaterialComponent{id,enabled,path};
+            auto& material=*placement.material;
+            material.surfaceOverride=component.value("surfaceOverride",false);
+            if(component.contains("color")) material.color=component.at("color").get<std::array<float,4>>();
+            material.roughness=component.value("roughness",.5f);material.metallic=component.value("metallic",0.0f);
+            if (std::any_of(std::begin(material.color),std::end(material.color),[](const auto channel) {return !std::isfinite(channel) || channel<0 || channel>1;})) throw std::runtime_error("Invalid material override color");
+            if(!std::isfinite(material.roughness) || material.roughness<.04f || material.roughness>1 || !std::isfinite(material.metallic) || material.metallic<0 || material.metallic>1) throw std::runtime_error("Invalid material override surface");
             if(component.contains("slots")) {
                 const auto& slots=Engine::JsonArray(component.at("slots"));
                 if(slots.size()>4096) throw std::runtime_error("Too many Material slots");
@@ -258,7 +265,7 @@ namespace
             for (const auto* key : {"velocity","angularVelocity"}) if (component.contains(key))
             {
                 const auto values=component.at(key).get<std::array<float,3>>();
-                for (const auto value : values) if (!std::isfinite(value) || std::abs(value)>100000) throw std::runtime_error("Invalid rigid body velocity");
+                if (std::any_of(std::begin(values),std::end(values),[](const auto value) {return !std::isfinite(value) || std::abs(value)>100000;})) throw std::runtime_error("Invalid rigid body velocity");
                 (std::string_view(key)=="velocity" ? body.velocity : body.angularVelocity)=values;
             }
             if ((body.motion!="dynamic" && body.motion!="kinematic") || !std::isfinite(body.mass) || body.mass<=0 || body.mass>100000 ||
@@ -385,6 +392,8 @@ namespace SceneRuntime
             const auto& material=*placement.material;
             auto object=Component(material.id,"Material",material.enabled);
             object["asset"]=material.asset;
+            object["surfaceOverride"]=material.surfaceOverride;object["color"]=material.color;
+            object["roughness"]=material.roughness;object["metallic"]=material.metallic;
             if(!material.slots.empty()) object["slots"]=material.slots;
             components.push_back(std::move(object));
         }

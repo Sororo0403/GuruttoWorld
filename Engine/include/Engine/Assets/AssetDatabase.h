@@ -1,4 +1,5 @@
 #pragma once
+#include <iterator>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/TextureImport.h>
 #include <filesystem>
@@ -54,7 +55,7 @@ public:
         result.texture.Validate();
         if (!ValidId(result.id) || !std::isfinite(result.scale) || result.scale<0.0001f || result.scale>10000 || result.previousPaths.size()>1024)
             throw std::runtime_error("Invalid asset metadata: "+Text(path));
-        for (const auto& previous : result.previousPaths) if (!Valid(previous)) throw std::runtime_error("Invalid asset alias");
+        if (std::any_of(std::begin(result.previousPaths),std::end(result.previousPaths),[](const auto& previous) {return !Valid(previous);})) throw std::runtime_error("Invalid asset alias");
         return result;
     }
     static void Write(const std::filesystem::path& path,const AssetMetadata& metadata) {

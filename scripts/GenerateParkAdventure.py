@@ -251,6 +251,8 @@ def assemble(seed, scene_path="Assets/Scenes/ParkAdventure.json"):
     scene = dict(version=4, settings=dict(background=[.58, .82, .93, 1], mainCamera="park-camera",
         fog=dict(enabled=True, color=[.58, .82, .93], start=65, end=150, strength=.65)), objects=objects)
     report = validate(scene)
+    from ParkAuthoring import configure_scene
+    configure_scene(scene)
     return scene, dict(version=1, seed=seed, modules=manifest, validation=report)
 
 

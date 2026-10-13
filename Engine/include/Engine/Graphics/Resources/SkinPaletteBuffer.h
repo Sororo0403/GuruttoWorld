@@ -1,4 +1,5 @@
 #pragma once
+#include <iterator>
 #include <Engine/Animation/SkinMatrix.h>
 #include <Engine/Graphics/Resources/RenderFrameContext.h>
 #include <wrl/client.h>
@@ -22,9 +23,9 @@ namespace Engine
         {
             RenderFrameContext context;
             if (!device || palette.empty() || palette.size()>Capacity || !RenderFrameContext::Current(commands,context)) return {};
-            for (const auto& matrix : palette)
-                for (const auto* value : {&matrix.position,&matrix.normal})
-                    for (const auto& row : value->m) for (const float entry : row) if (!std::isfinite(entry)) return {};
+            if(std::any_of(palette.begin(),palette.end(),[](const auto& matrix) {
+                return !FiniteMatrix(matrix.position) || !FiniteMatrix(matrix.normal);
+            })) return {};
             auto& frame=frames_[context.slot];
             if (frame.serial!=context.serial) { frame.serial=context.serial; frame.used=0; frame.indices.clear(); }
             UINT64 hash=14695981039346656037ULL;

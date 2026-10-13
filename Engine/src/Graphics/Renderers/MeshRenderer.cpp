@@ -230,8 +230,9 @@ namespace Engine
             material ? material->environmentTexture : nullptr,material ? material->lightmap : nullptr);
         if (!heap) { Log::Error("Cannot allocate mesh texture/shadow bindings."); return; }
         // Transform/tint 32 + lighting 26 + compact UV 5 + SRV table 1 = 64 DWORD.
-        commands->SetPipelineState(resources_->GetPipelineState(mirrored,material && (material->transparent || material->color[3]<1),hdr));
-        commands->SetGraphicsRootSignature(resources_->GetRootSignature());
+        const auto& pipeline=material && material->shaderResources ? material->shaderResources : resources_;
+        commands->SetPipelineState(pipeline->GetPipelineState(mirrored,material && (material->transparent || material->color[3]<1),hdr));
+        commands->SetGraphicsRootSignature(pipeline->GetRootSignature());
         commands->SetGraphicsRoot32BitConstants(0, 32, &constants, 0);
         commands->SetGraphicsRoot32BitConstants(2, 26, lightConstants.data(), 0);
         const std::array<float,5> uvConstants{uvTransform.scale[0],uvTransform.scale[1],uvTransform.rotation,uvTransform.translation[0],uvTransform.translation[1]};

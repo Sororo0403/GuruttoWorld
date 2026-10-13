@@ -1,4 +1,5 @@
 #include <SceneRuntime/SceneLayout.h>
+#include <iterator>
 #include "SceneComponentJson.h"
 #include "SceneSettingsJson.h"
 #include <SceneRuntime/Prefab.h>
@@ -133,14 +134,15 @@ namespace SceneRuntime
                 }
                 layout.objects.push_back(std::move(placement));
             }
-            for(const auto& p:layout.objects) {
-                if((p.terrain&&p.tilemap)||((p.terrain||p.tilemap)&&p.meshRenderer)) throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
-            }
+            if(std::any_of(layout.objects.begin(),layout.objects.end(),[](const auto& p) {
+                return (p.terrain&&p.tilemap)||((p.terrain||p.tilemap)&&p.meshRenderer);
+            })) throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
             ValidateParents(layout.objects);
-            for(const auto& object:layout.objects) if(object.ragdoll && !object.animator) throw std::runtime_error("Ragdoll requires an Animator");
+            if (std::any_of(std::begin(layout.objects),std::end(layout.objects),[](const auto& object) {return object.ragdoll && !object.animator;})) throw std::runtime_error("Ragdoll requires an Animator");
             ValidateCamera(layout);
-            size_t menus=0;
-            for(const auto& object:layout.objects) if(object.canvas && object.canvas->enabled && object.canvas->menu) ++menus;
+            const auto menus=std::count_if(layout.objects.begin(),layout.objects.end(),[](const auto& object) {
+                return object.canvas && object.canvas->enabled && object.canvas->menu;
+            });
             if(menus>1) throw std::runtime_error("At most one enabled menu Canvas is supported");
             size_t localLights=0;
             for (const auto& object : layout.objects)
@@ -172,9 +174,7 @@ namespace SceneRuntime
                 {"components",WriteSceneComponents(p)},{"position",p.position},{"rotation",p.rotation},{"scale",p.scale}};
             if(p.persistent) object["persistent"]=true;
             if(p.prefab) object["prefab"]={{"asset",p.prefab->asset},{"source",p.prefab->sourceId},{"root",p.prefab->rootId},{"baseline",p.prefab->baseline}};
-            for(const auto& vector:{p.position,p.rotation,p.scale})
-                if(std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);}))
-                    throw std::runtime_error("Cannot save nonfinite transform");
+            for (const auto& vector:{p.position,p.rotation,p.scale}) if (std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);})) throw std::runtime_error("Cannot save nonfinite transform");
             document["objects"].push_back(std::move(object));
         }
         return document;
@@ -205,9 +205,7 @@ namespace SceneRuntime
                 const auto& object=objects[index];
                 const auto& before=validatedBefore.objects[index];
                 parentsChanged=parentsChanged || object.parentId!=before.parentId;
-                for (const auto& vector : {object.position,object.rotation,object.scale})
-                    if (std::any_of(vector.begin(),vector.end(),[](float value) { return !std::isfinite(value); }))
-                        throw std::runtime_error("Cannot save nonfinite transform");
+                for (const auto& vector:{object.position,object.rotation,object.scale}) if (std::any_of(vector.begin(),vector.end(),[](float value) { return !std::isfinite(value); })) throw std::runtime_error("Cannot save nonfinite transform");
                 if (std::any_of(object.scale.begin(),object.scale.end(),[](float value) { return std::abs(value)<0.000001f; }))
                     throw std::runtime_error("Transform contains an invalid number or zero scale");
                 if (!object.SameComponents(before))
@@ -247,9 +245,7 @@ namespace SceneRuntime
                 {"components",WriteSceneComponents(p)},{"position",p.position},{"rotation",p.rotation},{"scale",p.scale}};
             if (p.persistent) object["persistent"]=true;
             if (p.prefab) object["prefab"]={{"asset",p.prefab->asset},{"source",p.prefab->sourceId},{"root",p.prefab->rootId},{"baseline",p.prefab->baseline}};
-            for(const auto& vector:{p.position,p.rotation,p.scale})
-                if(std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);}))
-                    throw std::runtime_error("Cannot save nonfinite transform");
+            for (const auto& vector:{p.position,p.rotation,p.scale}) if (std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);})) throw std::runtime_error("Cannot save nonfinite transform");
             json+="    "+object.dump()+(i+1==objects.size()?"\n":",\n");
         }
         json+="  ],\n  \"assetReferences\": "+Json(assetReferences).dump()+",\n  \"sceneObjects\": "+Json(sceneObjects).dump()+"\n}\n";

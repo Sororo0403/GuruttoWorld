@@ -56,7 +56,16 @@
           "id": "script",
           "enabled": true,
           "behaviour": "ParkCamera",
-          "parameters": {},
+          "parameters": {
+            "distance": 13.0,
+            "height": 10.0,
+            "response": 6.0,
+            "horizontalFollow": 0.55,
+            "minZ": 2.0,
+            "maxZ": 72.0,
+            "lookAhead": 3.0,
+            "lookHeight": 0.8
+          },
           "data": {
             "kind": "object",
             "value": {
@@ -440,7 +449,14 @@
           "id": "script",
           "enabled": true,
           "behaviour": "ParkPatrol",
-          "parameters": {}
+          "parameters": {
+            "amplitude": 1.0,
+            "frequency": 0.25
+          },
+          "data": {
+            "kind": "object",
+            "value": {}
+          }
         }
       ]
     },
@@ -1396,7 +1412,14 @@
           "id": "script",
           "enabled": true,
           "behaviour": "ParkPatrol",
-          "parameters": {}
+          "parameters": {
+            "amplitude": 1.0,
+            "frequency": 0.25
+          },
+          "data": {
+            "kind": "object",
+            "value": {}
+          }
         }
       ]
     },
@@ -3185,7 +3208,14 @@
           "id": "script",
           "enabled": true,
           "behaviour": "ParkPatrol",
-          "parameters": {}
+          "parameters": {
+            "amplitude": 1.0,
+            "frequency": 0.25
+          },
+          "data": {
+            "kind": "object",
+            "value": {}
+          }
         }
       ]
     },
@@ -5284,13 +5314,242 @@
           "id": "script",
           "enabled": true,
           "behaviour": "ParkPlayer",
-          "parameters": {},
+          "parameters": {
+            "floatDuration": 0.85,
+            "maxHp": 3.0,
+            "invulnerableDuration": 1.5,
+            "attackDuration": 0.22,
+            "attackCooldown": 0.4,
+            "attackDistance": 3.1,
+            "damageDistance": 1.15,
+            "damage": 1.0,
+            "coinDistance": 1.25,
+            "switchDistance": 1.55,
+            "checkpointDistance": 1.6,
+            "requiredSwitches": 2.0,
+            "coinTotal": 12.0,
+            "goalDistance": 2.0,
+            "respawnHeight": 1.05,
+            "fallLimit": -3.0,
+            "leftLimit": -20.0,
+            "rightLimit": 20.0,
+            "groundProbe": 0.8,
+            "groundNormal": 0.7,
+            "floatDelay": 0.25,
+            "hintBoundary1": 14.0,
+            "hintBoundary2": 31.0,
+            "hintBoundary3": 49.0
+          },
           "data": {
             "kind": "object",
             "value": {
               "scene": {
                 "kind": "string",
                 "value": "Assets/Scenes/ParkAdventure.json"
+              },
+              "returnScene": {
+                "kind": "string",
+                "value": "Assets/Scenes/TitleStreet.json"
+              },
+              "coinsName": {
+                "kind": "string",
+                "value": "ParkCoin"
+              },
+              "switchesName": {
+                "kind": "string",
+                "value": "ParkSwitch"
+              },
+              "enemiesName": {
+                "kind": "string",
+                "value": "ParkEnemy"
+              },
+              "checkpointsName": {
+                "kind": "string",
+                "value": "ParkCheckpoint"
+              },
+              "attackAction": {
+                "kind": "string",
+                "value": "Attack"
+              },
+              "restartAction": {
+                "kind": "string",
+                "value": "Restart"
+              },
+              "cancelAction": {
+                "kind": "string",
+                "value": "Cancel"
+              },
+              "jumpAction": {
+                "kind": "string",
+                "value": "Jump"
+              },
+              "rightAction": {
+                "kind": "string",
+                "value": "MoveRight"
+              },
+              "leftAction": {
+                "kind": "string",
+                "value": "MoveLeft"
+              },
+              "forwardAction": {
+                "kind": "string",
+                "value": "MoveForward"
+              },
+              "backAction": {
+                "kind": "string",
+                "value": "MoveBack"
+              },
+              "attackState": {
+                "kind": "string",
+                "value": "parkAttack"
+              },
+              "clearState": {
+                "kind": "string",
+                "value": "parkClear"
+              },
+              "statsTemplate": {
+                "kind": "string",
+                "value": "ライフ {hp}   花のかけら {coins} / {coinTotal}   スイッチ {switches} / {requiredSwitches}"
+              },
+              "resultTemplate": {
+                "kind": "string",
+                "value": "公園をクリア！  {elapsed} 秒 / 花のかけら {coins} / {coinTotal}\nRで再挑戦・Escでタイトルへ"
+              },
+              "hint1": {
+                "kind": "string",
+                "value": "花のかけらを集めながら、公園の奥へ進もう"
+              },
+              "hint2": {
+                "kind": "string",
+                "value": "段差の上にも寄り道。Spaceでジャンプ"
+              },
+              "hint3": {
+                "kind": "string",
+                "value": "水路を飛び越えよう。ジャンプ中にSpaceを押し続けると空中停止"
+              },
+              "hint4": {
+                "kind": "string",
+                "value": "左右のスイッチを踏んで、展望台への扉を開こう"
+              },
+              "gate": {
+                "kind": "reference",
+                "value": "park-gate"
+              },
+              "goal": {
+                "kind": "reference",
+                "value": "park-goal"
+              },
+              "stats": {
+                "kind": "reference",
+                "value": "park-stats"
+              },
+              "hint": {
+                "kind": "reference",
+                "value": "park-hint"
+              },
+              "result": {
+                "kind": "reference",
+                "value": "park-result"
+              },
+              "coins": {
+                "kind": "array",
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "Entrance-coin-a"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Entrance-coin-b"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Terraces-coin-a"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Terraces-coin-b"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Terraces-coin-c"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Canal-coin-a"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Canal-coin-b"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Canal-coin-c"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "SwitchGarden-coin-a"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "SwitchGarden-coin-b"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "SwitchGarden-coin-c"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Vista-coin-a"
+                  }
+                ]
+              },
+              "switches": {
+                "kind": "array",
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "SwitchGarden-switch-left"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "SwitchGarden-switch-right"
+                  }
+                ]
+              },
+              "enemies": {
+                "kind": "array",
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "Entrance-enemy"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Terraces-enemy"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "SwitchGarden-enemy"
+                  }
+                ]
+              },
+              "checkpoints": {
+                "kind": "array",
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "Terraces-checkpoint"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "Canal-checkpoint"
+                  }
+                ]
+              },
+              "useNameLookup": {
+                "kind": "bool",
+                "value": false
               }
             }
           }

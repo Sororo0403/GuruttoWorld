@@ -29,7 +29,7 @@ namespace Editor
                     std::string audioError;
                     if(!candidate->StartAudio(root,audioError)) Engine::Log::Warning(audioError);
                     runtime_=std::move(candidate);
-                    title_.Initialize(runtime_->World().Layout(),runtime_->Ui());
+                    title_.Initialize(runtime_->World().Layout(),runtime_->Ui(),root.parent_path()/"generated/editor/menu-settings.json",true);
                 }
                 catch (const std::exception& exception) { error=exception.what(); return false; }
             }
@@ -43,7 +43,7 @@ namespace Editor
             auto candidate=std::make_unique<SceneRuntime::SceneEnvironment>();
             if(!candidate->Initialize(renderer,root,layout,error)) return false;
             std::string audioError; if(!candidate->StartAudio(root,audioError)) Engine::Log::Warning(audioError);
-            runtime_=std::move(candidate); title_.Initialize(runtime_->World().Layout(),runtime_->Ui()); state_.Stop(); return state_.Play();
+            runtime_=std::move(candidate); title_.Initialize(runtime_->World().Layout(),runtime_->Ui(),root.parent_path()/"generated/editor/menu-settings.json"); state_.Stop(); return state_.Play();
         }
         bool Pause() { const bool result=state_.Pause(); if(result && runtime_) {runtime_->PauseAudio(true); runtime_->DiscardPendingInput(); runtime_->Ui().pressed.clear(); runtime_->Ui().hovered.clear();} return result; }
         bool Stop()
@@ -54,6 +54,7 @@ namespace Editor
         }
         bool Update(double seconds, bool active)
         {
+            if(runtime_) title_.ApplyAnimation(*runtime_);
             if (!active && runtime_) runtime_->DiscardPendingInput();
             if(!active || !state_.CanPause()) title_.Suspend();
             if(runtime_ && state_.CanPause()) title_.UpdateAudio(*runtime_,seconds,active);
@@ -64,10 +65,12 @@ namespace Editor
         }
         bool Step()
         {
-            if (!runtime_ || !state_.Step()) return false;
+            if(!runtime_) return false;
+            const auto seconds=runtime_->World().PhysicsStepSeconds();
+            if (!state_.Step(seconds)) return false;
             runtime_->SetInputActions({},{});
-            runtime_->MovePlayers(PlayState::StepSeconds,0,0);
-            runtime_->Update(PlayState::StepSeconds,true,true);
+            runtime_->MovePlayers(seconds,0,0);
+            runtime_->Update(seconds,true,true);
             return true;
         }
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height)
