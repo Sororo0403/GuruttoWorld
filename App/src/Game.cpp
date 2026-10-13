@@ -17,6 +17,142 @@
 
 namespace App
 {
+    class ProfileSession final {
+        const GameProfileOptions* profile;
+        SceneFactory& factory;
+        Engine::SceneManager& scenes;
+        std::ostringstream samples;
+        bool finished = false;
+        unsigned int frame = 0;
+        double updateMilliseconds = 0, intervalMilliseconds = 0;
+        bool inputActive = false, deviceActive = false;
+        Engine::Keyboard replayKeyboard;
+        bool jumpDown = false, jumpPressed = false, jumpReleased = false;
+        unsigned int inputFrame = 0;
+        std::string inputEvent = "none";
+        double replaySeconds = 0;
+        using Clock = std::chrono::steady_clock;
+        Clock::time_point previousUpdate = Clock::now();
+    public:
+      ProfileSession(const GameProfileOptions *options, SceneFactory &source, Engine::SceneManager &manager) : profile(options), factory(source), scenes(manager) {
+          samples.imbue(std::locale::classic()); samples << std::setprecision(9);
+      }
+      void Update(double deltaSeconds, const Engine::Keyboard &keyboard) {
+          if (!profile) { scenes.Update(deltaSeconds, keyboard); return; }
+          const auto started = Clock::now();
+          intervalMilliseconds = std::chrono::duration<double, std::milli>(started - previousUpdate).count();
+          previousUpdate = started;
+          deviceActive = keyboard.IsActive();
+          if (profile->replayInput) {
+              Replay(keyboard);
+          } else {
+              inputActive = deviceActive;
+              scenes.Update(deltaSeconds, keyboard);
+          }
+          const auto &measuredKeyboard = profile->replayInput ? replayKeyboard : keyboard;
+          jumpDown = measuredKeyboard.IsDown(DIK_SPACE);
+          jumpPressed = measuredKeyboard.IsPressed(DIK_SPACE);
+          jumpReleased = measuredKeyboard.IsReleased(DIK_SPACE);
+          updateMilliseconds = std::chrono::duration<double, std::milli>(Clock::now() - started).count();
+
+        }
+      Engine::RenderResult Draw(Engine::DirectX12Renderer &renderer) {
+          if (!profile) return scenes.Draw(renderer);
+          const auto started = Clock::now();
+          const auto result = scenes.Draw(renderer);
+          const double drawMilliseconds = std::chrono::duration<double, std::milli>(Clock::now() - started).count();
+          if (result == Engine::RenderResult::Presented) {
+              const auto &telemetry = renderer.Telemetry();
+              auto row = [&](const char *kind, const std::string &name, double milliseconds, unsigned int calls) {
+                  samples << frame << ',' << scenes.GetActiveName() << ',' << renderer.GetWidth() << ',' << renderer.GetHeight()
+                          << ',' << kind << ',' << name << ',' << milliseconds << ',' << calls << '\n';
+              };
+              row("frame", "interval", intervalMilliseconds, 1);
+              row("state", "input.active", inputActive ? 1.0 : 0.0, 1);
+              row("state", "input.device.active", deviceActive ? 1.0 : 0.0, 1);
+              row("state", "input.diagnostic.replay", profile->replayInput ? 1.0 : 0.0, 1);
+              if (profile->replayInput) {
+                  row("event", inputEvent, replaySeconds, 1);
+                  row("state", "replay.update.index", inputFrame - 1, 1);
+                  row("state", "replay.jump.pressed", replayKeyboard.IsPressed(DIK_SPACE) ? 1.0 : 0.0, 1);
+                  row("state", "replay.jump.released", replayKeyboard.IsReleased(DIK_SPACE) ? 1.0 : 0.0, 1);
+              }
+              RecordSceneState(row);
+              row("cpu", "app.update", updateMilliseconds, 1);
+              row("cpu", "app.draw", drawMilliseconds, 1);
+              row("cpu", "renderer.total", telemetry.cpuRenderMilliseconds, 1);
+              for (const auto &sample : telemetry.cpuScopes) row("cpu.scope", sample.name, sample.milliseconds, sample.calls);
+              // GPU値は再利用するバックバッファーの完了済みフレームに対応する。
+              if (telemetry.gpuSample) {
+                  row("gpu.delayed", "renderer.total", telemetry.gpuMilliseconds, 1);
+                  for (const auto &sample : telemetry.gpuPasses) row("gpu.pass.delayed", sample.name, sample.milliseconds, sample.calls);
+              }
+              if (++frame >= profile->frames) finished = true;
+          }
+          return result;
+
+        }
+      static void ReplayButtons(unsigned int tick, std::array<BYTE, 256> &keys, std::string &event) {
+          struct Button {unsigned int tick, key;const char *event;};
+          static constexpr Button buttons[] = {{130, DIK_SPACE, "jump.press"}, {160, DIK_SPACE, "jump.press"}, {250, DIK_SPACE, "jump.press"}, {170, DIK_J, "attack.press"}, {270, DIK_J, "attack.press"}};
+          for (const auto &button : buttons) if (tick == button.tick) {keys[button.key] = 0x80;event = button.event;}
+      }
+      void Replay(const Engine::Keyboard &keyboard) {
+          std::array<BYTE, 256> keys{};
+          const auto tick = inputFrame++;
+          const bool active = !(tick >= 210 && tick < 230);
+          Engine::DiagnosticPointer pointer;
+          pointer.x = 220; pointer.y = 540;
+          inputEvent = "idle";
+          if (tick >= 30 && tick < 54) { keys[DIK_A] = 0x80; inputEvent = "move.left"; }
+          if (tick >= 54 && tick < 180) { keys[DIK_W] = 0x80; inputEvent = "move.forward"; }
+          ReplayButtons(tick, keys, inputEvent);
+          if (tick >= 190 && tick < 195) { pointer.buttons = 1; inputEvent = "pointer.hold"; }
+          if (tick == 195) inputEvent = "pointer.release";
+          if (tick == 200) { pointer.wheel = 1; inputEvent = "pointer.wheel"; }
+          if (!active) { keys[DIK_SPACE] = 0x80; inputEvent = "focus.lost"; }
+          if (tick == 230) { keys[DIK_SPACE] = 0x80; inputEvent = "focus.regained.held"; }
+          replayKeyboard.ApplyDiagnosticState(keyboard.WindowHandle(), active, keys, pointer);
+          inputActive = replayKeyboard.IsActive();
+          replaySeconds += 1.0 / 60.0;
+          scenes.Update(1.0 / 60.0, replayKeyboard);
+      }
+      template <class Row> void RecordSceneState(Row &row) {
+          unsigned int collectibles = 0;
+          for (const auto &object : factory.Environment().World().Layout().objects) {
+              if (object.id.find("-coin-") != std::string::npos) ++collectibles;
+              if (object.id == "park-player") {
+                  row("state", "player.x", object.position[0], 1);
+                  row("state", "player.y", object.position[1], 1);
+                  row("state", "player.z", object.position[2], 1);
+              }
+          }
+          row("state", "collectibles.remaining", collectibles, 1);
+          row("state", "ui.hovered", factory.Environment().Ui().hovered.empty() ? 0 : 1, 1);
+          row("state", "ui.pressed", factory.Environment().Ui().pressed.empty() ? 0 : 1, 1);
+          row("state", "ui.focused", factory.Environment().Ui().focused.empty() ? 0 : 1, 1);
+          row("state", "input.jump.down", jumpDown ? 1.0 : 0.0, 1);
+          row("state", "input.jump.pressed", jumpPressed ? 1.0 : 0.0, 1);
+          row("state", "input.jump.released", jumpReleased ? 1.0 : 0.0, 1);
+          row("state", "simulation.override", profile->simulateInactive ? 1.0 : 0.0, 1);
+      }
+      void Close() { finished = true; }
+      bool Finished() const { return finished; }
+      int Finish(int result) {
+          if (!profile) return result;
+          try {
+              if (profile->output.empty()) return 1;
+              if (!profile->output.parent_path().empty()) std::filesystem::create_directories(profile->output.parent_path());
+              std::ofstream output(profile->output, std::ios::binary);
+              output << "frame,scene,width,height,kind,name,milliseconds,calls\n" << samples.str();
+              if (!output) return 1;
+          } catch (...) { return 1; }
+          // 自動計測の通常終了はWM_QUITを経由しないため、取得フレーム数で判定する。
+          return frame >= profile->frames ? 0 : (result == 0 ? 1 : result);
+
+        }
+    };
+
     int Game::Run(const GameProfileOptions* profile)
     {
         std::wstring executable(32768, L'\0');
@@ -40,125 +176,16 @@ namespace App
         settings.title = winrt::to_hstring(project.title).c_str();
         settings.width=project.width; settings.height=project.height;
         Engine::ApplicationCallbacks callbacks;
-        std::ostringstream samples;
-        samples.imbue(std::locale::classic());
-        samples << std::setprecision(9);
-        bool finished = false;
-        unsigned int frame = 0;
-        double updateMilliseconds = 0, intervalMilliseconds = 0;
-        bool inputActive = false, deviceActive = false;
-        Engine::Keyboard replayKeyboard;
-        bool jumpDown = false, jumpPressed = false, jumpReleased = false;
-        unsigned int inputFrame = 0;
-        std::string inputEvent = "none";
-        double replaySeconds = 0;
-        using Clock = std::chrono::steady_clock;
-        auto previousUpdate = Clock::now();
-        callbacks.update = [&](double deltaSeconds, const Engine::Keyboard& keyboard) {
-            if (!profile) { scenes.Update(deltaSeconds, keyboard); return; }
-            const auto started = Clock::now();
-            intervalMilliseconds = std::chrono::duration<double, std::milli>(started - previousUpdate).count();
-            previousUpdate = started;
-            deviceActive = keyboard.IsActive();
-            if (profile->replayInput) {
-                std::array<BYTE,256> keys{};
-                const auto tick = inputFrame++;
-                const bool active = !(tick >= 210 && tick < 230);
-                Engine::DiagnosticPointer pointer;
-                pointer.x = 220; pointer.y = 540;
-                inputEvent = "idle";
-                if (tick >= 30 && tick < 54) { keys[DIK_A]=0x80; inputEvent="move.left"; }
-                if (tick >= 54 && tick < 180) { keys[DIK_W]=0x80; inputEvent="move.forward"; }
-                if (tick == 130 || tick == 160 || tick == 250) { keys[DIK_SPACE]=0x80; inputEvent="jump.press"; }
-                if (tick == 170 || tick == 270) { keys[DIK_J]=0x80; inputEvent="attack.press"; }
-                if (tick >= 190 && tick < 195) { pointer.buttons=1; inputEvent="pointer.hold"; }
-                if (tick == 195) inputEvent="pointer.release";
-                if (tick == 200) { pointer.wheel=1; inputEvent="pointer.wheel"; }
-                if (!active) { keys[DIK_SPACE]=0x80; inputEvent="focus.lost"; }
-                if (tick == 230) { keys[DIK_SPACE]=0x80; inputEvent="focus.regained.held"; }
-                replayKeyboard.ApplyDiagnosticState(keyboard.WindowHandle(),active,keys,pointer);
-                inputActive = replayKeyboard.IsActive();
-                replaySeconds += 1.0/60.0;
-                scenes.Update(1.0/60.0,replayKeyboard);
-            } else {
-                inputActive = deviceActive;
-                scenes.Update(deltaSeconds, keyboard);
-            }
-            const auto& measuredKeyboard = profile->replayInput ? replayKeyboard : keyboard;
-            jumpDown = measuredKeyboard.IsDown(DIK_SPACE);
-            jumpPressed = measuredKeyboard.IsPressed(DIK_SPACE);
-            jumpReleased = measuredKeyboard.IsReleased(DIK_SPACE);
-            updateMilliseconds = std::chrono::duration<double, std::milli>(Clock::now() - started).count();
-        };
-        callbacks.draw = [&](Engine::DirectX12Renderer& renderer) {
-            if (!profile) return scenes.Draw(renderer);
-            const auto started = Clock::now();
-            const auto result = scenes.Draw(renderer);
-            const double drawMilliseconds = std::chrono::duration<double, std::milli>(Clock::now() - started).count();
-            if (result == Engine::RenderResult::Presented) {
-                const auto& telemetry = renderer.Telemetry();
-                auto row = [&](const char* kind, const std::string& name, double milliseconds, unsigned int calls) {
-                    samples << frame << ',' << scenes.GetActiveName() << ',' << renderer.GetWidth() << ',' << renderer.GetHeight()
-                        << ',' << kind << ',' << name << ',' << milliseconds << ',' << calls << '\n';
-                };
-                row("frame", "interval", intervalMilliseconds, 1);
-                row("state", "input.active", inputActive ? 1.0 : 0.0, 1);
-                row("state", "input.device.active", deviceActive ? 1.0 : 0.0, 1);
-                row("state", "input.diagnostic.replay", profile->replayInput ? 1.0 : 0.0, 1);
-                if (profile->replayInput) {
-                    row("event", inputEvent, replaySeconds, 1);
-                    row("state", "replay.update.index", inputFrame-1, 1);
-                    row("state", "replay.jump.pressed", replayKeyboard.IsPressed(DIK_SPACE) ? 1.0 : 0.0, 1);
-                    row("state", "replay.jump.released", replayKeyboard.IsReleased(DIK_SPACE) ? 1.0 : 0.0, 1);
-                }
-                unsigned int collectibles=0;
-                for (const auto& object : factory.Environment().World().Layout().objects) {
-                    if (object.id.find("-coin-")!=std::string::npos) ++collectibles;
-                    if (object.id=="park-player") {
-                        row("state", "player.x", object.position[0], 1);
-                        row("state", "player.y", object.position[1], 1);
-                        row("state", "player.z", object.position[2], 1);
-                    }
-                }
-                row("state", "collectibles.remaining", collectibles, 1);
-                row("state", "ui.hovered", factory.Environment().Ui().hovered.empty() ? 0 : 1, 1);
-                row("state", "ui.pressed", factory.Environment().Ui().pressed.empty() ? 0 : 1, 1);
-                row("state", "ui.focused", factory.Environment().Ui().focused.empty() ? 0 : 1, 1);
-                row("state", "input.jump.down", jumpDown ? 1.0 : 0.0, 1);
-                row("state", "input.jump.pressed", jumpPressed ? 1.0 : 0.0, 1);
-                row("state", "input.jump.released", jumpReleased ? 1.0 : 0.0, 1);
-                row("state", "simulation.override", profile->simulateInactive ? 1.0 : 0.0, 1);
-                row("cpu", "app.update", updateMilliseconds, 1);
-                row("cpu", "app.draw", drawMilliseconds, 1);
-                row("cpu", "renderer.total", telemetry.cpuRenderMilliseconds, 1);
-                for (const auto& sample : telemetry.cpuScopes) row("cpu.scope", sample.name, sample.milliseconds, sample.calls);
-                // GPU値は再利用するバックバッファーの完了済みフレームに対応する。
-                if (telemetry.gpuSample) {
-                    row("gpu.delayed", "renderer.total", telemetry.gpuMilliseconds, 1);
-                    for (const auto& sample : telemetry.gpuPasses) row("gpu.pass.delayed", sample.name, sample.milliseconds, sample.calls);
-                }
-                if (++frame >= profile->frames) finished = true;
-            }
-            return result;
-        };
+        ProfileSession session(profile,factory,scenes);
+        callbacks.update=[&](double seconds,const Engine::Keyboard& keyboard) {session.Update(seconds,keyboard);};
+        callbacks.draw=[&](Engine::DirectX12Renderer& renderer) {return session.Draw(renderer);};
         if (profile) {
-            callbacks.closeRequested = [&] { finished = true; };
-            callbacks.shouldClose = [&] { return finished; };
+            callbacks.closeRequested = [&] {session.Close();};
+            callbacks.shouldClose = [&] {return session.Finished();};
         }
         Engine::Application application;
         // Run 内で GPU 完了を待った後に scenes が破棄されます。
         const int result = application.Run(settings, callbacks);
-        if (profile) {
-            try {
-                if (profile->output.empty()) return 1;
-                if (!profile->output.parent_path().empty()) std::filesystem::create_directories(profile->output.parent_path());
-                std::ofstream output(profile->output, std::ios::binary);
-                output << "frame,scene,width,height,kind,name,milliseconds,calls\n" << samples.str();
-                if (!output) return 1;
-            } catch (...) { return 1; }
-            // 自動計測の通常終了はWM_QUITを経由しないため、取得フレーム数で判定する。
-            return frame >= profile->frames ? 0 : (result == 0 ? 1 : result);
-        }
-        return result;
+        return session.Finish(result);
     }
 }

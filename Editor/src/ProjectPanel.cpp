@@ -23,6 +23,29 @@ namespace Editor
             [&](const auto& asset) { return asset.path==selected_; })) selected_.clear();
         if (std::find(catalog_.Folders().begin(),catalog_.Folders().end(),folder_)==catalog_.Folders().end()) folder_="Assets";
     }
+    void ProjectPanel::DrawCreateMaterial(EditState &state)
+    {
+        if (ImGui::Button("Materialを作成###Create material")) ImGui::OpenPopup("新しいMaterial###New material");
+        if (ImGui::BeginPopup("新しいMaterial###New material"))
+        {
+            static std::array<char, 129> name{};
+            ImGui::InputText("名前###Material name", name.data(), name.size());
+            if (ImGui::Button("作成###Create material asset") && name[0])
+            {
+                try
+                {
+                    const std::string value = name.data();
+                    if (value.find_first_of("/\\:<>|?*.") != std::string::npos) throw std::runtime_error("Material名にはファイル名だけを指定してください");
+                    const auto file = std::filesystem::path(std::u8string(value.begin(), value.end()) + u8".mat");
+                    const auto path = std::filesystem::path("Assets/Materials") / file;
+                    if (std::filesystem::exists(root_ / path)) throw std::runtime_error("同じ名前のMaterialが存在します");
+                    SceneRuntime::MaterialAsset{}.Save(root_, path); Scan(root_); selected_ = path; state.InspectAsset(path); name.fill(0); ImGui::CloseCurrentPopup();
+                }
+                catch (const std::exception &exception) { Engine::Log::Error(exception.what()); }
+            }
+            ImGui::EndPopup();
+        }
+    }
     void ProjectPanel::Draw(EditState& state, const std::array<float,3>& suggestedPosition, bool enabled)
     {
         if (!positionInitialized_) { addPosition_=suggestedPosition; positionInitialized_=true; }
@@ -41,26 +64,7 @@ namespace Editor
             ImGui::SetNextItemWidth(100);
             ImGui::Combo("種類###Type",&type_,"すべて\0モデル\0シーン\0画像\0音声\0シェーダー\0フォント\0Prefab\0Material\0");
             ImGui::BeginDisabled(!enabled);
-            if (ImGui::Button("Materialを作成###Create material")) ImGui::OpenPopup("新しいMaterial###New material");
-            if (ImGui::BeginPopup("新しいMaterial###New material"))
-            {
-                static std::array<char,129> name{};
-                ImGui::InputText("名前###Material name",name.data(),name.size());
-                if (ImGui::Button("作成###Create material asset") && name[0])
-                {
-                    try
-                    {
-                        const std::string value=name.data();
-                        if (value.find_first_of("/\\:<>|?*.")!=std::string::npos) throw std::runtime_error("Material名にはファイル名だけを指定してください");
-                        const auto file=std::filesystem::path(std::u8string(value.begin(),value.end())+u8".mat");
-                        const auto path=std::filesystem::path("Assets/Materials")/file;
-                        if (std::filesystem::exists(root_/path)) throw std::runtime_error("同じ名前のMaterialが存在します");
-                        SceneRuntime::MaterialAsset{}.Save(root_,path); Scan(root_); selected_=path; state.InspectAsset(path); name.fill(0); ImGui::CloseCurrentPopup();
-                    }
-                    catch (const std::exception& exception) { Engine::Log::Error(exception.what()); }
-                }
-                ImGui::EndPopup();
-            }
+            DrawCreateMaterial(state);
             ImGui::EndDisabled();
             if (!catalog_.Error().empty()) ImGui::TextWrapped("%s",catalog_.Error().c_str());
             const float listHeight=std::max(70.0f,ImGui::GetContentRegionAvail().y-130);
@@ -195,20 +199,24 @@ namespace Editor
         }
         ImGui::End();
     }
+    void ProjectPanel::DrawMaterialUsages(EditState &state, const std::filesystem::path &path, const SceneRuntime::SceneLayout *layout)
+    {
+        if (layout && ImGui::CollapsingHeader("このシーンの使用箇所###Material usages")) {
+            size_t count = 0;
+            for (const auto &object : layout->objects) if (object.material && (object.material->asset == path ||
+                                        std::find(object.material->slots.begin(), object.material->slots.end(), path) != object.material->slots.end())) {
+                    ImGui::PushID(object.id.c_str());
+                    if (ImGui::Selectable(object.name.c_str())) state.Select(object.id);
+                    if (!object.material->enabled) {ImGui::SameLine();ImGui::TextDisabled("割り当て無効");}
+                    ImGui::PopID();++count;
+                }
+            if (!count) ImGui::TextUnformatted("このシーンでの使用箇所はありません。");
+        }
+    }
     bool ProjectPanel::DrawMaterialWorkflow(EditState& state,const std::filesystem::path& path,const SceneRuntime::SceneLayout* layout,bool enabled)
     {
         ImGui::TextWrapped("共有アセット：編集・保存すると、このMaterialを参照するすべてのオブジェクトに反映します。");
-        if(layout && ImGui::CollapsingHeader("このシーンの使用箇所###Material usages")) {
-            size_t count=0;
-            for(const auto& object:layout->objects) if(object.material && (object.material->asset==path ||
-                std::find(object.material->slots.begin(),object.material->slots.end(),path)!=object.material->slots.end())) {
-                ImGui::PushID(object.id.c_str());
-                if(ImGui::Selectable(object.name.c_str())) state.Select(object.id);
-                if(!object.material->enabled) {ImGui::SameLine();ImGui::TextDisabled("割り当て無効");}
-                ImGui::PopID();++count;
-            }
-            if(!count) ImGui::TextUnformatted("このシーンでの使用箇所はありません。");
-        }
+        DrawMaterialUsages(state,path,layout);
         ImGui::BeginDisabled(!enabled);
         if(ImGui::Button("複製して別のMaterialにする###Duplicate material")) {materialName_.fill(0);materialError_.clear();ImGui::OpenPopup("Materialを複製###Duplicate material dialog");}
         bool changed=false;

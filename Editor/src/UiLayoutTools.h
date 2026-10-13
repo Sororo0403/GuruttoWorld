@@ -34,11 +34,28 @@ struct UiLayoutTools {
         c.anchorMin=value; c.anchorMax=value;
         return result;
     }
+        struct Bounds {float min,max,center;size_t index;SceneRuntime::UiRect rect;};
+        static void ArrangeBounds(std::vector<SceneRuntime::ScenePlacement> &result, std::vector<Bounds> &bounds, Arrange action, size_t axis, float left, float right, bool distribute) {
+            float next = left, gap = 0;
+            if (distribute) {
+                std::stable_sort(bounds.begin(), bounds.end(), [](const auto &a, const auto &b){ return a.center < b.center; });
+                float total = 0;for (const auto &b : bounds) total += b.max - b.min;
+                gap = (right - left - total) / (bounds.size() - 1);
+            }
+            for (const auto &b : bounds) {
+                float delta = 0;
+                if (distribute) {delta = next - b.min;next += b.max - b.min + gap;}
+                else if (action == Arrange::Left || action == Arrange::Top) delta = left - b.min;
+                else if (action == Arrange::Right || action == Arrange::Bottom) delta = right - b.max;
+                else delta = (left + right) * .5f - b.center;
+                std::array<float, 2> movement{};movement[axis] = delta;
+                Translate(result[b.index], b.rect, movement);
+            }
+        }
     static std::vector<SceneRuntime::ScenePlacement> Apply(const SceneRuntime::SceneLayout& layout,const EditState& state,
         unsigned int width,unsigned int height,const SceneRuntime::UiState& preview,Arrange action) {
         auto result=Selection(layout,state);
         if(result.size()<2) return {};
-        struct Bounds {float min,max,center;size_t index;SceneRuntime::UiRect rect;};
         const bool horizontal=action==Arrange::Left || action==Arrange::CenterX || action==Arrange::Right || action==Arrange::Horizontal;
         const size_t axis=horizontal?0:1;
         std::vector<Bounds> bounds;
@@ -53,21 +70,7 @@ struct UiLayoutTools {
         const auto right=std::max_element(bounds.begin(),bounds.end(),[](const auto& a,const auto& b){return a.max<b.max;})->max;
         const bool distribute=action==Arrange::Horizontal || action==Arrange::Vertical;
         if(distribute && bounds.size()<3) return {};
-        float next=left,gap=0;
-        if(distribute) {
-            std::stable_sort(bounds.begin(),bounds.end(),[](const auto& a,const auto& b){return a.center<b.center;});
-            float total=0;for(const auto& b:bounds) total+=b.max-b.min;
-            gap=(right-left-total)/(bounds.size()-1);
-        }
-        for(const auto& b:bounds) {
-            float delta=0;
-            if(distribute) {delta=next-b.min;next+=b.max-b.min+gap;}
-            else if(action==Arrange::Left || action==Arrange::Top) delta=left-b.min;
-            else if(action==Arrange::Right || action==Arrange::Bottom) delta=right-b.max;
-            else delta=(left+right)*.5f-b.center;
-            std::array<float,2> movement{};movement[axis]=delta;
-            Translate(result[b.index],b.rect,movement);
-        }
+        ArrangeBounds(result,bounds,action,axis,left,right,distribute);
         return result;
     }
 };

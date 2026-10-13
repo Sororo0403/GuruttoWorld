@@ -1,4 +1,5 @@
 #pragma once
+#include "ComponentWidgets.h"
 #include "EditState.h"
 #include "ProjectCatalog.h"
 #include "EnvironmentPanel.h"
@@ -7,7 +8,7 @@
 #include <cmath>
 namespace Editor::GenrePanel {
 /// <summary>地形操作をUndoへまとめます。</summary>
-inline void Track(EditState& state) {if(ImGui::IsItemActive()||ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));}
+inline void Track(EditState& state) {Editor::TrackComponentInteraction(state);}
 /// <summary>グリッド解像度の変更で要素数を安全に更新します。</summary>
 template<class T,class Value> inline void Grid(EditState& state,T& c,std::vector<Value>& values,int minimum,Value fallback) {
     int size[]{static_cast<int>(c.columns),static_cast<int>(c.rows)};

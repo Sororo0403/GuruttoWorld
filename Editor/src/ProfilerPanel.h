@@ -35,6 +35,20 @@ public:
         if (adapter_ && SUCCEEDED(adapter_->QueryVideoMemoryInfo(0,DXGI_MEMORY_SEGMENT_GROUP_LOCAL,&video))) { sample_.video=video.CurrentUsage; sample_.budget=video.Budget; sample_.videoValid=true; }
         if (samples_.size()==600) samples_.erase(samples_.begin()); samples_.push_back(sample_);
     }
+    void DrawExport(const std::filesystem::path &content) {
+        if (ImGui::Button("CSVを書き出す###Export CSV")) try {
+                const auto directory = content.parent_path() / "generated/profiler"; std::filesystem::create_directories(directory);
+                const auto path = directory / ("profile-" + std::to_string(GetTickCount64()) + ".csv"); std::ofstream output(path);
+                output << "frame_ms,cpu_update_ms,cpu_render_present_ms,gpu_ms,gpu_valid,mesh_draws,triangles,working_set_bytes,private_bytes,local_video_bytes,video_budget_bytes,video_valid\n";
+                for (const auto &sample : samples_) output << sample.frame << ',' << sample.update << ',' << sample.render << ',' << sample.gpu << ',' << sample.gpuValid << ',' << sample.draws << ',' << sample.triangles << ',' << sample.workingSet << ',' << sample.privateBytes << ',' << sample.video << ',' << sample.budget << ',' << sample.videoValid << '\n';
+                output.close(); if (!output) throw std::runtime_error("Cannot write profiler CSV"); status_ = Engine::AssetDatabase::Text(path);
+                auto detail = path; detail.replace_filename(path.stem().string() + "-scopes.csv"); std::ofstream scopes(detail);
+                scopes << "sample,processor,scope,inclusive_ms,calls\n";
+                for (size_t index = 0; index < samples_.size(); ++index) for (const auto &group : {std::pair{"CPU", &samples_[index].cpuScopes}, std::pair{"GPU", &samples_[index].gpuPasses}})
+                        for (const auto &scope : *group.second) { std::string name; for (const char c : scope.name){name += c;if (c == '"') name += '"';} scopes << index << ',' << group.first << ",\"" << name << "\"," << scope.milliseconds << ',' << scope.calls << '\n'; }
+                scopes.close(); if (!scopes) throw std::runtime_error("Cannot write profiler scope CSV");
+            } catch (const std::exception &error) { status_ = error.what(); }
+    }
     void Draw(const std::filesystem::path& content) {
         if (!open) return;
         if (ImGui::Begin("性能計測###Profiler",&open)) {
@@ -58,18 +72,7 @@ public:
             if (sample_.videoValid) ImGui::Text("GPUローカルメモリ: %.1f / %.1f MiB",static_cast<double>(sample_.video)/1048576,static_cast<double>(sample_.budget)/1048576);
             std::vector<float> times; for (const auto& sample : samples_) times.push_back(static_cast<float>(sample.frame));
             if (!times.empty()) ImGui::PlotLines("フレーム時間###Frame history",times.data(),static_cast<int>(times.size()),0,nullptr,0,50,ImVec2(0,80));
-            if (ImGui::Button("CSVを書き出す###Export CSV")) try {
-                const auto directory=content.parent_path()/"generated/profiler"; std::filesystem::create_directories(directory);
-                const auto path=directory/("profile-"+std::to_string(GetTickCount64())+".csv"); std::ofstream output(path);
-                output<<"frame_ms,cpu_update_ms,cpu_render_present_ms,gpu_ms,gpu_valid,mesh_draws,triangles,working_set_bytes,private_bytes,local_video_bytes,video_budget_bytes,video_valid\n";
-                for (const auto& sample : samples_) output<<sample.frame<<','<<sample.update<<','<<sample.render<<','<<sample.gpu<<','<<sample.gpuValid<<','<<sample.draws<<','<<sample.triangles<<','<<sample.workingSet<<','<<sample.privateBytes<<','<<sample.video<<','<<sample.budget<<','<<sample.videoValid<<'\n';
-                output.close(); if (!output) throw std::runtime_error("Cannot write profiler CSV"); status_=Engine::AssetDatabase::Text(path);
-                auto detail=path; detail.replace_filename(path.stem().string()+"-scopes.csv"); std::ofstream scopes(detail);
-                scopes<<"sample,processor,scope,inclusive_ms,calls\n";
-                for(size_t index=0;index<samples_.size();++index) for(const auto& group:{std::pair{"CPU",&samples_[index].cpuScopes},std::pair{"GPU",&samples_[index].gpuPasses}})
-                    for(const auto& scope:*group.second) { std::string name; for(const char c:scope.name){name+=c;if(c=='"')name+='"';} scopes<<index<<','<<group.first<<",\""<<name<<"\","<<scope.milliseconds<<','<<scope.calls<<'\n'; }
-                scopes.close(); if(!scopes) throw std::runtime_error("Cannot write profiler scope CSV");
-            } catch (const std::exception& error) { status_=error.what(); }
+            DrawExport(content);
             if (!status_.empty()) ImGui::TextWrapped("%s",status_.c_str());
         } ImGui::End();
     }

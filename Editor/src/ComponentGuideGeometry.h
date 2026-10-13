@@ -27,6 +27,21 @@ struct ComponentGuideGeometry {
             result.push_back({a,b});
         } return result;
     }
+    static Lines Capsule(const SceneRuntime::BoxColliderComponent &c, Point scale) {
+        Lines result;
+        const float radius = c.radius * std::max(scale[0], scale[2]), height = c.halfHeight * scale[1];
+        for (int i = 0; i < 32; ++i) {
+            const float first = i * 2 * std::numbers::pi_v<float> / 32, last = (i + 1) * 2 * std::numbers::pi_v<float> / 32;
+            for (float sign : {-1.0f, 1.0f}) result.push_back({Point{radius * std::cos(first), sign * height, radius * std::sin(first)}, Point{radius * std::cos(last), sign * height, radius * std::sin(last)}});
+            if (i % 8 == 0) result.push_back({Point{radius * std::cos(first), -height, radius * std::sin(first)}, Point{radius * std::cos(first), height, radius * std::sin(first)}});
+        }
+        for (int plane = 0; plane < 2; ++plane) for (float sign : {-1.0f, 1.0f}) for (int i = 0; i < 16; ++i) {
+                    const float a = i * std::numbers::pi_v<float> / 16, b = (i + 1) * std::numbers::pi_v<float> / 16;
+                    Point first{}, last{};first[plane * 2] = radius * std::cos(a);last[plane * 2] = radius * std::cos(b);
+                    first[1] = sign * (height + radius * std::sin(a));last[1] = sign * (height + radius * std::sin(b));result.push_back({first, last});
+                }
+        return result;
+    }
     static Lines Collider(const SceneRuntime::BoxColliderComponent& c,Point scale={1,1,1}) {
         for(auto& value:scale) value=std::abs(value);
         if(std::any_of(scale.begin(),scale.end(),[](float value){return !std::isfinite(value) || value<=0;})) return {};
@@ -34,17 +49,7 @@ struct ComponentGuideGeometry {
         if(c.shape=="box") return Box(c.center,{c.size[0]*.5f,c.size[1]*.5f,c.size[2]*.5f});
         if(c.shape=="sphere" || (c.shape=="capsule" && c.halfHeight==0)) result=Sphere(c.radius*std::max({scale[0],scale[1],scale[2]}));
         else if(c.shape=="capsule") {
-            const float radius=c.radius*std::max(scale[0],scale[2]),height=c.halfHeight*scale[1];
-            for(int i=0;i<32;++i) {
-                const float first=i*2*std::numbers::pi_v<float>/32,last=(i+1)*2*std::numbers::pi_v<float>/32;
-                for(float sign:{-1.0f,1.0f}) result.push_back({Point{radius*std::cos(first),sign*height,radius*std::sin(first)},Point{radius*std::cos(last),sign*height,radius*std::sin(last)}});
-                if(i%8==0) result.push_back({Point{radius*std::cos(first),-height,radius*std::sin(first)},Point{radius*std::cos(first),height,radius*std::sin(first)}});
-            }
-            for(int plane=0;plane<2;++plane) for(float sign:{-1.0f,1.0f}) for(int i=0;i<16;++i) {
-                const float a=i*std::numbers::pi_v<float>/16,b=(i+1)*std::numbers::pi_v<float>/16;
-                Point first{},last{};first[plane*2]=radius*std::cos(a);last[plane*2]=radius*std::cos(b);
-                first[1]=sign*(height+radius*std::sin(a));last[1]=sign*(height+radius*std::sin(b));result.push_back({first,last});
-            }
+            result=Capsule(c,scale);
         }
         for(auto& segment:result) for(auto& point:segment) for(size_t axis=0;axis<3;++axis) point[axis]=c.center[axis]+point[axis]/scale[axis];
         return result;

@@ -67,11 +67,11 @@ namespace Editor
             {
                 ImGui::PushID(name.c_str()); std::string candidate=name;
                 if (Text("パラメーター名###Name",candidate) && (candidate==name || !animator.parameters.contains(candidate))) { oldName=name; newName=candidate; edited=true; }
-                edited=ImGui::DragFloat("保存値###Value",&value,.01f,-1000000,1000000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited;
+                edited |= ImGui::DragFloat("保存値###Value",&value,.01f,-1000000,1000000,"%.3f",ImGuiSliderFlags_AlwaysClamp);
                 if (ImGui::Button("パラメーターを削除###Remove")) remove=name;
                 ImGui::PopID();
             }
-            if (!oldName.empty() && oldName!=newName) edited=RenameParameter(animator,oldName,newName) || edited;
+            if (!oldName.empty() && oldName!=newName) edited |= RenameParameter(animator,oldName,newName);
             if (!remove.empty()) { animator.parameters.erase(remove); edited=true; }
             if (animator.parameters.size()<64 && ImGui::Button("パラメーターを追加###Add"))
             {
@@ -96,6 +96,23 @@ namespace Editor
             }
             return edited;
         }
+        static bool DrawChildren(SceneRuntime::AnimatorComponent &animator, SceneRuntime::AnimatorBlendTree &tree, const Engine::SkeletonData *rig)
+        {
+            bool edited = false;
+            for (size_t childIndex = 0; childIndex < tree.children.size(); ++childIndex)
+            {
+                ImGui::PushID(static_cast<int>(childIndex)); auto &child = tree.children[childIndex];
+                edited |= Motion("Motion###Motion", child.clip, child.blendTree, animator, rig, tree.name);
+                if (tree.type == SceneRuntime::AnimatorBlendType::OneDimensional) edited |= ImGui::InputFloat("閾値###Threshold", &child.threshold);
+                if (tree.type == SceneRuntime::AnimatorBlendType::Cartesian2D) edited |= ImGui::InputFloat2("座標###Position", child.position.data());
+                if (tree.type == SceneRuntime::AnimatorBlendType::Direct) edited |= Text("重みパラメーター###Weight", child.parameter);
+                edited |= ImGui::DragFloat("子の速度###Speed", &child.speed, .01f, .001f, 1000, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+                if (tree.children.size() > 1 && ImGui::Button("子を削除###Remove")) { tree.children.erase(tree.children.begin() + childIndex); edited = true; ImGui::PopID(); break; }
+                ImGui::Separator(); ImGui::PopID();
+            }
+            if (tree.children.size() < 32 && ImGui::Button("子を追加###Add")) { AddChild(tree, rig); edited = true; }
+            return edited;
+        }
         /// <summary>Treeの方式・パラメーター・子・速度・参照を編集します。</summary>
         static bool Draw(SceneRuntime::AnimatorComponent& animator,const Engine::SkeletonData* rig)
         {
@@ -110,20 +127,9 @@ namespace Editor
                     if (Text("名前###Name",tree.name)) { Rename(animator,previous,tree.name); edited=true; }
                     const char* types[]{"1D","2D","Direct"}; int type=static_cast<int>(tree.type);
                     if (ImGui::Combo("方式###Type",&type,types,3)) { ChangeType(tree,static_cast<SceneRuntime::AnimatorBlendType>(type)); edited=true; }
-                    if (tree.type!=SceneRuntime::AnimatorBlendType::Direct) edited=Text("パラメーター X###X",tree.parameterX) || edited;
-                    if (tree.type==SceneRuntime::AnimatorBlendType::Cartesian2D) edited=Text("パラメーター Y###Y",tree.parameterY) || edited;
-                    for (size_t childIndex=0;childIndex<tree.children.size();++childIndex)
-                    {
-                        ImGui::PushID(static_cast<int>(childIndex)); auto& child=tree.children[childIndex];
-                        edited=Motion("Motion###Motion",child.clip,child.blendTree,animator,rig,tree.name) || edited;
-                        if (tree.type==SceneRuntime::AnimatorBlendType::OneDimensional) edited=ImGui::InputFloat("閾値###Threshold",&child.threshold) || edited;
-                        if (tree.type==SceneRuntime::AnimatorBlendType::Cartesian2D) edited=ImGui::InputFloat2("座標###Position",child.position.data()) || edited;
-                        if (tree.type==SceneRuntime::AnimatorBlendType::Direct) edited=Text("重みパラメーター###Weight",child.parameter) || edited;
-                        edited=ImGui::DragFloat("子の速度###Speed",&child.speed,.01f,.001f,1000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited;
-                        if (tree.children.size()>1 && ImGui::Button("子を削除###Remove")) { tree.children.erase(tree.children.begin()+childIndex); edited=true; ImGui::PopID(); break; }
-                        ImGui::Separator(); ImGui::PopID();
-                    }
-                    if (tree.children.size()<32 && ImGui::Button("子を追加###Add")) { AddChild(tree,rig); edited=true; }
+                    if (tree.type!=SceneRuntime::AnimatorBlendType::Direct) edited |= Text("パラメーター X###X",tree.parameterX);
+                    if (tree.type==SceneRuntime::AnimatorBlendType::Cartesian2D) edited |= Text("パラメーター Y###Y",tree.parameterY);
+                    edited |= DrawChildren(animator,tree,rig);
                     if (ImGui::Button("Treeを削除（参照は初期姿勢へ）###Remove Tree"))
                     {
                         const auto name=tree.name; Rename(animator,name,""); animator.blendTrees.erase(animator.blendTrees.begin()+index);

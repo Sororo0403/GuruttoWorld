@@ -22,7 +22,7 @@ namespace Editor
                 auto& track=animation.tracks[index];
                 if (ImGui::TreeNode("track","トラック %zu / %s",index+1,track.property.c_str()))
                 {
-                    edited=DrawTrack(state,track) || edited;
+                    edited |= DrawTrack(state,track);
                     if (ImGui::Button("トラックを削除###Delete track"))
                     { animation.tracks.erase(animation.tracks.begin()+index); edited=true; ImGui::TreePop(); ImGui::PopID(); break; }
                     ImGui::TreePop();
@@ -62,18 +62,18 @@ namespace Editor
                 }
                 ImGui::EndCombo();
             }
-            edited=Choose("時計###Clock",track.clock,{"sceneTime","motionTime","startTime"},
-                {"登場・経過時間","待機（背景演出OFFで停止）","開始（決定後）"}) || edited;
+            edited |= Choose("時計###Clock",track.clock,{"sceneTime","motionTime","startTime"},
+                {"登場・経過時間","待機（背景演出OFFで停止）","開始（決定後）"});
             std::array<char,129> clock{};
             std::copy_n(track.clock.data(),std::min(track.clock.size(),clock.size()-1),clock.data());
             if(ImGui::InputText("時計名（任意）###Custom clock",clock.data(),clock.size())) {track.clock=clock.data();edited=true;}
             Track(state);
-            edited=Choose("補間###Easing",track.easing,{"linear","smooth","outCubic","outBack"},
-                {"等速","滑らか","素早く動いて減速","少し行き過ぎて止まる"}) || edited;
-            edited=ImGui::DragFloat("遅延（秒）###Delay",&track.delay,0.01f,0,600,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited; Track(state);
-            edited=ImGui::Checkbox("ループ###Loop",&track.loop) || edited;
-            edited=AnimationTimeline::Draw(state,track) || edited;
-            edited=DrawKeys(state,track) || edited;
+            edited |= Choose("補間###Easing",track.easing,{"linear","smooth","outCubic","outBack"},
+                {"等速","滑らか","素早く動いて減速","少し行き過ぎて止まる"});
+            edited |= ImGui::DragFloat("遅延（秒）###Delay",&track.delay,0.01f,0,600,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state);
+            edited |= ImGui::Checkbox("ループ###Loop",&track.loop);
+            edited |= AnimationTimeline::Draw(state,track);
+            edited |= DrawKeys(state,track);
             if (!SceneRuntime::Animation::Valid(track)) ImGui::TextUnformatted("時刻は昇順、サイズは0以上、不透明度は0〜1にしてください。");
             return edited;
         }
@@ -85,7 +85,7 @@ namespace Editor
             {
                 ImGui::PushID(static_cast<int>(key));
                 auto& frame=track.keys[key];
-                edited=ImGui::DragFloat("時刻（秒）###Time",&frame.time,0.01f,0,600,"%.2f",ImGuiSliderFlags_AlwaysClamp) || edited; Track(state);
+                edited |= ImGui::DragFloat("時刻（秒）###Time",&frame.time,0.01f,0,600,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state);
                 const auto properties=SceneRuntime::Animation::Properties();
                 const auto info=std::find_if(properties.begin(),properties.end(),[&](const auto& p){return track.property==p.name;});
                 if(info!=properties.end()) {

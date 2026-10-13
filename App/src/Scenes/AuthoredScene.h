@@ -13,6 +13,8 @@ public:
     std::string Update(double,const Engine::Keyboard&) override;
     Engine::RenderResult Draw(Engine::DirectX12Renderer&) override;
 private:
+    void ApplyShortcut(SceneRuntime::UiEvent& event);
+    std::string UpdateUi(const Engine::Keyboard& keyboard,bool active);
     std::filesystem::path root_,scene_;
     std::shared_ptr<SceneRuntime::SceneEnvironment> environmentOwner_;
     SceneRuntime::SceneEnvironment& environment_;

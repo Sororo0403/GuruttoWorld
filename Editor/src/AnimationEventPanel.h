@@ -13,6 +13,16 @@ namespace Editor
             std::vector<char> buffer(std::max(size_t(2048),value.size()+1)); std::copy(value.begin(),value.end(),buffer.begin());
             if (!ImGui::InputText(label,buffer.data(),buffer.size())) return false; value=buffer.data(); return true;
         }
+        static std::pair<bool, float> DrawClip(SceneRuntime::AnimatorEventKey &key, const Engine::SkeletonData *rig) {
+            bool edited = false;
+            if (ImGui::BeginCombo("clip###Clip", key.clip.c_str()))
+            {
+                if (rig) for (const auto &clip : rig->clips) if (ImGui::Selectable(clip.name.c_str(), key.clip == clip.name)) { key.clip = clip.name; key.time = std::min(key.time, clip.duration); edited = true; }
+                ImGui::EndCombo();
+            }
+            float end = 1000000; if (rig) for (const auto &clip : rig->clips) if (clip.name == key.clip) end = std::min(end, clip.duration);
+            return {edited, end};
+        }
     public:
         /// <summary>クリップ時刻・イベント名・各引数・最低ブレンド重みを編集します。</summary>
         static bool Draw(SceneRuntime::AnimatorComponent& animator,const Engine::SkeletonData* rig)
@@ -24,18 +34,14 @@ namespace Editor
                 for (size_t index=0;index<animator.events.size();++index)
                 {
                     auto& key=animator.events[index]; ImGui::PushID(static_cast<int>(index));
-                    if (ImGui::BeginCombo("clip###Clip",key.clip.c_str()))
-                    {
-                        if (rig) for (const auto& clip : rig->clips) if (ImGui::Selectable(clip.name.c_str(),key.clip==clip.name)) { key.clip=clip.name; key.time=std::min(key.time,clip.duration); edited=true; }
-                        ImGui::EndCombo();
-                    }
-                    float end=1000000; if (rig) for (const auto& clip : rig->clips) if (clip.name==key.clip) end=std::min(end,clip.duration);
-                    edited=ImGui::DragFloat("時刻（秒）###Time",&key.time,.01f,0,end,"%.4f",ImGuiSliderFlags_AlwaysClamp) || edited;
-                    edited=Text("イベント名###Name",key.name) || edited;
-                    edited=ImGui::DragFloat("数値引数###Value",&key.value,.01f,-1000000,1000000,"%.3f",ImGuiSliderFlags_AlwaysClamp) || edited;
-                    edited=Text("文字列引数###String",key.stringValue) || edited;
-                    edited=ImGui::InputInt("整数引数###Integer",&key.intValue) || edited;
-                    edited=ImGui::SliderFloat("最低重み###Weight",&key.minimumWeight,0,1) || edited;
+                    const auto [clipEdited,end]=DrawClip(key,rig);
+                    edited |= clipEdited;
+                    edited |= ImGui::DragFloat("時刻（秒）###Time",&key.time,.01f,0,end,"%.4f",ImGuiSliderFlags_AlwaysClamp);
+                    edited |= Text("イベント名###Name",key.name);
+                    edited |= ImGui::DragFloat("数値引数###Value",&key.value,.01f,-1000000,1000000,"%.3f",ImGuiSliderFlags_AlwaysClamp);
+                    edited |= Text("文字列引数###String",key.stringValue);
+                    edited |= ImGui::InputInt("整数引数###Integer",&key.intValue);
+                    edited |= ImGui::SliderFloat("最低重み###Weight",&key.minimumWeight,0,1);
                     if (ImGui::Button("イベントを削除###Remove")) { animator.events.erase(animator.events.begin()+index); edited=true; ImGui::PopID(); break; }
                     ImGui::Separator(); ImGui::PopID();
                 }

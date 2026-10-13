@@ -3,19 +3,27 @@
 
 namespace Editor {
 struct ComponentEditResources {
-    static bool Changed(const SceneRuntime::ScenePlacement& before,const SceneRuntime::ScenePlacement& after) {
-        if(before.terrain!=after.terrain || before.tilemap!=after.tilemap) return true;
-        if(before.inputField!=after.inputField || before.slider.has_value()!=after.slider.has_value() || before.toggle.has_value()!=after.toggle.has_value()) return true;
-        if(before.meshRenderer!=after.meshRenderer || before.material!=after.material || before.animator!=after.animator) return true;
-        if(before.image.has_value()!=after.image.has_value() || before.text.has_value()!=after.text.has_value()) return true;
-        if(before.image && before.image->texture!=after.image->texture) return true;
-        if(before.text) {
-            if(before.text->text!=after.text->text || before.text->font!=after.text->font || before.text->fontSize!=after.text->fontSize) return true;
-            const std::array<float,2> defaultSize{200,60};
-            const auto oldSize=before.rectTransform?before.rectTransform->size:defaultSize;
-            const auto newSize=after.rectTransform?after.rectTransform->size:defaultSize;
-            if(oldSize!=newSize) return true;
+    static bool TextChanged(const SceneRuntime::ScenePlacement &before, const SceneRuntime::ScenePlacement &after) {
+        if (before.text) {
+            if (before.text->text != after.text->text || before.text->font != after.text->font || before.text->fontSize != after.text->fontSize) return true;
+            const std::array<float, 2> defaultSize{200, 60};
+            const auto oldSize = before.rectTransform ? before.rectTransform->size : defaultSize;
+            const auto newSize = after.rectTransform ? after.rectTransform->size : defaultSize;
+            if (oldSize != newSize) return true;
         }
+        return false;
+    }
+    static bool Changed(const SceneRuntime::ScenePlacement& before,const SceneRuntime::ScenePlacement& after) {
+        const auto resources=[](const SceneRuntime::ScenePlacement& value) {
+            return std::tie(value.terrain,value.tilemap,value.inputField,value.meshRenderer,value.material,value.animator);
+        };
+        if(resources(before)!=resources(after)) return true;
+        const auto controls=[](const SceneRuntime::ScenePlacement& value) {
+            return std::array{value.slider.has_value(),value.toggle.has_value(),value.image.has_value(),value.text.has_value()};
+        };
+        if(controls(before)!=controls(after)) return true;
+        if(before.image && before.image->texture!=after.image->texture) return true;
+        if(TextChanged(before,after)) return true;
         return false;
     }
     static bool NeedsIdle(const SceneRuntime::SceneLayout& layout,const ObjectRequest& request) {

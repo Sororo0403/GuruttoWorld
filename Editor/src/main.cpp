@@ -108,10 +108,7 @@ namespace
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
         {
             const auto updateStart=std::chrono::steady_clock::now();
-            buildPanel.Poll(root);
-            scriptPanel.Poll(root,gameSession.State().IsEditing());
-            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer) || !PrepareUiTexture(renderer)) return Engine::RenderResult::Failed;
-            if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer,root)) return Engine::RenderResult::Failed;
+            if(!PrepareFrameResources(renderer)) return Engine::RenderResult::Failed;
             ApplyUiEvent(renderer);
             audioPreview.Process(root);
             if (projectSettingsPanel.TakeSaved())
@@ -119,24 +116,10 @@ namespace
                 try { playerInputs.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions); }
                 catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); }
             }
-            gamepad.Update(keyboard && keyboard->IsActive() && gameSession.State().CanPause());
-            if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard,&gamepad,
-                gamePanel.Focused() && gamePanel.Hovered() && !ImGui::IsAnyItemActive()));
+            UpdateInput();
             if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
             if(gameSession.Runtime() && !gameSession.Runtime()->PrepareUi(renderer,root,fileStatus)) LogResult(false);
-            if (gameSession.State().CanPause() && gameSession.Runtime() && keyboard && keyboard->IsActive() && !closeRequested)
-            {
-                const bool input=gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && gameSession.Runtime()->Ui().focused.empty();
-                if (const auto event=gameSession.Title().Update(playerInputs,input,seconds,gameSession.Runtime()->Ui()))
-                    pendingUiEvent=*event;
-                if (input) gameSession.Runtime()->SetInputActions(playerInputs.Values(),playerInputs.PressedValues());
-                else gameSession.Runtime()->SetInputActions({},{});
-                const auto& mapping=gameSession.Runtime()->World().Layout().settings.playerInputs;
-                gameSession.Runtime()->MovePlayers(seconds,
-                    input ? playerInputs.Value(mapping[0])-playerInputs.Value(mapping[1]) : 0,
-                    input ? playerInputs.Value(mapping[2])-playerInputs.Value(mapping[3]) : 0,
-                    input && playerInputs.Pressed(mapping[4]));
-            }
+            UpdatePlayInput();
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             if(gameSession.State().IsEditing()) recovery.Poll(RecoveryDirectory(),document.Path(),SceneJson(),sceneLoaded && editState.HasChanges(),seconds);
             profilerPanel.Update(renderer,DisplayedWorld(),seconds,std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-updateStart).count());
@@ -150,6 +133,124 @@ namespace
             return rendered ? result : Engine::RenderResult::Failed;
         }
 
+        void UpdateInput()
+        {
+            gamepad.Update(keyboard && keyboard->IsActive() && gameSession.State().CanPause());
+            if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard, &gamepad,
+                                                                            gamePanel.Focused() && gamePanel.Hovered() && !ImGui::IsAnyItemActive()));
+        }
+
+        bool CanRoutePlayInput() { return GameUiAcceptsInput() && gameSession.Runtime()->Ui().focused.empty(); }
+        void UpdatePlayInput()
+        {
+            if (gameSession.State().CanPause() && gameSession.Runtime() && keyboard && keyboard->IsActive() && !closeRequested)
+            {
+                const bool input = CanRoutePlayInput();
+                if (const auto event = gameSession.Title().Update(playerInputs, input, seconds, gameSession.Runtime()->Ui()))
+                    pendingUiEvent = *event;
+                if (input) gameSession.Runtime()->SetInputActions(playerInputs.Values(), playerInputs.PressedValues());
+                else gameSession.Runtime()->SetInputActions({}, {});
+                const auto &mapping = gameSession.Runtime()->World().Layout().settings.playerInputs;
+                gameSession.Runtime()->MovePlayers(seconds,
+                                                   input ? playerInputs.Value(mapping[0]) - playerInputs.Value(mapping[1]) : 0,
+                                                   input ? playerInputs.Value(mapping[2]) - playerInputs.Value(mapping[3]) : 0,
+                                                   input && playerInputs.Pressed(mapping[4]));
+            }
+        }
+
+        bool PrepareFrameResources(Engine::DirectX12Renderer &renderer)
+        {
+            buildPanel.Poll(root);
+            scriptPanel.Poll(root, gameSession.State().IsEditing());
+            if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer) || !PrepareUiTexture(renderer)) return false;
+            if (gameSession.State().IsEditing() && !projectPanel.PreparePreview(renderer, root)) return false;
+            return true;
+        }
+
+        bool ApplyPrefabChanges(const Editor::ObjectRequest &request, std::string &createdId)
+        {
+            try
+            {
+                auto candidate = world.Layout();
+                if (request.action == Editor::ObjectAction::AddPrefab)
+                {
+                    auto asset = SceneRuntime::SceneLayout::Load(root / request.model, root);
+                    SceneRuntime::Prefab::Refresh(asset, root);
+                    createdId = SceneRuntime::Prefab::Instantiate(candidate, asset, request.model, request.position);
+                }
+                else if (request.action == Editor::ObjectAction::RefreshPrefabs) SceneRuntime::Prefab::Refresh(candidate, root);
+                else if (request.action == Editor::ObjectAction::RevertPrefab) SceneRuntime::Prefab::RevertInstance(candidate, request.id, root);
+                else if (request.action == Editor::ObjectAction::RevertPrefabProperty) SceneRuntime::Prefab::RevertOverride(candidate, request.id, request.property);
+                else if (request.action == Editor::ObjectAction::ApplyPrefabProperty)
+                {
+                    const auto object = std::find_if(candidate.objects.begin(), candidate.objects.end(), [&](const auto &item){ return item.id == request.id; });
+                    if (object == candidate.objects.end() || !object->prefab) throw std::runtime_error("Prefabの対象が見つかりません。");
+                    return Editor::AssetFileTransaction::Run(root / object->prefab->asset, fileStatus, [&]() {
+                            SceneRuntime::Prefab::ApplyOverride(candidate,request.id,request.property,root);
+                            SceneRuntime::Prefab::Refresh(candidate,root);
+                            return world.ReplaceLayout(std::move(candidate),root,fileStatus);
+                        });
+                }
+                else SceneRuntime::Prefab::Unpack(candidate, request.id);
+                return world.ReplaceLayout(std::move(candidate), root, fileStatus);
+            }
+            catch (const std::exception &exception) { fileStatus = exception.what(); return false; }
+
+        }
+
+        bool SavePrefabChanges(const Editor::ObjectRequest &request)
+        {
+            try
+            {
+                if (!SceneRuntime::Prefab::ValidPath(request.model)) throw std::runtime_error("Prefabの保存先が不正です");
+                std::filesystem::create_directories((root / request.model).parent_path());
+                const auto asset = request.action == Editor::ObjectAction::SavePrefabVariant ? SceneRuntime::Prefab::Variant(world.Layout(), request.id) : SceneRuntime::Prefab::Extract(world.Layout(), request.id);
+                const bool success = Editor::AssetFileTransaction::Run(root / request.model, fileStatus, [&]() {
+                        asset.Save(root/request.model,request.action==Editor::ObjectAction::ApplyPrefab);
+                        auto candidate=world.Layout();
+                        SceneRuntime::Prefab::Bind(candidate,request.id,request.model);
+                        if (request.action==Editor::ObjectAction::ApplyPrefab || request.action==Editor::ObjectAction::SavePrefabVariant) SceneRuntime::Prefab::Refresh(candidate,root);
+                        return world.ReplaceLayout(std::move(candidate),root,fileStatus);
+                    });
+                if (!success) return false;
+                projectPanel.Scan(root); fileStatus = "Prefabを保存しました。"; return true;
+            }
+            catch (const std::exception &exception) { fileStatus = exception.what(); return false; }
+
+        }
+
+        static bool IsPrefabLayoutAction(Editor::ObjectAction action) {
+            switch (action) {
+            case Editor::ObjectAction::AddPrefab:
+            case Editor::ObjectAction::RefreshPrefabs:
+            case Editor::ObjectAction::UnpackPrefab:
+            case Editor::ObjectAction::RevertPrefab:
+            case Editor::ObjectAction::RevertPrefabProperty:
+            case Editor::ObjectAction::ApplyPrefabProperty:
+                return true;
+            default:return false;
+            }
+        }
+
+        static bool IsPrefabSaveAction(Editor::ObjectAction action) {
+            switch (action) {
+            case Editor::ObjectAction::SavePrefab:
+            case Editor::ObjectAction::ApplyPrefab:
+            case Editor::ObjectAction::SavePrefabVariant:
+                return true;
+            default:return false;
+            }
+        }
+
+        void SetObjectResultStatus(Editor::ObjectAction action)
+        {
+            if (action != Editor::ObjectAction::SavePrefab && action != Editor::ObjectAction::ApplyPrefab && action != Editor::ObjectAction::SavePrefabVariant)
+                fileStatus = action == Editor::ObjectAction::RevertPrefab || action == Editor::ObjectAction::RevertPrefabProperty || action == Editor::ObjectAction::ApplyPrefabProperty ? "Prefabを更新しました。" :
+                      action == Editor::ObjectAction::Delete   ? "削除しました。" :
+                    action == Editor::ObjectAction::Duplicate  ? "複製しました。" :
+                    action == Editor::ObjectAction::Components ? "コンポーネントを更新しました。" :
+                    action == Editor::ObjectAction::Settings   ? "シーン設定を更新しました。" : "追加しました。";
+        }
         static bool RefreshViewport(bool valid,bool changed,bool realtime,bool focused)
         {
             return valid && (changed || realtime || focused);
@@ -342,55 +443,8 @@ namespace
                 placement.position=request.position;
                 return world.AddObject(std::move(placement),root,createdId,fileStatus);
             }
-            if (request.action==Editor::ObjectAction::AddPrefab || request.action==Editor::ObjectAction::RefreshPrefabs || request.action==Editor::ObjectAction::UnpackPrefab ||
-                request.action==Editor::ObjectAction::RevertPrefab || request.action==Editor::ObjectAction::RevertPrefabProperty || request.action==Editor::ObjectAction::ApplyPrefabProperty)
-            {
-                try
-                {
-                    auto candidate=world.Layout();
-                    if (request.action==Editor::ObjectAction::AddPrefab)
-                    {
-                        auto asset=SceneRuntime::SceneLayout::Load(root/request.model,root);
-                        SceneRuntime::Prefab::Refresh(asset,root);
-                        createdId=SceneRuntime::Prefab::Instantiate(candidate,asset,request.model,request.position);
-                    }
-                    else if (request.action==Editor::ObjectAction::RefreshPrefabs) SceneRuntime::Prefab::Refresh(candidate,root);
-                    else if (request.action==Editor::ObjectAction::RevertPrefab) SceneRuntime::Prefab::RevertInstance(candidate,request.id,root);
-                    else if (request.action==Editor::ObjectAction::RevertPrefabProperty) SceneRuntime::Prefab::RevertOverride(candidate,request.id,request.property);
-                    else if (request.action==Editor::ObjectAction::ApplyPrefabProperty)
-                    {
-                        const auto object=std::find_if(candidate.objects.begin(),candidate.objects.end(),[&](const auto& item){return item.id==request.id;});
-                        if (object==candidate.objects.end() || !object->prefab) throw std::runtime_error("Prefabの対象が見つかりません。");
-                        return Editor::AssetFileTransaction::Run(root/object->prefab->asset,fileStatus,[&]() {
-                            SceneRuntime::Prefab::ApplyOverride(candidate,request.id,request.property,root);
-                            SceneRuntime::Prefab::Refresh(candidate,root);
-                            return world.ReplaceLayout(std::move(candidate),root,fileStatus);
-                        });
-                    }
-                    else SceneRuntime::Prefab::Unpack(candidate,request.id);
-                    return world.ReplaceLayout(std::move(candidate),root,fileStatus);
-                }
-                catch (const std::exception& exception) { fileStatus=exception.what(); return false; }
-            }
-            if (request.action==Editor::ObjectAction::SavePrefab || request.action==Editor::ObjectAction::ApplyPrefab || request.action==Editor::ObjectAction::SavePrefabVariant)
-            {
-                try
-                {
-                    if (!SceneRuntime::Prefab::ValidPath(request.model)) throw std::runtime_error("Prefabの保存先が不正です");
-                    std::filesystem::create_directories((root/request.model).parent_path());
-                    const auto asset=request.action==Editor::ObjectAction::SavePrefabVariant ? SceneRuntime::Prefab::Variant(world.Layout(),request.id) : SceneRuntime::Prefab::Extract(world.Layout(),request.id);
-                    const bool success=Editor::AssetFileTransaction::Run(root/request.model,fileStatus,[&]() {
-                        asset.Save(root/request.model,request.action==Editor::ObjectAction::ApplyPrefab);
-                        auto candidate=world.Layout();
-                        SceneRuntime::Prefab::Bind(candidate,request.id,request.model);
-                        if (request.action==Editor::ObjectAction::ApplyPrefab || request.action==Editor::ObjectAction::SavePrefabVariant) SceneRuntime::Prefab::Refresh(candidate,root);
-                        return world.ReplaceLayout(std::move(candidate),root,fileStatus);
-                    });
-                    if (!success) return false;
-                    projectPanel.Scan(root); fileStatus="Prefabを保存しました。"; return true;
-                }
-                catch (const std::exception& exception) { fileStatus=exception.what(); return false; }
-            }
+            if(IsPrefabLayoutAction(request.action)) return ApplyPrefabChanges(request,createdId);
+            if(IsPrefabSaveAction(request.action)) return SavePrefabChanges(request);
             if (request.action==Editor::ObjectAction::Duplicate)
             {
                 return editState.DuplicateObjects(world,request.ids,{4,0,0},fileStatus);
@@ -416,12 +470,7 @@ namespace
             if (success)
             {
                 if (!createdId.empty()) editState.ObjectChanged(createdId);
-                if (request.action!=Editor::ObjectAction::SavePrefab && request.action!=Editor::ObjectAction::ApplyPrefab && request.action!=Editor::ObjectAction::SavePrefabVariant)
-                fileStatus=request.action==Editor::ObjectAction::RevertPrefab || request.action==Editor::ObjectAction::RevertPrefabProperty || request.action==Editor::ObjectAction::ApplyPrefabProperty ? "Prefabを更新しました。" :
-                      request.action==Editor::ObjectAction::Delete ? "削除しました。" :
-                    request.action==Editor::ObjectAction::Duplicate ? "複製しました。" :
-                    request.action==Editor::ObjectAction::Components ? "コンポーネントを更新しました。" :
-                    request.action==Editor::ObjectAction::Settings ? "シーン設定を更新しました。" : "追加しました。";
+                SetObjectResultStatus(request.action);
                 history.Observe(Snapshot(SceneJson()),request.interaction);
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(SceneJson()));
             }
@@ -644,15 +693,7 @@ namespace
                 else DrawPreview();
                 return;
             }
-            if (focusGame) { ImGui::SetNextWindowFocus(); focusGame=false; }
-            gamePanel.Begin(gameTextureId,"ゲーム###Game");
-            requestedGameSize=gamePanel.RequestedSize();
-            if(ImGui::IsKeyPressed(ImGuiKey_Escape,false)) captureGamePointer=false;
-            const bool pointerAllowed=Editor::GamePointerCapture::Allowed(captureGamePointer,gameSession.State().CanPause(),
-                keyboard && keyboard->IsActive(),gamePanel.Focused(),closeRequested || ImGui::GetTopMostPopupModal()!=nullptr,gamePanel.Viewport());
-            if(pointerCapture.Update(keyboard?keyboard->WindowHandle():nullptr,gamePanel.Viewport(),pointerAllowed)) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-            UpdateGamePointer();
-            Editor::ScenePanel::End();
+            DrawGamePanel();
             uiEditorPanel.Draw(uiTextureId,world.Layout(),editState,SceneEditingEnabled());
             scenePanel.Begin(sceneTextureId);
             sceneViewport = scenePanel.Viewport();
@@ -693,20 +734,13 @@ namespace
             auto* runtime=gameSession.Runtime(); if(!runtime) return;
             if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {runtime->Ui().pressed.clear(); runtime->Ui().hovered.clear(); runtime->Ui().focused.clear(); return;}
             const auto& v=gamePanel.Viewport(); if(!v.Valid()) return;
-            auto& ui=runtime->Ui(); const auto mouse=ImGui::GetIO().MousePos;
-            if(gamePanel.Focused() && !gameSession.Title().Active() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && ui.focused.empty()) {
-                for (const auto& [name,binding] : playerInputs.GetBindings()) {
-                    static_cast<void>(binding);
-                    if (!playerInputs.Pressed(name)) continue;
-                    const auto object=SceneRuntime::SceneUi::Shortcut(runtime->World().Layout(),"action:"+name,gameTexture.GetWidth(),gameTexture.GetHeight(),ui);
-                    if (!object.empty()) { pendingUiEvent=runtime->Click(object); break; }
-                }
-            }
+            const auto mouse=ImGui::GetIO().MousePos;
+            UpdateGameShortcut(*runtime);
             const bool inside=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered();
             const auto event=runtime->UiPointer(gameTexture.GetWidth(),gameTexture.GetHeight(),inside?(mouse.x-v.x)*gameTexture.GetWidth()/v.width:-100000,inside?(mouse.y-v.y)*gameTexture.GetHeight()/v.height:-100000,
                 ImGui::IsMouseDown(ImGuiMouseButton_Left),ImGui::IsMouseClicked(ImGuiMouseButton_Left),ImGui::IsMouseReleased(ImGuiMouseButton_Left),inside?ImGui::GetIO().MouseWheel:0);
             if(!event.object.empty()) pendingUiEvent=event;
-            if(gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
+            if(GameUiAcceptsInput()) {
                 for(const auto character:characters) runtime->UiTextInput(character);
             }
         }
@@ -867,26 +901,7 @@ namespace
 
         void UpdateObjects()
         {
-            const bool sceneInput=SceneEditingEnabled() && !ImGui::GetDragDropPayload();
-            const auto& displayed=DisplayedWorld();
-            uiCanvasPanel.SetPreviewState(gameSession.Runtime()?gameSession.Runtime()->Ui():SceneRuntime::SceneUi::Defaults(displayed.Layout()));
-            uiCanvasPanel.DrawScene(displayed,camera.GetCamera(),gameSession.Runtime()?runtimeEditState:editState,
-                showSceneUi?sceneViewport:Editor::SceneViewport{},sceneInput && !gizmo.IsDragging() && !ikHandles.IsDragging());
-            const auto selected=std::find_if(world.Layout().objects.begin(),world.Layout().objects.end(),[&](const auto& p){return p.id==editState.SelectedId();});
-            const bool selectedUi=selected!=world.Layout().objects.end() && selected->rectTransform && !selected->canvas;
-            const bool worldInput=sceneInput && !uiCanvasPanel.ConsumesMouse() && !selectedUi;
-            ikHandles.Controls(world.Layout(),editState,sceneViewport,worldInput && !gizmo.IsDragging());
-            const bool useIk=ikHandles.Enabled() && ikHandles.Available(world.Layout(),editState);
-            if(useIk) {
-                gizmo.Cancel();
-                ikHandles.Draw(world,camera.GetCamera(),editState,sceneViewport,worldInput && (scenePanel.Hovered() || ikHandles.IsDragging()));
-            } else {
-                ikHandles.Cancel();
-                gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
-                    worldInput && editState.InspectedAsset().empty() && (scenePanel.Hovered() || gizmo.IsDragging()));
-            }
-            Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
-                sceneInput && !uiCanvasPanel.ConsumesMouse() && !gizmo.ConsumesMouse() && !ikHandles.ConsumesMouse() && scenePanel.Hovered());
+            UpdateSceneTools();
             DirectX::XMFLOAT4X4 viewInverse;
             DirectX::XMStoreFloat4x4(&viewInverse, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
             const auto& eye = camera.GetPosition();
@@ -915,6 +930,103 @@ namespace
             }
         }
 
+        void DrawGamePanel()
+        {
+            if (focusGame) { ImGui::SetNextWindowFocus(); focusGame = false; }
+            gamePanel.Begin(gameTextureId, "ゲーム###Game");
+            requestedGameSize = gamePanel.RequestedSize();
+            if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) captureGamePointer = false;
+            const bool pointerAllowed = Editor::GamePointerCapture::Allowed(captureGamePointer, gameSession.State().CanPause(),
+                                                                            keyboard && keyboard->IsActive(), gamePanel.Focused(), closeRequested || ImGui::GetTopMostPopupModal() != nullptr, gamePanel.Viewport());
+            if (pointerCapture.Update(keyboard ? keyboard->WindowHandle() : nullptr, gamePanel.Viewport(), pointerAllowed)) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+            UpdateGamePointer();
+            Editor::ScenePanel::End();
+        }
+
+        void UpdateGameShortcut(SceneRuntime::SceneEnvironment &runtime)
+        {
+            auto &ui = runtime.Ui();
+            if (GameUiAcceptsInput() && !gameSession.Title().Active() && ui.focused.empty()) {
+                for (const auto &[name, binding] : playerInputs.GetBindings()) {
+                    static_cast<void>(binding);
+                    if (!playerInputs.Pressed(name)) continue;
+                    const auto object = SceneRuntime::SceneUi::Shortcut(runtime.World().Layout(), "action:" + name, gameTexture.GetWidth(), gameTexture.GetHeight(), ui);
+                    if (!object.empty()) { pendingUiEvent = runtime.Click(object); break; }
+                }
+            }
+        }
+
+        bool GameUiAcceptsInput() const { return gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive(); }
+
+        void UpdateSceneTools()
+        {
+            const bool sceneInput = SceneEditingEnabled() && !ImGui::GetDragDropPayload();
+            const auto &displayed = DisplayedWorld();
+            uiCanvasPanel.SetPreviewState(gameSession.Runtime() ? gameSession.Runtime()->Ui() : SceneRuntime::SceneUi::Defaults(displayed.Layout()));
+            uiCanvasPanel.DrawScene(displayed, camera.GetCamera(), gameSession.Runtime() ? runtimeEditState : editState,
+                                    showSceneUi ? sceneViewport : Editor::SceneViewport{}, sceneInput && !gizmo.IsDragging() && !ikHandles.IsDragging());
+            const auto selected = std::find_if(world.Layout().objects.begin(), world.Layout().objects.end(), [&](const auto &p){ return p.id == editState.SelectedId(); });
+            const bool selectedUi = selected != world.Layout().objects.end() && selected->rectTransform && !selected->canvas;
+            const bool worldInput = sceneInput && !uiCanvasPanel.ConsumesMouse() && !selectedUi;
+            UpdateWorldHandles(worldInput);
+            Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
+                                           WorldSelectionAllowed(sceneInput));
+        }
+        void UpdateWorldHandles(bool worldInput)
+        {
+            ikHandles.Controls(world.Layout(), editState, sceneViewport, worldInput && !gizmo.IsDragging());
+            const bool useIk = ikHandles.Enabled() && ikHandles.Available(world.Layout(), editState);
+            if (useIk) {
+                gizmo.Cancel();
+                ikHandles.Draw(world, camera.GetCamera(), editState, sceneViewport, worldInput && (scenePanel.Hovered() || ikHandles.IsDragging()));
+            } else {
+                ikHandles.Cancel();
+                gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport,
+                                    worldInput && editState.InspectedAsset().empty() && (scenePanel.Hovered() || gizmo.IsDragging()));
+            }
+        }
+
+        bool WorldSelectionAllowed(bool sceneInput) const { return sceneInput && !uiCanvasPanel.ConsumesMouse() && !gizmo.ConsumesMouse() && !ikHandles.ConsumesMouse() && scenePanel.Hovered(); }
+
+        void DrawSaveSelectionPrefab(bool selected)
+        {
+            if (ImGui::MenuItem("選択をPrefabとして保存###Save selection as prefab", nullptr, false, selected && editState.SingleSelection()))
+            {
+                const auto id = editState.SelectedId();
+                std::string filename = id;
+                for (auto &character : filename) if (!std::isalnum(static_cast<unsigned char>(character)) && character != '-' && character != '_') character = '_';
+                pendingObject = Editor::ObjectRequest{Editor::ObjectAction::SavePrefab, id, std::filesystem::path("Assets/Prefabs") / (filename + ".prefab")};
+            }
+        }
+
+        void DrawPrefabMenu(bool selected, bool enabled)
+        {
+            if (selected && editState.SingleSelection())
+            {
+                const auto &objects = world.Layout().objects;
+                const auto found = std::find_if(objects.begin(), objects.end(), [&](const auto &object) { return object.id == editState.SelectedId(); });
+                if (found != objects.end() && found->prefab)
+                {
+                    if (ImGui::MenuItem("選択の変更を元Prefabへ適用###Apply prefab"))
+                        pendingObject = Editor::ObjectRequest{Editor::ObjectAction::ApplyPrefab, found->prefab->rootId, found->prefab->asset};
+                    if (ImGui::MenuItem("Prefabの上書きをすべて戻す###Revert prefab"))
+                        pendingObject = Editor::ObjectRequest{Editor::ObjectAction::RevertPrefab, found->prefab->rootId};
+                    if (ImGui::MenuItem("Prefab Variantとして保存###Save prefab variant"))
+                        pendingObject = Editor::ObjectRequest{Editor::ObjectAction::SavePrefabVariant, found->prefab->rootId,
+                                                              found->prefab->asset.parent_path() / (found->prefab->asset.stem().string() + "Variant.prefab")};
+                    if (ImGui::MenuItem("Prefabのリンクを解除###Unpack prefab"))
+                        pendingObject = Editor::ObjectRequest{Editor::ObjectAction::UnpackPrefab, found->prefab->rootId};
+                }
+            }
+            if (ImGui::MenuItem("Prefabの変更を反映###Refresh prefabs", nullptr, false, enabled))
+                pendingObject = Editor::ObjectRequest{Editor::ObjectAction::RefreshPrefabs};
+        }
+
+        bool PlayToolbarEnabled() const
+        {
+            return sceneLoaded && IdleContextEnabled() && !reloadConfirmRequested && !newScenePopupRequested &&
+                   !saveAsPanel.Requested() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+        }
         bool HistoryEnabled() const
         {
             return !pendingPlay && gameSession.State().IsEditing() && sceneLoaded && !document.Pending() && !pendingObject && !pendingHistory && !reloadRequested &&
@@ -1098,39 +1210,14 @@ namespace
             if (ImGui::MenuItem("削除###Delete", "Delete", false, selected))
                 pendingObject=editState.DeleteSelectionRequest();
             ImGui::Separator();
-            if (ImGui::MenuItem("選択をPrefabとして保存###Save selection as prefab",nullptr,false,selected && editState.SingleSelection()))
-            {
-                const auto id=editState.SelectedId();
-                std::string filename=id;
-                for (auto& character : filename) if (!std::isalnum(static_cast<unsigned char>(character)) && character!='-' && character!='_') character='_';
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::SavePrefab,id,std::filesystem::path("Assets/Prefabs")/(filename+".prefab")};
-            }
-            if (selected && editState.SingleSelection())
-            {
-                const auto& objects=world.Layout().objects;
-                const auto found=std::find_if(objects.begin(),objects.end(),[&](const auto& object) { return object.id==editState.SelectedId(); });
-                if (found!=objects.end() && found->prefab)
-                {
-                    if (ImGui::MenuItem("選択の変更を元Prefabへ適用###Apply prefab"))
-                        pendingObject=Editor::ObjectRequest{Editor::ObjectAction::ApplyPrefab,found->prefab->rootId,found->prefab->asset};
-                    if (ImGui::MenuItem("Prefabの上書きをすべて戻す###Revert prefab"))
-                        pendingObject=Editor::ObjectRequest{Editor::ObjectAction::RevertPrefab,found->prefab->rootId};
-                    if (ImGui::MenuItem("Prefab Variantとして保存###Save prefab variant"))
-                        pendingObject=Editor::ObjectRequest{Editor::ObjectAction::SavePrefabVariant,found->prefab->rootId,
-                            found->prefab->asset.parent_path()/(found->prefab->asset.stem().string()+"Variant.prefab")};
-                    if (ImGui::MenuItem("Prefabのリンクを解除###Unpack prefab"))
-                        pendingObject=Editor::ObjectRequest{Editor::ObjectAction::UnpackPrefab,found->prefab->rootId};
-                }
-            }
-            if (ImGui::MenuItem("Prefabの変更を反映###Refresh prefabs",nullptr,false,enabled))
-                pendingObject=Editor::ObjectRequest{Editor::ObjectAction::RefreshPrefabs};
+            DrawSaveSelectionPrefab(selected);
+            DrawPrefabMenu(selected,enabled);
             ImGui::EndMenu();
         }
 
         void DrawPlayToolbar()
         {
-            const bool enabled=sceneLoaded && IdleContextEnabled() && !reloadConfirmRequested && !newScenePopupRequested &&
-                !saveAsPanel.Requested() && !ImGui::IsPopupOpen("",ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+            const bool enabled=PlayToolbarEnabled();
             ImGui::BeginDisabled(!enabled);
             ImGui::BeginDisabled(!gameSession.State().CanPlay() || !scriptPanel.Ready());
             if (ImGui::Button(gameSession.State().IsEditing() ? "再生###Play" : "再開###Play"))

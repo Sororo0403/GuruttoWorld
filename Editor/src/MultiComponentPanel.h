@@ -15,8 +15,7 @@ public:
         return true;
     }
     static void Draw(EditState& state,const SceneRuntime::SceneLayout& layout,const ProjectCatalog* catalog) {
-        std::vector<SceneRuntime::ScenePlacement> objects;
-        for(const auto& object:layout.objects) if(state.IsSelected(object.id)) objects.push_back(object);
+        auto objects=SelectedObjects(layout,state);
         if(objects.size()<2 || objects.size()!=state.SelectedIds().size()) return;
         bool changed=false;
         const auto group=[&](auto component,const char* title,auto draw) {
@@ -24,30 +23,30 @@ public:
             if(!ImGui::CollapsingHeader(title)) return;
             ImGui::PushID(title);
             using Component=typename std::remove_reference_t<decltype(objects.front().*component)>::value_type;
-            changed=Field(state,objects,component,&Component::enabled,"有効###Enabled",[](auto& value){return ImGui::Checkbox("有効###Enabled",&value);}) || changed;
+            changed |= Field(state,objects,component,&Component::enabled,"有効###Enabled",[](auto& value){return ImGui::Checkbox("有効###Enabled",&value);});
             draw(component);ImGui::PopID();
         };
         const auto scalar=[&](auto component,auto field,const char* label,float low=0,float high=100000) {
-            changed=Field(state,objects,component,field,label,[&](auto& value){return ImGui::DragFloat(label,&value,.05f,low,high,"%.3f",ImGuiSliderFlags_AlwaysClamp);}) || changed;
+            changed |= Field(state,objects,component,field,label,[&](auto& value){return ImGui::DragFloat(label,&value,.05f,low,high,"%.3f",ImGuiSliderFlags_AlwaysClamp);});
         };
         const auto boolean=[&](auto component,auto field,const char* label) {
-            changed=Field(state,objects,component,field,label,[&](auto& value){return ImGui::Checkbox(label,&value);}) || changed;
+            changed |= Field(state,objects,component,field,label,[&](auto& value){return ImGui::Checkbox(label,&value);});
         };
         const auto vector=[&](auto component,auto field,const char* label,float low=-100000,float high=100000) {
-            changed=Field(state,objects,component,field,label,[&](auto& value){
+            changed |= Field(state,objects,component,field,label,[&](auto& value){
                 if constexpr(std::tuple_size_v<std::remove_reference_t<decltype(value)>> == 2) return ImGui::DragFloat2(label,value.data(),.1f,low,high,"%.3f",ImGuiSliderFlags_AlwaysClamp);
                 else return ImGui::DragFloat3(label,value.data(),.1f,low,high,"%.3f",ImGuiSliderFlags_AlwaysClamp);
-            }) || changed;
+            });
         };
         const auto asset=[&](auto component,auto field,const char* label,AssetKind kind,bool empty) {
-            changed=Field(state,objects,component,field,label,[&](auto& value){
+            changed |= Field(state,objects,component,field,label,[&](auto& value){
                 bool edited=false;
                 if(ImGui::BeginCombo(label,ProjectCatalog::Text(value).c_str())) {
                     if(empty && ImGui::Selectable("モデルの設定",value.empty())) {value.clear();edited=true;}
                     if(catalog) for(const auto& entry:catalog->Assets()) if(entry.kind==kind && ImGui::Selectable(ProjectCatalog::Text(entry.path).c_str(),entry.path==value)) {value=entry.path;edited=true;}
                     ImGui::EndCombo();
                 } return edited;
-            }) || changed;
+            });
         };
         using P=SceneRuntime::ScenePlacement;
         group(&P::meshRenderer,"共通メッシュ描画###Shared mesh",[&](auto c){asset(c,&SceneRuntime::MeshRendererComponent::model,"モデル###Model",AssetKind::Model,false);});
@@ -78,6 +77,12 @@ public:
         if(changed) state.RequestComponentBatch(std::move(objects),state.Interaction());
     }
 private:
+  static std::vector<SceneRuntime::ScenePlacement> SelectedObjects(const SceneRuntime::SceneLayout &layout, const EditState &state) {
+      std::vector<SceneRuntime::ScenePlacement> objects;
+      for (const auto &object : layout.objects) if (state.IsSelected(object.id)) objects.push_back(object);
+      return objects;
+  }
+
     template<class Component,class Value,class Widget>
     static bool Field(EditState& state,std::vector<SceneRuntime::ScenePlacement>& objects,
         std::optional<Component> SceneRuntime::ScenePlacement::*component,Value Component::*field,const char* label,Widget draw) {

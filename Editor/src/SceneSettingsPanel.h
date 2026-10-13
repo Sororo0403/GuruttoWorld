@@ -1,10 +1,11 @@
 #pragma once
+#include "ComponentWidgets.h"
 #include "EditState.h"
 #include "ProjectCatalog.h"
 #include <imgui.h>
 namespace Editor::SceneSettingsPanel {
 inline void Track(EditState& state) {
-    if(ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+    Editor::TrackComponentInteraction(state);
 }
 inline bool Inputs(EditState& state,SceneRuntime::SceneSettings& settings) {
     bool edited=false;
@@ -18,7 +19,7 @@ inline bool Inputs(EditState& state,SceneRuntime::SceneSettings& settings) {
 }
 inline bool Simulation(EditState& state,SceneRuntime::SceneSettings& settings) {
     bool edited=ImGui::DragFloat3("共通重力###World gravity",settings.gravity.data(),.1f,-1000,1000,"%.3f",ImGuiSliderFlags_AlwaysClamp);Track(state);
-    edited=ImGui::DragFloat("物理更新間隔（秒）###Fixed timestep",&settings.fixedStep,.0001f,1.0f/240.0f,.1f,"%.6f",ImGuiSliderFlags_AlwaysClamp) || edited;Track(state);
+    edited |= ImGui::DragFloat("物理更新間隔（秒）###Fixed timestep",&settings.fixedStep,.0001f,1.0f/240.0f,.1f,"%.6f",ImGuiSliderFlags_AlwaysClamp);Track(state);
     int steps=static_cast<int>(settings.maximumFixedSteps);
     if(ImGui::SliderInt("1フレームの最大物理更新数###Maximum fixed steps",&steps,1,32)) {settings.maximumFixedSteps=static_cast<unsigned int>(steps);edited=true;}Track(state);
     return edited;
@@ -43,16 +44,16 @@ inline bool Shader(const char* label,std::filesystem::path& value,const ProjectC
 }
 inline bool Rendering(EditState& state,SceneRuntime::SceneSettings& settings,const ProjectCatalog* catalog) {
     bool edited=Resolution("平行光の影解像度###Directional shadow resolution",settings.shadowResolution,4096);
-    edited=Resolution("局所光の影解像度###Local shadow resolution",settings.localShadowResolution,2048) || edited;
-    edited=ImGui::SliderFloat("Scene描画倍率###Scene render scale",&settings.sceneRenderScale,.25f,1) || edited;Track(state);
-    edited=ImGui::SliderFloat("Game描画倍率###Game render scale",&settings.gameRenderScale,.25f,1) || edited;Track(state);
-    edited=ImGui::Checkbox("Sceneを毎フレーム描画###Scene realtime",&settings.sceneRealtime) || edited;
-    edited=ImGui::Checkbox("Gameを毎フレーム描画###Game realtime",&settings.gameRealtime) || edited;
+    edited |= Resolution("局所光の影解像度###Local shadow resolution",settings.localShadowResolution,2048);
+    edited |= ImGui::SliderFloat("Scene描画倍率###Scene render scale",&settings.sceneRenderScale,.25f,1);Track(state);
+    edited |= ImGui::SliderFloat("Game描画倍率###Game render scale",&settings.gameRenderScale,.25f,1);Track(state);
+    edited |= ImGui::Checkbox("Sceneを毎フレーム描画###Scene realtime",&settings.sceneRealtime);
+    edited |= ImGui::Checkbox("Gameを毎フレーム描画###Game realtime",&settings.gameRealtime);
     if(catalog) {
-        edited=Shader("空のシェーダー###Sky shader",settings.skyShader,*catalog) || edited;
-        edited=Shader("海のシェーダー###Ocean shader",settings.oceanShader,*catalog) || edited;
-        edited=Shader("粒子のシェーダー###Particle shader",settings.particleShader,*catalog) || edited;
-        edited=Shader("ポストエフェクトのシェーダー###Post shader",settings.postShader,*catalog) || edited;
+        edited |= Shader("空のシェーダー###Sky shader",settings.skyShader,*catalog);
+        edited |= Shader("海のシェーダー###Ocean shader",settings.oceanShader,*catalog);
+        edited |= Shader("粒子のシェーダー###Particle shader",settings.particleShader,*catalog);
+        edited |= Shader("ポストエフェクトのシェーダー###Post shader",settings.postShader,*catalog);
     }
     return edited;
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "ComponentWidgets.h"
 #include "EditState.h"
 #include "EnvironmentPanel.h"
 #include <SceneRuntime/SceneLayout.h>
@@ -8,7 +9,7 @@ namespace Editor
     /// <summary>汎用UIのプロパティーを通常のComponent編集とUndoへ接続します。</summary>
     inline void DrawUiControls(EditState& state,SceneRuntime::ScenePlacement& p)
     {
-        const auto track=[&]() {if(ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));};
+        const auto track=[&]() {Editor::TrackComponentInteraction(state);};
         const auto text=[&](const char* label,std::string& value) {
             std::vector<char> buffer(std::max(size_t(16385),value.size()+1)); std::copy(value.begin(),value.end(),buffer.begin());
             if(ImGui::InputText(label,buffer.data(),buffer.size())) value=buffer.data(); track();

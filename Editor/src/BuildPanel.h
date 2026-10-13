@@ -89,6 +89,23 @@ public:
         CloseHandle(information.hThread); process_=information.hProcess;job_=job;started_=GetTickCount64();nextLog_=0;tail_.clear();phase_.clear();step_=0;
         status_="ビルド中です。エディターを終了するとビルドも停止します。";
     }
+    void DrawProgressAndLogs() {
+        if (Running()) {
+            ImGui::Text("経過時間: %.0f秒", (GetTickCount64() - started_) / 1000.0);
+            ImGui::ProgressBar(std::clamp(step_ / 4.0f, 0.0f, 1.0f), {0, 0}, phase_.empty() ? "開始準備" : phase_.c_str());
+            if (ImGui::Button("ビルドをキャンセル###Cancel build")) Cancel();
+        }
+        if (!log_.empty()) ImGui::TextWrapped("ログ: %s", Engine::AssetDatabase::Text(log_).c_str());
+        if (!log_.empty() && ImGui::Button("ログのパスをコピー###Copy build log path")) ImGui::SetClipboardText(Engine::AssetDatabase::Text(log_).c_str());
+        if (!package_.empty() && ImGui::Button("配布フォルダーのパスをコピー###Copy package path")) ImGui::SetClipboardText(Engine::AssetDatabase::Text(package_).c_str());
+        if (!tail_.empty() && ImGui::CollapsingHeader("ビルドログ（末尾）###Build log tail", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ImGui::BeginChild("Build log", {0, 200}, ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar)) {
+                const bool follow = ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1;
+                ImGui::TextUnformatted(tail_.c_str());if (follow) ImGui::SetScrollHereY(1);
+            } ImGui::EndChild();
+        }
+        if (!package_.empty()) ImGui::TextWrapped("配布フォルダー: %s", Engine::AssetDatabase::Text(package_).c_str());
+    }
     void Draw(const std::filesystem::path& content,bool saved) {
         if (!open) return;
         if (ImGui::Begin(scripts_ ? "ゲーム処理のコンパイル###Build scripts" : "ビルド###Build player",&open)) {
@@ -100,21 +117,7 @@ public:
             const bool start=ImGui::Button(scripts_ ? "コンパイル###Build and package" : "ビルド・パッケージ作成###Build and package"); ImGui::EndDisabled();
             if (start) try { Start(content); } catch (const std::exception& error) { status_=error.what(); }
             if (!status_.empty()) ImGui::TextWrapped("%s",status_.c_str());
-            if(Running()) {
-                ImGui::Text("経過時間: %.0f秒",(GetTickCount64()-started_)/1000.0);
-                ImGui::ProgressBar(std::clamp(step_/4.0f,0.0f,1.0f),{0,0},phase_.empty()?"開始準備":phase_.c_str());
-                if(ImGui::Button("ビルドをキャンセル###Cancel build")) Cancel();
-            }
-            if (!log_.empty()) ImGui::TextWrapped("ログ: %s",Engine::AssetDatabase::Text(log_).c_str());
-            if(!log_.empty() && ImGui::Button("ログのパスをコピー###Copy build log path")) ImGui::SetClipboardText(Engine::AssetDatabase::Text(log_).c_str());
-            if(!package_.empty() && ImGui::Button("配布フォルダーのパスをコピー###Copy package path")) ImGui::SetClipboardText(Engine::AssetDatabase::Text(package_).c_str());
-            if(!tail_.empty() && ImGui::CollapsingHeader("ビルドログ（末尾）###Build log tail",ImGuiTreeNodeFlags_DefaultOpen)) {
-                if(ImGui::BeginChild("Build log",{0,200},ImGuiChildFlags_Borders,ImGuiWindowFlags_HorizontalScrollbar)) {
-                    const bool follow=ImGui::GetScrollY()>=ImGui::GetScrollMaxY()-1;
-                    ImGui::TextUnformatted(tail_.c_str());if(follow) ImGui::SetScrollHereY(1);
-                } ImGui::EndChild();
-            }
-            if (!package_.empty()) ImGui::TextWrapped("配布フォルダー: %s",Engine::AssetDatabase::Text(package_).c_str());
+            DrawProgressAndLogs();
         } ImGui::End();
     }
 };

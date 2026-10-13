@@ -30,6 +30,7 @@ namespace App
         /// </summary>
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer) override;
     private:
+        void ApplyMenuAction(TitleMenuAction action,const Engine::Keyboard& keyboard);
         void SyncUi();
         std::string requestedScene_;
         TitleMenuAction UpdatePointer(const Engine::Keyboard& keyboard);

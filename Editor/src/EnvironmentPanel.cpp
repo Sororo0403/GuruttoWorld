@@ -1,3 +1,4 @@
+#include "ComponentWidgets.h"
 #include "EnvironmentPanel.h"
 #include <imgui.h>
 
@@ -5,8 +6,7 @@ namespace
 {
     void Track(Editor::EditState& state)
     {
-        if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit())
-            state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+        Editor::TrackComponentInteraction(state);
     }
     void Scalar(Editor::EditState& state, const char* label, float& value, float low, float high)
     {

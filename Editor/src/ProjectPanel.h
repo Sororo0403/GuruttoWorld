@@ -40,6 +40,9 @@ namespace Editor
             return request;
         }
     private:
+        void DrawCreateMaterial(EditState& state);
+        void DrawMaterialUsages(EditState& state,const std::filesystem::path& path,const SceneRuntime::SceneLayout* layout);
+
         static void DrawAssetInfo(const AssetInfo& info);
         bool DrawMaterialWorkflow(EditState&,const std::filesystem::path&,const SceneRuntime::SceneLayout*,bool);
         void DrawFolder(const std::filesystem::path& folder);

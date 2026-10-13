@@ -38,6 +38,18 @@ namespace
 
 namespace Editor
 {
+static void DrawGuideLines(ImDrawList *draw, const ComponentGuideGeometry::Lines &segments, const DirectX::XMFLOAT4X4 &transform, const Engine::Camera &camera, const SceneViewport &viewport, ImU32 color)
+{
+    const auto projection = DirectX::XMLoadFloat4x4(&transform) * camera.GetViewMatrix() * camera.GetProjectionMatrix();
+    for (const auto &segment : segments) {
+        DirectX::XMFLOAT4 a, b;
+        const auto project = [&](const auto &point, auto &clip){ DirectX::XMStoreFloat4(&clip, DirectX::XMVector4Transform(DirectX::XMVectorSet(point[0], point[1], point[2], 1), projection)); };
+        project(segment[0], a);project(segment[1], b);if (!ClipEdge(a, b)) continue;
+        const auto first = viewport.ToScreen(a.x / a.w, a.y / a.w), last = viewport.ToScreen(b.x / b.w, b.y / b.w);
+        draw->AddLine({first[0], first[1]}, {last[0], last[1]}, color, 1.5f);
+    }
+
+    }
     static void DrawGuides(const SceneRuntime::SceneWorld& world,const Engine::Camera& camera,const std::string& id,const SceneViewport& viewport)
     {
         if(!viewport.Valid()) return;
@@ -46,26 +58,17 @@ namespace Editor
         DirectX::XMFLOAT4X4 matrix{},rotation{};
         if(found==objects.end() || !world.WorldMatrix(id,matrix)) return;
         auto* draw=ImGui::GetWindowDrawList();draw->PushClipRect({viewport.x,viewport.y},{viewport.x+viewport.width,viewport.y+viewport.height},true);
-        const auto lines=[&](const auto& segments,const DirectX::XMFLOAT4X4& transform,ImU32 color) {
-            const auto projection=DirectX::XMLoadFloat4x4(&transform)*camera.GetViewMatrix()*camera.GetProjectionMatrix();
-            for(const auto& segment:segments) {
-                DirectX::XMFLOAT4 a,b;
-                const auto project=[&](const auto& point,auto& clip){DirectX::XMStoreFloat4(&clip,DirectX::XMVector4Transform(DirectX::XMVectorSet(point[0],point[1],point[2],1),projection));};
-                project(segment[0],a);project(segment[1],b);if(!ClipEdge(a,b)) continue;
-                const auto first=viewport.ToScreen(a.x/a.w,a.y/a.w),last=viewport.ToScreen(b.x/b.w,b.y/b.w);
-                draw->AddLine({first[0],first[1]},{last[0],last[1]},color,1.5f);
-            }
-        };
+
         if(found->boxCollider && found->boxCollider->enabled) {
             DirectX::XMVECTOR scale,q,position;DirectX::XMFLOAT3 values{1,1,1};
             if(DirectX::XMMatrixDecompose(&scale,&q,&position,DirectX::XMLoadFloat4x4(&matrix))) DirectX::XMStoreFloat3(&values,scale);
-            lines(ComponentGuideGeometry::Collider(*found->boxCollider,{values.x,values.y,values.z}),matrix,IM_COL32(100,255,140,255));
+            DrawGuideLines(draw,ComponentGuideGeometry::Collider(*found->boxCollider,{values.x,values.y,values.z}),matrix,camera,viewport,IM_COL32(100,255,140,255));
         }
         if(world.WorldRotation(id,rotation)) {
             rotation._41=matrix._41;rotation._42=matrix._42;rotation._43=matrix._43;
-            if(found->camera && found->camera->enabled) lines(ComponentGuideGeometry::Camera(*found->camera),rotation,IM_COL32(120,180,255,255));
-            if(found->pointLight && found->pointLight->enabled) lines(ComponentGuideGeometry::Sphere(found->pointLight->range),rotation,IM_COL32(255,210,100,255));
-            if(found->spotLight && found->spotLight->enabled) lines(ComponentGuideGeometry::Spot(*found->spotLight),rotation,IM_COL32(255,210,100,255));
+            if(found->camera && found->camera->enabled) DrawGuideLines(draw,ComponentGuideGeometry::Camera(*found->camera),rotation,camera,viewport,IM_COL32(120,180,255,255));
+            if(found->pointLight && found->pointLight->enabled) DrawGuideLines(draw,ComponentGuideGeometry::Sphere(found->pointLight->range),rotation,camera,viewport,IM_COL32(255,210,100,255));
+            if(found->spotLight && found->spotLight->enabled) DrawGuideLines(draw,ComponentGuideGeometry::Spot(*found->spotLight),rotation,camera,viewport,IM_COL32(255,210,100,255));
         }
         draw->PopClipRect();
     }

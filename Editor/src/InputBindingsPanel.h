@@ -19,32 +19,12 @@ namespace Editor
                 bool remove=false;
                 if (ImGui::TreeNode(iterator->first.c_str()))
                 {
-                    size_t index=0;
-                    for (auto key=binding.keys.begin();key!=binding.keys.end();)
-                    {
-                        ImGui::PushID(static_cast<int>(index++));
-                        DrawKey(*key); ImGui::SameLine();
-                        const bool erase=ImGui::SmallButton("削除###Remove key");
-                        ImGui::PopID();
-                        if (erase) key=binding.keys.erase(key); else ++key;
-                    }
-                    if (binding.keys.size()<4 && ImGui::SmallButton("キーを追加###Add key")) binding.keys.push_back(DIK_SPACE);
-                    const std::pair<const char*,unsigned int> buttons[]={{"なし",0},{"A",XINPUT_GAMEPAD_A},{"B",XINPUT_GAMEPAD_B},{"X",XINPUT_GAMEPAD_X},{"Y",XINPUT_GAMEPAD_Y},
-                        {"LB",XINPUT_GAMEPAD_LEFT_SHOULDER},{"RB",XINPUT_GAMEPAD_RIGHT_SHOULDER},{"Start",XINPUT_GAMEPAD_START},{"Back",XINPUT_GAMEPAD_BACK},
-                        {"十字キー左",XINPUT_GAMEPAD_DPAD_LEFT},{"十字キー右",XINPUT_GAMEPAD_DPAD_RIGHT},{"十字キー上",XINPUT_GAMEPAD_DPAD_UP},{"十字キー下",XINPUT_GAMEPAD_DPAD_DOWN}};
-                    const char* label="ボタンの組み合わせ";
-                    for (const auto& [name,mask] : buttons) if (mask==binding.buttons) label=name;
-                    if (ImGui::BeginCombo("パッドボタン###Gamepad button",label))
-                    { for (const auto& [name,mask] : buttons) if (ImGui::Selectable(name,mask==binding.buttons)) binding.buttons=mask; ImGui::EndCombo(); }
+                    DrawKeys(binding);
+                    DrawPadButtons(binding);
                     const std::pair<const char*,unsigned int> mouse[]={{"左",1},{"右",2},{"中",4},{"X1",8},{"X2",16}};
                     ImGui::TextUnformatted("マウスボタン（複数選択は同時押し）");
                     for(const auto& [name,mask]:mouse) {ImGui::CheckboxFlags(name,&binding.mouseButtons,mask);ImGui::SameLine();} ImGui::NewLine();
-                    const std::pair<const char*,int> axes[]={{"なし",0},{"左スティック右",1},{"左スティック左",-1},{"左スティック上",2},{"左スティック下",-2},
-                        {"右スティック右",3},{"右スティック左",-3},{"右スティック上",4},{"右スティック下",-4},{"左トリガー",5},{"右トリガー",6}};
-                    label="なし"; for (const auto& [name,axis] : axes) if (axis==binding.axis) label=name;
-                    if (ImGui::BeginCombo("スティック・トリガー###Stick axis",label))
-                    { for (const auto& [name,axis] : axes) if (ImGui::Selectable(name,axis==binding.axis)) binding.axis=axis; ImGui::EndCombo(); }
-                    if (binding.axis) ImGui::SliderFloat("反応するしきい値###Threshold",&binding.threshold,0.05f,1,"%.2f");
+                    DrawAxis(binding);
                     remove=ImGui::SmallButton("Actionを削除###Remove action");
                     ImGui::TreePop();
                 }
@@ -59,6 +39,38 @@ namespace Editor
             ImGui::SameLine(); if (ImGui::Button("標準の入力に戻す###Reset input actions")) bindings=Engine::InputActions::Defaults();
         }
     private:
+      static void DrawKeys(Engine::InputBinding &binding) {
+          size_t index = 0;
+          for (auto key = binding.keys.begin(); key != binding.keys.end();)
+          {
+              ImGui::PushID(static_cast<int>(index++));
+              DrawKey(*key); ImGui::SameLine();
+              const bool erase = ImGui::SmallButton("削除###Remove key");
+              ImGui::PopID();
+              if (erase) key = binding.keys.erase(key); else ++key;
+          }
+          if (binding.keys.size() < 4 && ImGui::SmallButton("キーを追加###Add key")) binding.keys.push_back(DIK_SPACE);
+      }
+
+      static void DrawPadButtons(Engine::InputBinding &binding) {
+          const std::pair<const char *, unsigned int> buttons[] = {{"なし", 0}, {"A", XINPUT_GAMEPAD_A}, {"B", XINPUT_GAMEPAD_B}, {"X", XINPUT_GAMEPAD_X}, {"Y", XINPUT_GAMEPAD_Y},
+                        {"LB", XINPUT_GAMEPAD_LEFT_SHOULDER}, {"RB", XINPUT_GAMEPAD_RIGHT_SHOULDER}, {"Start", XINPUT_GAMEPAD_START}, {"Back", XINPUT_GAMEPAD_BACK},
+                        {"十字キー左", XINPUT_GAMEPAD_DPAD_LEFT}, {"十字キー右", XINPUT_GAMEPAD_DPAD_RIGHT}, {"十字キー上", XINPUT_GAMEPAD_DPAD_UP}, {"十字キー下", XINPUT_GAMEPAD_DPAD_DOWN}};
+          const char *label = "ボタンの組み合わせ";
+          for (const auto &[name, mask] : buttons) if (mask == binding.buttons) label = name;
+          if (ImGui::BeginCombo("パッドボタン###Gamepad button", label))
+          { for (const auto &[name, mask] : buttons) if (ImGui::Selectable(name, mask == binding.buttons)) binding.buttons = mask; ImGui::EndCombo(); }
+      }
+
+      static void DrawAxis(Engine::InputBinding &binding) {
+          const std::pair<const char *, int> axes[] = {{"なし", 0}, {"左スティック右", 1}, {"左スティック左", -1}, {"左スティック上", 2}, {"左スティック下", -2},
+                        {"右スティック右", 3}, {"右スティック左", -3}, {"右スティック上", 4}, {"右スティック下", -4}, {"左トリガー", 5}, {"右トリガー", 6}};
+          const char *label = "なし"; for (const auto &[name, axis] : axes) if (axis == binding.axis) label = name;
+          if (ImGui::BeginCombo("スティック・トリガー###Stick axis", label))
+          { for (const auto &[name, axis] : axes) if (ImGui::Selectable(name, axis == binding.axis)) binding.axis = axis; ImGui::EndCombo(); }
+          if (binding.axis) ImGui::SliderFloat("反応するしきい値###Threshold", &binding.threshold, 0.05f, 1, "%.2f");
+      }
+
         static void DrawKey(unsigned int& key)
         {
             const std::pair<const char*,unsigned int> keys[]={{"A",DIK_A},{"B",DIK_B},{"C",DIK_C},{"D",DIK_D},{"E",DIK_E},{"F",DIK_F},{"G",DIK_G},{"H",DIK_H},{"I",DIK_I},{"J",DIK_J},{"K",DIK_K},{"L",DIK_L},{"M",DIK_M},{"N",DIK_N},{"O",DIK_O},{"P",DIK_P},{"Q",DIK_Q},{"R",DIK_R},{"S",DIK_S},{"T",DIK_T},{"U",DIK_U},{"V",DIK_V},{"W",DIK_W},{"X",DIK_X},{"Y",DIK_Y},{"Z",DIK_Z},

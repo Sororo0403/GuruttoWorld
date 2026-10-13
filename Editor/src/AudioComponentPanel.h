@@ -1,11 +1,12 @@
 #pragma once
+#include "ComponentWidgets.h"
 #include "EnvironmentPanel.h"
 #include "AudioPreview.h"
 #include <imgui.h>
 #include <cmath>
 namespace Editor::AudioPanel {
 /// <summary>音響フィールドの操作をUndoへまとめます。</summary>
-inline void Track(EditState& state) {if(ImGui::IsItemActive()||ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));}
+inline void Track(EditState& state) {Editor::TrackComponentInteraction(state);}
 /// <summary>音響名・状態キーを編集します。</summary>
 inline void String(EditState& state,const char* label,std::string& value) {
     std::array<char,129> data{}; std::copy_n(value.begin(),std::min(value.size(),data.size()-1),data.begin());

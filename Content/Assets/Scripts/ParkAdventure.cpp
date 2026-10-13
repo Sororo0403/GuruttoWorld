@@ -100,6 +100,60 @@ namespace
         if (context.state["hp"]<=0) Respawn(context);
         context.scene->SetUiValue(Text(context,"attackState"),context.state["attack"]>0 ? 1.0f : 0.0f);
     }
+    void StartPlayer(ScriptContext &context)
+    {
+        context.state["hp"] = context.Value("maxHp", 3); context.state["spawnX"] = context.object.position[0];
+        context.state["spawnZ"] = context.object.position[2];
+
+    }
+
+    void FixedPlayer(ScriptContext &context)
+    {
+        if (!context.scene || !context.object.playerController) return;
+        auto &controller = *context.object.playerController;
+        const auto ground = context.scene->Raycast(context.object.position, {0, -1, 0}, context.Value("groundProbe", .8f), 0xffffffffu, false, context.object.id);
+        const float dt = static_cast<float>(context.seconds);
+        if (ground && ground->normal[1] > context.Value("groundNormal", .7f)) { context.state["floatTime"] = 0; context.state["airTime"] = 0; }
+        else context.state["airTime"] += dt;
+        const bool floating = !ground && context.state["airTime"] > context.Value("floatDelay", .25f) && context.Input(Text(context, "jumpAction")) > 0.5f &&
+                              !context.Pressed(Text(context, "jumpAction")) && context.state["floatTime"] < context.Value("floatDuration", 0.85f);
+        controller.useGravity = !floating && context.state["resetVelocity"] == 0;
+        if (floating) context.state["floatTime"] += dt;
+        context.state["resetVelocity"] = 0;
+        if (context.state["clear"] > 0) controller.moveSpeed = 0;
+
+    }
+
+    void UpdatePlayer(ScriptContext &context)
+    {
+        if (!context.scene) return;
+        if (context.Pressed(Text(context, "restartAction"))) {
+            context.scene->LoadScene(std::get<std::string>(context.Data("scene")->value)); return;
+        }
+        if (context.Pressed(Text(context, "cancelAction"))) { context.scene->LoadScene(Text(context, "returnScene")); return; }
+        if (context.state["clear"] > 0) return;
+        const float dt = static_cast<float>(context.seconds);
+        context.state["elapsed"] += dt;
+        context.state["invulnerable"] = std::max(0.0f, context.state["invulnerable"] - dt);
+        if (context.object.position[1] < context.Value("fallLimit", -3) || context.object.position[0] < context.Value("leftLimit", -20) || context.object.position[0] > context.Value("rightLimit", 20)) Respawn(context);
+        const float x = context.Input(Text(context, "rightAction")) - context.Input(Text(context, "leftAction"));
+        const float z = context.Input(Text(context, "forwardAction")) - context.Input(Text(context, "backAction"));
+        if (std::hypot(x, z) > 0.1f) context.object.rotation[1] = std::atan2(x, z);
+        Collect(context); Combat(context);
+        SetText(context, Id(context, "stats"), Format(context, Text(context, "statsTemplate")));
+        const float progress = context.object.position[2];
+        const auto hint = progress < context.Value("hintBoundary1", 14) ? "hint1" :
+                progress < context.Value("hintBoundary2", 31) ? "hint2" :
+                progress < context.Value("hintBoundary3", 49)   ? "hint3" : "hint4";
+        SetText(context, Id(context, "hint"), Text(context, hint));
+        const auto *goal = context.Reference("goal");
+        if (goal && context.state["switches"] >= context.Value("requiredSwitches", 2) && Distance(context.object, *goal) < context.Value("goalDistance", 2)) {
+            context.state["clear"] = 1; context.scene->SetUiValue(Text(context, "clearState"), 1);
+            context.scene->SetUiValue(Text(context, "attackState"), 0);
+            SetText(context, Id(context, "result"), Format(context, Text(context, "resultTemplate")));
+        }
+
+    }
     ScriptDefinition Player()
     {
         ScriptDefinition result;
@@ -136,52 +190,9 @@ namespace
             {"hint2",{std::string("段差の上にも寄り道。Spaceでジャンプ")}},
             {"hint3",{std::string("水路を飛び越えよう。ジャンプ中にSpaceを押し続けると空中停止")}},
             {"hint4",{std::string("左右のスイッチを踏んで、展望台への扉を開こう")}}};
-        result.start=[](ScriptContext& context) {
-            context.state["hp"]=context.Value("maxHp",3); context.state["spawnX"]=context.object.position[0];
-            context.state["spawnZ"]=context.object.position[2];
-        };
-        result.fixedUpdate=[](ScriptContext& context) {
-            if (!context.scene || !context.object.playerController) return;
-            auto& controller=*context.object.playerController;
-            const auto ground=context.scene->Raycast(context.object.position,{0,-1,0},context.Value("groundProbe",.8f),0xffffffffu,false,context.object.id);
-            const float dt=static_cast<float>(context.seconds);
-            if (ground && ground->normal[1]>context.Value("groundNormal",.7f)) { context.state["floatTime"]=0; context.state["airTime"]=0; }
-            else context.state["airTime"]+=dt;
-            const bool floating=!ground && context.state["airTime"]>context.Value("floatDelay",.25f) && context.Input(Text(context,"jumpAction"))>0.5f &&
-                !context.Pressed(Text(context,"jumpAction")) && context.state["floatTime"]<context.Value("floatDuration",0.85f);
-            controller.useGravity=!floating && context.state["resetVelocity"]==0;
-            if (floating) context.state["floatTime"]+=dt;
-            context.state["resetVelocity"]=0;
-            if (context.state["clear"]>0) controller.moveSpeed=0;
-        };
-        result.update=[](ScriptContext& context) {
-            if (!context.scene) return;
-            if (context.Pressed(Text(context,"restartAction"))) {
-                context.scene->LoadScene(std::get<std::string>(context.Data("scene")->value)); return;
-            }
-            if (context.Pressed(Text(context,"cancelAction"))) { context.scene->LoadScene(Text(context,"returnScene")); return; }
-            if (context.state["clear"]>0) return;
-            const float dt=static_cast<float>(context.seconds);
-            context.state["elapsed"]+=dt;
-            context.state["invulnerable"]=std::max(0.0f,context.state["invulnerable"]-dt);
-            if (context.object.position[1]<context.Value("fallLimit",-3) || context.object.position[0]<context.Value("leftLimit",-20) || context.object.position[0]>context.Value("rightLimit",20)) Respawn(context);
-            const float x=context.Input(Text(context,"rightAction"))-context.Input(Text(context,"leftAction"));
-            const float z=context.Input(Text(context,"forwardAction"))-context.Input(Text(context,"backAction"));
-            if (std::hypot(x,z)>0.1f) context.object.rotation[1]=std::atan2(x,z);
-            Collect(context); Combat(context);
-            SetText(context,Id(context,"stats"),Format(context,Text(context,"statsTemplate")));
-            const float progress=context.object.position[2];
-            const auto hint=progress<context.Value("hintBoundary1",14) ? "hint1" :
-                progress<context.Value("hintBoundary2",31) ? "hint2" :
-                progress<context.Value("hintBoundary3",49) ? "hint3" : "hint4";
-            SetText(context,Id(context,"hint"),Text(context,hint));
-            const auto* goal=context.Reference("goal");
-            if (goal && context.state["switches"]>=context.Value("requiredSwitches",2) && Distance(context.object,*goal)<context.Value("goalDistance",2)) {
-                context.state["clear"]=1; context.scene->SetUiValue(Text(context,"clearState"),1);
-                context.scene->SetUiValue(Text(context,"attackState"),0);
-                SetText(context,Id(context,"result"),Format(context,Text(context,"resultTemplate")));
-            }
-        };
+        result.start=StartPlayer;
+        result.fixedUpdate=FixedPlayer;
+        result.update=UpdatePlayer;
         return result;
     }
     ScriptDefinition Camera()

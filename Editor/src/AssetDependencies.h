@@ -25,29 +25,7 @@ public:
             if (json || extension==".gltf" || extension==".obj") {
                 std::ifstream input(path,std::ios::binary);
                 if (!input) throw std::runtime_error("アセットを読み込めません");
-                std::set<std::string> values;
-                if (json) {
-                    const auto document=Engine::Json::parse(input);
-                    const auto walk=[&](auto&& self,const Engine::Json& value)->void {
-                        if (value.is_string()) {
-                            const auto text=value.get<std::string>();
-                            if (Engine::AssetDatabase::Valid(Engine::AssetDatabase::Path(text))) values.insert(text);
-                        } else if (value.is_array() || value.is_object()) for (const auto& item:value) self(self,item);
-                    }; walk(walk,document);
-                } else if (extension==".gltf") {
-                    const auto document=Engine::Json::parse(input);
-                    for (const auto* key:{"buffers","images"}) if(document.contains(key)) for(const auto& resource:document[key]) {
-                        const auto uri=resource.value("uri",std::string{});
-                        if (!uri.empty() && !uri.starts_with("data:")) values.insert(uri);
-                    }
-                } else {
-                    std::string line;
-                    while(std::getline(input,line)) {
-                        std::istringstream tokens(line); std::string keyword;
-                        tokens>>keyword;
-                        if(keyword=="mtllib") {std::string name; while(tokens>>name) values.insert(name);}
-                    }
-                }
+                const auto values=ReadDependencies(input,json,extension);
                 values_={values.begin(),values.end()}; ++reads_;
             }
             time_=time; size_=size; loaded_=true;
@@ -57,6 +35,36 @@ public:
     const std::string& Error() const {return error_;}
     size_t Reads() const {return reads_;}
 private:
+  static void CollectReferences(const Engine::Json &value, std::set<std::string> &values)
+  {
+      if (value.is_string()) {
+          const auto text = value.get<std::string>();
+          if (Engine::AssetDatabase::Valid(Engine::AssetDatabase::Path(text))) values.insert(text);
+      } else if (value.is_array() || value.is_object()) for (const auto &item : value) CollectReferences(item, values);
+
+    }
+  static std::set<std::string> ReadDependencies(std::istream &input, bool json, const std::string &extension) {
+      std::set<std::string> values;
+      if (json) {
+          const auto document = Engine::Json::parse(input);
+          CollectReferences(document, values);
+      } else if (extension == ".gltf") {
+          const auto document = Engine::Json::parse(input);
+          for (const auto *key : {"buffers", "images"}) if (document.contains(key)) for (const auto &resource : document[key]) {
+                      const auto uri = resource.value("uri", std::string{});
+                      if (!uri.empty() && !uri.starts_with("data:")) values.insert(uri);
+                  }
+      } else {
+          std::string line;
+          while (std::getline(input, line)) {
+              std::istringstream tokens(line); std::string keyword;
+              tokens >> keyword;
+              if (keyword == "mtllib") {std::string name; while (tokens >> name) values.insert(name);}
+          }
+      }
+      return values;
+  }
+
     std::filesystem::path path_;
     std::filesystem::file_time_type time_{};
     std::uintmax_t size_=0;

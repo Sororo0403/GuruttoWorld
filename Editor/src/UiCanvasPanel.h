@@ -13,6 +13,14 @@ public:
     void SetPreviewState(SceneRuntime::UiState state,float displayScale=1) { preview_=std::move(state); displayScale_=displayScale; }
     void SetSnap(bool enabled,float grid) { snap_=enabled; grid_=grid; }
 private:
+    bool DrawResizeHandles(const SceneRuntime::ScenePlacement& selected,const SceneRuntime::UiRect& rect,const SceneViewport& viewport,const std::array<float,2>& mouse);
+    std::optional<std::array<bool,2>> DrawSpecialHandles(const SceneRuntime::ScenePlacement& selected,const SceneRuntime::UiRect& rect,const SceneViewport& viewport,const std::array<float,2>& mouse) const;
+    bool HitCanvas(const SceneRuntime::SceneLayout& layout,const SceneRuntime::ScenePlacement& object,const SceneViewport& viewport,const std::array<float,2>& mouse) const;
+
+    void DrawSelectionHandles(const SceneRuntime::SceneLayout& layout,const SceneRuntime::ScenePlacement& selected,const SceneViewport& viewport);
+    std::string HitUi(const SceneRuntime::SceneLayout& layout,const SceneViewport& viewport,const std::array<float,2>& mouse) const;
+    SceneRuntime::ScenePlacement DragCandidate(const std::array<float,2>& mouse) const;
+
     void UpdateDrag(EditState&,const std::array<float,2>& mouse);
     void SelectAndBegin(const SceneRuntime::SceneLayout&,EditState&,const SceneViewport&);
     std::optional<SceneRuntime::ScenePlacement> start_;

@@ -57,15 +57,7 @@ namespace App
         if(previousIntro<1 && menu_.IntroProgress()==1)
             environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),static_cast<float>(environment_.MotionSeconds()));
         if(pointerAction!=TitleMenuAction::None) action=pointerAction;
-        if(action==TitleMenuAction::SaveSettings) menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
-        if(action==TitleMenuAction::Exit) PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);
-        if (menu_.GetCue()==TitleMenuCue::Confirm && !menu_.IsSettingsOpen() &&
-            menu_.SelectedEntry() && menu_.SelectedEntry()->action=="loadScene")
-        {
-            environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),
-                static_cast<float>(environment_.MotionSeconds()));
-            environment_.Ui().values["startRequested"]=1;
-        }
+        ApplyMenuAction(action,keyboard);
         std::string assignments; if(menu_.TakeAssignments(assignments)) environment_.Ui().Assign(assignments);
         SyncUi();
         environment_.Ui().hovered=hovered_; environment_.Ui().pressed=pressed_;
@@ -79,6 +71,18 @@ namespace App
         }
         if(!requestedScene_.empty()) return std::exchange(requestedScene_,{});
         return {};
+    }
+    void TitleScene::ApplyMenuAction(TitleMenuAction action, const Engine::Keyboard &keyboard)
+    {
+        if (action == TitleMenuAction::SaveSettings) menu_.CompleteSave(menu_.GetSettings().Save(GameSettings::UserPath()));
+        if (action == TitleMenuAction::Exit) PostMessageW(keyboard.WindowHandle(), WM_CLOSE, 0, 0);
+        if (menu_.GetCue() == TitleMenuCue::Confirm && !menu_.IsSettingsOpen() &&
+            menu_.SelectedEntry() && menu_.SelectedEntry()->action == "loadScene")
+        {
+            environment_.SeekAnimation(environment_.Ui().Value("introDuration", 0),
+                                       static_cast<float>(environment_.MotionSeconds()));
+            environment_.Ui().values["startRequested"] = 1;
+        }
     }
     void TitleScene::SyncUi()
     {

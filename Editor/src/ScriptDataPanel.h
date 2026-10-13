@@ -1,4 +1,5 @@
 #pragma once
+#include "ComponentWidgets.h"
 #include "EditState.h"
 #include "ProjectCatalog.h"
 #include <SceneRuntime/ScriptValue.h>
@@ -29,9 +30,8 @@ namespace Editor
                     edited=true;
                 }
             }
-            edited=std::visit([&](auto& value) { return DrawValue(state,label,value,catalog); },field.value) || edited;
-            if (ImGui::IsItemActive() || ImGui::IsItemDeactivatedAfterEdit())
-                state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));
+            edited |= std::visit([&](auto& value) { return DrawValue(state,label,value,catalog); },field.value);
+            Editor::TrackComponentInteraction(state);
             ImGui::PopID(); return edited;
         }
     private:
@@ -82,7 +82,7 @@ namespace Editor
             bool edited=false; ImGui::Text("%zu / 256",value.size());
             for (size_t index=0;index<value.size();++index) {
                 ImGui::PushID(static_cast<int>(index));
-                edited=Draw(state,std::to_string(index).c_str(),value[index],catalog) || edited;
+                edited |= Draw(state,std::to_string(index).c_str(),value[index],catalog);
                 ImGui::PopID();
             }
             ImGui::BeginDisabled(value.size()>=256);
@@ -101,7 +101,7 @@ namespace Editor
             bool edited=false;
             std::string remove;
             for (auto& [name,child]:value) {
-                edited=Draw(state,name.c_str(),child,catalog) || edited;
+                edited |= Draw(state,name.c_str(),child,catalog);
                 ImGui::PushID(name.c_str()); if(ImGui::SmallButton("項目を削除###Remove field")) remove=name; ImGui::PopID();
             }
             if(!remove.empty()) {value.erase(remove);edited=true;}
@@ -109,7 +109,7 @@ namespace Editor
             auto& key=names[ImGui::GetID("New field")];
             ImGui::InputText("新しい項目名###New field",key.data(),key.size());
             if(value.size()<64 && ImGui::Button("項目を追加###Add field") && key[0]) {
-                edited=value.try_emplace(key.data(),SceneRuntime::ScriptValue{}).second || edited; key.fill(0);
+                edited |= value.try_emplace(key.data(),SceneRuntime::ScriptValue{}).second; key.fill(0);
             }
             ImGui::TreePop(); return edited;
         }

@@ -1,3 +1,4 @@
+#include "ComponentWidgets.h"
 #include "UiComponentPanel.h"
 #include "UiControlPanel.h"
 #include "EnvironmentPanel.h"
@@ -8,7 +9,7 @@
 #include <algorithm>
 #include <charconv>
 namespace {
-void Track(Editor::EditState& state) {if(ImGui::IsItemActive()||ImGui::IsItemDeactivatedAfterEdit()) state.SetInteraction("component/"+std::to_string(ImGui::GetItemID()));}
+void Track(Editor::EditState& state) {Editor::TrackComponentInteraction(state);}
 void String(Editor::EditState& state,const char* label,std::string& value) {
     std::vector<char> data(std::max(size_t(16385),value.size()+1)); std::copy(value.begin(),value.end(),data.begin());
     if(ImGui::InputText(label,data.data(),data.size())) value=data.data(); Track(state);
@@ -57,51 +58,63 @@ void Rect(Editor::EditState& state,SceneRuntime::RectTransformComponent& c) {
     ImGui::DragFloat("登場の遅延###Intro delay",&c.introDelay,0.01f,0,0.99f,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state);
     ImGui::DragFloat("登場時のX移動量###Intro X offset",&c.introOffset,1); Track(state);
 }
+void DrawCanvasSettings(Editor::EditState &state, SceneRuntime::CanvasComponent &c, const Editor::ProjectCatalog *catalog)
+{Vector(state, "基準解像度###Reference resolution", c.referenceSize, 1, 8192); ImGui::Checkbox("画面サイズに合わせて拡縮###Scale with screen", &c.scaleWithScreen);
+    TitleSettings(state, c);
+    DrawMenuConfiguration(state, c, catalog);
+    std::string eraseKey;
+    for (auto &[key, value] : c.stateDefaults) {ImGui::PushID(key.c_str()); ImGui::DragFloat(key.c_str(), &value, 0.1f, -100000, 100000, "%.2f", ImGuiSliderFlags_AlwaysClamp); Track(state); ImGui::SameLine(); if (ImGui::SmallButton("X")) eraseKey = key; ImGui::PopID();}
+    if (!eraseKey.empty()) c.stateDefaults.erase(eraseKey);
+    static std::array<char, 128> key{}; ImGui::InputText("新しい状態キー###New state key", key.data(), key.size());
+    if (ImGui::Button("状態値を追加###Add state value") && key[0]) c.stateDefaults.try_emplace(key.data(), 0.0f);
+}
+
+void DrawMenuButtonEvent(SceneRuntime::ButtonComponent &c)
+{
+    const auto eventType = c.event.starts_with("menu:") ? "menu" : c.event.starts_with("settings:") ? "settings": c.event == "back"                  ? "back": "custom";
+    if (ImGui::BeginCombo("メニューイベント###Menu event", eventType)) {
+        for (const char *type : {"menu", "settings", "back", "custom"}) if (ImGui::Selectable(type, std::string_view(type) == eventType)) {
+                if (std::string_view(type) == "menu" || std::string_view(type) == "settings") {c.event = std::string(type) + ":0"; c.action = "click"; c.target.clear(); c.sound.clear();}
+                else c.event = std::string_view(type) == "back" ? "back" : "";
+            }
+        ImGui::EndCombo();
+    }
+    if (c.event.starts_with("menu:") || c.event.starts_with("settings:")) {
+        const auto prefix = c.event.starts_with("menu:") ? "menu:" : "settings:";
+        int index = 0; const auto digits = std::string_view(c.event).substr(std::char_traits<char>::length(prefix));
+        std::from_chars(digits.data(), digits.data() + digits.size(), index);
+        if (ImGui::InputInt("項目番号・設定行###Menu index or row", &index)) c.event = std::string(prefix) + std::to_string(std::clamp(index, 0, 127));
+    }
+}
+void DrawButtonSettings(Editor::EditState &state, SceneRuntime::ButtonComponent &c)
+{
+    static constexpr const char *actions[]{"click", "show", "hide", "toggle", "playAudio", "loadScene", "quit", "setState", "loadSceneAdditive", "unloadScene"};
+    static constexpr const char *labels[]{"クリック通知", "表示", "非表示", "表示切り替え", "音声再生", "シーン切り替え", "実行終了", "状態値を設定", "シーン追加ロード", "シーンをアンロード"};
+    const auto found = std::find(std::begin(actions), std::end(actions), c.action);
+    const auto preview = found == std::end(actions) ? c.action.c_str() : labels[found - std::begin(actions)];
+    if (ImGui::BeginCombo("動作###Action", preview)) {
+        for (size_t index = 0; index < std::size(actions); ++index)
+            if (ImGui::Selectable(labels[index], c.action == actions[index])) c.action = actions[index];
+        ImGui::EndCombo();
+    }
+    String(state, "対象・状態値の設定###Target / state assignments", c.target); String(state, "ゲームイベント###Game event", c.event); String(state, "クリック時の音源オブジェクト###Click audio object", c.sound);
+    DrawMenuButtonEvent(c);
+    if (!c.shortcut.empty()) ImGui::TextWrapped("旧ショートカット: %s（入力Actionへ移行済み）", c.shortcut.c_str());
+    String(state, "入力Action名###Input action", c.inputAction);
+    Color(state, "ホバー時の色###Hover tint", c.hoverColor); Color(state, "押下時の色###Pressed tint", c.pressedColor);
+
+}
+
 }
 namespace Editor {
 bool UiComponentPanel::Draw(EditState& state,SceneRuntime::ScenePlacement& p,const ProjectCatalog* catalog) {
     const auto before=p;
     DrawUiControls(state,p);
-    Component(p.canvas,"キャンバス###Canvas",[&](auto& c){Vector(state,"基準解像度###Reference resolution",c.referenceSize,1,8192); ImGui::Checkbox("画面サイズに合わせて拡縮###Scale with screen",&c.scaleWithScreen);
-        TitleSettings(state,c);
-        DrawMenuConfiguration(state,c,catalog);
-        std::string eraseKey;
-        for(auto& [key,value]:c.stateDefaults) {ImGui::PushID(key.c_str()); ImGui::DragFloat(key.c_str(),&value,0.1f,-100000,100000,"%.2f",ImGuiSliderFlags_AlwaysClamp); Track(state); ImGui::SameLine(); if(ImGui::SmallButton("X")) eraseKey=key; ImGui::PopID();}
-        if(!eraseKey.empty()) c.stateDefaults.erase(eraseKey);
-        static std::array<char,128> key{}; ImGui::InputText("新しい状態キー###New state key",key.data(),key.size());
-        if(ImGui::Button("状態値を追加###Add state value") && key[0]) c.stateDefaults.try_emplace(key.data(),0.0f);});
+    Component(p.canvas,"キャンバス###Canvas",[&](auto& c){DrawCanvasSettings(state,c,catalog);});
     Component(p.rectTransform,"UIトランスフォーム###RectTransform",[&](auto& c){Rect(state,c);});
     Component(p.image,"画像###Image",[&](auto& c){Asset(c.texture,catalog,AssetKind::Texture); Color(state,"画像の色###Image tint",c.color); ImGui::DragFloat4("UV範囲###UV rect",c.uv.data(),0.001f,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp); Track(state); c.uv[2]=std::max(c.uv[0],c.uv[2]); c.uv[3]=std::max(c.uv[1],c.uv[3]);});
     Component(p.text,"テキスト###Text",[&](auto& c){String(state,"テキスト内容###Content",c.text); String(state,"フォント名###Font family",c.font); ImGui::DragFloat("文字サイズ###Font size",&c.fontSize,1,1,512,"%.0f",ImGuiSliderFlags_AlwaysClamp); Track(state); Color(state,"文字色###Text color",c.color);});
-    Component(p.button,"ボタン###Button",[&](auto& c){
-        static constexpr const char* actions[]{"click","show","hide","toggle","playAudio","loadScene","quit","setState","loadSceneAdditive","unloadScene"};
-        static constexpr const char* labels[]{"クリック通知","表示","非表示","表示切り替え","音声再生","シーン切り替え","実行終了","状態値を設定","シーン追加ロード","シーンをアンロード"};
-        const auto found=std::find(std::begin(actions),std::end(actions),c.action);
-        const auto preview=found==std::end(actions) ? c.action.c_str() : labels[found-std::begin(actions)];
-        if(ImGui::BeginCombo("動作###Action",preview)) {
-            for(size_t index=0;index<std::size(actions);++index)
-                if(ImGui::Selectable(labels[index],c.action==actions[index])) c.action=actions[index];
-            ImGui::EndCombo();
-        }
-        String(state,"対象・状態値の設定###Target / state assignments",c.target); String(state,"ゲームイベント###Game event",c.event); String(state,"クリック時の音源オブジェクト###Click audio object",c.sound);
-        const auto eventType=c.event.starts_with("menu:")?"menu":c.event.starts_with("settings:")?"settings":c.event=="back"?"back":"custom";
-        if(ImGui::BeginCombo("メニューイベント###Menu event",eventType)) {
-            for(const char* type:{"menu","settings","back","custom"}) if(ImGui::Selectable(type,std::string_view(type)==eventType)) {
-                if(std::string_view(type)=="menu" || std::string_view(type)=="settings") {c.event=std::string(type)+":0"; c.action="click"; c.target.clear(); c.sound.clear();}
-                else c.event=std::string_view(type)=="back"?"back":"";
-            }
-            ImGui::EndCombo();
-        }
-        if(c.event.starts_with("menu:") || c.event.starts_with("settings:")) {
-            const auto prefix=c.event.starts_with("menu:")?"menu:":"settings:";
-            int index=0; const auto digits=std::string_view(c.event).substr(std::char_traits<char>::length(prefix));
-            std::from_chars(digits.data(),digits.data()+digits.size(),index);
-            if(ImGui::InputInt("項目番号・設定行###Menu index or row",&index)) c.event=std::string(prefix)+std::to_string(std::clamp(index,0,127));
-        }
-        if(!c.shortcut.empty()) ImGui::TextWrapped("旧ショートカット: %s（入力Actionへ移行済み）",c.shortcut.c_str());
-        String(state,"入力Action名###Input action",c.inputAction);
-        Color(state,"ホバー時の色###Hover tint",c.hoverColor); Color(state,"押下時の色###Pressed tint",c.pressedColor);
-    });
+    Component(p.button,"ボタン###Button",[&](auto& c){DrawButtonSettings(state,c);});
     AudioPanel::Draw(state,p,catalog);
     return !p.SameComponents(before);
 }

@@ -103,6 +103,7 @@
     </ClCompile>
     <ClCompile Include="src\EditorFonts.cpp" />
     <ClInclude Include="src\EditorFonts.h" />
+    <ClInclude Include="src\ComponentWidgets.h" />
     <ClInclude Include="src\EditorLanguage.h" />
     <ClCompile Include="src\CameraPanel.cpp" />
     <ClCompile Include="src\ObjectPanel.cpp" />

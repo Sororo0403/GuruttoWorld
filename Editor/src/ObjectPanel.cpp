@@ -198,7 +198,7 @@ namespace Editor
         ImGui::TextUnformatted("シーン設定");
         auto settings=world.Layout().settings;
         bool settingsEdited=ImGui::ColorEdit4("背景色###Background",settings.background.data());
-        settingsEdited=SceneSettingsPanel::Inputs(state,settings) || settingsEdited;
+        settingsEdited |= SceneSettingsPanel::Inputs(state,settings);
         TrackInspectorEdit(state);
         const auto label=settings.mainCamera.empty() ? std::string("最初の有効なカメラ") : settings.mainCamera;
         if (ImGui::BeginCombo("ゲームカメラ###Game camera",label.c_str()))
@@ -213,47 +213,47 @@ namespace Editor
             }
             ImGui::EndCombo();
         }
-        settingsEdited=SceneSettingsPanel::Simulation(state,settings) || settingsEdited;
-        settingsEdited=SceneSettingsPanel::Rendering(state,settings,catalog) || settingsEdited;
-        settingsEdited=ImGui::Checkbox("霧を有効化###Fog enabled",&settings.fog.enabled) || settingsEdited;
-        settingsEdited=ImGui::ColorEdit3("霧の色###Fog color",settings.fog.color.data()) || settingsEdited;
+        settingsEdited |= SceneSettingsPanel::Simulation(state,settings);
+        settingsEdited |= SceneSettingsPanel::Rendering(state,settings,catalog);
+        settingsEdited |= ImGui::Checkbox("霧を有効化###Fog enabled",&settings.fog.enabled);
+        settingsEdited |= ImGui::ColorEdit3("霧の色###Fog color",settings.fog.color.data());
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::DragFloat("霧の開始距離###Fog start",&settings.fog.start,0.1f,0,settings.fog.end-0.001f,"%.2f",ImGuiSliderFlags_AlwaysClamp) || settingsEdited;
+        settingsEdited |= ImGui::DragFloat("霧の開始距離###Fog start",&settings.fog.start,0.1f,0,settings.fog.end-0.001f,"%.2f",ImGuiSliderFlags_AlwaysClamp);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::DragFloat("霧の終了距離###Fog end",&settings.fog.end,0.1f,settings.fog.start+0.001f,1000000,"%.2f",ImGuiSliderFlags_AlwaysClamp) || settingsEdited;
+        settingsEdited |= ImGui::DragFloat("霧の終了距離###Fog end",&settings.fog.end,0.1f,settings.fog.start+0.001f,1000000,"%.2f",ImGuiSliderFlags_AlwaysClamp);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("霧の強さ###Fog strength",&settings.fog.strength,0,1) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("霧の強さ###Fog strength",&settings.fog.strength,0,1);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::Checkbox("ポストエフェクトを有効化###Post effects",&settings.postEffects.enabled) || settingsEdited;
+        settingsEdited |= ImGui::Checkbox("ポストエフェクトを有効化###Post effects",&settings.postEffects.enabled);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("露出（EV）###Exposure",&settings.postEffects.exposure,-10,10) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("露出（EV）###Exposure",&settings.postEffects.exposure,-10,10);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::Checkbox("自動露出###Auto exposure",&settings.postEffects.autoExposure) || settingsEdited;
+        settingsEdited |= ImGui::Checkbox("自動露出###Auto exposure",&settings.postEffects.autoExposure);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("最小露出###Minimum exposure",&settings.postEffects.exposureMinimum,-10,settings.postEffects.exposureMaximum) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("最小露出###Minimum exposure",&settings.postEffects.exposureMinimum,-10,settings.postEffects.exposureMaximum);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("最大露出###Maximum exposure",&settings.postEffects.exposureMaximum,settings.postEffects.exposureMinimum,10) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("最大露出###Maximum exposure",&settings.postEffects.exposureMaximum,settings.postEffects.exposureMinimum,10);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("測光の中間灰色###Middle gray",&settings.postEffects.middleGray,.01f,1) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("測光の中間灰色###Middle gray",&settings.postEffects.middleGray,.01f,1);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("コントラスト###Contrast",&settings.postEffects.contrast,0,4) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("コントラスト###Contrast",&settings.postEffects.contrast,0,4);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("彩度###Saturation",&settings.postEffects.saturation,0,4) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("彩度###Saturation",&settings.postEffects.saturation,0,4);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::ColorEdit3("カラーフィルター###Color filter",settings.postEffects.colorFilter.data(),ImGuiColorEditFlags_HDR|ImGuiColorEditFlags_Float) || settingsEdited;
+        settingsEdited |= ImGui::ColorEdit3("カラーフィルター###Color filter",settings.postEffects.colorFilter.data(),ImGuiColorEditFlags_HDR|ImGuiColorEditFlags_Float);
         for (auto& value : settings.postEffects.colorFilter) value=std::clamp(value,0.0f,4.0f);
         TrackInspectorEdit(state);
         int tone=static_cast<int>(settings.postEffects.toneMapping);
         if (ImGui::Combo("トーンマッピング###Tone mapping",&tone,"なし\0Reinhard\0ACES近似\0"))
         { settings.postEffects.toneMapping=static_cast<Engine::ToneMapping>(tone); settingsEdited=true; }
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::Checkbox("ブルームを有効化###Bloom",&settings.postEffects.bloomEnabled) || settingsEdited;
+        settingsEdited |= ImGui::Checkbox("ブルームを有効化###Bloom",&settings.postEffects.bloomEnabled);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("ブルームの強さ###Bloom intensity",&settings.postEffects.bloomIntensity,0,10) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("ブルームの強さ###Bloom intensity",&settings.postEffects.bloomIntensity,0,10);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("ブルームのしきい値###Bloom threshold",&settings.postEffects.bloomThreshold,0,100) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("ブルームのしきい値###Bloom threshold",&settings.postEffects.bloomThreshold,0,100);
         TrackInspectorEdit(state);
-        settingsEdited=ImGui::SliderFloat("ブルームの広がり###Bloom radius",&settings.postEffects.bloomRadius,.25f,8) || settingsEdited;
+        settingsEdited |= ImGui::SliderFloat("ブルームの広がり###Bloom radius",&settings.postEffects.bloomRadius,.25f,8);
         TrackInspectorEdit(state);
         if (settingsEdited)
         {
