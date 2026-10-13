@@ -306,10 +306,19 @@ namespace SceneRuntime
             std::isfinite(field.initial) && std::isfinite(field.minimum) && std::isfinite(field.maximum) &&
             field.initial>=field.minimum && field.initial<=field.maximum && field.minimum>=-1000000 && field.maximum<=1000000;
     }
+    bool ValidDataPurposes(const ScriptDefinition& definition)
+    {
+        for(const auto& [key,purpose]:definition.dataPurposes) {
+            const auto field=definition.dataFields.find(key);
+            if(field==definition.dataFields.end() || !std::holds_alternative<std::string>(field->second.value) ||
+                (purpose!=ScriptDataPurpose::Text && purpose!=ScriptDataPurpose::SceneAsset)) return false;
+        }
+        return true;
+    }
     bool ValidDefinition(const std::string& name,const ScriptDefinition& definition)
     {
         if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || definition.fields.size()>64 ||
-            (!definition.update && !definition.fixedUpdate && !definition.lateUpdate)) return false;
+            (!definition.update && !definition.fixedUpdate && !definition.lateUpdate) || !ValidDataPurposes(definition)) return false;
         try { size_t remaining=4096; ScriptValue{definition.dataFields}.Validate(0,remaining); }
         catch (const std::exception&) { return false; }
         for (const auto& [key,field] : definition.fields)
@@ -373,6 +382,10 @@ namespace SceneRuntime
         { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); error.clear(); return true; }
         return Advance(layout,seconds,error,input,pressed,physics,phase,validatedBefore);
     }
+    void ApplyParameterDefaults(std::map<std::string,float>& parameters,const ScriptDefinition& definition)
+    {
+        for(const auto& [name,field]:definition.fields) parameters.try_emplace(name,field.initial);
+    }
     ScriptRuntime::Instance &ScriptRuntime::GetInstance(ScenePlacement &object, const ScriptComponent &script, const ScriptDefinition &definition, const TickContext &tick)
     {
         const auto key = std::pair{object.id, script.id};
@@ -389,6 +402,7 @@ namespace SceneRuntime
         if (found == instances_.end())
         {
             Instance instance{object.id, script.id, script.behaviour, {}, script.parameters, definition.dataFields, {}};
+            ApplyParameterDefaults(instance.parameters,definition);
             for (const auto &[name, value] : script.data) instance.data[name] = value;
             auto &created = instances_.emplace(key, std::move(instance)).first->second;
             ScriptContext context{object, created.parameters, created.state, 0, &tick.input, &tick.pressed, &tick.scene};
@@ -404,6 +418,7 @@ namespace SceneRuntime
     {
         auto &instance = GetInstance(object, script, definition, tick);
         instance.parameters = script.parameters;
+        ApplyParameterDefaults(instance.parameters,definition);
         ScriptContext context{object, instance.parameters, instance.state, std::min(tick.seconds, 0.1), &tick.input, &tick.pressed, &tick.scene};
         instance.data = definition.dataFields;
         for (const auto &[name, value] : script.data) instance.data[name] = value;

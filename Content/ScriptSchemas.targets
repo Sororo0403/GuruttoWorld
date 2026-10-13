@@ -1,0 +1,5 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="GenerateSharedScriptSchemas" BeforeTargets="ClCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\GenerateScriptSchemas.ps1&quot; -Content &quot;$(MSBuildThisFileDirectory).&quot;" />
+  </Target>
+</Project>

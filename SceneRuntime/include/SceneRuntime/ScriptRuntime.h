@@ -8,6 +8,7 @@
 namespace SceneRuntime
 {
     enum class ScriptPhase { Update,FixedUpdate,LateUpdate };
+    enum class ScriptDataPurpose { Text,SceneAsset };
     struct SceneCommand { std::string scene; bool additive=false,unload=false; };
     struct ScriptUiCommands {std::map<std::string,float> values; std::map<std::string,std::string> texts;};
     struct ScriptEvent
@@ -119,6 +120,7 @@ namespace SceneRuntime
         std::function<void(ScriptContext&)> onEvent;
         ScriptValue::Object dataFields;
         std::function<void(ScriptContext&)> fixedUpdate,lateUpdate;
+        std::map<std::string,ScriptDataPurpose> dataPurposes;
     };
     class ScriptRegistry final
     {

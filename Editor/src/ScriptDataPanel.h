@@ -6,7 +6,7 @@
 #include <imgui.h>
 #include <array>
 #include <algorithm>
-#include <cctype>
+#include <SceneRuntime/ScriptRuntime.h>
 
 namespace Editor
 {
@@ -14,7 +14,7 @@ namespace Editor
     {
     public:
         /// <summary>型付きデータを編集し、連続操作を一回のUndoへまとめます。</summary>
-        static bool Draw(EditState& state,const char* label,SceneRuntime::ScriptValue& field,const ProjectCatalog* catalog=nullptr,bool allowType=true)
+        static bool Draw(EditState& state,const char* label,SceneRuntime::ScriptValue& field,const ProjectCatalog* catalog=nullptr,bool allowType=true,SceneRuntime::ScriptDataPurpose purpose=SceneRuntime::ScriptDataPurpose::Text)
         {
             ImGui::PushID(label);
             bool edited=false;
@@ -30,7 +30,10 @@ namespace Editor
                     edited=true;
                 }
             }
-            edited |= std::visit([&](auto& value) { return DrawValue(state,label,value,catalog); },field.value);
+            edited |= std::visit([&](auto& value) {
+                if constexpr(std::is_same_v<std::decay_t<decltype(value)>,std::string>) return DrawText(label,value,catalog,purpose);
+                else return DrawValue(state,label,value,catalog);
+            },field.value);
             Editor::TrackComponentInteraction(state);
             ImGui::PopID(); return edited;
         }
@@ -51,11 +54,10 @@ namespace Editor
             value=buffer.data(); return true;
         }
         /// <summary>通常の文字列を編集します。</summary>
-        static bool DrawValue(EditState&,const char* label,std::string& value,const ProjectCatalog* catalog)
+        static bool DrawText(const char* label,std::string& value,const ProjectCatalog* catalog,SceneRuntime::ScriptDataPurpose purpose)
         {
             bool edited=DrawString<4097>(label,value);
-            auto key=std::string(label);std::transform(key.begin(),key.end(),key.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
-            if(catalog && key.find("scene")!=std::string::npos && ImGui::BeginCombo("シーンアセットを選択###Scene asset",value.c_str())) {
+            if(catalog && purpose==SceneRuntime::ScriptDataPurpose::SceneAsset && ImGui::BeginCombo("シーンアセットを選択###Scene asset",value.c_str())) {
                 for(const auto& asset:catalog->Assets()) if(asset.kind==AssetKind::Scene)
                     if(ImGui::Selectable(ProjectCatalog::Text(asset.path).c_str(),ProjectCatalog::Text(asset.path)==value))
                     {value=ProjectCatalog::Text(asset.path);edited=true;}

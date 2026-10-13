@@ -28,7 +28,7 @@ function Get-SourceHashes {
 function Escape-Xml([string]$Value) { return [Security.SecurityElement]::Escape($Value) }
 function Get-TrackedFiles([string]$Folder) {
     if (!(Test-Path -LiteralPath $Folder)) { return @() }
-    return @(Get-ChildItem -LiteralPath $Folder -File -Recurse | Where-Object { $_.Extension -in @('.cpp','.h','.hpp') } | Sort-Object FullName)
+    return @(Get-ChildItem -LiteralPath $Folder -File -Recurse | Where-Object { $_.Extension -in @('.cpp','.h','.hpp') -or $_.Name.EndsWith('.schema.json') } | Sort-Object FullName)
 }
 function Set-ScriptProgress([int]$Step,[string]$Phase) {
     $progressPath=Join-Path $buildRoot "$RunId.progress.json"
@@ -36,6 +36,7 @@ function Set-ScriptProgress([int]$Step,[string]$Phase) {
     Move-Item -LiteralPath "$progressPath.tmp" -Destination $progressPath -Force
 }
 try {
+    & (Join-Path $PSScriptRoot 'GenerateScriptSchemas.ps1') -Content $Content
     Set-ScriptProgress 0 'ゲーム処理ソースを確認中'
     $sourceRoot=Join-Path $Content 'Assets/Scripts'
     $tracked=@(Get-TrackedFiles $sourceRoot)

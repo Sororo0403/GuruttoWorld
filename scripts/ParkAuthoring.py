@@ -1,27 +1,18 @@
 """Materialize native script defaults and stable object references into authored scenes."""
 from pathlib import Path
 import json
-import re
+from copy import deepcopy
 
 
 def configure_scene(scene):
-    source = (Path(__file__).resolve().parents[1] / "Content/Assets/Scripts/ParkAdventure.cpp").read_text(encoding="utf-8-sig")
-    definitions = {}
-    for name, block in re.findall(r"ScriptDefinition (Player|Camera|Patrol)\(\)(.*?)(?=\n    ScriptDefinition|\n}\n)", source, re.S):
-        fields = re.search(r"result.fields=\{(.*?)\};", block, re.S)
-        parameters = {key: float(value.rstrip("f")) for key, value in re.findall(r'\{"([^"]+)",\{([\d.\-]+f?),', fields.group(1))}
-        data = {}
-        defaults = re.search(r"result.dataFields=\{(.*?)\};", block, re.S)
-        if defaults:
-            for key, value in re.findall(r'\{"([^"]+)",\{(true|false)\}\}', defaults.group(1)):
-                data[key] = {"kind": "bool", "value": value == "true"}
-            for key, value in re.findall(r'\{"([^"]+)",\{std::string\("((?:\\.|[^"\\])*)"\)\}\}', defaults.group(1)):
-                data[key] = {"kind": "string", "value": json.loads('"' + value + '"')}
-            for key, value in re.findall(r'\{"([^"]+)",\{ScriptObjectReference\{"([^"]*)"\}\}\}', defaults.group(1)):
-                data[key] = {"kind": "reference", "value": value}
-            for key in re.findall(r'\{"([^"]+)",\{ScriptValue::Array\{\}\}\}', defaults.group(1)):
-                data[key] = {"kind": "array", "value": []}
-        definitions["Park" + name] = parameters, data
+    schema_path = Path(__file__).resolve().parents[1] / "Content/Assets/Scripts/ParkScriptSchema.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8-sig"))
+    if schema.get("version") != 1:
+        raise ValueError("Unsupported park script schema version")
+    definitions = {
+        name: ({key: field["initial"] for key, field in definition["parameters"].items()}, definition["data"])
+        for name, definition in schema["scripts"].items()
+    }
     for obj in scene["objects"]:
         for component in obj.get("components", []):
             if component.get("type") != "Script" or component.get("behaviour") not in definitions:
@@ -39,7 +30,7 @@ def configure_scene(scene):
                 values = encoded
             component["data"] = {"kind": "object", "value": values}
             for key, value in data.items():
-                values.setdefault(key, value)
+                values.setdefault(key, deepcopy(value))
             if component["behaviour"] == "ParkPlayer":
                 for key in ("coins", "switches", "enemies", "checkpoints"):
                     if not values[key]["value"]:

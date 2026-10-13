@@ -14,7 +14,7 @@ Animationでは任意の時計名を入力でき、3Dスケール、ライト、
 
 公園のParkPlayerではHP、戦闘・収集・チェックポイント・クリアの距離と条件、復帰境界、戻り先、入力Action、UI対象・文言を編集できます。文言には`{hp}`・`{coins}`・`{switches}`・`{elapsed}`・`{coinTotal}`・`{requiredSwitches}`を使えます。対象配列はオブジェクト参照です。`useNameLookup`を有効にした場合のみ、空配列で設定した名前を検索します。ParkCameraは追従率・前後の範囲・注視点も編集できます。既存公園シーンは従来の値と対象参照を明示して保存しています。
 
-旧シーンは新しい項目を省略しても従来の既定値で動作します。C++モジュールABIは4に更新しているため、変更後は「C++ゲーム処理」の自動コンパイルまたは`scripts/BuildScripts.ps1`で再ビルドしてください。
+旧シーンは新しい項目を省略しても従来の既定値で動作します。C++モジュールABIは5に更新しているため、変更後は「C++ゲーム処理」の自動コンパイルまたは`scripts/BuildScripts.ps1`で再ビルドしてください。
 
 ## こもれび公園の基準ステージ
 
@@ -492,3 +492,21 @@ Projectの一覧更新時にアセットの隣へ `.meta` を作成し、32桁�
 メニューの「ビルド」でRelease / Developmentを選択し、保存済みContentからAppをビルドします。Visual Studio/MSBuildを検出して非表示の別プロセスで実行し、`generated/builds` にログ・結果JSON・配布用フォルダーを出力します。既存の配布物は上書きしません。App.exe、Assets、Shaders、メタデータ、x64 MSVC CRTとSHA-256一覧のpackage.jsonを同梱します。配布物内のAppを `--validate-package` で起動し、起動シーン・モデル・シェーダー・UIを実際に描画できた場合に成功とします。ソースやVisual Studioがない環境ではEditorからのビルドはできません。
 
 「表示 → 性能計測」ではフレーム時間、CPUの更新・準備と描画・Present待ち、フェンス完了後のGPUタイムスタンプ、メッシュ描画数・三角形数（影を含む）、プロセスのWorking set / Privateメモリ、GPUローカルメモリと予算を表示します。描画数はSceneWorldのメッシュが対象で、UI・粒子は含みません。GPUは数フレーム前に完了した測定値です。直近600サンプルを記録停止でき、`generated/profiler` へCSV出力できます。詳細な関数別CPU計測・GPUパス別計測は今後の拡張です。
+
+## Scriptの初期値と入力用途
+
+公園Scriptの初期値・範囲・型付きデータは`Content/Assets/Scripts/ParkScriptSchema.schema.json`を正とします。
+シーン生成はこのJSONを直接読み、通常ビルドとScriptの自動コンパイルは`GenerateScriptSchemas.ps1`で同じ定義から`ParkScriptSchema.generated.h`を再生成します。
+生成ヘッダーは直接編集しません。JSON変更も「C++ゲーム処理」の変更監視・再コンパイル対象で、一覧から開けます。
+既存シーンで編集・保存した値は生成時に上書きしません。
+未設定の数値は実行時に登録スキーマの初期値を補い、保存済みの値を優先します。シーンへ初期値を自動的に書き戻しません。
+変更監視は元のJSONを対象にし、対応する生成ヘッダーの更新で二重コンパイルしません。
+
+文字列のアセット用途は名前から推測せず、`ScriptDefinition::dataPurposes`へ明示します。
+例えば`dataPurposes={{"destination",ScriptDataPurpose::SceneAsset}}`は`destination`という文字列にシーン選択を表示します。
+宣言のない文字列は通常の文字列編集になり、存在しない項目・文字列以外の項目への用途指定は登録時に拒否します。
+ScriptDefinitionの構造変更によりABIは5です。各構成のモジュールを再ビルドしてください。
+
+アニメーションは`Animation::Properties()`の各登録に表示名・範囲・チャンネル数・反映関数を一緒に指定します。
+3D・環境・Materialのプロパティを追加する際に、別のSetter一覧を更新する必要はありません。
+UI専用プロパティは従来どおりUIの時計評価で反映します。

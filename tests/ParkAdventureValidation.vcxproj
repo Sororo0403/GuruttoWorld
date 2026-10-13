@@ -104,6 +104,7 @@
   </ItemGroup>
   <ItemGroup><ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj"><Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}</Project></ProjectReference></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="..\Content\ScriptSchemas.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

@@ -129,7 +129,9 @@ namespace Editor
         bool edited = false;
         for (const auto &[name, initial] : definition.dataFields) {
             auto value = script.data.contains(name) ? script.data.at(name) : initial;
-            if (ScriptDataPanel::Draw(state, name.c_str(), value, catalog, false)) { script.data[name] = std::move(value); edited = true; }
+            const auto purpose=definition.dataPurposes.find(name);
+            const auto usage=purpose==definition.dataPurposes.end() ? SceneRuntime::ScriptDataPurpose::Text : purpose->second;
+            if (ScriptDataPanel::Draw(state, name.c_str(), value, catalog, false,usage)) { script.data[name] = std::move(value); edited = true; }
         }
         SceneRuntime::ScriptValue::Object extras = script.data;
         for (const auto &[name, initial] : definition.dataFields) {static_cast<void>(initial);extras.erase(name);}

@@ -1,5 +1,6 @@
 #include <SceneRuntime/ScriptModuleApi.h>
 #include <iterator>
+#include "ParkScriptSchema.generated.h"
 #include <algorithm>
 #include <cmath>
 
@@ -156,40 +157,7 @@ namespace
     }
     ScriptDefinition Player()
     {
-        ScriptDefinition result;
-        result.fields={{"floatDuration",{.85f,0,2}},{"maxHp",{3,1,1000}},
-            {"invulnerableDuration",{1.5f,0,60}},{"attackDuration",{.22f,.01f,60}},
-            {"attackCooldown",{.4f,.01f,60}},{"attackDistance",{3.1f,.01f,1000}},
-            {"damageDistance",{1.15f,.01f,1000}},{"damage",{1,0,1000}},
-            {"coinDistance",{1.25f,.01f,1000}},{"switchDistance",{1.55f,.01f,1000}},
-            {"checkpointDistance",{1.6f,.01f,1000}},{"requiredSwitches",{2,0,1000}},
-            {"coinTotal",{12,0,10000}},{"goalDistance",{2,.01f,1000}},
-            {"respawnHeight",{1.05f,-100000,100000}},{"fallLimit",{-3,-100000,100000}},
-            {"leftLimit",{-20,-100000,100000}},{"rightLimit",{20,-100000,100000}},
-            {"groundProbe",{.8f,.01f,100}},{"groundNormal",{.7f,0,1}},{"floatDelay",{.25f,0,60}},
-            {"hintBoundary1",{14,-100000,100000}},{"hintBoundary2",{31,-100000,100000}},
-            {"hintBoundary3",{49,-100000,100000}}};
-        result.dataFields={{"scene",{std::string("Assets/Scenes/ParkAdventure.json")}},
-            {"useNameLookup",{true}},
-            {"returnScene",{std::string("Assets/Scenes/TitleStreet.json")}},
-            {"gate",{ScriptObjectReference{"park-gate"}}},{"goal",{ScriptObjectReference{"park-goal"}}},
-            {"stats",{ScriptObjectReference{"park-stats"}}},{"hint",{ScriptObjectReference{"park-hint"}}},
-            {"result",{ScriptObjectReference{"park-result"}}},
-            {"coins",{ScriptValue::Array{}}},{"switches",{ScriptValue::Array{}}},
-            {"enemies",{ScriptValue::Array{}}},{"checkpoints",{ScriptValue::Array{}}},
-            {"coinsName",{std::string("ParkCoin")}},{"switchesName",{std::string("ParkSwitch")}},
-            {"enemiesName",{std::string("ParkEnemy")}},{"checkpointsName",{std::string("ParkCheckpoint")}},
-            {"attackAction",{std::string("Attack")}},{"restartAction",{std::string("Restart")}},
-            {"cancelAction",{std::string("Cancel")}},{"jumpAction",{std::string("Jump")}},
-            {"rightAction",{std::string("MoveRight")}},{"leftAction",{std::string("MoveLeft")}},
-            {"forwardAction",{std::string("MoveForward")}},{"backAction",{std::string("MoveBack")}},
-            {"attackState",{std::string("parkAttack")}},{"clearState",{std::string("parkClear")}},
-            {"statsTemplate",{std::string("ライフ {hp}   花のかけら {coins} / {coinTotal}   スイッチ {switches} / {requiredSwitches}")}},
-            {"resultTemplate",{std::string("公園をクリア！  {elapsed} 秒 / 花のかけら {coins} / {coinTotal}\nRで再挑戦・Escでタイトルへ")}},
-            {"hint1",{std::string("花のかけらを集めながら、公園の奥へ進もう")}},
-            {"hint2",{std::string("段差の上にも寄り道。Spaceでジャンプ")}},
-            {"hint3",{std::string("水路を飛び越えよう。ジャンプ中にSpaceを押し続けると空中停止")}},
-            {"hint4",{std::string("左右のスイッチを踏んで、展望台への扉を開こう")}}};
+        auto result=ParkPlayerSchema();
         result.start=StartPlayer;
         result.fixedUpdate=FixedPlayer;
         result.update=UpdatePlayer;
@@ -197,11 +165,7 @@ namespace
     }
     ScriptDefinition Camera()
     {
-        ScriptDefinition result;
-        result.dataFields={{"target",{ScriptObjectReference{"park-player"}}}};
-        result.fields={{"distance",{13,8,25}},{"height",{10,5,20}},{"response",{6,1,20}},{"horizontalFollow",{.55f,0,1}},
-            {"minZ",{2,-100000,100000}},{"maxZ",{72,-100000,100000}},
-            {"lookAhead",{3,-1000,1000}},{"lookHeight",{.8f,-1000,1000}}};
+        auto result=ParkCameraSchema();
         result.lateUpdate=[](ScriptContext& context) {
             const auto* target=context.Reference("target");
             if (!target || !context.scene || !target->parentId.empty() || !context.object.parentId.empty()) return;
@@ -219,8 +183,7 @@ namespace
     }
     ScriptDefinition Patrol()
     {
-        ScriptDefinition result;
-        result.fields={{"amplitude",{1,0,2}},{"frequency",{0.25f,0,2}}};
+        auto result=ParkPatrolSchema();
         result.start=[](ScriptContext& context) { context.state["originX"]=context.object.position[0]; };
         result.update=[](ScriptContext& context) {
             context.state["time"]+=static_cast<float>(context.seconds);

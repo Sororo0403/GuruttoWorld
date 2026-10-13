@@ -5,13 +5,64 @@
 #include <SceneRuntime/GameSettings.h>
 #include <SceneRuntime/PhysicsWorld.h>
 #include "../Editor/src/TitlePreview.h"
+#include "../Editor/src/ScriptDataPanel.h"
 #include <fstream>
 #include <stdexcept>
 
 namespace AuthoringSettingsValidation {
 inline void Require(bool condition,const char* message) {if(!condition) throw std::runtime_error(message);}
+inline void ScriptPurposeWidgets() {
+    ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.DisplaySize={640,480};io.DeltaTime=1.0f/60;io.Fonts->Build();
+    ImGui::NewFrame();ImGui::Begin("Explicit script purpose");
+    Editor::EditState state;Editor::ProjectCatalog catalog;
+    const auto check=[&](const char* name,SceneRuntime::ScriptDataPurpose purpose,const char* expectedWidget) {
+        ImGui::PushID(name);const auto expected=ImGui::GetID(expectedWidget);ImGui::PopID();
+        SceneRuntime::ScriptValue value{std::string("Assets/Scenes/UiCheck.json")};
+        Editor::ScriptDataPanel::Draw(state,name,value,&catalog,false,purpose);
+        Require(ImGui::GetItemID()==expected,"Script picker depends on field name instead of declared purpose");
+    };
+    check("sceneDescription",SceneRuntime::ScriptDataPurpose::Text,"sceneDescription");
+    check("destination",SceneRuntime::ScriptDataPurpose::SceneAsset,"シーンアセットを選択###Scene asset");
+    ImGui::End();ImGui::Render();ImGui::DestroyContext();
+}
+inline void AnimationRegistry() {
+    using namespace SceneRuntime;
+    ScenePlacement object;object.directionalLight.emplace();object.pointLight.emplace();object.spotLight.emplace();object.camera.emplace();
+    object.sky.emplace();object.sky->ocean.emplace();object.particleEmitter.emplace();object.material.emplace();
+    std::set<std::string> names;
+    for(const auto& property:Animation::Properties()) {
+        Require(names.insert(property.name).second,"Duplicate animation property");
+        if(std::string_view(property.name).starts_with("ui") || std::string_view(property.name)=="opacity") continue;
+        Require(property.apply!=nullptr,"Registered animation property has no setter");
+        std::array<float,4> value;value.fill((property.minimum+property.maximum)*.5f);
+        Require(Animation::Apply(object,property.name,value),"Registered animation setter failed");
+    }
+    ScriptDefinition schema;schema.update=[](ScriptContext&){};
+    schema.dataFields={{"destination",{std::string("Assets/Scenes/UiCheck.json")}}};schema.dataPurposes={{"destination",ScriptDataPurpose::SceneAsset}};
+    Require(ScriptRegistry::Register("ExplicitScenePurpose",schema),"Explicit scene purpose rejected");
+    schema.dataPurposes={{"unknown",ScriptDataPurpose::SceneAsset}};
+    Require(!ScriptRegistry::Register("UnknownScenePurpose",schema),"Purpose for nonexistent data accepted");
+    schema.dataFields={{"destination",{1.0f}}};schema.dataPurposes={{"destination",ScriptDataPurpose::SceneAsset}};
+    Require(!ScriptRegistry::Register("NumericScenePurpose",schema),"Scene purpose on numeric data accepted");
+}
+inline void RegisteredParameterDefaults() {
+    using namespace SceneRuntime;
+    ScriptDefinition definition;definition.fields={{"speed",{17,0,100}}};
+    definition.start=[](ScriptContext& context){context.state["startSpeed"]=context.Value("speed",-1);};
+    definition.update=[](ScriptContext& context){context.object.position[0]=context.Value("speed",-1);context.object.position[1]=context.state.at("startSpeed");};
+    Require(ScriptRegistry::Register("MetadataParameterDefault",definition),"Parameter default fixture rejected");
+    ScenePlacement object;object.id="defaults";object.scripts={{"rules",true,"MetadataParameterDefault",{}}};
+    SceneLayout scene;scene.objects={object};ScriptRuntime runtime;std::string error;
+    Require(runtime.Update(scene,.01,error) && scene.objects[0].position[0]==17 && scene.objects[0].position[1]==17,"Registered defaults did not reach Start/Update");
+    Require(scene.objects[0].scripts[0].parameters.empty(),"Runtime defaults changed authored parameters");
+    scene.objects[0].scripts[0].parameters["speed"]=23;
+    Require(runtime.Update(scene,.01,error) && scene.objects[0].position[0]==23,"Saved parameters did not override defaults");
+}
 inline void Run() {
     using namespace SceneRuntime;
+    AnimationRegistry();
+    ScriptPurposeWidgets();
+    RegisteredParameterDefaults();
     for(const auto& entry:std::filesystem::directory_iterator("Content/Assets/Scenes")) {
         if(entry.path().extension()!=".json") continue;
         const auto layout=SceneLayout::Load(entry.path());

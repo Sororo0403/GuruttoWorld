@@ -54,3 +54,21 @@ Debugで検出した中間出力の重複警告は、前日の古いビルド状
 ## コミットの分割
 
 既存コミットの履歴は保持します。今回の変更は、Engineと描画APIの互換修正、SceneRuntime、Editor・Appと検証記録の3件に分割します。APIを変更するコミットには必要な呼び出し側の修正を含めます。
+
+## 設計上の依存と重複の修正（2026-10-13）
+
+`c166b986`で導入された次の問題を修正しました。既存履歴は書き換えません。
+
+- 公園の初期値・範囲・型付きデータを`ParkScriptSchema.schema.json`へ集約しました。Pythonのシーン生成はJSONを読み、通常ビルド・Scriptビルドは同じJSONからC++の登録情報を生成します。C++の書式を正規表現で解析しません。
+- 未設定の数値には登録された初期値をStart・更新時に適用します。保存済みの値を優先し、シーンデータへ書き戻しません。
+- Scriptのシーン選択は`dataPurposes`の明示的な宣言に従います。項目名に「scene」が含まれるかで推測しません。SDK構造の変更に合わせABIを5へ更新しました。
+- JSONの変更をEditorの自動コンパイルで監視し、生成ヘッダーによる二重コンパイルを避けます。生成処理は内容が変わった場合のみヘッダーを書き換えます。
+- アニメーションの表示情報・範囲・反映関数を同じ登録表にまとめ、別のSetter表と常に偽になる条件を削除しました。
+
+静的解析は`AnalyzeCode.ps1 -Label schema-final -Jobs 4`で、Debug・Development・ReleaseのCppcheckとLizardがすべて終了コード0です。閾値はCCN 15・関数長100・引数8のままで、生成ヘッダーも解析対象です。2,004関数、警告0件を確認しました。ログは`generated/schema-final-analysis.log`と`generated/analysis/*-schema-final*.txt`です。
+
+追加した検証は、スキーマとネイティブ登録の一致、既存の編集値の保持、未設定の数値の実行時初期値、用途指定に応じた実際のImGui入力欄、全アニメーション反映関数、生成の冪等性、書式変更・日本語・引用符・改行の文字列生成です。Pythonの公園生成4テストとシーン変換8テストが成功しました。
+
+Developmentの全体ビルドとDebug・Releaseの検証プログラム・Appのビルドが成功しました。3構成のAppでタイトル60フレーム・公園300フレームと入力リプレイを確認しました。ReleaseではネイティブScriptの読み込み・再読み込み・ABI不一致拒否、およびEditorの自動コンパイル・Play中の反映待ち・Stop後の反映も成功しました。
+
+Debug・Releaseで通常回帰、既存25シーンの保存・再読み込みとD3D12描画、公園1,924フレームで12/12収集、海の描画・音声・互換性の回帰が終了コード0です。機能別回帰もDebugの8モード、Releaseの27モードが成功しました。追加したAuthoring検証は両構成で成功しました。ログは`generated/schema-{debug,release}-verified.txt`、`generated/schema-app-*.log`、`generated/schema-script-authoring.log`です。

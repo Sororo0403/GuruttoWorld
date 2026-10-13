@@ -18,7 +18,7 @@ namespace ScriptUiValidation
         Require(scene.uiCommands.texts.at("name")=="日本😀","rejected text leaves the queued value unchanged");
         ScriptScene limited(layout,nextId);for(int i=0;i<256;++i) limited.SetUiValue(std::to_string(i),0);
         reject([&]{limited.SetUiText("overflow","");});
-        ScriptModuleAbi abi; Require(abi.version==4 && abi.sceneBytes==sizeof(ScriptScene),"module ABI describes the ScriptScene layout");
+        ScriptModuleAbi abi; Require(abi.version==5 && abi.sceneBytes==sizeof(ScriptScene) && abi.definitionBytes==sizeof(ScriptDefinition),"module ABI describes the ScriptScene and definition layouts");
         auto incompatible=abi; ++incompatible.sceneBytes; Require(incompatible!=abi,"module ABI rejects ScriptScene layout mismatches");
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)

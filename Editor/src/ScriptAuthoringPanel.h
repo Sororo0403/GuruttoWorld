@@ -16,6 +16,11 @@ namespace Editor
         std::string status_;
         ULONGLONG nextScan_=0,changedAt_=0;
         bool initialized_=false,needsBuild_=false,needsInstall_=false,ready_=true;
+        static bool GeneratedSchemaHeader(const std::filesystem::path& path)
+        {
+            const auto name=path.filename().string();
+            return name.ends_with(".generated.h") && std::filesystem::exists(path.parent_path()/(name.substr(0,name.size()-12)+".schema.json"));
+        }
         /// <summary>処理ソースと補助ヘッダーの変更を確認します。</summary>
         static Inventory Scan(const std::filesystem::path& content)
         {
@@ -23,8 +28,9 @@ namespace Editor
             if (!std::filesystem::exists(folder)) return result;
             for (const auto& file:std::filesystem::recursive_directory_iterator(folder)) {
                 if (!file.is_regular_file()) continue;
+                if (GeneratedSchemaHeader(file.path())) continue;
                 const auto extension=file.path().extension();
-                if (extension==".cpp" || extension==".h" || extension==".hpp") result[file.path()]={file.last_write_time(),file.file_size()};
+                if (extension==".cpp" || extension==".h" || extension==".hpp" || file.path().filename().string().ends_with(".schema.json")) result[file.path()]={file.last_write_time(),file.file_size()};
             }
             return result;
         }
@@ -42,11 +48,12 @@ namespace Editor
         {
             for (const auto& [path,stamp]:inventory_) {
                 static_cast<void>(stamp);
-                if (path.extension()==".cpp" && ImGui::Selectable(Engine::AssetDatabase::Text(path.filename()).c_str(),path==selected_)) selected_=path;
+                const bool editable=path.extension()==".cpp" || path.filename().string().ends_with(".schema.json");
+                if (editable && ImGui::Selectable(Engine::AssetDatabase::Text(path.filename()).c_str(),path==selected_)) selected_=path;
             }
             if (!selected_.empty() && ImGui::Button("ソースを開く###Open source")) {
                 if (reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr,L"open",selected_.c_str(),nullptr,nullptr,SW_SHOWNORMAL))<=32)
-                    status_="ソースを開けませんでした。C++エディターのファイル関連付けを確認してください。";
+                    status_="ソースを開けませんでした。ファイルの関連付けを確認してください。";
             }
         }
     public:

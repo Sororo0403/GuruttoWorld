@@ -356,6 +356,27 @@ int main()
     try {
         Require(Engine::Log::Initialize("generated/park/validation.log"),"Validation log opens");
         Require(Register_ParkAdventure(nullptr,Register),"Game scripts register");
+        std::ifstream schemaFile("Content/Assets/Scripts/ParkScriptSchema.schema.json");
+        const auto schema=Engine::Json::parse(schemaFile);
+        for(const auto& [name,source]:schema.at("scripts").items()) {
+            const auto& definition=ScriptRegistry::Definitions().at(name);
+            Require(definition.fields.size()==source.at("parameters").size(),"Schema parameter count differs from native metadata");
+            for(const auto& [key,field]:source.at("parameters").items()) {
+                const auto& native=definition.fields.at(key);
+                Require(native.initial==field.at("initial").get<float>() && native.minimum==field.at("minimum").get<float>() && native.maximum==field.at("maximum").get<float>(),"Native parameter differs from schema");
+            }
+            ScenePlacement authored;authored.id=name;authored.scripts={{"rules",true,name,{},definition.dataFields}};
+            SceneLayout authoredScene;authoredScene.objects={authored};
+            const auto serialized=Engine::Json::parse(authoredScene.Serialize());
+            const auto& components=serialized.at("objects").at(0).at("components");
+            const auto savedScript=std::find_if(components.begin(),components.end(),[](const auto& component){return component.at("type")=="Script";});
+            Require(savedScript!=components.end(),"Schema test script is serialized");
+            const auto savedData=savedScript->value("data",Engine::Json{{"kind","object"},{"value",Engine::Json::object()}});
+            Require(savedData.at("value")==source.at("data"),"Native data defaults differ from schema");
+            for(const auto& [key,purpose]:source.at("purposes").items()) {
+                Require(purpose=="sceneAsset" && definition.dataPurposes.at(key)==ScriptDataPurpose::SceneAsset,"Native data purpose differs from schema");
+            }
+        }
         if(GetEnvironmentVariableA("WP1_ALL_SCENES_ONLY",nullptr,0)) {AllScenesValidation::Run();return 0;}
         for(const char* name:{"Entrance","Terraces","Canal","SwitchGarden","Vista"}) {
             const auto prefab=SceneLayout::Load(std::filesystem::path("Content/Assets/Prefabs/Park")/(std::string(name)+".prefab"));
