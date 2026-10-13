@@ -10,6 +10,7 @@
 namespace
 {
     using namespace SceneRuntime;
+    std::uint64_t& RegistryRevision() {static std::uint64_t revision=0;return revision;}
     std::set<std::string> ScriptDescendants(const SceneRuntime::SceneLayout &layout, const std::string &id)
     {
         std::set<std::string> selected{id};
@@ -327,7 +328,8 @@ namespace SceneRuntime
     }
     bool ScriptRegistry::Register(std::string name,ScriptDefinition definition)
     {
-        return ValidDefinition(name,definition) && Registry().emplace(std::move(name),std::move(definition)).second;
+        if(!ValidDefinition(name,definition) || !Registry().emplace(std::move(name),std::move(definition)).second) return false;
+        ++RegistryRevision();return true;
     }
     bool ScriptRegistry::InstallModule(const std::string& owner,std::map<std::string,ScriptDefinition> definitions,std::string& error)
     {
@@ -343,10 +345,11 @@ namespace SceneRuntime
                 if (candidate.contains(name)) throw std::runtime_error("Script module name conflicts with an existing behaviour: "+name);
                 names.insert(name); candidate.emplace(name,std::move(definition));
             }
-            candidateOwners[owner]=std::move(names); Registry().swap(candidate); owners.swap(candidateOwners); error.clear(); return true;
+            candidateOwners[owner]=std::move(names); Registry().swap(candidate); owners.swap(candidateOwners); ++RegistryRevision();error.clear(); return true;
         } catch (const std::exception& exception) { error=exception.what(); return false; }
     }
     const std::map<std::string,ScriptDefinition>& ScriptRegistry::Definitions() { return Registry(); }
+    std::uint64_t ScriptRegistry::Revision() {return RegistryRevision();}
     float ScriptContext::Input(const std::string& name) const
     { if (!input) return 0; const auto found=input->find(name); return found==input->end() ? 0 : found->second; }
     bool ScriptContext::Pressed(const std::string& name) const

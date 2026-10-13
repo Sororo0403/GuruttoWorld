@@ -3540,6 +3540,15 @@ int main()
             std::cout<<"PASS: Scene Canvas GPU rendering, camera movement, picking, drag, focus and Game UI regression\n";
             return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_FOLLOWUP_STATE_ONLY",nullptr,0)) {
+            phase="FollowupStateValidation";FollowupStateValidation::Run();
+            Engine::Window window;Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden followup state validation",64,32) && renderer.Initialize(window.GetHandle()),"followup state renderer");
+            FollowupStateValidation::EditorOwnership(renderer);FollowupStateValidation::ProceduralEdits(renderer);
+            Check(renderer.WaitForIdle(),"followup state GPU completes");
+            std::cout<<"PASS: nine followup fixes, ownership, prefab persistence, asset reuse/moves, default references, schema snapshots and procedural edits\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_EDITOR_DATA_ONLY",nullptr,0)) {
             phase="ValidateSaveAs"; ValidateSaveAs();
             phase="ValidateMaterialDocuments"; ValidateMaterialDocuments();

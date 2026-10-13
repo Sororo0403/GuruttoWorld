@@ -3,6 +3,7 @@
 #include <SceneRuntime/SceneEnvironment.h>
 #include "../Editor/src/EditHistory.h"
 #include <stdexcept>
+#include "FollowupStateValidation.h"
 
 namespace SceneCollectionValidation
 {
@@ -46,6 +47,7 @@ namespace SceneCollectionValidation
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
+        FollowupStateValidation::EditorOwnership(renderer);
         using namespace SceneRuntime; const auto root=std::filesystem::absolute("generated/tests/scene-collection");
         std::filesystem::create_directories(root/"Assets/Scenes"); std::filesystem::create_directories(root/"Shaders");
         for(const auto& entry:std::filesystem::recursive_directory_iterator("Content/Shaders"))

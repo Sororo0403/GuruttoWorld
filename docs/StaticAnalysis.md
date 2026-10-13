@@ -93,3 +93,28 @@ Developmentの全体ビルドとDebug・Releaseの検証プログラム・App・
 Releaseで衝突箱3,000個・移動対象1個の同じ合成条件を計測し、従来の約15ms/回から、初回構築後の再利用時には約6.6ms/回へ短縮しました。計測は描画やシーン全体のフレーム時間を含みません。時間の閾値を回帰テストへ固定せず、安定した条件で再構築が発生しないことと結果の一致を検証します。ログは`generated/deep-fixes-final-benchmark.log`です。
 
 最終コードでもDebug・Releaseの通常回帰、既存25シーンの保存・再読み込みとD3D12描画、公園1,924フレームで12/12収集、海の描画・音声・互換性がすべて終了コード0です。機能別回帰はReleaseの27モードとDebugの8モードが成功しました。ログは`generated/deep-fixes-{debug,release}-final-regressions.log`です。実際のContent用ネイティブモジュールもDebug・Development・ReleaseでABI 6として再ビルドしました。
+## 追加調査で再現した9件の修正（2026-10-13）
+
+1. オブジェクト削除ではシーン所属を保持し、削除したIDだけを所属一覧から取り除きます。
+2. 複製した個体へ複製元の所属を引き継ぎ、別シーンのアンロードで消えないようにしました。
+3. Prefabの保持設定を元データ・保存済み基準・ローカル編集の比較で統合します。個別のOverride表示・リセット・Prefabへの適用・全体リセットも保持設定を扱います。
+4. 旧パスが複数のアセットを指す場合もアセット一覧とID解決は利用できます。IDのない曖昧な旧パスを実際に解決する場合だけ、その参照をエラーにします。
+5. 解決後の参照表には現在使われているパスとIDだけを記録し、旧ファイル名を再利用した新しいアセットの選択が昔のIDで上書きされないようにしました。未解決の保存データに含まれる有効なIDは保存時に保持します。
+6. Terrain・TilemapのComponent編集では描画資源を再構築し、地形の高さ・タイルの変更を表示と選択判定へ即時反映します。
+7. モデル移動の依存パス更新で拡張子の大文字・小文字を区別せず、`.GLTF`の外部バッファと`.OBJ`のMaterialを追跡します。
+8. 未編集のScriptシーン参照は保存時に既定値と用途を記録し、改名後やモジュールがない状態でも参照を解決できます。編集用の配置データ自体は変更せず、通常の既定値は省略できます。
+9. Scriptの登録・モジュール交換の成功時に定義世代を更新し、用途・既定値の変更やモジュール削除でUndo・復旧用JSONのキャッシュを更新します。失敗した登録では世代とキャッシュを維持します。
+
+`tests/FollowupStateValidation.h`に全9件と境界条件の回帰を追加しました。`WP1_FOLLOWUP_STATE_ONLY=1`の集中検証で、Debug・Releaseの両構成が成功しました。保存・再読み込み後の所属、曖昧な旧パスの局所的拒否とID解決、未解決データの保存、PrefabのOverride操作、地形・タイルの即時選択判定、不正な地形編集の失敗時のデータ・モデル保持を確認しています。集中検証のログは`generated/followup-fixes-{debug,release}-focused.log`です。
+
+最終静的解析は`AnalyzeCode.ps1 -Label followup-fixes-final -Jobs 4`で、CppcheckのDebug・Development・ReleaseとLizardがすべて終了コード0です。閾値はCCN 15・関数長100・引数8のまま、2,022関数・警告0件です。解析対象の除外・警告抑制は追加していません。ログは`generated/followup-fixes-final-analysis.log`と`generated/analysis/*-followup-fixes-final*.txt`です。
+
+Releaseの再リンクで検証用中間PDBの破損を検出し、検証専用の中間ディレクトリを作り直して解消しました。ビルドの警告をエラーとして扱う設定は維持しています。
+
+最終コードでDevelopmentのEngine・SceneRuntime・Editor・App全体ビルド、Debug・Releaseの検証プログラム・Appビルドが成功しました。実際のContent用ネイティブScriptもDebug・Development・Releaseで再ビルドしています。今回の変更ではScript SDK構造のサイズを変更しておらず、ABI 6を維持しています。
+
+Debug・Releaseで通常回帰、既存25シーンの保存・再読み込みと物理・Script・アニメーション・音声更新・D3D12描画、公園1,924フレームで12/12収集、海の描画・音声・互換性がすべて終了コード0です。機能別回帰はDebugの8モードとReleaseの27モードが成功しました。ログは`generated/followup-fixes-{debug,release}-regressions.log`です。
+
+3構成のAppでタイトル60フレーム、公園300フレームと移動・ジャンプ・攻撃・フォーカス喪失／復帰の入力リプレイを確認しました。隔離したScript自動コンパイル検証、ネイティブモジュールの読み込み・再読み込み・旧コールバックの寿命保持・ABI不一致拒否も成功しました。Pythonの公園生成4テストとシーン変換8テストも成功しています。ログは`generated/followup-fixes-app-*.log`、`generated/followup-fixes-script-authoring.log`、`generated/followup-fixes-native-validation.log`、`generated/followup-fixes-python-*.log`です。
+
+既存履歴を保持し、シーン編集とPrefab、アセット参照とモデル移動、Scriptの参照と定義キャッシュ・回帰テストの3コミットに分割します。

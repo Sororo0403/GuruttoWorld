@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <set>
+#include <cstdint>
 
 namespace SceneRuntime
 {
@@ -130,6 +131,8 @@ namespace SceneRuntime
         /// <summary>再生前にモジュール所有の処理を一括置換します。失敗時は既存の登録を保持します。</summary>
         static bool InstallModule(const std::string& owner,std::map<std::string,ScriptDefinition> definitions,std::string& error);
         static const std::map<std::string,ScriptDefinition>& Definitions();
+        /// <summary>登録とモジュール交換の成功時に進む定義世代を取得します。</summary>
+        static std::uint64_t Revision();
     };
     class ScriptRuntime final
     {

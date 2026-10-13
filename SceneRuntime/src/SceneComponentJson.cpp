@@ -534,7 +534,17 @@ namespace
         }
     }
 
-    std::set<std::string> ScriptSceneAssets(const SceneRuntime::ScriptComponent& script)
+    SceneRuntime::ScriptValue::Object ScriptDataForSave(const SceneRuntime::ScriptComponent& script)
+    {
+        auto data=script.data;
+        const auto& definitions=SceneRuntime::ScriptRegistry::Definitions();
+        const auto definition=definitions.find(script.behaviour);
+        if(definition!=definitions.end())
+            for(const auto& [key,purpose]:definition->second.dataPurposes)
+                if(purpose==SceneRuntime::ScriptDataPurpose::SceneAsset) data.try_emplace(key,definition->second.dataFields.at(key));
+        return data;
+    }
+    std::set<std::string> ScriptSceneAssets(const SceneRuntime::ScriptComponent& script,const SceneRuntime::ScriptValue::Object& data)
     {
         const auto& definitions=SceneRuntime::ScriptRegistry::Definitions();
         const auto definition=definitions.find(script.behaviour);
@@ -544,7 +554,7 @@ namespace
             for(const auto& [key,purpose]:definition->second.dataPurposes)
                 if(purpose==SceneRuntime::ScriptDataPurpose::SceneAsset) fields.insert(key);
         }
-        std::erase_if(fields,[&](const auto& key){return !script.data.contains(key) || !std::holds_alternative<std::string>(script.data.at(key).value);});
+        std::erase_if(fields,[&](const auto& key){return !data.contains(key) || !std::holds_alternative<std::string>(data.at(key).value);});
         return fields;
     }
     void AppendScripts(Json &components, const SceneRuntime::ScenePlacement &placement)
@@ -553,11 +563,12 @@ namespace
         {
             auto object = Component(script.id, "Script", script.enabled);
             object["behaviour"] = script.behaviour; object["parameters"] = script.parameters;
-            if (!script.data.empty()) {
-                SceneRuntime::ScriptValue data{script.data}; size_t remaining = 4096; data.Validate(0, remaining);
+            const auto savedData=ScriptDataForSave(script);
+            if (!savedData.empty()) {
+                SceneRuntime::ScriptValue data{savedData}; size_t remaining = 4096; data.Validate(0, remaining);
                 object["data"] = WriteScriptValue(data);
             }
-            const auto assets=ScriptSceneAssets(script);
+            const auto assets=ScriptSceneAssets(script,savedData);
             if(!assets.empty()) object["sceneAssets"]=assets;
             components.push_back(object);
         }

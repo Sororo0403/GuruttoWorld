@@ -5,6 +5,7 @@
 #include "../Editor/src/ComponentEditResources.h"
 #include <Engine/Core/Json.h>
 #include <cmath>
+#include "FollowupStateValidation.h"
 namespace GenreValidation {
 /// <summary>ジャンル支援のテスト条件を確認します。</summary>
 inline void Require(bool condition,const char* message) {if(!condition) throw std::runtime_error(message);}
@@ -48,6 +49,7 @@ inline void NavigationPaths() {
 }
 /// <summary>実GPU描画、ピッキング、地形Jolt衝突、SceneEnvironmentのAgent更新を確認します。</summary>
 inline void Runtime(Engine::DirectX12Renderer& renderer) {
+    FollowupStateValidation::ProceduralEdits(renderer);
     auto layout=Layout();std::string error;Require(SceneRuntime::Navigation::Bake(layout,layout.objects[0],error),"runtime bake");
     SceneRuntime::ScenePlacement agent;agent.id="agent";agent.position={.5f,0,.5f};agent.navAgent.emplace();agent.navAgent->mesh="ground";agent.navAgent->destination={3.5f,0,.5f};layout.objects.push_back(agent);
     SceneRuntime::SceneEnvironment scene;Require(scene.Initialize(renderer,"Content",layout,error),"procedural scene GPU resources");
