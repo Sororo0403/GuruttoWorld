@@ -87,11 +87,12 @@ namespace
         for (const auto& [id,component] : merged.items()) { static_cast<void>(id); array.push_back(component); }
         ScenePlacement result;
         ReadSceneComponents(Json{{"components",array}},result,false);
+        result.persistent=current.persistent==old.persistent ? source.persistent : current.persistent;
         current.CopyComponents(result);
     }
     Json Properties(const ScenePlacement& object,bool root)
     {
-        Json value{{"name",object.name},{"components",ComponentMap(object)}};
+        Json value{{"name",object.name},{"persistent",object.persistent},{"components",ComponentMap(object)}};
         if (!root) { value["position"]=object.position; value["rotation"]=object.rotation; value["scale"]=object.scale; }
         return value;
     }
@@ -136,7 +137,8 @@ namespace
         Json array=Json::array();
         for (const auto& [id,value] : properties.at("components").items()) { static_cast<void>(id); array.push_back(value); }
         ScenePlacement components;
-        ReadSceneComponents(Json{{"components",array}},components,false); object.CopyComponents(components);
+        ReadSceneComponents(Json{{"components",array}},components,false);
+        components.persistent=properties.at("persistent").get<bool>();object.CopyComponents(components);
     }
     std::set<std::filesystem::path>& ActivePrefabs()
     { static thread_local std::set<std::filesystem::path> active; return active; }

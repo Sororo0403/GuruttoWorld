@@ -31,6 +31,13 @@ bool DifferentMeshMaterial(const SceneRuntime::ScenePlacement &a, const SceneRun
 { return std::tie(a.meshRenderer, a.material) != std::tie(b.meshRenderer, b.material); }
 bool DifferentAnimatedResources(const SceneRuntime::ScenePlacement &a, const SceneRuntime::ScenePlacement &b)
 { return std::tie(a.animator, a.terrain, a.tilemap) != std::tie(b.animator, b.terrain, b.tilemap) || (a.animator && DifferentMeshMaterial(a, b)); }
+void CopySceneOwnership(SceneRuntime::SceneLayout& layout,const std::string& source,const std::string& copy)
+{
+    for(auto& [name,ids]:layout.sceneObjects) {
+        static_cast<void>(name);
+        if(std::find(ids.begin(),ids.end(),source)!=ids.end()) {ids.push_back(copy);return;}
+    }
+}
 bool ValidPlayerInput(double seconds, float horizontal, float vertical)
 { return std::isfinite(seconds) && seconds > 0 && std::isfinite(horizontal) && std::isfinite(vertical); }
 bool RenderableEnabled(const SceneRuntime::ScenePlacement &p)
@@ -585,7 +592,7 @@ namespace SceneRuntime
             found->CopyComponents(setting);
             if (!found->camera && candidate.settings.mainCamera==setting.id) candidate.settings.mainCamera.clear();
             const auto index=static_cast<size_t>(found-candidate.objects.begin());
-            rebuild |= found->meshRenderer!=layout_.objects[index].meshRenderer || found->material!=layout_.objects[index].material || found->animator!=layout_.objects[index].animator;
+            rebuild |= DifferentMeshMaterial(*found,layout_.objects[index]) || DifferentAnimatedResources(*found,layout_.objects[index]);
             }
             static_cast<void>(candidate.Serialize());
             if (!rebuild)
@@ -1300,6 +1307,7 @@ namespace SceneRuntime
                 } catch (const std::exception& exception) { error=exception.what(); return false; }
             }
             candidate.objects.push_back(std::move(placement));
+            CopySceneOwnership(candidate,layout_.objects[index].id,copies.at(layout_.objects[index].id));
             objects.push_back(std::move(object));
         }
         if (!PrepareTransforms(candidate,objects,error)) return false;
@@ -1320,8 +1328,11 @@ namespace SceneRuntime
             return std::none_of(layout_.objects.begin(),layout_.objects.end(),[&](const auto& object) { return object.id==id; });
         });
         if (missing!=removed.end()) { error=*missing+": object no longer exists"; return false; }
-        SceneLayout candidate;
-        candidate.settings=layout_.settings; candidate.assetReferences=layout_.assetReferences;
+        auto candidate=layout_;candidate.objects.clear();
+        for(auto& [name,members]:candidate.sceneObjects) {
+            static_cast<void>(name);
+            std::erase_if(members,[&](const auto& id){return removed.contains(id);});
+        }
         if (removed.contains(candidate.settings.mainCamera)) candidate.settings.mainCamera.clear();
         std::vector<Engine::Object3D> objects;
         candidate.objects.reserve(layout_.objects.size()); objects.reserve(objects_.size());
