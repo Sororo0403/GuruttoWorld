@@ -10,8 +10,19 @@
 #include <stdexcept>
 #pragma comment(lib,"gdi32.lib")
 namespace {
+std::array<UINT,2> TextDimensions(const std::array<float,2>& size) {
+    return {static_cast<UINT>(std::clamp(size[0],1.0f,4096.0f)),static_cast<UINT>(std::clamp(size[1],1.0f,4096.0f))};
+}
+std::size_t TextBytes(const SceneRuntime::ScenePlacement& p) {
+    const auto size=TextDimensions(p.rectTransform?p.rectTransform->size:std::array<float,2>{200,60});
+    // 行・配置境界を含めて見積もり、小さな文字画像でもGPU割当分を上限へ算入します。
+    const auto bytes=((std::size_t(size[0])*4+255)&~std::size_t(255))*size[1];
+    return (bytes+65535)&~std::size_t(65535);
+}
 std::shared_ptr<Engine::Texture2D> TextTexture(const Engine::DirectX12Renderer& renderer,const SceneRuntime::TextComponent& text,const std::array<float,2>& size) {
-    const UINT width=static_cast<UINT>(std::clamp(size[0],1.0f,4096.0f)),height=static_cast<UINT>(std::clamp(size[1],1.0f,4096.0f));
+    Engine::CpuScope rasterScope("UI text raster and upload");
+    const auto dimensions=TextDimensions(size);
+    const UINT width=dimensions[0],height=dimensions[1];
     HDC dc=CreateCompatibleDC(nullptr);
     if(!dc) throw std::runtime_error("Cannot create text device context");
     BITMAPINFO info{}; info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
@@ -36,7 +47,13 @@ std::shared_ptr<Engine::Texture2D> TextTexture(const Engine::DirectX12Renderer& 
     return texture;
 }
 std::string Signature(const SceneRuntime::ScenePlacement& p,bool text) {
-    if(text) return "text/"+p.text->text+"\n"+p.text->font+"\n"+std::to_string(p.text->fontSize)+"/"+std::to_string(p.rectTransform?p.rectTransform->size[0]:200)+"/"+std::to_string(p.rectTransform?p.rectTransform->size[1]:60);
+    if(text) {
+        const auto size=TextDimensions(p.rectTransform?p.rectTransform->size:std::array<float,2>{200,60});
+        // 長さを付けて本文・フォント名中の改行や区切り文字による衝突を避けます。
+        return "text/"+std::to_string(p.text->text.size())+":"+p.text->text+
+            std::to_string(p.text->font.size())+":"+p.text->font+"/"+
+            std::to_string(static_cast<int>(p.text->fontSize))+"/"+std::to_string(size[0])+"/"+std::to_string(size[1]);
+    }
     const auto u=p.image->texture.generic_u8string(); return "image/"+std::string(u.begin(),u.end());
 }
 }
@@ -85,6 +102,13 @@ void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::f
     const auto key=p.id+(text?"/text":"/image"),signature=Signature(p,text);
     const auto old=resources_.find(key);
     if(old!=resources_.end() && old->second.generation==generation && old->second.signature==signature) { pending.emplace(key,old->second); return; }
+    if(text) {
+        const auto cached=textCache_.find(signature);
+        if(cached!=textCache_.end() && cached->second.resource.generation==generation) {
+            Engine::CpuProfiler::Add("UI text cache hit",0);
+            pending.emplace(key,cached->second.resource); return;
+        }
+    }
     std::shared_ptr<Engine::SpriteRenderer> shared,sharedScene;
     const auto find=[&](const auto& map) {
         for(const auto& [id,resource]:map) {
@@ -94,7 +118,7 @@ void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::f
     };
     find(resources_); find(pending);
     if(shared) {
-        pending.emplace(key,Resource{generation,signature,std::move(shared),std::move(sharedScene)}); return;
+        pending.emplace(key,Resource{generation,signature,std::move(shared),std::move(sharedScene),text?TextBytes(p):0}); return;
     }
     Engine::CpuScope rebuildScope("UI resource rebuild");
     auto texture=text?TextTexture(renderer,*p.text,p.rectTransform?p.rectTransform->size:std::array<float,2>{200,60}):std::make_shared<Engine::Texture2D>();
@@ -116,7 +140,7 @@ void SceneUi::PreparePart(const Engine::DirectX12Renderer& renderer,const std::f
     if(!(scenePrototype?sceneSprite->InitializeShared(*scenePrototype,texture):
         sceneSprite->Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),texture,root/"Shaders/SceneUi.hlsl",true)))
         throw std::runtime_error("Cannot create Scene Canvas renderer");
-    pending.emplace(key,Resource{generation,signature,std::move(sprite),std::move(sceneSprite)});
+    pending.emplace(key,Resource{generation,signature,std::move(sprite),std::move(sceneSprite),text?TextBytes(p):0});
 }
 bool SceneUi::Prepare(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,
     const SceneLayout& layout,std::string& error,const UiState& state,bool inspectShaders)
@@ -146,7 +170,35 @@ bool SceneUi::Prepare(const Engine::DirectX12Renderer& renderer,const std::files
             if(p.image) PreparePart(renderer,root,p,false,generation,pending);
             if(p.text) PreparePart(renderer,root,p,true,generation,pending);
         }
+        // キャッシュも候補として作り、資源準備・GPU退役が失敗した場合は旧表示と履歴を保持します。
+        constexpr std::size_t TextCacheLimit=32,TextCacheBytes=16*1024*1024;
+        const bool cacheChanged=generation!=contextGeneration_ || std::any_of(pending.begin(),pending.end(),[&](const auto& item) {
+            const auto old=resources_.find(item.first);
+            return item.second.textBytes && (old==resources_.end() || old->second.sprite!=item.second.sprite);
+        });
+        std::map<std::string,CachedText> cache;
+        auto cacheClock=textCacheClock_;
+        if(cacheChanged) cache=textCache_;
+        for(auto it=cache.begin();it!=cache.end();) {
+            if(it->second.resource.generation!=generation) it=cache.erase(it); else ++it;
+        }
+        for(const auto& [key,resource]:pending) {
+            static_cast<void>(key);
+            if(cacheChanged && resource.textBytes && resource.textBytes<=TextCacheBytes)
+                cache.insert_or_assign(resource.signature,CachedText{resource,++cacheClock});
+        }
+        std::size_t cacheBytes=0;
+        for(const auto& [key,cached]:cache) {static_cast<void>(key); cacheBytes+=cached.resource.textBytes;}
+        while(cache.size()>TextCacheLimit || cacheBytes>TextCacheBytes) {
+            const auto oldest=std::min_element(cache.begin(),cache.end(),[](const auto& a,const auto& b) {return a.second.lastUse<b.second.lastUse;});
+            cacheBytes-=oldest->second.resource.textBytes; cache.erase(oldest);
+        }
         auto replaced=std::make_shared<std::map<std::string,Resource>>();
+        if(cacheChanged) for(const auto& [key,cached]:textCache_) {
+            const auto replacement=cache.find(key);
+            if(replacement==cache.end() || replacement->second.resource.sprite!=cached.resource.sprite)
+                replaced->emplace("cache/"+key,cached.resource);
+        }
         for(const auto& [key,value]:resources_) {
             const auto replacement=pending.find(key);
             if(replacement==pending.end() || replacement->second.sprite!=value.sprite ||
@@ -156,6 +208,7 @@ bool SceneUi::Prepare(const Engine::DirectX12Renderer& renderer,const std::files
         if(!replaced->empty() && !(retirement_?retirement_:retirement)->Retire(replaced)) throw std::runtime_error("Cannot retire UI resources");
         retirement_=std::move(retirement);
         resources_.swap(pending);
+        if(cacheChanged) {textCache_.swap(cache); textCacheClock_=cacheClock;}
         preparedRoot_.swap(preparedRoot);
         preparedDevice_=renderer.GetDevice(); preparedQueue_=renderer.GetCommandQueue();
         contextGeneration_=generation;

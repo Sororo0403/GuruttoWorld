@@ -95,7 +95,8 @@ namespace Engine
             for (unsigned int key=0;key<256;++key) { result.down[key]=keyboard.IsDown(key); result.pressed[key]=keyboard.IsPressed(key); }
             if(includeMouse) {
                 constexpr int buttons[]{VK_LBUTTON,VK_RBUTTON,VK_MBUTTON,VK_XBUTTON1,VK_XBUTTON2};
-                for(size_t i=0;i<5;++i) if(GetAsyncKeyState(buttons[i])&0x8000) result.mouseButtons|=1u<<i;
+                if (const auto* pointer = keyboard.GetDiagnosticPointer()) result.mouseButtons = pointer->buttons;
+                else for(size_t i=0;i<5;++i) if(GetAsyncKeyState(buttons[i])&0x8000) result.mouseButtons|=1u<<i;
             }
             if (gamepad && gamepad->IsConnected())
             {

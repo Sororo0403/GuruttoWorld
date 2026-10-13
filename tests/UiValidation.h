@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Core/Profiler.h>
 #include <SceneRuntime/SceneUi.h>
 #include "UiControlValidation.h"
 #include "SpriteResourceValidation.h"
@@ -129,6 +130,54 @@ inline void Rendering(Engine::DirectX12Renderer& renderer,const std::filesystem:
         const auto uploaded=warmPixel();
         Require(uploaded[0]>0 && uploaded[1]>0 && uploaded[2]>0,"deferred text upload reaches later draws in queue order");
         Require(renderer.WaitForIdle(),"warm UI test finishes GPU work");
+    }
+    {
+        auto textLayout=Layout();
+        auto& panel=textLayout.objects[1];
+        panel.image.reset(); panel.button.reset(); panel.text.emplace();
+        panel.text->text="█"; panel.text->fontSize=64; panel.rectTransform->position={20,0};
+        SceneUi cached; std::string cacheError;
+        const auto prepare=[&](unsigned int rasters,unsigned int hits) {
+            Engine::CpuProfiler::Take();
+            Require(cached.Prepare(renderer,root,textLayout,cacheError,{},false),"cached text prepares");
+            unsigned int actualRasters=0,actualHits=0;
+            for(const auto& sample:Engine::CpuProfiler::Take()) {
+                if(sample.name=="UI text raster and upload") actualRasters+=sample.calls;
+                if(sample.name=="UI text cache hit") actualHits+=sample.calls;
+            }
+            Require(actualRasters==rasters && actualHits==hits,"text update uses expected raster/upload or cached resource");
+        };
+        prepare(1,0);
+        panel.text->text="counter 1/12"; prepare(1,0);
+        panel.text->text="█"; prepare(0,1);
+        const auto pixel=[&] {return EnvironmentValidation::Pixel(renderer,[&](auto* commands){cached.Draw(commands,textLayout,64,32);});};
+        const auto first=pixel();
+        panel.text->color={0,1,0,1}; prepare(0,0);
+        const auto tinted=pixel();
+        Require(first!=tinted,"text color remains a draw parameter when the texture is cached");
+        panel.text->fontSize+=8; prepare(1,0);
+        panel.text->font="Arial"; prepare(1,0);
+        panel.rectTransform->size[0]+=16; prepare(1,0);
+        panel.rectTransform->size[0]+=.1f; prepare(0,0);
+        const auto displayed=pixel();
+        panel.text->text="failed candidate";
+        auto failedLayout=textLayout;
+        ScenePlacement broken; broken.id="cache-failure"; broken.image.emplace();
+        broken.image->texture="Assets/Textures/missing-cache.png";
+        failedLayout.objects.push_back(broken);
+        Require(!cached.Prepare(renderer,root,failedLayout,cacheError,{},false),"failure after rasterizing a candidate does not commit text cache");
+        Require(pixel()==displayed,"failed cached update retains the previous text framebuffer");
+        prepare(1,0);
+        // 入力欄へ無制限に異なる文字列を入力しても古い履歴が上限から外れます。
+        panel.text->text="evict me"; prepare(1,0);
+        for(unsigned int i=0;i<32;++i) {panel.text->text="typed "+std::to_string(i); prepare(1,0);}
+        panel.text->text="evict me"; prepare(1,0);
+        panel.text->text="typed 31"; prepare(0,1);
+        // GPU割当のバイト上限は文字列数が少なくても適用します。
+        panel.rectTransform->size={3072,1024}; panel.text->text="large one"; prepare(1,0);
+        panel.text->text="large two"; prepare(1,0);
+        panel.text->text="large one"; prepare(1,0);
+        Require(renderer.WaitForIdle(),"text history and retirement complete GPU work");
     }
     UiControlValidation::Rendering(renderer,root);
     auto layout=Layout(); SceneUi ui; std::string error;

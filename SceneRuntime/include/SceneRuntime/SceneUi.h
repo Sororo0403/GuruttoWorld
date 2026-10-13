@@ -47,7 +47,8 @@ public:
     static std::string InputText(const ScenePlacement&,const UiState&);
     static std::string Shortcut(const SceneLayout&,const std::string& key,unsigned int width,unsigned int height,const UiState& state);
 private:
-    struct Resource {std::size_t generation=0; std::string signature; std::shared_ptr<Engine::SpriteRenderer> sprite,sceneSprite;};
+    struct Resource {std::size_t generation=0; std::string signature; std::shared_ptr<Engine::SpriteRenderer> sprite,sceneSprite; std::size_t textBytes=0;};
+    struct CachedText {Resource resource; std::size_t lastUse=0;};
     /// <summary>表示内容が変化した UI 資源だけを候補へ準備します。</summary>
     void PreparePart(const Engine::DirectX12Renderer&,const std::filesystem::path&,const ScenePlacement&,bool text,std::size_t generation,std::map<std::string,Resource>& pending);
     void DrawPart(ID3D12GraphicsCommandList*,const ScenePlacement&,const UiRect&,unsigned int width,unsigned int height,const UiState&,bool text) const;
@@ -58,5 +59,8 @@ private:
     std::size_t contextGeneration_=0;
     std::shared_ptr<Engine::GpuRetirement> retirement_;
     std::map<std::string,Resource> resources_;
+    // 表示中の資源とは別に、再表示する文字だけを上限付きで保持します。
+    std::map<std::string,CachedText> textCache_;
+    std::size_t textCacheClock_=0;
 };
 }

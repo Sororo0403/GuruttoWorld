@@ -269,3 +269,6 @@ ProfilerValidationはCPU描画時間・フレーム数と、完了フェンス�
 `App.exe --profile-park --profile-frames=600 --profile-output=C:/temp/park.csv` は配布Appの本番ループを計測します。タイトルは `--profile-title` を使います。入力フォーカスを取得できない検証環境では `--profile-simulate-inactive` を明示追加し、CSVの `input.active` と `simulation.override` を確認します。背景での物理・スクリプト・音声更新だけ継続し、実入力は非アクティブのままです。`Present wait` と `Frame fence wait` を処理時間から区別し、初期化直後のフレームを除外して比較します。詳細は `docs/ParkAdventure.md` に記録します。
 
 `WP1_AUDIO_FEATURES_ONLY=1` の音声回帰は、設定未変更時の音源再構築省略、確定World行列と単体座標解決の出力一致、親移動への追従、ロード失敗時の再生保持、音量バインディング・awake・cueの変更、停止中の変更と再開、音源の生成・削除を確認します。
+2026-10-13の追加検証: `WP1_SCENE_UI_ONLY=1` は文字再表示・色変更・整数ラスタ寸法・候補失敗時の履歴保持・32種類/16MiB上限をGPU描画と生成回数で確認します。`WP1_INPUT_ONLY=1` は診断Keyboardの押下/保持/解放とフォーカス復帰抑止も確認します。`WP1_PARK_RESOURCE_ONLY=1` は日本語の入れ子includeと別の配置先・作業フォルダーでも同じシェーダーrevision/バイトコードになることを確認します。時間の上限を合否条件にはしません。
+
+配布Appの `--profile-replay-input` は決定的な診断入力です。実キー・マウスの計測ではこのオプションと `--profile-simulate-inactive` を外し、`input.device.active=1`、`input.diagnostic.replay=0`、`simulation.override=0` と実際の押下・座標・UI状態を確認します。診断再生のフォーカス検証では、`replay.update.index` で210～229、230、231を結合します。シェーダー事前生成はpackage.jsonのハッシュ記録前に実行されます。

@@ -44,6 +44,8 @@ namespace Engine
         device_.Reset();
         input_.Reset();
         window_ = nullptr;
+        diagnostic_ = false;
+        pointer_ = {};
         ClearState();
     }
 
@@ -80,6 +82,17 @@ namespace Engine
         }
         previous_ = active_ ? current_ : state;
         current_ = state;
+        active_ = true;
+    }
+
+    void Keyboard::ApplyDiagnosticState(HWND window, bool active, const std::array<BYTE,256>& keys, DiagnosticPointer pointer) noexcept
+    {
+        window_ = window;
+        diagnostic_ = true;
+        pointer_ = active ? pointer : DiagnosticPointer{};
+        if (!active) { ClearState(); return; }
+        previous_ = active_ ? current_ : keys;
+        current_ = keys;
         active_ = true;
     }
 

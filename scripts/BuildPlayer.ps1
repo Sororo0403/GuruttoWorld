@@ -1,6 +1,7 @@
 param(
     [ValidateSet('Release','Development')][string]$Configuration='Release',
     [ValidatePattern('^[a-f0-9]{32}$')][string]$RunId=([Guid]::NewGuid().ToString('N')),
+    [string]$StartupScene,
     [switch]$SkipBuild
 )
 $ErrorActionPreference='Stop'
@@ -25,6 +26,12 @@ try {
     Set-BuildProgress 0 '保存済みContentのスナップショットを作成中'
     . (Join-Path $PSScriptRoot 'BuildContentSnapshot.ps1')
     Copy-BuildContentSnapshot -Content (Join-Path $repoRoot 'Content') -Destination $staging
+    if ($StartupScene) {
+        $stagedProjectPath=Join-Path $staging 'Assets/Project.json'
+        $stagedProject=Get-Content -LiteralPath $stagedProjectPath -Raw | ConvertFrom-Json
+        $stagedProject.startupScene=$StartupScene
+        $stagedProject | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $stagedProjectPath -Encoding UTF8
+    }
     Set-BuildProgress 1 'Appをコンパイル中'
     $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
     if (!(Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio Installer/vswhere.exe is required.' }
@@ -52,6 +59,14 @@ try {
     $crt=Get-ChildItem -LiteralPath (Join-Path $version.FullName 'x64') -Directory | Where-Object { $_.Name -match '^Microsoft\.VC\d+\.CRT$' } | Select-Object -First 1
     if (!$crt) { throw 'x64 MSVC CRT is missing.' }
     Get-ChildItem -LiteralPath $crt.FullName -File -Filter '*.dll' | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $staging }
+    Set-BuildProgress 2 '配布用シェーダーを事前コンパイル中'
+    $shaderPreparation=Start-Process -FilePath (Join-Path $staging 'App.exe') -ArgumentList '--prepare-shaders .' -WorkingDirectory $staging -WindowStyle Hidden -PassThru
+    $shaderPreparationStarted=[DateTime]::UtcNow
+    while (!$shaderPreparation.WaitForExit(5000)) {
+        Write-Output 'Waiting for shader cache preparation...'
+        if (([DateTime]::UtcNow-$shaderPreparationStarted).TotalSeconds -ge 180) { $shaderPreparation.Kill(); throw 'Shader cache preparation timed out.' }
+    }
+    if ($shaderPreparation.ExitCode -ne 0) { throw "Shader cache preparation failed ($($shaderPreparation.ExitCode))." }
     $project=Get-Content -LiteralPath (Join-Path $staging 'Assets/Project.json') -Raw | ConvertFrom-Json
     $startup=$project.startupScene
     if (!(Test-Path -LiteralPath (Join-Path $staging $startup))) {

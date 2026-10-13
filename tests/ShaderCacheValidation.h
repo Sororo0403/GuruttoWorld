@@ -37,6 +37,29 @@ inline bool ValidateShaderCache(ID3D12Device* device, ID3D12CommandQueue* queue,
     if (!require(!Engine::CompileShader(shader, "PSMain", "ps_5_0", changed) && !changed, "missing include rejects old cache")) return false;
     write(include, "float4 Value() { return float4(1,0,0,1); }\n");
     if (!require(Engine::CompileShader(shader, "PSMain", "ps_5_0", changed), "repaired include compiles")) return false;
+    // Packaging moves its staging directory. Absolute source locations must not invalidate portable bytecode.
+    const auto relocated = root.parent_path() / "relocated-project";
+    std::filesystem::create_directories(relocated / "nested");
+    std::filesystem::copy_file(shader, relocated / "test.hlsl", std::filesystem::copy_options::overwrite_existing);
+    std::filesystem::copy_file(include, relocated / std::filesystem::path(u8"nested/共通.hlsli"), std::filesystem::copy_options::overwrite_existing);
+    std::string originalRevision, relocatedRevision;
+    Microsoft::WRL::ComPtr<ID3DBlob> relocatedBytecode;
+    if (!require(Engine::GetShaderRevision(shader, originalRevision), "original shader revision")) return false;
+    {
+        struct RestoreDirectory
+        {
+            std::filesystem::path path = std::filesystem::current_path();
+            /// <summary>失敗時も検証前の作業ディレクトリへ戻します。</summary>
+            ~RestoreDirectory() { std::error_code ignored; std::filesystem::current_path(path, ignored); }
+        } restore;
+        // D3DPreprocess expands even a basename source name relative to the process working directory.
+        std::filesystem::current_path(relocated);
+        if (!require(Engine::GetShaderRevision(relocated / "test.hlsl", relocatedRevision) && originalRevision == relocatedRevision,
+            "relocated shader revision is portable across working directories")) return false;
+        if (!require(Engine::CompileShader(relocated / "test.hlsl", "PSMain", "ps_5_0", relocatedBytecode) &&
+            relocatedBytecode.Get() == changed.Get(), "relocated bytecode shared without recompilation")) return false;
+    }
+
     if (!require(!Engine::CompileShader(shader, "PSMain", "vs_5_0", changed) && !changed, "target change is independently validated")) return false;
 
     Engine::MeshResources one, two, separateQueue;

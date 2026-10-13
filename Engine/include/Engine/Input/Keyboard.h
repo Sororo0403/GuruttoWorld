@@ -16,6 +16,13 @@
 
 namespace Engine
 {
+    struct DiagnosticPointer
+    {
+        int x = 0, y = 0;
+        unsigned int buttons = 0;
+        float wheel = 0;
+    };
+
     class Keyboard final
     {
     public:
@@ -76,6 +83,15 @@ namespace Engine
         /// </summary>
         bool IsReleased(unsigned int key) const noexcept;
 
+        /// <summary>
+        /// 診断再生専用の状態を適用します。デバイス取得は行わず、再開時の押下抑止は実入力と同じです。
+        /// </summary>
+        void ApplyDiagnosticState(HWND window, bool active, const std::array<BYTE,256>& keys, DiagnosticPointer pointer) noexcept;
+        /// <summary>
+        /// 診断用ポインターを返します。実デバイス入力では nullptr を返します。
+        /// </summary>
+        const DiagnosticPointer* GetDiagnosticPointer() const noexcept { return diagnostic_ ? &pointer_ : nullptr; }
+
     private:
         /// <summary>
         /// 前回と今回の入力をクリアし、次回取得時の差分判定を抑止します。
@@ -88,5 +104,7 @@ namespace Engine
         std::array<BYTE, 256> current_{};
         std::array<BYTE, 256> previous_{};
         bool active_ = false;
+        bool diagnostic_ = false;
+        DiagnosticPointer pointer_{};
     };
 }

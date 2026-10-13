@@ -9,6 +9,7 @@ namespace App
         std::filesystem::path output;
         unsigned int frames = 600;
         bool simulateInactive = false;
+        bool replayInput = false;
     };
     class Game final
     {

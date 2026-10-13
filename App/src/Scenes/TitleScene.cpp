@@ -47,7 +47,7 @@ namespace App
     }
     std::string TitleScene::Update(double deltaSeconds, const Engine::Keyboard& keyboard)
     {
-        gamepad_.Update(keyboard.IsActive());
+        gamepad_.Update(keyboard.IsActive() && !keyboard.GetDiagnosticPointer());
         auto input = ReadMenuInput(keyboard);
         if(!environment_.Ui().focused.empty()) {input.keyboardButtons=0; input.gamepadButtons=0; input.stickX=input.stickY=0; input.anyButtonPressed=false;}
         const float previousIntro=menu_.IntroProgress();
@@ -87,17 +87,20 @@ namespace App
     TitleMenuAction TitleScene::UpdatePointer(const Engine::Keyboard& keyboard)
     {
         const auto characters=Engine::Window::ConsumeTextInput(keyboard.WindowHandle());
-        const auto wheel=Engine::Window::ConsumeMouseWheel(keyboard.WindowHandle());
+        const auto* diagnosticPointer=keyboard.GetDiagnosticPointer();
+        const auto wheel=diagnosticPointer ? diagnosticPointer->wheel : Engine::Window::ConsumeMouseWheel(keyboard.WindowHandle());
         if(!keyboard.IsActive()) {mouseReady_=false; mouseDown_=false; pressed_.clear(); hovered_.clear(); environment_.Ui().focused.clear(); return TitleMenuAction::None;}
-        POINT cursor{}; GetCursorPos(&cursor); ScreenToClient(keyboard.WindowHandle(),&cursor);
-        const bool down=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+        POINT cursor{};
+        if (diagnosticPointer) { cursor.x=diagnosticPointer->x; cursor.y=diagnosticPointer->y; }
+        else { GetCursorPos(&cursor); ScreenToClient(keyboard.WindowHandle(),&cursor); }
+        const bool down=diagnosticPointer ? (diagnosticPointer->buttons&1)!=0 : (GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
         const auto& state=environment_.Ui();
         const auto previousHover=hovered_;
         hovered_=SceneRuntime::SceneUi::Hit(environment_.World().Layout(),width_,height_,static_cast<float>(cursor.x),static_cast<float>(cursor.y),state);
         SelectHovered(previousHover);
         auto action=TitleMenuAction::None;
         const auto event=environment_.UiPointer(width_,height_,static_cast<float>(cursor.x),static_cast<float>(cursor.y),mouseReady_ && down,mouseReady_ && down && !mouseDown_,mouseReady_ && !down && mouseDown_,wheel);
-        for(const auto character:characters) environment_.UiTextInput(character);
+        if (!diagnosticPointer) for(const auto character:characters) environment_.UiTextInput(character);
         pressed_=environment_.Ui().pressed;
         if(!event.event.empty()) action=menu_.ActivateUi(event.event);
         else if(event.action=="quit") PostMessageW(keyboard.WindowHandle(),WM_CLOSE,0,0);

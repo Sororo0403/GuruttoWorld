@@ -2,6 +2,8 @@
 #include "PackageValidation.h"
 #include <Windows.h>
 #include <shellapi.h>
+#include <Engine/Graphics/ShaderCompiler.h>
+#include <Engine/Core/Log.h>
 #pragma comment(lib, "Shell32.lib")
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int)
@@ -9,6 +11,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int)
     auto arguments=std::wstring_view(commandLine ? commandLine : L"");
     while (!arguments.empty() && (arguments.front()==L' ' || arguments.front()==L'\t')) arguments.remove_prefix(1);
     while (!arguments.empty() && (arguments.back()==L' ' || arguments.back()==L'\t')) arguments.remove_suffix(1);
+    if (arguments.starts_with(L"--prepare-shaders")) {
+        int count=0;
+        auto tokens=CommandLineToArgvW(GetCommandLineW(),&count);
+        if (!tokens) return 1;
+        const bool valid=count==3 && std::wstring_view(tokens[1])==L"--prepare-shaders";
+        const auto content=valid ? std::filesystem::path(tokens[2]) : std::filesystem::path{};
+        LocalFree(tokens);
+        if (!valid) return 1;
+        std::string error;
+        if (!Engine::PrepareShaderCache(content/"Shaders",error)) { Engine::Log::Error(error); return 1; }
+        return 0;
+    }
     if (arguments==L"--validate-package") return App::ValidatePackage();
     if (arguments.starts_with(L"--profile-")) {
         App::GameProfileOptions profile;
@@ -20,6 +34,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int)
             const std::wstring_view token(tokens[index]);
             if (token == L"--profile-park") profile.scene = "Assets/Scenes/ParkAdventure.json";
             else if (token == L"--profile-title") profile.scene = "Assets/Scenes/TitleStreet.json";
+            else if (token == L"--profile-replay-input") profile.replayInput = true;
             else if (token == L"--profile-simulate-inactive") profile.simulateInactive = true;
             else if (token.starts_with(L"--profile-output=")) profile.output = std::wstring(token.substr(17));
             else if (token.starts_with(L"--profile-frames=")) {

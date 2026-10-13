@@ -9,6 +9,22 @@ namespace InputActionValidation
     inline void Run()
     {
         using namespace Engine;
+        Keyboard diagnostic;
+        std::array<BYTE,256> diagnosticKeys{};
+        diagnostic.ApplyDiagnosticState(nullptr,true,diagnosticKeys,{10,20,0,0});
+        diagnosticKeys[DIK_SPACE]=0x80;
+        diagnostic.ApplyDiagnosticState(nullptr,true,diagnosticKeys,{10,20,1,0});
+        const auto diagnosticInput=InputActions::Capture(diagnostic,nullptr,true);
+        Require(diagnosticInput.pressed[DIK_SPACE] && diagnosticInput.mouseButtons==1,"diagnostic capture uses keyboard and pointer snapshot");
+        diagnostic.ApplyDiagnosticState(nullptr,true,diagnosticKeys,{});
+        Require(!diagnostic.IsPressed(DIK_SPACE),"diagnostic held key suppresses repeated press");
+        diagnostic.ApplyDiagnosticState(nullptr,false,diagnosticKeys,{});
+        Require(!diagnostic.IsActive() && !diagnostic.IsDown(DIK_SPACE) && InputActions::Capture(diagnostic,nullptr,true).mouseButtons==0,"diagnostic focus loss clears keyboard and pointer");
+        diagnostic.ApplyDiagnosticState(nullptr,true,diagnosticKeys,{});
+        Require(!diagnostic.IsPressed(DIK_SPACE),"diagnostic reacquire held key suppresses press");
+        diagnosticKeys.fill(0);
+        diagnostic.ApplyDiagnosticState(nullptr,true,diagnosticKeys,{});
+        Require(diagnostic.IsReleased(DIK_SPACE),"diagnostic release follows reacquire");
         auto bindings=InputActions::Defaults();
         Require(InputActions::Parse(InputActions::Serialize(bindings))==bindings,"input action bindings roundtrip");
         InputActions input; InputSnapshot snapshot; snapshot.active=true; snapshot.gamepadConnected=true;

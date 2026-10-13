@@ -22,7 +22,7 @@ std::string AuthoredScene::Update(double seconds,const Engine::Keyboard& keyboar
     const bool gameplayInput=active && environment_.Ui().focused.empty();
     {
         Engine::CpuScope inputUpdate("App input");
-        gamepad_.Update(active);
+        gamepad_.Update(active && !keyboard.GetDiagnosticPointer());
         input_.Update(Engine::InputActions::Capture(keyboard,&gamepad_,true));
         if(gameplayInput) environment_.SetInputActions(input_.Values(),input_.PressedValues());
         else environment_.SetInputActions({},{});
@@ -36,12 +36,15 @@ std::string AuthoredScene::Update(double seconds,const Engine::Keyboard& keyboar
     Engine::CpuScope uiUpdate("App UI input");
     auto& ui=environment_.Ui();
     const auto characters=Engine::Window::ConsumeTextInput(keyboard.WindowHandle());
-    const auto wheel=Engine::Window::ConsumeMouseWheel(keyboard.WindowHandle());
+    const auto* diagnosticPointer=keyboard.GetDiagnosticPointer();
+    const auto wheel=diagnosticPointer ? diagnosticPointer->wheel : Engine::Window::ConsumeMouseWheel(keyboard.WindowHandle());
     if(!active) {ready_=false; down_=false; ui.pressed.clear(); ui.hovered.clear(); ui.focused.clear(); return {};}
-    POINT cursor{}; GetCursorPos(&cursor); ScreenToClient(keyboard.WindowHandle(),&cursor);
-    const bool down=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+    POINT cursor{};
+    if (diagnosticPointer) { cursor.x=diagnosticPointer->x; cursor.y=diagnosticPointer->y; }
+    else { GetCursorPos(&cursor); ScreenToClient(keyboard.WindowHandle(),&cursor); }
+    const bool down=diagnosticPointer ? (diagnosticPointer->buttons&1)!=0 : (GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
     auto event=environment_.UiPointer(width_,height_,static_cast<float>(cursor.x),static_cast<float>(cursor.y),ready_ && down,ready_ && down && !down_,ready_ && !down && down_,wheel);
-    for(const auto character:characters) environment_.UiTextInput(character);
+    if (!diagnosticPointer) for(const auto character:characters) environment_.UiTextInput(character);
     if(ready_ && ui.focused.empty()) for(const auto& [name,binding] : input_.GetBindings()) {
         static_cast<void>(binding);
         if(!input_.Pressed(name)) continue;

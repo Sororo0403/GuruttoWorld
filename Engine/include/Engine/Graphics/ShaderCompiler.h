@@ -8,6 +8,9 @@
 
 namespace Engine
 {
+    /// <summary>配布前に各シェーダーをコンパイルし、Shaders/Compiled に検証付きバイトコードを保存します。</summary>
+    bool PrepareShaderCache(const std::filesystem::path& shaders, std::string& error);
+
     /// <summary>実際に展開された include とソースの内容を取得し、キャッシュの変更検知に使います。</summary>
     bool GetShaderRevision(const std::filesystem::path& path, std::string& revision);
 
