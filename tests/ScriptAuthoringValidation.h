@@ -14,7 +14,7 @@ namespace ScriptAuthoringValidation
     inline void Require(bool value,const char* message) {if(!value) throw std::runtime_error(message);}
     struct Fixture final
     {
-        std::filesystem::path root=std::filesystem::absolute("Content"),source=root/"Assets/Scripts/ValidationAuthoringWatcher.cpp";
+        std::filesystem::path root=std::filesystem::absolute("generated/tests/script-authoring/"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64())+"/Content"),source=root/"Assets/Scripts/ValidationAuthoringWatcher.cpp";
         std::filesystem::path manifest=root/"Assets/Scripts/Bin"/SceneRuntime::ScriptModule::Configuration()/"module.json";
         std::string original=Read(manifest);
         bool existed=std::filesystem::exists(manifest),created=false;
@@ -48,6 +48,13 @@ namespace ScriptAuthoringValidation
         const auto compiled=Read(fixture.manifest);{std::ofstream output(source,std::ios::app);output<<"\n// automatic watcher revision\n";}
         Until([&]{panel.Poll(fixture.root,false);return Read(fixture.manifest)!=compiled;});
         Require(!panel.Ready() && SceneRuntime::ScriptRegistry::Definitions().contains("ValidationAuthoringWatcher"),"editing recompiles while preserving the active definition until Stop");
+        const auto validSource=Read(source),published=Read(fixture.manifest);
+        {std::ofstream output(source,std::ios::app);output<<"\nINVALID_LATEST_SCRIPT_REVISION\n";}
+        Until([&]{panel.Poll(fixture.root,false);return panel.Failed();});
+        Require(Read(fixture.manifest)==published,"failed revision retains published module");
+        for(int i=0;i<10;++i) panel.Poll(fixture.root,true);
+        Require(!panel.Ready(),"Stop after a failed latest revision must not install the earlier pending module");
+        {std::ofstream output(source,std::ios::binary|std::ios::trunc);output<<validSource;}
         Until([&]{panel.Poll(fixture.root,true);return panel.Ready();});
     }
 }

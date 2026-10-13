@@ -58,6 +58,12 @@ class ParkAuthoringTests(unittest.TestCase):
             subprocess.run(command, check=True, capture_output=True)
             self.assertIn('{"maxHp",{17.0f,', header.read_text(encoding="utf-8"))
             self.assertIn("日本語's \\\"text\\\"\\\\path\\n", header.read_text(encoding="utf-8"))
+            valid_header = header.read_bytes()
+            schema["scripts"]["ParkPlayer"]["data"]["statsTemplate"]["value"] = "left\0right"
+            (scripts / schema_path.name).write_text(json.dumps(schema), encoding="utf-8")
+            self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+            self.assertEqual(header.read_bytes(), valid_header)
+            schema["scripts"]["ParkPlayer"]["data"]["statsTemplate"]["value"] = "valid"
             schema["scripts"]["ParkPlayer"]["purposes"]["maxHp"] = "sceneAsset"
             (scripts / schema_path.name).write_text(json.dumps(schema), encoding="utf-8")
             self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)

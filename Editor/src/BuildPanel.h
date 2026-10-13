@@ -8,7 +8,7 @@ class BuildPanel final {
     HANDLE process_=nullptr;
     HANDLE job_=nullptr;
     std::string runId_,status_;
-    std::filesystem::path package_,log_;
+    std::filesystem::path package_,log_,repository_;
     int configuration_=0;
     ULONGLONG nextLog_=0,started_=0;
     std::string tail_,phase_;
@@ -17,6 +17,14 @@ class BuildPanel final {
     std::string scriptConfiguration_="Development";
     std::optional<bool> completed_;
     const char* Folder() const { return scripts_ ? "generated/script-builds" : "generated/builds"; }
+    static std::filesystem::path RepositoryRoot(const std::filesystem::path& content) {
+        auto path=std::filesystem::absolute(content).parent_path();
+        while(!path.empty() && path!=path.root_path()) {
+            if(std::filesystem::is_regular_file(path/"WP1.slnx")) return path;
+            path=path.parent_path();
+        }
+        return content.parent_path();
+    }
 public:
     bool open=false;
     /// <summary>配布ビルドまたはC++ゲーム処理ビルドの操作画面を作ります。</summary>
@@ -34,7 +42,7 @@ public:
         CloseHandle(process_); process_=nullptr;
         if(job_) {CloseHandle(job_);job_=nullptr;}
         try {
-            std::ifstream input(content.parent_path()/Folder()/(runId_+".json"));
+            std::ifstream input(repository_/Folder()/(runId_+".json"));
             if (!input) throw std::runtime_error("Build result missing; see log.");
             const auto result=Engine::Json::parse(input);
             if (result.at("success").get<bool>()) {
@@ -50,10 +58,10 @@ public:
         CloseHandle(process_); process_=nullptr; CloseHandle(job_);job_=nullptr;
         status_="ビルドをキャンセルしました。途中の出力とログは確認できます。";
     }
-    void ReadProgress(const std::filesystem::path& content) {
+    void ReadProgress(const std::filesystem::path&) {
         const auto now=GetTickCount64(); if(now<nextLog_) return;nextLog_=now+500;
         try {
-            std::ifstream progress(content.parent_path()/Folder()/(runId_+".progress.json"));
+            std::ifstream progress(repository_/Folder()/(runId_+".progress.json"));
             if(progress) {const auto value=Engine::Json::parse(progress);phase_=value.value("phase",std::string{});step_=value.value("step",0);}
         } catch(...) {} // A partially published status must not stop the build.
         std::ifstream input(log_,std::ios::binary|std::ios::ate);
@@ -64,11 +72,11 @@ public:
     }
     void Start(const std::filesystem::path& content) {
         if (process_) return;
-        const auto repo=content.parent_path(),script=repo/(scripts_ ? "scripts/BuildScripts.ps1" : "scripts/BuildPlayer.ps1");
+        const auto repo=RepositoryRoot(content),script=repo/(scripts_ ? "scripts/BuildScripts.ps1" : "scripts/BuildPlayer.ps1");
         if (!std::filesystem::is_regular_file(script)) throw std::runtime_error("Build requires the source repository and Visual Studio.");
         runId_.clear(); std::random_device random; constexpr char hex[]="0123456789abcdef";
         for (size_t i=0;i<32;++i) runId_+=hex[random()%16];
-        log_=repo/Folder()/(runId_+".log"); package_.clear(); completed_.reset();
+        repository_=repo;log_=repo/Folder()/(runId_+".log"); package_.clear(); completed_.reset();
         std::array<wchar_t,32768> system{}; const auto length=GetSystemDirectoryW(system.data(),static_cast<UINT>(system.size()));
         if (!length || length>=system.size()) throw std::runtime_error("Cannot locate PowerShell");
         const auto executable=std::filesystem::path(system.data())/"WindowsPowerShell/v1.0/powershell.exe";

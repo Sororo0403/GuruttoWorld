@@ -116,7 +116,8 @@ public:
         auto updated=references;
 
         if (json.contains("objects")) WalkReferences(json["objects"],references,updated,capture,resolve);
-        else for (const auto* key : {"texture","normalTexture","environmentTexture","lightmap","startupScene"}) if (json.contains(key)) WalkReferences(json[key],references,updated,capture,resolve);
+        else for (const auto* key : {"shader","texture","normalTexture","environmentTexture","lightmap","startupScene"}) if (json.contains(key)) WalkReferences(json[key],references,updated,capture,resolve);
+        if(json.contains("settings")) WalkReferences(json["settings"],references,updated,capture,resolve);
         if (capture) json["assetReferences"]=updated;
     }
     void Move(const std::filesystem::path& from,const std::filesystem::path& to) {
@@ -140,22 +141,54 @@ public:
         }
     }
 private:
-  void WalkReferences(Json &value, const std::map<std::string, std::string> &references, std::map<std::string, std::string> &updated, bool capture, bool resolve) const
+  static bool AssetField(const Json& owner,const std::string& key)
   {
-      if (value.is_string()) {
+      static const std::set<std::string> fields{"model","asset","shader","texture","normalTexture","environmentTexture","lightmap","startupScene","skyShader","oceanShader","particleShader","postShader"};
+      if(fields.contains(key)) return true;
+      const auto type=owner.contains("type") && owner.at("type").is_string() ? owner.at("type").get<std::string>() : "";
+      if(key=="clip") return type=="AudioSource";
+      if(key=="slots") return type=="Material";
+      if(key!="target") return false;
+      const auto action=owner.value("action",std::string{});
+      return action=="loadScene" || action=="loadSceneAdditive" || action=="unloadScene";
+  }
+  void ScriptReferences(Json& script,const std::map<std::string,std::string>& references,std::map<std::string,std::string>& updated,bool capture,bool resolve) const
+  {
+      if(!script.contains("sceneAssets") || !script.contains("data")) return;
+      auto& fields=script.at("data").at("value");
+      for(const auto& name:script.at("sceneAssets")) {
+          const auto key=name.get<std::string>();
+          if(!fields.contains(key) || fields.at(key).value("kind",std::string{})!="string") throw std::runtime_error("Invalid Script scene asset field");
+          WalkReferences(fields.at(key).at("value"),references,updated,capture,resolve);
+      }
+  }
+  void WalkField(Json& owner,const std::string& key,const std::map<std::string,std::string>& references,std::map<std::string,std::string>& updated,bool capture,bool resolve) const
+  {
+      auto& item=owner.at(key);
+      if(key=="baseline" && item.is_string()) {
+          auto baseline=Json::parse(item.get<std::string>());References(baseline,capture,resolve);item=baseline.dump();
+      } else if(AssetField(owner,key) && item.is_array()) {
+          for(auto& asset:item) WalkReferences(asset,references,updated,capture,resolve);
+      } else if(key!="data" && key!="assetReferences" && key!="sceneObjects" &&
+          (AssetField(owner,key) || item.is_object() || item.is_array())) WalkReferences(item,references,updated,capture,resolve);
+  }
+  void ResolveReference(Json& value,const std::map<std::string,std::string>& references,std::map<std::string,std::string>& updated,bool resolve) const
+  {
           const auto path = value.get<std::string>(); if (!Valid(Path(path))) return;
           const auto found = references.find(path); const auto resolved = resolve ? Resolve(Path(path), found == references.end() ? "" : found->second) : Path(path);
           value = Text(resolved);
           const auto saved = metadata_.find(Text(resolved));
           const auto metadata = snapshot_ ? (saved == metadata_.end() ? AssetMetadata{} : saved->second) : Read(root_ / resolved);
           if (!metadata.id.empty()) updated[Text(resolved)] = metadata.id;
-      } else if (value.is_object()) {
-          for (auto &[key, item] : value.items()) {
-              if (key == "baseline" && item.is_string()) {
-                  auto baseline = Json::parse(item.get<std::string>()); References(baseline, capture, resolve); item = baseline.dump();
-              } else WalkReferences(item, references, updated, capture, resolve);
-          }
-      } else if (value.is_array()) for (auto &item : value) WalkReferences(item, references, updated, capture, resolve);
+  }
+  void WalkReferences(Json &value, const std::map<std::string, std::string> &references, std::map<std::string, std::string> &updated, bool capture, bool resolve) const
+  {
+      if(value.is_string()) ResolveReference(value,references,updated,resolve);
+      else if (value.is_object()) {
+          const bool script=value.contains("type") && value.at("type").is_string() && value.at("type")=="Script";
+          if(script) ScriptReferences(value,references,updated,capture,resolve);
+          for (const auto& [key,item]:value.items()) {static_cast<void>(item);WalkField(value,key,references,updated,capture,resolve);}
+      } else if (value.is_array()) for (auto &item : value) if(!item.is_string()) WalkReferences(item, references, updated, capture, resolve);
 
     }
 

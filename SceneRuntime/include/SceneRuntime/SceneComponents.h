@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <set>
 
 namespace SceneRuntime
 {
@@ -83,6 +84,7 @@ namespace SceneRuntime
         std::string behaviour="Bob";
         std::map<std::string,float> parameters;
         ScriptValue::Object data;
+        std::set<std::string> sceneAssets{};
         bool operator==(const ScriptComponent&) const = default;
         /// <summary>保存データ内のオブジェクト参照を複製先へ置き換えます。</summary>
         template<class IdMap> void Remap(const IdMap& ids)

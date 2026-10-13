@@ -6,6 +6,7 @@
 #include <SceneRuntime/PhysicsWorld.h>
 #include "../Editor/src/TitlePreview.h"
 #include "../Editor/src/ScriptDataPanel.h"
+#include "DeepStateValidation.h"
 #include <fstream>
 #include <stdexcept>
 
@@ -60,6 +61,7 @@ inline void RegisteredParameterDefaults() {
 }
 inline void Run() {
     using namespace SceneRuntime;
+    DeepStateValidation::Run();
     AnimationRegistry();
     ScriptPurposeWidgets();
     RegisteredParameterDefaults();

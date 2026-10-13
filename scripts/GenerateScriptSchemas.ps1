@@ -2,6 +2,7 @@ param([string]$Content=(Join-Path (Split-Path $PSScriptRoot -Parent) 'Content'))
 $ErrorActionPreference='Stop'
 $culture=[Globalization.CultureInfo]::InvariantCulture
 function Cpp-String([string]$Value) {
+    if($Value.IndexOf([char]0) -ge 0){throw 'Script schema strings and keys must not contain NUL.'}
     $escaped=[Text.StringBuilder]::new()
     foreach($character in $Value.ToCharArray()) {
         if($character -eq '\') {[void]$escaped.Append('\\')}

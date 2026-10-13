@@ -7,6 +7,7 @@
 #include "AnimatorJson.h"
 #include <SceneRuntime/MaterialAsset.h>
 #include <SceneRuntime/SceneUi.h>
+#include <SceneRuntime/ScriptRuntime.h>
 #include <algorithm>
 #include <iterator>
 #include <cmath>
@@ -350,6 +351,13 @@ namespace
 
     }
 
+    void ReadScriptSceneAssets(const Json& component,SceneRuntime::ScriptComponent& script)
+    {
+        if(component.contains("sceneAssets")) script.sceneAssets=component.at("sceneAssets").get<std::set<std::string>>();
+        if(script.sceneAssets.size()>64) throw std::runtime_error("Too many Script scene assets");
+        if(std::any_of(script.sceneAssets.begin(),script.sceneAssets.end(),[&](const auto& key){return !script.data.contains(key) || !std::holds_alternative<std::string>(script.data.at(key).value);}))
+            throw std::runtime_error("Invalid Script scene asset field");
+    }
     void ReadPlacementScript(const ComponentSource &source, SceneRuntime::ScenePlacement &placement)
     {
         const auto &component = source.component;
@@ -374,6 +382,7 @@ namespace
             if (!std::holds_alternative<SceneRuntime::ScriptValue::Object>(data.value)) throw std::runtime_error("Script data must be an object");
             script.data = std::get<SceneRuntime::ScriptValue::Object>(std::move(data.value));
         }
+        ReadScriptSceneAssets(component,script);
         placement.scripts.push_back(std::move(script));
 
     }
@@ -525,6 +534,19 @@ namespace
         }
     }
 
+    std::set<std::string> ScriptSceneAssets(const SceneRuntime::ScriptComponent& script)
+    {
+        const auto& definitions=SceneRuntime::ScriptRegistry::Definitions();
+        const auto definition=definitions.find(script.behaviour);
+        auto fields=script.sceneAssets;
+        if(definition!=definitions.end()) {
+            fields.clear();
+            for(const auto& [key,purpose]:definition->second.dataPurposes)
+                if(purpose==SceneRuntime::ScriptDataPurpose::SceneAsset) fields.insert(key);
+        }
+        std::erase_if(fields,[&](const auto& key){return !script.data.contains(key) || !std::holds_alternative<std::string>(script.data.at(key).value);});
+        return fields;
+    }
     void AppendScripts(Json &components, const SceneRuntime::ScenePlacement &placement)
     {
         for (const auto &script : placement.scripts)
@@ -535,6 +557,8 @@ namespace
                 SceneRuntime::ScriptValue data{script.data}; size_t remaining = 4096; data.Validate(0, remaining);
                 object["data"] = WriteScriptValue(data);
             }
+            const auto assets=ScriptSceneAssets(script);
+            if(!assets.empty()) object["sceneAssets"]=assets;
             components.push_back(object);
         }
     }

@@ -72,3 +72,24 @@ Debugで検出した中間出力の重複警告は、前日の古いビルド状
 Developmentの全体ビルドとDebug・Releaseの検証プログラム・Appのビルドが成功しました。3構成のAppでタイトル60フレーム・公園300フレームと入力リプレイを確認しました。ReleaseではネイティブScriptの読み込み・再読み込み・ABI不一致拒否、およびEditorの自動コンパイル・Play中の反映待ち・Stop後の反映も成功しました。
 
 Debug・Releaseで通常回帰、既存25シーンの保存・再読み込みとD3D12描画、公園1,924フレームで12/12収集、海の描画・音声・互換性の回帰が終了コード0です。機能別回帰もDebugの8モード、Releaseの27モードが成功しました。追加したAuthoring検証は両構成で成功しました。ログは`generated/schema-{debug,release}-verified.txt`、`generated/schema-app-*.log`、`generated/schema-script-authoring.log`です。
+
+## 追加調査で再現した6件の修正（2026-10-13）
+
+- 削除済みオブジェクトの所属を同期時に取り除き、別シーンで再利用されたIDが元シーンのアンロードで消えないようにしました。重複所属は読み込みと変更検証で拒否します。
+- `SceneSnapshotCache`は`sceneObjects`も比較し、所属だけの変更をUndo・変更判定・復旧用JSONへ反映します。
+- Scriptコンパイルの開始・失敗時に以前の反映待ちを破棄します。失敗後にStopしても再生を許可せず、修正後の成功と再読み込みを待ちます。
+- アセット参照の解決をモデル・Material・画像・音声・シーン操作などの参照項目へ限定しました。Text・名前・通常のScript文字列は変更しません。Scriptの明示的な参照用途は`sceneAssets`に保存して保持します。構造変更に合わせモジュールABIを6に更新しました。
+- スキーマの文字列と項目名にNULが含まれる場合は生成を拒否し、既存ヘッダーを保持します。
+- ルートモーション用の衝突ワールドを通常の物理ワールドから独立させて再利用します。座標を同期し、形状・親子関係・構成・ルート・モデルとメタデータ・glTF/GLBの外部バッファが変わった場合は再構築します。無効なColliderは依存ファイルの監視から除外します。
+
+`tests/DeepStateValidation.h`に所属のID再利用、所属だけのキャッシュ更新、通常の文字列と宣言された参照の改名後の挙動、衝突ワールドの再利用・座標と形状の変更・通常物理への非干渉、外部モデルのバッファ変更と失敗時の候補保持を追加しました。Authoring検証はDebug・Releaseとも成功しました。
+
+Scriptの自動コンパイル検証は専用Contentへ分離し、成功の反映待ち→最新編集の失敗→Stop→修正後の成功を確認しました。ビルド側はContentの祖先からリポジトリを検出し、同じビルドスクリプトと結果保存先を使います。検証用ソースによる並行ビルドへの干渉を解消しました。
+
+最終静的解析は`AnalyzeCode.ps1 -Label deep-fixes-approved -Jobs 4`で、CppcheckのDebug・Development・ReleaseとLizardがすべて終了コード0です。閾値は変更せず、2,018関数・警告0件です。ログは`generated/deep-fixes-approved-analysis.log`と`generated/analysis/*-deep-fixes-approved*.txt`です。
+
+Developmentの全体ビルドとDebug・Releaseの検証プログラム・App・ネイティブモジュールのビルドが成功しました。3構成のAppでタイトル60フレームと公園300フレームの入力リプレイを確認しました。ネイティブScriptのビルド・読み込み・再読み込み・ABI拒否、Pythonの公園生成4テストとシーン変換8テストも成功しました。
+
+Releaseで衝突箱3,000個・移動対象1個の同じ合成条件を計測し、従来の約15ms/回から、初回構築後の再利用時には約6.6ms/回へ短縮しました。計測は描画やシーン全体のフレーム時間を含みません。時間の閾値を回帰テストへ固定せず、安定した条件で再構築が発生しないことと結果の一致を検証します。ログは`generated/deep-fixes-final-benchmark.log`です。
+
+最終コードでもDebug・Releaseの通常回帰、既存25シーンの保存・再読み込みとD3D12描画、公園1,924フレームで12/12収集、海の描画・音声・互換性がすべて終了コード0です。機能別回帰はReleaseの27モードとDebugの8モードが成功しました。ログは`generated/deep-fixes-{debug,release}-final-regressions.log`です。実際のContent用ネイティブモジュールもDebug・Development・ReleaseでABI 6として再ビルドしました。

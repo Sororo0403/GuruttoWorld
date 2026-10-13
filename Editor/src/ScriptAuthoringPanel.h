@@ -15,7 +15,7 @@ namespace Editor
         std::filesystem::path selected_;
         std::string status_;
         ULONGLONG nextScan_=0,changedAt_=0;
-        bool initialized_=false,needsBuild_=false,needsInstall_=false,ready_=true;
+        bool initialized_=false,needsBuild_=false,needsInstall_=false,ready_=true,buildFailed_=false;
         static bool GeneratedSchemaHeader(const std::filesystem::path& path)
         {
             const auto name=path.filename().string();
@@ -60,19 +60,21 @@ namespace Editor
         bool open=false;
         /// <summary>コンパイル済みで、再読み込み待ちでない場合に再生を許可します。</summary>
         bool Ready() const { return ready_ && !needsBuild_ && !needsInstall_ && !build_.Running(); }
+        bool Failed() const {return buildFailed_;}
         /// <summary>変更が安定したソースをコンパイルし、停止中に結果を読み込みます。</summary>
         void Poll(const std::filesystem::path& content,bool editing)
         {
             build_.Poll(content);
             if (const auto completed=build_.TakeCompleted()) {
+                buildFailed_=!*completed;
                 if (*completed) needsInstall_=true;
-                else { ready_=false; build_.open=true; }
+                else { needsInstall_=false; ready_=false; build_.open=true;status_="最新のゲーム処理のコンパイルに失敗しました。診断を確認して修正してください。"; }
             }
             try {
                 const auto now=GetTickCount64();
                 Observe(content,now);
                 if (needsBuild_ && !build_.Running() && now-changedAt_>=1000) {
-                    build_.Start(content); needsBuild_=false; ready_=false;
+                    build_.Start(content); needsInstall_=false; needsBuild_=false; ready_=false;buildFailed_=false;
                 }
                 if (needsInstall_ && editing && !build_.Running() && !needsBuild_) {
                     ready_=SceneRuntime::ScriptModule::Reload(content,status_); needsInstall_=false;
