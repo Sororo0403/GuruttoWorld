@@ -42,6 +42,14 @@ namespace PhysicsValidation
         Require(session.Runtime()->MovePlayers(0.1,0,0),"restarted physics falls");
         Require(std::abs(session.Runtime()->World().Layout().objects.back().position[1]-before[1])<0.0001f,"restart resets falling velocity");
         Require(session.Stop() && layout.Serialize()==saved,"physics play does not modify authored data");
+        auto sensor=Layout();sensor.objects.back().boxCollider->isTrigger=true;
+        sensor.objects.back().playerController->useGravity=false;sensor.objects.back().playerController->moveSpeed=100;
+        sensor.objects.back().position={0,.5f,0};
+        Require(session.Play(renderer,root,sensor,error),"trigger controller session initializes");
+        Require(session.Runtime()->MovePlayers(.1,1,0) && session.Runtime()->World().Layout().objects.back().position[0]>2,
+            "runtime trigger controller passes through solid walls");
+        Require(renderer.Render({0,0,0,1},[&](auto* commands,float){session.Draw(commands,renderer.GetWidth(),renderer.GetHeight());})!=Engine::RenderResult::Failed &&
+            renderer.WaitForIdle() && session.Stop(),"trigger controller runtime renders and stops safely");
 #if defined(_DEBUG)
         Editor::EditState state;
         for (int frame=0;frame<2;++frame)
@@ -89,6 +97,14 @@ namespace PhysicsValidation
         Require(std::abs(layout.objects.back().position[0]-1.45f)<0.0001f,"thin wall prevents tunneling");
         Require(ScenePhysics::Advance(layout,states,0.1,-1,0,false),"move away from wall");
         Require(layout.objects.back().position[0]<1,"wall does not trap player");
+        layout=Layout();states.clear();layout.objects.back().boxCollider->isTrigger=true;
+        layout.objects.back().playerController->moveSpeed=100;layout.objects.back().playerController->useGravity=false;
+        layout.objects.back().position={0,.5f,0};
+        Require(ScenePhysics::Advance(layout,states,.1,1,0,false) && layout.objects.back().position[0]>9.9f && !states.at("player").grounded,
+            "trigger controller ignores solid-wall sweeps and grounding");
+        layout=Layout();states.clear();layout.objects.back().boxCollider->isTrigger=true;
+        for(int tick=0;tick<120;++tick) Require(ScenePhysics::Advance(layout,states,1.0/60,0,0,true),"trigger gravity tick");
+        Require(layout.objects.back().position[1]<0 && !states.at("player").grounded,"trigger controller falls through a solid floor and cannot jump from it");
         layout=Layout(); states.clear(); layout.objects[0].boxCollider->enabled=false;
         for (int tick=0;tick<120;++tick) Require(ScenePhysics::Advance(layout,states,1.0/60,0,0,false),"disabled floor tick");
         Require(layout.objects.back().position[1]<0,"disabled collider allows falling");

@@ -51,7 +51,7 @@ namespace
     float Sweep(const SceneLayout& layout,const std::vector<Matrix>& matrices,size_t index,size_t axis,float distance)
     {
         const auto& object=layout.objects[index];
-        if (!object.boxCollider || !object.boxCollider->enabled) return distance;
+        if (!object.boxCollider || !object.boxCollider->enabled || object.boxCollider->isTrigger) return distance;
         const auto moving=Box(*object.boxCollider,matrices[index]);
         for (size_t other=0;other<layout.objects.size();++other)
         {
