@@ -21,6 +21,9 @@ namespace GamePlaybackParityValidation
             auto playerWorld=std::make_shared<SceneRuntime::SceneEnvironment>();
             auto player=std::make_unique<App::AuthoredScene>(root,scene,playerWorld,false,true,directory/"player.json");
             require(player->Initialize(renderer),"parity player initializes");
+            std::string startTarget;
+            if(const auto* configuration=SceneRuntime::TitleBindings::Configuration(playerWorld->World().Layout()))
+                for(const auto& entry:configuration->entries) if(entry.index==0) startTarget=entry.target;
             Editor::GameSession editor;std::string error;
             require(editor.Play(renderer,root,SceneRuntime::SceneLayout::Load(root/scene,root),error,directory/"editor.json"),"parity editor initializes");
             Engine::InputActions actions;actions.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions);
@@ -47,7 +50,7 @@ namespace GamePlaybackParityValidation
             };
             require(player->Draw(renderer)!=Engine::RenderResult::Failed,"parity player draws");
             bool entered=false,returned=false,started=false;int loads=0,quits=0;
-            std::string previousScene=playerWorld->ActiveSceneName();
+            auto previousRevision=playerWorld->SceneRevision();bool startRequested=false;
             for(int frame=0;frame<frames;++frame) {
                 keys.fill(0);bool active=true;pointer.x=1250;pointer.y=700;pointer.buttons=0;
                 if(startTitle) {
@@ -72,6 +75,7 @@ namespace GamePlaybackParityValidation
                     if(frame>=40 && frame<45) active=false;
                 }
                 keyboard.ApplyDiagnosticState(nullptr,active,keys,pointer);
+                if((startTitle && frame==90) || (title && !pointerTitle && !quitTitle && !startTitle && frame==325)) startRequested=true;
                 const auto input=Engine::InputActions::Capture(keyboard,nullptr,true);actions.Update(input);
                 // These are the host adapters in production: input is staged, then the shared frame tick runs.
                 if(active) editor.PrepareInput(actions,true,1.0/60,&input);
@@ -87,10 +91,11 @@ namespace GamePlaybackParityValidation
                     GamePlaybackCapture::Capture(renderer,*editor.Runtime(),1280,720,"editor-"+name);
                 }
                 const auto current=playerWorld->ActiveSceneName();
-                if(current!=previousScene) {++loads;previousScene=current;std::cout<<"loaded "<<current<<" frame "<<frame<<'\n';}
+                const bool loaded=playerWorld->SceneRevision()!=previousRevision;
+                if(loaded) {++loads;previousRevision=playerWorld->SceneRevision();std::cout<<"loaded "<<current<<" frame "<<frame<<'\n';}
                 entered=entered || current=="Assets/Scenes/Settings.json";
                 returned=returned || (entered && current=="Assets/Scenes/TitleStreet.json");
-                started=started || current=="Assets/Scenes/ParkAdventure.json";
+                started=started || (loaded && startRequested && current==startTarget);
                 if(frame%60==0) {
                     require(player->Draw(renderer)!=Engine::RenderResult::Failed,"parity player frame draws");
                     require(renderer.Render({0,0,0,1},[&](auto* commands,float) {editor.Draw(commands,renderer.GetWidth(),renderer.GetHeight());})!=Engine::RenderResult::Failed,"parity editor frame draws");

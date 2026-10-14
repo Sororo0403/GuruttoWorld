@@ -11,6 +11,9 @@ namespace TitleDepartureValidation
     {
         const auto require=[](bool ok,const char* message) {if(!ok) throw std::runtime_error(message);};
         const auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json",root);
+        const auto* configuration=SceneRuntime::TitleBindings::Configuration(layout);require(configuration!=nullptr,"departure has authored menu");
+        const auto start=std::find_if(configuration->entries.begin(),configuration->entries.end(),[](const auto& entry) {return entry.index==0;});
+        require(start!=configuration->entries.end(),"departure has START entry");
         const auto path=std::filesystem::absolute("generated/tests/title-departure")/std::to_string(GetTickCount64())/"settings.json";
         for(const bool quit:{false,true}) {
             Editor::GameSession session;std::string error;require(session.Play(renderer,root,layout,error,path),"departure fixture initializes");
@@ -86,7 +89,7 @@ namespace TitleDepartureValidation
             }
             require(paletteCaptured && covered && closes==(quit ? 1 : 0) && loads==(quit ? 0 : 1),"departure emits exactly one authored close or game load after visual completion");
             if(quit) {for(int frame=0;frame<20;++frame) require(!tick(),"QUIT close notification cannot repeat");}
-            else require(session.Runtime()->ActiveSceneName()=="Assets/Scenes/ParkAdventure.json","START loads game after road travel");
+            else require(session.Runtime()->ActiveSceneName()==start->target,"START loads authored target after road travel");
             std::cout<<(quit ? "QUIT" : "START")<<" departure full palette/camera/paused step/completion passed\n";
             require(renderer.WaitForIdle(),"departure GPU completes");session.Stop();
         }
