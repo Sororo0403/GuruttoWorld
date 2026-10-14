@@ -91,6 +91,8 @@ namespace SceneRuntime
         const UiState* uiPreparationOverride_=nullptr;
         std::optional<SceneUi> pendingUiResources_;
         SceneAudio audio_;
+        /// <summary>ポインターとActionによるUI操作を同じスクリプトイベントへ通知します。</summary>
+        void NotifyUiEvent(const UiEvent& event);
         SceneWorld world_;
         ScenePresentation presentation_;
         double seconds_=0;

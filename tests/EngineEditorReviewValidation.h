@@ -78,6 +78,34 @@ namespace EngineEditorReviewValidation
         Require(!world.DuplicateObjects({"light0"},{},created,error) && !error.empty() && created.empty() &&
             world.Layout().Serialize()==lights && world.RenderVersion()==lightsVersion,"33rd light duplication is rejected atomically");
     }
+    /// <summary>マウス・キーボード・ゲームパッドから同じScriptイベントが一度ずつ届くことを確認します。</summary>
+    inline void UiEvents(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
+    {
+        SceneRuntime::ScriptDefinition definition;definition.update=[](SceneRuntime::ScriptContext&) {};
+        definition.onEvent=[](SceneRuntime::ScriptContext& context) {if(context.event->name=="activate") context.object.position[0]+=1;};
+        Require(SceneRuntime::ScriptRegistry::Register("ReviewUiEvents",definition),"UI event receiver registers");
+        SceneRuntime::ScenePlacement canvas;canvas.id="canvas";canvas.canvas.emplace();canvas.canvas->referenceSize={64,64};
+        canvas.scripts.push_back({"events",true,"ReviewUiEvents",{}});
+        SceneRuntime::ScenePlacement button;button.id="button";button.parentId="canvas";button.rectTransform.emplace();
+        button.rectTransform->size={64,64};button.button.emplace();button.button->event="activate";button.button->inputAction="Confirm";
+        SceneRuntime::SceneLayout layout;layout.objects={canvas,button};std::string error;SceneRuntime::SceneEnvironment environment;
+        Require(environment.Initialize(renderer,root,layout,error),error.c_str());SceneRuntime::GamePlayback playback;
+        playback.Initialize(environment,root,Fixtures()/"settings.json",false);
+        playback.Pointer(environment,64,64,{30,30,false,false,false,0},true);
+        playback.Pointer(environment,64,64,{30,30,true,false,false,0},true);
+        playback.Pointer(environment,64,64,{30,30,false,false,false,0},true);
+        environment.Update(.016,true,true);
+        Require(environment.World().Layout().objects.front().position[0]==1,"pointer click delivers exactly one script event");
+        Engine::InputActions actions;Engine::InputSnapshot snapshot;snapshot.active=true;actions.Update(snapshot);
+        snapshot.down[DIK_RETURN]=snapshot.pressed[DIK_RETURN]=true;actions.Update(snapshot);
+        playback.Shortcut(environment,actions,64,64,true);
+        environment.Update(.016,true,true);
+        Require(environment.World().Layout().objects.front().position[0]==2,"keyboard shortcut delivers same script event");
+        snapshot={};snapshot.active=true;snapshot.gamepadConnected=true;actions.Update(snapshot);
+        snapshot.buttons=snapshot.pressedButtons=XINPUT_GAMEPAD_A;actions.Update(snapshot);playback.Shortcut(environment,actions,64,64,true);
+        environment.Update(.016,true,true);
+        Require(environment.World().Layout().objects.front().position[0]==3,"gamepad shortcut delivers same script event");
+    }
     /// <summary>GPU実行中の参照保持とフレーム枠再利用時のテクスチャ解放を検証します。</summary>
     inline void TextureLifetime(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
     {
@@ -115,6 +143,6 @@ namespace EngineEditorReviewValidation
     /// <summary>追加済みの実行時の回帰条件を検証します。</summary>
     inline void Runtime(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
     {
-        DuplicateLimits(renderer,root);TextureLifetime(renderer,root);
+        DuplicateLimits(renderer,root);UiEvents(renderer,root);TextureLifetime(renderer,root);
     }
 }

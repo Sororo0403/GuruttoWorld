@@ -189,6 +189,7 @@ namespace SceneRuntime
             if(event.action=="loadSceneAdditive") uiSceneCommands_.push_back({event.target,true,false});
             if(event.action=="unloadScene") uiSceneCommands_.push_back({event.target,false,true});
         }
+        NotifyUiEvent(event);
         return event;
     }
     bool SceneEnvironment::RequiresFixedUpdate(const SceneLayout& layout)
@@ -272,22 +273,23 @@ namespace SceneRuntime
         const bool button=found!=world_.Layout().objects.end() && found->button && found->button->enabled && !found->toggle && !found->inputField;
         auto event=SceneUi::Pointer(world_.Layout(),width,height,{x,y,down,pressed,released && !button,wheel},uiState_);
         if(released && button) {
-            if(pressedObject==uiState_.hovered) event=Click(pressedObject);
             uiState_.pressed.clear();
+            if(pressedObject==uiState_.hovered) return Click(pressedObject);
         }
+        NotifyUiEvent(event);
+        return event;
+    }
+    void SceneEnvironment::NotifyUiEvent(const UiEvent& event)
+    {
         if(!event.event.empty()) {
             ScriptEvent scriptEvent; scriptEvent.name=event.event; scriptEvent.sender=event.object; scriptEvent.value=event.value; scriptEvent.text=event.text;
             std::string error; if(!QueueScriptEvent(std::move(scriptEvent),error)) Engine::Log::Warning(error);
         }
-        return event;
     }
     UiEvent SceneEnvironment::UiTextInput(char32_t character)
     {
         auto event=SceneUi::TextInput(world_.Layout(),character,uiState_);
-        if(!event.event.empty()) {
-            ScriptEvent scriptEvent; scriptEvent.name=event.event; scriptEvent.sender=event.object; scriptEvent.value=event.value; scriptEvent.text=event.text;
-            std::string error; if(!QueueScriptEvent(std::move(scriptEvent),error)) Engine::Log::Warning(error);
-        }
+        NotifyUiEvent(event);
         return event;
     }
     void SceneEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height, const Engine::Camera* sceneCamera, bool showSceneUi) const
