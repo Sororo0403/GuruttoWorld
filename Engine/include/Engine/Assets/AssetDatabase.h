@@ -215,10 +215,42 @@ private:
       }
   }
 
+  /// <summary>Shader移動時に直接includeの相対位置を保持し、書き換えできない指定は移動前に拒否します。</summary>
+  static std::string RelocateShaderIncludes(const std::string& original,const std::filesystem::path& from,const std::filesystem::path& to)
+  {
+      std::istringstream lines(original);std::string line,revised;
+      while(std::getline(lines,line))
+      {
+          auto directive=line.find_first_not_of(" \t");
+          if(directive!=std::string::npos && line[directive]=='#')
+          {
+              directive=line.find_first_not_of(" \t",directive+1);
+              if(directive!=std::string::npos && line.compare(directive,7,"include")==0 &&
+                  (directive+7==line.size() || std::isspace(static_cast<unsigned char>(line[directive+7])) || line[directive+7]=='\"' || line[directive+7]=='<'))
+              {
+                  const auto begin=line.find_first_not_of(" \t",directive+7);
+                  if(begin==std::string::npos || (line[begin]!='\"' && line[begin]!='<'))
+                      throw std::runtime_error("マクロを使うincludeがあるShaderは、相対参照を保つため同じフォルダー内で改名してください。");
+                  const auto end=line.find(line[begin]=='\"'?'\"':'>',begin+1);
+                  if(end==std::string::npos) throw std::runtime_error("Shaderのinclude指定が不正です。");
+                  const auto reference=Path(line.substr(begin+1,end-begin-1));
+                  if(!reference.is_absolute() && !reference.has_root_name())
+                      line.replace(begin+1,end-begin-1,Text((from.parent_path()/reference).lexically_normal().lexically_relative(to.parent_path())));
+              }
+          }
+          revised+=line+'\n';
+      }
+      return revised;
+  }
   void RewriteDependencies(const std::filesystem::path &from, const std::filesystem::path &to, std::string &original, std::string &revised) const
   {
       auto extension=Text(from.extension());
       std::transform(extension.begin(),extension.end(),extension.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
+      if(from.parent_path()!=to.parent_path() && (extension==".hlsl" || extension==".hlsli")) {
+          std::ifstream input(root_/from,std::ios::binary);original={std::istreambuf_iterator<char>(input),{}};
+          if(!input || input.bad()) throw std::runtime_error("Shaderの移動前データを読み取れません。");
+          revised=RelocateShaderIncludes(original,from,to);return;
+      }
       if (from.parent_path() != to.parent_path() && (extension == ".gltf" || extension == ".obj")) {
           std::ifstream input(root_ / from, std::ios::binary); original = {std::istreambuf_iterator<char>(input), {}};
           if (extension == ".gltf") {

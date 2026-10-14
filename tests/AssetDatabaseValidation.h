@@ -27,8 +27,42 @@ inline void AliasLimit() {
     metadata.previousPaths.back()=AssetDatabase::Text(source);AssetDatabase::Write(root/source,metadata);AssetDatabase(root).Move(source,target);
     Require(AssetDatabase::Read(root/target).previousPaths.size()==1024&&AssetDatabase(root).Resolve(source,metadata.id)==target,"known alias at limit remains movable without duplicate history");
 }
+/// <summary>Shaderの改名・移動後もincludeを解決し、変更や旧名の再利用を検出します。</summary>
+inline void ShaderMoves() {
+    using Engine::AssetDatabase;
+    const auto root=std::filesystem::absolute("generated/tests/shader-moves")/
+        (std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
+    std::filesystem::create_directories(root/"Shaders/Nested");
+    const auto write=[&](const char* path,const char* text){std::ofstream file(root/path,std::ios::binary);file<<text;};
+    write("Shaders/Test.hlsl","#include \"Shared.hlsli\"\nfloat4 PSMain() : SV_TARGET {return Value();}\n");
+    write("Shaders/Shared.hlsli","#include \"Nested/Color.hlsli\"\n");
+    write("Shaders/Nested/Color.hlsli","float4 Value() {return float4(1,0,0,1);}\n");
+    Microsoft::WRL::ComPtr<ID3DBlob> original,moved,changed,recreated;
+    const auto compile=[&](auto& output){return Engine::CompileShader(root/"Shaders/Test.hlsl","PSMain","ps_5_0",output);};
+    Require(compile(original),"shader include fixture compiles before moves");
+    AssetDatabase(root).Move("Shaders/Shared.hlsli","Shaders/Renamed.hlsli");
+    Require(compile(moved),"shader include follows a renamed asset alias");
+    AssetDatabase(root).Move("Shaders/Renamed.hlsli","Shaders/Moved/Renamed.hlsli");
+    Require(compile(moved),"moved include retains its relative nested dependencies");
+    AssetDatabase(root).Move("Shaders/Nested/Color.hlsli","Shaders/Else/Color.hlsli");
+    Require(compile(moved),"nested include follows its own moved alias");
+    write("Shaders/Else/Color.hlsli","float4 Value() {return float4(0,1,0,1);}\n");
+    Require(compile(changed) && changed.Get()!=moved.Get(),"aliased include edits invalidate shader bytecode");
+    write("Shaders/Shared.hlsli","float4 Value() {return float4(0,0,1,1);}\n");
+    Require(compile(recreated) && recreated.Get()!=changed.Get(),"a recreated physical include overrides its old alias without stale cache");
+    AssetDatabase(root).Move("Shaders/Test.hlsl","Shaders/TestMoved.hlsl");
+    Require(compile(moved),"main shader entry path follows a renamed asset alias");
+    AssetDatabase(root).Move("Shaders/TestMoved.hlsl","Shaders/Moved/TestMoved.hlsl");
+    Require(compile(moved),"main shader folder move preserves its relative include and old entry path");
+    write("Shaders/Macro.hlsl","#define HEADER \"Shared.hlsli\"\n#include HEADER\nfloat4 PSMain() : SV_TARGET {return Value();}\n");
+    const auto metadata=AssetDatabase::Ensure(root/"Shaders/Macro.hlsl");bool rejected=false;
+    try {AssetDatabase(root).Move("Shaders/Macro.hlsl","Shaders/Moved/Macro.hlsl");} catch(const std::exception&) {rejected=true;}
+    Require(rejected && std::filesystem::is_regular_file(root/"Shaders/Macro.hlsl") &&
+        AssetDatabase::Read(root/"Shaders/Macro.hlsl").id==metadata.id && !std::filesystem::exists(root/"Shaders/Moved/Macro.hlsl"),
+        "unrewritable macro include move preserves the shader and its ID");
+}
 inline void Run() {
-    AliasLimit();
+    AliasLimit();ShaderMoves();
     using namespace Engine; using namespace SceneRuntime;
     const auto root=std::filesystem::absolute("generated/tests/asset-ids/"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
     std::filesystem::create_directories(root/"Assets/Models"); std::filesystem::create_directories(root/"Assets/Scenes");

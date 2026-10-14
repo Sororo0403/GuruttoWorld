@@ -1,4 +1,5 @@
 #include <Engine/Graphics/ShaderCompiler.h>
+#include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Profiler.h>
 #include <format>
@@ -14,6 +15,7 @@
 #include <vector>
 #include <cstdlib>
 #include <regex>
+#include <optional>
 
 #pragma comment(lib, "Bcrypt.lib")
 
@@ -165,10 +167,20 @@ namespace
             auto base = source_.parent_path();
             if (const auto found = opened_.find(parent); found != opened_.end()) base = found->second.first.parent_path();
             std::error_code error;
-            const auto path = std::filesystem::weakly_canonical(base / std::filesystem::path(std::u8string(reinterpret_cast<const char8_t*>(name))), error);
+            auto path = std::filesystem::weakly_canonical(base / std::filesystem::path(std::u8string(reinterpret_cast<const char8_t*>(name))), error);
             if (error) return E_FAIL;
             auto content = std::make_unique<std::string>();
-            if (!Read(path, *content) || content->size() > std::numeric_limits<UINT>::max()) return E_FAIL;
+            if (!Read(path, *content))
+            {
+                const auto root=Engine::AssetDatabase::Root(source_);
+                const auto relative=path.lexically_relative(root);
+                if(root.empty() || !Engine::AssetDatabase::Valid(relative)) return E_FAIL;
+                if(!assets_) assets_.emplace(root);
+                path=std::filesystem::weakly_canonical(root/assets_->Resolve(relative),error);
+                if(error || !Read(path,*content)) return E_FAIL;
+                usedAlias=true;
+            }
+            if (content->size() > std::numeric_limits<UINT>::max()) return E_FAIL;
             dependencies[path] = *content;
             const auto address=content->data();
             const auto [stored,inserted]=opened_.emplace(address,std::make_pair(path,std::move(content)));
@@ -184,8 +196,10 @@ namespace
             return opened_.erase(data) == 1 ? S_OK : E_FAIL;
         }
         std::map<std::filesystem::path, std::string> dependencies;
+        bool usedAlias=false;
     private:
         std::filesystem::path source_;
+        std::optional<Engine::AssetDatabase> assets_;
         std::map<const void*, std::pair<std::filesystem::path, std::unique_ptr<std::string>>> opened_;
     };
 }
@@ -196,8 +210,16 @@ namespace Engine
     {
         revision.clear();
         std::error_code error;
-        const auto sourcePath = std::filesystem::weakly_canonical(path, error);
+        auto sourcePath = std::filesystem::weakly_canonical(path, error);
         if (error) return false;
+        if(!std::filesystem::is_regular_file(sourcePath))
+        {
+            const auto root=AssetDatabase::Root(sourcePath);
+            const auto relative=sourcePath.lexically_relative(root);
+            if(root.empty() || !AssetDatabase::Valid(relative)) return false;
+            sourcePath=std::filesystem::weakly_canonical(root/AssetDatabase(root).Resolve(relative),error);
+            if(error || !std::filesystem::is_regular_file(sourcePath)) return false;
+        }
         struct CachedSource
         {
             std::map<std::filesystem::path, std::string> dependencies;
@@ -233,7 +255,8 @@ namespace Engine
         revision = PortableRevision(revision);
         includes.dependencies[sourcePath] = std::move(bytes);
         if (cache.size() >= 64) cache.clear();
-        cache.emplace(sourcePath, CachedSource{std::move(includes.dependencies), revision});
+        // Recheck aliases on every preprocess so metadata changes and recreated old paths cannot leave a stale include.
+        if(!includes.usedAlias) cache.emplace(sourcePath, CachedSource{std::move(includes.dependencies), revision});
         return true;
     }
 
