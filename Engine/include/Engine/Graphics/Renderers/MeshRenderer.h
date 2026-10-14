@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <span>
 #include <tuple>
+#include <limits>
 #include <Engine/Graphics/Models/MeshData.h>
 #include <Engine/Graphics/Renderers/ShadowMap.h>
 
@@ -98,18 +99,30 @@ namespace Engine
             ID3D12DescriptorHeap* heap;
         };
         static TransformConstants MakeTransforms(DirectX::FXMMATRIX worldMatrix,const DirectX::XMFLOAT4X4& viewProjection,const Material* material);
-        ID3D12DescriptorHeap* SurfaceBindings(const DirectionalLight& light,const Material* material,const LocalLightView& lights,const SkinPaletteView& skin,const SkinPaletteView& instances) const;
+        ID3D12DescriptorHeap* SurfaceBindings(ID3D12GraphicsCommandList* commands,const DirectionalLight& light,const Material* material,const LocalLightView& lights,const SkinPaletteView& skin,const SkinPaletteView& instances) const;
         void BindDraw(ID3D12GraphicsCommandList* commands,const DrawBindings& bindings) const;
 
         bool PrepareLocalLighting(ID3D12GraphicsCommandList* commands,const DirectionalLight& light,const Material* material,std::array<float,26>& constants,LocalLightView& lights) const;
         bool PrepareDeformation(ID3D12GraphicsCommandList* commands,const MeshDeformation& deformation,const DirectX::XMFLOAT4X4& viewProjection,bool mirrored,SkinPaletteView& view) const;
-        /// <summary>色・法線・影・局所ライトの不変ディスクリプターを共有します。</summary>
-        ID3D12DescriptorHeap* Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture,
+        /// <summary>不変ディスクリプターを共有し、フェンス完了済みのフレーム枠から古い参照を解放します。</summary>
+        ID3D12DescriptorHeap* Bindings(ID3D12GraphicsCommandList* commands,const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture,
             const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights,const SkinPaletteView& palette,
             const SkinPaletteView& instances={},const ShadowMap* localShadow=nullptr,
             const std::array<std::shared_ptr<const Texture2D>,2>& surfaceImages={}) const;
-        struct Binding { Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap; std::shared_ptr<const Texture2D> texture,normal,environment,lightmap; };
-        mutable std::map<std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*,ID3D12Resource*,ID3D12Resource*,ID3D12Resource*,ID3D12Resource*,const Texture2D*,const Texture2D*>,Binding> bindings_;
+        using BindingKey=std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*,ID3D12Resource*,ID3D12Resource*,ID3D12Resource*,ID3D12Resource*,const Texture2D*,const Texture2D*>;
+        struct Binding {
+            Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap;
+            std::shared_ptr<const Texture2D> texture,normal,environment,lightmap;
+            std::array<Microsoft::WRL::ComPtr<ID3D12Resource>,5> resources;
+        };
+        struct BindingFrame {
+            UINT64 serial=std::numeric_limits<UINT64>::max();
+            std::map<BindingKey,std::shared_ptr<Binding>> entries;
+        };
+        mutable std::map<BindingKey,std::weak_ptr<Binding>> bindings_;
+        mutable std::array<BindingFrame,RenderFrameContext::SlotCount> bindingFrames_;
+        // フレーム情報のない独自コマンドでは、従来どおり呼び出し側がGPU完了を管理します。
+        mutable std::map<BindingKey,std::shared_ptr<Binding>> unmanagedBindings_;
         size_t requiredPaletteSize_=1;
         bool initialized_ = false;
         UINT indexCount_ = 0;

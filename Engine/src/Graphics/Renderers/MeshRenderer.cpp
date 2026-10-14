@@ -89,14 +89,27 @@ bool MeshRenderer::PrepareDeformation(ID3D12GraphicsCommandList *commands, const
     }
     return true;
 }
-    ID3D12DescriptorHeap* MeshRenderer::Bindings(const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& overrideTexture,
+    ID3D12DescriptorHeap* MeshRenderer::Bindings(ID3D12GraphicsCommandList* commands,const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& overrideTexture,
         const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights,const SkinPaletteView& palette,const SkinPaletteView& instances,const ShadowMap* localShadow,
         const std::array<std::shared_ptr<const Texture2D>,2>& surfaceImages) const
     {
+        auto* entries=&unmanagedBindings_;
+        RenderFrameContext context;
+        if(RenderFrameContext::Current(commands,context)) {
+            auto& frame=bindingFrames_[context.slot];
+            if(frame.serial!=context.serial) {
+                frame.entries.clear(); frame.serial=context.serial;
+                std::erase_if(bindings_,[](const auto& entry) {return entry.second.expired();});
+            }
+            entries=&frame.entries;
+        }
         const auto& [environment,lightmap]=surfaceImages;
         const std::shared_ptr<const Texture2D> texture=overrideTexture ? overrideTexture : texture_;
         const auto key=std::tuple{shadow ? shadow->Resource() : nullptr,texture.get(),normal.get(),lights.resource,palette.resource,instances.resource,localShadow ? localShadow->Resource() : nullptr,environment.get(),lightmap.get()};
-        if (const auto found=bindings_.find(key);found!=bindings_.end()) return found->second.heap.Get();
+        if (const auto found=entries->find(key);found!=entries->end()) return found->second->heap.Get();
+        if (const auto found=bindings_.find(key);found!=bindings_.end()) {
+            if(auto binding=found->second.lock()) return entries->emplace(key,std::move(binding)).first->second->heap.Get();
+        }
         Microsoft::WRL::ComPtr<ID3D12Device> device;
         if (FAILED(meshBuffer_->GetDevice(IID_PPV_ARGS(&device)))) return nullptr;
         D3D12_DESCRIPTOR_HEAP_DESC description{};
@@ -164,15 +177,20 @@ bool MeshRenderer::PrepareDeformation(ID3D12GraphicsCommandList *commands, const
                 device->CreateShaderResourceView(nullptr,&view,handle);
             }
         }
-        // 各組み合わせを保持し、実行中のフレームが参照する SRV を書き換えません。
-        return bindings_.emplace(key,Binding{std::move(heap),texture,normal,environment,lightmap}).first->second.heap.Get();
+        auto binding=std::make_shared<Binding>(); binding->heap=std::move(heap);
+        binding->texture=texture; binding->normal=normal; binding->environment=environment; binding->lightmap=lightmap;
+        const std::array<ID3D12Resource*,5> retained{shadow ? shadow->Resource() : nullptr,lights.resource,palette.resource,instances.resource,localShadow ? localShadow->Resource() : nullptr};
+        for(size_t index=0;index<retained.size();++index) binding->resources[index]=retained[index];
+        // キャッシュ自体は弱参照とし、描画したフレームだけが資源を保持します。
+        bindings_[key]=binding;
+        return entries->emplace(key,std::move(binding)).first->second->heap.Get();
     }
     void MeshRenderer::DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,std::span<const SkinMatrix> palette) const
     {
         if (!initialized_ || !commands || (!palette.empty() && palette.size()<requiredPaletteSize_)) return;
         const auto skin=palette.empty() ? SkinPaletteView{} : resources_->PrepareSkin(commands,palette);
         if (!palette.empty() && !skin.resource) { Log::Error("Cannot prepare shadow skin palette."); return; }
-        auto* heap=Bindings(nullptr,nullptr,nullptr,{},skin); if (!heap) return;
+        auto* heap=Bindings(commands,nullptr,nullptr,nullptr,{},skin); if (!heap) return;
         auto handle=heap->GetGPUDescriptorHandleForHeapStart();
         Microsoft::WRL::ComPtr<ID3D12Device> device; if (FAILED(meshBuffer_->GetDevice(IID_PPV_ARGS(&device)))) return;
         handle.ptr+=4ULL*device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -248,9 +266,9 @@ bool MeshRenderer::PrepareDeformation(ID3D12GraphicsCommandList *commands, const
         commands->IASetVertexBuffers(0, 1, &vertexView_);
         commands->IASetIndexBuffer(&indexView_);
     }
-    ID3D12DescriptorHeap *MeshRenderer::SurfaceBindings(const DirectionalLight &light, const Material *material, const LocalLightView &localLights, const SkinPaletteView &skin, const SkinPaletteView &instanceView) const
+    ID3D12DescriptorHeap *MeshRenderer::SurfaceBindings(ID3D12GraphicsCommandList* commands,const DirectionalLight &light, const Material *material, const LocalLightView &localLights, const SkinPaletteView &skin, const SkinPaletteView &instanceView) const
     {
-        return Bindings(light.shadow, material ? material->texture : nullptr, material ? material->normalTexture : nullptr, localLights, skin, instanceView, light.localShadow,
+        return Bindings(commands,light.shadow, material ? material->texture : nullptr, material ? material->normalTexture : nullptr, localLights, skin, instanceView, light.localShadow,
                         {material ? material->environmentTexture : nullptr, material ? material->lightmap : nullptr});
     }
     void MeshRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
@@ -278,7 +296,7 @@ bool MeshRenderer::PrepareDeformation(ID3D12GraphicsCommandList *commands, const
         SkinPaletteView instanceView;
         if(!PrepareDeformation(commands,deformation,viewProjection,mirrored,instanceView)) return;
         if(!instances.empty()) lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|32U);
-        auto* heap=SurfaceBindings(light,material,localLights,skin,instanceView);
+        auto* heap=SurfaceBindings(commands,light,material,localLights,skin,instanceView);
         if (!heap) { Log::Error("Cannot allocate mesh texture/shadow bindings."); return; }
         BindDraw(commands,{mirrored,hdr,material,&constants,&lightConstants,&uvTransform,heap});
         commands->DrawIndexedInstanced(indexCount_, instances.empty() ? 1U : static_cast<UINT>(instances.size()), 0, 0, 0);

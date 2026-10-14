@@ -78,9 +78,43 @@ namespace EngineEditorReviewValidation
         Require(!world.DuplicateObjects({"light0"},{},created,error) && !error.empty() && created.empty() &&
             world.Layout().Serialize()==lights && world.RenderVersion()==lightsVersion,"33rd light duplication is rejected atomically");
     }
+    /// <summary>GPU実行中の参照保持とフレーム枠再利用時のテクスチャ解放を検証します。</summary>
+    inline void TextureLifetime(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
+    {
+        Engine::MeshData data;data.vertices={{{-1,-1,.1f},{0,0,-1}},{{0,1,.1f},{0,0,-1}},{{1,-1,.1f},{0,0,-1}}};data.indices={0,1,2};
+        Engine::MeshRenderer mesh;Require(mesh.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),data,root/"Shaders/Mesh.hlsl"),"texture lifetime mesh initializes");
+        DirectX::XMFLOAT4X4 identity;DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());
+        const auto texture=[&](std::vector<unsigned char> pixels) {
+            auto result=std::make_shared<Engine::Texture2D>();Require(result->InitializePixels(renderer.GetDevice(),renderer.GetCommandQueue(),1,1,pixels),"test texture initializes");return result;
+        };
+        std::vector<std::weak_ptr<Engine::Texture2D>> previous;
+        for(int i=0;i<8;++i) {
+            auto image=texture({255,255,255,255});previous.push_back(image);Engine::Material material;material.texture=std::move(image);
+            Require(renderer.Render({0,0,0,1},[&](auto* commands,float) {
+                mesh.Draw(commands,identity,identity,{}, {},{},&material);material.texture.reset();
+                Require(!previous.back().expired(),"recorded frame retains texture after caller drops it");
+            })!=Engine::RenderResult::Failed,"texture replacement frame submits");
+        }
+        Require(renderer.WaitForIdle(),"replacement frames complete");
+        Require(std::count_if(previous.begin(),previous.end(),[](const auto& value) {return !value.expired();})<=Engine::RenderFrameContext::SlotCount,
+            "discarded material textures are bounded by in-flight frame slots");
+        for(unsigned int i=0;i<Engine::RenderFrameContext::SlotCount;++i)
+            Require(renderer.Render({0,0,0,1},[&](auto* commands,float) {mesh.Draw(commands,identity,identity);})!=Engine::RenderResult::Failed,"neutral frame submits");
+        Require(renderer.WaitForIdle() && std::all_of(previous.begin(),previous.end(),[](const auto& value) {return value.expired();}),"recycled frame slots release all discarded textures");
+        Engine::Material red,blue;red.texture=texture({255,0,0,255});blue.texture=texture({0,0,255,255});
+        const std::weak_ptr<const Engine::Texture2D> redWeak=red.texture,blueWeak=blue.texture;
+        Engine::DirectionalLight unlit;unlit.enabled=false;
+        const auto pixel=EnvironmentValidation::Pixel(renderer,[&](auto* commands) {
+            const D3D12_RECT left{0,0,32,32},right{32,0,64,32};commands->RSSetScissorRects(1,&left);
+            mesh.Draw(commands,identity,identity,unlit,{}, {},&red);red.texture.reset();commands->RSSetScissorRects(1,&right);
+            mesh.Draw(commands,identity,identity,unlit,{}, {},&blue);blue.texture.reset();
+            Require(!redWeak.expired() && !blueWeak.expired(),"multiple draws retain independent immutable descriptors");
+        });
+        Require(pixel[2]>240 && pixel[0]<10 && pixel[1]<10,"GPU samples last draw texture after caller releases both textures");
+    }
     /// <summary>追加済みの実行時の回帰条件を検証します。</summary>
     inline void Runtime(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
     {
-        DuplicateLimits(renderer,root);
+        DuplicateLimits(renderer,root);TextureLifetime(renderer,root);
     }
 }
