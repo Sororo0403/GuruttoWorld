@@ -2,6 +2,7 @@
 #include "EnvironmentValidation.h"
 #include <SceneRuntime/SceneUi.h>
 #include "TitleConfigTransitionValidation.h"
+#include <SceneRuntime/TitleController.h>
 
 namespace TitlePresentationValidation
 {
@@ -47,8 +48,9 @@ namespace TitlePresentationValidation
         if (name.starts_with("covered"))
         {
             for (const auto offset:std::array<SIZE_T,4>{0,(width-1)*4,(height-1)*pitch,(height-1)*pitch+(width-1)*4})
-                Require(pixels[offset]<20 && pixels[offset+1]<35 && pixels[offset+2]<45 && pixels[offset+3]==255,
-                    "start cover reaches all four corners at every aspect ratio");
+                Require(((pixels[offset]<15 && pixels[offset+1]<15 && pixels[offset+2]<15) ||
+                    (pixels[offset]>240 && pixels[offset+1]>240 && pixels[offset+2]>240)) && pixels[offset+3]==255,
+                    "completed departure renders opaque black/white at every aspect ratio");
         }
         const auto directory=std::filesystem::absolute("generated/title-rebuild/previews");
         std::filesystem::create_directories(directory);
@@ -66,6 +68,33 @@ namespace TitlePresentationValidation
         const auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
         SceneRuntime::SceneEnvironment scene; std::string error;
         Require(scene.Initialize(renderer,root,layout,error),"title presentation initializes");
+        SceneRuntime::TitleController departure;Engine::InputActions actions;
+        Engine::InputSnapshot neutral;neutral.active=true;actions.Update(neutral);
+        std::string departureTarget;
+        const auto beginDeparture=[&](int index) {
+            const auto* configuration=SceneRuntime::TitleBindings::Configuration(layout);
+            Require(configuration!=nullptr,"departure has authored menu configuration");
+            const auto entry=std::find_if(configuration->entries.begin(),configuration->entries.end(),[&](const auto& item) {return item.index==index;});
+            Require(entry!=configuration->entries.end(),"departure has authored menu entry");departureTarget=entry->transitionCameraTarget;
+            departure.Initialize(layout,scene.Ui());SceneRuntime::UiEvent event;event.event="menu:"+std::to_string(index);
+            Require(departure.Activate(event,scene.Ui()),"authored departure activates");
+            departure.AdvancePresentation(scene,0,true);
+        };
+        const auto advanceDeparture=[&](float progress) {
+            const int frames=static_cast<int>(std::ceil(scene.Ui().Value("startDuration",.32f)/.1f))+3;
+            for(int frame=0;frame<frames && scene.Ui().Value("transition")<progress;++frame) {
+                Require(!departure.Update(actions,true,.1,scene.Ui()),"departure draws its completed frame before issuing a command");
+                departure.AdvancePresentation(scene,.1,true);
+            }
+            Require(scene.Ui().Value("transition")>=progress,"authored departure reaches requested progress");
+            if(progress==1) {
+                const auto* camera=SceneRuntime::SceneView::CameraObject(scene.World().Layout());
+                DirectX::XMFLOAT4X4 actual{},target{};
+                Require(camera && scene.World().WorldMatrix(camera->id,actual) && scene.World().WorldMatrix(departureTarget,target),"departure camera and target exist");
+                Require(std::abs(actual._41-target._41)<.001f && std::abs(actual._42-target._42)<.001f && std::abs(actual._43-target._43)<.001f,
+                    "completed departure reaches its authored camera endpoint");
+            }
+        };
         const auto startupCamera=scene.CameraPosition();
         for(float seconds:{.435f,.85f,1.3f})
         {
@@ -124,9 +153,9 @@ namespace TitlePresentationValidation
         for(int frame=0;frame<8;++frame) scene.Update(.1,true,true);
         Require(std::abs(scene.CameraPosition()[0]+1.5f)<.2f && scene.CameraPosition()[1]>5.0f,"QUIT camera reaches the left building sign");
         Capture(renderer,scene,1280,720,"quit-focus");
-        scene.Ui().values["quitTransition"]=1;
+        beginDeparture(2);advanceDeparture(1);
         Capture(renderer,scene,1280,720,"covered-quit");
-        scene.Ui().values["quitTransition"]=0;
+        departure.Initialize(layout,scene.Ui());
         scene.Ui().values["cameraFocus"]=0;
         scene.Ui().values["focusView"]=0;
         scene.SeekAnimation(3,3);
@@ -152,17 +181,16 @@ namespace TitlePresentationValidation
         }
         scene.SeekAnimation(0.85f,0.85f);
         Capture(renderer,scene,1280,720,"intro");
-        scene.SeekAnimation(3,3,0.35f);
-        scene.Ui().values["transition"]=0.4375f;
-        scene.Ui().values["transitionPink"]=0.546875f;
+        beginDeparture(0);advanceDeparture(.4375f);
         Capture(renderer,scene,1280,720,"start");
-        scene.SeekAnimation(3,3,0.8f);
+        advanceDeparture(1);
         for (const auto& size:std::array<std::array<UINT,2>,3>{{{1280,720},{1024,768},{720,1280}}})
             Capture(renderer,scene,size[0],size[1],"covered-"+std::to_string(size[0])+"x"+std::to_string(size[1]));
         const auto pixel=EnvironmentValidation::Pixel(renderer,[&](ID3D12GraphicsCommandList* commands){scene.Draw(commands,64,32);});
-        Require(pixel[0]<20 && pixel[1]<35 && pixel[2]<45,"start transition ends with opaque ink");
+        Require((pixel[0]<15 && pixel[1]<15 && pixel[2]<15) || (pixel[0]>240 && pixel[1]>240 && pixel[2]>240),"completed START preserves authored black/white palette");
+        departure.Initialize(layout,scene.Ui());
         scene.SeekAnimation(3,3,-1);
-        Require(scene.Ui().Value("transition")==0 && scene.Ui().Value("transitionPink")==0,"rewinding start restores uncovered title");
+        Require(scene.Ui().Value("transition")==0 && scene.Ui().Value("titleEffectTime")==0,"rewinding departure restores title presentation");
         if (GetEnvironmentVariableW(L"WP1_TITLE_PREVIEW",nullptr,0))
         {
             for (int frame=0;frame<64;++frame)
@@ -171,9 +199,11 @@ namespace TitlePresentationValidation
                 scene.SeekAnimation(seconds,seconds);
                 Capture(renderer,scene,960,540,"frame-"+std::to_string(frame));
             }
-            for (int frame=0;frame<17;++frame)
+            beginDeparture(0);
+            const int frames=static_cast<int>(std::ceil(scene.Ui().Value("startDuration",.32f)/.05f));
+            for (int frame=0;frame<=frames;++frame)
             {
-                scene.SeekAnimation(3.2f,3.2f,frame*0.05f);
+                departure.Update(actions,true,.05,scene.Ui());departure.AdvancePresentation(scene,.05,true);
                 Capture(renderer,scene,960,540,"frame-"+std::to_string(frame+64));
             }
         }
