@@ -39,6 +39,7 @@ inline void DrawMenuEntries(MenuWidgets &widgets, SceneRuntime::MenuConfiguratio
             if (e.action == "setState") widgets.string("状態値の代入###Assignments", e.target);
             widgets.number("カメラの焦点値###Focus", e.focus); widgets.number("焦点ビュー値###View", e.view);
             widgets.string("カメラ移動Animationの時計###Focus animation clock", e.focusClock);
+            widgets.string("決定後のカメラ到着先ID###Transition camera target",e.transitionCameraTarget);
             if (ImGui::SmallButton("項目を削除###Remove entry")) remove = static_cast<int>(i); ImGui::PopID();
         }
         if (remove >= 0) c.entries.erase(c.entries.begin() + remove);

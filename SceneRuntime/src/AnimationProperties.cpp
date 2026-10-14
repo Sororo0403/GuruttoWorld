@@ -40,6 +40,7 @@ bool Set_particleEmitter_color(ScenePlacement& p,const std::array<float,4>& v) {
 bool Set_material_color(ScenePlacement& p,const std::array<float,4>& v) {if(!(p.material)) return false;p.material->surfaceOverride=true;p.material->color={v[0],v[1],v[2],v[3]};return true;}
 bool Set_material_roughness(ScenePlacement& p,const std::array<float,4>& v) {if(!(p.material)) return false;p.material->surfaceOverride=true;p.material->roughness=v[0];return true;}
 bool Set_material_effectAmount(ScenePlacement& p,const std::array<float,4>& v) {if(!p.material) return false;p.material->surfaceOverride=true;p.material->effectAmount=v[0];return true;}
+bool Set_material_effectVariant(ScenePlacement& p,const std::array<float,4>& v) {if(!p.material) return false;p.material->surfaceOverride=true;p.material->effectVariant=v[0];return true;}
 bool Set_material_metallic(ScenePlacement& p,const std::array<float,4>& v) {if(!(p.material)) return false;p.material->surfaceOverride=true;p.material->metallic=v[0];return true;}
 bool Set_ocean_refractiveIndex(ScenePlacement& p,const std::array<float,4>& v) {if(!(p.sky && p.sky->ocean)) return false;p.sky->ocean->refractiveIndex=v[0];return true;}
 bool Set_ocean_solarIntensity(ScenePlacement& p,const std::array<float,4>& v) {if(!(p.sky && p.sky->ocean)) return false;p.sky->ocean->solarIntensity=v[0];return true;}
@@ -100,6 +101,7 @@ std::span<const AnimationProperty> Animation::Properties() {
         {"material.roughness","マテリアル粗さ",0.04f,1.0f,1,Set_material_roughness},
         {"material.metallic","マテリアル金属感",0.0f,1.0f,1,Set_material_metallic},
         {"material.effectAmount","演出の強さ",0.0f,1.0f,1,Set_material_effectAmount},
+        {"material.effectVariant","演出の種類（黒・白・白黒）",0.0f,2.0f,1,Set_material_effectVariant},
         {"ocean.refractiveIndex","水の屈折率",1.01f,2.0f,1,Set_ocean_refractiveIndex},
         {"ocean.solarIntensity","太陽光強度",0.0f,1000.0f,1,Set_ocean_solarIntensity},
         {"ocean.solarColor","太陽光色",0.0f,1.0f,3,Set_ocean_solarColor},

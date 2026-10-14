@@ -75,8 +75,9 @@ namespace Editor
             if(!runtime_) return false;
             const auto seconds=runtime_->World().PhysicsStepSeconds();
             if (!state_.Step(seconds)) return false;
-            runtime_->SetInputActions({},{});
-            runtime_->MovePlayers(seconds,0,0);
+            Engine::InputActions neutralActions;Engine::InputSnapshot neutralSnapshot;neutralSnapshot.active=true;
+            neutralActions.Update(neutralSnapshot);
+            playback_.PrepareInput(*runtime_,neutralActions,true,seconds,&neutralSnapshot);
             command_=playback_.Update(*runtime_,seconds,true);
             return true;
         }

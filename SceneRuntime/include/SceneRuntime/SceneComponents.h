@@ -34,7 +34,7 @@ namespace SceneRuntime
         std::vector<std::filesystem::path> slots;
         bool surfaceOverride=false;
         std::array<float,4> color{1,1,1,1};
-        float roughness=.5f,metallic=0,effectAmount=0;
+        float roughness=.5f,metallic=0,effectAmount=0,effectVariant=0;
         bool operator==(const MaterialComponent&) const = default;
     };
     struct PlayerControllerComponent

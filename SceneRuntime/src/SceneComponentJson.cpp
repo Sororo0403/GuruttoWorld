@@ -204,9 +204,9 @@ namespace
         auto &material = *placement.material;
         material.surfaceOverride = component.value("surfaceOverride", false);
         if (component.contains("color")) material.color = component.at("color").get<std::array<float, 4>>();
-        material.roughness = component.value("roughness", .5f);material.metallic = component.value("metallic", 0.0f);material.effectAmount=component.value("effectAmount",0.0f);
+        material.roughness = component.value("roughness", .5f);material.metallic = component.value("metallic", 0.0f);material.effectAmount=component.value("effectAmount",0.0f);material.effectVariant=component.value("effectVariant",0.0f);
         if (std::any_of(std::begin(material.color), std::end(material.color), [](const auto channel) { return !Engine::InRange(channel, 0, 1); })) throw std::runtime_error("Invalid material override color");
-        if (!Engine::InRange(material.roughness, .04f, 1) || !Engine::InRange(material.metallic, 0, 1) || !Engine::InRange(material.effectAmount,0,1)) throw std::runtime_error("Invalid material override surface");
+        if (!Engine::InRange(material.roughness, .04f, 1) || !Engine::InRange(material.metallic, 0, 1) || !Engine::InRange(material.effectAmount,0,1) || !Engine::InRange(material.effectVariant,0,2)) throw std::runtime_error("Invalid material override surface");
         if (component.contains("slots")) {
             const auto &slots = Engine::JsonArray(component.at("slots"));
             if (slots.size() > 4096) throw std::runtime_error("Too many Material slots");
@@ -462,7 +462,7 @@ namespace
             auto object = Component(material.id, "Material", material.enabled);
             object["asset"] = material.asset;
             object["surfaceOverride"] = material.surfaceOverride;object["color"] = material.color;
-            object["roughness"] = material.roughness;object["metallic"] = material.metallic;object["effectAmount"]=material.effectAmount;
+            object["roughness"] = material.roughness;object["metallic"] = material.metallic;object["effectAmount"]=material.effectAmount;object["effectVariant"]=material.effectVariant;
             if (!material.slots.empty()) object["slots"] = material.slots;
             components.push_back(std::move(object));
         }

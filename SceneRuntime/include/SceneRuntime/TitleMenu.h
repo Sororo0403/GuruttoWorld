@@ -39,6 +39,7 @@ namespace SceneRuntime
         float SelectionPulse() const { return selectionSeconds_ / selectionDuration_; }
         /// <summary>画面遷移の進行率を返します。</summary>
         float TransitionProgress() const { return transitionSeconds_ / transitionDuration_; }
+        bool IsTransitioning() const {return finished_;}
         /// <summary>シーンに保存した開始演出の長さを設定します。不正値は無視します。</summary>
         void SetTransitionDuration(float seconds);
         void SetPresentationDurations(float intro, float selection);

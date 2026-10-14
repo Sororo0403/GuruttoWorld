@@ -115,7 +115,7 @@ namespace TitleConfigTransitionValidation
         snapshot={};snapshot.active=true;actions.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions);
         for(int i=0;i<15;++i) tick();tick(DIK_DOWN);tick();tick(DIK_DOWN);tick();tick(DIK_RETURN);
         require(!session.TakeCommand(),"QUIT waits for transition before closing request");
-        int quits=0;for(int i=0;i<12;++i) {tick();const auto command=session.TakeCommand();if(command && command->action=="quit") ++quits;}
+        int quits=0;for(int i=0;i<120;++i) {tick();const auto command=session.TakeCommand();if(command && command->action=="quit") ++quits;}
         require(quits==1,"QUIT emits a single close request through common playback");
         require(renderer.WaitForIdle(),"QUIT GPU complete");session.Stop();
     }

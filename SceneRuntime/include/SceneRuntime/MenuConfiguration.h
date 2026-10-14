@@ -15,6 +15,7 @@ struct MenuEntry {
     std::string action="loadScene", target;
     float focus=0, view=0;
     std::string focusClock;
+    std::string transitionCameraTarget;
     bool operator==(const MenuEntry&) const = default;
 };
 struct MenuSetting {
@@ -82,7 +83,7 @@ inline void Require(bool ok) {if (!ok) throw std::runtime_error("Invalid menu co
 inline bool Key(const std::string &value) { return Engine::ValidString(value, 128, true) && value.find_first_of("=&") == std::string::npos; }
 inline bool Number(float value) { return Engine::InRange(value, -100000, 100000); }
 inline void Entry(const MenuEntry &entry, std::set<int> &indices) {
-    Require(entry.index >= 0 && entry.index < 128 && indices.insert(entry.index).second && Number(entry.focus) && Number(entry.view) && Engine::ValidString(entry.focusClock, 128));
+    Require(entry.index >= 0 && entry.index < 128 && indices.insert(entry.index).second && Number(entry.focus) && Number(entry.view) && Engine::ValidString(entry.focusClock, 128) && Engine::ValidString(entry.transitionCameraTarget,128));
     Require(Engine::OneOf(entry.action, {"loadScene", "quit", "settings", "setState"}));
     Require(Engine::ValidString(entry.target, 16384));
     if (entry.action == "loadScene" && !entry.target.empty())

@@ -29,5 +29,6 @@
 Editorは編集データの複製・再生/一時停止/コマ送り、Gameパネルの座標変換を担当し、Appはウィンドウ入力の取得を担当します。
 QUITの共通コマンドは、Editorでは再生停止、Appではウィンドウ終了として受け取ります。
 設定画面は `Assets/Scenes/Settings.json` へ遷移し、保存・取消後はカメラと色を滑らかに戻してタイトルへ遷移します。接近先・戻り先・時間はCanvasのメニュー設定とシーンのTransformで編集します。白黒化は不透明度を変更せず、Materialの `effectAmount` を使用します。
+START／QUITの決定後は、MenuEntryの `transitionCameraTarget` に指定したTransformへ、決定時のカメラ位置から移動します。時間はCanvasの `startDuration` で設定し、カメラが到着した最後のフレームを描画してからロード・終了を通知します。`titleEffectTime` はCONFIGまたは決定後の共通演出時計、`departureKind` は未決定=-1・START=0・QUIT=1です。Materialの `effectVariant`（0=黒・1=白・2=白黒）をAnimationで切り替え、STARTでは建物の壁だけを白く、窓と街路を黒くして道路を進み、QUITではEXITの白い文字と矢印を残して左へ進みます。一時停止・コマ送りも同じ再生処理を使用します。
 `GamePlaybackParityValidation` は同一の診断入力を実際のAppとEditor再生経路へ渡し、各フレームのUI値・Transform・Material・STARTコマンドとシーン切り替えを比較します。
 CONFIGの一時停止・コマ送り・復元・再再生は `TitleConfigTransitionValidation` で検証します。

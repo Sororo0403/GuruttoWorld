@@ -6,7 +6,14 @@
 #include <algorithm>
 #include <stdexcept>
 namespace SceneRuntime {
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuEntry,index,action,target,focus,view,focusClock)
+void to_json(Engine::Json& j,const MenuEntry& e) {
+    j={{"index",e.index},{"action",e.action},{"target",e.target},{"focus",e.focus},{"view",e.view},{"focusClock",e.focusClock},{"transitionCameraTarget",e.transitionCameraTarget}};
+}
+void from_json(const Engine::Json& j,MenuEntry& e) {
+    j.at("index").get_to(e.index);j.at("action").get_to(e.action);j.at("target").get_to(e.target);
+    j.at("focus").get_to(e.focus);j.at("view").get_to(e.view);j.at("focusClock").get_to(e.focusClock);
+    e.transitionCameraTarget=j.value("transitionCameraTarget",std::string{});
+}
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuSetting,key,action,minimum,maximum,step,initial)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuStateBinding,key,source,operation,factor,compare,scale,offset,minimum,maximum,factorDefault)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuConfigTransition,enabled,cameraTarget,returnCameraTarget,enterDuration,returnDuration,zoomDelay)

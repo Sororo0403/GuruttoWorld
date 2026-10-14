@@ -13,7 +13,7 @@ namespace SceneRuntime
     public:
         void Initialize(const SceneRuntime::SceneLayout& layout,SceneRuntime::UiState& state,const std::filesystem::path& settingsPath={},bool playIntro=false)
         {
-            configTransition_={}; menu_.reset(); pending_.reset(); fade_=0; pendingCue_=0; settingsPath_=settingsPath;seekIntro_=false;
+            configTransition_={}; menu_.reset(); pending_.reset(); departureFrom_.reset(); fade_=0; pendingCue_=0; settingsPath_=settingsPath;seekIntro_=false;
             const auto* configuration=SceneRuntime::TitleBindings::Configuration(layout);
             if(!configuration) return;
             const auto items=SceneRuntime::TitleBindings::Items(layout);
@@ -33,10 +33,32 @@ namespace SceneRuntime
             seekIntro_=menu_->IntroProgress()==1;
             Sync(state);
         }
-        void PreparePresentation(SceneEnvironment& environment,double seconds,bool active) {configTransition_.Prepare(environment,seconds,active);}
+        void PreparePresentation(SceneEnvironment& environment,double seconds,bool active) {
+            configTransition_.Prepare(environment,seconds,active);
+            SyncDeparture(environment.Ui());
+            if(!active || !Departing() || departureFrom_) return;
+            const auto* camera=SceneView::CameraObject(environment.World().Layout());
+            ScenePlacement pose;DirectX::XMFLOAT4X4 matrix;
+            if(camera && environment.World().WorldMatrix(camera->id,matrix) && SceneTransforms::ReadTransform(matrix,{},pose)) departureFrom_=pose;
+        }
         void ApplyPresentation(SceneEnvironment& environment) {
             configTransition_.Apply(environment);
             if(!menu_) return;
+            if(Departing() && departureFrom_) {
+                const auto* camera=SceneView::CameraObject(environment.World().Layout());
+                ScenePlacement target;DirectX::XMFLOAT4X4 matrix;
+                if(camera && environment.World().WorldMatrix(menu_->SelectedEntry()->transitionCameraTarget,matrix) && SceneTransforms::ReadTransform(matrix,{},target)) {
+                    // Ease into the road/exit direction from the actual current camera, including unfinished selection motion.
+                    const float approach=std::clamp(environment.Ui().Value(menu_->SelectedEntry()->action+"ApproachFraction",1),.05f,1.0f);
+                    const float p=std::min(1.0f,menu_->TransitionProgress()/approach);const float blend=p*p*(3-2*p);
+                    for(size_t axis=0;axis<3;++axis) {
+                        target.position[axis]=departureFrom_->position[axis]+(target.position[axis]-departureFrom_->position[axis])*blend;
+                        target.rotation[axis]=departureFrom_->rotation[axis]+std::remainder(target.rotation[axis]-departureFrom_->rotation[axis],6.283185307f)*blend;
+                    }
+                    if(!environment.World().SetWorldTransform(camera->id,target.position,target.rotation,target.scale)) Engine::Log::Warning("Departure camera transform was rejected");
+                } else Engine::Log::Warning("Departure camera target is missing or invalid");
+            }
+            SyncDeparture(environment.Ui());
             if(configTransition_.TakeEntered()) {
                 const auto* entry=menu_->SelectedEntry();
                 if(entry && entry->action=="settings" && !entry->target.empty() && !menu_->Configuration().settingsScreen)
@@ -46,7 +68,7 @@ namespace SceneRuntime
         }
         void AdvancePresentation(SceneEnvironment& environment,double seconds,bool active) {PreparePresentation(environment,seconds,active);environment.World().Animate(environment.Ui().values);ApplyPresentation(environment);}
         std::optional<UiEvent> TakeCommand() {auto result=std::move(pending_);pending_.reset();return result;}
-        bool BlocksPointer() const { return configTransition_.Blocking(); }
+        bool BlocksPointer() const { return configTransition_.Blocking() || (menu_ && menu_->IsTransitioning()); }
         void SelectHovered(const SceneLayout& layout,const std::string& id,UiState& state)
         {
             if(!menu_ || BlocksPointer()) return;
@@ -74,7 +96,7 @@ namespace SceneRuntime
         {
             if (!menu_ || !(event.event.starts_with("menu:") || event.event.starts_with("settings:") ||
                 event.event=="back" || event.event=="volume" || event.event=="start")) return false;
-            if(configTransition_.Blocking()) return true;
+            if(BlocksPointer()) return true;
             const float intro=menu_->IntroProgress();
             Action(menu_->ActivateUi(event.event)); seekIntro_=seekIntro_ || (intro<1 && menu_->IntroProgress()==1);Sync(state); return true;
         }
@@ -88,6 +110,17 @@ namespace SceneRuntime
             auto result=std::move(pending_); pending_.reset(); return result;
         }
     private:
+        bool Departing() const {
+            return menu_ && menu_->IsTransitioning() && menu_->SelectedEntry() && !menu_->SelectedEntry()->transitionCameraTarget.empty();
+        }
+        void SyncDeparture(UiState& state) const {
+            state.values["departureKind"]=-1;
+            state.values["titleEffectTime"]=state.Value("configEnterTime");
+            if(!Departing()) return;
+            state.values["departureKind"]=menu_->SelectedEntry()->action=="quit" ? 1.0f : 0.0f;
+            state.values["titleEffectTime"]=menu_->TransitionProgress()*2;
+            state.values["screen"]=3;
+        }
         void QueueScene(const std::string& scene) {if(!scene.empty()) {UiEvent event;event.action="loadScene";event.target=scene;pending_=std::move(event);}}
         void Action(SceneRuntime::TitleMenuAction action)
         {
@@ -101,11 +134,12 @@ namespace SceneRuntime
         {
             if(menu_->GetCue()!=SceneRuntime::TitleMenuCue::None) pendingCue_=static_cast<size_t>(menu_->GetCue());
             if(menu_->GetCue()==SceneRuntime::TitleMenuCue::Confirm && !menu_->IsSettingsOpen() && menu_->SelectedEntry() && menu_->SelectedEntry()->action=="loadScene") {
-                state.values["startRequested"]=1; seekIntro_=true;
+                state.values["startRequested"]=1;
             }
             std::string assignments; if(menu_->TakeAssignments(assignments)) state.Assign(assignments);
             for (const auto& [name,value] : SceneRuntime::TitleUi::State(*menu_,state).values) state.values[name]=value;
             configTransition_.Observe(menu_->IsSettingsOpen(),state);
+            SyncDeparture(state);
             if(menu_->Configuration().settingsScreen && !menu_->IsSettingsOpen() && !configTransition_.Enabled()) QueueScene(menu_->Configuration().returnScene);
             if(!menu_->Configuration().settingsScreen && menu_->IsSettingsOpen() && !configTransition_.Enabled()) {
                 const auto* entry=menu_->SelectedEntry();if(entry && entry->action=="settings") QueueScene(entry->target);
@@ -114,6 +148,7 @@ namespace SceneRuntime
         SceneRuntime::TitleConfigTransition configTransition_;
         std::optional<SceneRuntime::TitleMenu> menu_;
         std::optional<SceneRuntime::UiEvent> pending_;
+        std::optional<ScenePlacement> departureFrom_;
         std::filesystem::path settingsPath_;
         bool seekIntro_=false;
         float fade_=0;

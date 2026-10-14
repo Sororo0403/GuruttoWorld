@@ -49,9 +49,9 @@ bool HasPhysicalPose(const SceneRuntime::ScenePlacement &p)
         if(!placement.material || !placement.material->enabled || !placement.material->surfaceOverride) return;
         const auto& surface=*placement.material;
         const auto apply=[&](const std::shared_ptr<const Engine::Material>& original) -> std::shared_ptr<const Engine::Material> {
-            if(original && original->color==surface.color && original->roughness==surface.roughness && original->metallic==surface.metallic && original->effectAmount==surface.effectAmount) return original;
+            if(original && original->color==surface.color && original->roughness==surface.roughness && original->metallic==surface.metallic && original->effectAmount==surface.effectAmount && original->effectVariant==surface.effectVariant) return original;
             auto material=original ? std::make_shared<Engine::Material>(*original) : std::make_shared<Engine::Material>();
-            material->color=surface.color;material->roughness=surface.roughness;material->metallic=surface.metallic;material->effectAmount=surface.effectAmount;
+            material->color=surface.color;material->roughness=surface.roughness;material->metallic=surface.metallic;material->effectAmount=surface.effectAmount;material->effectVariant=surface.effectVariant;
             return material;
         };
         object.SetMaterial(apply(object.GetMaterial()));
@@ -777,6 +777,7 @@ namespace SceneRuntime
             remap(placement.button->sound);
         }
         if(placement.canvas && placement.canvas->menu) {
+            for(auto& entry:placement.canvas->menu->entries) if(const auto found=copies.find(entry.transitionCameraTarget);found!=copies.end()) entry.transitionCameraTarget=found->second;
             auto& transition=placement.canvas->menu->configTransition;
             if(const auto found=copies.find(transition.cameraTarget);found!=copies.end()) transition.cameraTarget=found->second;
             if(const auto found=copies.find(transition.returnCameraTarget);found!=copies.end()) transition.returnCameraTarget=found->second;

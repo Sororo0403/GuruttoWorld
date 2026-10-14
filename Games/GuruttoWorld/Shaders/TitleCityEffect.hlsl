@@ -1,0 +1,28 @@
+// Flag bits 12..21 hold blend strength; bits 22..23 select black, white or grayscale.
+// Keep alpha and the opaque depth path independent of the transition strength.
+#define PSMain TitleBasePSMain
+#include "Mesh.hlsl"
+#undef PSMain
+float4 PSMain(VertexOutput input) : SV_TARGET
+{
+    float4 base = TitleBasePSMain(input);
+    uint flags = (uint)lightingEnabled;
+    uint variant = (flags >> 22) & 3;
+    float amount = ((flags >> 12) & 1023) / 1023.0;
+    float gray = dot(base.rgb, float3(0.2126, 0.7152, 0.0722));
+    float3 target = variant == 2 ? gray.xxx : (variant == 1 ? float3(1,1,1) : float3(0,0,0));
+#ifdef TITLE_WHITE_TEXTURE_MASK
+    // Keep EXIT's white lettering and arrow legible when its green background becomes black.
+    float3 texel = meshTexture.Sample(textureSampler, input.uv).rgb;
+    if (variant == 1) target = step(0.92, min(texel.r, min(texel.g, texel.b))).xxx;
+#endif
+#ifdef TITLE_BUILDING_WINDOWS
+    // Kenney's window palette is dark gray/blue (for example 110/115/138),
+    // while wall plaster is 221/221/233 or brighter. Classify the unlit
+    // texture so shadows on a white wall cannot turn it into a black window.
+    float3 buildingTexel = meshTexture.Sample(textureSampler, input.uv).rgb;
+    float wallMask = step(0.62, dot(buildingTexel, float3(0.2126, 0.7152, 0.0722)));
+    if (variant == 1) target = wallMask.xxx;
+#endif
+    return float4(lerp(base.rgb, target, amount), 1);
+}
