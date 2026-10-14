@@ -204,10 +204,13 @@ void ScrollPointer(const SceneLayout &layout, unsigned int width, unsigned int h
 
     const auto &c = *owner.scrollView; const auto rect = SceneUi::Resolve(layout, owner, width, height, state);
     auto &offset = state.scrollOffsets.try_emplace(owner.id, c.offset).first->second;
+    const float dx=state.dragPosition[0]-x,dy=state.dragPosition[1]-y;
+    const std::array<float,2> localDrag{dx*std::cos(rect.rotation)+dy*std::sin(rect.rotation),
+        -dx*std::sin(rect.rotation)+dy*std::cos(rect.rotation)};
     for (size_t axis = 0; axis < 2; ++axis) {
         if (!(axis == 0 ? c.horizontal : c.vertical)) {offset[axis] = 0; continue;}
         const float maximum = std::max(0.0f, c.contentSize[axis] - rect.size[axis] / rect.scale);
-        const float value = dragging ? state.dragScroll[axis] + (state.dragPosition[axis] - (axis == 0 ? x : y)) / rect.scale :
+        const float value = dragging ? state.dragScroll[axis] + localDrag[axis] / rect.scale :
                 offset[axis] - ((axis == 1 || !c.vertical) ? wheel * c.wheelSpeed : 0);
         offset[axis] = std::clamp(value, 0.0f, maximum);
     }

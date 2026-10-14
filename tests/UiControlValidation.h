@@ -49,6 +49,18 @@ namespace UiControlValidation
         Require(SceneUi::Hit(layout,400,300,250,30,state)=="item","scrolling reveals a previously clipped child");
         SceneUi::Pointer(layout,400,300,{250,5,true,true,false,0},state); SceneUi::Pointer(layout,400,300,{250,-500,true,false,false,0},state);
         Require(state.scrollOffsets.at("scroll")[1]==160,"background scroll dragging clamps to content extent");
+        auto rotated=layout;rotated.objects[4].rectTransform->rotation=DirectX::XM_PIDIV2;
+        auto rotatedState=SceneUi::Defaults(rotated);
+        SceneUi::Pointer(rotated,400,300,{250,40,true,true,false,0},rotatedState);
+        Require(rotatedState.pressed=="scroll","rotated scroll background receives the drag");
+        SceneUi::Pointer(rotated,400,300,{350,40,true,false,false,0},rotatedState);
+        Require(std::abs(rotatedState.scrollOffsets.at("scroll")[1]-100)<.001f &&
+            SceneUi::Hit(rotated,400,300,265,40,rotatedState)=="item","rotated vertical scrolling follows screen-space dragging and reveals content");
+        rotated.objects[4].scrollView->horizontal=true;rotated.objects[4].scrollView->vertical=false;
+        rotated.objects[4].scrollView->contentSize={240,80};rotatedState=SceneUi::Defaults(rotated);
+        SceneUi::Pointer(rotated,400,300,{250,40,true,true,false,0},rotatedState);
+        SceneUi::Pointer(rotated,400,300,{250,-60,true,false,false,0},rotatedState);
+        Require(std::abs(rotatedState.scrollOffsets.at("scroll")[0]-100)<.001f,"rotated horizontal scrolling converts the drag to the local axis");
         auto persistent=layout; persistent.objects[0].persistent=true; state.values["startRequested"]=1;
         const auto retained=SceneUi::SceneState(persistent,persistent,state,true);
         Require(retained.strings.at("name")=="日" && retained.Value("gain")==1 && retained.scrollOffsets.at("scroll")[1]==160 && retained.Value("startRequested")==0,"Single scene reset preserves persistent UI descendants and resets transition state");
@@ -110,5 +122,19 @@ namespace UiControlValidation
         auto mask=Object("mask","canvas",8,32); mask.mask.emplace(); layout.objects[1].parentId="mask"; layout.objects[1].inputField.reset(); layout.objects[1].text.reset(); layout.objects[1].image.emplace(); layout.objects[1].image->color={1,0,0,1}; layout.objects.insert(layout.objects.begin()+1,mask);
         Require(ui.Prepare(renderer,root,layout,error) && pixel()==std::array<unsigned char,4>{0,0,0,255},"Mask clips child pixels outside its viewport on GPU");
         Require(renderer.WaitForIdle(),"control resources finish GPU use before destruction");
+        SceneLayout rotated;
+        auto rotatedCanvas=Object("rotatedCanvas","",64,32);rotatedCanvas.canvas.emplace();
+        rotatedCanvas.canvas->referenceSize={64,32};rotatedCanvas.rectTransform.reset();
+        auto scroll=Object("rotatedScroll","rotatedCanvas",32,16);scroll.rectTransform->position={16,0};
+        scroll.rectTransform->rotation=DirectX::XM_PIDIV2;scroll.scrollView.emplace();scroll.scrollView->contentSize={32,64};
+        auto content=Object("rotatedContent","rotatedScroll",32,16);content.rectTransform->position={0,20};
+        content.image.emplace();content.image->color={1,0,0,1};rotated.objects={rotatedCanvas,scroll,content};
+        SceneUi rotatedUi;auto rotatedState=SceneUi::Defaults(rotated);
+        Require(rotatedUi.Prepare(renderer,root,rotated,error,rotatedState),"rotated scroll GPU resources prepare");
+        const auto rotatedPixel=[&](){return EnvironmentValidation::Pixel(renderer,[&](auto* commands){rotatedUi.Draw(commands,rotated,64,32,rotatedState);});};
+        Require(rotatedPixel()==std::array<unsigned char,4>{0,0,0,255},"rotated scroll initially clips content");
+        SceneUi::Pointer(rotated,64,32,{32,8,true,true,false,0},rotatedState);
+        SceneUi::Pointer(rotated,64,32,{52,8,true,false,false,0},rotatedState);
+        Require(rotatedPixel()==std::array<unsigned char,4>{255,0,0,255} && renderer.WaitForIdle(),"rotated drag reveals content in the actual GPU framebuffer");
     }
 }
