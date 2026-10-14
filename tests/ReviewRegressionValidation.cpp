@@ -2507,6 +2507,14 @@ void ValidateAssetChangeBatching()
     Check(!captured.contains(root/"Assets/Scenes/scene.JSON") && !captured.contains(root/"Assets/Scenes/scene.json.tmp") &&
         captured.contains(root/"Assets/shape.MTL") && captured.contains(root/"Shaders/test.HLSL"),
         "watching includes material and shader dependencies but ignores scenes and temporary saves case-insensitively");
+    Editor::AssetChanges preservedTime;preservedTime.Observe(captured);
+    const auto shader=root/"Shaders/test.HLSL";const auto shaderTime=std::filesystem::last_write_time(shader);
+    {std::ofstream file(shader,std::ios::binary|std::ios::trunc);file<<"edited";}
+    std::filesystem::last_write_time(shader,shaderTime);
+    const auto edited=Editor::AssetChanges::Capture(root);preservedTime.Observe(edited);
+    Check(preservedTime.Pending()&&!preservedTime.TakeReady(true),"shader changes with preserved timestamp and size enter the reload batch");
+    preservedTime.Observe(edited);
+    Check(preservedTime.TakeReady(true)&&!preservedTime.TakeReady(true),"same-time shader update reloads once after stabilizing");
     std::string error;
     Check(Editor::ValidateProjectShaders(std::filesystem::absolute("Games/GuruttoWorld"),error), "project shader entry points compile");
     Editor::AssetChanges background;
@@ -2528,6 +2536,15 @@ void ValidateAssetChangeBatching()
     Check(!background.TakeReady(false), "background reload remains queued during Play");
     pump([&] { return background.TakeReady(true); });
     Check(!background.TakeReady(true), "background stable batch is consumed once");
+    const auto include=root/"Shaders/shared.hlsli";
+    {std::ofstream file(include);file<<"shared";}
+    pump([&] {return background.TakeReady(true);});
+    const auto includeTime=std::filesystem::last_write_time(include);
+    {std::ofstream file(include,std::ios::binary|std::ios::trunc);file<<"change";}
+    std::filesystem::last_write_time(include,includeTime);
+    pump([&] {return background.Pending();});
+    pump([&] {return background.TakeReady(true);});
+    Check(!background.TakeReady(true),"background watcher reloads a same-time same-size shader include once");
 }
 
 void ValidateEditorAcceptanceScene()

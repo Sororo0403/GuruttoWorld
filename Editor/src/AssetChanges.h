@@ -7,6 +7,9 @@
 #include <cmath>
 #include <future>
 #include <chrono>
+#include <array>
+#include <cstdint>
+#include <fstream>
 #include <Engine/Graphics/ShaderCompiler.h>
 
 namespace Editor
@@ -18,6 +21,7 @@ namespace Editor
         {
             std::filesystem::file_time_type time;
             std::uintmax_t bytes=0;
+            std::uint64_t shaderHash=0;
             bool operator==(const Stamp&) const = default;
         };
         using Files=std::map<std::filesystem::path,Stamp>;
@@ -28,7 +32,7 @@ namespace Editor
             for (const auto& directory : {root/"Assets",root/"Shaders"})
                 for (const auto& entry : std::filesystem::recursive_directory_iterator(directory))
                     if (entry.is_regular_file() && Watched(entry.path().lexically_relative(root)))
-                        files.emplace(entry.path(),Stamp{entry.last_write_time(),entry.file_size()});
+                        files.emplace(entry.path(),Stamp{entry.last_write_time(),entry.file_size(),ShaderHash(entry.path())});
             return files;
         }
         void Observe(Files files)
@@ -62,6 +66,24 @@ namespace Editor
         const std::string& Error() const { return error_; }
         static bool IsShaderSource(const std::filesystem::path& path) { return Extension(path)==".hlsl"; }
     private:
+        /// <summary>Shader本体とincludeの内容を比較し、同時刻・同サイズの外部編集も検知します。</summary>
+        static std::uint64_t ShaderHash(const std::filesystem::path& path)
+        {
+            const auto kind=ProjectCatalog::Kind(path);
+            if (!kind || *kind!=AssetKind::Shader) return 0;
+            std::ifstream input(path,std::ios::binary);
+            if (!input) throw std::runtime_error("Shaderの変更監視用データを読み取れません。");
+            std::uint64_t hash=14695981039346656037ULL;
+            std::array<char,4096> buffer{};
+            while (input)
+            {
+                input.read(buffer.data(),static_cast<std::streamsize>(buffer.size()));
+                for (std::streamsize i=0;i<input.gcount();++i)
+                    hash=(hash^static_cast<unsigned char>(buffer[static_cast<size_t>(i)]))*1099511628211ULL;
+            }
+            if (!input.eof() || input.bad()) throw std::runtime_error("Shaderの変更監視用データを読み取れません。");
+            return hash;
+        }
         static std::string Extension(const std::filesystem::path& path)
         {
             auto value=ProjectCatalog::Text(path.extension());
