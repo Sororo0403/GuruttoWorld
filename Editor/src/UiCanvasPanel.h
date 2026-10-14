@@ -21,7 +21,8 @@ private:
     std::string HitUi(const SceneRuntime::SceneLayout& layout,const SceneViewport& viewport,const std::array<float,2>& mouse) const;
     SceneRuntime::ScenePlacement DragCandidate(const std::array<float,2>& mouse) const;
 
-    void UpdateDrag(EditState&,const std::array<float,2>& mouse);
+    /// <summary>現在の配置との差分を反映し、開始位置へ戻したドラッグも復元します。</summary>
+    void UpdateDrag(const SceneRuntime::SceneLayout&,EditState&,const std::array<float,2>& mouse);
     void SelectAndBegin(const SceneRuntime::SceneLayout&,EditState&,const SceneViewport&);
     std::optional<SceneRuntime::ScenePlacement> start_;
     std::vector<SceneRuntime::ScenePlacement> dragSelection_;

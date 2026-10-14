@@ -3080,8 +3080,24 @@ void ValidateUiCanvasInteraction()
     const auto request=state.TakeRequest();
     Check(request && request->components && request->components->id=="upper" &&
         request->components->rectTransform->position[0]==40,"first UI drag moves selected object in the same gesture");
-    frame(110,90,false);
+    layout.objects[2].CopyComponents(*request->components);
+    frame(90,90,true);
+    const auto returned=state.TakeRequest();
+    Check(returned && returned->components && returned->components->rectTransform->position==upper.rectTransform->position,
+        "UI drag returning to its origin restores the authored position");
+    layout.objects[2].CopyComponents(*returned->components);
+    frame(90,90,false);
     Check(!panel.IsDragging(),"UI drag ends on release");
+    frame(170,100,false); frame(170,100,true); frame(190,100,true);
+    const auto resized=state.TakeRequest();
+    Check(resized && resized->components && resized->components->rectTransform->size[0]==120,"UI resize changes the right edge");
+    layout.objects[2].CopyComponents(*resized->components);
+    frame(170,100,true);
+    const auto restoredSize=state.TakeRequest();
+    Check(restoredSize && restoredSize->components && restoredSize->components->rectTransform->size==upper.rectTransform->size,
+        "UI resize returning to its origin restores the authored size");
+    layout.objects[2].CopyComponents(*restoredSize->components);
+    frame(170,100,false); state.TakeRequest();
     frame(90,90,false); io.AddKeyEvent(ImGuiMod_Ctrl,true); frame(90,90,true);
     Check(!panel.IsDragging(),"Ctrl selection does not start UI drag");
     io.AddKeyEvent(ImGuiMod_Ctrl,false); frame(90,90,false);
@@ -3101,7 +3117,15 @@ void ValidateUiCanvasInteraction()
         batch->componentBatch[0].rectTransform->position==std::array<float,2>{35,25} &&
         batch->componentBatch[1].rectTransform->position==std::array<float,2>{35,25},
         "UI dragging translates every selected sibling by the same delta");
-    frame(105,95,false);
+    for(size_t index=0;index<batch->componentBatch.size();++index) layout.objects[index+1].CopyComponents(batch->componentBatch[index]);
+    frame(90,90,true);
+    const auto returnedBatch=state.TakeRequest();
+    Check(returnedBatch && returnedBatch->componentBatch.size()==2 &&
+        returnedBatch->componentBatch[0].rectTransform->position==lower.rectTransform->position &&
+        returnedBatch->componentBatch[1].rectTransform->position==upper.rectTransform->position,
+        "multiple UI drag returning to its origin restores every selected sibling");
+    for(size_t index=0;index<returnedBatch->componentBatch.size();++index) layout.objects[index+1].CopyComponents(returnedBatch->componentBatch[index]);
+    frame(90,90,false); state.TakeRequest();
     auto third=lower; third.id="third"; third.rectTransform->position={280,160}; third.rectTransform->size={40,40};
     layout.objects.push_back(third);
     layout.objects[1].rectTransform->position={10,70}; layout.objects[1].rectTransform->size={50,30};

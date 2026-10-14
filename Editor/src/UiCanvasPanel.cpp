@@ -160,11 +160,12 @@ void UiCanvasPanel::SelectAndBegin(const SceneRuntime::SceneLayout& layout,EditS
         }
     }
 }
-void UiCanvasPanel::UpdateDrag(EditState& state,const std::array<float,2>& mouse) {
+void UiCanvasPanel::UpdateDrag(const SceneRuntime::SceneLayout& layout,EditState& state,const std::array<float,2>& mouse) {
     auto candidate=DragCandidate(mouse);
     const auto& c=*candidate.rectTransform;
     state.SetInteraction("ui/drag/"+start_->id);
-    if (!candidate.SameComponents(*start_)) {
+    const auto current=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object){return object.id==candidate.id;});
+    if (current!=layout.objects.end() && !candidate.SameComponents(*current)) {
         if(!resize_ && !rotate_ && !pivot_ && dragSelection_.size()>1) {
             auto batch=dragSelection_;
             const std::array<float,2> delta{c.position[0]-start_->rectTransform->position[0],c.position[1]-start_->rectTransform->position[1]};
@@ -185,7 +186,7 @@ void UiCanvasPanel::DrawLayout(const SceneRuntime::SceneLayout& layout,EditState
         SelectAndBegin(layout,state,viewport);
         if(start_) dragSelection_=UiLayoutTools::Selection(layout,state);
     }
-    if(start_) {const auto mouse=ImGui::GetIO().MousePos; const auto local=Mouse(*start_,viewport,{mouse.x,mouse.y}); if(local) UpdateDrag(state,*local); else if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {start_.reset();dragSelection_.clear();}}
+    if(start_) {const auto mouse=ImGui::GetIO().MousePos; const auto local=Mouse(*start_,viewport,{mouse.x,mouse.y}); if(local) UpdateDrag(layout,state,*local); else if(!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {start_.reset();dragSelection_.clear();}}
 }
 void UiCanvasPanel::DrawScene(const SceneRuntime::SceneWorld& world,const Engine::Camera& camera,EditState& state,const SceneViewport& viewport,bool enabled) {
     sceneWorld_=&world; sceneCamera_=&camera;
