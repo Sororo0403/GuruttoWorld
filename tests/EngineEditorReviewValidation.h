@@ -43,7 +43,7 @@ namespace EngineEditorReviewValidation
             menu.entries.front().transitionCameraTarget==layout.objects.at(cameraIndex).id &&
             menu.configTransition.returnCameraTarget=="external-camera","internal menu cameras remap while external references remain intact");
     }
-    /// <summary>編集データの再発条件を検証します。</summary>
+    /// <summary>保存競合・Shader改名・Prefab配置とScript複製の再発条件を検証します。</summary>
     inline void Data()
     {
         const auto& root=Fixtures();std::filesystem::create_directories(root/"Assets/Scenes");
@@ -57,6 +57,19 @@ namespace EngineEditorReviewValidation
         initial.Save(source);Editor::SceneDocument normal(source);
         Engine::AssetDatabase(root).Move("Assets/Scenes/A.json","Assets/Scenes/C.json");normal.AssetMoved(source,root/"Assets/Scenes/C.json");
         normal.Save(external);Require(SceneRuntime::SceneLayout::Load(normal.Path()).objects.size()==1,"uncontested renamed document still saves");
+
+        std::filesystem::create_directories(root/"Shaders");
+        {std::ofstream file(root/"Shaders/Original.hlsl");file<<"shader fixture\n";}
+        const auto metadata=Engine::AssetDatabase::Ensure(root/"Shaders/Original.hlsl");
+        Engine::AssetDatabase(root).Move("Shaders/Original.hlsl","Shaders/Renamed.hlsl");
+        const Engine::AssetDatabase moved(root);
+        Require(moved.Resolve("Shaders/Original.hlsl")=="Shaders/Renamed.hlsl" &&
+            moved.Resolve("Shaders/Original.hlsl",metadata.id)=="Shaders/Renamed.hlsl" &&
+            Engine::AssetDatabase::Read(root/"Shaders/Renamed.hlsl").id==metadata.id,"top-level shader rename preserves ID and old-path resolution");
+        Require(Rejected([&] {Engine::AssetDatabase(root).Move("Shaders/Renamed.hlsl","Assets/Models/Renamed.hlsl");}) &&
+            Rejected([&] {Engine::AssetDatabase(root).Move("Shaders/Renamed.hlsl","Shaders/../Escape.hlsl");}) &&
+            Rejected([&] {Engine::AssetDatabase(root).Move("Assets/Scenes/C.json","Assets/Settings/C.json");}),
+            "shader rename retains root, traversal and asset category restrictions");
 
         auto asset=MenuPrefab();SceneRuntime::SceneLayout instance;
         const auto id=SceneRuntime::Prefab::Instantiate(instance,asset,"Assets/Prefabs/Menu.prefab",{});
@@ -204,7 +217,7 @@ namespace EngineEditorReviewValidation
         });
         Require(pixel[2]>240 && pixel[0]<10 && pixel[1]<10,"GPU samples last draw texture after caller releases both textures");
     }
-    /// <summary>追加済みの実行時の回帰条件を検証します。</summary>
+    /// <summary>複製制約・LOD・入力経路・GPU資源寿命を実際の描画環境で検証します。</summary>
     inline void Runtime(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
     {
         DuplicateLimits(renderer,root);StaticLods(renderer,root);UiEvents(renderer,root);TextureLifetime(renderer,root);

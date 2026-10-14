@@ -205,7 +205,8 @@ private:
 
   void ValidateDestination(const std::filesystem::path &from, const std::filesystem::path &to) const
   {
-      if (!Valid(from) || !Valid(to) || from.extension() != to.extension() || *from.begin() != *to.begin() || from == to || std::next(from.begin()) == from.end() || std::next(to.begin()) == to.end() || *std::next(from.begin()) != *std::next(to.begin()) || std::filesystem::exists(root_ / to) || std::filesystem::exists(Sidecar(root_ / to)))
+      if (!Valid(from) || !Valid(to) || from.extension() != to.extension() || *from.begin() != *to.begin() || from == to || std::next(from.begin()) == from.end() || std::next(to.begin()) == to.end() ||
+          (*from.begin()=="Assets" && *std::next(from.begin()) != *std::next(to.begin())) || std::filesystem::exists(root_ / to) || std::filesystem::exists(Sidecar(root_ / to)))
           throw std::runtime_error("Invalid asset destination or destination exists");
       const auto base = std::filesystem::weakly_canonical(root_);
       for (const auto &path : {from, to}) {

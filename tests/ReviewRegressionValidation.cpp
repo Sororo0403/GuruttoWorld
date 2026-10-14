@@ -3542,7 +3542,7 @@ int main()
             Check(renderer.Initialize(window.GetHandle()),"review renderer");
             EngineEditorReviewValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
             Check(renderer.WaitForIdle(),"review GPU completion");CheckGpuMessages(renderer.GetDevice());
-            std::cout<<"PASS: engine/editor review regression\n";return 0;
+            std::cout<<"PASS: seven engine/editor fixes, atomic edits, input parity and GPU resource lifetime\n";return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_GENRE_ONLY",nullptr,0)) {
             GenreValidation::Schema();Engine::Window window;Engine::DirectX12Renderer renderer;
