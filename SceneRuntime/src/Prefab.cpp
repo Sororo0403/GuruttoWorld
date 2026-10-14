@@ -282,10 +282,12 @@ namespace SceneRuntime
     {
         if (!ValidPath(path)) throw std::runtime_error("Invalid prefab path");
         const auto asset=Extract(scene,rootId);
+        const auto selected=Descendants(scene,rootId);
         for (const auto& source : asset.objects)
         {
             const auto found=std::find_if(scene.objects.begin(),scene.objects.end(),[&](const auto& object) {
-                return object.id==source.id || (object.prefab && object.prefab->rootId==rootId && object.prefab->sourceId==source.id);
+                return selected.contains(object.id) && (object.id==source.id ||
+                    (object.prefab && object.prefab->rootId==rootId && object.prefab->sourceId==source.id));
             });
             if (found==scene.objects.end()) throw std::runtime_error("Prefab bind object missing");
             found->prefab=PrefabLink{path,source.id,rootId,Baseline(source)};

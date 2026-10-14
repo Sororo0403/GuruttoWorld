@@ -17,6 +17,14 @@ namespace PrefabValidation
         SceneLayout base; base.objects={parent,child};
         const std::filesystem::path path="Assets/Prefabs/Base.prefab";
         base.Save(root/path);
+        auto rebind=base;
+        const auto reboundRoot=Prefab::Instantiate(rebind,base,path,{4,0,0});
+        rebind.objects[2].name="Saved instance";
+        const auto savedInstance=Prefab::Extract(rebind,reboundRoot);
+        Prefab::Bind(rebind,reboundRoot,path);
+        Require(!rebind.objects[0].prefab && !rebind.objects[1].prefab &&
+            SceneLayout::Parse(rebind.objects[2].prefab->baseline).objects[0].name==savedInstance.objects[0].name &&
+            Prefab::Overrides(rebind,reboundRoot).empty(),"rebinding a saved instance updates its subtree without binding unrelated source IDs");
         SceneLayout scene;
         const auto id=Prefab::Instantiate(scene,base,path,{4,0,0});
         const auto other=Prefab::Instantiate(scene,base,path,{8,0,0});
