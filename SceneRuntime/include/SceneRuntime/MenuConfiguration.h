@@ -47,6 +47,12 @@ struct MenuConfiguration {
     bool settingsScreen=false;
     std::string returnScene;
     bool operator==(const MenuConfiguration&) const = default;
+    /// <summary>複製やPrefab配置に合わせて、メニューの内部カメラ参照を変換します。</summary>
+    template<class IdMap> void RemapCameras(const IdMap& ids) {
+        const auto remap=[&](std::string& id) {if(const auto found=ids.find(id);found!=ids.end()) id=found->second;};
+        remap(configTransition.cameraTarget); remap(configTransition.returnCameraTarget);
+        for(auto& entry:entries) remap(entry.transitionCameraTarget);
+    }
 };
 inline MenuConfiguration DefaultMenuConfiguration() {
     MenuConfiguration c;

@@ -58,6 +58,12 @@ namespace EngineEditorReviewValidation
         Engine::AssetDatabase(root).Move("Assets/Scenes/A.json","Assets/Scenes/C.json");normal.AssetMoved(source,root/"Assets/Scenes/C.json");
         normal.Save(external);Require(SceneRuntime::SceneLayout::Load(normal.Path()).objects.size()==1,"uncontested renamed document still saves");
 
+        auto asset=MenuPrefab();SceneRuntime::SceneLayout instance;
+        const auto id=SceneRuntime::Prefab::Instantiate(instance,asset,"Assets/Prefabs/Menu.prefab",{});
+        CameraLinks(instance,0,1);CameraLinks(SceneRuntime::Prefab::Extract(instance,id),0,1);
+        asset.objects.front().canvas->enabled=false;
+        size_t next=1;SceneRuntime::ScriptScene api(asset,next);const auto copy=api.Instantiate("menu",{});api.Commit();
+        Require(!copy.empty() && asset.objects.size()==4,"script duplicates complete menu subtree");CameraLinks(asset,2,3);
     }
     /// <summary>メニューと光源の上限を超える複製が変更前に拒否されることを確認します。</summary>
     inline void DuplicateLimits(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)

@@ -175,6 +175,7 @@ namespace SceneRuntime
             auto& item=spawned_[i];
             const auto remap=[&](std::string& value) { const auto found=ids.find(value); if (found!=ids.end()) value=found->second; };
             remap(item.parentId);
+            if(item.canvas && item.canvas->menu) item.canvas->menu->RemapCameras(ids);
             if(item.joint) remap(item.joint->target);
             for (auto& script:item.scripts) script.Remap(ids);
         if(item.navAgent) item.navAgent->Remap(ids);

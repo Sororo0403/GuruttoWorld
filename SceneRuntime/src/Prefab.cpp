@@ -32,6 +32,7 @@ namespace
     {
         const auto replace=[&](std::string& id) { const auto found=ids.find(id); if (found!=ids.end()) id=found->second; };
         replace(object.parentId);
+        if(object.canvas && object.canvas->menu) object.canvas->menu->RemapCameras(ids);
         if(object.joint) replace(object.joint->target);
         for (auto& script:object.scripts) script.Remap(ids);
         if(object.navAgent) object.navAgent->Remap(ids);

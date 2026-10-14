@@ -776,12 +776,7 @@ namespace SceneRuntime
             if (!Engine::OneOf(placement.button->action, {"loadScene", "loadSceneAdditive", "unloadScene", "setState"})) remap(placement.button->target);
             remap(placement.button->sound);
         }
-        if(placement.canvas && placement.canvas->menu) {
-            for(auto& entry:placement.canvas->menu->entries) if(const auto found=copies.find(entry.transitionCameraTarget);found!=copies.end()) entry.transitionCameraTarget=found->second;
-            auto& transition=placement.canvas->menu->configTransition;
-            if(const auto found=copies.find(transition.cameraTarget);found!=copies.end()) transition.cameraTarget=found->second;
-            if(const auto found=copies.find(transition.returnCameraTarget);found!=copies.end()) transition.returnCameraTarget=found->second;
-        }
+        if(placement.canvas && placement.canvas->menu) placement.canvas->menu->RemapCameras(copies);
         if (placement.prefab)
         {
             const auto root = copies.find(placement.prefab->rootId);
