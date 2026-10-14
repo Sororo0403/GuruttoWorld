@@ -76,6 +76,31 @@ namespace ScriptValidation
             "prefab typed references follow prefab IDs");
         runtime.Stop(layout);
     }
+    /// <summary>Start・Event・Update中の自己削除で参照が無効化されず、一度だけ停止することを確認します。</summary>
+    inline void SelfRemoval()
+    {
+        using namespace SceneRuntime;
+        for(int phase=0;phase<3;++phase)
+        {
+            const auto name="ValidationSelfRemoval"+std::to_string(phase);
+            const auto remove=[](ScriptContext& context){std::vector<ScriptComponent>{}.swap(context.object.scripts);};
+            ScriptDefinition definition;definition.fields={{"speed",{2,0,10}}};
+            definition.start=[phase,remove](ScriptContext& context){if(phase==0) remove(context);};
+            definition.onEvent=[phase,remove](ScriptContext& context){if(phase==1) remove(context);};
+            definition.update=[phase,remove](ScriptContext& context){context.object.position[0]+=context.Value("speed",0);if(phase==2) remove(context);};
+            definition.stop=[](ScriptContext& context){context.object.position[1]+=1;};
+            Require(ScriptRegistry::Register(name,definition),"self-removing script registers");
+            ScenePlacement owner;owner.id="owner";owner.scripts.push_back({"script",true,name,{}});
+            SceneLayout layout;layout.objects={owner};ScriptRuntime runtime;std::string error;
+            if(phase==1) runtime.QueueEvent({"remove",{},owner.id});
+            Require(runtime.Update(layout,.016,error) && layout.objects[0].scripts.empty() && layout.objects[0].position[0]==2,
+                "self-removal preserves callback data and commits without invalid references");
+            Require(runtime.Update(layout,.016,error) && layout.objects[0].position==std::array<float,3>{2,1,0},
+                "self-removed script stops once without another update");
+            runtime.Stop(layout);
+            Require(layout.objects[0].position[1]==1,"shutdown does not stop a removed script twice");
+        }
+    }
     inline void SceneApi()
     {
         using namespace SceneRuntime;
@@ -208,6 +233,7 @@ namespace ScriptValidation
         Require(!runtime.Update(unknown,0.1,error) && !error.empty(),"unknown runtime script reports error");
         SceneApi();
         TypedData();
+        SelfRemoval();
         ScriptPhaseValidation::Schema();
         ScriptModuleValidation::Schema();
     }

@@ -497,7 +497,10 @@ namespace SceneRuntime
             const TickContext tick{input,pressed,scene,phase,seconds};
             std::set<std::pair<std::string,std::string>> live;
             for (auto& object : layout.objects)
-                for (const auto& script : object.scripts)
+            {
+                // Callbacks may remove or replace their owner's Script components.
+                const auto scripts=object.scripts;
+                for (const auto& script : scripts)
                 {
                     if (!script.enabled) continue;
                     const auto definition=Registry().find(script.behaviour);
@@ -506,6 +509,7 @@ namespace SceneRuntime
                     const auto key=std::pair{object.id,script.id}; live.insert(key);
                     TickScript(object,script,definition->second,tick);
                 }
+            }
             StopInactive(live,layout);
             // Stop callbacks need the former owner only when its object is removed.
             auto previousOwners=CaptureStopOwners(scene);
