@@ -27,7 +27,7 @@ int main() {
         TitleDepartureValidation::Run(renderer,root);
         if(!renderer.WaitForIdle()) throw std::runtime_error("GPU completion failed");
         for(const auto& entry:Engine::Log::Recent()) if(entry.level==Engine::LogLevel::Error) throw std::runtime_error("runtime logged error: "+entry.text);
-        std::cout<<"PASS: actual App/Editor frame parity, CONFIG independent scene, smooth return, START, pointer, pause/step/resume/restart, isolated settings, opaque silhouette, START white buildings/black windows road travel, QUIT black/white arrow travel\n";return 0;
+        std::cout<<"PASS: actual App/Editor frame parity, CONFIG independent scene, smooth return, START, pointer, pause/step/resume/restart, isolated settings, opaque silhouette, START white buildings and roads travel, QUIT black/white arrow travel\n";return 0;
     } catch(const std::exception& error) {
         std::cerr<<"FAIL: "<<error.what()<<'\n';
         for(const auto& entry:Engine::Log::Recent()) if(entry.level==Engine::LogLevel::Error || entry.level==Engine::LogLevel::Warning) std::cerr<<entry.text<<'\n';

@@ -54,21 +54,23 @@ namespace TitleDepartureValidation
                 require(session.Runtime()->ActiveSceneName()=="Main","departure stays in title until complete");
                 if(effectTime>=1 && !paletteCaptured) {
                     const auto mid=cameraPose();require(quit ? mid.position[0]<before.position[0] : mid.position[2]>before.position[2],"departure follows EXIT left arrow or START road forward direction");
-                    int city=0,exit=0,cog=0,buildings=0;
+                    int city=0,exit=0,cog=0,buildings=0,roads=0;
                     for(const auto& object:session.Runtime()->World().Layout().objects) {
                         if(!object.meshRenderer || !object.material) continue;
                         if(object.id=="quit-sign") {
                             ++exit;require(object.material->color[3]==1 && object.material->effectAmount==1 && object.material->effectVariant==(quit ? 1 : 0),"EXIT lettering stays opaque white on QUIT and black on START");
                         } else if(object.material->asset.filename()=="TitleBuildingEffect.mat") {
                             ++buildings;require(object.meshRenderer->model.filename().string().starts_with("building"),"white facade material applies only to buildings");
-                            require(object.material->color[3]==1 && object.material->effectAmount==1 && object.material->effectVariant==(quit ? 0 : 1),"START buildings use white facade/black window effect; QUIT buildings are black");
+                            require(object.material->color[3]==1 && object.material->effectAmount==1 && object.material->effectVariant==(quit ? 0 : 1),"START buildings are completely white; QUIT buildings are black");
                         } else if(object.material->asset.filename()=="TitleCityEffect.mat") {
                             ++city;require(object.material->color[3]==1 && object.material->effectAmount==1,"departure effect reaches full strength without transparency");
                             const bool isCog=object.meshRenderer->model.filename()=="cog-a.obj";cog+=isCog;
-                            require(object.material->effectVariant==0,"START streets, cog and EXIT remain black; QUIT city and cog remain black");
+                            const auto model=object.meshRenderer->model.filename();
+                            const bool isRoad=model=="road-straight.obj" || model=="sidewalk.obj" || model=="road-bridge.obj";roads+=isRoad;
+                            require(object.material->effectVariant==(!quit && isRoad ? 1 : 0),"START roads are white while ground/cog stay black; QUIT streets and cog stay black");
                         }
                     }
-                    require(city+buildings>100 && buildings>=20 && cog>0 && exit==1,"departure fixture includes buildings, black streets, cog and EXIT sign");
+                    require(city+buildings>100 && buildings>=20 && roads>0 && cog>0 && exit==1,"departure fixture includes buildings, roads, ground, cog and EXIT sign");
                     GamePlaybackCapture::Capture(renderer,*session.Runtime(),1280,720,quit ? "quit-palette" : "start-palette");paletteCaptured=true;
                 }
                 if(effectTime>=2) {
