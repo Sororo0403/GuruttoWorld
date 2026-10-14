@@ -1,6 +1,6 @@
 {
   "assetReferences": {
-    "Assets/Scenes/OceanSunset.json": "2ceb0e6424fd4b74a9cb37f75316f2d2"
+    "Assets/Scenes/TitleStreet.json": "1f0e809df9d447e8b2eab18c11c18317"
   },
   "height": 720,
   "inputActions": {
@@ -108,7 +108,7 @@
       "threshold": 0.5
     }
   },
-  "startupScene": "Assets/Scenes/OceanSunset.json",
+  "startupScene": "Assets/Scenes/TitleStreet.json",
   "title": "ぐるっとワールド",
   "width": 1280
 }
