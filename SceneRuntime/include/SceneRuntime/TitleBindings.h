@@ -11,11 +11,30 @@ namespace SceneRuntime
 {
     struct TitleBindings
     {
-        static TitleMenuInput Input(const SceneRuntime::MenuConfiguration& config,const Engine::InputActions& actions,bool active) {
+        static TitleMenuInput Input(const SceneRuntime::MenuConfiguration& config,const Engine::InputActions& actions,bool active,const Engine::InputSnapshot* snapshot=nullptr) {
             TitleMenuInput input; input.active=active;
             constexpr unsigned int buttons[]{MenuUp,MenuDown,MenuLeft,MenuRight,MenuConfirm,MenuBack};
             for(size_t i=0;i<config.inputs.size();++i) if(active && actions.Down(config.inputs[i])) input.keyboardButtons|=buttons[i];
             input.anyButtonPressed=active && std::any_of(actions.PressedValues().begin(),actions.PressedValues().end(),[](const auto& pair){return pair.second;});
+            if(snapshot && active) {
+                input.keyboardButtons=0;input.gamepadConnected=snapshot->gamepadConnected;
+                input.anyButtonPressed=std::any_of(snapshot->pressed.begin(),snapshot->pressed.end(),[](bool value){return value;}) || snapshot->pressedButtons!=0;
+                for(size_t i=0;i<config.inputs.size();++i) {
+                    if(!actions.Down(config.inputs[i])) continue;
+                    const auto found=actions.GetBindings().find(config.inputs[i]);if(found==actions.GetBindings().end()) continue;
+                    const auto& binding=found->second;
+                    const bool keyboard=std::any_of(binding.keys.begin(),binding.keys.end(),[&](unsigned int key){return snapshot->down[key];}) ||
+                        (binding.mouseButtons && (snapshot->mouseButtons&binding.mouseButtons)==binding.mouseButtons);
+                    if(keyboard) input.keyboardButtons|=buttons[i];
+                    float analog=0;const int axis=std::abs(binding.axis);
+                    if(axis==1 || axis==2) analog=snapshot->stick[axis-1];
+                    if(axis==3 || axis==4) analog=snapshot->rightStick[axis-3];
+                    if(axis==5 || axis==6) analog=snapshot->triggers[axis-5];
+                    if(binding.axis<0) analog=-analog;
+                    if(snapshot->gamepadConnected && ((binding.buttons && (snapshot->buttons&binding.buttons)==binding.buttons) ||
+                        (binding.axis && std::isfinite(analog) && analog>=binding.threshold))) input.gamepadButtons|=buttons[i];
+                }
+            }
             return input;
         }
         static std::optional<TitleMenuItem> Item(const SceneRuntime::ScenePlacement& object)

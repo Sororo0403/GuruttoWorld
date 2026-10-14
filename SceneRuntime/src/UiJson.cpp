@@ -9,7 +9,18 @@ namespace SceneRuntime {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuEntry,index,action,target,focus,view,focusClock)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuSetting,key,action,minimum,maximum,step,initial)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuStateBinding,key,source,operation,factor,compare,scale,offset,minimum,maximum,factorDefault)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuConfiguration,entries,settings,inputs,cues,bindings,pressAnyButton,focusState)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuConfigTransition,enabled,cameraTarget,returnCameraTarget,enterDuration,returnDuration,zoomDelay)
+void to_json(Engine::Json& j,const MenuConfiguration& c) {
+    j={{"entries",c.entries},{"settings",c.settings},{"inputs",c.inputs},{"cues",c.cues},{"bindings",c.bindings},
+       {"pressAnyButton",c.pressAnyButton},{"focusState",c.focusState},{"configTransition",c.configTransition},{"settingsScreen",c.settingsScreen},{"returnScene",c.returnScene}};
+}
+void from_json(const Engine::Json& j,MenuConfiguration& c) {
+    j.at("entries").get_to(c.entries);j.at("settings").get_to(c.settings);j.at("inputs").get_to(c.inputs);
+    j.at("cues").get_to(c.cues);j.at("bindings").get_to(c.bindings);j.at("pressAnyButton").get_to(c.pressAnyButton);
+    j.at("focusState").get_to(c.focusState);
+    if(j.contains("configTransition")) j.at("configTransition").get_to(c.configTransition);
+    c.settingsScreen=j.value("settingsScreen",false);c.returnScene=j.value("returnScene",std::string{});
+}
 }
 namespace {
 using Engine::Json;

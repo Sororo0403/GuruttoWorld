@@ -126,7 +126,6 @@
     <ClCompile Include="..\Editor\src\UiCanvasPanel.cpp" />
     <ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp" />
     <ClCompile Include="..\App\src\Scenes\SceneFactory.cpp" />
-    <ClCompile Include="..\App\src\Scenes\TitleAudio.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">
@@ -152,4 +151,7 @@
     <Copy SourceFiles="@(TestAppAudio)" DestinationFiles="@(TestAppAudio-&gt;'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(TestAppShaders)" DestinationFiles="@(TestAppShaders-&gt;'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
+  <ItemGroup>
+    <ClInclude Include="GamePlaybackParityValidation.h" />
+  </ItemGroup>
 </Project>

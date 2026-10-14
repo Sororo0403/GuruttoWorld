@@ -41,7 +41,7 @@ namespace SceneRuntime
     bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
         const std::filesystem::path& scenePath, std::string& error)
     {
-        try { if(!Initialize(renderer,root,SceneLayout::Load(scenePath,root),error)) return false; scenes_.Reset(world_.Layout(),scenePath.is_absolute() ? scenePath.lexically_relative(root).generic_string() : scenePath.generic_string()); return true; }
+        try { if(!Initialize(renderer,root,SceneLayout::Load(scenePath,root),error)) return false; activeSceneName_=scenePath.is_absolute() ? scenePath.lexically_relative(root).generic_string() : scenePath.generic_string();scenes_.Reset(world_.Layout(),activeSceneName_); return true; }
         catch (const std::exception& exception) { error=exception.what(); return false; }
     }
     bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
@@ -50,7 +50,7 @@ namespace SceneRuntime
         if (!presentation_.Initialize(renderer,root,error) ||
             !world_.Initialize(renderer,root,std::move(layout),root/"Shaders/Mesh.hlsl",&error) || !presentation_.PrepareUi(renderer,root,world_.Layout(),error)) return false;
         seconds_=0; motionEnabled_=true; uiState_=SceneUi::Defaults(world_.Layout());
-        renderer_=&renderer; root_=root; scenes_.Reset(world_.Layout());
+        renderer_=&renderer; root_=root; scenes_.Reset(world_.Layout());activeSceneName_="Main";++sceneRevision_;
         uiSceneCommands_.clear();
         pendingUiResources_.reset();
         world_.SetRuntimePreparation([this](const SceneLayout& candidate,std::string& diagnostic) {
@@ -219,6 +219,10 @@ namespace SceneRuntime
         const auto previousOverride=uiPreparationOverride_;
         struct RestorePreparation {const UiState*& target; const UiState* previous; ~RestorePreparation() {target=previous;}} restore{uiPreparationOverride_,previousOverride};
         uiPreparationOverride_=&candidateUi;
+        const auto* previousMenu=TitleBindings::MenuCanvas(world_.Layout());
+        const auto* nextMenu=TitleBindings::MenuCanvas(layout);
+        const bool menuChanged=(previousMenu==nullptr)!=(nextMenu==nullptr) || (previousMenu && nextMenu &&
+            (previousMenu->id!=nextMenu->id || previousMenu->canvas->menu!=nextMenu->canvas->menu));
         auto previousResources=presentation_.CaptureUi();
         if(!presentation_.PrepareUi(*renderer_,root_,layout,error,candidateUi)) return false;
         if(!world_.ReplaceLayout(std::move(layout),root_,error,true))
@@ -227,6 +231,7 @@ namespace SceneRuntime
         }
         uiPreparationOverride_=previousOverride;
         scenes_=std::move(scenes); uiState_=std::move(candidateUi);
+        if(resetUi || menuChanged) ++sceneRevision_;
         ApplyUiCommands({});
         if(resetUi) {world_.DiscardUiCommands();seconds_=0;sceneSeconds_=0;startSeconds_=-1;focusRequested_=0;focusEngaged_=false;focusSeconds_=0;}
         if(!audio_.Reconcile(root_,world_.Layout(),error)) Engine::Log::Warning(error);
@@ -249,7 +254,9 @@ namespace SceneRuntime
                 std::for_each(entries.begin(),entries.end(),[&](const auto& entry) {layout=collection.Unload(layout,entry.name);});
             }
             layout=collection.Add(layout,std::move(incoming),relative.generic_string(),!additive,reserved);
-            return ApplySceneLayout(std::move(layout),std::move(collection),error,!additive);
+            const bool success=ApplySceneLayout(std::move(layout),std::move(collection),error,!additive);
+            if(success && !additive) activeSceneName_=relative.generic_string();
+            return success;
         }
         catch(const std::exception& exception) {error=exception.what();return false;}
     }

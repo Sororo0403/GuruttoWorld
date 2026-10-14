@@ -42,6 +42,7 @@ namespace SceneRuntime
             if(!shader.empty() && (shader.is_absolute() || shader.has_root_name() || !shader.generic_u8string().starts_with(u8"Shaders/") || shader.extension()!=".hlsl" ||
                 std::any_of(shader.begin(),shader.end(),[](const auto& part){return part=="..";}))) throw std::runtime_error("Invalid material shader path");
             if (std::any_of(std::begin(values.color),std::end(values.color),[](const float channel) {return !Engine::InRange(channel,0,1);})) throw std::runtime_error("Invalid material color");
+            if (!Engine::InRange(values.effectAmount,0,1)) throw std::runtime_error("Invalid material effect amount");
             if (!Engine::InRange(values.roughness,0.04f,1) ||
                 !Engine::InRange(values.metallic,0,1)) throw std::runtime_error("Invalid material surface");
             if (!Engine::InRange(values.environmentIntensity,0,100)) throw std::runtime_error("Invalid environment intensity");
@@ -62,6 +63,7 @@ namespace SceneRuntime
             for (size_t index=0;index<4;++index) asset.values.color[index]=static_cast<float>(Engine::JsonNumber(color[index]));
             asset.values.roughness=static_cast<float>(Engine::JsonNumber(json.at("roughness")));
             asset.values.metallic=static_cast<float>(Engine::JsonNumber(json.at("metallic")));
+            asset.values.effectAmount=json.value("effectAmount",0.0f);
             asset.values.transparent=json.at("transparent").get<bool>();
             const auto texture=json.at("texture").get<std::string>(); asset.texture=std::filesystem::path(std::u8string(texture.begin(),texture.end()));
             asset.values.physicallyBased=json.value("physicallyBased",false);
@@ -95,7 +97,7 @@ namespace SceneRuntime
             std::filesystem::create_directories((root/path).parent_path());
             const auto text=texture.generic_u8string();
             const auto normal=normalTexture.generic_u8string();
-            Engine::Json json={{"color",values.color},{"roughness",values.roughness},{"metallic",values.metallic},
+            Engine::Json json={{"color",values.color},{"roughness",values.roughness},{"metallic",values.metallic},{"effectAmount",values.effectAmount},
                 {"transparent",values.transparent},{"texture",std::string(text.begin(),text.end())},
                 {"physicallyBased",values.physicallyBased},{"normalFlipY",values.normalFlipY},
                 {"normalTexture",std::string(normal.begin(),normal.end())},

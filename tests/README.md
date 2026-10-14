@@ -1,5 +1,19 @@
 # カメラ・パーティクルの検証
 
+## エディター／プレイヤーの共通再生検証
+
+`GamePlaybackFocusedValidation` は実際の `App::AuthoredScene::Update` と `Editor::GameSession` に同じ診断入力を渡し、毎フレームのシーン・UI値・Transform・Materialを比較します。CONFIGの設定シーンへの切り替え、取消・保存による帰還、START、クリック、一時停止・コマ送り・再開、ゲームパッドの入力元、編集した接近先・時間、スクリプトによるシーン差し替えと旧操作の破棄、QUIT、Material強度だけの変更の保存・Undoを検証します。
+
+リポジトリのルートで、DevelopmentのEngine／SceneRuntimeと一致するゲームDLLを先に生成してから実行します。
+
+```powershell
+MSBuild tests/GamePlaybackFocusedValidation.vcxproj /p:Configuration=Development /p:Platform=x64 /p:PreferredToolArchitecture=x64 /m:1 /nr:false
+./scripts/BuildScripts.ps1 -Configuration Development -Content Games/GuruttoWorld -OutputContent Games/GuruttoWorld -WorkRoot Games/GuruttoWorld
+./generated/tests/outputs/x64/Development/GamePlaybackFocusedValidation/GamePlaybackFocusedValidation.exe
+```
+
+GPUで描画した両者の接近中・設定画面・帰還中の画像は `generated/tests/playback-captures` に保存します。設定の保存先は検証用ディレクトリに分離します。
+
 ## 静的解析（2026-10-13）
 
 `scripts/AnalyzeCode.ps1 -Label authoring-final` は、Engine・SceneRuntime・App・Editor・C++ゲーム処理の全101ソースをCppcheck 2.21.0で解析します。MSVCのDebug・Development・Releaseの定義をそれぞれ指定し、Jolt・Assimpの実際のインクルード先を使用します。外部ライブラリ自体の診断は対象外です。4並列と構成別キャッシュで再検査でき、結果は`generated/analysis/cppcheck-authoring-final-<構成>.txt`に保存します。構成を指定しない解析はJSONライブラリの未使用条件の組合せを検査して長時間化するため、実際のビルド条件を明示しています。

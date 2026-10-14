@@ -14,6 +14,7 @@ namespace Engine
         /// シーンを破棄します。利用中の GPU 処理は事前に完了させてください。
         /// </summary>
         virtual ~IScene() = default;
+        virtual std::string ActiveSceneName() const {return {};}
         /// <summary>
         /// シーンのリソースを生成します。失敗時は false を返します。
         /// </summary>

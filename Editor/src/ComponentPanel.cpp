@@ -286,6 +286,7 @@ namespace Editor
         if(material.surfaceOverride) {
             edited |= ImGui::ColorEdit4("色・透明度###Override color",material.color.data());
             edited |= ImGui::SliderFloat("粗さ###Override roughness",&material.roughness,.04f,1);
+            edited |= ImGui::SliderFloat("演出の強さ###Effect amount",&material.effectAmount,0,1);
             edited |= ImGui::SliderFloat("金属感###Override metallic",&material.metallic,0,1);
         }
         const auto label=material.asset.empty() ? std::string("モデルの設定") : ProjectCatalog::Text(material.asset.filename());

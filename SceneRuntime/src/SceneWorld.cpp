@@ -49,9 +49,9 @@ bool HasPhysicalPose(const SceneRuntime::ScenePlacement &p)
         if(!placement.material || !placement.material->enabled || !placement.material->surfaceOverride) return;
         const auto& surface=*placement.material;
         const auto apply=[&](const std::shared_ptr<const Engine::Material>& original) -> std::shared_ptr<const Engine::Material> {
-            if(original && original->color==surface.color && original->roughness==surface.roughness && original->metallic==surface.metallic) return original;
+            if(original && original->color==surface.color && original->roughness==surface.roughness && original->metallic==surface.metallic && original->effectAmount==surface.effectAmount) return original;
             auto material=original ? std::make_shared<Engine::Material>(*original) : std::make_shared<Engine::Material>();
-            material->color=surface.color;material->roughness=surface.roughness;material->metallic=surface.metallic;
+            material->color=surface.color;material->roughness=surface.roughness;material->metallic=surface.metallic;material->effectAmount=surface.effectAmount;
             return material;
         };
         object.SetMaterial(apply(object.GetMaterial()));
@@ -775,6 +775,11 @@ namespace SceneRuntime
             const auto remap = [&](std::string &id) {const auto found=copies.find(id); if(found!=copies.end()) id=found->second; };
             if (!Engine::OneOf(placement.button->action, {"loadScene", "loadSceneAdditive", "unloadScene", "setState"})) remap(placement.button->target);
             remap(placement.button->sound);
+        }
+        if(placement.canvas && placement.canvas->menu) {
+            auto& transition=placement.canvas->menu->configTransition;
+            if(const auto found=copies.find(transition.cameraTarget);found!=copies.end()) transition.cameraTarget=found->second;
+            if(const auto found=copies.find(transition.returnCameraTarget);found!=copies.end()) transition.returnCameraTarget=found->second;
         }
         if (placement.prefab)
         {

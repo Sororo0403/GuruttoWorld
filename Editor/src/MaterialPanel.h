@@ -47,6 +47,7 @@ namespace Editor
             ImGui::ColorEdit4("色・透明度###Material color",asset_.values.color.data());
             ImGui::SliderFloat("粗さ###Roughness",&asset_.values.roughness,0.04f,1,"%.2f");
             ImGui::SliderFloat("金属感###Metallic",&asset_.values.metallic,0,1,"%.2f");
+            ImGui::SliderFloat("演出の強さ###Effect amount",&asset_.values.effectAmount,0,1,"%.2f");
             ImGui::Checkbox("物理ベースの照明（PBR）###Physically based",&asset_.values.physicallyBased);
             ImGui::Checkbox("透明として描画###Transparent",&asset_.values.transparent);
             DrawTextures(asset_,catalog);

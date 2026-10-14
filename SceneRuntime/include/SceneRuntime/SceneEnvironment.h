@@ -14,6 +14,9 @@ namespace SceneRuntime
             SceneLayout layout, std::string& error);
         const SceneWorld& World() const { return world_; }
         /// <summary>ロード済みシーン数によらず実行環境の初期化状態を返します。</summary>
+        uint64_t SceneRevision() const {return sceneRevision_;}
+        const std::string& ActiveSceneName() const {return activeSceneName_;}
+        bool FirstTitleVisit(const std::string& key) {return visitedTitles_.insert(key).second;}
         bool Initialized() const { return renderer_!=nullptr; }
         SceneWorld& World() { return world_; }
         double MotionSeconds() const { return seconds_; }
@@ -70,6 +73,9 @@ namespace SceneRuntime
         void ProcessSceneCommands();
         /// <summary>コールバック、ナビゲーション、剛体・キャラクター・骨に固定更新が必要か判定します。</summary>
         static bool RequiresFixedUpdate(const SceneLayout& layout);
+        uint64_t sceneRevision_=0;
+        std::string activeSceneName_;
+        std::set<std::string> visitedTitles_;
         SceneCollection scenes_;
         std::vector<SceneCommand> uiSceneCommands_;
         const Engine::DirectX12Renderer* renderer_=nullptr;

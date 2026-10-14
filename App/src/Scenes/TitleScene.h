@@ -1,12 +1,6 @@
 #pragma once
-#include <Engine/Input/InputActions.h>
 #include <Engine/Scenes/IScene.h>
-#include "TitleUi.h"
-#include "TitleMenu.h"
-#include <Engine/Input/Gamepad.h>
-#include <SceneRuntime/SceneEnvironment.h>
-#include "TitleAudio.h"
-#include <SceneRuntime/TitleConfigTransition.h>
+#include "AuthoredScene.h"
 #include <memory>
 
 namespace App
@@ -21,6 +15,7 @@ namespace App
         /// <summary>
         /// タイトル画像と CC0 モデルの街並みを初期化します。
         /// </summary>
+        std::string ActiveSceneName() const override {return implementation_.ActiveSceneName();}
         bool Initialize(Engine::DirectX12Renderer& renderer) override;
         /// <summary>
         /// キーボード・ゲームパッドでメニューを操作し、開始または通常終了を要求します。
@@ -31,24 +26,6 @@ namespace App
         /// </summary>
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer) override;
     private:
-        void ApplyMenuAction(TitleMenuAction action,const Engine::Keyboard& keyboard);
-        void SyncUi();
-        SceneRuntime::TitleConfigTransition configTransition_;
-        std::string requestedScene_;
-        TitleMenuAction UpdatePointer(const Engine::Keyboard& keyboard);
-        /// <summary>ポインターが入ったメニュー項目を選択します。</summary>
-        void SelectHovered(const std::string& previousHover);
-        unsigned int width_=0,height_=0;
-        bool mouseDown_=false,mouseReady_=false;
-        std::string pressed_,hovered_;
-        TitleMenuInput ReadMenuInput(const Engine::Keyboard& keyboard);
-        std::filesystem::path root_,scene_;
-        TitleMenu menu_;
-        Engine::Gamepad gamepad_;
-        Engine::InputActions input_;
-        std::shared_ptr<SceneRuntime::SceneEnvironment> environmentOwner_;
-        SceneRuntime::SceneEnvironment& environment_;
-        TitleAudio audio_;
-        bool simulateInactive_=false;
+        AuthoredScene implementation_;
     };
 }

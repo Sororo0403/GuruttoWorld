@@ -119,6 +119,18 @@ inline void DrawMenuConfiguration(EditState& state, SceneRuntime::CanvasComponen
     ImGui::Checkbox("任意の入力で開始###Press any input",&c.pressAnyButton);
     widgets.string("カメラ焦点の状態キー###Focus state",c.focusState);
     DrawMenuEntries(widgets,c,catalog);
+    if(ImGui::TreeNode("設定画面への演出###Config transition")) {
+        auto& transition=c.configTransition;
+        ImGui::Checkbox("演出を使用###Enabled",&transition.enabled);
+        widgets.string("接近先オブジェクトID###Camera target",transition.cameraTarget);
+        widgets.string("戻り先オブジェクトID###Return camera target",transition.returnCameraTarget);
+        widgets.number("接近の時間（秒）###Enter duration",transition.enterDuration,.1f,10);
+        widgets.number("戻る時間（秒）###Return duration",transition.returnDuration,.1f,10);
+        widgets.number("接近開始まで（秒）###Zoom delay",transition.zoomDelay,0,transition.enterDuration);
+        ImGui::TreePop();
+    }
+    ImGui::Checkbox("このシーンは設定画面###Settings screen",&c.settingsScreen);
+    if(c.settingsScreen) widgets.string("戻るシーン###Return scene",c.returnScene);
     DrawMenuSettings(widgets,c);
     DrawMenuInputs(widgets,c);
     DrawMenuBindings(widgets,c);

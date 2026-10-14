@@ -13,7 +13,7 @@ namespace Engine
     {
         std::shared_ptr<MeshResources> shaderResources;
         std::array<float,4> color{1,1,1,1};
-        float roughness=0.5f,metallic=0;
+        float roughness=0.5f,metallic=0,effectAmount=0;
         bool transparent=false;
         // 既存資産は従来の照明を維持し、PBR は明示的に有効化します。
         bool physicallyBased=false;

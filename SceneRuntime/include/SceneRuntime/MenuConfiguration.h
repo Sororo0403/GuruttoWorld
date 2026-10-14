@@ -28,6 +28,12 @@ struct MenuStateBinding {
     float factorDefault=1;
     bool operator==(const MenuStateBinding&) const = default;
 };
+struct MenuConfigTransition {
+    bool enabled=false;
+    std::string cameraTarget,returnCameraTarget;
+    float enterDuration=2,returnDuration=.55f,zoomDelay=.45f;
+    bool operator==(const MenuConfigTransition&) const = default;
+};
 struct MenuConfiguration {
     std::vector<MenuEntry> entries{{0,"loadScene","",0,0},{1,"settings","",1,1},{2,"quit","",2,1}};
     std::vector<MenuSetting> settings{{"volume","number",0,10,1,10},{"motion","toggle",0,1,1,1},{"","save",0,1,1,0}};
@@ -36,6 +42,9 @@ struct MenuConfiguration {
     std::vector<MenuStateBinding> bindings;
     bool pressAnyButton=false;
     std::string focusState="cameraFocus";
+    MenuConfigTransition configTransition;
+    bool settingsScreen=false;
+    std::string returnScene;
     bool operator==(const MenuConfiguration&) const = default;
 };
 inline MenuConfiguration DefaultMenuConfiguration() {
@@ -103,5 +112,11 @@ inline void ValidateMenu(const MenuConfiguration& configuration) {
     for(const auto& input:configuration.inputs) Require(Engine::ValidString(input,128));
     for(const auto& cue:configuration.cues) Require(Engine::ValidString(cue,128));
     Require(Key(configuration.focusState));
+    const auto& transition=configuration.configTransition;
+    Require(Engine::ValidString(transition.cameraTarget,128) && Engine::ValidString(transition.returnCameraTarget,128));
+    Require(!configuration.settingsScreen || (!configuration.returnScene.empty() && configuration.returnScene.starts_with("Assets/Scenes/") && configuration.returnScene.ends_with(".json") && configuration.returnScene.find("..") == std::string::npos && configuration.returnScene.find_first_of("\\:")==std::string::npos));
+    Require(!transition.enabled || !transition.cameraTarget.empty());
+    Require(Engine::InRange(transition.enterDuration,.1f,10) && Engine::InRange(transition.returnDuration,.1f,10) &&
+        Engine::InRange(transition.zoomDelay,0,transition.enterDuration));
 }
 }

@@ -264,9 +264,7 @@
     <ClCompile Include="$(WP1Root)App\src\Scenes\TitleScene.cpp" />
     <ClCompile Include="$(WP1Root)App\src\Scenes\AuthoredScene.cpp" />
     <ClInclude Include="$(WP1Root)App\src\Scenes\AuthoredScene.h" />
-    <ClCompile Include="$(WP1Root)App\src\Scenes\TitleAudio.cpp" />
     <ClInclude Include="$(WP1Root)App\src\Scenes\TitleMenu.h" />
-    <ClInclude Include="$(WP1Root)App\src\Scenes\TitleAudio.h" />
     <ClInclude Include="$(WP1Root)App\src\Scenes\GameSettings.h" />
     <ClInclude Include="$(WP1Root)App\src\Scenes\TitleUi.h" />
     <ClInclude Include="$(WP1Root)App\src\Scenes\TitleBindings.h" />

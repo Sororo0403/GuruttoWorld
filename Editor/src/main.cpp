@@ -118,7 +118,6 @@ namespace
         {
             const auto updateStart=std::chrono::steady_clock::now();
             if(!PrepareFrameResources(renderer)) return Engine::RenderResult::Failed;
-            ApplyUiEvent(renderer);
             audioPreview.Process(root);
             if (projectSettingsPanel.TakeSaved())
             {
@@ -129,7 +128,11 @@ namespace
             if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
             if(gameSession.Runtime() && !gameSession.Runtime()->PrepareUi(renderer,root,fileStatus)) LogResult(false);
             UpdatePlayInput();
+            UpdateGamePointer();
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
+            if(auto command=gameSession.TakeCommand()) pendingUiEvent=std::move(command);
+            ApplyUiEvent(renderer);
+            if(gameSession.Runtime() && !gameSession.Runtime()->PrepareUi(renderer,root,fileStatus)) LogResult(false);
             if(gameSession.State().IsEditing()) recovery.Poll(RecoveryDirectory(),document.Path(),SceneJson(),sceneLoaded && editState.HasChanges(),seconds);
             profilerPanel.Update(renderer,DisplayedWorld(),seconds,std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-updateStart).count());
             bool rendered = true;
@@ -145,8 +148,10 @@ namespace
         void UpdateInput()
         {
             gamepad.Update(keyboard && keyboard->IsActive() && gameSession.State().CanPause());
-            if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard, &gamepad,
-                                                                            gamePanel.Focused() && gamePanel.Hovered() && !ImGui::IsAnyItemActive()));
+            if (keyboard) {
+                playerSnapshot=Engine::InputActions::Capture(*keyboard,&gamepad,gamePanel.Focused() && gamePanel.Hovered() && !ImGui::IsAnyItemActive());
+                playerInputs.Update(playerSnapshot);
+            }
         }
 
         bool CanRoutePlayInput() { return GameUiAcceptsInput() && gameSession.Runtime()->Ui().focused.empty(); }
@@ -155,15 +160,7 @@ namespace
             if (gameSession.State().CanPause() && gameSession.Runtime() && keyboard && keyboard->IsActive() && !closeRequested)
             {
                 const bool input = CanRoutePlayInput();
-                if (const auto event = gameSession.Title().Update(playerInputs, input, seconds, gameSession.Runtime()->Ui()))
-                    pendingUiEvent = *event;
-                if (input) gameSession.Runtime()->SetInputActions(playerInputs.Values(), playerInputs.PressedValues());
-                else gameSession.Runtime()->SetInputActions({}, {});
-                const auto &mapping = gameSession.Runtime()->World().Layout().settings.playerInputs;
-                gameSession.Runtime()->MovePlayers(seconds,
-                                                   input ? playerInputs.Value(mapping[0]) - playerInputs.Value(mapping[1]) : 0,
-                                                   input ? playerInputs.Value(mapping[2]) - playerInputs.Value(mapping[3]) : 0,
-                                                   input && playerInputs.Pressed(mapping[4]));
+                if(const auto event=gameSession.PrepareInput(playerInputs,input,seconds,&playerSnapshot)) pendingUiEvent=*event;
             }
         }
 
@@ -727,27 +724,27 @@ namespace
             if(!pendingUiEvent) return;
             if(!renderer.WaitForIdle()) return;
             const auto event=std::move(*pendingUiEvent); pendingUiEvent.reset();
-            if (gameSession.Runtime() && gameSession.Title().Activate(event,gameSession.Runtime()->Ui())) return;
             if(event.action=="quit") { StopGame(); return; }
-            if(event.action!="loadScene") return;
-            try {
-                if(!gameSession.Runtime()->LoadScene(std::filesystem::path(event.target),false,fileStatus)) LogResult(false);
-                else runtimeEditState.Reloaded();
-            } catch(const std::exception& e) { ReportStatus(e.what(),false); }
+            if(event.action=="loadScene") runtimeEditState.Reloaded();
         }
 
         void UpdateGamePointer()
         {
             const auto characters=keyboard?Engine::Window::ConsumeTextInput(keyboard->WindowHandle()):std::vector<char32_t>{};
-            if(keyboard) Engine::Window::ConsumeMouseWheel(keyboard->WindowHandle());
+            const auto* diagnostic=keyboard?keyboard->GetDiagnosticPointer():nullptr;
+            const float wheel=diagnostic?diagnostic->wheel:keyboard?Engine::Window::ConsumeMouseWheel(keyboard->WindowHandle()):0;
             auto* runtime=gameSession.Runtime(); if(!runtime) return;
-            if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {runtime->Ui().pressed.clear(); runtime->Ui().hovered.clear(); runtime->Ui().focused.clear(); return;}
+            if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {gameSession.Playback().Pointer(*runtime,gameTexture.GetWidth(),gameTexture.GetHeight(),{},false);return;}
             const auto& v=gamePanel.Viewport(); if(!v.Valid()) return;
-            const auto mouse=ImGui::GetIO().MousePos;
+            POINT cursor{};
+            if(diagnostic) {cursor.x=diagnostic->x;cursor.y=diagnostic->y;}
+            else {GetCursorPos(&cursor);ScreenToClient(keyboard->WindowHandle(),&cursor);}
+            const ImVec2 mouse{static_cast<float>(cursor.x),static_cast<float>(cursor.y)};
             UpdateGameShortcut(*runtime);
             const bool inside=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered();
-            const auto event=runtime->UiPointer(gameTexture.GetWidth(),gameTexture.GetHeight(),inside?(mouse.x-v.x)*gameTexture.GetWidth()/v.width:-100000,inside?(mouse.y-v.y)*gameTexture.GetHeight()/v.height:-100000,
-                ImGui::IsMouseDown(ImGuiMouseButton_Left),ImGui::IsMouseClicked(ImGuiMouseButton_Left),ImGui::IsMouseReleased(ImGuiMouseButton_Left),inside?ImGui::GetIO().MouseWheel:0);
+            const auto event=gameSession.Playback().Pointer(*runtime,gameTexture.GetWidth(),gameTexture.GetHeight(),
+                {inside?(mouse.x-v.x)*gameTexture.GetWidth()/v.width:-100000,inside?(mouse.y-v.y)*gameTexture.GetHeight()/v.height:-100000,
+                 (playerSnapshot.mouseButtons&1)!=0,false,false,inside?wheel:0},true);
             if(!event.object.empty()) pendingUiEvent=event;
             if(GameUiAcceptsInput()) {
                 for(const auto character:characters) runtime->UiTextInput(character);
@@ -948,21 +945,13 @@ namespace
             const bool pointerAllowed = Editor::GamePointerCapture::Allowed(captureGamePointer, gameSession.State().CanPause(),
                                                                             keyboard && keyboard->IsActive(), gamePanel.Focused(), closeRequested || ImGui::GetTopMostPopupModal() != nullptr, gamePanel.Viewport());
             if (pointerCapture.Update(keyboard ? keyboard->WindowHandle() : nullptr, gamePanel.Viewport(), pointerAllowed)) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-            UpdateGamePointer();
             Editor::ScenePanel::End();
         }
 
         void UpdateGameShortcut(SceneRuntime::SceneEnvironment &runtime)
         {
-            auto &ui = runtime.Ui();
-            if (GameUiAcceptsInput() && !gameSession.Title().Active() && ui.focused.empty()) {
-                for (const auto &[name, binding] : playerInputs.GetBindings()) {
-                    static_cast<void>(binding);
-                    if (!playerInputs.Pressed(name)) continue;
-                    const auto object = SceneRuntime::SceneUi::Shortcut(runtime.World().Layout(), "action:" + name, gameTexture.GetWidth(), gameTexture.GetHeight(), ui);
-                    if (!object.empty()) { pendingUiEvent = runtime.Click(object); break; }
-                }
-            }
+            const auto event=gameSession.Playback().Shortcut(runtime,playerInputs,gameTexture.GetWidth(),gameTexture.GetHeight(),GameUiAcceptsInput());
+            if(!event.object.empty()) pendingUiEvent=event;
         }
 
         bool GameUiAcceptsInput() const { return gamePanel.Focused() && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive(); }
@@ -1440,6 +1429,7 @@ namespace
         Editor::SaveAsPanel saveAsPanel;
         Editor::ProjectSettingsPanel projectSettingsPanel;
         Engine::InputActions playerInputs;
+        Engine::InputSnapshot playerSnapshot;
         Engine::Gamepad gamepad;
         std::unique_ptr<SceneRuntime::ScenePresentation> presentation;
         bool preview = false;

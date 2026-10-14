@@ -88,6 +88,7 @@ namespace SceneRuntime
         static void Remap(ScenePlacement& object,const std::map<std::string,std::string>& ids)
         {
             const auto remap=[&](std::string& id){if(const auto found=ids.find(id);found!=ids.end()) id=found->second;};
+            if(object.canvas && object.canvas->menu) {remap(object.canvas->menu->configTransition.cameraTarget);remap(object.canvas->menu->configTransition.returnCameraTarget);}
             remap(object.id);remap(object.parentId);if(object.joint) remap(object.joint->target);
             if(object.prefab) remap(object.prefab->rootId);for(auto& script:object.scripts) script.Remap(ids);
         if(object.navAgent) object.navAgent->Remap(ids);

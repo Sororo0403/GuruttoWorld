@@ -94,7 +94,7 @@ namespace Editor
         static Engine::Json Values(const SceneRuntime::MaterialAsset& asset)
         {
             const auto& v=asset.values;
-            return {{"shader",Text(asset.shader)},{"color",v.color},{"roughness",v.roughness},{"metallic",v.metallic},
+            return {{"shader",Text(asset.shader)},{"color",v.color},{"roughness",v.roughness},{"metallic",v.metallic},{"effectAmount",v.effectAmount},
                 {"transparent",v.transparent},{"physicallyBased",v.physicallyBased},{"normalFlipY",v.normalFlipY},
                 {"scale",v.uv.scale},{"rotation",v.uv.rotation},{"translation",v.uv.translation},
                 {"texture",Text(asset.texture)},{"normalTexture",Text(asset.normalTexture)},

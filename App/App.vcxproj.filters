@@ -204,16 +204,10 @@
     <ClCompile Include="$(WP1Root)App\src\Scenes\TitleMenu.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
-    <ClCompile Include="$(WP1Root)App\src\Scenes\TitleAudio.cpp">
-      <Filter>src\Scenes</Filter>
-    </ClCompile>
     <ClCompile Include="$(WP1Root)App\src\Scenes\GameSettings.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
     <ClInclude Include="$(WP1Root)App\src\Scenes\TitleMenu.h">
-      <Filter>src\Scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="$(WP1Root)App\src\Scenes\TitleAudio.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="$(WP1Root)App\src\Scenes\GameSettings.h">

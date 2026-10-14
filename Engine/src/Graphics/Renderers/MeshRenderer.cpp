@@ -49,7 +49,8 @@ static std::array<float, 26> LightConstants(const DirectionalLight &light, const
         }
         // lightingEnabled は整数ビット列: 照明、法線画像、Y反転、局所ライト。
         lightConstants[13] = static_cast<float>((light.enabled ? 1 : 0) |
-                                                (material->normalTexture ? 2 : 0) | (material->normalFlipY ? 4 : 0));
+                                                (material->normalTexture ? 2 : 0) | (material->normalFlipY ? 4 : 0) |
+                                                (static_cast<unsigned int>(std::lround(std::clamp(material->effectAmount,0.0f,1.0f)*1023))<<12));
     }
     return lightConstants;
 }

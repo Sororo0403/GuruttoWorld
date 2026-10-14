@@ -1,66 +1,110 @@
 #pragma once
 #include <SceneRuntime/SceneEnvironment.h>
 #include <SceneRuntime/SceneView.h>
-#include <SceneRuntime/TitleMenu.h>
+#include <SceneRuntime/SceneTransforms.h>
+#include <Engine/Core/Log.h>
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace SceneRuntime
 {
-    // Shared presentation for the player and the editor's title preview.
     class TitleConfigTransition final
     {
     public:
-        bool Blocking() const { return seconds_>=0 && (seconds_<Duration || !inputReady_); }
+        void Configure(const SceneLayout& layout,const MenuConfigTransition& configuration,UiState& state,bool settingsScreen)
+        {
+            *this={};configuration_=configuration;
+            configuration_.enabled=configuration_.enabled && state.Value("configTransitionEnabled",1)!=0;
+            for(const auto& object:layout.objects) if(object.animation) for(const auto& track:object.animation->tracks)
+                if(track.clock=="configEnterTime" && !track.keys.empty()) clipDuration_=std::max(clipDuration_,track.keys.back().time);
+            clipDuration_=std::max(.01f,clipDuration_);
+            if(configuration_.enabled && settingsScreen) {phase_=Phase::Held;settingsOpen_=true;inputReady_=true;}
+            Sync(state);
+        }
+        bool Blocking() const {return phase_==Phase::Entering || phase_==Phase::Returning || (phase_==Phase::Held && !inputReady_);}
         bool BlockInput(const TitleMenuInput& input,bool pointerDown=false)
         {
-            if(seconds_>=Duration && input.active && !pointerDown && input.keyboardButtons==0 &&
-                input.gamepadButtons==0 && std::abs(input.stickX)<.3f && std::abs(input.stickY)<.3f)
-                inputReady_=true;
+            if(phase_==Phase::Held && input.active && !pointerDown && input.keyboardButtons==0 && input.gamepadButtons==0 &&
+                std::abs(input.stickX)<.3f && std::abs(input.stickY)<.3f) inputReady_=true;
             return Blocking();
         }
         void Observe(bool settingsOpen,UiState& state)
         {
-            if(state.Value("configTransitionEnabled")!=1) return;
-            if(settingsOpen && !settingsOpen_) {seconds_=0; inputReady_=false; captureCamera_=true;}
-            if(!settingsOpen && settingsOpen_) {restore_=seconds_>=0; seconds_=-1; captureCamera_=false;}
-            settingsOpen_=settingsOpen;
-            Sync(state);
+            if(!configuration_.enabled) {settingsOpen_=settingsOpen;return;}
+            if(settingsOpen && !settingsOpen_) {phase_=Phase::Entering;elapsed_=0;capture_=true;inputReady_=false;}
+            if(!settingsOpen && settingsOpen_) {phase_=Phase::Returning;elapsed_=0;capture_=true;inputReady_=false;}
+            settingsOpen_=settingsOpen;Sync(state);
         }
-        void Advance(SceneEnvironment& environment,double seconds,bool active)
+        bool TakeEntered() {return std::exchange(entered_,false);}
+        bool TakeReturned() {return std::exchange(returned_,false);}
+        bool Enabled() const {return configuration_.enabled;}
+        bool Returning() const {return phase_==Phase::Returning;}
+        void Prepare(SceneEnvironment& environment,double seconds,bool active)
         {
-            if(environment.Ui().Value("configTransitionEnabled")!=1 || (seconds_<0 && !restore_)) return;
-            if(captureCamera_) {
-                if(const auto* camera=SceneView::CameraObject(environment.World().Layout())) {
-                    cameraId_=camera->id; position_=camera->position; rotation_=camera->rotation; scale_=camera->scale;
-                }
-                captureCamera_=false;
+            if(!configuration_.enabled || !active || !std::isfinite(seconds) || seconds<=0) return;
+            const auto* camera=SceneView::CameraObject(environment.World().Layout());
+            if(!camera) {Fail(environment,"Config transition camera is missing");return;}
+            cameraId_=camera->id;
+            if(capture_) {
+                if(phase_==Phase::Returning && lastPose_) from_=*lastPose_;
+                else if(!Pose(environment,cameraId_,from_)) {Fail(environment,"Config transition camera transform is invalid");return;}
+                capture_=false;
             }
-            if(seconds_>=0 && active && std::isfinite(seconds))
-                seconds_=std::min(Duration,seconds_+static_cast<float>(std::clamp(seconds,0.0,0.1)));
+            const float duration=phase_==Phase::Returning ? configuration_.returnDuration : configuration_.enterDuration;
+            if(phase_==Phase::Entering || phase_==Phase::Returning) elapsed_=std::min(duration,elapsed_+static_cast<float>(std::clamp(seconds,0.0,.1)));
             Sync(environment.Ui());
-            environment.World().Animate({{"configEnterTime",std::max(0.0f,seconds_)}});
-            restore_=false;
-            if(seconds_<0 || cameraId_.empty()) return;
-            const float t=std::clamp((seconds_-.45f)/1.55f,0.0f,1.0f),blend=t*t*(3-2*t);
-            auto position=position_,rotation=rotation_;
-            const std::array<float,3> targetPosition{9.0f,5.6f,10.3f},targetRotation{0,0,0};
-            for(size_t axis=0;axis<3;++axis) {
-                position[axis]+=(targetPosition[axis]-position[axis])*blend;
-                rotation[axis]+=(targetRotation[axis]-rotation[axis])*blend;
+        }
+        void Apply(SceneEnvironment& environment)
+        {
+            if(!configuration_.enabled || phase_==Phase::Idle) return;
+            ScenePlacement target;
+            const auto& id=phase_==Phase::Returning ? configuration_.returnCameraTarget : configuration_.cameraTarget;
+            if(!Pose(environment,id.empty() ? cameraId_ : id,target)) {Fail(environment,"Config transition target is missing or cannot be decomposed");return;}
+            float blend=1;
+            if(phase_==Phase::Entering) blend=std::clamp((elapsed_-configuration_.zoomDelay)/std::max(.001f,configuration_.enterDuration-configuration_.zoomDelay),0.0f,1.0f);
+            if(phase_==Phase::Returning) blend=std::clamp(elapsed_/configuration_.returnDuration,0.0f,1.0f);
+            blend=blend*blend*(3-2*blend);
+            auto pose=target;
+            if(phase_!=Phase::Held) for(size_t axis=0;axis<3;++axis) {
+                pose.position[axis]=from_.position[axis]+(target.position[axis]-from_.position[axis])*blend;
+                // Interpolate the shortest angular distance to avoid a full turn on wrapped Euler values.
+                pose.rotation[axis]=from_.rotation[axis]+std::remainder(target.rotation[axis]-from_.rotation[axis],6.283185307f)*blend;
             }
-            environment.World().SetLocalTransform(cameraId_,position,rotation,scale_);
+            if(!environment.World().SetWorldTransform(cameraId_,pose.position,pose.rotation,pose.scale)) {Fail(environment,"Config transition camera pose was rejected");return;}
+            lastPose_=pose;
+            if(phase_==Phase::Entering && elapsed_>=configuration_.enterDuration) {phase_=Phase::Held;entered_=true;}
+            else if(phase_==Phase::Returning && elapsed_>=configuration_.returnDuration) {phase_=Phase::Idle;returned_=true;inputReady_=true;}
+            Sync(environment.Ui());
         }
     private:
+        enum class Phase {Idle,Entering,Held,Returning};
+        static bool Pose(const SceneEnvironment& environment,const std::string& id,ScenePlacement& pose)
+        {
+            DirectX::XMFLOAT4X4 matrix;
+            return environment.World().WorldMatrix(id,matrix) && SceneTransforms::ReadTransform(matrix,{},pose);
+        }
         void Sync(UiState& state) const
         {
-            if(seconds_>=0) state.values["screen"]=seconds_<Duration ? 3.0f : 1.0f;
-            state.values["configEnterTime"]=std::max(0.0f,seconds_);
+            if(!configuration_.enabled) return;
+            if(phase_==Phase::Entering || phase_==Phase::Returning) state.values["screen"]=3;
+            else if(phase_==Phase::Held) state.values["screen"]=1;
+            else state.values["screen"]=settingsOpen_ ? 1.0f : 0.0f;
+            const float progress=phase_==Phase::Held ? 1 : phase_==Phase::Entering ? elapsed_/configuration_.enterDuration :
+                phase_==Phase::Returning ? 1-elapsed_/configuration_.returnDuration : 0;
+            state.values["configEnterTime"]=std::clamp(progress,0.0f,1.0f)*clipDuration_;
         }
-        static constexpr float Duration=2.0f;
-        float seconds_=-1;
-        bool inputReady_=true,settingsOpen_=false,captureCamera_=false,restore_=false;
+        void Fail(SceneEnvironment& environment,const char* error)
+        {
+            Engine::Log::Warning(error);configuration_.enabled=false;phase_=Phase::Idle;
+            environment.Ui().values["screen"]=settingsOpen_ ? 1.0f : 0.0f;
+        }
+        MenuConfigTransition configuration_;
+        Phase phase_=Phase::Idle;
+        float elapsed_=0,clipDuration_=0;
+        bool inputReady_=true,settingsOpen_=false,capture_=false,entered_=false,returned_=false;
         std::string cameraId_;
-        std::array<float,3> position_{},rotation_{},scale_{1,1,1};
+        ScenePlacement from_;
+        std::optional<ScenePlacement> lastPose_;
     };
 }

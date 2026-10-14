@@ -18,6 +18,7 @@ namespace Engine
         {
             auto next = current_->Update(deltaSeconds, keyboard);
             if (!next.empty()) RequestChange(std::move(next));
+            if(const auto name=current_->ActiveSceneName();!name.empty()) activeName_=name;
         }
     }
     bool SceneManager::ApplyPending(DirectX12Renderer& renderer)

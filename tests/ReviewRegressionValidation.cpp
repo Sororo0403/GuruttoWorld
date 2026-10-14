@@ -64,6 +64,7 @@
 #include "LocalLightValidation.h"
 #include "PostEffectValidation.h"
 #include "TitlePresentationValidation.h"
+#include "GamePlaybackParityValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
 #include "ProjectSettingsValidation.h"
@@ -1926,7 +1927,8 @@ namespace
                 AnimatorValidation::Runtime(renderer);
                 TextureImportValidation::Run(renderer); ProfilerValidation::Run(renderer);
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
-            MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                GamePlaybackParityValidation::Run(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
                 ValidateSceneView(renderer);
                 ValidateComponents(renderer);
                 ValidatePlaySnapshot(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
@@ -2944,6 +2946,15 @@ void ValidateMaterialDocuments()
     Check(!materialHistory.CanRedo() && a.Asset().values.roughness==.4f,"new Material edits clear redo without touching another asset");
     materialHistory.Reload(root,second);
     Check(!materialHistory.CanUndo() && !materialHistory.CanRedo() && !materialHistory.Dirty(),"Material reload resets asset-local history");
+    Editor::MaterialDocument effectHistory;effectHistory.Reload(root,second);
+    effectHistory.Asset().values.effectAmount=.75f;effectHistory.Observe({});
+    Check(effectHistory.Dirty() && effectHistory.CanUndo(),"effectAmount-only material edit creates dirty undo state");
+    Check(effectHistory.Undo() && effectHistory.Asset().values.effectAmount==0 && !effectHistory.Dirty(),"effectAmount undo restores saved material");
+    Check(effectHistory.Undo(true) && effectHistory.Asset().values.effectAmount==.75f && effectHistory.Dirty(),"effectAmount redo restores independent edit");
+    effectHistory.Save(root,second);
+    Check(!effectHistory.Dirty() && SceneRuntime::MaterialAsset::Load(root,second).values.effectAmount==.75f,"effectAmount saves and round trips without other edits");
+    effectHistory.Reload(root,second);
+    Check(effectHistory.Asset().values.effectAmount==.75f && !effectHistory.Dirty(),"effectAmount material reload preserves saved value");
     const std::filesystem::path oldTexture="Assets/Textures/old.png",newTexture="Assets/Textures/new.png",movingMaterial="Assets/Materials/moving.mat";
     std::filesystem::create_directories(root/"Assets/Textures");
     {std::ofstream texture(root/oldTexture);texture<<"texture reference fixture";}
@@ -2963,12 +2974,14 @@ void ValidateEditorTitlePreview()
     const auto layout=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json"));
     auto state=SceneRuntime::SceneUi::Defaults(layout);
     Editor::TitlePreview title;
+    state.values["configTransitionEnabled"]=0; // Menu-only checks; full transitions use TitleConfigTransitionValidation.
     title.Initialize(layout,state);
     Check(title.Active() && state.Value("screen",-1)==0,"editor title initializes shared menu state");
     SceneRuntime::UiEvent event; event.event="menu:1";
     Check(title.Activate(event,state) && state.Value("screen",-1)==1,"editor CONFIG click opens settings");
     event.event="back"; title.Activate(event,state);
     Check(state.Value("screen",-1)==0,"editor settings back returns to title");
+    title.TakeCommand(); // Menu-only fixture does not execute scene commands.
     Engine::InputActions actions; Engine::InputSnapshot input; input.active=true;
     actions.Update(input); title.Update(actions,true,0,state);
     actions.Update(input); title.Update(actions,true,0,state);
@@ -3819,6 +3832,7 @@ int main()
             Check(renderer.Initialize(window.GetHandle()),"focused title renderer");
             ShadowValidation::Run(renderer);
             TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+            GamePlaybackParityValidation::Run(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
             MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
             Check(renderer.WaitForIdle(),"focused title GPU completion");
             CheckGpuMessages(renderer.GetDevice());

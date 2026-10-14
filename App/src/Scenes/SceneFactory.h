@@ -1,7 +1,6 @@
 #pragma once
 #include <Engine/Scenes/ISceneFactory.h>
 #include <filesystem>
-#include <set>
 #include <string>
 #include <SceneRuntime/SceneEnvironment.h>
 
@@ -25,7 +24,6 @@ namespace App
     private:
         std::filesystem::path root_;
         bool simulateInactive_ = false;
-        std::set<std::string> visited_;
         std::shared_ptr<SceneRuntime::SceneEnvironment> environment_=std::make_shared<SceneRuntime::SceneEnvironment>();
     };
 }
