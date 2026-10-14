@@ -100,6 +100,8 @@ namespace Engine
         ID3D12Resource* GeometryResource(size_t index) const { return meshes_.at(index)->GeometryResource(); }
         const DirectX::BoundingBox& Bounds() const { return bounds_; }
         const std::shared_ptr<const SkeletonData>& Rig() const { return rig_; }
+        /// <summary>アニメーションクリップまたはスキンを持つモデルかを判定します。</summary>
+        bool IsAnimated() const noexcept;
         const std::vector<BonePose>& Pose() const { return pose_; }
         std::shared_ptr<ModelRenderer> AnimatedCopy(ID3D12Device* device,ID3D12CommandQueue* queue) const;
         /// <summary>姿勢を検証して反映します。頂点バッファーは変更しません。</summary>

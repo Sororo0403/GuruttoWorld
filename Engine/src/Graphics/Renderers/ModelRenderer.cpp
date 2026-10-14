@@ -11,6 +11,11 @@
 
 namespace Engine
 {
+    bool ModelRenderer::IsAnimated() const noexcept
+    {
+        return rig_ && (!rig_->clips.empty() || std::any_of(rig_->meshes.begin(),rig_->meshes.end(),
+            [](const auto& mesh) {return !mesh.joints.empty();}));
+    }
     void ModelRenderer::DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,
         const Material* material,std::span<const std::shared_ptr<const Material>> slots) const
     {

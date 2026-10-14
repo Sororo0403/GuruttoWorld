@@ -84,6 +84,64 @@ namespace EngineEditorReviewValidation
         Require(!world.DuplicateObjects({"light0"},{},created,error) && !error.empty() && created.empty() &&
             world.Layout().Serialize()==lights && world.RenderVersion()==lightsVersion,"33rd light duplication is rejected atomically");
     }
+    /// <summary>テストモデルからスキン設定だけを取り除きます。</summary>
+    inline void StripSkin(Engine::Json& gltf)
+    {
+        gltf.erase("skins");for(auto& node:gltf["nodes"]) node.erase("skin");
+        for(auto& mesh:gltf["meshes"]) for(auto& primitive:mesh["primitives"]) {
+            primitive["attributes"].erase("JOINTS_0");primitive["attributes"].erase("WEIGHTS_0");
+        }
+    }
+    /// <summary>静的glTF/GLBのLODと、スキン・クリップを持つLODの拒否を検証します。</summary>
+    inline void StaticLods(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
+    {
+        const auto models=Fixtures()/"Assets/Models";std::filesystem::create_directories(models);
+        std::ifstream source(root/"Assets/Models/AnimatedBox.gltf");const auto original=Engine::Json::parse(source);
+        auto rigid=original;StripSkin(rigid);rigid.erase("animations");
+        {std::ofstream file(models/"Static.gltf");file<<rigid.dump();}
+        auto binaryModel=rigid;const auto uri=binaryModel["buffers"][0]["uri"].get<std::string>();
+        binaryModel["buffers"][0].erase("uri");std::vector<unsigned char> binary;
+        constexpr std::string_view alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        std::uint32_t accumulator=0;unsigned int bits=0;
+        for(const char character:std::string_view(uri).substr(uri.find(',')+1)) {
+            if(character=='=') break;const auto value=alphabet.find(character);Require(value!=std::string_view::npos,"fixture buffer is base64");
+            accumulator=(accumulator<<6)|static_cast<std::uint32_t>(value);bits+=6;
+            if(bits>=8) {bits-=8;binary.push_back(static_cast<unsigned char>(accumulator>>bits));}
+        }
+        while(binary.size()%4) binary.push_back(0);auto json=binaryModel.dump();while(json.size()%4) json+=' ';
+        const std::array<std::uint32_t,5> header{0x46546c67,2,static_cast<std::uint32_t>(28+json.size()+binary.size()),static_cast<std::uint32_t>(json.size()),0x4e4f534a};
+        const std::array<std::uint32_t,2> binaryHeader{static_cast<std::uint32_t>(binary.size()),0x004e4942};
+        {std::ofstream file(models/"Static.glb",std::ios::binary);file.write(reinterpret_cast<const char*>(header.data()),sizeof(header));file<<json;
+            file.write(reinterpret_cast<const char*>(binaryHeader.data()),sizeof(binaryHeader));file.write(reinterpret_cast<const char*>(binary.data()),binary.size());}
+        auto skinned=original;skinned.erase("animations");{std::ofstream file(models/"SkinOnly.gltf");file<<skinned.dump();}
+        auto animated=original;StripSkin(animated);{std::ofstream file(models/"ClipOnly.gltf");file<<animated.dump();}
+        for(const auto* name:{"Static.gltf","Static.glb","SkinOnly.gltf","ClipOnly.gltf"}) {
+            Engine::ModelRenderer model;
+            Require(model.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),models/name,root/"Shaders/Mesh.hlsl"),"glTF and GLB fixtures load");
+            Require(model.Rig() && model.IsAnimated()==(std::string_view(name).starts_with("Skin") || std::string_view(name).starts_with("Clip")),
+                "static node hierarchy is distinct from skin or animation clips");
+        }
+        SceneRuntime::ScenePlacement model;model.id="static";model.SetModel("Assets/Models/Static.gltf");
+        model.meshRenderer->lods={{20,"Assets/Models/Static.glb"}};
+        SceneRuntime::SceneLayout layout;layout.objects={model};SceneRuntime::SceneWorld world;std::string error,created;
+        Require(world.Initialize(renderer,Fixtures(),layout,root/"Shaders/Mesh.hlsl",&error),error.c_str());
+        model.id="added";Require(world.AddObject(model,Fixtures(),created,error),error.c_str());
+        auto runtimeModel=world.Layout().objects.front();runtimeModel.meshRenderer->lods.front().model="Assets/Models/Static.gltf";
+        SceneRuntime::ScriptDefinition definition;
+        definition.update=[runtimeModel](SceneRuntime::ScriptContext& context) {if(!context.state["applied"]) {context.scene->SetComponents(runtimeModel.id,runtimeModel);context.state["applied"]=1;}};
+        Require(SceneRuntime::ScriptRegistry::Register("ReviewStaticLod",definition),"LOD script registers");
+        SceneRuntime::ScenePlacement script;script.id="script";script.scripts.push_back({"lod",true,"ReviewStaticLod",{}});
+        Require(world.AddObject(script,Fixtures(),created,error) && world.UpdateComponents(.016),"script component replacement loads static LOD");
+        Require(world.Layout().objects.front().meshRenderer->lods.front().model=="Assets/Models/Static.gltf","script LOD edit commits");
+        const auto saved=world.Layout().Serialize();
+        for(const auto* name:{"SkinOnly.gltf","ClipOnly.gltf"}) {
+            model.meshRenderer->lods.front().model=std::filesystem::path("Assets/Models")/name;
+            Require(!world.AddObject(model,Fixtures(),created,error) && world.Layout().Serialize()==saved,"animated LOD remains rejected without scene mutation");
+        }
+        Engine::Camera camera;camera.SetPosition({0,0,-25});camera.SetPerspective(DirectX::XM_PIDIV4,1,.1f,100);
+        Require(renderer.Render({0,0,0,1},[&](auto* commands,float) {world.Draw(commands,camera,{});})!=Engine::RenderResult::Failed &&
+            renderer.WaitForIdle() && world.Telemetry().draws>0,"static glTF and GLB LOD scene renders");
+    }
     /// <summary>マウス・キーボード・ゲームパッドから同じScriptイベントが一度ずつ届くことを確認します。</summary>
     inline void UiEvents(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
     {
@@ -149,6 +207,6 @@ namespace EngineEditorReviewValidation
     /// <summary>追加済みの実行時の回帰条件を検証します。</summary>
     inline void Runtime(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
     {
-        DuplicateLimits(renderer,root);UiEvents(renderer,root);TextureLifetime(renderer,root);
+        DuplicateLimits(renderer,root);StaticLods(renderer,root);UiEvents(renderer,root);TextureLifetime(renderer,root);
     }
 }

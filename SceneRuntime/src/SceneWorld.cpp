@@ -252,7 +252,7 @@ namespace SceneRuntime
             {
                 if (placement.animator) throw std::runtime_error("Animated meshes cannot use static LOD models");
                 auto loaded = models_.Load(prepared.assetsRoot / lod.model);
-                if (!loaded || loaded->Rig()) throw std::runtime_error("Static LOD model could not be loaded: " + placement.id);
+                if (!loaded || loaded->IsAnimated()) throw std::runtime_error("Static LOD model could not be loaded: " + placement.id);
                 prepared.lods[placement.id].push_back(std::move(loaded));
             }
             InitializeAnimatorObject(object, placement, layout, matrix, prepared, baseline, preserveExecution);
@@ -753,7 +753,7 @@ namespace SceneRuntime
             {
                 if (placement.animator) throw std::runtime_error("Animated meshes cannot use static LOD models");
                 auto loaded = models_.Load(assetsRoot / lod.model);
-                if (!loaded || loaded->Rig()) throw std::runtime_error("Static LOD model could not be loaded");
+                if (!loaded || loaded->IsAnimated()) throw std::runtime_error("Static LOD model could not be loaded");
                 prepared.lods[placement.id].push_back(std::move(loaded));
             }
             InitializeAddedAnimator(object, placement, validation, matrix, model, prepared);
@@ -856,7 +856,7 @@ namespace SceneRuntime
             object.SetModel(model);
             for (const auto &lod : p.meshRenderer->lods) {
                 auto loaded = models_.Load(assetsRoot_ / lod.model);
-                if (!loaded || loaded->Rig()) throw std::runtime_error("Invalid static LOD: " + p.id);
+                if (!loaded || loaded->IsAnimated()) throw std::runtime_error("Invalid static LOD: " + p.id);
                 candidate.lods[p.id].push_back(std::move(loaded));
             }
             const auto &material = p.Material();
