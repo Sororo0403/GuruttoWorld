@@ -82,7 +82,7 @@ std::vector<const ScenePlacement *> LayoutChildren(const SceneLayout &layout, co
     for (const auto &child : layout.objects) if (child.parentId == parent.id && child.rectTransform && child.rectTransform->enabled) children.push_back(&child);
     return children;
 }
-RectTransformComponent ArrangedRect(const SceneLayout& layout,const ScenePlacement& parent,const ScenePlacement& node,const UiRect& bounds,RectTransformComponent rect) {
+RectTransformComponent ArrangedRect(const SceneLayout& layout,const ScenePlacement& parent,const ScenePlacement& node,const UiRect& bounds,RectTransformComponent rect,const UiState& state) {
     if(!parent.layoutGroup || !parent.layoutGroup->enabled) return rect;
     const auto& group=*parent.layoutGroup;
     const auto children=LayoutChildren(layout,parent);
@@ -101,7 +101,10 @@ RectTransformComponent ArrangedRect(const SceneLayout& layout,const ScenePlaceme
         if(expand) rect.size[axis]=std::max(0.0f,(available[axis]-group.spacing[axis]*static_cast<float>(children.size()-1))/static_cast<float>(children.size()));
         if(axis==0 && group.expandHeight) rect.size[1]=available[1];
         if(axis==1 && group.expandWidth) rect.size[0]=available[0];
-        for(size_t i=0;i<index;++i) rect.position[axis]+=(expand?rect.size[axis]:children[i]->rectTransform->size[axis])+group.spacing[axis];
+        for(size_t i=0;i<index;++i) {
+            float opacity=1;
+            rect.position[axis]+=(expand?rect.size[axis]:AnimatedRect(*children[i],state,opacity).size[axis])+group.spacing[axis];
+        }
     }
     return rect;
 }
@@ -149,7 +152,7 @@ void ApplyResolvedRect(const SceneLayout &layout, const ScenePlacement &node, co
     if (node.rectTransform) {
         float opacity = 1;
         auto rect = AnimatedRect(node, effective, opacity);
-        if (parent) rect = ArrangedRect(layout, *parent, node, r, rect);
+        if (parent) rect = ArrangedRect(layout, *parent, node, r, rect, effective);
         if (parent && parent->scrollView && parent->scrollView->enabled) {
             const auto found = state.scrollOffsets.find(parent->id);
             const auto offset = found == state.scrollOffsets.end() ? parent->scrollView->offset : found->second;

@@ -70,6 +70,17 @@ namespace UiControlValidation
         Require(SceneUi::SceneState(layout,removed,state,false).focused.empty(),"unloading an input field clears its focus");
         const auto a=SceneUi::Resolve(layout,layout.objects[7],400,300),b=SceneUi::Resolve(layout,layout.objects[8],400,300);
         Require(a.size[0]==95 && b.position[0]==285,"horizontal layout distributes width and spacing");
+        auto animated=layout;animated.objects[6].layoutGroup->expandWidth=false;
+        animated.objects[7].animation.emplace();AnimationTrack sizeTrack;sizeTrack.property="uiSize";
+        sizeTrack.keys={{0,{20,40,0,0}},{1,{60,70,0,0}}};animated.objects[7].animation->tracks={sizeTrack};
+        UiState midway;midway.values["sceneTime"]=.5f;
+        const auto firstAnimated=SceneUi::Resolve(animated,animated.objects[7],400,300,midway);
+        const auto secondAnimated=SceneUi::Resolve(animated,animated.objects[8],400,300,midway);
+        Require(firstAnimated.size[0]==40 && secondAnimated.position[0]==230,
+            "horizontal layout uses the preceding child's animated width and maintains spacing");
+        animated.objects[6].layoutGroup->direction="vertical";
+        Require(SceneUi::Resolve(animated,animated.objects[8],400,300,midway).position[1]==215,
+            "vertical layout uses the preceding child's animated height and maintains spacing");
         auto& group=*layout.objects[6].layoutGroup; group.direction="grid"; group.cellSize={30,25}; group.columns=1;
         const auto grid=SceneUi::Resolve(layout,layout.objects[8],400,300);
         Require(grid.size==std::array<float,2>{30,25} && grid.position[1]==185,"grid layout places children in rows");
@@ -136,5 +147,21 @@ namespace UiControlValidation
         SceneUi::Pointer(rotated,64,32,{32,8,true,true,false,0},rotatedState);
         SceneUi::Pointer(rotated,64,32,{52,8,true,false,false,0},rotatedState);
         Require(rotatedPixel()==std::array<unsigned char,4>{255,0,0,255} && renderer.WaitForIdle(),"rotated drag reveals content in the actual GPU framebuffer");
+        SceneLayout grouped;
+        auto groupedCanvas=Object("groupedCanvas","",64,32);groupedCanvas.canvas.emplace();
+        groupedCanvas.canvas->referenceSize={64,32};groupedCanvas.rectTransform.reset();
+        auto group=Object("animatedGroup","groupedCanvas",64,32);group.layoutGroup.emplace();
+        group.layoutGroup->direction="horizontal";group.layoutGroup->padding={0,0,0,0};group.layoutGroup->spacing={8,8};
+        auto first=Object("animatedFirst","animatedGroup",8,32),second=Object("animatedSecond","animatedGroup",32,32);
+        first.image.emplace();first.image->color={1,0,0,1};first.animation.emplace();AnimationTrack sizeTrack;sizeTrack.property="uiSize";
+        sizeTrack.keys={{0,{8,32,0,0}},{1,{40,32,0,0}}};first.animation->tracks={sizeTrack};
+        second.image.emplace();second.image->color={0,1,0,1};grouped.objects={groupedCanvas,group,first,second};
+        SceneUi groupedUi;UiState groupedState;groupedState.values["sceneTime"]=0;
+        Require(groupedUi.Prepare(renderer,root,grouped,error,groupedState),"animated layout GPU resources prepare");
+        const auto groupedPixel=[&](){return EnvironmentValidation::Pixel(renderer,[&](auto* commands){groupedUi.Draw(commands,grouped,64,32,groupedState);});};
+        Require(groupedPixel()==std::array<unsigned char,4>{0,255,0,255},"layout initially displays the second child at the framebuffer center");
+        groupedState.values["sceneTime"]=1;
+        Require(groupedPixel()==std::array<unsigned char,4>{255,0,0,255} && renderer.WaitForIdle(),
+            "animated first child moves its sibling out of the way in the actual GPU framebuffer");
     }
 }
