@@ -61,6 +61,7 @@ namespace Editor
             if(runtime_) runtime_->UpdateAudio(active && state_.CanPause());
             if (!active || !runtime_ || !state_.Advance(seconds)) return false;
             runtime_->Update(seconds,title_.BackgroundMotion(),true);
+            title_.AdvancePresentation(*runtime_,seconds,true);
             return true;
         }
         bool Step()
@@ -70,7 +71,8 @@ namespace Editor
             if (!state_.Step(seconds)) return false;
             runtime_->SetInputActions({},{});
             runtime_->MovePlayers(seconds,0,0);
-            runtime_->Update(seconds,true,true);
+            runtime_->Update(seconds,title_.BackgroundMotion(),true);
+            title_.AdvancePresentation(*runtime_,seconds,true);
             return true;
         }
         void Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height)

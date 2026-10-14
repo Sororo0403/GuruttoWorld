@@ -1,6 +1,7 @@
 #pragma once
 #include "EnvironmentValidation.h"
 #include <SceneRuntime/SceneUi.h>
+#include "TitleConfigTransitionValidation.h"
 
 namespace TitlePresentationValidation
 {
@@ -61,6 +62,7 @@ namespace TitlePresentationValidation
     inline void Run(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
     {
         using EnvironmentValidation::Require;
+        TitleConfigTransitionValidation::Run(renderer,root);
         const auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
         SceneRuntime::SceneEnvironment scene; std::string error;
         Require(scene.Initialize(renderer,root,layout,error),"title presentation initializes");

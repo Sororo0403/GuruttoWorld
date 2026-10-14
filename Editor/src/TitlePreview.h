@@ -4,6 +4,7 @@
 #include <Engine/Input/InputActions.h>
 #include <SceneRuntime/SceneEnvironment.h>
 #include <optional>
+#include <SceneRuntime/TitleConfigTransition.h>
 
 namespace Editor
 {
@@ -12,7 +13,7 @@ namespace Editor
     public:
         void Initialize(const SceneRuntime::SceneLayout& layout,SceneRuntime::UiState& state,const std::filesystem::path& settingsPath={},bool playIntro=false)
         {
-            menu_.reset(); pending_.reset(); fade_=0; pendingCue_=0; settingsPath_=settingsPath;seekIntro_=false;
+            configTransition_={}; menu_.reset(); pending_.reset(); fade_=0; pendingCue_=0; settingsPath_=settingsPath;seekIntro_=false;
             const auto* configuration=SceneRuntime::TitleBindings::Configuration(layout);
             if(!configuration) return;
             const auto items=SceneRuntime::TitleBindings::Items(layout);
@@ -24,6 +25,7 @@ namespace Editor
             seekIntro_=menu_->IntroProgress()==1;
             Sync(state);
         }
+        void AdvancePresentation(SceneRuntime::SceneEnvironment& environment,double seconds,bool active) { configTransition_.Advance(environment,seconds,active); }
         bool Active() const { return menu_.has_value(); }
         void Suspend() { if(menu_) menu_->Update({}); }
         bool BackgroundMotion() const { return !menu_ || menu_->GetSettings().backgroundMotion; }
@@ -43,13 +45,15 @@ namespace Editor
         {
             if (!menu_ || !(event.event.starts_with("menu:") || event.event.starts_with("settings:") ||
                 event.event=="back" || event.event=="volume" || event.event=="start")) return false;
+            if(configTransition_.Blocking()) return true;
             const float intro=menu_->IntroProgress();
             Action(menu_->ActivateUi(event.event)); seekIntro_=seekIntro_ || (intro<1 && menu_->IntroProgress()==1);Sync(state); return true;
         }
         std::optional<SceneRuntime::UiEvent> Update(const Engine::InputActions& actions,bool active,double seconds,SceneRuntime::UiState& state)
         {
             if (!menu_) return std::nullopt;
-            const auto input=SceneRuntime::TitleBindings::Input(menu_->Configuration(),actions,active);
+            auto input=SceneRuntime::TitleBindings::Input(menu_->Configuration(),actions,active);
+            if(configTransition_.BlockInput(input)) {input.keyboardButtons=0; input.gamepadButtons=0; input.stickX=input.stickY=0;}
             const float intro=menu_->IntroProgress();
             Action(menu_->Update(input,seconds));seekIntro_=seekIntro_ || (intro<1 && menu_->IntroProgress()==1); Sync(state);
             auto result=std::move(pending_); pending_.reset(); return result;
@@ -69,7 +73,9 @@ namespace Editor
             if(menu_->GetCue()==SceneRuntime::TitleMenuCue::Confirm && !menu_->IsSettingsOpen() && menu_->SelectedEntry() && menu_->SelectedEntry()->action=="loadScene") state.values["startRequested"]=1;
             std::string assignments; if(menu_->TakeAssignments(assignments)) state.Assign(assignments);
             for (const auto& [name,value] : SceneRuntime::TitleUi::State(*menu_,state).values) state.values[name]=value;
+            configTransition_.Observe(menu_->IsSettingsOpen(),state);
         }
+        SceneRuntime::TitleConfigTransition configTransition_;
         std::optional<SceneRuntime::TitleMenu> menu_;
         std::optional<SceneRuntime::UiEvent> pending_;
         std::filesystem::path settingsPath_;
