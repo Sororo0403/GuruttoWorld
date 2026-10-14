@@ -97,6 +97,15 @@ namespace PrefabValidation
         SceneLayout asset; asset.objects={parent,child};
         const std::filesystem::path path="Assets/Prefabs/Test.prefab";
         asset.Save(root/path);
+        auto collidingAsset=asset; auto sibling=child; sibling.id="child-1"; collidingAsset.objects.push_back(sibling);
+        ScenePlacement occupied; occupied.id="prefab-1-child"; occupied.name="Unrelated";
+        SceneLayout collidingScene; collidingScene.objects={occupied};
+        const auto collisionRoot=Prefab::Instantiate(collidingScene,collidingAsset,path,{});
+        Require(collidingScene.objects.size()==4 && collidingScene.objects.front().id==occupied.id &&
+            collidingScene.objects[2].id!=occupied.id && collidingScene.objects[2].id!=collidingScene.objects[3].id &&
+            collidingScene.objects[2].parentId==collisionRoot && collidingScene.objects[3].parentId==collisionRoot &&
+            Prefab::Extract(collidingScene,collisionRoot).objects.size()==3,
+            "prefab child IDs avoid existing objects and IDs reserved by the same instance");
         SceneLayout scene;
         const auto first=Prefab::Instantiate(scene,asset,path,{2,0,0});
         const auto second=Prefab::Instantiate(scene,asset,path,{6,0,0});

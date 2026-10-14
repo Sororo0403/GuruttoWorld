@@ -201,7 +201,15 @@ namespace SceneRuntime
         static_cast<void>(asset.Serialize()); const auto sourceRoot=Root(asset);
         auto candidate=scene; std::map<std::string,std::string> ids;
         const auto root=Unique(candidate,"prefab");
-        for (const auto& object : asset.objects) ids[object.id]=object.id==sourceRoot ? root : root+"-"+object.id;
+        std::set<std::string> used{root};
+        for(const auto& object:candidate.objects) used.insert(object.id);
+        for (const auto& object : asset.objects)
+        {
+            if(object.id==sourceRoot) {ids[object.id]=root;continue;}
+            const auto base=root+"-"+object.id;auto id=base;size_t suffix=1;
+            while(used.contains(id)) id=base+"-"+std::to_string(suffix++);
+            used.insert(id);ids[object.id]=std::move(id);
+        }
         for (auto object : asset.objects)
         {
             const auto source=object.id; const auto baseline=Baseline(object);
