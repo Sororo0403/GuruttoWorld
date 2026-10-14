@@ -1579,7 +1579,9 @@ namespace
 
     void ValidateGameSession(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
-        auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
+        auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json",root);
+        const auto settingsPath=std::filesystem::absolute("generated/tests/game-session")/std::to_string(GetTickCount64())/"settings.json";
+        Check(SceneRuntime::GameSettings{}.Save(settingsPath),"isolated game session settings save");
         for (auto& object:layout.objects) object.animation.reset(); // Animation has a separate deterministic clock fixture.
         layout.objects.back().name="Unsaved runtime name";
         layout.objects.back().position[0]+=3;
@@ -1588,7 +1590,9 @@ namespace
         Editor::GameSession session;
         std::string error;
         Check(!session.Step() && !session.Update(0.1,true) && !session.Pause() && !session.Stop(), "editing has no running game session");
-        Check(session.Play(renderer,root,layout,error) && error.empty() && session.Runtime() &&
+        const bool playing=session.Play(renderer,root,layout,error,settingsPath);
+        Check(playing,error.c_str());
+        Check(error.empty() && session.Runtime() &&
             session.Runtime()->World().Layout().Serialize()==unsaved, "Play uses unsaved layout snapshot rather than saved title scene");
         const auto* running=session.Runtime();
         const auto initialMote=running->Particle(0);
@@ -1601,7 +1605,7 @@ namespace
         const auto mote=running->Particle(0); const auto camera=running->CameraPosition();
         Check(!session.Update(0.1,false) && !session.Update(NAN,true) && running->Particle(0)==mote &&
             running->CameraPosition()==camera && session.State().Updates()==1, "inactive and invalid ticks do not change runtime or clock");
-        Check(!session.Step() && !session.Play(renderer,root,layout,error) && session.Runtime()==running, "repeated Play preserves active runtime");
+        Check(!session.Step() && !session.Play(renderer,root,layout,error,settingsPath) && session.Runtime()==running, "repeated Play preserves active runtime");
         Check(session.Pause() && !session.Update(0.1,true) && running->Particle(0)==mote &&
             running->CameraPosition()==camera, "Pause freezes actual runtime camera and particles");
         Engine::RenderTexture target;
@@ -1623,16 +1627,16 @@ namespace
         render();
         Check(!session.Update(0.1,true) && running->Particle(0)==stepped && session.State().Updates()==2,
             "drawing and ordinary ticks do not advance after a Step");
-        Check(session.Play(renderer,root,layout,error) && session.Runtime()==running && session.Update(0.1,true) &&
+        Check(session.Play(renderer,root,layout,error,settingsPath) && session.Runtime()==running && session.Update(0.1,true) &&
             running->Particle(0)!=stepped && session.State().Updates()==3, "Resume continues existing runtime without recreating scene");
         render();
         Check(session.Stop() && session.State().IsEditing() && !session.Runtime() && session.State().Updates()==0,
             "Stop releases runtime after GPU completion and resets state");
         Check(SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json").Serialize()==onDisk, "runtime never writes the saved scene");
         auto bad=layout; bad.objects.back().SetModel("Assets/Models/Title/missing-runtime.obj");
-        Check(!session.Play(renderer,root,bad,error) && !error.empty() && !session.Runtime() && session.State().IsEditing() &&
+        Check(!session.Play(renderer,root,bad,error,settingsPath) && !error.empty() && !session.Runtime() && session.State().IsEditing() &&
             session.State().Elapsed()==0, "failed runtime initialization leaves editor state intact");
-        Check(session.Play(renderer,root,{},error) && session.Runtime()->World().Layout().objects.empty() &&
+        Check(session.Play(renderer,root,{},error,settingsPath) && session.Runtime()->World().Layout().objects.empty() &&
             session.Runtime()->Particle(0)==std::array<float,4>{}, "empty unsaved scene starts with fresh background timing");
         render();
         Check(session.Pause() && session.Stop(), "paused session can stop safely");
