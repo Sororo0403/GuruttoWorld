@@ -3269,7 +3269,8 @@ void ValidateBuildCancellation()
 {
     const auto root=std::filesystem::absolute("generated/tests/build-cancel-"+std::to_string(GetTickCount64()));
     std::filesystem::create_directories(root/"Games/GuruttoWorld");std::filesystem::create_directories(root/"scripts");
-    {std::ofstream script(root/"scripts/BuildPlayer.ps1");script<<R"(param([string]$Configuration,[string]$RunId)
+    {std::ofstream solution(root/"WP1.slnx");solution<<"<Solution/>\n";}
+    {std::ofstream script(root/"scripts/BuildPlayer.ps1");script<<R"(param([string]$Configuration,[string]$RunId,[string]$Content,[string]$WorkRoot)
 $child=Start-Process -FilePath (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 30' -WindowStyle Hidden -PassThru
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'parent.pid'),[string]$PID)
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'child.pid'),[string]$child.Id)
