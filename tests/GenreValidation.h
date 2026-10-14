@@ -44,6 +44,21 @@ inline void NavigationPaths() {
     auto thirty=layout,oneTwenty=layout;for(int i=0;i<120;++i) Require(SceneRuntime::Navigation::Advance(thirty,1.0/30,error),"30 Hz navigation");for(int i=0;i<480;++i) Require(SceneRuntime::Navigation::Advance(oneTwenty,1.0/120,error),"120 Hz navigation");
     for(size_t axis=0;axis<3;++axis) Require(std::abs(thirty.objects.back().position[axis]-oneTwenty.objects.back().position[axis])<.02f,"navigation frame-rate equivalent parent-local movement");
     Require(std::abs(thirty.objects.back().position[0]-3)<.1f,"agent reaches world destination under parent");
+    for(const float height:std::array<float,2>{20,-20}) {
+        auto projected=Layout();Require(SceneRuntime::Navigation::Bake(projected,projected.objects[0],error),"arrival navmesh bake");
+        auto elevated=agent;elevated.parentId.clear();elevated.position={.5f,0,.5f};elevated.navAgent->destination={3.5f,height,.5f};
+        projected.objects.push_back(elevated);
+        for(int tick=0;tick<180;++tick) Require(SceneRuntime::Navigation::Advance(projected,1.0/60,error),"projected destination navigation");
+        const auto& arrived=projected.objects.back();
+        Require(!arrived.navAgent->moving&&!SceneRuntime::Navigation::HasAgents(projected)&&
+            std::abs(arrived.position[0]-3.5f)<.11f&&std::abs(arrived.position[1])<.001f,
+            "NavAgent stops at a destination projected onto the mesh above or below the surface");
+        const float arrivalX=arrived.position[0];
+        auto& resume=projected.objects.back();resume.navAgent->destination={.5f,height,.5f};resume.navAgent->moving=true;
+        Require(SceneRuntime::Navigation::Advance(projected,.25,error)&&projected.objects.back().navAgent->moving&&
+            projected.objects.back().position[0]<arrivalX-.4f,
+            "arrived NavAgent can resume toward a new projected destination");
+    }
     auto steep=Layout();for(unsigned int z=0;z<5;++z) for(unsigned int x=0;x<5;++x) steep.objects[0].terrain->heights[z*5+x]=static_cast<float>(x)*10;
     Require(SceneRuntime::Navigation::Bake(steep,steep.objects[0],error),"slope bake");Require(std::none_of(steep.objects[0].navMesh->walkable.begin(),steep.objects[0].navMesh->walkable.end(),[](bool v){return v;}),"steep surface excluded");
     std::map<std::string,std::string> remap{{"ground","copy-ground"}};agent.navAgent->Remap(remap);Require(agent.navAgent->mesh=="copy-ground","NavMesh reference remap");
@@ -52,10 +67,14 @@ inline void NavigationPaths() {
 inline void Runtime(Engine::DirectX12Renderer& renderer) {
     FollowupStateValidation::ProceduralEdits(renderer);
     auto layout=Layout();std::string error;Require(SceneRuntime::Navigation::Bake(layout,layout.objects[0],error),"runtime bake");
-    SceneRuntime::ScenePlacement agent;agent.id="agent";agent.position={.5f,0,.5f};agent.navAgent.emplace();agent.navAgent->mesh="ground";agent.navAgent->destination={3.5f,0,.5f};layout.objects.push_back(agent);
+    SceneRuntime::ScenePlacement agent;agent.id="agent";agent.position={.5f,0,.5f};agent.navAgent.emplace();agent.navAgent->mesh="ground";agent.navAgent->destination={3.5f,5,.5f};layout.objects.push_back(agent);
     SceneRuntime::SceneEnvironment scene;Require(scene.Initialize(renderer,"Games/GuruttoWorld",layout,error),"procedural scene GPU resources");
     const auto pick=scene.World().PickRay({2,5,2},{0,-1,0});Require(pick=="ground","procedural terrain triangle picking");
     scene.Update(1.0/30,true,true);Require(scene.World().Layout().objects.back().position[0]>.5f,"SceneEnvironment advances NavAgent without player input");
+    for(int tick=0;tick<120;++tick) scene.Update(1.0/60,true,true);
+    Require(!scene.World().Layout().objects.back().navAgent->moving&&
+        std::abs(scene.World().Layout().objects.back().position[0]-3.5f)<.11f,
+        "SceneEnvironment stops NavAgent at the projected destination before rendering");
     SceneRuntime::PhysicsWorld physics;SceneRuntime::ScenePhysics::States states;Require(physics.Advance(layout,states,1.0/60,0,0,false,"Games/GuruttoWorld",error),"Jolt heightfield collider build");
     const auto hit=physics.Raycast({2,5,2},{0,-1,0},10);Require(hit&&hit->object=="ground"&&std::abs(hit->position[1])<.01f,"Jolt terrain raycast hits generated triangles");
     Engine::Camera camera;camera.SetPosition({2,4,-6});camera.SetRotation(0,-.35f);

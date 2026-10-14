@@ -153,6 +153,9 @@ bool Navigation::Advance(SceneLayout& layout,double seconds,std::string& error) 
             if(std::hypot(start[0]-agent.destination[0],start[1]-agent.destination[1],start[2]-agent.destination[2])<=agent.stoppingDistance) {stopped.push_back(i);continue;}
             const auto path=Path(layout,agent.mesh,start,agent.destination);if(path.empty()) continue;
             const auto current=FollowPath(start,path,agent.speed*seconds);
+            const auto& destination=path.back();
+            if(std::hypot(current[0]-destination[0],current[1]-destination[1],current[2]-destination[2])<=agent.stoppingDistance)
+                stopped.push_back(i);
             targets.emplace(p.id,current);moves.emplace(p.id,std::array<float,3>{current[0]-start[0],current[1]-start[1],current[2]-start[2]});
         }
         LocalAgentPositions(layout,matrices,targets,std::move(moves));
