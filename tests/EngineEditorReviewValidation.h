@@ -24,6 +24,25 @@ namespace EngineEditorReviewValidation
     {
         try {action();return false;} catch(const std::exception&) {return true;}
     }
+    /// <summary>内部と外部のカメラ参照を持つメニューのテスト配置を生成します。</summary>
+    inline SceneRuntime::SceneLayout MenuPrefab()
+    {
+        SceneRuntime::ScenePlacement menu;menu.id="menu";menu.canvas.emplace();menu.canvas->menu.emplace();
+        auto& configuration=*menu.canvas->menu;
+        configuration.configTransition.cameraTarget="camera";
+        configuration.configTransition.returnCameraTarget="external-camera";
+        configuration.entries.front().transitionCameraTarget="camera";
+        SceneRuntime::ScenePlacement camera;camera.id="camera";camera.parentId="menu";camera.camera.emplace();
+        SceneRuntime::SceneLayout layout;layout.objects={menu,camera};return layout;
+    }
+    /// <summary>複製先のカメラ参照と外部参照の保持を確認します。</summary>
+    inline void CameraLinks(const SceneRuntime::SceneLayout& layout,size_t menuIndex,size_t cameraIndex)
+    {
+        const auto& menu=*layout.objects.at(menuIndex).canvas->menu;
+        Require(menu.configTransition.cameraTarget==layout.objects.at(cameraIndex).id &&
+            menu.entries.front().transitionCameraTarget==layout.objects.at(cameraIndex).id &&
+            menu.configTransition.returnCameraTarget=="external-camera","internal menu cameras remap while external references remain intact");
+    }
     /// <summary>編集データの再発条件を検証します。</summary>
     inline void Data()
     {
@@ -40,6 +59,28 @@ namespace EngineEditorReviewValidation
         normal.Save(external);Require(SceneRuntime::SceneLayout::Load(normal.Path()).objects.size()==1,"uncontested renamed document still saves");
 
     }
+    /// <summary>メニューと光源の上限を超える複製が変更前に拒否されることを確認します。</summary>
+    inline void DuplicateLimits(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
+    {
+        auto layout=MenuPrefab();SceneRuntime::SceneWorld world;std::string error;
+        Require(world.Initialize(renderer,root,layout,root/"Shaders/Mesh.hlsl",&error),error.c_str());
+        const auto saved=world.Layout().Serialize();const auto version=world.RenderVersion();std::vector<std::string> created;
+        Require(!world.DuplicateObjects({"menu"},{},created,error) && !error.empty() && created.empty() &&
+            world.Layout().Serialize()==saved && world.RenderVersion()==version,"duplicate menu rejection preserves scene, history snapshot and render version");
+        layout.objects.front().canvas->enabled=false;Require(world.ReplaceLayout(layout,root,error),error.c_str());
+        Require(world.DuplicateObjects({"menu","camera"},{},created,error) && created.size()==2,"disabled menu subtree can be duplicated");
+        CameraLinks(world.Layout(),2,3);
+        layout.objects.clear();for(int i=0;i<32;++i) {
+            SceneRuntime::ScenePlacement light;light.id="light"+std::to_string(i);light.pointLight.emplace();layout.objects.push_back(light);
+        }
+        Require(world.ReplaceLayout(layout,root,error),error.c_str());const auto lights=world.Layout().Serialize();
+        const auto lightsVersion=world.RenderVersion();created.clear();
+        Require(!world.DuplicateObjects({"light0"},{},created,error) && !error.empty() && created.empty() &&
+            world.Layout().Serialize()==lights && world.RenderVersion()==lightsVersion,"33rd light duplication is rejected atomically");
+    }
     /// <summary>追加済みの実行時の回帰条件を検証します。</summary>
-    inline void Runtime(Engine::DirectX12Renderer&,const std::filesystem::path&) {}
+    inline void Runtime(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
+    {
+        DuplicateLimits(renderer,root);
+    }
 }

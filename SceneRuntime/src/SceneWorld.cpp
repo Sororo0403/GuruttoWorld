@@ -1316,6 +1316,8 @@ namespace SceneRuntime
             CopySceneOwnership(candidate,layout_.objects[index].id,copies.at(layout_.objects[index].id));
             objects.push_back(std::move(object));
         }
+        try { candidate.Validate(); }
+        catch(const std::exception& exception) {error=exception.what();return false;}
         if (!PrepareTransforms(candidate,objects,error)) return false;
         layout_=std::move(candidate); objects_=std::move(objects); ++renderVersion_;
         animatedModels_=std::move(animated); animatorStates_=std::move(states);
