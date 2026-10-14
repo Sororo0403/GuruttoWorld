@@ -9,9 +9,11 @@
 #include <limits>
 
 namespace MenuAuthoringValidation {
+/// <summary>独立した遷移時間の設定で、編集時と再生時の状態計算を検証します。</summary>
 inline void Presentation(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root) {
     auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
     for(auto& object:layout.objects) if(object.canvas && object.canvas->menu) {
+        object.canvas->stateDefaults["startDuration"]=.8f;
         object.canvas->menu->bindings={{"transition","transition","value","",0,.5f,.1f,0,1},{"customFade","transition","value","",0,3,0,0,.75f}};
     }
     SceneRuntime::SceneEnvironment scene; std::string error;
