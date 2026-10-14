@@ -32,6 +32,12 @@ namespace App
     private:
         void ApplyMenuAction(TitleMenuAction action,const Engine::Keyboard& keyboard);
         void SyncUi();
+        void UpdateConfigTransition(double seconds, bool active);
+        float configSeconds_ = -1.0f;
+        bool configRestorePending_ = false;
+        bool configInputReady_ = true;
+        std::string configCameraId_;
+        std::array<float,3> configCameraPosition_{}, configCameraRotation_{};
         std::string requestedScene_;
         TitleMenuAction UpdatePointer(const Engine::Keyboard& keyboard);
         /// <summary>ポインターが入ったメニュー項目を選択します。</summary>

@@ -4,6 +4,8 @@
 #include <Engine/Input/Keyboard.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <utility>
+#include <algorithm>
+#include <cmath>
 #include <SceneRuntime/ProjectSettings.h>
 #include <Engine/Platform/Window.h>
 
@@ -51,19 +53,33 @@ namespace App
         auto input = ReadMenuInput(keyboard);
         if(!environment_.Ui().focused.empty()) {input.keyboardButtons=0; input.gamepadButtons=0; input.stickX=input.stickY=0; input.anyButtonPressed=false;}
         const float previousIntro=menu_.IntroProgress();
+        const bool wasSettingsOpen=menu_.IsSettingsOpen();
+        const auto* pointer=keyboard.GetDiagnosticPointer();
+        const bool pointerDown=pointer ? (pointer->buttons&1)!=0 : (GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+        if(configSeconds_>=2.0f && !pointerDown && input.keyboardButtons==0 && input.gamepadButtons==0 &&
+            std::abs(input.stickX)<.3f && std::abs(input.stickY)<.3f) configInputReady_=true;
+        const bool blockConfigInput=configSeconds_>=0 && (configSeconds_<2.0f || !configInputReady_);
+        if(blockConfigInput) { input.keyboardButtons=0; input.gamepadButtons=0; input.stickX=input.stickY=0; }
         auto action = menu_.Update(input, deltaSeconds);
         SyncUi();
-        const auto pointerAction=UpdatePointer(keyboard);
+        const auto pointerAction=blockConfigInput ? TitleMenuAction::None : UpdatePointer(keyboard);
         if(previousIntro<1 && menu_.IntroProgress()==1)
             environment_.SeekAnimation(environment_.Ui().Value("introDuration",0),static_cast<float>(environment_.MotionSeconds()));
         if(pointerAction!=TitleMenuAction::None) action=pointerAction;
+        if(!wasSettingsOpen && menu_.IsSettingsOpen() && environment_.Ui().Value("configTransitionEnabled")==1) {
+            configSeconds_=0; configInputReady_=false;
+            hovered_.clear(); pressed_.clear(); mouseDown_=false; mouseReady_=false;
+            for(const auto& object:environment_.World().Layout().objects) if(object.camera && object.camera->enabled && (environment_.World().Layout().settings.mainCamera.empty() || object.id==environment_.World().Layout().settings.mainCamera)) {configCameraId_=object.id; configCameraPosition_=object.position; configCameraRotation_=object.rotation; break;}
+        }
         ApplyMenuAction(action,keyboard);
+        if(wasSettingsOpen && !menu_.IsSettingsOpen()) {configRestorePending_=configSeconds_>=0; configSeconds_=-1;}
         std::string assignments; if(menu_.TakeAssignments(assignments)) environment_.Ui().Assign(assignments);
         SyncUi();
         environment_.Ui().hovered=hovered_; environment_.Ui().pressed=pressed_;
         audio_.Update(environment_,root_, menu_, keyboard.IsActive() || simulateInactive_, deltaSeconds);
         environment_.Update(deltaSeconds, menu_.GetSettings().backgroundMotion,
             keyboard.IsActive() || simulateInactive_);
+        UpdateConfigTransition(deltaSeconds,keyboard.IsActive() || simulateInactive_);
         if (action == TitleMenuAction::Start) {
             const auto scene=menu_.PendingTarget();
             if(scene.empty()) Engine::Log::Warning("Menu entry has no scene target. Set the target in Canvas > Menu configuration.");
@@ -87,6 +103,28 @@ namespace App
     void TitleScene::SyncUi()
     {
         for(const auto& [key,value]:TitleUi::State(menu_,environment_.Ui()).values) environment_.Ui().values[key]=value;
+        if(configSeconds_>=0 && configSeconds_<2.0f) environment_.Ui().values["screen"]=3;
+        environment_.Ui().values["configEnterTime"]=std::max(0.0f,configSeconds_);
+    }
+    void TitleScene::UpdateConfigTransition(double seconds, bool active)
+    {
+        if(environment_.Ui().Value("configTransitionEnabled")!=1 || (configSeconds_<0 && !configRestorePending_)) return;
+        if(configSeconds_>=0 && active && std::isfinite(seconds))
+            configSeconds_=std::min(2.0f,configSeconds_+static_cast<float>(std::clamp(seconds,0.0,0.1)));
+        SyncUi();
+        // The authored color and cog tracks also restore their initial values at time zero.
+        environment_.World().Animate({{"configEnterTime",std::max(0.0f,configSeconds_)}});
+        configRestorePending_=false;
+        if(configSeconds_<0) return;
+        const float t=std::clamp((configSeconds_-.45f)/1.55f,0.0f,1.0f);
+        const float blend=t*t*(3-2*t);
+        auto position=configCameraPosition_,rotation=configCameraRotation_;
+        const std::array<float,3> targetPosition{9.0f,5.6f,10.3f},targetRotation{0,0,0};
+        for(size_t axis=0;axis<3;++axis) {
+            position[axis]+=(targetPosition[axis]-position[axis])*blend;
+            rotation[axis]+=(targetRotation[axis]-rotation[axis])*blend;
+        }
+        environment_.World().SetLocalTransform(configCameraId_,position,rotation,{1,1,1});
     }
     TitleMenuAction TitleScene::UpdatePointer(const Engine::Keyboard& keyboard)
     {
