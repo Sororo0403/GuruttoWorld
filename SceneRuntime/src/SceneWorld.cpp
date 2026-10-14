@@ -1504,6 +1504,22 @@ namespace SceneRuntime
         return true;
     }
 
+    bool SceneWorld::SkeletonWorldMatrix(std::string_view id,DirectX::XMFLOAT4X4& matrix) const
+    {
+        const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),
+            [&](const auto& placement){return placement.id==id;});
+        if(found==layout_.objects.end()) return false;
+        const auto& object=objects_[static_cast<size_t>(found-layout_.objects.begin())];
+        const auto model=object.GetModel();if(!model||!model->Rig()) return false;
+        const auto& rig=*model->Rig();
+        if(!std::isfinite(rig.importScale)||rig.importScale<=0) return false;
+        DirectX::XMFLOAT4X4 candidate;
+        DirectX::XMStoreFloat4x4(&candidate,DirectX::XMLoadFloat4x4(&rig.inverseRoot)*
+            DirectX::XMMatrixScaling(rig.importScale,rig.importScale,rig.importScale)*DirectX::XMLoadFloat4x4(&object.GetWorldMatrix()));
+        if(!SceneTransforms::IsUsable(candidate)) return false;
+        matrix=candidate;return true;
+    }
+
     bool SceneWorld::LocalTransformFromWorld(std::string_view id, const DirectX::XMFLOAT4X4& world, ScenePlacement& placement) const
     {
         const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),

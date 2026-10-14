@@ -113,6 +113,8 @@ namespace SceneRuntime
         /// <summary>描画補間した親子の回転だけを合成し、Scaleと反転を除外します。</summary>
         bool RenderWorldRotation(std::string_view id,DirectX::XMFLOAT4X4& matrix) const;
         bool WorldMatrix(std::string_view id, DirectX::XMFLOAT4X4& matrix) const;
+        /// <summary>読み込み済みモデルのインポート設定を含む、骨格座標から世界座標への変換を取得します。</summary>
+        bool SkeletonWorldMatrix(std::string_view id,DirectX::XMFLOAT4X4& matrix) const;
         /// <summary>確定した物理配置を変えず、補間済みの描画用世界行列を取得します。</summary>
         bool RenderWorldMatrix(std::string_view id,DirectX::XMFLOAT4X4& matrix) const;
         // Convert a world matrix to the parent-relative local SRT, preserving output on failure.

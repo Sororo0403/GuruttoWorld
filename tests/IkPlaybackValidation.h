@@ -2,13 +2,68 @@
 #include "SkinningValidation.h"
 #include "../Editor/src/GameSession.h"
 #include "../Editor/src/IkPanel.h"
+#include "../Editor/src/IkHandleTransform.h"
+#include "IkValidation.h"
 #include <SceneRuntime/SceneEnvironment.h>
 
 namespace IkPlaybackValidation
 {
     using EnvironmentValidation::Require;
+    /// <summary>インポート設定と親の姿勢を持つモデルで、IKハンドルと実際のボーン端点が一致することを確認します。</summary>
+    inline void ImportedHandles(Engine::DirectX12Renderer& renderer)
+    {
+        using namespace Engine;using namespace SceneRuntime;using namespace DirectX;
+        const auto content=std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root=std::filesystem::absolute("generated/tests/imported-ik-handles");
+        const std::filesystem::path path="Assets/Models/Imported.gltf";std::filesystem::create_directories((root/path).parent_path());
+        std::ifstream source(content/"Assets/Models/IkBox.gltf");auto gltf=Json::parse(source);
+        gltf["nodes"][0]["translation"]={1,-2,3};gltf["nodes"][0]["rotation"]={0,std::sin(.3f),0,std::cos(.3f)};
+        {std::ofstream file(root/path);file<<gltf.dump();}
+        auto metadata=AssetDatabase::Ensure(root/path);metadata.scale=2;AssetDatabase::Write(root/path,metadata);
+        std::string error;const auto rig=Skeleton::Load(root/path,error);Require(rig!=nullptr,error.c_str());
+        const auto rest=Skeleton::Matrices(*rig,Skeleton::Sample(*rig,"",0,false));
+        const auto tip=std::ranges::find_if(rig->nodes,[](const auto& node){return node.name=="Tip";});
+        Require(tip!=rig->nodes.end(),"imported IK fixture has a tip");const auto tipIndex=static_cast<size_t>(tip-rig->nodes.begin());
+        const auto point=[](const std::array<float,3>& value,FXMMATRIX matrix) {
+            XMFLOAT3 converted;XMStoreFloat3(&converted,XMVector3TransformCoord(XMVectorSet(value[0],value[1],value[2],1),matrix));
+            return std::array<float,3>{converted.x,converted.y,converted.z};
+        };
+        ScenePlacement parent;parent.id="parent";parent.position={3,4,5};parent.scale={1.2f,2,.8f};parent.rotation={.3f,.4f,.2f};
+        ScenePlacement actor;actor.id="actor";actor.parentId=parent.id;actor.position={-.5f,.2f,1};actor.rotation={-.15f,.3f,.1f};actor.scale={.9f,1.1f,1.4f};actor.SetModel(path);actor.animator.emplace();
+        AnimatorIkConstraint constraint;constraint.name="reach";constraint.root="Root";constraint.middle="Upper";constraint.tip="Tip";
+        constraint.target=point({.5f,1.5f,0},XMLoadFloat4x4(&rest.front()));constraint.hint=point({1,1,1},XMLoadFloat4x4(&rest.front()));
+        actor.animator->ik={constraint};SceneLayout layout;layout.objects={parent,actor};SceneWorld world;
+        Require(world.Initialize(renderer,root,layout,content/"Shaders/Mesh.hlsl",&error),error.c_str());
+        XMFLOAT4X4 objectWorld,frame;Require(world.WorldMatrix(actor.id,objectWorld)&&Editor::IkHandleTransform::Frame(world,actor.id,frame),"imported IK handle frame resolves");
+        const auto skeletonWorld=XMLoadFloat4x4(&rig->inverseRoot)*XMMatrixScaling(rig->importScale,rig->importScale,rig->importScale)*XMLoadFloat4x4(&objectWorld);
+        const auto endpoint=[&](){const auto matrices=Skeleton::Matrices(*rig,world.AnimatorStatus(actor.id)->pose);const auto& m=matrices[tipIndex];return point({m._41,m._42,m._43},skeletonWorld);};
+        const auto handle=Editor::IkHandleTransform::ToWorld(constraint,frame,false);
+        Require(handle&&IkValidation::Distance(*handle,endpoint())<.001f,"Editor IK handle coincides with the skinned tip after import root, import scale and parent transforms");
+        const auto hint=Editor::IkHandleTransform::ToWorld(constraint,frame,true);
+        Require(hint&&IkValidation::Distance(*hint,point(constraint.hint,skeletonWorld))<.001f,"imported local IK hint uses the same frame");
+        Camera camera;camera.SetPosition({3,6,-15});camera.SetPerspective(XM_PIDIV4,2,.1f,100);DirectionalLight light;light.enabled=false;
+        const auto capture=[&](){return SkinningValidation::Capture(renderer,[&](auto* commands){world.Draw(commands,camera,light);});};
+        const auto before=capture();
+        const auto localTarget=point({.75f,1.25f,0},XMLoadFloat4x4(&rest.front()));const auto movedWorld=point(localTarget,skeletonWorld);
+        auto changed=actor;Require(Editor::IkHandleTransform::Apply(changed.animator->ik[0],frame,false,movedWorld)&&
+            IkValidation::Distance(changed.animator->ik[0].target,localTarget)<.001f,"dragging the imported handle converts back to skeleton coordinates");
+        Require(world.SetComponents(actor.id,changed,root,error)&&IkValidation::Distance(endpoint(),movedWorld)<.001f,
+            "edited IK tip reaches the dragged world point");
+        Require(capture()!=before&&renderer.WaitForIdle(),"imported handle edit changes actual GPU geometry");
+        auto worldConstraint=constraint;worldConstraint.worldSpace=true;worldConstraint.target=movedWorld;
+        Require(Editor::IkHandleTransform::ToWorld(worldConstraint,frame,false)==std::optional<std::array<float,3>>(movedWorld),"world IK handles retain authored world coordinates");
+        metadata.scale=3;AssetDatabase::Write(root/path,metadata);
+        Require(world.ReloadAssets(renderer,root,content/"Shaders/Mesh.hlsl",error)&&Editor::IkHandleTransform::Frame(world,actor.id,frame),
+            "reimported IK handle uses the currently loaded model");
+        const auto reimported=Editor::IkHandleTransform::ToWorld(changed.animator->ik[0],frame,false);
+        const auto expected=point(localTarget,XMLoadFloat4x4(&rig->inverseRoot)*XMMatrixScaling(3,3,3)*XMLoadFloat4x4(&objectWorld));
+        Require(reimported&&IkValidation::Distance(*reimported,expected)<.001f&&IkValidation::Distance(*reimported,movedWorld)>.1f,
+            "reimporting a different scale updates the handle without retaining stale import settings");
+        capture();Require(renderer.WaitForIdle(),"reimported IK geometry completes GPU drawing");
+    }
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
+        ImportedHandles(renderer);
         using namespace Engine; using namespace SceneRuntime; using namespace DirectX;
         const auto content=std::filesystem::absolute("Games/GuruttoWorld"); std::string error;
         const auto scene=SceneLayout::Load(content/"Assets/Scenes/IkPlayground.json",content);

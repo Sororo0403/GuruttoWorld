@@ -46,7 +46,7 @@ public:
         if(index_>=found->animator->ik.size()) {Cancel();return;}
         if(hovered_ && !dragging_) {ImGuizmo::Enable(false);return;}
         DirectX::XMFLOAT4X4 matrix;
-        if(!world.WorldMatrix(found->id,matrix)) {Cancel();return;}
+        if(!IkHandleTransform::Frame(world,found->id,matrix)) {Cancel();return;}
         const auto target=IkHandleTransform::ToWorld(found->animator->ik[index_],matrix,hint_);
         if(!target) {Cancel();return;}
         DirectX::XMFLOAT4X4 handle,view,projection;
