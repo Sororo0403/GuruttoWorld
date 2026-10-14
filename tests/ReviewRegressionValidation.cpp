@@ -1646,6 +1646,8 @@ namespace
     {
         const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
+        // 長時間の揺れ・粒子検証には、対象のComponentと時計の既定値を持つCanvasを使用します。
+        std::erase_if(layout.objects,[](const auto& object) {return !object.camera && !object.particleEmitter && !object.canvas;});
         for (auto& object:layout.objects) object.animation.reset(); // Isolate CameraSway and ParticleEmitter invariants.
         SceneRuntime::SceneEnvironment environment; std::string error;
         Check(environment.Initialize(renderer,root,layout,error),"authored environment initializes");
