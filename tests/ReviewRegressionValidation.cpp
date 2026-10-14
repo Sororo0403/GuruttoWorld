@@ -236,7 +236,8 @@ namespace
     {
         using namespace App;
         auto layout=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
-        Check(TitleBindings::StartScene(layout)=="Assets/Scenes/ParkAdventure.json","START follows authored park target");
+        for(auto& object:layout.objects) if(TitleBindings::Item(object)==TitleMenuItem::Start) object.button->target="Assets/Scenes/StartFixture.json";
+        Check(TitleBindings::StartScene(layout)=="Assets/Scenes/StartFixture.json","legacy START binding follows authored button target");
         auto items=TitleBindings::Items(layout);
         Check(items.size()==3,"authored menu exposes three roles");
         for(auto& object:layout.objects) if(TitleBindings::Item(object)==TitleMenuItem::Settings) {
@@ -2975,6 +2976,11 @@ void ValidateEditorTitlePreview()
     const auto layout=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json"));
     auto state=SceneRuntime::SceneUi::Defaults(layout);
     Editor::TitlePreview title;
+    const auto* configuration=SceneRuntime::TitleBindings::Configuration(layout);
+    Check(configuration!=nullptr,"editor title has authored menu configuration");
+    const auto start=std::find_if(configuration->entries.begin(),configuration->entries.end(),[](const auto& entry){return entry.index==0;});
+    Check(start!=configuration->entries.end(),"editor title has authored START entry");
+    const int transitionFrames=static_cast<int>(std::ceil(state.Value("startDuration",.32f)/.1f))+3;
     state.values["configTransitionEnabled"]=0; // Menu-only checks; full transitions use TitleConfigTransitionValidation.
     title.Initialize(layout,state);
     Check(title.Active() && state.Value("screen",-1)==0,"editor title initializes shared menu state");
@@ -2990,16 +2996,18 @@ void ValidateEditorTitlePreview()
     actions.Update(input); title.Update(actions,true,0,state);
     Check(state.Value("selected",-1)==2,"editor direction key moves title selection");
     input.down.fill(false); input.pressed.fill(false); actions.Update(input); title.Update(actions,true,0,state);
-    input.gamepadConnected=true; input.buttons=XINPUT_GAMEPAD_A; input.pressedButtons=XINPUT_GAMEPAD_A;
+    input.gamepadConnected=true;actions.Update(input);title.Update(actions,true,0,state,&input);
+    input.buttons=XINPUT_GAMEPAD_A; input.pressedButtons=XINPUT_GAMEPAD_A;
     actions.Update(input);
     std::optional<SceneRuntime::UiEvent> result;
-    for(int i=0;i<10 && !result;++i) result=title.Update(actions,true,0.1,state);
+    for(int i=0;i<transitionFrames && !result;++i) result=title.Update(actions,true,0.1,state,&input);
     Check(result && result->action=="quit","editor gamepad Confirm activates QUIT after transition");
+    Check(!title.Update(actions,true,.1,state,&input),"editor QUIT command is emitted once");
     title.Initialize(layout,state); event.event="menu:0"; title.Activate(event,state);
     input.buttons=0; input.pressedButtons=0; actions.Update(input);
     result.reset();
-    for(int i=0;i<10 && !result;++i) result=title.Update(actions,true,0.1,state);
-    Check(result && result->action=="loadScene" && result->target=="Assets/Scenes/ParkAdventure.json",
+    for(int i=0;i<transitionFrames && !result;++i) result=title.Update(actions,true,0.1,state);
+    Check(result && result->action=="loadScene" && result->target==start->target,
         "editor START follows authored scene target");
     const auto game=SceneRuntime::SceneLayout::Load(std::filesystem::absolute("Games/GuruttoWorld/Assets/Scenes/Game.json"));
     Check(!SceneRuntime::SceneUi::Shortcut(game,"action:Jump",1280,720,{}).empty() &&
