@@ -18,9 +18,8 @@ namespace Editor
         void AssetMoved(const std::filesystem::path& source, const std::filesystem::path& destination)
         {
             if (path_.lexically_normal()!=source.lexically_normal()) return;
-            const auto baseline=ReadSource(destination);
             path_=destination;
-            savedSource_=baseline;
+            // 改名は保存ではないため、外部変更の比較基準を更新しません。
         }
         bool UnsavedNew() const { return unsavedNew_; }
         void Save(const SceneRuntime::SceneLayout& layout)

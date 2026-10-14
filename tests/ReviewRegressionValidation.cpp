@@ -70,6 +70,7 @@
 #include "ProjectSettingsValidation.h"
 #include "MenuAuthoringValidation.h"
 #include "AuthoringSettingsValidation.h"
+#include "EngineEditorReviewValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -3535,6 +3536,14 @@ int main()
     std::string phase="focused validation";
     try
     {
+        if(GetEnvironmentVariableW(L"WP1_ENGINE_EDITOR_REVIEW_ONLY",nullptr,0)) {
+            EngineEditorReviewValidation::Data();Engine::Window window;Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Engine/editor review regression",64,64),"review window");
+            Check(renderer.Initialize(window.GetHandle()),"review renderer");
+            EngineEditorReviewValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+            Check(renderer.WaitForIdle(),"review GPU completion");CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: engine/editor review regression\n";return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_GENRE_ONLY",nullptr,0)) {
             GenreValidation::Schema();Engine::Window window;Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Genre validation",640,480),"genre window");Check(renderer.Initialize(window.GetHandle()),"genre renderer");
@@ -3838,6 +3847,15 @@ int main()
             CheckGpuMessages(renderer.GetDevice());
             std::cout << "PASS: START/CONFIG/QUIT menu, camera overshoot/reversal and three-aspect title presentation\n";
             return 0;
+        }
+        phase="EngineEditorReviewValidation";
+        EngineEditorReviewValidation::Data();
+        {
+            Engine::Window window;Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Engine/editor review regression",64,64),"review window");
+            Check(renderer.Initialize(window.GetHandle()),"review renderer");
+            EngineEditorReviewValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+            Check(renderer.WaitForIdle(),"review GPU completion");CheckGpuMessages(renderer.GetDevice());
         }
         phase="AuthoringSettingsValidation"; AuthoringSettingsValidation::Run();
         phase="MenuAuthoringValidation"; MenuAuthoringValidation::Run();

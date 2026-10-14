@@ -90,6 +90,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="EngineEditorReviewValidation.h" />
     <ClInclude Include="SpriteResourceValidation.h" />
     <ClCompile Include="ReviewRegressionValidation.cpp" />
     <ClCompile Include="..\Engine\externals\imgui\imgui.cpp">
