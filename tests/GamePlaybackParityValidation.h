@@ -11,13 +11,13 @@
 
 namespace GamePlaybackParityValidation
 {
-    inline void Run(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
+    inline void Run(Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,bool departuresOnly=false)
     {
         const auto require=[](bool ok,const char* message) {if(!ok) throw std::runtime_error(message);};
         const auto previousLogs=Engine::Log::Recent();const auto firstSequence=previousLogs.empty() ? uint64_t(0) : previousLogs.back().sequence;
         std::string moduleError;if(!SceneRuntime::ScriptModule::Reload(root,moduleError)) throw std::runtime_error("parity source script module reload: "+moduleError);
         const auto directory=std::filesystem::absolute("generated/tests/playback-parity")/std::to_string(GetTickCount64());
-        const auto run=[&](const std::string& scene,int frames,bool title,bool pointerTitle=false,bool quitTitle=false) {
+        const auto run=[&](const std::string& scene,int frames,bool title,bool pointerTitle=false,bool quitTitle=false,bool startTitle=false) {
             auto playerWorld=std::make_shared<SceneRuntime::SceneEnvironment>();
             auto player=std::make_unique<App::AuthoredScene>(root,scene,playerWorld,false,true,directory/"player.json");
             require(player->Initialize(renderer),"parity player initializes");
@@ -50,7 +50,9 @@ namespace GamePlaybackParityValidation
             std::string previousScene=playerWorld->ActiveSceneName();
             for(int frame=0;frame<frames;++frame) {
                 keys.fill(0);bool active=true;pointer.x=1250;pointer.y=700;pointer.buttons=0;
-                if(quitTitle) {
+                if(startTitle) {
+                    if(frame==90) keys[DIK_RETURN]=0x80;
+                } else if(quitTitle) {
                     if(frame==90 || frame==92) keys[DIK_DOWN]=0x80;
                     if(frame==94) keys[DIK_RETURN]=0x80;
                     if(frame>=150 && frame<160) active=false;
@@ -79,8 +81,8 @@ namespace GamePlaybackParityValidation
                 require(player->Update(1.0/60,keyboard).empty(),"player loads authored scenes internally in shared tick");
                 compare();
                 for(const auto& entry:Engine::Log::Recent()) if(entry.sequence>firstSequence && entry.level==Engine::LogLevel::Error) throw std::runtime_error("runtime parity logged error: "+entry.text);
-                if(title && !pointerTitle && ((quitTitle && (frame==145 || frame==240 || frame==285)) || (!quitTitle && (frame==145 || frame==245 || frame==265 || frame==400 || frame==490)))) {
-                    const auto name=(quitTitle ? "quit-" : "")+std::to_string(frame);
+                if(title && !pointerTitle && ((startTitle && (frame==145 || frame==245 || frame==275)) || (quitTitle && (frame==145 || frame==240 || frame==285)) || (!quitTitle && !startTitle && (frame==145 || frame==245 || frame==265 || frame==400 || frame==490)))) {
+                    const auto name=(startTitle ? "start-only-" : quitTitle ? "quit-" : "")+std::to_string(frame);
                     GamePlaybackCapture::Capture(renderer,*playerWorld,1280,720,"player-"+name);
                     GamePlaybackCapture::Capture(renderer,*editor.Runtime(),1280,720,"editor-"+name);
                 }
@@ -94,11 +96,13 @@ namespace GamePlaybackParityValidation
                     require(renderer.Render({0,0,0,1},[&](auto* commands,float) {editor.Draw(commands,renderer.GetWidth(),renderer.GetHeight());})!=Engine::RenderResult::Failed,"parity editor frame draws");
                 }
             }
-            if(title && !pointerTitle && !quitTitle) require(entered && returned && started && loads==3,"keyboard CONFIG Settings back START loads actual scenes once");
+            if(title && !pointerTitle && !quitTitle && !startTitle) require(entered && returned && started && loads==3,"keyboard CONFIG Settings back START loads actual scenes once");
+            if(startTitle) require(started && loads==1 && !entered,"START alone follows actual host frame order and loads gameplay once");
             if(quitTitle) require(quits==1 && loads==0,"QUIT closes exactly once after common presentation without loading another scene");
             if(pointerTitle) require(entered && loads==1,"pointer CONFIG loads independent Settings scene once");
             require(renderer.WaitForIdle(),"parity GPU completes");editor.Stop();
         };
+        if(departuresOnly) {run("Assets/Scenes/TitleStreet.json",320,true,false,false,true);return;}
         run("Assets/Scenes/TitleStreet.json",560,true);
         run("Assets/Scenes/TitleStreet.json",350,true,false,true);
         run("Assets/Scenes/TitleStreet.json",240,true,true);

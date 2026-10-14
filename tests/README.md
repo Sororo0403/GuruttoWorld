@@ -14,6 +14,7 @@ MSBuild tests/GamePlaybackFocusedValidation.vcxproj /p:Configuration=Development
 
 GPUで描画した両者の接近中・設定画面・帰還中の画像は `generated/tests/playback-captures` に保存します。設定の保存先は検証用ディレクトリに分離します。
 `TitleDepartureValidation` はSTART／QUITの色、現在カメラからの出発、道路・看板矢印の方向、Pause／Step／Resume、最終描画前のロード・終了抑止を追加検証します。白黒化の途中とカメラ到着時のGPU画像も同じディレクトリへ保存します。
+色や配置を調整するときは検証実行ファイルに `--departure-only` を渡すと、STARTのApp／Editor比較とSTART／QUITの描画・移動だけを実行できます。
 
 ## 静的解析（2026-10-13）
 
