@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <set>
 
 namespace
 {
@@ -101,11 +102,18 @@ namespace
 
     void ReadClips(const aiScene &scene, SkeletonData &rig, const std::map<std::string, size_t> &names)
     {
+        std::set<std::string> authoredNames,usedNames;
+        for(unsigned int index=0;index<scene.mNumAnimations;++index)
+            if(scene.mAnimations[index]->mName.length) authoredNames.insert(scene.mAnimations[index]->mName.C_Str());
         for (unsigned int index = 0; index < scene.mNumAnimations; ++index)
         {
             const auto &source = *scene.mAnimations[index]; const double frequency = source.mTicksPerSecond > 0 ? source.mTicksPerSecond : 25;
             SkeletalClip clip; clip.name = source.mName.length ? source.mName.C_Str() : "Clip" + std::to_string(index);
-            if (std::any_of(rig.clips.begin(), rig.clips.end(), [&](const auto &value) { return value.name == clip.name; })) clip.name += "-" + std::to_string(index);
+            if(usedNames.contains(clip.name) || (!source.mName.length && authoredNames.contains(clip.name))) {
+                const auto base=clip.name;size_t suffix=index;
+                do {clip.name=base+"-"+std::to_string(suffix++);} while(usedNames.contains(clip.name)||authoredNames.contains(clip.name));
+            }
+            usedNames.insert(clip.name);
             clip.duration = std::max(0.0001f, Time(source.mDuration, frequency));
             for (unsigned int channel = 0; channel < source.mNumChannels; ++channel)
             {

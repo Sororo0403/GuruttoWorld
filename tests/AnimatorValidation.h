@@ -5,6 +5,7 @@
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Graphics/Camera.h>
 #include <cmath>
+#include <set>
 #include "SkinningValidation.h"
 #include "BlendTreeValidation.h"
 #include "AnimationEventValidation.h"
@@ -15,7 +16,28 @@
 #include "RagdollValidation.h"
 namespace AnimatorValidation {
 inline void Require(bool value,const char* message) { if (!value) throw std::runtime_error(message); }
+/// <summary>既存名と自動補完名が衝突するglTFを生成し、全クリップを名前で参照できることを確認します。</summary>
+inline void ClipNames() {
+    std::ifstream source("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf");const auto original=Engine::Json::parse(source);
+    const auto directory=std::filesystem::absolute("generated/tests/skeletal-clip-names/Assets/Models");
+    std::filesystem::create_directories(directory);
+    for(const auto& names:std::array<std::array<std::string,3>,3>{{{"Move-2","Move","Move"},{"Move","Move","Move-1"},{"","Clip0","Clip0"}}}) {
+        auto gltf=original;for(size_t index=0;index<names.size();++index) {
+            if(names[index].empty()) gltf["animations"][index].erase("name");else gltf["animations"][index]["name"]=names[index];
+        }
+        const auto path=directory/"Collisions.gltf";{std::ofstream file(path);file<<gltf.dump();}
+        std::string error;const auto rig=Engine::Skeleton::Load(path,error);Require(rig&&rig->clips.size()==3,"colliding clip fixture imports");
+        std::set<std::string> imported;std::vector<std::array<float,4>> rotations;
+        for(const auto& clip:rig->clips) {
+            Require(imported.insert(clip.name).second,"skeletal import gives every clip a unique selectable name");
+            rotations.push_back(Engine::Skeleton::Sample(*rig,clip.name,.5,false).back().rotation);
+        }
+        Require(rotations[0]!=rotations[1]&&rotations[0]!=rotations[2]&&rotations[1]!=rotations[2],"each imported name selects its own authored animation");
+        for(const auto& name:names) if(!name.empty()) Require(imported.contains(name),"automatic clip names preserve existing authored names");
+    }
+}
 inline void Run() {
+    ClipNames();
     RagdollValidation::SchemaAndPhysics();
     RootMotionValidation::Run();
     IkValidation::Run();
@@ -87,6 +109,18 @@ inline void MaterialDelta(Engine::DirectX12Renderer& renderer) {
         "preserved animated instance and replacement material render together");
 }
 inline void Runtime(Engine::DirectX12Renderer& renderer) {
+    {
+        Engine::ModelRenderer model;const auto path=std::filesystem::absolute("generated/tests/skeletal-clip-names/Assets/Models/Collisions.gltf");
+        Require(model.Initialize(renderer.GetDevice(),renderer.GetCommandQueue(),path,std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),"renamed clips prepare GPU model");
+        DirectX::XMFLOAT4X4 display,identity;DirectX::XMStoreFloat4x4(&display,DirectX::XMMatrixScaling(.3f,.3f,.3f)*DirectX::XMMatrixTranslation(0,0,.5f));
+        DirectX::XMStoreFloat4x4(&identity,DirectX::XMMatrixIdentity());Engine::DirectionalLight light;light.enabled=false;
+        std::vector<std::vector<unsigned char>> images;
+        for(const auto& clip:model.Rig()->clips) {
+            Require(model.ApplyPose(Engine::Skeleton::Sample(*model.Rig(),clip.name,.5,false)),"unique clip name applies its pose");
+            images.push_back(SkinningValidation::Capture(renderer,[&](auto* commands){model.Draw(commands,display,identity,light);}));
+        }
+        Require(images.size()==3&&images[0]!=images[1]&&images[0]!=images[2]&&images[1]!=images[2],"every colliding authored clip remains distinct in the GPU framebuffer");
+    }
     MaterialDelta(renderer);
     RagdollValidation::Runtime(renderer);
     RootMotionPlaybackValidation::Runtime(renderer);
