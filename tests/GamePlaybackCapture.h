@@ -4,8 +4,9 @@
 #include <fstream>
 #include <SceneRuntime/SceneEnvironment.h>
 namespace GamePlaybackCapture {
+    /// <summary>実際の描画を保存し、必要に応じて遷移完了時の全画面の暗転を確認します。</summary>
     inline void Capture(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneEnvironment& scene,
-        unsigned int width,unsigned int height,const std::string& name)
+        unsigned int width,unsigned int height,const std::string& name,bool expectBlack=false)
     {
         const auto require=[](bool ok,const char* message) {if(!ok) throw std::runtime_error(message);};
         Engine::RenderTexture target;
@@ -45,10 +46,16 @@ namespace GamePlaybackCapture {
         std::filesystem::create_directories(directory);
         std::ofstream output(directory/(name+".ppm"),std::ios::binary);
         output<<"P6\n"<<width<<" "<<height<<"\n255\n";
+        unsigned char brightest=0;
         for (UINT y=0;y<height;++y)
-            for (UINT x=0;x<width;++x) output.write(reinterpret_cast<char*>(pixels+y*pitch+x*4),3);
+            for (UINT x=0;x<width;++x) {
+                const auto* pixel=pixels+y*pitch+x*4;
+                for(size_t channel=0;channel<3;++channel) brightest=std::max(brightest,pixel[channel]);
+                output.write(reinterpret_cast<const char*>(pixel),3);
+            }
         const D3D12_RANGE empty{0,0}; readback->Unmap(0,&empty);
         require(static_cast<bool>(output),"title capture saved");
+        require(!expectBlack || brightest<=3,"departure completes with a fully black frame");
     }
 
 
