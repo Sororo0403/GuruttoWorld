@@ -37,19 +37,7 @@ class StreetJourneyTests(unittest.TestCase):
   forbidden=re.compile(r'修辞|擬人法|反復法|漸層法|対比法|rhetoric|anaphora|antithesis|climax',re.I)
   for rel in ('Assets/Scenes/StreetJourney.json','Assets/Scenes/TitleStreet.json','Assets/Project.json','Assets/Scripts/StreetJourney.cpp'):
    self.assertIsNone(forbidden.search((GAME/rel).read_text(encoding='utf-8')),rel)
- def test_disconnected_jump_surfaces_and_local_floors(self):
-  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
-  objects={o['id']:o for o in scene['objects']}
-  floor=lambda key:objects['street-collision-'+key]
-  west,east=floor('cafe-west-floor'),floor('cafe-east-floor')
-  edge=west['position'][0]+west['scale'][0]/2
-  self.assertGreater(east['position'][0]-east['scale'][0]/2-edge,1.5)
-  self.assertNotIn('street-collision-floor',objects)
-  self.assertGreater(floor('east-roof')['position'][1],3)
-  self.assertGreater(floor('roof-step-11')['scale'][1],floor('roof-step-0')['scale'][1])
-  self.assertIn('journey-shutter',objects)
-  route=json.loads((GAME/'Assets/Models/StreetJourney/Route.json').read_text(encoding='utf-8'))
-  self.assertTrue(route['detour']);self.assertEqual(len(route['jumps']),2)
+
  def test_street_geometry_stays_within_runtime_budget(self):
   scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
   models=[c['model'] for o in scene['objects'] for c in o['components']
@@ -57,74 +45,7 @@ class StreetJourneyTests(unittest.TestCase):
   self.assertLessEqual(len(models),34)
   polygons=sum(sum(line.startswith('f ') for line in (GAME/path).read_text(encoding='utf-8').splitlines()) for path in models)
   self.assertLessEqual(polygons,170000)
- def test_floor_patches_do_not_overlap_at_equal_height(self):
-  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
-  objects={o['id']:o for o in scene['objects']}
-  keys=('entry-floor','entry-apron','cafe-west-floor','cafe-east-floor','fork-floor',
-        'backyard-floor','shop-rear-terrace','east-roof','west-roof',
-        'west-roof-north-left','west-roof-north-right','exit-walk','catch-balcony','distant-street')
-  floors=[objects['street-collision-'+k] for k in keys]
-  for i,a in enumerate(floors):
-   for b in floors[i+1:]:
-    if abs(a['position'][1]-b['position'][1])>1e-5:continue
-    overlap=[min(a['position'][j]+a['scale'][j]/2,b['position'][j]+b['scale'][j]/2)-
-             max(a['position'][j]-a['scale'][j]/2,b['position'][j]-b['scale'][j]/2) for j in (0,2)]
-    self.assertLessEqual(min(overlap),1e-5,(a['id'],b['id'],overlap))
-  for i in range(11):
-   a,b=[objects['street-collision-roof-step-'+str(n)] for n in (i,i+1)]
-   self.assertAlmostEqual(a['position'][2]+a['scale'][2]/2,b['position'][2]-b['scale'][2]/2)
- def test_spatial_openings_and_stair_edges_remain_usable(self):
-  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
-  objects={o['id']:o for o in scene['objects']}
-  bounds=lambda key:objects['street-collision-'+key]
-  # The approach opens before the cafe, rather than funneling to a marked lane.
-  self.assertGreaterEqual(bounds('entry-floor')['scale'][0],9)
-  self.assertLessEqual(bounds('entry-east')['position'][2]+bounds('entry-east')['scale'][2]/2,11)
-  self.assertGreaterEqual(bounds('entry-apron')['scale'][2],7)
-  # Matching terrace returns leave generous openings; neither bank narrows the jump.
-  for key in ('cafe-bank-west','cafe-bank-east','roof-bank-east','roof-bank-west'):
-   ends=[bounds(key+str(side)) for side in (-1,1)]
-   clear=ends[1]['position'][2]-ends[0]['position'][2]-(ends[0]['scale'][2]+ends[1]['scale'][2])/2
-   self.assertGreater(clear,6)
-  for i in range(12):
-   west,east=[bounds('stair-cheek-'+str(i)+'-'+str(x)) for x in (11.75,16.25)]
-   self.assertGreater(east['position'][0]-west['position'][0]-.26,4)
-   if i:self.assertGreater(west['scale'][1],bounds('stair-cheek-'+str(i-1)+'-11.75')['scale'][1])
-  # Both arms remain open and meet in the same courtyard; no new mandatory interaction.
-  # Keep a capsule radius plus 25cm margin beside the aisle at x=-3.5.
-  self.assertLessEqual(bounds('service-loading-plinth')['position'][0]+bounds('service-loading-plinth')['scale'][0]/2,-3.5-.35-.25)
-  self.assertIn('street-collision-court-mouth-1',objects)
- def test_parapet_openings_match_across_real_landings(self):
-  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
-  objects={o['id']:o for o in scene['objects']}
-  collider=lambda key:objects['street-collision-'+key]
-  for west,east in (('cafe-bank-west','cafe-bank-east'),('roof-bank-west','roof-bank-east')):
-   openings=[]
-   for bank in (west,east):
-    a,b=collider(bank+'-south'),collider(bank+'-north')
-    lo=a['position'][2]+a['scale'][2]/2
-    hi=b['position'][2]-b['scale'][2]/2
-    self.assertGreater(hi-lo,6)
-    self.assertGreaterEqual(a['scale'][1],.7)
-    self.assertGreaterEqual(b['scale'][1],.7)
-    openings.append((round(lo,3),round(hi,3)))
-   self.assertEqual(openings[0],openings[1])
- def test_arcade_is_connected_and_destination_is_a_room(self):
-  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
-  objects={o['id']:o for o in scene['objects']}
-  collider=lambda key:objects['street-collision-'+key]
-  edge=lambda o,side:o['position'][0]+side*o['scale'][0]/2
-  # The arch is attached to the kiosk and shop, with no misleading side slit.
-  self.assertAlmostEqual(edge(collider('arcade-jamb-west'),-1),edge(collider('kiosk'),1))
-  self.assertAlmostEqual(edge(collider('arcade-jamb-east'),1),edge(collider('east-shop'),-1))
-  left,right=collider('shop-arcade-front-1'),collider('shop-arcade-front1')
-  self.assertGreater(edge(right,-1)-edge(left,1),5)
-  for side in ('west','east'):self.assertIn('street-collision-arcade-sill-'+side,objects)
-  lookout=collider('exit-walk')
-  self.assertGreaterEqual(lookout['scale'][0],6)
-  self.assertGreaterEqual(lookout['scale'][2],7)
-  wall=collider('garden-north-left')
-  self.assertLessEqual(wall['scale'][1],1)
+
  def test_imported_street_textures_match_cc0_sources(self):
   import hashlib
   folder=GAME/'Assets/Textures/StreetJourney/PolyHaven'
@@ -137,78 +58,58 @@ class StreetJourneyTests(unittest.TestCase):
     self.assertTrue(json.loads(path.with_name(path.name+'.meta').read_text(encoding='utf-8'))['texture']['mipmaps'])
    for entry in source.get('originalFiles',[]):
     self.assertEqual(hashlib.sha256((GAME/entry['file']).read_bytes()).hexdigest(),entry['sha256'])
-class StreetDecorationContactTests(unittest.TestCase):
+class TownTopologyTests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
   import sys
   sys.path.insert(0,str(GAME.parents[1]/'scripts'))
   from AuthorStreetJourney import Journey
   cls.city=Journey().build()
-  cls.placements=cls.city.b.sources
- @classmethod
- def height(cls,p):
-  return max(v[1] for _,face in cls.city.b.cache[(p['kind'],p['model'])] for v,uv,n in face)*p['scale']
- def test_awning_posts_reach_the_floor_and_roof(self):
-  posts=[p for p in self.placements if p['model']=='Metal_Column_Center']
+  cls.objects={o['id']:o for o in cls.city.objects}
+  cls.route=json.loads((GAME/'Assets/Models/StreetJourney/Route.json').read_text(encoding='utf-8'))
+ def test_floor_patches_have_no_coplanar_overlap(self):
+  floors=[self.objects['street-collision-'+k] for k in self.route['floors']]
+  for i,a in enumerate(floors):
+   for b in floors[i+1:]:
+    if abs(a['position'][1]-b['position'][1])>1e-5:continue
+    overlap=[min(a['position'][j]+a['scale'][j]/2,b['position'][j]+b['scale'][j]/2)-max(a['position'][j]-a['scale'][j]/2,b['position'][j]-b['scale'][j]/2) for j in (0,2)]
+    self.assertLessEqual(min(overlap),1e-5,(a['id'],b['id']))
+ def test_jump_openings_match_the_real_banks(self):
+  for west,east in (('canal-west','canal-east'),('roof-west','roof-east')):
+   openings=[]
+   for bank in (west,east):
+    a,b=[self.objects['street-collision-'+bank+'-'+suffix] for suffix in ('south','north')]
+    lo=a['position'][2]+a['scale'][2]/2;hi=b['position'][2]-b['scale'][2]/2
+    self.assertGreater(hi-lo,6);openings.append((lo,hi))
+   self.assertEqual(openings[0],openings[1])
+  self.assertEqual(len(self.route['jumps']),2)
+ def test_stairs_join_the_roof_without_overlapping_steps(self):
+  steps=[self.objects['street-collision-roof-step-'+str(i)] for i in range(12)]
+  for a,b in zip(steps,steps[1:]):
+   self.assertAlmostEqual(a['position'][2]+a['scale'][2]/2,b['position'][2]-b['scale'][2]/2)
+   self.assertAlmostEqual(b['scale'][1]-a['scale'][1],.28)
+  roof=self.objects['street-collision-east-roof']
+  self.assertAlmostEqual(steps[-1]['scale'][1],roof['position'][1]+roof['scale'][1]/2)
+ def test_loops_and_destination_have_real_space(self):
+  self.assertEqual(len(self.route['entryLoop']),4)
+  self.assertEqual(self.route['roofLoop'][0],self.route['roofLoop'][-1])
+  cafe=self.objects['street-collision-cafe']
+  # The cafe lies inside the square, with full walking width on both flanks.
+  self.assertGreater(cafe['position'][0]-cafe['scale'][0]/2-(-22),5)
+  self.assertGreater(0-(cafe['position'][0]+cafe['scale'][0]/2),5)
+  lookout=self.objects['street-collision-clock-lookout']
+  goal=self.city.goal
+  for j in (0,2):self.assertLess(abs(goal[j]-lookout['position'][j]),lookout['scale'][j]/2-.5)
+ def test_furniture_and_stock_are_supported(self):
+  placements=self.city.b.sources
+  def height(p):return max(v[1] for _,face in self.city.b.cache[(p['kind'],p['model'])] for v,uv,n in face)*p['scale']
+  for table in (p for p in placements if p['model']=='tableRound'):
+   plant=next(p for p in placements if p['model']=='plantSmall1' and p['position'][0]==table['position'][0] and p['position'][2]==table['position'][2])
+   self.assertAlmostEqual(plant['position'][1],table['position'][1]+height(table))
+  for p in placements:
+   if p['model']=='wooden_crate_02':self.assertAlmostEqual(p['position'][1],.59)
+  posts=[o for k,o in self.objects.items() if k.startswith('street-collision-warehouse-post-')]
   self.assertEqual(len(posts),6)
-  for p in posts:
-   expected=.59 if p['position'][0]>-7 else .03
-   self.assertAlmostEqual(p['position'][1],expected)
-   import math
-   roof=3.7 if expected==.03 else 4
-   underside=roof+math.tan(.16)*.66-.06/math.cos(.16)
-   self.assertGreaterEqual(p['position'][1]+self.height(p),underside)
- def test_tabletop_plants_and_stacked_crate_make_contact(self):
-  for table in (p for p in self.placements if p['model']=='tableRound'):
-   plant=next(p for p in self.placements if p['model']=='plantSmall1' and
-              p['position'][0]==table['position'][0] and p['position'][2]==table['position'][2])
-   self.assertAlmostEqual(plant['position'][1],table['position'][1]+self.height(table))
-  crates=[p for p in self.placements if p['model']=='wooden_crate_02' and p['position'][0] in (-.8,-1)]
-  lower,upper=sorted(crates,key=lambda p:p['position'][1])
-  self.assertAlmostEqual(upper['position'][1],lower['position'][1]+self.height(lower))
-  for p in self.placements:
-   if p['model']=='wooden_crate_02' and p['position'][0]==-5.2:
-    self.assertAlmostEqual(p['position'][1],.9 if p['position'][2]==35.7 else .6275)
- def test_roof_cover_decreases_across_actual_rest_areas(self):
-  # Cast vertical samples through the authored polygons, not a label assigned
-  # by the authoring script. Cover is solid, slatted, then absent.
-  def coverage(x,z,floor):
-   faces=[]
-   for polygons in self.city.b.groups.values():
-    for face in polygons:
-     points=[(p[0],p[1],-p[2]) for p,uv,n in face]
-     if min(p[1] for p in points)<floor+1.5 or max(p[1] for p in points)>floor+5:continue
-     if max(p[0] for p in points)<x-.5 or min(p[0] for p in points)>x+.5:continue
-     if max(p[2] for p in points)<z-.6 or min(p[2] for p in points)>z+.6:continue
-     a,b,c=points[:3];u=[b[i]-a[i] for i in range(3)];v=[c[i]-a[i] for i in range(3)]
-     ny=u[2]*v[0]-u[0]*v[2]
-     if abs(ny)>1e-8:faces.append(points)
-   hits=0
-   for i in range(13):
-    px,pz=x,z-.6+i*.1
-    for points in faces:
-     signs=[(b[0]-a[0])*(pz-a[2])-(b[2]-a[2])*(px-a[0]) for a,b in zip(points,points[1:]+points[:1])]
-     if min(signs)>=-1e-7 or max(signs)<=1e-7:hits+=1;break
-   return hits/13
-  cafe,garden,roof=coverage(7.9,31,.56),coverage(-2,55,.56),coverage(17.6,75,3.92)
-  self.assertGreater(cafe,.9)
-  self.assertGreater(garden,.1);self.assertLess(garden,.6)
-  self.assertEqual(roof,0)
- def test_loading_and_gallery_posts_are_grounded(self):
-  objects={o['id']:o for o in self.city.objects+self.city.collisions}
-  loading=[o for k,o in objects.items() if k.startswith('street-collision-loading-post-')]
-  gallery=[o for k,o in objects.items() if k.startswith('street-collision-gallery-pier-')]
-  self.assertEqual(len(loading),6);self.assertEqual(len(gallery),4)
-  for o in loading:
-   self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.6275)
-   self.assertGreater(o['position'][1]+o['scale'][1]/2,3.07)
-  for o in gallery:
-   self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.59)
-   self.assertGreater(o['position'][1]+o['scale'][1]/2,4.12)
-  trellis=[o for k,o in objects.items() if k.startswith('street-collision-garden-trellis-')]
-  self.assertEqual(len(trellis),4)
-  for o in trellis:
-   self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.59)
-   self.assertGreater(o['position'][1]+o['scale'][1]/2,3.80)
+  for o in posts:self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.59)
 
 if __name__=='__main__':unittest.main()

@@ -7,9 +7,9 @@
   ],
   "metallic": 0,
   "normalFlipY": false,
-  "normalTexture": "",
+  "normalTexture": "Assets/Textures/StreetJourney/PolyHaven/pavement_05_nor_dx_1k.png",
   "physicallyBased": true,
-  "roughness": 0.82,
-  "texture": "Assets/Textures/Sunrise/Cafe/Plaster.png",
+  "roughness": 0.88,
+  "texture": "Assets/Textures/StreetJourney/PolyHaven/pavement_05_diff_1k.png",
   "transparent": false
 }

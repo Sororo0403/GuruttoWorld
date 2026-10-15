@@ -351,63 +351,41 @@ void JourneyPlaythrough() {
    (hit?"; blocked by "+hit->object+" from camera "+std::to_string(cam.position[0])+","+std::to_string(cam.position[1])+","+std::to_string(cam.position[2]):""));
   std::cout<<"PASS view: "<<name<<"\n";
  };
- s.Walk(-14,10);
- visible({-5,1.2f,22},"next cafe terrace before leaving entry street");
- s.Walk(-14,22);s.Walk(-9,23);
- visible({-5,.75f,23},"cafe landing before first jump");
- const auto before=Find(s.layout,"park-player").position;
- for(int i=0;i<8;++i)s.Tick(1,0);
- Require(Find(s.layout,"park-player").position[0]<-7.8f,"Cafe gap requires a jump");
- s.Walk(before[0],before[2]);s.JumpTo(-5,23);
- Require(Find(s.layout,"park-player").position[1]>1.1f,"First jump lands on cafe terrace");
- s.Walk(3,25);visible({5.5f,1.4f,34.5f},"walkable arcade entrance before fork");
- visible({-3.5f,1.4f,33},"service porch entrance before fork");s.Walk(5,32);
- visible({5.4f,2,43.5f},"far end of shop passage");
- // The architectural promise is a real passage, with usable width rather
- // than a single centre-line route supplied only to the automated player.
- s.Walk(3.3f,36);s.Walk(7.6f,40);s.Walk(5,44);
- visible({14,4.6f,61},"stair flight from arcade exit");
- s.Walk(14,44);s.Walk(10,46);s.Walk(5,44);
- s.Walk(5,32);
- // The short service alley has a reward and rejoins the same street.
- s.Walk(-3.5f,32);s.Walk(-3.5f,40);s.Walk(-3.5f,44);
- visible({1,1.3f,49},"same courtyard from the service-alley exit");s.Walk(5,44);
- Require(!Has(s.layout,"stage-coin-3"),"Service-alley discovery rewards exploration");
- visible({5.4f,2,44},"main street after service-alley loop");
- s.Walk(-1,44);s.Walk(-1,48);visible({14,4.6f,61},"stair flight on entering courtyard");
- s.Walk(-1,52);s.Walk(9,53);s.Walk(17,54,false);
+ // Test the square's alternate side before following the main neighbourhood.
+ s.Walk(-18.5f,2);s.Walk(-3,2);s.Walk(-3,17);s.Walk(-18.5f,18);
+ visible({-16,1,23},"quayside after circling the cafe");
+ s.Walk(-15,23);s.Walk(-1,23);
+ visible({3,1.2f,23},"market bank before canal jump");
+ s.JumpTo(3,23);s.Walk(10,26);s.Walk(10,31.8f);
+ // Walk the service side all the way around the market hall and return.
+ s.Walk(10,32.4f);s.Walk(0,32.4f);s.Walk(0,43.5f);s.Walk(8,46);s.Walk(12,46);
+ s.Walk(15,43.5f);s.Walk(15,33);s.Walk(17,37);s.Walk(15,43.5f);
+ visible({14,4.6f,61},"roof stair from the market exit");
+ s.Walk(12,46);s.Walk(8,49);s.Walk(8,53);s.Walk(17,54,false);
  Require(Has(s.layout,"journey-shutter"),"Shutter waits for deliberate interaction");
  s.Tick(0,0,false,false,true);s.Tick();
- Require(!Has(s.layout,"journey-shutter"),"Gear physically opens roof stair");
- // Stand still after using the gear: no timed orbit, crane or zoom.
+ Require(!Has(s.layout,"journey-shutter"),"Gear opens the real roof stair");
  for(int i=0;i<180;++i)s.Tick();
  const auto resting=Find(s.layout,"park-camera");
  for(int i=0;i<90;++i)s.Tick();
  const auto stable=Find(s.layout,"park-camera");
- Require(std::hypot(stable.position[0]-resting.position[0],stable.position[2]-resting.position[2])<.01f && std::abs(stable.position[1]-resting.position[1])<.01f,"Idle camera settles after interaction");
- Require(std::abs(stable.rotation[1]-resting.rotation[1])<.001f,"Idle view does not swing after interaction");
- // Falling retains progress and returns to the compact backyard checkpoint.
+ Require(std::hypot(stable.position[0]-resting.position[0],stable.position[2]-resting.position[2])<.01f && std::abs(stable.position[1]-resting.position[1])<.01f,"Idle camera settles");
  Find(s.layout,"park-player").position[1]=-5;s.Tick();
- Require(Find(s.layout,"park-player").position[2]>45,"Fall returns to backyard");
- s.Walk(-1,52);s.Walk(9,53);s.Walk(14,54);s.Walk(14,66);s.Walk(14,73);
- Require(Find(s.layout,"park-player").position[1]>4.5f,"Roof reached by twelve real steps");
- visible({5.8f,4.1f,73},"west roof landing before crossing");
- // The next landing is readable before crossing; the final exit is checked
- // from that landing below, following the sequence of actual movement.
- s.Walk(10,73);s.Walk(7.7f,73);
+ Require(Find(s.layout,"park-player").position[2]>47,"Fall returns to garden checkpoint");
+ s.Walk(8,53);s.Walk(14,54);s.Walk(14,66);s.Walk(14,74);
+ Require(Find(s.layout,"park-player").position[1]>4.5f,"Twelve real stairs reach the roof");
+ s.Walk(5,74);visible({0,4.2f,74},"garden landing before roof crossing");
+ s.Walk(2.7f,74);
  Require(Find(s.layout,"park-player").position[1]<3.7f,"Missed jump lands on catch balcony");
- s.JumpTo(5,73);s.JumpTo(10,73);s.JumpTo(5,73);
- // The parapets frame a broad crossing. Test another takeoff/landing pair
- // near one end, not only the known centre waypoint.
- s.Walk(5,75.6f);s.JumpTo(10,75.6f);s.JumpTo(5,75.6f);s.Walk(5,73);
- visible({-3,5,76},"exit gateway after roof jump");
- visible({-7.5f,10.8f,80},"unique clock tower beside destination");
- s.Walk(-3,73);s.Walk(-3,77);
- Require(s.ui.Value("journeyComplete")==1,"Street journey reaches next district");
- s.Walk(-3,81);s.Walk(-4,82);s.Walk(0,81);
- Require(Find(s.layout,"park-player").position[1]>4.4f,"Final gate opens onto a usable lookout terrace");
- Require(s.maxYaw-s.minYaw<.5f,"Camera keeps a stable approach direction throughout the street");
- Require(s.maxFov-s.minFov<.02f,"Field of view stays fixed throughout action");
+ s.JumpTo(0,74);s.JumpTo(5,74);s.JumpTo(0,74);
+ s.Walk(0,77.5f);s.JumpTo(5,77.5f);s.JumpTo(0,77.5f);
+ s.Walk(0,74);s.Walk(-11.5f,71.5f);s.Walk(-12,80);
+ visible({-12,4.8f,84},"accessible lookout beyond its entrance");
+ s.Walk(-1,80);s.Walk(-1,71.5f);s.Walk(-11.5f,71.5f);s.Walk(-12,80);s.Walk(-12,84);
+ Require(s.ui.Value("journeyComplete")==1,"Neighbourhood reaches the clock lookout");
+ s.Walk(-14,86);s.Walk(-10,86);
+ Require(s.maxYaw-s.minYaw<.5f,"Camera maintains a calm approach direction");
+ Require(s.maxFov-s.minFov<.02f,"Field of view remains fixed");
  std::cout<<"Camera yaw range "<<(s.maxYaw-s.minYaw)<<", FOV "<<s.minFov<<".."<<s.maxFov<<"\n";
 
  Require(s.scripts.TakeSceneCommands().empty(),"Completion preserves exploration");
@@ -427,10 +405,10 @@ void RenderJourney() {
  for(int i=0;i<330;++i){playback.PrepareInput(scene,none,true,1.0/60);playback.Update(scene,1.0/60,true);}
  Require(scene.ActiveSceneName().find("StreetJourney")!=std::string::npos,"START enters street journey");
  Capture(renderer,scene,"journey-start");
- std::ifstream f(root/"Assets/Models/StreetJourney/Route.json");const auto route=Engine::Json::parse(f).at("route").get<std::vector<std::array<float,2>>>();
+ std::ifstream f(root/"Assets/Models/StreetJourney/Route.json");const auto metadata=Engine::Json::parse(f);const auto route=metadata.at("route").get<std::vector<std::array<float,2>>>();
  int frame=0,shot=0;
  for(size_t waypoint=0;waypoint<route.size();++waypoint) {
-  const auto& point=route[waypoint];const bool jumping=(point[0]==-5 && point[1]==23) || (point[0]==5 && point[1]==73);
+  const auto& point=route[waypoint];const bool jumping=std::any_of(metadata.at("jumps").begin(),metadata.at("jumps").end(),[&](const auto& jump){return jump.at("end").template get<std::array<float,2>>()==point;});
   int settled=0;
   for(int tick=0;tick<1400;++tick) {
    const auto p=Find(scene.World().Layout(),"park-player").position;const float dx=point[0]-p[0],dz=point[1]-p[2];
@@ -447,9 +425,9 @@ void RenderJourney() {
  Require(scene.Ui().Value("journeyComplete")==1,"Rendered journey reaches finish");
  // Inspect the three actual rest areas from settled, unmodified stage cameras.
  for(const auto& [name,pose]:std::vector<std::pair<std::string,std::array<float,3>>>{
-     {"rest-cafe",{7.9f,1.26f,27.2f}},{"rest-garden",{-2,1.26f,50}},
-     {"rest-roof",{17.6f,4.62f,71}},
-     {"loading-aisle",{-3.5f,1.26f,37}},{"public-gallery",{5.5f,1.26f,36}}}) {
+     {"rest-cafe",{-18.5f,.7f,2}},{"rest-garden",{8,1.26f,49}},
+     {"rest-roof",{14,4.62f,74}},
+     {"loading-aisle",{0,1.26f,36}},{"public-gallery",{15,1.26f,36}}}) {
   auto layout=SceneLayout::Load(root/"Assets/Scenes/StreetJourney.json");
   Find(layout,"park-player").position=pose;SceneEnvironment preview;
   Require(renderer.WaitForIdle() && preview.Initialize(renderer,root,layout,error),error);

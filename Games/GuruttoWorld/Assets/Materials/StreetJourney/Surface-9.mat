@@ -7,9 +7,9 @@
   ],
   "metallic": 0,
   "normalFlipY": false,
-  "normalTexture": "Assets/Textures/StreetJourney/PolyHaven/wooden_crate_02_nor_gl_1k.png",
+  "normalTexture": "Assets/Textures/Sunrise/Cafe/T_Dirt_Normal.png",
   "physicallyBased": true,
   "roughness": 0.82,
-  "texture": "Assets/Textures/StreetJourney/PolyHaven/wooden_crate_02_diff_1k.png",
+  "texture": "Assets/Textures/Sunrise/Cafe/T_Dirt_BaseColor.png",
   "transparent": false
 }

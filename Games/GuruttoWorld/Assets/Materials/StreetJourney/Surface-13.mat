@@ -7,9 +7,9 @@
   ],
   "metallic": 0,
   "normalFlipY": false,
-  "normalTexture": "Assets/Textures/Sunrise/Cafe/T_RedBrick_Normal.png",
+  "normalTexture": "Assets/Textures/Sunrise/Cafe/T_Trim_Normal.png",
   "physicallyBased": true,
-  "roughness": 0.88,
-  "texture": "Assets/Textures/Sunrise/Cafe/T_RedBrick_BaseColor.png",
+  "roughness": 0.82,
+  "texture": "Assets/Textures/Sunrise/Cafe/T_Trim_BaseColor.png",
   "transparent": false
 }

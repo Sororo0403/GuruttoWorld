@@ -1,4 +1,6 @@
-# 路地から屋上へ進む一本の街区（StreetJourney）
+# 街区の制作履歴（StreetJourney）
+
+現在の全面再構成は [StreetTownRebuild.md](StreetTownRebuild.md) を参照。以下の座標・構造・検証結果は過去の版の記録であり、現行版の仕様ではない。
 
 ## カメラの調査と調整
 
