@@ -39,7 +39,11 @@ ScriptDefinition Camera() {
   };
   if(!fixedView) {
    mix({2.6f,4.8f,7.8f,.4f,3.2f,1.6f},Smooth(14,24,z));
-   mix({3.2f,5.2f,8,.4f,3.2f,1.6f},Smooth(60,70,z));
+   // Translate the whole frame at the courtyard reveal; do not rotate around the hero.
+   const float courtyard=Smooth(42,49,z)*(1-Smooth(56,63,z))*(1-Smooth(4,12,x));
+   shot.side+=1.8f*courtyard;shot.aimX+=1.8f*courtyard;
+   // Keep the west landing in view before the roof jump without orbiting.
+   mix({2,5.4f,8,-.8f,2,1.6f},Smooth(60,70,z));
   }
   std::array<float,3> wanted{x+shot.side,c.state["floor"]+shot.height,z-shot.back};
   const auto safe=[&](const std::array<float,3>& candidate) {
@@ -67,6 +71,12 @@ ScriptDefinition Camera() {
   if(reset) {c.object.position=wanted;c.state["ready"]=1;}
   else for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
   c.object.position=safe(c.object.position);
+  if(!fixedView) {
+   // Following lag must not turn a close view into a distant one on a diagonal.
+   const float distance=length(c.object.position);
+   if(distance>10.6f)for(size_t i=0;i<3;++i)
+    c.object.position[i]=p->position[i]+(c.object.position[i]-p->position[i])*10.6f/distance;
+  }
   std::array<float,3> aim{x+shot.aimX,c.state["floor"]+shot.aimY,z+shot.aimZ};
   for(size_t i=0;i<3;++i) {
    const auto key="aim"+std::to_string(i);

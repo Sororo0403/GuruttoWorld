@@ -51,7 +51,7 @@ struct Simulation {
    const auto& player=Find(layout,"park-player");const auto& camera=Find(layout,"park-camera");
    auto delta=camera.position;float length=0;
    for(size_t i=0;i<3;++i){delta[i]-=player.position[i];length+=delta[i]*delta[i];}
-   length=std::sqrt(length);Require(length>.25f && length<11,"Close camera distance remains finite and bounded: "+std::to_string(length)+" at frame "+std::to_string(frames));
+   length=std::sqrt(length);Require(length>.25f && length<11,"Close camera distance remains finite and bounded: "+std::to_string(length)+" at frame "+std::to_string(frames)+" player "+std::to_string(player.position[0])+","+std::to_string(player.position[1])+","+std::to_string(player.position[2]));
    for(auto& value:delta)value/=length;
    const auto hit=physics.Raycast(player.position,delta,length,0xffffffffu,false,player.id);
    Require(!hit || hit->distance>length-.12f,"Smoothed camera does not cross a wall");
@@ -332,17 +332,39 @@ std::filesystem::path JourneyRoot() {
 void JourneyPlaythrough() {
  const auto path=(JourneyRoot()/"Assets/Scenes/StreetJourney.json").string();
  Simulation s(path);for(int i=0;i<30;++i)s.Tick();
+ const auto visible=[&](std::array<float,3> point,const std::string& name) {
+  if(GetEnvironmentVariableA("WP1_JOURNEY_FIXED_VIEW",nullptr,0))return;
+  const auto& cam=Find(s.layout,"park-camera");
+  std::array<float,3> delta{};float length=0;
+  for(size_t i=0;i<3;++i){delta[i]=point[i]-cam.position[i];length+=delta[i]*delta[i];}
+  length=std::sqrt(length);
+  const float pitch=cam.rotation[0],yaw=cam.rotation[1];
+  const float right=delta[0]*std::cos(yaw)-delta[2]*std::sin(yaw);
+  const float up=delta[0]*std::sin(yaw)*std::sin(pitch)+delta[1]*std::cos(pitch)+delta[2]*std::cos(yaw)*std::sin(pitch);
+  const float depth=delta[0]*std::sin(yaw)*std::cos(pitch)-delta[1]*std::sin(pitch)+delta[2]*std::cos(yaw)*std::cos(pitch);
+  const float half=std::tan(cam.camera->verticalFov*3.14159265f/360);
+  Require(depth>0 && std::abs(right)<depth*half*16/9*.95f && std::abs(up)<depth*half*.95f,
+   name+" lies inside the camera frame (x="+std::to_string(right/(depth*half*16/9))+")");
+  for(auto& v:delta)v/=length;
+  const auto hit=s.physics.Raycast(cam.position,delta,length,0xffffffffu,false,"park-player");
+  Require(!hit || hit->distance>length-.15f,name+" has an unobstructed sightline");
+  std::cout<<"PASS view: "<<name<<"\n";
+ };
  s.Walk(-14,10);s.Walk(-14,22);s.Walk(-9,23);
+ visible({-5,.75f,23},"cafe landing before first jump");
  const auto before=Find(s.layout,"park-player").position;
  for(int i=0;i<8;++i)s.Tick(1,0);
  Require(Find(s.layout,"park-player").position[0]<-7.8f,"Cafe gap requires a jump");
  s.Walk(before[0],before[2]);s.JumpTo(-5,23);
  Require(Find(s.layout,"park-player").position[1]>1.1f,"First jump lands on cafe terrace");
- s.Walk(3,25);s.Walk(5,32);
+ s.Walk(3,25);visible({5.4f,2,34.5f},"open shop arcade before fork");s.Walk(5,32);
+ visible({5.4f,2,43.5f},"far end of shop passage");
  // The short service alley has a reward and rejoins the same street.
  s.Walk(-3.5f,32);s.Walk(-3.5f,40);s.Walk(-3.5f,44);s.Walk(5,44);
  Require(!Has(s.layout,"stage-coin-3"),"Service-alley discovery rewards exploration");
- s.Walk(-1,44);s.Walk(-1,48);s.Walk(-1,52);s.Walk(9,53);s.Walk(17,54,false);
+ visible({5.4f,2,44},"main street after service-alley loop");
+ s.Walk(-1,44);s.Walk(-1,48);visible({14,4.6f,61},"stair flight on entering courtyard");
+ s.Walk(-1,52);s.Walk(9,53);s.Walk(17,54,false);
  Require(Has(s.layout,"journey-shutter"),"Shutter waits for deliberate interaction");
  s.Tick(0,0,false,false,true);s.Tick();
  Require(!Has(s.layout,"journey-shutter"),"Gear physically opens roof stair");
@@ -358,9 +380,13 @@ void JourneyPlaythrough() {
  Require(Find(s.layout,"park-player").position[2]>45,"Fall returns to backyard");
  s.Walk(-1,52);s.Walk(9,53);s.Walk(14,54);s.Walk(14,66);s.Walk(14,73);
  Require(Find(s.layout,"park-player").position[1]>4.5f,"Roof reached by twelve real steps");
+ visible({5.8f,4.1f,73},"west roof landing before crossing");
  s.Walk(10,73);s.Walk(7.7f,73);
  Require(Find(s.layout,"park-player").position[1]<3.7f,"Missed jump lands on catch balcony");
- s.JumpTo(5,73);s.JumpTo(10,73);s.JumpTo(5,73);s.Walk(-3,73);s.Walk(-3,77);
+ s.JumpTo(5,73);s.JumpTo(10,73);s.JumpTo(5,73);
+ visible({-3,5,76},"exit gateway after roof jump");
+ visible({-7.5f,10.8f,80},"unique clock tower beside destination");
+ s.Walk(-3,73);s.Walk(-3,77);
  Require(s.ui.Value("journeyComplete")==1,"Street journey reaches next district");
  Require(s.maxYaw-s.minYaw<.5f,"Camera keeps a stable approach direction throughout the street");
  Require(s.maxFov-s.minFov<.02f,"Field of view stays fixed throughout action");

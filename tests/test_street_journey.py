@@ -50,4 +50,11 @@ class StreetJourneyTests(unittest.TestCase):
   self.assertIn('journey-shutter',objects)
   route=json.loads((GAME/'Assets/Models/StreetJourney/Route.json').read_text(encoding='utf-8'))
   self.assertTrue(route['detour']);self.assertEqual(len(route['jumps']),2)
+ def test_street_geometry_stays_within_runtime_budget(self):
+  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
+  models=[c['model'] for o in scene['objects'] for c in o['components']
+          if c['type']=='MeshRenderer' and c.get('model','').startswith('Assets/Models/StreetJourney/Baked/')]
+  self.assertLessEqual(len(models),28)
+  polygons=sum(sum(line.startswith('f ') for line in (GAME/path).read_text(encoding='utf-8').splitlines()) for path in models)
+  self.assertLessEqual(polygons,170000)
 if __name__=='__main__':unittest.main()
