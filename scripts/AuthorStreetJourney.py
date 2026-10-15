@@ -1,5 +1,5 @@
 """Author the street stage and its START connection."""
-import copy,json
+import copy,json,math
 from StreetDistrict import StreetDistrict
 from SunriseDistrictBake import DistrictBake
 from AuthorSunriseStreet import GAME,model,script
@@ -123,8 +123,8 @@ def assemble(city,geometry):
    for key,prefix in (('coins','stage-coin-'),('enemies','stage-enemy-'),('checkpoints','stage-checkpoint')):
     data[key]={'kind':'array','value':[{'kind':'reference','value':o['id']} for o in objects if o['id'].startswith(prefix) and (key!='enemies' or o['name']=='ParkEnemy')]}
  camera=script('StreetCamera',target='park-player');camera['parameters']={'height':4.5,'distance':7.6,'lead':3.0}
- objects.append(obj('park-camera',[-14,4.6,-7.3],rotation=[.22,0,0],components=[
-  component('Camera',verticalFov=58,nearClip=.1,farClip=150,referenceAspect=16/9,preserveHorizontal=True),camera]))
+ objects.append(obj('park-camera',[-14.4,3.3,-6.2],rotation=[.18,0,0],components=[
+  component('Camera',verticalFov=53,nearClip=.1,farClip=150,referenceAspect=16/9,preserveHorizontal=True),camera]))
  objects.append(obj('street-destination',city.goal))
  return dict(version=4,settings=copy.deepcopy(old['settings']),objects=objects)
 

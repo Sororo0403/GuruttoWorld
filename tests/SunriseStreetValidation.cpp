@@ -30,7 +30,7 @@ const ScenePlacement& Find(const SceneLayout& layout,const std::string& id) {
 struct Simulation {
  SceneLayout layout=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json");
  PhysicsWorld physics;ScenePhysics::States states;ScriptRuntime scripts;UiState ui;int frames=0;
- bool inspectStreet=false;float lastYaw=0;
+ bool inspectStreet=false;float lastYaw=0;std::array<float,3> lastPlayer{};float minYaw=10,maxYaw=-10,minFov=180,maxFov=0;
  explicit Simulation(const std::string& path="Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json") {
   layout=SceneLayout::Load(path);
   inspectStreet=path.find("StreetJourney.json")!=std::string::npos;
@@ -49,11 +49,16 @@ struct Simulation {
    const auto& player=Find(layout,"park-player");const auto& camera=Find(layout,"park-camera");
    auto delta=camera.position;float length=0;
    for(size_t i=0;i<3;++i){delta[i]-=player.position[i];length+=delta[i]*delta[i];}
-   length=std::sqrt(length);Require(length>.25f && length<11,"Close camera distance remains finite and bounded: "+std::to_string(length)+" at frame "+std::to_string(frames));
+   length=std::sqrt(length);Require(length>.25f && length<14,"Close camera distance remains finite and bounded: "+std::to_string(length)+" at frame "+std::to_string(frames));
    for(auto& value:delta)value/=length;
    const auto hit=physics.Raycast(player.position,delta,length,0xffffffffu,false,player.id);
    Require(!hit || hit->distance>length-.12f,"Smoothed camera does not cross a wall");
-   if(frames>0)Require(std::abs(camera.rotation[1]-lastYaw)<.20f,"Landmark framing does not snap camera yaw");
+   if(frames>0 && std::hypot(player.position[0]-lastPlayer[0],player.position[2]-lastPlayer[2])<6)
+    Require(std::abs(camera.rotation[1]-lastYaw)<.035f,"Authored camera turns continuously during movement");
+   lastPlayer=player.position;
+   minYaw=std::min(minYaw,camera.rotation[1]);maxYaw=std::max(maxYaw,camera.rotation[1]);
+   Require(camera.camera && camera.camera->verticalFov>=50 && camera.camera->verticalFov<=65,"Bounded animated field of view");
+   minFov=std::min(minFov,camera.camera->verticalFov);maxFov=std::max(maxFov,camera.camera->verticalFov);
    lastYaw=camera.rotation[1];
   }
   for(const auto& [key,value]:scripts.TakeUiCommands().values)ui.values[key]=value;
@@ -338,6 +343,10 @@ void JourneyPlaythrough() {
  Require(Find(s.layout,"park-player").position[1]<3.7f,"Missed jump lands on catch balcony");
  s.JumpTo(5,73);s.JumpTo(10,73);s.JumpTo(5,73);s.Walk(-3,73);s.Walk(-3,77);
  Require(s.ui.Value("journeyComplete")==1,"Street journey reaches next district");
+ Require(s.maxYaw-s.minYaw>.9f,"Camera makes substantial authored lateral sweeps");
+ Require(s.maxFov-s.minFov>8,"Camera visibly changes framing through the journey");
+ std::cout<<"Camera yaw range "<<(s.maxYaw-s.minYaw)<<", FOV "<<s.minFov<<".."<<s.maxFov<<"\n";
+
  Require(s.scripts.TakeSceneCommands().empty(),"Completion preserves exploration");
  std::string error;s.scripts.TakeSceneCommands();
  Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"Cancel",true}},&s.physics),error);

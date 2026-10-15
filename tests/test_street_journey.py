@@ -32,6 +32,11 @@ class StreetJourneyTests(unittest.TestCase):
   self.assertNotIn('Guidance',current)
   self.assertFalse((GAME/'Assets/Scenes/GuidanceGallery.json').exists())
   self.assertFalse((GAME/'Assets/Scenes/GuidanceLab').exists())
+ def test_presentation_terms_never_enter_game_content(self):
+  import re
+  forbidden=re.compile(r'修辞|擬人法|反復法|漸層法|対比法|rhetoric|anaphora|antithesis|climax',re.I)
+  for rel in ('Assets/Scenes/StreetJourney.json','Assets/Scenes/TitleStreet.json','Assets/Project.json','Assets/Scripts/StreetJourney.cpp'):
+   self.assertIsNone(forbidden.search((GAME/rel).read_text(encoding='utf-8')),rel)
  def test_disconnected_jump_surfaces_and_local_floors(self):
   scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
   objects={o['id']:o for o in scene['objects']}
