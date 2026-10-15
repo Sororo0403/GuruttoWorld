@@ -54,10 +54,12 @@ class GuidanceTests(unittest.TestCase):
             expected=copy.deepcopy(a[key]);expected['position'][0]*=-1
             self.assertEqual(expected,b[key])
 
-    def test_case_cues_are_distinct_and_control_has_none(self):
+    def test_six_figures_split_into_three_pairs(self):
         self.assertEqual(len(CASES),6)
-        self.assertFalse(any(k.startswith('lab-Cue') for k in items(load('Assets/Scenes/GuidanceLab/Course-0A.json'))))
-        for mode in range(1,6):
+        cases=load('Assets/Models/GuidanceLab/Experiments.json')['cases']
+        groups=[c['group'] for c in cases if not c['mirror']]
+        self.assertEqual(groups,['定番','定番','珍しい','珍しい','激レア','激レア'])
+        for mode in range(6):
             scene=items(load(f'Assets/Scenes/GuidanceLab/Course-{mode}A.json'))
             self.assertTrue(any(k.startswith(f'lab-Cue{mode}') for k in scene))
 

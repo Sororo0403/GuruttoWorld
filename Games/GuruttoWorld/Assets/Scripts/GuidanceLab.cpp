@@ -14,14 +14,14 @@ bool Register_GuidanceLab(void*,SceneRuntime::RegisterModuleScript);
 namespace {
 using namespace SceneRuntime;
 constexpr const char* gallery="Assets/Scenes/GuidanceGallery.json";
-const std::array<std::string,6> names{"対照","換喩","黙説法","破格法","漸層法","組み合わせ"};
+const std::array<std::string,6> names{"定番  擬人法","定番  反復法","珍しい  換喩","珍しい  漸層法","激レア  Anadiplosis","激レア  Anapodoton"};
 const std::array<std::string,6> descriptions{
-    "追加の手がかりなし。建物と通れる空間だけで探す。",
-    "カップという関連物で、先にあるカフェを示す。",
-    "続いていた庇が途切れ、その先を想像させる。",
-    "平行な庇の並びが折れ、別の向きへ続き始める。",
-    "同じ目印が、小さく・中くらい・大きく現れる。",
-    "関連物・途切れ・向きの転換・強弱を合わせる。"};
+    "鉢植えが枝で手招きして、通りへ誘う。",
+    "同じ庇を、同じ強さで繰り返す。",
+    "カップから、その先のカフェを連想する。",
+    "植栽を小・中・大と段階的に強める。",
+    "前の終わりの目印を、次の始まりへ渡す。",
+    "門とカップの対応を示し、最後の帰結を空ける。"};
 struct Result {bool present=false;float seconds=0,distance=0,choice=0,decision=0,backtracks=0;std::string status;};
 struct Session {bool mirror=false,blind=false,exportError=false;std::array<Result,6> last{};} session;
 std::string Course(int mode,bool mirror) {return "Assets/Scenes/GuidanceLab/Course-"+std::to_string(mode)+(mirror?"B":"A")+".json";}
@@ -66,13 +66,13 @@ void Record(ScriptContext& c,const std::string& status) {
  result={true,c.state["elapsed"],c.state["distance"],c.state["choice"],c.state["decision"],c.state["backtracks"],status};
  std::array<wchar_t,32768> overridePath{};
  const auto overrideLength=GetEnvironmentVariableW(L"WP1_GUIDANCE_RESULTS",overridePath.data(),static_cast<DWORD>(overridePath.size()));
- const auto file=overrideLength && overrideLength<overridePath.size()?std::filesystem::path(overridePath.data()):Root()/"generated/guidance/trials.csv";
+ const auto file=overrideLength && overrideLength<overridePath.size()?std::filesystem::path(overridePath.data()):Root()/"generated/guidance/trials-v2.csv";
  std::error_code ec;std::filesystem::create_directories(file.parent_path(),ec);
  if(ec) {session.exportError=true;return;}
  const bool header=!std::filesystem::exists(file) || std::filesystem::file_size(file,ec)==0;
  std::ofstream output(file,std::ios::app);output.imbue(std::locale::classic());
- if(header)output<<"run_id,case_id,layout,blind,status,seconds,distance_m,first_branch,decision_seconds,backtracks,stationary_seconds\n";
- output<<std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()<<','
+ if(header)output<<"study_version,run_id,case_id,layout,blind,status,seconds,distance_m,first_branch,decision_seconds,backtracks,stationary_seconds\n";
+ output<<"2,"<<std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()<<','
      <<mode<<','<<(c.Value("mirror")>0?'B':'A')<<','<<(c.state["blind"]>0?1:0)<<','<<status<<','
      <<std::fixed<<std::setprecision(3)<<result.seconds<<','<<result.distance<<','<<result.choice<<','<<result.decision<<','<<result.backtracks<<','<<c.state["stationary"]<<'\n';
  output.flush();session.exportError=!output;
@@ -160,8 +160,16 @@ ScriptDefinition Camera() {
  };
  return s;
 }
+ScriptDefinition Gesture() {
+ ScriptDefinition s;s.fields={{"mirror",{0,0,1}}};
+ s.update=[](ScriptContext& c) {
+  c.state["time"]+=static_cast<float>(c.seconds);
+  c.object.rotation[2]=(c.Value("mirror")>0?-1.0f:1.0f)*(-.2f+.35f*std::sin(c.state["time"]*3));
+ };
+ return s;
+}
 }
 bool Register_GuidanceLab(void* owner,SceneRuntime::RegisterModuleScript add) {
- const auto controller=Controller(),camera=Camera();
- return add(owner,"GuidanceLab",&controller) && add(owner,"GuidanceCamera",&camera);
+ const auto controller=Controller(),camera=Camera(),gesture=Gesture();
+ return add(owner,"GuidanceLab",&controller) && add(owner,"GuidanceCamera",&camera) && add(owner,"GuidanceGesture",&gesture);
 }

@@ -13,9 +13,11 @@ from SunriseDistrictBake import DistrictBake, TEXTURES as DISTRICT_TEXTURES
 from GenerateParkAdventure import component, obj, write, ui
 from SunriseBatching import rotate
 
-CASES=[('対照','追加の手がかりなし'),('換喩','関連物で行き先を示す'),
-       ('黙説法','並びを途中で打ち切る'),('破格法','並びの構造を切り替える'),
-       ('漸層法','目印を段階的に強める'),('組み合わせ','四つの工夫を重ねる')]
+CASES=[('擬人法','鉢植えが枝で手招きして、通りへ誘う'),('反復法','同じ庇を、同じ強さで繰り返す'),
+       ('換喩','カップから、その先のカフェを連想する'),('漸層法','植栽を小・中・大と段階的に強める'),
+       ('Anadiplosis','前の終わりの目印を、次の始まりへ渡す'),
+       ('Anapodoton','門とカップの対応を示し、最後の帰結を空ける')]
+GROUPS=['定番','定番','珍しい','珍しい','激レア','激レア']
 FOLDER='Assets/Models/GuidanceLab'
 GALLERY='Assets/Scenes/GuidanceGallery.json'
 
@@ -93,19 +95,38 @@ def common():
 
 def cues(mode):
     b=baker('Cue'+str(mode)+'A')
-    if mode in (1,5):sign(b,3.8,2.3,15.58,.82)
+    if mode==0:b.place('k','pottedPlant',(3.8,0,15.1),3)
+    if mode==1:
+        for x in (-4,-2,0,2,4):awning(b,x,15.7)
+        for z in (18,22,26):awning(b,5.05,z,angle=-math.pi/2)
     if mode==2:
-        for x in (-4,-2,0):awning(b,x,15.7)
-        # Intentionally stop the established sequence before its expected next
-        # element. The open street remains physically identical to the control.
-    if mode in (3,5):
-        for x in (-4,-2,0,2):awning(b,x,15.7)
-        awning(b,5.05,17.1,angle=-math.pi/2)
-        awning(b,5.05,19.1,angle=-math.pi/2)
-    if mode in (4,5):
+        sign(b,3.8,2.3,15.58,.82)
+    if mode==3:
         for x,z,scale in ((-3,15.65,1.1),(0,15.65,1.75),(3.5,15.65,2.6)):
             b.place('q','Prop_Planter_Single',(x,0,z),scale*.23)
             b.place('k','pottedPlant',(x,.13,z),scale)
+    if mode==4:
+        # A->B / B->C / C->A: the end of each group is repeated at the next
+        # beginning. This differs from repeating one uniform trail of A's.
+        awning(b,-3.8,15.7)
+        sign(b,-1.6,2.3,15.58,.62)
+        sign(b,1.4,2.3,15.58,.62)
+        b.place('k','pottedPlant',(4,.05,15.6),2.6)
+        b.place('k','pottedPlant',(5.8,.05,20.3),2.6)
+        awning(b,5.05,23,angle=-math.pi/2)
+    if mode==5:
+        wood=material(CAFE_TEXTURES+'/Wood.png')
+        # Establish "frame -> cup" twice; the third frame surrounds open
+        # space, deliberately withholding the expected consequent.
+        for x in (-3,0):
+            for dx in (-1.25,1.25):b.cube((x+dx,2.4,15.45),(.12,1.85,.14),wood)
+            for y in (1.48,3.32):b.cube((x,y,15.45),(2.6,.12,.14),wood)
+            sign(b,x,2.4,15.28,.82)
+        for x in (5.5,11.5):
+            b.cube((x,1.8,18),(.18,3.6,.22),wood)
+            # Short returns suggest the missing lintel, without placing an
+            # opaque bar across the camera's view of the player.
+            b.cube((x+(.45 if x<8 else -.45),3.55,18),(1.1,.16,.22),wood)
     return b
 
 
@@ -139,6 +160,15 @@ def course(mode,mirror,common_objects,cue_objects):
     # A visible shared destination; no collectibles, enemies or wayfinding HUD.
     from AuthorSunriseStreet import model
     objects.append(model('lab-goal',[8.5*signX,1.35,47.5],[2.4]*3,'Assets/Models/Title/Factory/cog-a.obj',[math.pi/2,0,0]))
+    if mode==0:
+        from GenerateParkAdventure import ball, box
+        for i,x in enumerate((3.65,3.95)):
+            objects.append(ball(f'guide-eye-{i}',[x*signX,1.25,14.70],[.18,.22,.10],'White'))
+            objects.append(ball(f'guide-pupil-{i}',[x*signX,1.25,14.64],[.075,.10,.045],'Eye'))
+        objects.append(obj('guide-hand-pivot',[4.0*signX,1.05,15.0],components=[
+            component('Script',behaviour='GuidanceGesture',parameters={'mirror':int(mirror)})]))
+        arm=box('guide-arm',[.48*signX,0,0],[.96,.12,.14],'Wood');arm['parent']='guide-hand-pivot';objects.append(arm)
+        objects.append(ball('guide-hand',[1.0*signX,0,0],[.28,.24,.20],'White',parent='guide-hand-pivot'))
     objects.append(controller(mode,mirror))
     return dict(version=4,settings=copy.deepcopy(old['settings']),objects=objects)
 
@@ -164,7 +194,7 @@ def gallery():
     objects.append(button('lab-blind',[434,134],[790,42],'発表モード：技法名を表示  /  Bで切替','guidance:blind',font=20))
     for i,(name,description) in enumerate(CASES):
         x=52+(i%2)*600;y=194+(i//2)*142
-        objects.append(button('lab-name-'+str(i),[x,y],[576,48],str(i+1)+'   '+name,'guidance:course:'+str(i),font=25))
+        objects.append(button('lab-name-'+str(i),[x,y],[576,48],str(i+1)+'   '+GROUPS[i]+'  '+name,'guidance:course:'+str(i),font=25))
         objects.append(ui('lab-description-'+str(i),[x+14,y+53],[548,43],description))
         next(c for c in objects[-1]['components'] if c['type']=='Text')['fontSize']=18
         objects.append(ui('lab-result-'+str(i),[x+14,y+97],[548,29],'未プレイ'))
@@ -187,12 +217,14 @@ def author():
         for mirror,geometry,extra in ((False,commonA,a),(True,commonB,b)):
             path=f'Assets/Scenes/GuidanceLab/Course-{mode}{"B" if mirror else "A"}.json'
             scene=course(mode,mirror,geometry,extra);write(GAME/path,scene)
-            records.append(dict(mode=mode,name=name,description=description,mirror=mirror,scene=path,objects=len(scene['objects'])))
+            records.append(dict(mode=mode,name=name,group=GROUPS[mode],description=description,mirror=mirror,scene=path,objects=len(scene['objects'])))
     write(GAME/GALLERY,gallery())
-    write(GAME/(FOLDER+'/Experiments.json'),dict(version=1,goal='奥のカフェ',cases=records,
+    write(GAME/(FOLDER+'/Experiments.json'),dict(version=2,goal='奥のカフェ',cases=records,
+          grouping='Presentation familiarity tiers are editorial estimates, not measured public awareness. Greek-origin names are not language-exclusive.',
           comparison='Same collision layout, controls, lighting, camera and destination; cue geometry varies. Reflection swaps left/right.',
-          sources=['https://rhetoric.byu.edu/Figures/M/metonymy.htm','https://rhetoric.byu.edu/Figures/A/aposiopesis.htm',
-                   'https://rhetoric.byu.edu/Figures/A/~anacoluthon.htm','https://rhetoric.byu.edu/Figures/C/climax.htm']))
+          sources=['https://rhetoric.byu.edu/Figures/P/personification.htm','https://rhetoric.byu.edu/Figures/Groupings/of%20Repetition.htm',
+                   'https://rhetoric.byu.edu/Figures/M/metonymy.htm','https://rhetoric.byu.edu/Figures/C/climax.htm',
+                   'https://rhetoric.byu.edu/Figures/A/anadiplosis.htm','https://rhetoric.byu.edu/Figures/A/anapodoton.htm']))
     project=json.loads((GAME/'Assets/Project.json').read_text(encoding='utf-8'))
     keys={'GuidanceGallery':64,'GuidanceMenu':15,'GuidanceMirror':50,'GuidanceBlind':48}
     keys.update({'GuidanceCourse'+str(i):i+1 for i in range(1,7)})

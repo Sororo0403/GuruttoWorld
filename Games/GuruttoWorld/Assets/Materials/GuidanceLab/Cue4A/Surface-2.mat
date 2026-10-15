@@ -7,9 +7,9 @@
   ],
   "metallic": 0,
   "normalFlipY": false,
-  "normalTexture": "Assets/Textures/Sunrise/Cafe/T_Dirt_Normal.png",
+  "normalTexture": "",
   "physicallyBased": true,
   "roughness": 0.82,
-  "texture": "Assets/Textures/Sunrise/Cafe/T_Dirt_BaseColor.png",
+  "texture": "Assets/Textures/Sunrise/Cafe/CafeSign.png",
   "transparent": false
 }

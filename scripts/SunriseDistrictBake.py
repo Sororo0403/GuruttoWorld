@@ -5,7 +5,16 @@ from collections import defaultdict
 
 from AuthorEntranceCafe import quaternius, kenney, material
 from SunriseBatching import GAME, read_model, rotate, normalize
-from GenerateParkAdventure import component, obj, write
+from GenerateParkAdventure import component, obj, write as write_source
+
+
+def write(path,value):
+    # Native mesh readers can keep large files open. Leave identical assets
+    # untouched rather than reopening them for truncation on every cue change.
+    text=value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2)+'\n'
+    encoded=text.replace('\r\n','\n').replace('\n','\r\n').encode('utf-8')
+    if path.is_file() and path.read_bytes()==encoded and path.with_name(path.name+'.meta').is_file():return
+    write_source(path,value)
 
 FOLDER='Assets/Models/Sunrise/District'
 MATERIALS='Assets/Materials/Sunrise/District'

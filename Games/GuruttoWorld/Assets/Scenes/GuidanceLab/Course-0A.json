@@ -1479,6 +1479,76 @@
       ]
     },
     {
+      "id": "lab-Cue0A-block-0-0",
+      "name": "lab-Cue0A-block-0-0",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/Cue0A/Baked/Block-0-0.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/Cue0A/Surface-0.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-Cue0A-block-0-1",
+      "name": "lab-Cue0A-block-0-1",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/Cue0A/Baked/Block-0-1.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/Cue0A/Surface-1.mat"
+        }
+      ]
+    },
+    {
       "id": "park-camera",
       "name": "park-camera",
       "parent": "",
@@ -1811,6 +1881,253 @@
           "enabled": true,
           "model": "Assets/Models/Title/Factory/cog-a.obj",
           "instancing": true
+        }
+      ]
+    },
+    {
+      "id": "guide-eye-0",
+      "name": "guide-eye-0",
+      "parent": "",
+      "position": [
+        3.65,
+        1.25,
+        14.7
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.18,
+        0.22,
+        0.1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "guide-pupil-0",
+      "name": "guide-pupil-0",
+      "parent": "",
+      "position": [
+        3.65,
+        1.25,
+        14.64
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.075,
+        0.1,
+        0.045
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "guide-eye-1",
+      "name": "guide-eye-1",
+      "parent": "",
+      "position": [
+        3.95,
+        1.25,
+        14.7
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.18,
+        0.22,
+        0.1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "guide-pupil-1",
+      "name": "guide-pupil-1",
+      "parent": "",
+      "position": [
+        3.95,
+        1.25,
+        14.64
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.075,
+        0.1,
+        0.045
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "guide-hand-pivot",
+      "name": "guide-hand-pivot",
+      "parent": "",
+      "position": [
+        4.0,
+        1.05,
+        15.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "GuidanceGesture",
+          "parameters": {
+            "mirror": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "guide-arm",
+      "name": "guide-arm",
+      "parent": "guide-hand-pivot",
+      "position": [
+        0.48,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.96,
+        0.12,
+        0.14
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Wood.mat"
+        }
+      ]
+    },
+    {
+      "id": "guide-hand",
+      "name": "guide-hand",
+      "parent": "guide-hand-pivot",
+      "position": [
+        1.0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.24,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
         }
       ]
     },

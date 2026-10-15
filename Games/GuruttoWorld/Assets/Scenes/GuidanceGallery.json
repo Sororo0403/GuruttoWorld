@@ -857,7 +857,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "1   対照",
+          "text": "1   定番  擬人法",
           "font": "Yu Gothic UI",
           "fontSize": 25,
           "color": [
@@ -945,7 +945,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "追加の手がかりなし",
+          "text": "鉢植えが枝で手招きして、通りへ誘う",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1097,7 +1097,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "2   換喩",
+          "text": "2   定番  反復法",
           "font": "Yu Gothic UI",
           "fontSize": 25,
           "color": [
@@ -1185,7 +1185,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "関連物で行き先を示す",
+          "text": "同じ庇を、同じ強さで繰り返す",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1337,7 +1337,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "3   黙説法",
+          "text": "3   珍しい  換喩",
           "font": "Yu Gothic UI",
           "fontSize": 25,
           "color": [
@@ -1425,7 +1425,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "並びを途中で打ち切る",
+          "text": "カップから、その先のカフェを連想する",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1577,7 +1577,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "4   破格法",
+          "text": "4   珍しい  漸層法",
           "font": "Yu Gothic UI",
           "fontSize": 25,
           "color": [
@@ -1665,7 +1665,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "並びの構造を切り替える",
+          "text": "植栽を小・中・大と段階的に強める",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1817,7 +1817,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "5   漸層法",
+          "text": "5   激レア  Anadiplosis",
           "font": "Yu Gothic UI",
           "fontSize": 25,
           "color": [
@@ -1905,7 +1905,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "目印を段階的に強める",
+          "text": "前の終わりの目印を、次の始まりへ渡す",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -2057,7 +2057,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "6   組み合わせ",
+          "text": "6   激レア  Anapodoton",
           "font": "Yu Gothic UI",
           "fontSize": 25,
           "color": [
@@ -2145,7 +2145,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "四つの工夫を重ねる",
+          "text": "門とカップの対応を示し、最後の帰結を空ける",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [

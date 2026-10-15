@@ -9,7 +9,7 @@
   "normalFlipY": false,
   "normalTexture": "",
   "physicallyBased": true,
-  "roughness": 0.82,
-  "texture": "Assets/Textures/GuidanceLab/Cue3B/Palette.png",
+  "roughness": 0.75,
+  "texture": "Assets/Textures/Sunrise/Cafe/Wood.png",
   "transparent": false
 }

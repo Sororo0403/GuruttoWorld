@@ -299,13 +299,13 @@ void RenderBlock() {
  }
 }
 void GuidancePlaythrough() {
- SetEnvironmentVariableW(L"WP1_GUIDANCE_RESULTS",std::filesystem::absolute("generated/guidance-validation/trials.csv").c_str());
+ SetEnvironmentVariableW(L"WP1_GUIDANCE_RESULTS",std::filesystem::absolute("generated/guidance-validation-v2/trials.csv").c_str());
  {
   Simulation s("Games/GuruttoWorld/Assets/Scenes/GuidanceGallery.json");s.Tick();
-  Require(Find(s.layout,"lab-name-1").text->text.find("換喩")!=std::string::npos,"Gallery names the figure");
+  Require(Find(s.layout,"lab-name-1").text->text.find("反復法")!=std::string::npos,"Gallery names the figure");
   std::string error;
   Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceBlind",true}},&s.physics),error);
-  Require(Find(s.layout,"lab-name-1").text->text.find("換喩")==std::string::npos,"Blind mode conceals technique");
+  Require(Find(s.layout,"lab-name-1").text->text.find("反復法")==std::string::npos,"Blind mode conceals technique");
   Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceBlind",true},{"GuidanceMirror",true}},&s.physics),error);
   Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceCourse2",true}},&s.physics),error);
   const auto commands=s.scripts.TakeSceneCommands();
@@ -329,7 +329,7 @@ void GuidancePlaythrough() {
   for(int i=0;i<90;++i)s.Tick(0,1);
   Require(s.scripts.TakeSceneCommands().size()==1,"Alternative route still reaches cafe");
  }
- std::ifstream csv("generated/guidance-validation/trials.csv");std::string line;int completed=0;
+ std::ifstream csv("generated/guidance-validation-v2/trials.csv");std::string line;int completed=0;
  while(std::getline(csv,line))if(line.find(",complete,")!=std::string::npos)++completed;
  Require(completed>=13,"Completed trials exported");
  std::cout<<"PASS guidance gallery, blind toggle, layout toggle, both routes, trial export\n";

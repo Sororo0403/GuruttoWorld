@@ -1,0 +1,72 @@
+[
+  {
+    "id": "lab-Cue0A-block-0-0",
+    "name": "lab-Cue0A-block-0-0",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/GuidanceLab/Cue0A/Baked/Block-0-0.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/GuidanceLab/Cue0A/Surface-0.mat"
+      }
+    ]
+  },
+  {
+    "id": "lab-Cue0A-block-0-1",
+    "name": "lab-Cue0A-block-0-1",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/GuidanceLab/Cue0A/Baked/Block-0-1.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/GuidanceLab/Cue0A/Surface-1.mat"
+      }
+    ]
+  }
+]

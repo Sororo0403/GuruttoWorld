@@ -1,109 +1,124 @@
 {
-  "version": 1,
+  "version": 2,
   "goal": "奥のカフェ",
   "cases": [
     {
       "mode": 0,
-      "name": "対照",
-      "description": "追加の手がかりなし",
+      "name": "擬人法",
+      "group": "定番",
+      "description": "鉢植えが枝で手招きして、通りへ誘う",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-0A.json",
-      "objects": 40
+      "objects": 49
     },
     {
       "mode": 0,
-      "name": "対照",
-      "description": "追加の手がかりなし",
+      "name": "擬人法",
+      "group": "定番",
+      "description": "鉢植えが枝で手招きして、通りへ誘う",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-0B.json",
-      "objects": 40
+      "objects": 49
     },
     {
       "mode": 1,
-      "name": "換喩",
-      "description": "関連物で行き先を示す",
+      "name": "反復法",
+      "group": "定番",
+      "description": "同じ庇を、同じ強さで繰り返す",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-1A.json",
-      "objects": 42
+      "objects": 41
     },
     {
       "mode": 1,
-      "name": "換喩",
-      "description": "関連物で行き先を示す",
+      "name": "反復法",
+      "group": "定番",
+      "description": "同じ庇を、同じ強さで繰り返す",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-1B.json",
+      "objects": 41
+    },
+    {
+      "mode": 2,
+      "name": "換喩",
+      "group": "珍しい",
+      "description": "カップから、その先のカフェを連想する",
+      "mirror": false,
+      "scene": "Assets/Scenes/GuidanceLab/Course-2A.json",
       "objects": 42
     },
     {
       "mode": 2,
-      "name": "黙説法",
-      "description": "並びを途中で打ち切る",
-      "mirror": false,
-      "scene": "Assets/Scenes/GuidanceLab/Course-2A.json",
-      "objects": 41
-    },
-    {
-      "mode": 2,
-      "name": "黙説法",
-      "description": "並びを途中で打ち切る",
+      "name": "換喩",
+      "group": "珍しい",
+      "description": "カップから、その先のカフェを連想する",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-2B.json",
-      "objects": 41
+      "objects": 42
     },
     {
       "mode": 3,
-      "name": "破格法",
-      "description": "並びの構造を切り替える",
+      "name": "漸層法",
+      "group": "珍しい",
+      "description": "植栽を小・中・大と段階的に強める",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-3A.json",
-      "objects": 41
+      "objects": 44
     },
     {
       "mode": 3,
-      "name": "破格法",
-      "description": "並びの構造を切り替える",
+      "name": "漸層法",
+      "group": "珍しい",
+      "description": "植栽を小・中・大と段階的に強める",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-3B.json",
-      "objects": 41
+      "objects": 44
     },
     {
       "mode": 4,
-      "name": "漸層法",
-      "description": "目印を段階的に強める",
+      "name": "Anadiplosis",
+      "group": "激レア",
+      "description": "前の終わりの目印を、次の始まりへ渡す",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-4A.json",
-      "objects": 44
+      "objects": 43
     },
     {
       "mode": 4,
-      "name": "漸層法",
-      "description": "目印を段階的に強める",
+      "name": "Anadiplosis",
+      "group": "激レア",
+      "description": "前の終わりの目印を、次の始まりへ渡す",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-4B.json",
-      "objects": 44
+      "objects": 43
     },
     {
       "mode": 5,
-      "name": "組み合わせ",
-      "description": "四つの工夫を重ねる",
+      "name": "Anapodoton",
+      "group": "激レア",
+      "description": "門とカップの対応を示し、最後の帰結を空ける",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-5A.json",
-      "objects": 45
+      "objects": 43
     },
     {
       "mode": 5,
-      "name": "組み合わせ",
-      "description": "四つの工夫を重ねる",
+      "name": "Anapodoton",
+      "group": "激レア",
+      "description": "門とカップの対応を示し、最後の帰結を空ける",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-5B.json",
-      "objects": 45
+      "objects": 43
     }
   ],
+  "grouping": "Presentation familiarity tiers are editorial estimates, not measured public awareness. Greek-origin names are not language-exclusive.",
   "comparison": "Same collision layout, controls, lighting, camera and destination; cue geometry varies. Reflection swaps left/right.",
   "sources": [
+    "https://rhetoric.byu.edu/Figures/P/personification.htm",
+    "https://rhetoric.byu.edu/Figures/Groupings/of%20Repetition.htm",
     "https://rhetoric.byu.edu/Figures/M/metonymy.htm",
-    "https://rhetoric.byu.edu/Figures/A/aposiopesis.htm",
-    "https://rhetoric.byu.edu/Figures/A/~anacoluthon.htm",
-    "https://rhetoric.byu.edu/Figures/C/climax.htm"
+    "https://rhetoric.byu.edu/Figures/C/climax.htm",
+    "https://rhetoric.byu.edu/Figures/A/anadiplosis.htm",
+    "https://rhetoric.byu.edu/Figures/A/anapodoton.htm"
   ]
 }
