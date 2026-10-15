@@ -12,10 +12,11 @@ float Smooth(float a,float b,float value) {
 ScriptDefinition Camera() {
  ScriptDefinition s;
  s.dataFields={{"target",{ScriptObjectReference{}}}};
- s.fields={{"height",{4.3f,3,6}},{"distance",{7.4f,6,10}},{"lead",{4.7f,2,7}}};
+ s.fields={{"height",{4.3f,3,6}},{"distance",{7.4f,6,10}},{"lead",{4.7f,2,7}},{"fixedView",{0,0,1}}};
  s.lateUpdate=[](ScriptContext& c) {
   const auto* p=c.Reference("target");if(!p || !c.scene)return;
   const float dt=static_cast<float>(c.seconds),blend=1-std::exp(-5*dt);
+  const bool fixedView=c.Value("fixedView",0)>.5f;
   const auto ground=c.scene->Raycast(p->position,{0,-1,0},1.8f,0xffffffffu,false,p->id);
   const bool reset=!c.state["ready"] || std::hypot(p->position[0]-c.state["px"],p->position[2]-c.state["pz"])>6;
   if(ground && ground->normal[1]>.7f) {
@@ -36,8 +37,10 @@ ScriptDefinition Camera() {
    shot.back+=(next.back-shot.back)*t;shot.aimX+=(next.aimX-shot.aimX)*t;
    shot.aimZ+=(next.aimZ-shot.aimZ)*t;shot.aimY+=(next.aimY-shot.aimY)*t;
   };
-  mix({2.6f,4.8f,7.8f,.4f,3.2f,1.6f},Smooth(14,24,z));
-  mix({3.2f,5.2f,8,.4f,3.2f,1.6f},Smooth(60,70,z));
+  if(!fixedView) {
+   mix({2.6f,4.8f,7.8f,.4f,3.2f,1.6f},Smooth(14,24,z));
+   mix({3.2f,5.2f,8,.4f,3.2f,1.6f},Smooth(60,70,z));
+  }
   std::array<float,3> wanted{x+shot.side,c.state["floor"]+shot.height,z-shot.back};
   const auto safe=[&](const std::array<float,3>& candidate) {
    std::array<float,3> delta{};float length=0;
@@ -56,7 +59,7 @@ ScriptDefinition Camera() {
   };
   wanted=safe(wanted);
   const auto length=[&](const std::array<float,3>& v){return std::hypot(std::hypot(v[0]-p->position[0],v[2]-p->position[2]),v[1]-p->position[1]);};
-  if(length(wanted)<4.5f) {
+  if(!fixedView && length(wanted)<4.5f) {
    // Preserve the approach side while finding clearance at a corner.
    const auto candidate=safe({x+shot.side*.65f,c.state["floor"]+shot.height+.6f,z-shot.back*.75f});
    if(length(candidate)>length(wanted)+.4f)wanted=candidate;
@@ -76,7 +79,9 @@ ScriptDefinition Camera() {
    const float delta=std::atan2(std::sin(to-from),std::cos(to-from));
    return from+std::clamp(delta*(1-std::exp(-5*dt)),-.45f*dt,.45f*dt);
   };
-  c.object.rotation={reset?pitch:turn(c.object.rotation[0],pitch),reset?yaw:turn(c.object.rotation[1],yaw),0};
+  // A fixed view follows translation only; wall clearance remains a shared safeguard.
+  if(fixedView)c.object.rotation={std::atan2(2.7f,std::hypot(.3f,10.8f)),std::atan2(-.3f,10.8f),0};
+  else c.object.rotation={reset?pitch:turn(c.object.rotation[0],pitch),reset?yaw:turn(c.object.rotation[1],yaw),0};
   if(c.object.camera)c.object.camera->verticalFov=58;
 
  };

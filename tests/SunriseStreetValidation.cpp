@@ -34,6 +34,8 @@ struct Simulation {
  explicit Simulation(const std::string& path="Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json") {
   layout=SceneLayout::Load(path);
   inspectStreet=path.find("StreetJourney.json")!=std::string::npos;
+  if(inspectStreet && GetEnvironmentVariableA("WP1_JOURNEY_FIXED_VIEW",nullptr,0))
+   for(auto& script:Find(layout,"park-camera").scripts)if(script.behaviour=="StreetCamera")script.parameters["fixedView"]=1;
   for(auto& o:layout.objects)for(auto& script:o.scripts)if(script.behaviour=="SunriseSound")script.parameters["volume"]=0;
  }
  ~Simulation() {scripts.Stop(layout);}
@@ -60,6 +62,10 @@ struct Simulation {
    Require(camera.camera && camera.camera->verticalFov>=50 && camera.camera->verticalFov<=65,"Bounded animated field of view");
    minFov=std::min(minFov,camera.camera->verticalFov);maxFov=std::max(maxFov,camera.camera->verticalFov);
    lastYaw=camera.rotation[1];
+   if(GetEnvironmentVariableA("WP1_JOURNEY_FIXED_VIEW",nullptr,0)) {
+    Require(maxYaw-minYaw<.00001f,"Fixed view never changes yaw");
+    Require(std::abs(camera.rotation[0]-std::atan2(2.7f,std::hypot(.3f,10.8f)))<.00001f,"Fixed view never changes pitch");
+   }
   }
   for(const auto& [key,value]:scripts.TakeUiCommands().values)ui.values[key]=value;
   ++frames;
@@ -317,8 +323,14 @@ void RenderBlock() {
   Capture(renderer,scene,name);Require(renderer.WaitForIdle(),"Block capture complete");
  }
 }
+std::filesystem::path JourneyRoot() {
+ std::array<char,32768> path{};
+ const auto size=GetEnvironmentVariableA("WP1_JOURNEY_CONTENT",path.data(),static_cast<DWORD>(path.size()));
+ Require(size<path.size(),"Journey content path fits buffer");
+ return size?std::filesystem::path(path.data()):std::filesystem::path("Games/GuruttoWorld");
+}
 void JourneyPlaythrough() {
- const std::string path="Games/GuruttoWorld/Assets/Scenes/StreetJourney.json";
+ const auto path=(JourneyRoot()/"Assets/Scenes/StreetJourney.json").string();
  Simulation s(path);for(int i=0;i<30;++i)s.Tick();
  s.Walk(-14,10);s.Walk(-14,22);s.Walk(-9,23);
  const auto before=Find(s.layout,"park-player").position;
@@ -364,7 +376,7 @@ void JourneyPlaythrough() {
 void RenderJourney() {
  Engine::Window window;Engine::DirectX12Renderer renderer;
  Require(window.Create(L"Street journey validation",1280,720) && renderer.Initialize(window.GetHandle()),"Journey renderer");
- const auto root=std::filesystem::absolute("Games/GuruttoWorld");std::string error;
+ const auto root=std::filesystem::absolute(JourneyRoot());std::string error;
  SceneEnvironment scene;Require(scene.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",error),error);
  GamePlayback playback;playback.Initialize(scene,root,std::filesystem::absolute("generated/journey/settings.json"),false);
  playback.Title().Activate(scene.Click("world-start"),scene.Ui());Engine::InputActions none;

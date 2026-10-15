@@ -51,3 +51,18 @@
 これは経路を知る自動プレイの確認で、初見の人が迷わず進めることや面白さの検証ではない。最短経路の自動描画は約34秒、停止確認・寄り道・復帰を含む物理試行は約54秒。初見60〜90秒は目標であり、実測済みとは扱わない。
 
 設計の根拠は[ディスカバリーの遊びの密度](https://www.nintendo.com/jp/interview/arzga/index.html)、[場面ごとのカメラ](https://www.nintendo.com/jp/interview/arzga/02.html)、[遊びと舞台の対応](https://www.nintendo.com/jp/interview/arzga/03.html)、[3Dランドの本線と探索](https://www.nintendo.co.jp/3ds/interview/arej/vol1/index2.html)、[ブロックアウトでの反復検証](https://book.leveldesignbook.com/process/blockout)。
+
+## カメラだけを変えた比較配布版
+
+`scripts/BuildStreetCameraComparison.py` で同じReleaseスナップショットから `Good/App.exe` と `Bad/App.exe` を作る。両方とも同じタイトルのSTARTから同じ街区へ入り、比較メニューや解説は表示しない。通常の制作データはGoodのままにする。
+
+- Good：現在の穏やかなカメラ。カフェ・屋上への移動に合わせ、同じ側のまま横位置・高さ・距離を調整する。画角58度。
+- Bad：`StreetCamera` の数値設定 `fixedView=1`。入口のカメラ配置を全区間に適用し、角度と通常距離、画角58度を固定する。プレイヤー位置と地面への追従、平滑化、壁へのめり込み防止は残す。場面ごとの構図変更・角の別構図への切り替えはしない。
+
+ここでのBadは「場面に応じた構図設計を外した比較条件」という意味。前の大きな旋回・ズームを再利用するものではない。固定カメラ自体の良し悪しや、初見での誘導効果を実証したという意味でもない。
+
+作成例：`python scripts/BuildStreetCameraComparison.py`。既にReleaseのプレイヤー本体をビルド済みの場合は `--skip-player-build` を付けられる。ゲーム処理のDLLは必ず新規コンパイルする。出力先は `Games/GuruttoWorld/generated/builds/CameraComparison-<run-id>/`。両配布版の起動検証と全ファイルのハッシュ確認を行い、ゲーム内容の差分がステージのカメラ設定一つだけであることを検査する。
+
+物理経路検査は `WP1_JOURNEY_ONLY=1` と `WP1_SUNRISE_CPU_ONLY=1`、固定カメラ条件には追加で `WP1_JOURNEY_FIXED_VIEW=1`。`WP1_JOURNEY_CONTENT` に配布フォルダーを指定すると、その配布シーンを検査する。描画検査はCPU_ONLYを外し、RENDER_ONLYを指定するとタイトルのSTARTから出口までの連続描画を検査する。
+
+比較配布26の確認：両条件それぞれ物理3218フレームとSTARTから出口までの描画2047フレームが成功。Goodの左右角度の幅は0.217208rad、Badは0radで上下角度も固定、両方とも画角58度。データ検査14件も成功。ログは `generated/street-comparison-{good,bad}-{physics,render}.log`、同じ経路位置の画像比較は `generated/street-comparison/comparison.png`。移動と描画の自動検査であり、誘導効果の人による比較実験ではない。
