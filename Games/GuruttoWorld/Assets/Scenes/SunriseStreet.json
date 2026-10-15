@@ -1,0 +1,6403 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [
+      0.7400000095367432,
+      0.8600000143051147,
+      0.9100000262260437,
+      1.0
+    ],
+    "fog": {
+      "color": [
+        0.73,
+        0.85,
+        0.92
+      ],
+      "enabled": true,
+      "end": 170,
+      "start": 48,
+      "strength": 0.67
+    },
+    "mainCamera": "park-camera"
+  },
+  "objects": [
+    {
+      "components": [
+        {
+          "cloudHigh": [
+            1.0,
+            0.9800000190734863,
+            0.9100000262260437
+          ],
+          "cloudLow": [
+            0.8799999952316284,
+            0.949999988079071,
+            0.9800000190734863
+          ],
+          "cloudOpacity": 0.800000011920929,
+          "cloudVelocity": [
+            0.001500000013038516,
+            0.0
+          ],
+          "clouds": [
+            {
+              "center": [
+                0.2199999988079071,
+                0.25999999046325684
+              ],
+              "size": 1.0
+            },
+            {
+              "center": [
+                0.5400000214576721,
+                0.11999999731779099
+              ],
+              "size": 0.800000011920929
+            },
+            {
+              "center": [
+                0.8799999952316284,
+                0.30000001192092896
+              ],
+              "size": 1.100000023841858
+            }
+          ],
+          "enabled": true,
+          "horizon": [
+            0.8299999833106995,
+            0.8999999761581421,
+            0.9100000262260437
+          ],
+          "horizonHeight": 0.699999988079071,
+          "id": "sky",
+          "referenceAspect": 1.7777777910232544,
+          "sunCenter": [
+            0.8199999928474426,
+            0.14000000059604645
+          ],
+          "sunColor": [
+            1.0,
+            0.8899999856948853,
+            0.6200000047683716
+          ],
+          "sunRadius": [
+            0.25,
+            0.30000001192092896
+          ],
+          "sunStrength": 0.4000000059604645,
+          "type": "Sky",
+          "zenith": [
+            0.2199999988079071,
+            0.6200000047683716,
+            0.8299999833106995
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "sky.horizon",
+              "clock": "titleEffectTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0.8299999833106995,
+                    0.8999999761581421,
+                    0.9100000262260437,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "sky.zenith",
+              "clock": "titleEffectTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0.2199999988079071,
+                    0.6200000047683716,
+                    0.8299999833106995,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "sky.sunColor",
+              "clock": "titleEffectTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1.0,
+                    0.8899999856948853,
+                    0.6200000047683716,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "sky.cloudOpacity",
+              "clock": "titleEffectTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0.800000011920929,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "id": "sunrise-sky",
+      "name": "朝の空",
+      "parent": "",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "components": [
+        {
+          "ambient": 0.28,
+          "color": [
+            1,
+            0.93,
+            0.81
+          ],
+          "direction": [
+            -0.55,
+            -0.8,
+            0.28
+          ],
+          "enabled": true,
+          "id": "light",
+          "intensity": 1.15,
+          "shininess": 32.0,
+          "specular": 0.12,
+          "type": "DirectionalLight",
+          "shadowsEnabled": true,
+          "shadowDistance": 70,
+          "shadowBias": 8e-05
+        }
+      ],
+      "id": "sunrise-directionallight",
+      "name": "タイトルと同じ朝の光",
+      "parent": "",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "id": "park-camera",
+      "name": "park-camera",
+      "parent": "",
+      "position": [
+        0,
+        8.5,
+        -12
+      ],
+      "rotation": [
+        0.46,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Camera",
+          "id": "camera",
+          "enabled": true,
+          "verticalFov": 49,
+          "nearClip": 0.1,
+          "farClip": 240,
+          "referenceAspect": 1.7777777777777777,
+          "preserveHorizontal": true
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseCamera",
+          "parameters": {
+            "height": 10.5,
+            "distance": 14,
+            "minZ": 1,
+            "maxZ": 115,
+            "lookAhead": 3,
+            "horizontalFollow": 0.95,
+            "response": 6.0,
+            "lookHeight": 0.8
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "target": {
+                "kind": "reference",
+                "value": "park-player"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "ground-south",
+      "name": "ground-south",
+      "parent": "",
+      "position": [
+        0,
+        -0.6,
+        17.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        120,
+        1.2,
+        70
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ground-north",
+      "name": "ground-north",
+      "parent": "",
+      "position": [
+        0,
+        -0.6,
+        102.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        120,
+        1.2,
+        85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boundary-south--1",
+      "name": "boundary-south--1",
+      "parent": "",
+      "position": [
+        -19,
+        0.65,
+        23
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        1.3,
+        58
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boundary-north--1",
+      "name": "boundary-north--1",
+      "parent": "",
+      "position": [
+        -10,
+        0.65,
+        100
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        1.3,
+        78
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter--1-0",
+      "name": "planter--1-0",
+      "parent": "",
+      "position": [
+        -15,
+        0.25,
+        3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter--1-1",
+      "name": "planter--1-1",
+      "parent": "",
+      "position": [
+        -15,
+        0.25,
+        12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter--1-2",
+      "name": "planter--1-2",
+      "parent": "",
+      "position": [
+        -15,
+        0.25,
+        44
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter--1-3",
+      "name": "planter--1-3",
+      "parent": "",
+      "position": [
+        -8,
+        0.25,
+        66
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter--1-4",
+      "name": "planter--1-4",
+      "parent": "",
+      "position": [
+        -8,
+        0.25,
+        92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter--1-5",
+      "name": "planter--1-5",
+      "parent": "",
+      "position": [
+        -8,
+        0.25,
+        110
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boundary-south-1",
+      "name": "boundary-south-1",
+      "parent": "",
+      "position": [
+        19,
+        0.65,
+        23
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        1.3,
+        58
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boundary-north-1",
+      "name": "boundary-north-1",
+      "parent": "",
+      "position": [
+        10,
+        0.65,
+        100
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        1.3,
+        78
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter-1-0",
+      "name": "planter-1-0",
+      "parent": "",
+      "position": [
+        15,
+        0.25,
+        3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter-1-1",
+      "name": "planter-1-1",
+      "parent": "",
+      "position": [
+        15,
+        0.25,
+        12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter-1-2",
+      "name": "planter-1-2",
+      "parent": "",
+      "position": [
+        15,
+        0.25,
+        44
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter-1-3",
+      "name": "planter-1-3",
+      "parent": "",
+      "position": [
+        8,
+        0.25,
+        66
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter-1-4",
+      "name": "planter-1-4",
+      "parent": "",
+      "position": [
+        8,
+        0.25,
+        92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter-1-5",
+      "name": "planter-1-5",
+      "parent": "",
+      "position": [
+        8,
+        0.25,
+        110
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.5,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "market-island",
+      "name": "market-island",
+      "parent": "",
+      "position": [
+        0,
+        2,
+        29
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        5.6,
+        4,
+        20
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-0",
+      "name": "terrace-step-0",
+      "parent": "",
+      "position": [
+        -7,
+        0.15,
+        16.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        0.3,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-1",
+      "name": "terrace-step-1",
+      "parent": "",
+      "position": [
+        -7,
+        0.3,
+        17.05
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        0.6,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-2",
+      "name": "terrace-step-2",
+      "parent": "",
+      "position": [
+        -7,
+        0.44999999999999996,
+        18.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        0.8999999999999999,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-3",
+      "name": "terrace-step-3",
+      "parent": "",
+      "position": [
+        -7,
+        0.6,
+        19.15
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        1.2,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-4",
+      "name": "terrace-step-4",
+      "parent": "",
+      "position": [
+        -7,
+        0.75,
+        20.2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        1.5,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-5",
+      "name": "terrace-step-5",
+      "parent": "",
+      "position": [
+        -7,
+        0.8999999999999999,
+        21.25
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        1.7999999999999998,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-6",
+      "name": "terrace-step-6",
+      "parent": "",
+      "position": [
+        -7,
+        1.05,
+        22.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        2.1,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-7",
+      "name": "terrace-step-7",
+      "parent": "",
+      "position": [
+        -7,
+        1.2,
+        23.35
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        2.4,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-8",
+      "name": "terrace-step-8",
+      "parent": "",
+      "position": [
+        -7,
+        1.3499999999999999,
+        24.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        2.6999999999999997,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-step-9",
+      "name": "terrace-step-9",
+      "parent": "",
+      "position": [
+        -7,
+        1.5,
+        25.450000000000003
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        3.0,
+        1.1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrace-deck",
+      "name": "terrace-deck",
+      "parent": "",
+      "position": [
+        -7,
+        1.5,
+        31.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        7.4,
+        3,
+        12.6
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-walk",
+      "name": "roof-walk",
+      "parent": "",
+      "position": [
+        -7,
+        2.85,
+        39.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        0.3,
+        3.4
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-0",
+      "name": "roof-descent-0",
+      "parent": "",
+      "position": [
+        -7,
+        1.5,
+        41.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        3.0,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-1",
+      "name": "roof-descent-1",
+      "parent": "",
+      "position": [
+        -7,
+        1.35,
+        42.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        2.7,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-2",
+      "name": "roof-descent-2",
+      "parent": "",
+      "position": [
+        -7,
+        1.2,
+        43.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        2.4,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-3",
+      "name": "roof-descent-3",
+      "parent": "",
+      "position": [
+        -7,
+        1.05,
+        43.9
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        2.1,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-4",
+      "name": "roof-descent-4",
+      "parent": "",
+      "position": [
+        -7,
+        0.9,
+        44.7
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        1.8,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-5",
+      "name": "roof-descent-5",
+      "parent": "",
+      "position": [
+        -7,
+        0.75,
+        45.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        1.5,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-6",
+      "name": "roof-descent-6",
+      "parent": "",
+      "position": [
+        -7,
+        0.6000000000000001,
+        46.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        1.2000000000000002,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-7",
+      "name": "roof-descent-7",
+      "parent": "",
+      "position": [
+        -7,
+        0.44999999999999996,
+        47.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        0.8999999999999999,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-8",
+      "name": "roof-descent-8",
+      "parent": "",
+      "position": [
+        -7,
+        0.30000000000000004,
+        47.9
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        0.6000000000000001,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-descent-9",
+      "name": "roof-descent-9",
+      "parent": "",
+      "position": [
+        -7,
+        0.15000000000000013,
+        48.7
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3.6,
+        0.30000000000000027,
+        0.85
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-rail",
+      "name": "roof-rail",
+      "parent": "",
+      "position": [
+        -10.65,
+        3.5,
+        31.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.16,
+        1,
+        12.6
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-vent-29",
+      "name": "roof-vent-29",
+      "parent": "",
+      "position": [
+        -8.8,
+        3.4,
+        29
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.3,
+        0.8,
+        1.2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-vent-35",
+      "name": "roof-vent-35",
+      "parent": "",
+      "position": [
+        -5.2,
+        3.4,
+        35
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.3,
+        0.8,
+        1.2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roof-secret-ledge",
+      "name": "roof-secret-ledge",
+      "parent": "",
+      "position": [
+        -11.5,
+        2.85,
+        35
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        0.3,
+        3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arcade-back",
+      "name": "arcade-back",
+      "parent": "",
+      "position": [
+        9.8,
+        1.6,
+        24
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.35,
+        3.2,
+        6
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arcade-post-21",
+      "name": "arcade-post-21",
+      "parent": "",
+      "position": [
+        4.8,
+        1.7,
+        21
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.18,
+        3.4,
+        0.18
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arcade-post-27",
+      "name": "arcade-post-27",
+      "parent": "",
+      "position": [
+        4.8,
+        1.7,
+        27
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.18,
+        3.4,
+        0.18
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secret-wall-back",
+      "name": "secret-wall-back",
+      "parent": "",
+      "position": [
+        14,
+        1.8,
+        38
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        8,
+        3.6,
+        0.35
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secret-wall-east",
+      "name": "secret-wall-east",
+      "parent": "",
+      "position": [
+        18,
+        1.8,
+        33
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.35,
+        3.6,
+        10
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secret-wall-south",
+      "name": "secret-wall-south",
+      "parent": "",
+      "position": [
+        14,
+        1.8,
+        28
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        8,
+        3.6,
+        0.35
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secret-wall-entry-upper",
+      "name": "secret-wall-entry-upper",
+      "parent": "",
+      "position": [
+        10,
+        1.8,
+        35.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.35,
+        3.6,
+        5
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crate",
+      "name": "ParkEnemy",
+      "parent": "",
+      "position": [
+        10,
+        1.15,
+        30.6
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.7,
+        2.3,
+        4.7
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Orange.mat"
+        },
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "courtyard-bed",
+      "name": "courtyard-bed",
+      "parent": "",
+      "position": [
+        1.5,
+        0.35,
+        44
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        5,
+        0.7,
+        2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "machine-canal",
+      "name": "machine-canal",
+      "parent": "",
+      "position": [
+        3.8,
+        0.5,
+        49
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.7,
+        1,
+        1.2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "switch-canal",
+      "name": "ParkSwitch",
+      "parent": "",
+      "position": [
+        3.8,
+        1.45,
+        48.25
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        0.12,
+        0.12
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Switch.mat"
+        }
+      ]
+    },
+    {
+      "id": "gear-canal",
+      "name": "gear-canal",
+      "parent": "",
+      "position": [
+        3.8,
+        1.45,
+        48.27
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "scale": [
+        2.4,
+        2.4,
+        2.4
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Factory/cog-a.obj",
+          "instancing": true
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseMechanism",
+          "parameters": {},
+          "data": {
+            "kind": "object",
+            "value": {
+              "switch": {
+                "kind": "reference",
+                "value": "switch-canal"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "machine-vista",
+      "name": "machine-vista",
+      "parent": "",
+      "position": [
+        -3.8,
+        0.5,
+        86
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.7,
+        1,
+        1.2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "switch-vista",
+      "name": "ParkSwitch",
+      "parent": "",
+      "position": [
+        -3.8,
+        1.45,
+        85.25
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        0.12,
+        0.12
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Switch.mat"
+        }
+      ]
+    },
+    {
+      "id": "gear-vista",
+      "name": "gear-vista",
+      "parent": "",
+      "position": [
+        -3.8,
+        1.45,
+        85.27
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "scale": [
+        2.4,
+        2.4,
+        2.4
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Factory/cog-a.obj",
+          "instancing": true
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseMechanism",
+          "parameters": {},
+          "data": {
+            "kind": "object",
+            "value": {
+              "switch": {
+                "kind": "reference",
+                "value": "switch-vista"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "canal-bridge",
+      "name": "canal-bridge",
+      "parent": "",
+      "position": [
+        -6,
+        -0.08,
+        56
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        4,
+        0.16,
+        8.4
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Orange.mat"
+        },
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseBridge",
+          "parameters": {},
+          "data": {
+            "kind": "object",
+            "value": {
+              "switch": {
+                "kind": "reference",
+                "value": "switch-canal"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "canal-stone-0",
+      "name": "canal-stone-0",
+      "parent": "",
+      "position": [
+        10,
+        -0.2,
+        52.8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2.4,
+        0.4,
+        2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "canal-stone-1",
+      "name": "canal-stone-1",
+      "parent": "",
+      "position": [
+        12,
+        -0.2,
+        55.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2.4,
+        0.4,
+        2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "canal-stone-2",
+      "name": "canal-stone-2",
+      "parent": "",
+      "position": [
+        10.5,
+        -0.2,
+        58
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2.4,
+        0.4,
+        2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "canal-stone-3",
+      "name": "canal-stone-3",
+      "parent": "",
+      "position": [
+        10,
+        -0.2,
+        60.2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2.4,
+        0.4,
+        2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "garden-bed-west",
+      "name": "garden-bed-west",
+      "parent": "",
+      "position": [
+        -5,
+        0.45,
+        70
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        9,
+        0.9,
+        2.4
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "garden-bed-east",
+      "name": "garden-bed-east",
+      "parent": "",
+      "position": [
+        5,
+        0.45,
+        80
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        9,
+        0.9,
+        2.4
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "park-gate",
+      "name": "park-gate",
+      "parent": "",
+      "position": [
+        0,
+        1.2,
+        95
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            19,
+            2.4,
+            0.35
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-bar--4",
+      "name": "gate-bar--4",
+      "parent": "park-gate",
+      "position": [
+        -8,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-bar--3",
+      "name": "gate-bar--3",
+      "parent": "park-gate",
+      "position": [
+        -6,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-bar--2",
+      "name": "gate-bar--2",
+      "parent": "park-gate",
+      "position": [
+        -4,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-bar--1",
+      "name": "gate-bar--1",
+      "parent": "park-gate",
+      "position": [
+        -2,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-bar-0",
+      "name": "gate-bar-0",
+      "parent": "park-gate",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-bar-1",
+      "name": "gate-bar-1",
+      "parent": "park-gate",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-bar-2",
+      "name": "gate-bar-2",
+      "parent": "park-gate",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-bar-3",
+      "name": "gate-bar-3",
+      "parent": "park-gate",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-bar-4",
+      "name": "gate-bar-4",
+      "parent": "park-gate",
+      "position": [
+        8,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.12,
+        2.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Teal.mat"
+        }
+      ]
+    },
+    {
+      "id": "gate-pillar--9.4",
+      "name": "gate-pillar--9.4",
+      "parent": "",
+      "position": [
+        -9.4,
+        1.5,
+        95
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.8,
+        3,
+        0.8
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-pillar-9.4",
+      "name": "gate-pillar-9.4",
+      "parent": "",
+      "position": [
+        9.4,
+        1.5,
+        95
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.8,
+        3,
+        0.8
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-0",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        -2,
+        1,
+        7
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-1",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        2,
+        1,
+        14
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-2",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        -7,
+        3.9,
+        29
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-3",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        -11.5,
+        3.9,
+        35
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-4",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        7,
+        1,
+        25
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-5",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        15,
+        1,
+        33
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-6",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        0,
+        1,
+        49
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-7",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        12,
+        1,
+        55.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-8",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        4,
+        1,
+        70
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-9",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        -4,
+        1,
+        80
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-10",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        3,
+        1,
+        90
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-piece-11",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        0,
+        1.5,
+        108
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "Bob",
+          "parameters": {
+            "amplitude": 0.12,
+            "frequency": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "enemy-0",
+      "name": "ParkEnemy",
+      "parent": "",
+      "position": [
+        7,
+        0.7,
+        36
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.3,
+        1.2,
+        1.3
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Enemy.mat"
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseEnemy",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "enemy-0-eye--1",
+      "name": "enemy-0-eye--1",
+      "parent": "enemy-0",
+      "position": [
+        -0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-0-foot--1",
+      "name": "enemy-0-foot--1",
+      "parent": "enemy-0",
+      "position": [
+        -0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-0-eye-1",
+      "name": "enemy-0-eye-1",
+      "parent": "enemy-0",
+      "position": [
+        0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-0-foot-1",
+      "name": "enemy-0-foot-1",
+      "parent": "enemy-0",
+      "position": [
+        0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-1",
+      "name": "ParkEnemy",
+      "parent": "",
+      "position": [
+        -2,
+        0.7,
+        49
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.3,
+        1.2,
+        1.3
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Enemy.mat"
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseEnemy",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "enemy-1-eye--1",
+      "name": "enemy-1-eye--1",
+      "parent": "enemy-1",
+      "position": [
+        -0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-1-foot--1",
+      "name": "enemy-1-foot--1",
+      "parent": "enemy-1",
+      "position": [
+        -0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-1-eye-1",
+      "name": "enemy-1-eye-1",
+      "parent": "enemy-1",
+      "position": [
+        0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-1-foot-1",
+      "name": "enemy-1-foot-1",
+      "parent": "enemy-1",
+      "position": [
+        0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-2",
+      "name": "ParkEnemy",
+      "parent": "",
+      "position": [
+        4,
+        0.7,
+        74
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.3,
+        1.2,
+        1.3
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Enemy.mat"
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseEnemy",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "enemy-2-eye--1",
+      "name": "enemy-2-eye--1",
+      "parent": "enemy-2",
+      "position": [
+        -0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-2-foot--1",
+      "name": "enemy-2-foot--1",
+      "parent": "enemy-2",
+      "position": [
+        -0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-2-eye-1",
+      "name": "enemy-2-eye-1",
+      "parent": "enemy-2",
+      "position": [
+        0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "enemy-2-foot-1",
+      "name": "enemy-2-foot-1",
+      "parent": "enemy-2",
+      "position": [
+        0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "checkpoint-0",
+      "name": "ParkCheckpoint",
+      "parent": "",
+      "position": [
+        0,
+        0.15,
+        4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.2,
+        0.6
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "checkpoint-1",
+      "name": "ParkCheckpoint",
+      "parent": "",
+      "position": [
+        0,
+        0.15,
+        49
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.2,
+        0.6
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "checkpoint-2",
+      "name": "ParkCheckpoint",
+      "parent": "",
+      "position": [
+        0,
+        0.15,
+        63
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.2,
+        0.6
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "checkpoint-3",
+      "name": "ParkCheckpoint",
+      "parent": "",
+      "position": [
+        0,
+        0.15,
+        98
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.2,
+        0.6
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-player",
+      "name": "Player",
+      "parent": "",
+      "position": [
+        0,
+        1.05,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "shape": "capsule",
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.35,
+          "halfHeight": 0.35
+        },
+        {
+          "type": "PlayerController",
+          "id": "playercontroller",
+          "enabled": true,
+          "moveSpeed": 5,
+          "useGravity": true,
+          "gravity": 20,
+          "jumpSpeed": 7.5,
+          "usePhysics": true,
+          "maxSlopeDegrees": 45,
+          "stepHeight": 0.32
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunrisePlayer",
+          "parameters": {
+            "floatDuration": 0.85,
+            "maxHp": 3.0,
+            "invulnerableDuration": 1.5,
+            "attackDuration": 0.22,
+            "attackCooldown": 0.4,
+            "attackDistance": 3.1,
+            "damageDistance": 1.15,
+            "damage": 1.0,
+            "coinDistance": 1.25,
+            "switchDistance": 2.9,
+            "checkpointDistance": 1.6,
+            "requiredSwitches": 2.0,
+            "coinTotal": 12.0,
+            "goalDistance": 2.0,
+            "respawnHeight": 1.05,
+            "fallLimit": -3.0,
+            "leftLimit": -19,
+            "rightLimit": 19,
+            "groundProbe": 0.8,
+            "groundNormal": 0.7,
+            "floatDelay": 0.25,
+            "hintBoundary1": 16,
+            "hintBoundary2": 44,
+            "hintBoundary3": 67
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "scene": {
+                "kind": "string",
+                "value": "Assets/Scenes/SunriseStreet.json"
+              },
+              "useNameLookup": {
+                "kind": "bool",
+                "value": false
+              },
+              "returnScene": {
+                "kind": "string",
+                "value": "Assets/Scenes/TitleStreet.json"
+              },
+              "coinsName": {
+                "kind": "string",
+                "value": "ParkCoin"
+              },
+              "switchesName": {
+                "kind": "string",
+                "value": "ParkSwitch"
+              },
+              "enemiesName": {
+                "kind": "string",
+                "value": "ParkEnemy"
+              },
+              "checkpointsName": {
+                "kind": "string",
+                "value": "ParkCheckpoint"
+              },
+              "attackAction": {
+                "kind": "string",
+                "value": "Attack"
+              },
+              "restartAction": {
+                "kind": "string",
+                "value": "Restart"
+              },
+              "cancelAction": {
+                "kind": "string",
+                "value": "Cancel"
+              },
+              "jumpAction": {
+                "kind": "string",
+                "value": "Jump"
+              },
+              "rightAction": {
+                "kind": "string",
+                "value": "MoveRight"
+              },
+              "leftAction": {
+                "kind": "string",
+                "value": "MoveLeft"
+              },
+              "forwardAction": {
+                "kind": "string",
+                "value": "MoveForward"
+              },
+              "backAction": {
+                "kind": "string",
+                "value": "MoveBack"
+              },
+              "attackState": {
+                "kind": "string",
+                "value": "parkAttack"
+              },
+              "clearState": {
+                "kind": "string",
+                "value": "parkClear"
+              },
+              "statsTemplate": {
+                "kind": "string",
+                "value": "ライフ {hp}   花 {coins}/{coinTotal}   歯車 {switches}/{requiredSwitches}   発見 {discoveries}/2"
+              },
+              "resultTemplate": {
+                "kind": "string",
+                "value": "あさひの街 クリア！\n花のかけら {coins} / {coinTotal}   発見 {discoveries} / 2   タイム {elapsed} 秒\nR / Start：再挑戦    Esc / B：タイトル"
+              },
+              "hint1": {
+                "kind": "string",
+                "value": "WASD / 左スティック：移動   Space / A：ジャンプ   J / X：攻撃"
+              },
+              "hint2": {
+                "kind": "string",
+                "value": "左はカフェの屋上、右は商店の通り抜け。好きな道を探そう"
+              },
+              "hint3": {
+                "kind": "string",
+                "value": "オレンジの歯車を J / X でたたくと、橋が動く！"
+              },
+              "hint4": {
+                "kind": "string",
+                "value": "広場の歯車をたたいて展望塔へ！  R：再挑戦  Esc：タイトル"
+              },
+              "gate": {
+                "kind": "reference",
+                "value": "park-gate"
+              },
+              "goal": {
+                "kind": "reference",
+                "value": "park-goal"
+              },
+              "stats": {
+                "kind": "reference",
+                "value": "park-stats"
+              },
+              "hint": {
+                "kind": "reference",
+                "value": "park-hint"
+              },
+              "result": {
+                "kind": "reference",
+                "value": "park-result"
+              },
+              "coins": {
+                "kind": "array",
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-0"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-1"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-2"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-3"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-4"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-5"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-6"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-7"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-8"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-9"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-10"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "flower-piece-11"
+                  }
+                ]
+              },
+              "switches": {
+                "kind": "array",
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "switch-canal"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "switch-vista"
+                  }
+                ]
+              },
+              "enemies": {
+                "kind": "array",
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "crate"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "enemy-0"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "enemy-1"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "enemy-2"
+                  }
+                ]
+              },
+              "checkpoints": {
+                "kind": "array",
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "checkpoint-0"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "checkpoint-1"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "checkpoint-2"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "checkpoint-3"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "type": "AudioListener",
+          "id": "audiolistener",
+          "enabled": true,
+          "volume": 1
+        }
+      ]
+    },
+    {
+      "id": "park-player-eye--1",
+      "name": "park-player-eye--1",
+      "parent": "hero-rig",
+      "position": [
+        -0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-player-foot--1",
+      "name": "park-player-foot--1",
+      "parent": "hero-rig",
+      "position": [
+        -0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-player-eye-1",
+      "name": "park-player-eye-1",
+      "parent": "hero-rig",
+      "position": [
+        0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-player-foot-1",
+      "name": "park-player-foot-1",
+      "parent": "hero-rig",
+      "position": [
+        0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "hero-rig",
+      "name": "hero-rig",
+      "parent": "park-player",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseHero",
+          "parameters": {},
+          "data": {
+            "kind": "object",
+            "value": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "hero-body",
+      "name": "hero-body",
+      "parent": "hero-rig",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Player.mat"
+        }
+      ]
+    },
+    {
+      "id": "hero-backpack",
+      "name": "hero-backpack",
+      "parent": "hero-rig",
+      "position": [
+        0,
+        -0.02,
+        -0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.57,
+        0.65,
+        0.26
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        }
+      ]
+    },
+    {
+      "id": "hero-backpack-buckle",
+      "name": "hero-backpack-buckle",
+      "parent": "hero-rig",
+      "position": [
+        0,
+        -0.02,
+        -0.57
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.17,
+        0.17,
+        0.04
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-puff",
+      "name": "park-puff",
+      "parent": "park-player",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2.8,
+        1,
+        2.8
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "parkAttack=1"
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Attack.mat"
+        }
+      ]
+    },
+    {
+      "id": "goal-plinth",
+      "name": "goal-plinth",
+      "parent": "",
+      "position": [
+        0,
+        0.25,
+        111
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        6,
+        0.5,
+        6
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "park-goal",
+      "name": "park-goal",
+      "parent": "",
+      "position": [
+        0,
+        1.5,
+        111
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.7,
+        1.7,
+        1.7
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            50,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "music",
+      "name": "music",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "AudioSource",
+          "id": "audiosource",
+          "enabled": true,
+          "clip": "Assets/Audio/Title/Bgm.wav",
+          "volume": 0.3,
+          "loop": true,
+          "playOnAwake": true,
+          "volumeBinding": "volumeGain"
+        }
+      ]
+    },
+    {
+      "id": "audio-Collect",
+      "name": "audio-Collect",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Collect"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Attack",
+      "name": "audio-Attack",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Attack"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Hit",
+      "name": "audio-Hit",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Hit"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Damage",
+      "name": "audio-Damage",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Damage"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Jump",
+      "name": "audio-Jump",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Jump"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Mechanism",
+      "name": "audio-Mechanism",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Mechanism"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Clear",
+      "name": "audio-Clear",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Clear"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "park-ui",
+      "name": "park-ui",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Canvas",
+          "id": "canvas",
+          "enabled": true,
+          "referenceSize": [
+            1280,
+            720
+          ],
+          "scaleWithScreen": true,
+          "stateDefaults": {
+            "parkAttack": 0,
+            "parkClear": 0,
+            "sunriseHurt": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "hud-bg",
+      "name": "hud-bg",
+      "parent": "park-ui",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "RectTransform",
+          "id": "recttransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            22,
+            20
+          ],
+          "size": [
+            720,
+            76
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": ""
+        },
+        {
+          "type": "Image",
+          "id": "image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.035,
+            0.09,
+            0.14,
+            0.82
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage-title",
+      "name": "stage-title",
+      "parent": "park-ui",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "RectTransform",
+          "id": "recttransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            38,
+            25
+          ],
+          "size": [
+            690,
+            30
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": ""
+        },
+        {
+          "type": "Text",
+          "id": "text",
+          "enabled": true,
+          "text": "01  あさひの街とこもれび遊歩道",
+          "font": "Yu Gothic UI",
+          "fontSize": 24,
+          "color": [
+            1,
+            1,
+            0.95,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "park-stats",
+      "name": "park-stats",
+      "parent": "park-ui",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "RectTransform",
+          "id": "recttransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            38,
+            60
+          ],
+          "size": [
+            690,
+            30
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": ""
+        },
+        {
+          "type": "Text",
+          "id": "text",
+          "enabled": true,
+          "text": "ライフ 3    花のかけら 0 / 12    歯車 0 / 2",
+          "font": "Yu Gothic UI",
+          "fontSize": 24,
+          "color": [
+            1,
+            1,
+            0.95,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hint-bg",
+      "name": "hint-bg",
+      "parent": "park-ui",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "RectTransform",
+          "id": "recttransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            22,
+            638
+          ],
+          "size": [
+            1000,
+            58
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": ""
+        },
+        {
+          "type": "Image",
+          "id": "image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.035,
+            0.09,
+            0.14,
+            0.82
+          ]
+        }
+      ]
+    },
+    {
+      "id": "park-hint",
+      "name": "park-hint",
+      "parent": "park-ui",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "RectTransform",
+          "id": "recttransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            38,
+            649
+          ],
+          "size": [
+            970,
+            35
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "",
+          "offsetBinding": "",
+          "opacityBinding": ""
+        },
+        {
+          "type": "Text",
+          "id": "text",
+          "enabled": true,
+          "text": "左右の街区を探索しながら、展望塔を目指そう",
+          "font": "Yu Gothic UI",
+          "fontSize": 24,
+          "color": [
+            1,
+            1,
+            0.95,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "park-clear-bg",
+      "name": "park-clear-bg",
+      "parent": "park-ui",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "RectTransform",
+          "id": "recttransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            210,
+            245
+          ],
+          "size": [
+            860,
+            230
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "parkClear=1",
+          "offsetBinding": "",
+          "opacityBinding": ""
+        },
+        {
+          "type": "Image",
+          "id": "image",
+          "enabled": true,
+          "texture": "",
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "color": [
+            0.035,
+            0.09,
+            0.14,
+            0.96
+          ]
+        }
+      ]
+    },
+    {
+      "id": "park-result",
+      "name": "park-result",
+      "parent": "park-ui",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "RectTransform",
+          "id": "recttransform",
+          "enabled": true,
+          "anchorMin": [
+            0,
+            0
+          ],
+          "anchorMax": [
+            0,
+            0
+          ],
+          "pivot": [
+            0,
+            0
+          ],
+          "position": [
+            252,
+            285
+          ],
+          "size": [
+            790,
+            170
+          ],
+          "rotation": 0,
+          "introDelay": 0,
+          "introOffset": 0,
+          "visibleWhen": "parkClear=1",
+          "offsetBinding": "",
+          "opacityBinding": ""
+        },
+        {
+          "type": "Text",
+          "id": "text",
+          "enabled": true,
+          "text": "ステージクリア！",
+          "font": "Yu Gothic UI",
+          "fontSize": 24,
+          "color": [
+            1,
+            1,
+            0.95,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "static-street-0",
+      "name": "街の静的描画 0",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "mesh",
+          "enabled": true,
+          "model": "Assets/Models/Sunrise/Batches/Street-0.obj",
+          "instancing": false
+        }
+      ]
+    },
+    {
+      "id": "static-street-1",
+      "name": "街の静的描画 1",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "mesh",
+          "enabled": true,
+          "model": "Assets/Models/Sunrise/Batches/Street-1.obj",
+          "instancing": false
+        }
+      ]
+    },
+    {
+      "id": "static-street-2",
+      "name": "街の静的描画 2",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "mesh",
+          "enabled": true,
+          "model": "Assets/Models/Sunrise/Batches/Street-2.obj",
+          "instancing": false
+        }
+      ]
+    },
+    {
+      "id": "static-street-3",
+      "name": "街の静的描画 3",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "mesh",
+          "enabled": true,
+          "model": "Assets/Models/Sunrise/Batches/Street-3.obj",
+          "instancing": false
+        }
+      ]
+    },
+    {
+      "id": "static-street-4",
+      "name": "街の静的描画 4",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "mesh",
+          "enabled": true,
+          "model": "Assets/Models/Sunrise/Batches/Street-4.obj",
+          "instancing": false
+        }
+      ]
+    },
+    {
+      "id": "static-street-5",
+      "name": "街の静的描画 5",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "mesh",
+          "enabled": true,
+          "model": "Assets/Models/Sunrise/Batches/Street-5.obj",
+          "instancing": false
+        }
+      ]
+    }
+  ]
+}

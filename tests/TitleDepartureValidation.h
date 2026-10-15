@@ -50,7 +50,7 @@ namespace TitleDepartureValidation
             for(int frame=0;frame<900;++frame) {
                 const auto command=tick();
                 if(command) {
-                    require(covered,"load or close waits until full departure camera frame was displayed");
+                    require(covered,"load or close waits until fully black dive frame was displayed");
                     closes+=command->action=="quit";loads+=command->action=="loadScene";break;
                 }
                 const float effectTime=session.Runtime()->Ui().Value("titleEffectTime");
@@ -83,8 +83,8 @@ namespace TitleDepartureValidation
                 if(effectTime>=2) {
                     const auto targetId=quit ? "quit-travel-target" : "start-travel-target";DirectX::XMFLOAT4X4 marker;
                     require(session.Runtime()->World().WorldMatrix(targetId,marker),"authored departure marker exists");
-                    const auto pose=cameraPose();require(std::abs(pose.position[0]-marker._41)<.001f && std::abs(pose.position[1]-marker._42)<.001f && std::abs(pose.position[2]-marker._43)<.001f,"departure camera reaches authored endpoint before closing or loading");
-                    GamePlaybackCapture::Capture(renderer,*session.Runtime(),1280,720,quit ? "quit-complete" : "start-complete");covered=true;
+                    const auto pose=cameraPose();require(std::abs(pose.position[0]-marker._41)<.001f && std::abs(pose.position[1]-marker._42)<.001f && std::abs(pose.position[2]-marker._43)<.001f,"departure camera reaches black dive endpoint before closing or loading");
+                    GamePlaybackCapture::Capture(renderer,*session.Runtime(),1280,720,quit ? "quit-complete" : "start-complete",true);covered=true;
                 }
             }
             require(paletteCaptured && covered && closes==(quit ? 1 : 0) && loads==(quit ? 0 : 1),"departure emits exactly one authored close or game load after visual completion");
