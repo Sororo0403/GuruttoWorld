@@ -1,0 +1,1920 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [
+      0.7400000095367432,
+      0.8600000143051147,
+      0.9100000262260437,
+      1.0
+    ],
+    "fog": {
+      "color": [
+        0.73,
+        0.85,
+        0.92
+      ],
+      "enabled": true,
+      "end": 190,
+      "start": 60,
+      "strength": 0.67
+    },
+    "mainCamera": "park-camera"
+  },
+  "objects": [
+    {
+      "components": [
+        {
+          "cloudHigh": [
+            1.0,
+            0.9800000190734863,
+            0.9100000262260437
+          ],
+          "cloudLow": [
+            0.8799999952316284,
+            0.949999988079071,
+            0.9800000190734863
+          ],
+          "cloudOpacity": 0.800000011920929,
+          "cloudVelocity": [
+            0.001500000013038516,
+            0.0
+          ],
+          "clouds": [
+            {
+              "center": [
+                0.2199999988079071,
+                0.25999999046325684
+              ],
+              "size": 1.0
+            },
+            {
+              "center": [
+                0.5400000214576721,
+                0.11999999731779099
+              ],
+              "size": 0.800000011920929
+            },
+            {
+              "center": [
+                0.8799999952316284,
+                0.30000001192092896
+              ],
+              "size": 1.100000023841858
+            }
+          ],
+          "enabled": true,
+          "horizon": [
+            0.8299999833106995,
+            0.8999999761581421,
+            0.9100000262260437
+          ],
+          "horizonHeight": 0.699999988079071,
+          "id": "sky",
+          "referenceAspect": 1.7777777910232544,
+          "sunCenter": [
+            0.8199999928474426,
+            0.14000000059604645
+          ],
+          "sunColor": [
+            1.0,
+            0.8899999856948853,
+            0.6200000047683716
+          ],
+          "sunRadius": [
+            0.25,
+            0.30000001192092896
+          ],
+          "sunStrength": 0.4000000059604645,
+          "type": "Sky",
+          "zenith": [
+            0.2199999988079071,
+            0.6200000047683716,
+            0.8299999833106995
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "sky.horizon",
+              "clock": "titleEffectTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0.8299999833106995,
+                    0.8999999761581421,
+                    0.9100000262260437,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "sky.zenith",
+              "clock": "titleEffectTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0.2199999988079071,
+                    0.6200000047683716,
+                    0.8299999833106995,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "sky.sunColor",
+              "clock": "titleEffectTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1.0,
+                    0.8899999856948853,
+                    0.6200000047683716,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "sky.cloudOpacity",
+              "clock": "titleEffectTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0.800000011920929,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.75,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "id": "block-sky",
+      "name": "空 / 朝の青空",
+      "parent": "",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "components": [
+        {
+          "ambient": 0.4,
+          "color": [
+            1,
+            0.93,
+            0.81
+          ],
+          "direction": [
+            -0.55,
+            -0.8,
+            0.28
+          ],
+          "enabled": true,
+          "id": "light",
+          "intensity": 1.15,
+          "shininess": 32.0,
+          "specular": 0.12,
+          "type": "DirectionalLight",
+          "shadowsEnabled": true,
+          "shadowDistance": 70,
+          "shadowBias": 8e-05
+        }
+      ],
+      "id": "block-directionallight",
+      "name": "朝 / 暖かな日差し",
+      "parent": "",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "id": "park-player",
+      "name": "Player",
+      "parent": "",
+      "position": [
+        0,
+        1.05,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "shape": "capsule",
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.35,
+          "halfHeight": 0.35
+        },
+        {
+          "type": "PlayerController",
+          "id": "playercontroller",
+          "enabled": true,
+          "moveSpeed": 4.5,
+          "useGravity": true,
+          "gravity": 20,
+          "jumpSpeed": 7.5,
+          "usePhysics": true,
+          "maxSlopeDegrees": 45,
+          "stepHeight": 0.32
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunrisePlayer",
+          "parameters": {
+            "floatDuration": 0.85,
+            "maxHp": 3.0,
+            "invulnerableDuration": 1.5,
+            "attackDuration": 0.22,
+            "attackCooldown": 0.4,
+            "attackDistance": 3.1,
+            "damageDistance": 1.15,
+            "damage": 1.0,
+            "coinDistance": 1.25,
+            "switchDistance": 2.9,
+            "checkpointDistance": 1.6,
+            "requiredSwitches": 0,
+            "coinTotal": 0,
+            "goalDistance": 2.0,
+            "respawnHeight": 1.05,
+            "fallLimit": -3.0,
+            "leftLimit": -15,
+            "rightLimit": 15,
+            "groundProbe": 0.8,
+            "groundNormal": 0.7,
+            "floatDelay": 0.25,
+            "hintBoundary1": 20,
+            "hintBoundary2": 43,
+            "hintBoundary3": 60
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "scene": {
+                "kind": "string",
+                "value": "Assets/Scenes/GuidanceLab/Course-1B.json"
+              },
+              "useNameLookup": {
+                "kind": "bool",
+                "value": false
+              },
+              "returnScene": {
+                "kind": "string",
+                "value": "Assets/Scenes/GuidanceGallery.json"
+              },
+              "coinsName": {
+                "kind": "string",
+                "value": "ParkCoin"
+              },
+              "switchesName": {
+                "kind": "string",
+                "value": "ParkSwitch"
+              },
+              "enemiesName": {
+                "kind": "string",
+                "value": "ParkEnemy"
+              },
+              "checkpointsName": {
+                "kind": "string",
+                "value": "ParkCheckpoint"
+              },
+              "attackAction": {
+                "kind": "string",
+                "value": "Attack"
+              },
+              "restartAction": {
+                "kind": "string",
+                "value": "Restart"
+              },
+              "cancelAction": {
+                "kind": "string",
+                "value": "Cancel"
+              },
+              "jumpAction": {
+                "kind": "string",
+                "value": "Jump"
+              },
+              "rightAction": {
+                "kind": "string",
+                "value": "MoveRight"
+              },
+              "leftAction": {
+                "kind": "string",
+                "value": "MoveLeft"
+              },
+              "forwardAction": {
+                "kind": "string",
+                "value": "MoveForward"
+              },
+              "backAction": {
+                "kind": "string",
+                "value": "MoveBack"
+              },
+              "attackState": {
+                "kind": "string",
+                "value": "parkAttack"
+              },
+              "clearState": {
+                "kind": "string",
+                "value": "parkClear"
+              },
+              "statsTemplate": {
+                "kind": "string",
+                "value": ""
+              },
+              "resultTemplate": {
+                "kind": "string",
+                "value": ""
+              },
+              "hint1": {
+                "kind": "string",
+                "value": ""
+              },
+              "hint2": {
+                "kind": "string",
+                "value": ""
+              },
+              "hint3": {
+                "kind": "string",
+                "value": ""
+              },
+              "hint4": {
+                "kind": "string",
+                "value": ""
+              },
+              "gate": {
+                "kind": "reference",
+                "value": ""
+              },
+              "goal": {
+                "kind": "reference",
+                "value": ""
+              },
+              "stats": {
+                "kind": "reference",
+                "value": ""
+              },
+              "hint": {
+                "kind": "reference",
+                "value": ""
+              },
+              "result": {
+                "kind": "reference",
+                "value": ""
+              },
+              "coins": {
+                "kind": "array",
+                "value": []
+              },
+              "switches": {
+                "kind": "array",
+                "value": []
+              },
+              "enemies": {
+                "kind": "array",
+                "value": []
+              },
+              "checkpoints": {
+                "kind": "array",
+                "value": []
+              }
+            }
+          }
+        },
+        {
+          "type": "AudioListener",
+          "id": "audiolistener",
+          "enabled": true,
+          "volume": 1
+        }
+      ]
+    },
+    {
+      "id": "park-player-eye--1",
+      "name": "park-player-eye--1",
+      "parent": "hero-rig",
+      "position": [
+        -0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-player-foot--1",
+      "name": "park-player-foot--1",
+      "parent": "hero-rig",
+      "position": [
+        -0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-player-eye-1",
+      "name": "park-player-eye-1",
+      "parent": "hero-rig",
+      "position": [
+        0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-player-foot-1",
+      "name": "park-player-foot-1",
+      "parent": "hero-rig",
+      "position": [
+        0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "hero-rig",
+      "name": "hero-rig",
+      "parent": "park-player",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseHero",
+          "parameters": {},
+          "data": {
+            "kind": "object",
+            "value": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "hero-body",
+      "name": "hero-body",
+      "parent": "hero-rig",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Player.mat"
+        }
+      ]
+    },
+    {
+      "id": "hero-backpack",
+      "name": "hero-backpack",
+      "parent": "hero-rig",
+      "position": [
+        0,
+        -0.02,
+        -0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.57,
+        0.65,
+        0.26
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        }
+      ]
+    },
+    {
+      "id": "hero-backpack-buckle",
+      "name": "hero-backpack-buckle",
+      "parent": "hero-rig",
+      "position": [
+        0,
+        -0.02,
+        -0.57
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.17,
+        0.17,
+        0.04
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-puff",
+      "name": "park-puff",
+      "parent": "park-player",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2.8,
+        1,
+        2.8
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "parkAttack=1"
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Sunrise/Attack.mat"
+        }
+      ]
+    },
+    {
+      "id": "music",
+      "name": "music",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "AudioSource",
+          "id": "audiosource",
+          "enabled": true,
+          "clip": "Assets/Audio/Title/Bgm.wav",
+          "volume": 0.3,
+          "loop": true,
+          "playOnAwake": true,
+          "volumeBinding": "volumeGain"
+        }
+      ]
+    },
+    {
+      "id": "audio-Collect",
+      "name": "audio-Collect",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Collect"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Attack",
+      "name": "audio-Attack",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Attack"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Hit",
+      "name": "audio-Hit",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Hit"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Damage",
+      "name": "audio-Damage",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Damage"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Jump",
+      "name": "audio-Jump",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Jump"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Mechanism",
+      "name": "audio-Mechanism",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Mechanism"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio-Clear",
+      "name": "audio-Clear",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseSound",
+          "parameters": {
+            "volume": 0.35
+          },
+          "data": {
+            "kind": "object",
+            "value": {
+              "clip": {
+                "kind": "string",
+                "value": "Clear"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "park-ui",
+      "name": "park-ui",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Canvas",
+          "id": "canvas",
+          "enabled": true,
+          "referenceSize": [
+            1280,
+            720
+          ],
+          "scaleWithScreen": true,
+          "stateDefaults": {
+            "parkAttack": 0,
+            "parkClear": 0,
+            "sunriseHurt": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-0",
+      "name": "lab-CommonB-block-0-0",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-0.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-0.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-1",
+      "name": "lab-CommonB-block-0-1",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-1.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-1.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-2",
+      "name": "lab-CommonB-block-0-2",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-2.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-2.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-3",
+      "name": "lab-CommonB-block-0-3",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-3.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-3.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-4",
+      "name": "lab-CommonB-block-0-4",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-4.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-4.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-5",
+      "name": "lab-CommonB-block-0-5",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-5.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-5.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-6",
+      "name": "lab-CommonB-block-0-6",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-6.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-6.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-7",
+      "name": "lab-CommonB-block-0-7",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-7.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-7.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-CommonB-block-0-8",
+      "name": "lab-CommonB-block-0-8",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/CommonB/Baked/Block-0-8.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/CommonB/Surface-8.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-Cue1B-block-0-0",
+      "name": "lab-Cue1B-block-0-0",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/Cue1B/Baked/Block-0-0.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/Cue1B/Surface-0.mat"
+        }
+      ]
+    },
+    {
+      "id": "lab-Cue1B-block-0-1",
+      "name": "lab-Cue1B-block-0-1",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/Cue1B/Baked/Block-0-1.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/Cue1B/Surface-1.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-camera",
+      "name": "park-camera",
+      "parent": "",
+      "position": [
+        0,
+        4.9,
+        -6.8
+      ],
+      "rotation": [
+        0.3,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Camera",
+          "id": "camera",
+          "enabled": true,
+          "verticalFov": 49,
+          "nearClip": 0.1,
+          "farClip": 160,
+          "referenceAspect": 1.7777777777777777,
+          "preserveHorizontal": true
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "GuidanceCamera",
+          "parameters": {},
+          "data": {
+            "kind": "object",
+            "value": {
+              "target": {
+                "kind": "reference",
+                "value": "park-player"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-floor",
+      "name": "lab-collision-floor",
+      "parent": "",
+      "position": [
+        0,
+        -0.6,
+        23
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        28,
+        1.2,
+        62
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-island",
+      "name": "lab-collision-island",
+      "parent": "",
+      "position": [
+        0,
+        3,
+        26
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        10,
+        6,
+        20
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-cafe",
+      "name": "lab-collision-cafe",
+      "parent": "",
+      "position": [
+        -8.5,
+        3,
+        51
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        8,
+        6,
+        6
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-left",
+      "name": "lab-collision-left",
+      "parent": "",
+      "position": [
+        14.1,
+        0.7,
+        23
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.2,
+        1.4,
+        62
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-right",
+      "name": "lab-collision-right",
+      "parent": "",
+      "position": [
+        -14.1,
+        0.7,
+        23
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.2,
+        1.4,
+        62
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-end",
+      "name": "lab-collision-end",
+      "parent": "",
+      "position": [
+        0,
+        0.7,
+        54
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        28,
+        1.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-back",
+      "name": "lab-collision-back",
+      "parent": "",
+      "position": [
+        0,
+        0.7,
+        -8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        28,
+        1.4,
+        0.2
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-goal",
+      "name": "lab-goal",
+      "parent": "",
+      "position": [
+        -8.5,
+        1.35,
+        47.5
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "scale": [
+        2.4,
+        2.4,
+        2.4
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Factory/cog-a.obj",
+          "instancing": true
+        }
+      ]
+    },
+    {
+      "id": "lab-controller",
+      "name": "lab-controller",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "GuidanceLab",
+          "parameters": {
+            "mode": 1,
+            "mirror": 1
+          }
+        }
+      ]
+    }
+  ]
+}

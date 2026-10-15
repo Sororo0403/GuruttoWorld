@@ -13,7 +13,8 @@ TEXTURES='Assets/Textures/Sunrise/District'
 
 
 class DistrictBake:
-    def __init__(self):
+    def __init__(self,folder=FOLDER,materials=MATERIALS,textures=TEXTURES,identity='district'):
+        self.folder,self.materials,self.textures,self.identity=folder,materials,textures,identity
         self.zone=0
         self.groups=defaultdict(list)
         self.cache={}
@@ -57,21 +58,22 @@ class DistrictBake:
         colors=sorted({tuple(json.loads(s)['color'][:3]) for z,s in self.groups if not json.loads(s)['texture']})
         palette=Image.new('RGB',(32*len(colors),32))
         for i,color in enumerate(colors):palette.paste(tuple(round(c*255) for c in color),(i*32,0,(i+1)*32,32))
-        palette.save(GAME/TEXTURES/'Palette.png')
+        (GAME/self.textures).mkdir(parents=True,exist_ok=True)
+        palette.save(GAME/self.textures/'Palette.png')
         groups=defaultdict(list)
         for (zone,signature),polygons in self.groups.items():
             surface=json.loads(signature);tint=surface['color'];surface['color']=[1,1,1,1]
             uv=None
             if not surface['texture']:
                 uv=((colors.index(tuple(tint[:3]))+.5)/len(colors),.5)
-                surface['texture']=TEXTURES+'/Palette.png'
+                surface['texture']=self.textures+'/Palette.png'
                 if surface['roughness']>=.6:surface['roughness']=.82
             if surface['texture'].endswith('/Wood.png'):surface['roughness']=.75
             groups[(zone,json.dumps(surface,sort_keys=True))].extend(
                 [[(p,uv or tex,n) for p,tex,n in polygon] for polygon in polygons])
         surfaces=sorted({s for z,s in groups})
-        for i,s in enumerate(surfaces):write(GAME/MATERIALS/f'Surface-{i}.mat',json.loads(s))
-        write(GAME/FOLDER/'Baked/District.mtl','newmtl white\nKd 1 1 1\n')
+        for i,s in enumerate(surfaces):write(GAME/self.materials/f'Surface-{i}.mat',json.loads(s))
+        write(GAME/self.folder/'Baked/District.mtl','newmtl white\nKd 1 1 1\n')
         objects=[]
         for (zone,signature),polygons in sorted(groups.items()):
             index=1;unique={}
@@ -86,17 +88,17 @@ class DistrictBake:
                     value=unique[key];face.append(f'{value}/{value}/{value}')
                 lines.append('f '+' '.join(face))
             surface=surfaces.index(signature);name=f'Block-{zone}-{surface}'
-            write(GAME/FOLDER/'Baked'/(name+'.obj'),'\n'.join(lines)+'\n')
-            objects.append(obj('district-'+name.lower(),(0,0,0),components=[
-                component('MeshRenderer',model=FOLDER+'/Baked/'+name+'.obj',instancing=False),
-                component('Material',asset=MATERIALS+f'/Surface-{surface}.mat')]))
-        write(GAME/FOLDER/'Objects.json',objects)
-        write(GAME/FOLDER/'Placements.json',self.sources)
+            write(GAME/self.folder/'Baked'/(name+'.obj'),'\n'.join(lines)+'\n')
+            objects.append(obj(self.identity+'-'+name.lower(),(0,0,0),components=[
+                component('MeshRenderer',model=self.folder+'/Baked/'+name+'.obj',instancing=False),
+                component('Material',asset=self.materials+f'/Surface-{surface}.mat')]))
+        write(GAME/self.folder/'Objects.json',objects)
+        write(GAME/self.folder/'Placements.json',self.sources)
         active={next(c['model'] for c in o['components'] if c['type']=='MeshRenderer') for o in objects}
-        for path in (GAME/FOLDER/'Baked').glob('Block-*.obj'):
+        for path in (GAME/self.folder/'Baked').glob('Block-*.obj'):
             if path.relative_to(GAME).as_posix() not in active:
                 path.unlink();path.with_suffix(path.suffix+'.meta').unlink(missing_ok=True)
-        for path in (GAME/MATERIALS).glob('Surface-*.mat'):
+        for path in (GAME/self.materials).glob('Surface-*.mat'):
             if int(path.stem.split('-')[1])>=len(surfaces):
                 path.unlink();path.with_suffix(path.suffix+'.meta').unlink(missing_ok=True)
         print(f'District: {len(objects)} material/zone batches; {sum(len(p) for p in groups.values())} polygons')

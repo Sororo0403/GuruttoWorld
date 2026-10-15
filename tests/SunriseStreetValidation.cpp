@@ -1,6 +1,7 @@
 #include <SceneRuntime/SceneEnvironment.h>
 #include <SceneRuntime/ScriptModuleApi.h>
 #include <SceneRuntime/TitleMenu.h>
+#include <SceneRuntime/GamePlayback.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Graphics/Resources/RenderTexture.h>
 #include <Engine/Platform/Window.h>
@@ -11,6 +12,7 @@
 #include <iostream>
 #include <stdexcept>
 bool Register_SunriseStreet(void*,SceneRuntime::RegisterModuleScript);
+bool Register_GuidanceLab(void*,SceneRuntime::RegisterModuleScript);
 namespace {
 using namespace SceneRuntime;
 void Require(bool condition,const std::string& message) {if(!condition)throw std::runtime_error(message);}
@@ -296,11 +298,75 @@ void RenderBlock() {
   Capture(renderer,scene,name);Require(renderer.WaitForIdle(),"Block capture complete");
  }
 }
+void GuidancePlaythrough() {
+ SetEnvironmentVariableW(L"WP1_GUIDANCE_RESULTS",std::filesystem::absolute("generated/guidance-validation/trials.csv").c_str());
+ {
+  Simulation s("Games/GuruttoWorld/Assets/Scenes/GuidanceGallery.json");s.Tick();
+  Require(Find(s.layout,"lab-name-1").text->text.find("換喩")!=std::string::npos,"Gallery names the figure");
+  std::string error;
+  Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceBlind",true}},&s.physics),error);
+  Require(Find(s.layout,"lab-name-1").text->text.find("換喩")==std::string::npos,"Blind mode conceals technique");
+  Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceBlind",true},{"GuidanceMirror",true}},&s.physics),error);
+  Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceCourse2",true}},&s.physics),error);
+  const auto commands=s.scripts.TakeSceneCommands();
+  Require(commands.size()==1 && commands[0].scene=="Assets/Scenes/GuidanceLab/Course-1B.json","Gallery selects mirrored course");
+ }
+ for(int mode=0;mode<6;++mode)for(int mirror=0;mirror<2;++mirror) {
+  const std::string label=std::to_string(mode)+(mirror?"B":"A");
+  Simulation s("Games/GuruttoWorld/Assets/Scenes/GuidanceLab/Course-"+label+".json");
+  for(int i=0;i<30;++i)s.Tick();
+  const float side=mirror?-1.0f:1.0f;
+  s.Walk(0,11,false);s.Walk(side*8.5f,13,false);s.Walk(side*8.5f,40,false);s.Walk(side*8.5f,43.5f,false);
+  for(int i=0;i<90;++i)s.Tick(0,1);
+  const auto commands=s.scripts.TakeSceneCommands();
+  Require(commands.size()==1 && commands[0].scene=="Assets/Scenes/GuidanceGallery.json","Course completes and returns once: "+label);
+  Require(Find(s.layout,"park-player").playerController->moveSpeed==0,"Arrival freezes player");
+  std::cout<<"PASS guidance course "<<label<<": physical branch, arrival, record, return\n";
+ }
+ {
+  Simulation s("Games/GuruttoWorld/Assets/Scenes/GuidanceLab/Course-0A.json");for(int i=0;i<30;++i)s.Tick();
+  s.Walk(-8.5f,13,false);s.Walk(-8.5f,40,false);s.Walk(8.5f,40,false);s.Walk(8.5f,43.5f,false);
+  for(int i=0;i<90;++i)s.Tick(0,1);
+  Require(s.scripts.TakeSceneCommands().size()==1,"Alternative route still reaches cafe");
+ }
+ std::ifstream csv("generated/guidance-validation/trials.csv");std::string line;int completed=0;
+ while(std::getline(csv,line))if(line.find(",complete,")!=std::string::npos)++completed;
+ Require(completed>=13,"Completed trials exported");
+ std::cout<<"PASS guidance gallery, blind toggle, layout toggle, both routes, trial export\n";
+}
+void RenderGuidance() {
+ Engine::Window window;Engine::DirectX12Renderer renderer;
+ Require(window.Create(L"Guidance lab validation",1280,720) && renderer.Initialize(window.GetHandle()),"Guidance renderer");
+ const auto root=std::filesystem::absolute("Games/GuruttoWorld");std::string error;
+ {
+  SceneEnvironment scene;Require(scene.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",error),error);
+  GamePlayback playback;playback.Initialize(scene,root,std::filesystem::absolute("generated/guidance-validation/settings.json"),false);
+  scene.Click("guidance-entry");playback.Update(scene,1.0/60,true);
+  Require(scene.ActiveSceneName().find("GuidanceGallery")!=std::string::npos,"Real title playback enters gallery by button event");
+  scene.Click("lab-name-1");playback.Update(scene,1.0/60,true);
+  Require(scene.ActiveSceneName().find("Course-1")!=std::string::npos,"Real gallery playback loads a selected course");
+  Require(renderer.WaitForIdle(),"Title / gallery traversal GPU complete");
+ }
+ for(int mode=-1;mode<6;++mode) {
+  const auto path=mode<0?"Assets/Scenes/GuidanceGallery.json":"Assets/Scenes/GuidanceLab/Course-"+std::to_string(mode)+"A.json";
+  auto layout=SceneLayout::Load(root/path);
+  if(mode>=0) {Find(layout,"park-player").position={0,1.05f,11};Find(layout,"park-camera").position={0,4.9f,3.2f};}
+  SceneEnvironment scene;Require(renderer.WaitForIdle() && scene.Initialize(renderer,root,layout,error),error);
+  for(int i=0;i<60;++i) {Require(scene.MovePlayers(1.0/60,0,0),"Guidance fixed update");scene.Update(1.0/60,true,true);}
+  Capture(renderer,scene,"guidance-"+std::to_string(mode));Require(renderer.WaitForIdle(),"Guidance capture");
+ }
+}
 }
 int main() {
  try {
   std::filesystem::create_directories("generated/sunrise");Engine::Log::Initialize("generated/sunrise/validation.log");
   Require(Register_SunriseStreet(nullptr,Register),"Scripts register");
+  Require(Register_GuidanceLab(nullptr,Register),"Guidance scripts register");
+  if(GetEnvironmentVariableA("WP1_GUIDANCE_ONLY",nullptr,0)) {
+   if(!GetEnvironmentVariableA("WP1_SUNRISE_RENDER_ONLY",nullptr,0))GuidancePlaythrough();
+   if(!GetEnvironmentVariableA("WP1_SUNRISE_CPU_ONLY",nullptr,0))RenderGuidance();
+   std::cout<<"PASS GuidanceLab\n";return 0;
+  }
   const bool blockOnly=GetEnvironmentVariableA("WP1_SUNRISE_BLOCK_ONLY",nullptr,0)!=0;
   if(!GetEnvironmentVariableA("WP1_SUNRISE_RENDER_ONLY",nullptr,0)) {if(!blockOnly){AudioPool();Playthrough();DirectRoute();}PlazaExploration();BlockPlaythrough();}
   if(!GetEnvironmentVariableA("WP1_SUNRISE_CPU_ONLY",nullptr,0)){if(!blockOnly)Render();RenderBlock();}

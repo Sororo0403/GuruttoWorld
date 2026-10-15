@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "goal": "奥のカフェ",
+  "cases": [
+    {
+      "mode": 0,
+      "name": "対照",
+      "description": "追加の手がかりなし",
+      "mirror": false,
+      "scene": "Assets/Scenes/GuidanceLab/Course-0A.json",
+      "objects": 40
+    },
+    {
+      "mode": 0,
+      "name": "対照",
+      "description": "追加の手がかりなし",
+      "mirror": true,
+      "scene": "Assets/Scenes/GuidanceLab/Course-0B.json",
+      "objects": 40
+    },
+    {
+      "mode": 1,
+      "name": "換喩",
+      "description": "関連物で行き先を示す",
+      "mirror": false,
+      "scene": "Assets/Scenes/GuidanceLab/Course-1A.json",
+      "objects": 42
+    },
+    {
+      "mode": 1,
+      "name": "換喩",
+      "description": "関連物で行き先を示す",
+      "mirror": true,
+      "scene": "Assets/Scenes/GuidanceLab/Course-1B.json",
+      "objects": 42
+    },
+    {
+      "mode": 2,
+      "name": "黙説法",
+      "description": "並びを途中で打ち切る",
+      "mirror": false,
+      "scene": "Assets/Scenes/GuidanceLab/Course-2A.json",
+      "objects": 41
+    },
+    {
+      "mode": 2,
+      "name": "黙説法",
+      "description": "並びを途中で打ち切る",
+      "mirror": true,
+      "scene": "Assets/Scenes/GuidanceLab/Course-2B.json",
+      "objects": 41
+    },
+    {
+      "mode": 3,
+      "name": "破格法",
+      "description": "並びの構造を切り替える",
+      "mirror": false,
+      "scene": "Assets/Scenes/GuidanceLab/Course-3A.json",
+      "objects": 41
+    },
+    {
+      "mode": 3,
+      "name": "破格法",
+      "description": "並びの構造を切り替える",
+      "mirror": true,
+      "scene": "Assets/Scenes/GuidanceLab/Course-3B.json",
+      "objects": 41
+    },
+    {
+      "mode": 4,
+      "name": "漸層法",
+      "description": "目印を段階的に強める",
+      "mirror": false,
+      "scene": "Assets/Scenes/GuidanceLab/Course-4A.json",
+      "objects": 44
+    },
+    {
+      "mode": 4,
+      "name": "漸層法",
+      "description": "目印を段階的に強める",
+      "mirror": true,
+      "scene": "Assets/Scenes/GuidanceLab/Course-4B.json",
+      "objects": 44
+    },
+    {
+      "mode": 5,
+      "name": "組み合わせ",
+      "description": "四つの工夫を重ねる",
+      "mirror": false,
+      "scene": "Assets/Scenes/GuidanceLab/Course-5A.json",
+      "objects": 45
+    },
+    {
+      "mode": 5,
+      "name": "組み合わせ",
+      "description": "四つの工夫を重ねる",
+      "mirror": true,
+      "scene": "Assets/Scenes/GuidanceLab/Course-5B.json",
+      "objects": 45
+    }
+  ],
+  "comparison": "Same collision layout, controls, lighting, camera and destination; cue geometry varies. Reflection swaps left/right.",
+  "sources": [
+    "https://rhetoric.byu.edu/Figures/M/metonymy.htm",
+    "https://rhetoric.byu.edu/Figures/A/aposiopesis.htm",
+    "https://rhetoric.byu.edu/Figures/A/~anacoluthon.htm",
+    "https://rhetoric.byu.edu/Figures/C/climax.htm"
+  ]
+}

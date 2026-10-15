@@ -106,6 +106,96 @@
       ],
       "mouseButtons": 0,
       "threshold": 0.5
+    },
+    "GuidanceGallery": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        64
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceMenu": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        15
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceMirror": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        50
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceBlind": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        48
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceCourse1": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        2
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceCourse2": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        3
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceCourse3": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        4
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceCourse4": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        5
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceCourse5": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        6
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
+    },
+    "GuidanceCourse6": {
+      "axis": 0,
+      "buttons": 0,
+      "keys": [
+        7
+      ],
+      "mouseButtons": 0,
+      "threshold": 0.5
     }
   },
   "startupScene": "Assets/Scenes/TitleStreet.json",
