@@ -44,9 +44,9 @@ class SunriseAuthoringTests(unittest.TestCase):
     def test_title_keyboard_and_pointer_reach_stage(self):
         title = json.loads((author.GAME / 'Assets/Scenes/TitleStreet.json').read_text(encoding='utf-8'))
         canvas = next(c for o in title['objects'] for c in o['components'] if c['type'] == 'Canvas' and 'menu' in c)
-        self.assertEqual(canvas['menu']['entries'][0]['target'], 'Assets/Scenes/GuidanceLab/Course-4A.json')
+        self.assertEqual(canvas['menu']['entries'][0]['target'], 'Assets/Scenes/StreetJourney.json')
         start = next(o for o in title['objects'] if o['id'] == 'world-start')
-        self.assertEqual(next(c for c in start['components'] if c['type'] == 'Button')['target'], 'Assets/Scenes/GuidanceLab/Course-4A.json')
+        self.assertEqual(next(c for c in start['components'] if c['type'] == 'Button')['target'], 'Assets/Scenes/StreetJourney.json')
 
     def test_batching_preserves_all_collision_and_bounds_object_count(self):
         original = author.assemble(False)

@@ -100,7 +100,7 @@ class GuidanceTests(unittest.TestCase):
         title=items(load('Assets/Scenes/TitleStreet.json'))
         self.assertTrue(load('Assets/Scenes/TitleStreet.json').get('assetReferences'))
         start=next(c for c in title['world-start']['components'] if c['type']=='Button')
-        self.assertEqual(start['target'],'Assets/Scenes/GuidanceLab/Course-4A.json')
+        self.assertEqual(start['target'],'Assets/Scenes/StreetJourney.json')
         canvas=next(c for o in title.values() for c in o['components'] if c['type']=='Canvas' and 'menu' in c)
         self.assertEqual(canvas['menu']['entries'][0]['target'],start['target'])
         entry=next(c for c in title['guidance-entry']['components'] if c['type']=='Button')

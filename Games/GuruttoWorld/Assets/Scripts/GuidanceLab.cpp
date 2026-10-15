@@ -156,7 +156,7 @@ ScriptDefinition Camera() {
  ScriptDefinition s;
  s.dataFields={{"target",{ScriptObjectReference{}}},{"focus0",{ScriptObjectReference{}}},
      {"focus1",{ScriptObjectReference{}}},{"focus2",{ScriptObjectReference{}}},{"focus3",{ScriptObjectReference{}}}};
- s.fields={{"mode",{4,0,5}},{"mirror",{0,0,1}},{"height",{4.3f,3,6}},
+ s.fields={{"journey",{0,0,1}},{"mode",{4,0,5}},{"mirror",{0,0,1}},{"height",{4.3f,3,6}},
      {"distance",{7.4f,6,10}},{"lead",{4.7f,2,7}},{"weight",{.23f,0,.4f}},
      {"boundary0",{23,12,35}},{"boundary1",{40,30,55}},{"boundary2",{65,55,80}}};
  s.lateUpdate=[](ScriptContext& c) {
@@ -173,14 +173,23 @@ ScriptDefinition Camera() {
   }
   if(sum>0)for(size_t axis=0;axis<3;++axis)focus[axis]=centroid[axis]/sum;
   if(!c.state["motionReady"]) {c.state["px"]=p->position[0];c.state["pz"]=p->position[2];c.state["motionReady"]=1;}
+  if(std::hypot(p->position[0]-c.state["px"],p->position[2]-c.state["pz"])>6)c.state["ready"]=0;
   const float vx=std::clamp((p->position[0]-c.state["px"])/std::max(dt,.001f),-5.0f,5.0f);
   const float vz=std::clamp((p->position[2]-c.state["pz"])/std::max(dt,.001f),-5.0f,5.0f);
   c.state["px"]=p->position[0];c.state["pz"]=p->position[2];
   c.state["vx"]+=(vx-c.state["vx"])*blend;c.state["vz"]+=(vz-c.state["vz"])*blend;
-  const float bias=std::clamp(c.state["vx"]*.48f,-2.3f,2.3f)+std::clamp((focus[0]-p->position[0])*c.Value("weight"),-.7f,.7f);
+  float bias=std::clamp(c.state["vx"]*.48f,-2.3f,2.3f)+std::clamp((focus[0]-p->position[0])*c.Value("weight"),-.7f,.7f);
   const float ahead=c.state["vz"]<-.3f?-2.4f:c.Value("lead");
   c.state["lead"]+=(ahead-c.state["lead"])*blend;
-  std::array<float,3> wanted{p->position[0]+bias,c.state["floor"]+c.Value("height"),p->position[2]-c.Value("distance")};
+  float height=c.Value("height"),distance=c.Value("distance");
+  if(c.Value("journey")>0) {
+   const float cafe=Smooth(15,21,p->position[2])*(1-Smooth(28,33,p->position[2]));
+   const float fork=Smooth(28,34,p->position[2])*(1-Smooth(45,49,p->position[2]));
+   const float roof=Smooth(68,72,p->position[2]);
+   bias=3.8f*cafe-1.2f*fork-2.2f*roof;
+   height=4.6f+.8f*fork+1.0f*roof;distance=7.3f+.5f*fork;
+  }
+  std::array<float,3> wanted{p->position[0]+bias,c.state["floor"]+height,p->position[2]-distance};
   const auto safe=[&](const std::array<float,3>& candidate) {
    std::array<float,3> delta{};float length=0;
    for(size_t i=0;i<3;++i){delta[i]=candidate[i]-p->position[i];length+=delta[i]*delta[i];}
@@ -209,7 +218,33 @@ ScriptDefinition Camera() {
   else for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
   c.object.position=safe(c.object.position);
   const float dz=std::max(1.0f,p->position[2]+c.state["lead"]-c.object.position[2]);
-  c.object.rotation={std::atan2(c.object.position[1]-(c.state["floor"]+1.9f),dz),0,0};
+  const float yaw=c.Value("journey")>0?std::atan2(p->position[0]+bias*.35f-c.object.position[0],dz):0;
+  c.object.rotation={std::atan2(c.object.position[1]-(c.state["floor"]+1.9f),dz),yaw,0};
+ };
+ return s;
+}
+ScriptDefinition JourneyController() {
+ ScriptDefinition s;
+ s.update=[](ScriptContext& c) {
+  if(!c.scene)return;
+  if(c.Pressed("GuidanceMenu") || c.Pressed("GuidanceGallery")) {c.scene->LoadScene(gallery);return;}
+  const auto* player=c.scene->Find("park-player");if(!player)return;
+  const auto p=player->position;
+  if(!c.state["open"])if(const auto* lever=c.scene->Find("journey-lever")) {
+   const float distance=std::hypot(p[0]-lever->position[0],p[2]-lever->position[2]);
+   if(distance<3 && std::abs(p[1]-lever->position[1])<1.5f && c.Pressed("Attack")) {
+    c.state["open"]=1;c.scene->Destroy("journey-shutter");
+    ScriptEvent ring;ring.name="guidance:ring";ring.target="journey-lever";c.scene->Emit(std::move(ring));
+    ScriptEvent sound;sound.name="sunrise:play";sound.target="audio-Mechanism";c.scene->Emit(std::move(sound));
+   }
+  }
+  c.scene->SetUiValue("journeyOpen",c.state["open"]);
+  if(c.state["complete"])return;
+  const auto* goal=c.scene->Find("lab-destination");
+  if(c.state["open"] && goal && std::abs(p[1]-goal->position[1])<1.3f && std::hypot(p[0]-goal->position[0],p[2]-goal->position[2])<1.5f) {
+   c.state["complete"]=1;c.scene->SetUiValue("journeyComplete",1);
+   ScriptEvent sound;sound.name="sunrise:play";sound.target="audio-Clear";c.scene->Emit(std::move(sound));
+  }
  };
  return s;
 }
@@ -239,6 +274,6 @@ ScriptDefinition Bell() {
 }
 }
 bool Register_GuidanceLab(void* owner,SceneRuntime::RegisterModuleScript add) {
- const auto controller=Controller(),camera=Camera(),welcome=Welcome(),bell=Bell();
- return add(owner,"GuidanceLab",&controller) && add(owner,"GuidanceCamera",&camera) && add(owner,"GuidanceWelcome",&welcome) && add(owner,"GuidanceBell",&bell);
+ const auto controller=Controller(),camera=Camera(),welcome=Welcome(),bell=Bell(),journey=JourneyController();
+ return add(owner,"StreetJourney",&journey) && add(owner,"GuidanceLab",&controller) && add(owner,"GuidanceCamera",&camera) && add(owner,"GuidanceWelcome",&welcome) && add(owner,"GuidanceBell",&bell);
 }
