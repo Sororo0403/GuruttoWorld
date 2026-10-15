@@ -33,7 +33,7 @@ def build_town(t):
  t.building('cafe',(-16,-8,8,15),5)
  t.awning(-12,8,7,3.6)
  t.solid('cafe-weather-roof',(-12,3.49,7.1),(7,.67,1.95))
- t.seating(-18.8,6.2,0,.85)
+ t.seating(-12,7,0,.65)
  t.seating(-5.2,10,0,.85)
  t.planter(-20.5,13);t.planter(-2.2,5)
  t.rail('arrival-back',-11,-6,22,.3,1)
@@ -44,30 +44,39 @@ def build_town(t):
  # the coping. The facing market terrace is the first attainable destination.
  t.cube((1,-.8,23),(2,.08,25),t.water)
  ground('market-apron',2,20,16,32,.56)
+ ground('market-west-forecourt',-6,2,28,32,.56)
  t.bank('canal-west',-.15,16.2,27.8,(19.6,26.4))
  t.bank('canal-east',2.15,16.2,31.8,(19.6,26.4),.56)
  t.rail('market-south',11,16,18,.3,.9,.56)
  t.building('east-shop',(20,28,16,45),9)
- t.awning(15.4,31,5.5,4.0,.56)
- t.solid('market-weather-roof',(15.4,3.89,30.1),(5.5,.67,1.95))
- t.cube((15.4,1.1,30.4),(4.7,1.08,.8),t.wood,'market-counter')
- b.place('k','kitchenCoffeeMachine',(16.4,1.64,30.4),1.7)
+ # Stall frontage stays at the edge, leaving a quiet common forecourt from
+ # which both sides of the recessed hall can be inspected before choosing.
+ t.cube((18.5,1.1,30.4),(1.2,1.08,3.4),t.wood,'market-counter')
+ b.place('k','kitchenCoffeeMachine',(18.5,1.64,30.4),1.7)
  t.seating(4.7,18.9,.56,.85)
- crate('market-stock',18.5,28,.59)
+ crate('market-stock',18.5,26,.59)
  t.planter(18.6,18.1,.56)
  # An offset market hall separates genuinely different public and service
  # streets. Both terminate in the same garden; neither is a disguised dead end.
  b.zone=1
  ground('market-streets',-6,20,32,48,.56)
- t.building('market-hall',(3,10,33,40),5)
+ t.building('market-hall',(5,9,38,43.5),4.5)
  t.building('garden-west',(-14,-6,32,48),7)
- # The public arcade repeats a construction, not an arbitrary cue object.
- for side,x in (('west',11.2),('east',19)):
-  t.cube((x,4.5,38),(.42,.2,12),t.cream)
-  for i,z in enumerate((32.5,37.5,42.5)):
-   t.cube((x,2.56,z),(.32,4,.4),t.teal,'arcade-'+side+'-'+str(i))
-   t.cube((x,.76,z),(.68,.4,.72),t.cream)
-   t.cube((x,4.35,z),(.65,.15,.7),t.cream)
+ # A real covered market: the common roof and both passages share a single
+ # structure. Its soffit stays above the existing close camera, so walking
+ # underneath does not require a forced camera change or transparent roof.
+ t.cube((7,6.1,35.75),(26,.18,17.5),t.cream,'market-common-roof')
+ t.cube((7,6.3,27.15),(26,.22,.2),t.teal)
+ for side,x in (('loading',-5.5),('hall',4.3),('west',10.5),('east',19.5)):
+  t.cube((x,5.94,35.75),(.3,.2,17.5),t.wood)
+  for i,z in enumerate((27.5,36,44.5)):
+   # The rear pier bears on the hall's corner, leaving clearance for the
+   # established close camera on the common garden approach.
+   px=(16 if i==0 else 9.3 if i==2 else x) if side=='west' else x
+   t.cube((px,3.26,z),(.3,5.4,.34),t.teal,'arcade-'+side+'-'+str(i))
+   t.cube((px,.76,z),(.68,.4,.72),t.cream)
+   t.cube((px,5.95,z),(.65,.15,.7),t.cream)
+ for z in (27.5,36,44.5):t.cube((7,5.74,z),(26,.2,.28),t.wood)
  # Lower timber storage bays contrast with the tall, uncluttered arcade.
  # The shelter covers stock, leaving the player/camera aisle open.
  t.cube((-4.7,3.05,38),(2,.16,9),t.wood)
@@ -85,24 +94,29 @@ def build_town(t):
  t.rail('court-north',2.5,57,19,.35,.85,.56)
  t.rail('court-north-east',18.8,57,4.4,.35,.85,.56)
  bed('court-planting',2.5,52,4,2.7,.56)
- t.seating(-2,54.5,.56,.85)
- # Sheltered cafe -> open trellis court -> open sky roof garden. The repeated
- # use is resting, with a progressively more open enclosure.
- for x in (-4.8,.8):
-  for z in (53.2,55.9):
-   t.cube((x,2.15,z),(.16,3.12,.16),t.wood,'trellis-'+str(x)+'-'+str(z))
-  t.cube((x,3.78,54.55),(.18,.14,3),t.wood)
- for i in range(6):t.cube((-2,3.9,53.2+i*.54),(5.9,.1,.13),t.wood)
- t.planter(7.3,55.5,.56)
+ t.seating(-2,54.5,.56,.85);t.seating(17.5,49,.56,.85)
+ # Both market streets necessarily enter this shared shaded garden. Roof
+ # height stays constant while actual overhead coverage changes from solid
+ # to slatted; the following stair and roof garden have no ceiling at all.
+ # Supports continue the market bays instead of creating ceremonial gates.
+ for x in (-5.5,4.3,10.5,19.5):
+  for z in (50.5,56.5):
+   t.cube((x,3.26,z),(.24,5.4,.24),t.wood,'trellis-'+str(x)+'-'+str(z))
+  t.cube((x,5.94,50.75),(.28,.22,12.5),t.wood)
+ for z in (45,50.5,56.5):t.cube((7,5.72,z),(26,.22,.28),t.wood)
+ for i in range(11):t.cube((7,6.08,44.95+i*1.1),(26,.06,.23),t.wood)
+ t.planter(7.3,55.5,.56);t.planter(18.5,55.5,.56)
  # A working stair shutter: the attached gear and drive shaft describe how
  # the barrier operates without new UI, labels or floating symbols.
- lever=model('journey-lever',(17,1.86,54),(1.7,1.7,1.7),'Assets/Models/Title/Factory/cog-a.obj',(math.pi/2,0,0))
+ lever=model('journey-lever',(19,1.5,54),(1.7,1.7,1.7),'Assets/Models/Title/Factory/cog-a.obj',(math.pi/2,0,0))
  lever['components'].append(component('Script',behaviour='StreetGear',parameters={}))
  t.objects.append(lever)
- t.cube((17,1.0,54),(.38,.9,.4),t.teal)
- t.cube((17,2.45,54),(.16,1,.16),t.teal)
- t.cube((17,2.9,55.5),(.16,.16,3.2),t.teal)
- t.cube((15.5,2.9,57),(3.1,.16,.16),t.teal)
+ t.cube((19,1.05,54.35),(.38,.98,.4),t.teal,'gear-pedestal')
+ t.cube((19,1.5,54.1),(.2,.2,.6),t.teal)
+ t.solid('gear-wheel',(19,1.5,54.1),(1.75,1.75,.38))
+ t.cube((19,2.2,54),(.16,1.4,.16),t.teal)
+ t.cube((19,2.9,55.5),(.16,.16,3.2),t.teal)
+ t.cube((16.5,2.9,57),(5.1,.16,.16),t.teal)
  t.objects.append(box('journey-shutter',(14,2.1,57),(4,3.1,.24),'Gate',True))
  for x in (11.8,16.2):t.cube((x,2.3,57),(.35,3.5,.5),t.teal)
  t.cube((14,4.1,57),(4.8,.3,.7),t.orange)
@@ -159,12 +173,15 @@ def build_town(t):
   e[0]['components'][-1]['behaviour']='SunriseEnemy';t.objects+=e
  t.objects.append(obj('stage-checkpoint',(8,1.26,49)))
  t.objects+=t.collisions
- t.route=[[-18.5,2],[-18.5,18],[-15,23],[-1,23],[3,23],[10,26],[10,31.8],
-          [15,31.8],[15,43.5],[12,46],[8,49],[8,53],[17,54],
+ t.route=[[-18.5,2],[-18.5,18],[-15,23],[-1,23],[3,23],[7,26],[7,30],
+          [14,33],[15,43.5],[12,46],[8,49],[8,53],[17,54],
           [14,54],[14,66],[14,74],[5,74],[0,74],[-11.5,71.5],[-12,80],[-12,84]]
  t.jumps=[dict(start=[-1,23],end=[3,23]),dict(start=[5,74],end=[0,74])]
- t.detour=[[10,32.4],[0,32.4],[0,43.5],[8,46],[12,46]]
+ t.detour=[[7,30],[1,33],[1,43.5],[1,46],[8,46],[12,46]]
  t.entry_loop=[[-18.5,2],[-3,2],[-3,17],[-18.5,18]]
  t.roof_loop=[[-11.5,71.5],[-12,80],[-1,80],[-1,71.5],[-11.5,71.5]]
- t.shots=[[-14,0],[-18.5,18],[-1,23],[10,31.8],[15,43.5],[8,49],[14,66],[5,74],[-12,80]]
+ t.shots=[[-14,0],[-18.5,18],[-1,23],[7,30],[15,43.5],[8,49],[14,66],[5,74],[-12,80]]
+ t.cover_samples=[dict(name='covered-market',x=15,z0=29,z1=43,floor=.56),
+                  dict(name='slatted-garden',x=8,z0=45,z1=56.5,floor=.56),
+                  dict(name='open-roof',x=15,z0=71,z1=77,floor=roof)]
  return t

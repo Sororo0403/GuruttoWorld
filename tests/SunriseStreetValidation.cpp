@@ -356,12 +356,26 @@ void JourneyPlaythrough() {
  visible({-16,1,23},"quayside after circling the cafe");
  s.Walk(-15,23);s.Walk(-1,23);
  visible({3,1.2f,23},"market bank before canal jump");
- s.JumpTo(3,23);s.Walk(10,26);s.Walk(10,31.8f);
+ s.JumpTo(3,23);s.Walk(7,26);s.Walk(7,30);
+ visible({1,1.3f,39},"service street visible before choosing");
+ visible({14,1.3f,39},"public street visible from the same decision point");
+ for(float x:{6.2f,7.8f}) {
+  s.Walk(x,30);
+  visible({1,1.3f,39},"service entrance from the decision area flank");
+  visible({14,1.3f,39},"public entrance from the decision area flank");
+ }
+ s.Walk(7,30);
  // Walk the service side all the way around the market hall and return.
- s.Walk(10,32.4f);s.Walk(0,32.4f);s.Walk(0,43.5f);s.Walk(8,46);s.Walk(12,46);
+ s.Walk(1,33);s.Walk(1,43.5f);s.Walk(1,46);s.Walk(8,46);s.Walk(12,46);
  s.Walk(15,43.5f);s.Walk(15,33);s.Walk(17,37);s.Walk(15,43.5f);
  visible({14,4.6f,61},"roof stair from the market exit");
- s.Walk(12,46);s.Walk(8,49);s.Walk(8,53);s.Walk(17,54,false);
+ s.Walk(12,46);s.Walk(8,49);
+ {
+  const auto& camera=Find(s.layout,"park-camera");const auto& player=Find(s.layout,"park-player");
+  Require(std::hypot(std::hypot(camera.position[0]-player.position[0],camera.position[2]-player.position[2]),camera.position[1]-player.position[1])>6,
+   "Garden approach keeps the camera clear of the rear market pier");
+ }
+ s.Walk(8,53);s.Walk(17,54,false);
  Require(Has(s.layout,"journey-shutter"),"Shutter waits for deliberate interaction");
  s.Tick(0,0,false,false,true);s.Tick();
  Require(!Has(s.layout,"journey-shutter"),"Gear opens the real roof stair");
@@ -425,9 +439,10 @@ void RenderJourney() {
  Require(scene.Ui().Value("journeyComplete")==1,"Rendered journey reaches finish");
  // Inspect the three actual rest areas from settled, unmodified stage cameras.
  for(const auto& [name,pose]:std::vector<std::pair<std::string,std::array<float,3>>>{
-     {"rest-cafe",{-18.5f,.7f,2}},{"rest-garden",{8,1.26f,49}},
+     {"rest-cafe",{-12,.7f,4.5f}},{"rest-garden",{8,1.26f,52}},
      {"rest-roof",{14,4.62f,74}},
-     {"loading-aisle",{0,1.26f,36}},{"public-gallery",{15,1.26f,36}}}) {
+     {"loading-aisle",{1,1.26f,36}},{"public-gallery",{15,1.26f,36}},
+     {"market-choice",{7,1.26f,30}}}) {
   auto layout=SceneLayout::Load(root/"Assets/Scenes/StreetJourney.json");
   Find(layout,"park-player").position=pose;SceneEnvironment preview;
   Require(renderer.WaitForIdle() && preview.Initialize(renderer,root,layout,error),error);

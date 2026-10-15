@@ -67,11 +67,10 @@ class TownTopologyTests(unittest.TestCase):
   cls.city=Journey().build()
   cls.objects={o['id']:o for o in cls.city.objects}
   cls.route=json.loads((GAME/'Assets/Models/StreetJourney/Route.json').read_text(encoding='utf-8'))
- def test_floor_patches_have_no_coplanar_overlap(self):
+ def test_floor_patches_have_no_horizontal_overlap(self):
   floors=[self.objects['street-collision-'+k] for k in self.route['floors']]
   for i,a in enumerate(floors):
    for b in floors[i+1:]:
-    if abs(a['position'][1]-b['position'][1])>1e-5:continue
     overlap=[min(a['position'][j]+a['scale'][j]/2,b['position'][j]+b['scale'][j]/2)-max(a['position'][j]-a['scale'][j]/2,b['position'][j]-b['scale'][j]/2) for j in (0,2)]
     self.assertLessEqual(min(overlap),1e-5,(a['id'],b['id']))
  def test_jump_openings_match_the_real_banks(self):
@@ -111,5 +110,60 @@ class TownTopologyTests(unittest.TestCase):
   posts=[o for k,o in self.objects.items() if k.startswith('street-collision-warehouse-post-')]
   self.assertEqual(len(posts),6)
   for o in posts:self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.59)
+ def test_cover_changes_on_the_walkable_route(self):
+  # Measure the actual baked roof polygons. A name or a material change alone
+  # cannot satisfy the solid -> slatted -> open sequence.
+  def coverage(spec):
+   x,z0,z1,floor=[spec[k] for k in ('x','z0','z1','floor')]
+   faces=[]
+   for polygons in self.city.b.groups.values():
+    for face in polygons:
+     p=[(v[0],v[1],-v[2]) for v,uv,n in face]
+     if min(v[1] for v in p)<floor+2 or max(v[1] for v in p)>floor+7:continue
+     if x<min(v[0] for v in p) or x>max(v[0] for v in p):continue
+     if z1<min(v[2] for v in p) or z0>max(v[2] for v in p):continue
+     a,b,c=p[:3]
+     area=(b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0])
+     if abs(area)>1e-8:faces.append(p)
+   hits=0
+   for i in range(201):
+    z=z0+(z1-z0)*(i+.5)/201
+    for p in faces:
+     signs=[(b[0]-a[0])*(z-a[2])-(b[2]-a[2])*(x-a[0]) for a,b in zip(p,p[1:]+p[:1])]
+     if min(signs)>=-1e-7 or max(signs)<=1e-7:hits+=1;break
+   return hits/201
+  market,garden,roof=[coverage(s) for s in self.city.cover_samples]
+  self.assertGreater(market,.98)
+  self.assertGreater(garden,.2);self.assertLess(garden,.55)
+  self.assertEqual(roof,0)
+  self.assertGreater(coverage(dict(self.city.cover_samples[0],x=1)),.98)
+  for x in (-2,15):
+   value=coverage(dict(self.city.cover_samples[1],x=x))
+   self.assertGreater(value,.2);self.assertLess(value,.55)
+ def test_both_branches_share_the_roof_and_garden(self):
+  roof=self.objects['street-collision-market-common-roof']
+  self.assertAlmostEqual(roof['position'][0]-roof['scale'][0]/2,-6)
+  self.assertAlmostEqual(roof['position'][0]+roof['scale'][0]/2,20)
+  # The hall is recessed enough for a common decision area, with real floor
+  # on both flanks. These are not separate optional showcases of a technique.
+  hall=self.objects['street-collision-market-hall']
+  self.assertGreaterEqual(hall['position'][2]-hall['scale'][2]/2,38)
+  for x in (1,14):
+   self.assertLess(abs(x-roof['position'][0]),roof['scale'][0]/2)
+  garden=self.objects['street-collision-garden-court']
+  self.assertEqual(garden['position'][0]-garden['scale'][0]/2,-6)
+  self.assertEqual(garden['position'][0]+garden['scale'][0]/2,20)
+ def test_wheel_clears_the_ground_and_cannot_overlap_the_player(self):
+  wheel=self.objects['journey-lever'];housing=self.objects['street-collision-gear-wheel']
+  vertices=[tuple(map(float,line.split()[1:4])) for line in
+            (GAME/'Assets/Models/Title/Factory/cog-a.obj').read_text().splitlines() if line.startswith('v ')]
+  # The existing model is rotated 90 degrees about X. Its local Z becomes Y.
+  bottom=wheel['position'][1]-max(v[2] for v in vertices)*wheel['scale'][2]
+  self.assertGreaterEqual(bottom,.59)
+  for axis,local in ((0,0),(1,2)):
+   extent=max(abs(v[local]) for v in vertices)*wheel['scale'][local]
+   self.assertGreaterEqual(housing['scale'][axis]/2,extent)
+  approach=[17,54]
+  self.assertGreater(housing['position'][0]-housing['scale'][0]/2,approach[0]+.35)
 
 if __name__=='__main__':unittest.main()

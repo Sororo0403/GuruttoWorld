@@ -76,7 +76,7 @@ def author():
  write(GAME/SCENE,scene)
  write(GAME/(FOLDER+'/Route.json'),dict(version=1,scene=SCENE,route=city.route,shots=city.shots,
   jumps=city.jumps,detour=city.detour,entryLoop=city.entry_loop,roofLoop=city.roof_loop,
-  floors=city.floors,
+  floors=city.floors,coverSamples=city.cover_samples,
   stages=['カフェを囲む入口広場','水路と市場のテラス','市場の表通りと裏通り','屋上へ続く庭','空中庭園','時計台の展望所']))
  title=json.loads((GAME/'Assets/Scenes/TitleStreet.json').read_text(encoding='utf-8'))
  for o in title['objects']:

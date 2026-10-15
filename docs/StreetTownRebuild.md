@@ -1,5 +1,7 @@
 # 資料を基にした街区の全面再構成
 
+次の修正版の市場と屋根の構造は [StreetWalkableSequence.md](StreetWalkableSequence.md) を参照。以下は全面再構成時点の記録。
+
 2026-10-16。ユーザー提供の `deep-research-report.md` を設計の参考として、StreetJourney の地形、建物配置、周回路、到達先を置き換えた。既存の移動、戦闘、歯車、落下復帰、タイトル、近距離カメラのコードは変更しない。
 
 ## 資料から採用したこと

@@ -2304,8 +2304,8 @@
       "name": "journey-lever",
       "parent": "",
       "position": [
-        17,
-        1.86,
+        19,
+        1.5,
         54
       ],
       "rotation": [
@@ -3744,6 +3744,43 @@
       ]
     },
     {
+      "id": "street-collision-market-west-forecourt",
+      "name": "street-collision-market-west-forecourt",
+      "parent": "",
+      "position": [
+        -2.0,
+        0.21000000000000008,
+        30.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        8,
+        0.7,
+        4
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
       "id": "street-collision-canal-west-south",
       "name": "street-collision-canal-west-south",
       "parent": "",
@@ -4114,48 +4151,11 @@
       ]
     },
     {
-      "id": "street-collision-market-weather-roof",
-      "name": "street-collision-market-weather-roof",
-      "parent": "",
-      "position": [
-        15.4,
-        3.89,
-        30.1
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        5.5,
-        0.67,
-        1.95
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
       "id": "street-collision-market-counter",
       "name": "street-collision-market-counter",
       "parent": "",
       "position": [
-        15.4,
+        18.5,
         1.1,
         30.4
       ],
@@ -4165,9 +4165,9 @@
         0
       ],
       "scale": [
-        4.7,
+        1.2,
         1.08,
-        0.8
+        3.4
       ],
       "components": [
         {
@@ -4194,7 +4194,7 @@
       "position": [
         18.5,
         0.857,
-        28
+        26
       ],
       "rotation": [
         0,
@@ -4266,9 +4266,9 @@
       "name": "street-collision-market-hall",
       "parent": "",
       "position": [
-        6.5,
-        2.5,
-        36.5
+        7.0,
+        2.25,
+        40.75
       ],
       "rotation": [
         0,
@@ -4276,9 +4276,9 @@
         0
       ],
       "scale": [
-        7,
-        5,
-        7
+        4,
+        4.5,
+        5.5
       ],
       "components": [
         {
@@ -4336,13 +4336,13 @@
       ]
     },
     {
-      "id": "street-collision-arcade-west-0",
-      "name": "street-collision-arcade-west-0",
+      "id": "street-collision-market-common-roof",
+      "name": "street-collision-market-common-roof",
       "parent": "",
       "position": [
-        11.2,
-        2.56,
-        32.5
+        7,
+        6.1,
+        35.75
       ],
       "rotation": [
         0,
@@ -4350,9 +4350,268 @@
         0
       ],
       "scale": [
-        0.32,
-        4,
-        0.4
+        26,
+        0.18,
+        17.5
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-loading-0",
+      "name": "street-collision-arcade-loading-0",
+      "parent": "",
+      "position": [
+        -5.5,
+        3.26,
+        27.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.3,
+        5.4,
+        0.34
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-loading-1",
+      "name": "street-collision-arcade-loading-1",
+      "parent": "",
+      "position": [
+        -5.5,
+        3.26,
+        36
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.3,
+        5.4,
+        0.34
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-loading-2",
+      "name": "street-collision-arcade-loading-2",
+      "parent": "",
+      "position": [
+        -5.5,
+        3.26,
+        44.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.3,
+        5.4,
+        0.34
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-hall-0",
+      "name": "street-collision-arcade-hall-0",
+      "parent": "",
+      "position": [
+        4.3,
+        3.26,
+        27.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.3,
+        5.4,
+        0.34
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-hall-1",
+      "name": "street-collision-arcade-hall-1",
+      "parent": "",
+      "position": [
+        4.3,
+        3.26,
+        36
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.3,
+        5.4,
+        0.34
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-hall-2",
+      "name": "street-collision-arcade-hall-2",
+      "parent": "",
+      "position": [
+        4.3,
+        3.26,
+        44.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.3,
+        5.4,
+        0.34
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-west-0",
+      "name": "street-collision-arcade-west-0",
+      "parent": "",
+      "position": [
+        16,
+        3.26,
+        27.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.3,
+        5.4,
+        0.34
       ],
       "components": [
         {
@@ -4377,9 +4636,9 @@
       "name": "street-collision-arcade-west-1",
       "parent": "",
       "position": [
-        11.2,
-        2.56,
-        37.5
+        10.5,
+        3.26,
+        36
       ],
       "rotation": [
         0,
@@ -4387,9 +4646,9 @@
         0
       ],
       "scale": [
-        0.32,
-        4,
-        0.4
+        0.3,
+        5.4,
+        0.34
       ],
       "components": [
         {
@@ -4414,9 +4673,9 @@
       "name": "street-collision-arcade-west-2",
       "parent": "",
       "position": [
-        11.2,
-        2.56,
-        42.5
+        9.3,
+        3.26,
+        44.5
       ],
       "rotation": [
         0,
@@ -4424,9 +4683,9 @@
         0
       ],
       "scale": [
-        0.32,
-        4,
-        0.4
+        0.3,
+        5.4,
+        0.34
       ],
       "components": [
         {
@@ -4451,9 +4710,9 @@
       "name": "street-collision-arcade-east-0",
       "parent": "",
       "position": [
-        19,
-        2.56,
-        32.5
+        19.5,
+        3.26,
+        27.5
       ],
       "rotation": [
         0,
@@ -4461,9 +4720,9 @@
         0
       ],
       "scale": [
-        0.32,
-        4,
-        0.4
+        0.3,
+        5.4,
+        0.34
       ],
       "components": [
         {
@@ -4488,9 +4747,9 @@
       "name": "street-collision-arcade-east-1",
       "parent": "",
       "position": [
-        19,
-        2.56,
-        37.5
+        19.5,
+        3.26,
+        36
       ],
       "rotation": [
         0,
@@ -4498,9 +4757,9 @@
         0
       ],
       "scale": [
-        0.32,
-        4,
-        0.4
+        0.3,
+        5.4,
+        0.34
       ],
       "components": [
         {
@@ -4525,9 +4784,9 @@
       "name": "street-collision-arcade-east-2",
       "parent": "",
       "position": [
-        19,
-        2.56,
-        42.5
+        19.5,
+        3.26,
+        44.5
       ],
       "rotation": [
         0,
@@ -4535,9 +4794,9 @@
         0
       ],
       "scale": [
-        0.32,
-        4,
-        0.4
+        0.3,
+        5.4,
+        0.34
       ],
       "components": [
         {
@@ -5224,13 +5483,13 @@
       ]
     },
     {
-      "id": "street-collision-trellis--4.8-53.2",
-      "name": "street-collision-trellis--4.8-53.2",
+      "id": "street-collision-trellis--5.5-50.5",
+      "name": "street-collision-trellis--5.5-50.5",
       "parent": "",
       "position": [
-        -4.8,
-        2.15,
-        53.2
+        -5.5,
+        3.26,
+        50.5
       ],
       "rotation": [
         0,
@@ -5238,9 +5497,9 @@
         0
       ],
       "scale": [
-        0.16,
-        3.12,
-        0.16
+        0.24,
+        5.4,
+        0.24
       ],
       "components": [
         {
@@ -5261,13 +5520,13 @@
       ]
     },
     {
-      "id": "street-collision-trellis--4.8-55.9",
-      "name": "street-collision-trellis--4.8-55.9",
+      "id": "street-collision-trellis--5.5-56.5",
+      "name": "street-collision-trellis--5.5-56.5",
       "parent": "",
       "position": [
-        -4.8,
-        2.15,
-        55.9
+        -5.5,
+        3.26,
+        56.5
       ],
       "rotation": [
         0,
@@ -5275,9 +5534,9 @@
         0
       ],
       "scale": [
-        0.16,
-        3.12,
-        0.16
+        0.24,
+        5.4,
+        0.24
       ],
       "components": [
         {
@@ -5298,13 +5557,13 @@
       ]
     },
     {
-      "id": "street-collision-trellis-0.8-53.2",
-      "name": "street-collision-trellis-0.8-53.2",
+      "id": "street-collision-trellis-4.3-50.5",
+      "name": "street-collision-trellis-4.3-50.5",
       "parent": "",
       "position": [
-        0.8,
-        2.15,
-        53.2
+        4.3,
+        3.26,
+        50.5
       ],
       "rotation": [
         0,
@@ -5312,9 +5571,9 @@
         0
       ],
       "scale": [
-        0.16,
-        3.12,
-        0.16
+        0.24,
+        5.4,
+        0.24
       ],
       "components": [
         {
@@ -5335,13 +5594,13 @@
       ]
     },
     {
-      "id": "street-collision-trellis-0.8-55.9",
-      "name": "street-collision-trellis-0.8-55.9",
+      "id": "street-collision-trellis-4.3-56.5",
+      "name": "street-collision-trellis-4.3-56.5",
       "parent": "",
       "position": [
-        0.8,
-        2.15,
-        55.9
+        4.3,
+        3.26,
+        56.5
       ],
       "rotation": [
         0,
@@ -5349,9 +5608,231 @@
         0
       ],
       "scale": [
-        0.16,
-        3.12,
-        0.16
+        0.24,
+        5.4,
+        0.24
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-trellis-10.5-50.5",
+      "name": "street-collision-trellis-10.5-50.5",
+      "parent": "",
+      "position": [
+        10.5,
+        3.26,
+        50.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.24,
+        5.4,
+        0.24
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-trellis-10.5-56.5",
+      "name": "street-collision-trellis-10.5-56.5",
+      "parent": "",
+      "position": [
+        10.5,
+        3.26,
+        56.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.24,
+        5.4,
+        0.24
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-trellis-19.5-50.5",
+      "name": "street-collision-trellis-19.5-50.5",
+      "parent": "",
+      "position": [
+        19.5,
+        3.26,
+        50.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.24,
+        5.4,
+        0.24
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-trellis-19.5-56.5",
+      "name": "street-collision-trellis-19.5-56.5",
+      "parent": "",
+      "position": [
+        19.5,
+        3.26,
+        56.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.24,
+        5.4,
+        0.24
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-gear-pedestal",
+      "name": "street-collision-gear-pedestal",
+      "parent": "",
+      "position": [
+        19,
+        1.05,
+        54.35
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.38,
+        0.98,
+        0.4
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-gear-wheel",
+      "name": "street-collision-gear-wheel",
+      "parent": "",
+      "position": [
+        19,
+        1.5,
+        54.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.75,
+        1.75,
+        0.38
       ],
       "components": [
         {

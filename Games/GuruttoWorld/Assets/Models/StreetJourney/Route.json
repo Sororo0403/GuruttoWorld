@@ -23,16 +23,16 @@
       23
     ],
     [
-      10,
+      7,
       26
     ],
     [
-      10,
-      31.8
+      7,
+      30
     ],
     [
-      15,
-      31.8
+      14,
+      33
     ],
     [
       15,
@@ -101,8 +101,8 @@
       23
     ],
     [
-      10,
-      31.8
+      7,
+      30
     ],
     [
       15,
@@ -149,16 +149,20 @@
   ],
   "detour": [
     [
-      10,
-      32.4
+      7,
+      30
     ],
     [
-      0,
-      32.4
+      1,
+      33
     ],
     [
-      0,
+      1,
       43.5
+    ],
+    [
+      1,
+      46
     ],
     [
       8,
@@ -213,12 +217,36 @@
     "arrival-square",
     "quayside",
     "market-apron",
+    "market-west-forecourt",
     "market-streets",
     "garden-court",
     "east-roof",
     "west-roof",
     "catch-balcony",
     "clock-lookout"
+  ],
+  "coverSamples": [
+    {
+      "name": "covered-market",
+      "x": 15,
+      "z0": 29,
+      "z1": 43,
+      "floor": 0.56
+    },
+    {
+      "name": "slatted-garden",
+      "x": 8,
+      "z0": 45,
+      "z1": 56.5,
+      "floor": 0.56
+    },
+    {
+      "name": "open-roof",
+      "x": 15,
+      "z0": 71,
+      "z1": 77,
+      "floor": 3.92
+    }
   ],
   "stages": [
     "カフェを囲む入口広場",
