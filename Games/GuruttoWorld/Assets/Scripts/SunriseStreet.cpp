@@ -228,7 +228,7 @@ namespace
         result.update=UpdatePlayer;
         return result;
     }
-    ScriptDefinition GuidancePlayer()
+    ScriptDefinition StreetPlayer()
     {
         auto result=Player();
         result.update=[](ScriptContext& c) {
@@ -455,9 +455,9 @@ bool Register_SunriseStreet(void* owner,SceneRuntime::RegisterModuleScript add)
     const auto player=Player(),camera=Camera(),patrol=Patrol();
     const auto mechanism=Mechanism(),bridge=Bridge(),hero=Hero(),lifetime=Lifetime();
     const auto blockPlayer=BlockPlayer(),blockCamera=BlockCamera(),shutter=Shutter();
-    const auto guidancePlayer=GuidancePlayer();
+    const auto streetPlayer=StreetPlayer();
     return add(owner,"SunrisePlayer",&player) && add(owner,"SunriseCamera",&camera) && add(owner,"SunriseEnemy",&patrol) &&
         add(owner,"SunriseMechanism",&mechanism) && add(owner,"SunriseBridge",&bridge) && add(owner,"SunriseHero",&hero) && add(owner,"SunriseSound",&lifetime) &&
         add(owner,"SunriseBlockPlayer",&blockPlayer) && add(owner,"SunriseBlockCamera",&blockCamera) && add(owner,"SunriseShutter",&shutter) &&
-        add(owner,"GuidancePlayer",&guidancePlayer);
+        add(owner,"StreetPlayer",&streetPlayer);
 }

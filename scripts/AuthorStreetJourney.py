@@ -1,18 +1,16 @@
-"""Author the single street journey; preserve the earlier comparison courses."""
-import copy,json,math
-from pathlib import Path
-from GuidanceDistrict import City
+"""Author the street stage and its START connection."""
+import copy,json
+from StreetDistrict import StreetDistrict
 from SunriseDistrictBake import DistrictBake
 from AuthorSunriseStreet import GAME,model,script
 from GenerateParkAdventure import obj,component,coin,character,write,box
-from AuthorGuidanceLab import course
 
 FOLDER='Assets/Models/StreetJourney'
 SCENE='Assets/Scenes/StreetJourney.json'
 
-class Journey(City):
+class Journey(StreetDistrict):
  def __init__(self):
-  super().__init__(4)
+  super().__init__()
   self.b=DistrictBake(FOLDER,'Assets/Materials/StreetJourney','Assets/Textures/StreetJourney','journey')
  def floor(self,key,x0,x1,z0,z1,h=0):
   self.cube(((x0+x1)/2,h-.35,(z0+z1)/2),(x1-x0,.7,z1-z0),self.plaster,key)
@@ -67,7 +65,7 @@ class Journey(City):
   self.cube((4,1.25,49),(3.8,.04,2.8),self.leaf)
   # A single attack-operated shutter connects the action to a new place.
   lever=model('journey-lever',(17,1.86,54),(1.7,1.7,1.7),'Assets/Models/Title/Factory/cog-a.obj',(math.pi/2,0,0))
-  lever['components'].append(component('Script',behaviour='GuidanceBell',parameters={}))
+  lever['components'].append(component('Script',behaviour='StreetGear',parameters={}))
   self.objects.append(lever)
   self.objects.append(box('journey-shutter',(14,2.1,57),(4,3.1,.24),'Gate',True))
   for x in (11.8,16.2):self.cube((x,2.3,57),(.35,3.5,.5),self.teal)
@@ -104,24 +102,34 @@ class Journey(City):
    e=character('stage-enemy-'+str(i),(x,y,z),'Enemy','ParkEnemy');e[0]['components'][-1]['behaviour']='SunriseEnemy';self.objects+=e
   self.objects.append(obj('stage-checkpoint',(-1,1.26,48)))
   self.objects+=self.collisions
-  self.anchors=[[-14,3,29],[5,3,42],[14,4,65],[-3,7,77]]
-  for i,p in enumerate(self.anchors):self.objects.append(obj('lab-focus-'+str(i),p))
   self.route=[[-14,10],[-14,22],[-9,23],[-5,23],[3,25],[5,32],[5,44],[-1,44],[-1,48],[-1,52],[9,53],[17,54],[14,54],[14,66],[14,73],[10,73],[5,73],[-3,73],[-3,77]]
   self.shots=[[-14,5],[-12,22],[3,31],[2,48],[14,65],[12,73],[-3,75]]
   return self
 
+def assemble(city,geometry):
+ old=json.loads((GAME/'Assets/Scenes/SunriseBlock.json').read_text(encoding='utf-8'))
+ keep={'block-sky','block-directionallight','music','park-player','hero-rig','hero-body','hero-backpack','hero-backpack-buckle','park-puff','park-ui'}
+ objects=[copy.deepcopy(o) for o in old['objects'] if o['id'] in keep or o['id'].startswith(('park-player-','audio-'))]
+ objects+=copy.deepcopy(geometry)+copy.deepcopy(city.objects)
+ player=next(o for o in objects if o['id']=='park-player');player['position']=list(city.spawn)
+ for c in player['components']:
+  if c['type']=='PlayerController':c.update(moveSpeed=4.6,stepHeight=.36)
+  if c['type']=='Script':
+   c['behaviour']='StreetPlayer';c['parameters'].update(leftLimit=-34,rightLimit=34,coinTotal=8)
+   data=c['data']['value'];data['scene']={'kind':'string','value':SCENE}
+   data['returnScene']={'kind':'string','value':'Assets/Scenes/TitleStreet.json'}
+   for key in ('goal','gate','stats','hint','result'):data[key]={'kind':'reference','value':''}
+   for key in ('coins','switches','enemies','checkpoints'):data[key]={'kind':'array','value':[]}
+   for key,prefix in (('coins','stage-coin-'),('enemies','stage-enemy-'),('checkpoints','stage-checkpoint')):
+    data[key]={'kind':'array','value':[{'kind':'reference','value':o['id']} for o in objects if o['id'].startswith(prefix) and (key!='enemies' or o['name']=='ParkEnemy')]}
+ camera=script('StreetCamera',target='park-player');camera['parameters']={'height':4.5,'distance':7.6,'lead':3.0}
+ objects.append(obj('park-camera',[-14,4.6,-7.3],rotation=[.22,0,0],components=[
+  component('Camera',verticalFov=58,nearClip=.1,farClip=150,referenceAspect=16/9,preserveHorizontal=True),camera]))
+ objects.append(obj('street-destination',city.goal))
+ return dict(version=4,settings=copy.deepcopy(old['settings']),objects=objects)
+
 def author():
- city=Journey().build();geometry=city.b.finish();scene=course(4,False,city,geometry)
- scene['objects']=[o for o in scene['objects'] if o['id'] not in ('lab-controller','lab-goal')]
- for o in scene['objects']:
-  if o['id']=='park-player':
-   for c in o['components']:
-    if c['type']=='Script':
-     c['parameters'].update(coinTotal=8,leftLimit=-34,rightLimit=34)
-     c['data']['value']['scene']['value']=SCENE
-  if o['id']=='park-camera':
-   o['position']=[-14,4.6,-7.3]
-   c=next(c for c in o['components'] if c['type']=='Script');c['parameters']['journey']=1
+ city=Journey().build();geometry=city.b.finish();scene=assemble(city,geometry)
  scene['objects'].append(obj('journey-controller',(0,0,0),components=[component('Script',behaviour='StreetJourney',parameters={})]))
  write(GAME/SCENE,scene)
  write(GAME/(FOLDER+'/Route.json'),dict(version=1,scene=SCENE,route=city.route,shots=city.shots,

@@ -13,7 +13,7 @@
 #include <iostream>
 #include <stdexcept>
 bool Register_SunriseStreet(void*,SceneRuntime::RegisterModuleScript);
-bool Register_GuidanceLab(void*,SceneRuntime::RegisterModuleScript);
+bool Register_StreetJourney(void*,SceneRuntime::RegisterModuleScript);
 namespace {
 using namespace SceneRuntime;
 void Require(bool condition,const std::string& message) {if(!condition)throw std::runtime_error(message);}
@@ -30,10 +30,10 @@ const ScenePlacement& Find(const SceneLayout& layout,const std::string& id) {
 struct Simulation {
  SceneLayout layout=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json");
  PhysicsWorld physics;ScenePhysics::States states;ScriptRuntime scripts;UiState ui;int frames=0;
- bool inspectGuidance=false;float lastYaw=0;
+ bool inspectStreet=false;float lastYaw=0;
  explicit Simulation(const std::string& path="Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json") {
   layout=SceneLayout::Load(path);
-  inspectGuidance=path.find("GuidanceLab/Course-")!=std::string::npos || path.find("StreetJourney.json")!=std::string::npos;
+  inspectStreet=path.find("StreetJourney.json")!=std::string::npos;
   for(auto& o:layout.objects)for(auto& script:o.scripts)if(script.behaviour=="SunriseSound")script.parameters["volume"]=0;
  }
  ~Simulation() {scripts.Stop(layout);}
@@ -45,7 +45,7 @@ struct Simulation {
   Require(physics.Advance(layout,states,dt,x,z,jump,"Games/GuruttoWorld",error),error);
   Require(scripts.Update(layout,dt,error,input,pressed,&physics),error);
   Require(scripts.Update(layout,dt,error,input,pressed,&physics,ScriptPhase::LateUpdate),error);
-  if(inspectGuidance) {
+  if(inspectStreet) {
    const auto& player=Find(layout,"park-player");const auto& camera=Find(layout,"park-camera");
    auto delta=camera.position;float length=0;
    for(size_t i=0;i<3;++i){delta[i]-=player.position[i];length+=delta[i]*delta[i];}
@@ -284,7 +284,7 @@ void Render() {
  }
  SceneEnvironment title;Require(title.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",error),error);
  auto& canvas=*Find(title.World().Layout(),"title-canvas").canvas;
- Require(canvas.menu->entries.front().target=="Assets/Scenes/GuidanceLab/Course-4A.json","START target");
+ Require(canvas.menu->entries.front().target=="Assets/Scenes/StreetJourney.json","START target");
  // The App owns the menu controller and performs its returned scene transition.
  TitleMenu menu;menu.Configure(*canvas.menu);menu.SetTransitionDuration(3.2f);
  TitleMenuInput input;input.active=true;menu.Update(input,.1);
@@ -312,59 +312,6 @@ void RenderBlock() {
   Capture(renderer,scene,name);Require(renderer.WaitForIdle(),"Block capture complete");
  }
 }
-void GuidancePlaythrough() {
- SetEnvironmentVariableW(L"WP1_GUIDANCE_RESULTS",std::filesystem::absolute("generated/guidance-validation-v5/trials.csv").c_str());
- {
-  Simulation s("Games/GuruttoWorld/Assets/Scenes/GuidanceGallery.json");s.Tick();
-  Require(Find(s.layout,"lab-name-1").text->text.find("反復法")!=std::string::npos,"Gallery names the figure");
-  std::string error;
-  Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceBlind",true}},&s.physics),error);
-  Require(Find(s.layout,"lab-name-1").text->text.find("反復法")==std::string::npos,"Blind mode conceals technique");
-  Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceBlind",true},{"GuidanceMirror",true}},&s.physics),error);
-  Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceCourse2",true}},&s.physics),error);
-  const auto commands=s.scripts.TakeSceneCommands();
-  Require(commands.size()==1 && commands[0].scene=="Assets/Scenes/GuidanceLab/Course-1B.json","Gallery selects mirrored course");
- }
- std::ifstream manifest("Games/GuruttoWorld/Assets/Models/GuidanceLab/Experiments.json");const auto study=Engine::Json::parse(manifest);
- std::array<char,16> selected{};const auto selection=GetEnvironmentVariableA("WP1_GUIDANCE_CASE",selected.data(),static_cast<DWORD>(selected.size()));
- for(int mode=0;mode<6;++mode)for(int mirror=0;mirror<2;++mirror) {
-  if(selection && mode!=std::atoi(selected.data()))continue;
-  const std::string label=std::to_string(mode)+(mirror?"B":"A");
-  const auto path="Games/GuruttoWorld/Assets/Scenes/GuidanceLab/Course-"+label+".json";
-  // No required objective can be completed by simply holding forward.
-  if(!mirror) {
-   Simulation forward(path);for(int i=0;i<650;++i)forward.Tick(0,1);
-   Require(Has(forward.layout,"stage-exit-lock") && forward.ui.Value("guidanceComplete")==0,"Forward alone does not clear: "+label);
-   std::cout<<"PASS forward-only probe "<<label<<"\n";
-  }
-  Simulation s(path);for(int i=0;i<30;++i)s.Tick();
-  for(const auto& point:study.at("cases").at(mode*2+mirror).at("route"))s.Walk(point.at(0).get<float>(),point.at(1).get<float>());
-  Require(!Has(s.layout,"bell-seal-0") && !Has(s.layout,"bell-seal-1"),"Both bells activated: "+label);
-  Require(!Has(s.layout,"stage-exit-lock"),"Two bells physically open exit: "+label);
-  Require(s.ui.Value("guidanceComplete")==1,"Exploration, activation and return clear stage: "+label);
-  Require(s.scripts.TakeSceneCommands().empty(),"Clear preserves exploration");
-  std::string error;Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"GuidanceMenu",true}},&s.physics),error);
-  Require(s.scripts.TakeSceneCommands().size()==1,"Can return to stage selection");
-  std::cout<<"PASS adventure "<<label<<": two objectives, physical door, lateral exit, clear\n";
- }
- if(selection)return;
- for(int mode:{0,5}) {
-  Simulation s("Games/GuruttoWorld/Assets/Scenes/GuidanceLab/Course-"+std::to_string(mode)+"A.json");
-  for(const auto& point:study.at("cases").at(mode*2).at("alternative"))s.Walk(point.at(0).get<float>(),point.at(1).get<float>());
-  Require(s.ui.Value("guidanceComplete")==1,"Either order clears: "+std::to_string(mode));
- }
- {
-  Simulation s("Games/GuruttoWorld/Assets/Scenes/GuidanceLab/Course-4A.json");
-  s.Walk(7,14);s.Walk(7,46);
-  for(const auto& point:study.at("cases").at(8).at("optionalRoute"))s.Walk(point.at(0).get<float>(),point.at(1).get<float>());
-  Require(Find(s.layout,"park-player").position[1]>2,"Optional roof reached by real stairs");
-  const auto target=study.at("cases").at(8).at("jumpTarget");s.JumpTo(target.at(0).get<float>(),target.at(1).get<float>());
-  Require(!Has(s.layout,"stage-coin-0") && !Has(s.layout,"stage-coin-1"),"Roof and gap exploration collect optional rewards");
-  Require(Has(s.layout,"stage-exit-lock"),"Optional exploration does not skip main objectives");
- }
- std::cout<<"PASS adventures: all twelve layouts, forward probes, order freedom, roof and gap\n";
-}
-
 void JourneyPlaythrough() {
  const std::string path="Games/GuruttoWorld/Assets/Scenes/StreetJourney.json";
  Simulation s(path);for(int i=0;i<30;++i)s.Tick();
@@ -392,6 +339,10 @@ void JourneyPlaythrough() {
  s.JumpTo(5,73);s.JumpTo(10,73);s.JumpTo(5,73);s.Walk(-3,73);s.Walk(-3,77);
  Require(s.ui.Value("journeyComplete")==1,"Street journey reaches next district");
  Require(s.scripts.TakeSceneCommands().empty(),"Completion preserves exploration");
+ std::string error;s.scripts.TakeSceneCommands();
+ Require(s.scripts.Update(s.layout,1.0/60,error,{},{{"Cancel",true}},&s.physics),error);
+ const auto commands=s.scripts.TakeSceneCommands();
+ Require(commands.size()==1 && commands[0].scene=="Assets/Scenes/TitleStreet.json","Esc returns to title");
  std::cout<<"PASS street journey: first jump, optional alley, gear/shutter, checkpoint, roof stairs, roof jump, finish; "<<s.frames<<" frames\n";
 }
 void RenderJourney() {
@@ -424,91 +375,22 @@ void RenderJourney() {
  Require(scene.Ui().Value("journeyComplete")==1,"Rendered journey reaches finish");
  std::cout<<"PASS rendered street journey: "<<frame<<" frames, "<<shot<<" captures\n";
 }
-void RenderGuidance() {
- Engine::Window window;Engine::DirectX12Renderer renderer;
- Require(window.Create(L"Guidance lab validation",1280,720) && renderer.Initialize(window.GetHandle()),"Guidance renderer");
- const auto root=std::filesystem::absolute("Games/GuruttoWorld");std::string error;
- {
-  SceneEnvironment scene;Require(scene.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",error),error);
-  GamePlayback playback;playback.Initialize(scene,root,std::filesystem::absolute("generated/guidance-validation/settings.json"),false);
-  playback.Title().Activate(scene.Click("world-start"),scene.Ui());
-  Engine::InputActions noInput;
-  for(int i=0;i<330;++i) {playback.PrepareInput(scene,noInput,true,1.0/60);playback.Update(scene,1.0/60,true);}
-  Require(scene.ActiveSceneName().find("StreetJourney")!=std::string::npos,"START enters rebuilt district");
-  Require(renderer.WaitForIdle(),"START traversal GPU complete");
- }
- {
-  SceneEnvironment scene;Require(scene.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",error),error);
-  GamePlayback playback;playback.Initialize(scene,root,std::filesystem::absolute("generated/guidance-validation/settings.json"),false);
-  scene.Click("guidance-entry");playback.Update(scene,1.0/60,true);
-  Require(scene.ActiveSceneName().find("GuidanceGallery")!=std::string::npos,"Real title playback enters gallery by button event");
-  scene.Click("lab-name-1");playback.Update(scene,1.0/60,true);
-  Require(scene.ActiveSceneName().find("Course-1")!=std::string::npos,"Real gallery playback loads a selected course");
-  Require(renderer.WaitForIdle(),"Title / gallery traversal GPU complete");
- }
- for(int mode=-1;mode<6;++mode) {
-  const auto path=mode<0?"Assets/Scenes/GuidanceGallery.json":"Assets/Scenes/GuidanceLab/Course-"+std::to_string(mode)+"A.json";
-  auto layout=SceneLayout::Load(root/path);
-  if(mode>=0) {
-   std::ifstream manifest(root/"Assets/Models/GuidanceLab/Experiments.json");const auto study=Engine::Json::parse(manifest);
-   Find(layout,"park-player").position=study.at("cases").at(mode*2).at("renderShots").at(0).get<std::array<float,3>>();
-  }
-  SceneEnvironment scene;Require(renderer.WaitForIdle() && scene.Initialize(renderer,root,layout,error),error);
-  for(int i=0;i<60;++i) {Require(scene.MovePlayers(1.0/60,0,0),"Guidance fixed update");scene.Update(1.0/60,true,true);}
-  Capture(renderer,scene,"guidance-"+std::to_string(mode));Require(renderer.WaitForIdle(),"Guidance capture");
- }
- std::ifstream manifest(root/"Assets/Models/GuidanceLab/Experiments.json");const auto study=Engine::Json::parse(manifest);
- for(int mode=0;mode<6;++mode) {
-  int shot=0;
-  for(const auto& point:study.at("cases").at(mode*2).at("renderShots")) {
-   auto layout=SceneLayout::Load(root/("Assets/Scenes/GuidanceLab/Course-"+std::to_string(mode)+"A.json"));
-   Find(layout,"park-player").position=point.get<std::array<float,3>>();
-   SceneEnvironment frame;Require(renderer.WaitForIdle() && frame.Initialize(renderer,root,layout,error),error);
-   for(int i=0;i<90;++i) {Require(frame.MovePlayers(1.0/60,0,0),"Storyboard physics");frame.Update(1.0/60,true,true);}
-   Capture(renderer,frame,"guidance-story-"+std::to_string(mode)+"-"+std::to_string(shot++));
-   Require(renderer.WaitForIdle(),"Storyboard GPU complete");
-  }
- }
 
- if(GetEnvironmentVariableA("WP1_GUIDANCE_FILM",nullptr,0)) {
-  SceneEnvironment scene;Require(scene.Initialize(renderer,root,root/"Assets/Scenes/GuidanceLab/Course-4A.json",error),error);
-  int frame=0,shot=0;
-  const auto route=study.at("cases").at(8).at("route").get<std::vector<std::array<float,2>>>();
-  for(const auto& point:route)for(int tick=0;tick<1200;++tick) {
-   const auto p=Find(scene.World().Layout(),"park-player").position;
-   const float dx=point[0]-p[0],dz=point[1]-p[2];
-   if(std::hypot(dx,dz)<.2f)break;
-   const float x=std::clamp(dx*3,-1.0f,1.0f),z=std::clamp(dz*3,-1.0f,1.0f);
-   scene.SetInputActions({{"MoveRight",std::max(0.0f,x)},{"MoveLeft",std::max(0.0f,-x)},
-       {"MoveForward",std::max(0.0f,z)},{"MoveBack",std::max(0.0f,-z)}},{{"Attack",frame%25==0}});
-   Require(scene.MovePlayers(1.0/60,x,z),"Film physics move");scene.Update(1.0/60,true,true);
-   if(frame++%15==0)Capture(renderer,scene,"guidance-film-"+std::to_string(shot++));
-   Require(tick<1199,"Film waypoint remains traversable");
-  }
-  Require(scene.Ui().Value("guidanceComplete")==1,"Rendered adventure completes both bells and exit");
-  std::cout<<"PASS continuous rendered walk: "<<frame<<" frames, "<<shot<<" captures\n";
- }
-}
 }
 int main() {
  std::cout.setf(std::ios::unitbuf);
  try {
   std::filesystem::create_directories("generated/sunrise");Engine::Log::Initialize("generated/sunrise/validation.log");
   Require(Register_SunriseStreet(nullptr,Register),"Scripts register");
-  Require(Register_GuidanceLab(nullptr,Register),"Guidance scripts register");
+  Require(Register_StreetJourney(nullptr,Register),"Street scripts register");
   if(GetEnvironmentVariableA("WP1_JOURNEY_ONLY",nullptr,0)) {
    if(!GetEnvironmentVariableA("WP1_SUNRISE_RENDER_ONLY",nullptr,0))JourneyPlaythrough();
    if(!GetEnvironmentVariableA("WP1_SUNRISE_CPU_ONLY",nullptr,0))RenderJourney();
    std::cout<<"PASS StreetJourney\n";return 0;
   }
-  if(GetEnvironmentVariableA("WP1_GUIDANCE_ONLY",nullptr,0)) {
-   if(!GetEnvironmentVariableA("WP1_SUNRISE_RENDER_ONLY",nullptr,0))GuidancePlaythrough();
-   if(!GetEnvironmentVariableA("WP1_SUNRISE_CPU_ONLY",nullptr,0))RenderGuidance();
-   std::cout<<"PASS GuidanceLab\n";return 0;
-  }
   const bool blockOnly=GetEnvironmentVariableA("WP1_SUNRISE_BLOCK_ONLY",nullptr,0)!=0;
   if(!GetEnvironmentVariableA("WP1_SUNRISE_RENDER_ONLY",nullptr,0)) {if(!blockOnly){AudioPool();Playthrough();DirectRoute();}PlazaExploration();BlockPlaythrough();}
   if(!GetEnvironmentVariableA("WP1_SUNRISE_CPU_ONLY",nullptr,0)){if(!blockOnly)Render();RenderBlock();}
   std::cout<<"PASS SunriseStreet\n";return 0;
- } catch(const std::exception& e) {std::ofstream("generated/guidance-failure.txt")<<e.what();std::cout<<"FAIL: "<<e.what()<<"\n";for(const auto& log:Engine::Log::Recent())if(log.level==Engine::LogLevel::Error)std::cerr<<log.text<<"\n";return 1;}
+ } catch(const std::exception& e) {std::ofstream("generated/street-validation-failure.txt")<<e.what();std::cout<<"FAIL: "<<e.what()<<"\n";for(const auto& log:Engine::Log::Recent())if(log.level==Engine::LogLevel::Error)std::cerr<<log.text<<"\n";return 1;}
 }

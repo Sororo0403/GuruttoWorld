@@ -96,7 +96,7 @@
     <ClInclude Include="SpriteResourceValidation.h" />
     <ClCompile Include="SunriseStreetValidation.cpp" />
     <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\SunriseStreet.cpp" />
-    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\GuidanceLab.cpp" />
+    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\StreetJourney.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">

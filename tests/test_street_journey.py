@@ -20,14 +20,26 @@ class StreetJourneyTests(unittest.TestCase):
      elif isinstance(v,list):
       for x in v:visit(x)
     visit(c.get('data',{}))
+ def test_title_and_current_stage_have_no_comparison_mode(self):
+  title=json.loads((GAME/'Assets/Scenes/TitleStreet.json').read_text(encoding='utf-8'))
+  project=json.loads((GAME/'Assets/Project.json').read_text(encoding='utf-8'))
+  self.assertFalse(any(k.startswith('Guidance') for k in project['inputActions']))
+  objects={o['id']:o for o in title['objects']}
+  self.assertNotIn('guidance-entry',objects);self.assertNotIn('lab-controller',objects)
+  button=next(c for c in objects['world-start']['components'] if c['type']=='Button')
+  self.assertEqual(button['target'],'Assets/Scenes/StreetJourney.json')
+  current=(GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8')
+  self.assertNotIn('Guidance',current)
+  self.assertFalse((GAME/'Assets/Scenes/GuidanceGallery.json').exists())
+  self.assertFalse((GAME/'Assets/Scenes/GuidanceLab').exists())
  def test_disconnected_jump_surfaces_and_local_floors(self):
   scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
   objects={o['id']:o for o in scene['objects']}
-  floor=lambda key:objects['lab-collision-'+key]
+  floor=lambda key:objects['street-collision-'+key]
   west,east=floor('cafe-west-floor'),floor('cafe-east-floor')
   edge=west['position'][0]+west['scale'][0]/2
   self.assertGreater(east['position'][0]-east['scale'][0]/2-edge,1.5)
-  self.assertNotIn('lab-collision-floor',objects)
+  self.assertNotIn('street-collision-floor',objects)
   self.assertGreater(floor('east-roof')['position'][1],3)
   self.assertGreater(floor('roof-step-11')['scale'][1],floor('roof-step-0')['scale'][1])
   self.assertIn('journey-shutter',objects)

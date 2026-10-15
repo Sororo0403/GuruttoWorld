@@ -325,7 +325,7 @@
           "type": "Script",
           "id": "script",
           "enabled": true,
-          "behaviour": "GuidancePlayer",
+          "behaviour": "StreetPlayer",
           "parameters": {
             "floatDuration": 0.85,
             "maxHp": 3.0,
@@ -338,7 +338,7 @@
             "coinDistance": 1.25,
             "switchDistance": 2.9,
             "checkpointDistance": 1.6,
-            "requiredSwitches": 2,
+            "requiredSwitches": 1,
             "coinTotal": 8,
             "goalDistance": 2.0,
             "respawnHeight": 1.05,
@@ -365,7 +365,7 @@
               },
               "returnScene": {
                 "kind": "string",
-                "value": "Assets/Scenes/GuidanceGallery.json"
+                "value": "Assets/Scenes/TitleStreet.json"
               },
               "coinsName": {
                 "kind": "string",
@@ -2225,7 +2225,7 @@
           "type": "Script",
           "id": "script",
           "enabled": true,
-          "behaviour": "GuidanceBell",
+          "behaviour": "StreetGear",
           "parameters": {}
         }
       ]
@@ -3232,8 +3232,8 @@
       "components": []
     },
     {
-      "id": "lab-collision-entry-floor",
-      "name": "lab-collision-entry-floor",
+      "id": "street-collision-entry-floor",
+      "name": "street-collision-entry-floor",
       "parent": "",
       "position": [
         -14.0,
@@ -3269,8 +3269,8 @@
       ]
     },
     {
-      "id": "lab-collision-entry-west",
-      "name": "lab-collision-entry-west",
+      "id": "street-collision-entry-west",
+      "name": "street-collision-entry-west",
       "parent": "",
       "position": [
         -22.0,
@@ -3306,8 +3306,8 @@
       ]
     },
     {
-      "id": "lab-collision-entry-east",
-      "name": "lab-collision-entry-east",
+      "id": "street-collision-entry-east",
+      "name": "street-collision-entry-east",
       "parent": "",
       "position": [
         -6.0,
@@ -3343,8 +3343,8 @@
       ]
     },
     {
-      "id": "lab-collision-entry-back",
-      "name": "lab-collision-entry-back",
+      "id": "street-collision-entry-back",
+      "name": "street-collision-entry-back",
       "parent": "",
       "position": [
         -14,
@@ -3380,8 +3380,8 @@
       ]
     },
     {
-      "id": "lab-collision-cafe-west-floor",
-      "name": "lab-collision-cafe-west-floor",
+      "id": "street-collision-cafe-west-floor",
+      "name": "street-collision-cafe-west-floor",
       "parent": "",
       "position": [
         -13.0,
@@ -3417,8 +3417,8 @@
       ]
     },
     {
-      "id": "lab-collision-cafe-east-floor",
-      "name": "lab-collision-cafe-east-floor",
+      "id": "street-collision-cafe-east-floor",
+      "name": "street-collision-cafe-east-floor",
       "parent": "",
       "position": [
         1.5,
@@ -3454,8 +3454,8 @@
       ]
     },
     {
-      "id": "lab-collision-cafe-west-edge",
-      "name": "lab-collision-cafe-west-edge",
+      "id": "street-collision-cafe-west-edge",
+      "name": "street-collision-cafe-west-edge",
       "parent": "",
       "position": [
         -18,
@@ -3491,8 +3491,8 @@
       ]
     },
     {
-      "id": "lab-collision-cafe-south",
-      "name": "lab-collision-cafe-south",
+      "id": "street-collision-cafe-south",
+      "name": "street-collision-cafe-south",
       "parent": "",
       "position": [
         1.5,
@@ -3528,8 +3528,8 @@
       ]
     },
     {
-      "id": "lab-collision-cafe",
-      "name": "lab-collision-cafe",
+      "id": "street-collision-cafe",
+      "name": "street-collision-cafe",
       "parent": "",
       "position": [
         -16.0,
@@ -3565,8 +3565,8 @@
       ]
     },
     {
-      "id": "lab-collision-cafe-counter",
-      "name": "lab-collision-cafe-counter",
+      "id": "street-collision-cafe-counter",
+      "name": "street-collision-cafe-counter",
       "parent": "",
       "position": [
         -3.7,
@@ -3602,8 +3602,8 @@
       ]
     },
     {
-      "id": "lab-collision-fork-floor",
-      "name": "lab-collision-fork-floor",
+      "id": "street-collision-fork-floor",
+      "name": "street-collision-fork-floor",
       "parent": "",
       "position": [
         1.5,
@@ -3639,8 +3639,8 @@
       ]
     },
     {
-      "id": "lab-collision-kiosk",
-      "name": "lab-collision-kiosk",
+      "id": "street-collision-kiosk",
+      "name": "street-collision-kiosk",
       "parent": "",
       "position": [
         1.0,
@@ -3676,8 +3676,8 @@
       ]
     },
     {
-      "id": "lab-collision-service-counter",
-      "name": "lab-collision-service-counter",
+      "id": "street-collision-service-counter",
+      "name": "street-collision-service-counter",
       "parent": "",
       "position": [
         -5.4,
@@ -3713,8 +3713,8 @@
       ]
     },
     {
-      "id": "lab-collision-east-shop",
-      "name": "lab-collision-east-shop",
+      "id": "street-collision-east-shop",
+      "name": "street-collision-east-shop",
       "parent": "",
       "position": [
         13.5,
@@ -3750,8 +3750,8 @@
       ]
     },
     {
-      "id": "lab-collision-backyard-floor",
-      "name": "lab-collision-backyard-floor",
+      "id": "street-collision-backyard-floor",
+      "name": "street-collision-backyard-floor",
       "parent": "",
       "position": [
         7.5,
@@ -3787,8 +3787,8 @@
       ]
     },
     {
-      "id": "lab-collision-garden-west",
-      "name": "lab-collision-garden-west",
+      "id": "street-collision-garden-west",
+      "name": "street-collision-garden-west",
       "parent": "",
       "position": [
         -10.0,
@@ -3824,8 +3824,8 @@
       ]
     },
     {
-      "id": "lab-collision-garden-east",
-      "name": "lab-collision-garden-east",
+      "id": "street-collision-garden-east",
+      "name": "street-collision-garden-east",
       "parent": "",
       "position": [
         25.0,
@@ -3861,8 +3861,8 @@
       ]
     },
     {
-      "id": "lab-collision-garden-north-left",
-      "name": "lab-collision-garden-north-left",
+      "id": "street-collision-garden-north-left",
+      "name": "street-collision-garden-north-left",
       "parent": "",
       "position": [
         2.5,
@@ -3898,8 +3898,8 @@
       ]
     },
     {
-      "id": "lab-collision-garden-north-right",
-      "name": "lab-collision-garden-north-right",
+      "id": "street-collision-garden-north-right",
+      "name": "street-collision-garden-north-right",
       "parent": "",
       "position": [
         19,
@@ -3935,8 +3935,8 @@
       ]
     },
     {
-      "id": "lab-collision-garden-east-rail",
-      "name": "lab-collision-garden-east-rail",
+      "id": "street-collision-garden-east-rail",
+      "name": "street-collision-garden-east-rail",
       "parent": "",
       "position": [
         21,
@@ -3972,8 +3972,8 @@
       ]
     },
     {
-      "id": "lab-collision-garden-bed",
-      "name": "lab-collision-garden-bed",
+      "id": "street-collision-garden-bed",
+      "name": "street-collision-garden-bed",
       "parent": "",
       "position": [
         4,
@@ -4009,8 +4009,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-0",
-      "name": "lab-collision-roof-step-0",
+      "id": "street-collision-roof-step-0",
+      "name": "street-collision-roof-step-0",
       "parent": "",
       "position": [
         14,
@@ -4046,8 +4046,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-1",
-      "name": "lab-collision-roof-step-1",
+      "id": "street-collision-roof-step-1",
+      "name": "street-collision-roof-step-1",
       "parent": "",
       "position": [
         14,
@@ -4083,8 +4083,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-2",
-      "name": "lab-collision-roof-step-2",
+      "id": "street-collision-roof-step-2",
+      "name": "street-collision-roof-step-2",
       "parent": "",
       "position": [
         14,
@@ -4120,8 +4120,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-3",
-      "name": "lab-collision-roof-step-3",
+      "id": "street-collision-roof-step-3",
+      "name": "street-collision-roof-step-3",
       "parent": "",
       "position": [
         14,
@@ -4157,8 +4157,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-4",
-      "name": "lab-collision-roof-step-4",
+      "id": "street-collision-roof-step-4",
+      "name": "street-collision-roof-step-4",
       "parent": "",
       "position": [
         14,
@@ -4194,8 +4194,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-5",
-      "name": "lab-collision-roof-step-5",
+      "id": "street-collision-roof-step-5",
+      "name": "street-collision-roof-step-5",
       "parent": "",
       "position": [
         14,
@@ -4231,8 +4231,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-6",
-      "name": "lab-collision-roof-step-6",
+      "id": "street-collision-roof-step-6",
+      "name": "street-collision-roof-step-6",
       "parent": "",
       "position": [
         14,
@@ -4268,8 +4268,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-7",
-      "name": "lab-collision-roof-step-7",
+      "id": "street-collision-roof-step-7",
+      "name": "street-collision-roof-step-7",
       "parent": "",
       "position": [
         14,
@@ -4305,8 +4305,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-8",
-      "name": "lab-collision-roof-step-8",
+      "id": "street-collision-roof-step-8",
+      "name": "street-collision-roof-step-8",
       "parent": "",
       "position": [
         14,
@@ -4342,8 +4342,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-9",
-      "name": "lab-collision-roof-step-9",
+      "id": "street-collision-roof-step-9",
+      "name": "street-collision-roof-step-9",
       "parent": "",
       "position": [
         14,
@@ -4379,8 +4379,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-10",
-      "name": "lab-collision-roof-step-10",
+      "id": "street-collision-roof-step-10",
+      "name": "street-collision-roof-step-10",
       "parent": "",
       "position": [
         14,
@@ -4416,8 +4416,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-step-11",
-      "name": "lab-collision-roof-step-11",
+      "id": "street-collision-roof-step-11",
+      "name": "street-collision-roof-step-11",
       "parent": "",
       "position": [
         14,
@@ -4453,8 +4453,8 @@
       ]
     },
     {
-      "id": "lab-collision-east-roof",
-      "name": "lab-collision-east-roof",
+      "id": "street-collision-east-roof",
+      "name": "street-collision-east-roof",
       "parent": "",
       "position": [
         14.5,
@@ -4490,8 +4490,8 @@
       ]
     },
     {
-      "id": "lab-collision-west-roof",
-      "name": "lab-collision-west-roof",
+      "id": "street-collision-west-roof",
+      "name": "street-collision-west-roof",
       "parent": "",
       "position": [
         -0.2999999999999998,
@@ -4527,8 +4527,8 @@
       ]
     },
     {
-      "id": "lab-collision-east-roof-body",
-      "name": "lab-collision-east-roof-body",
+      "id": "street-collision-east-roof-body",
+      "name": "street-collision-east-roof-body",
       "parent": "",
       "position": [
         14.5,
@@ -4564,8 +4564,8 @@
       ]
     },
     {
-      "id": "lab-collision-west-roof-body",
-      "name": "lab-collision-west-roof-body",
+      "id": "street-collision-west-roof-body",
+      "name": "street-collision-west-roof-body",
       "parent": "",
       "position": [
         -0.3,
@@ -4601,8 +4601,8 @@
       ]
     },
     {
-      "id": "lab-collision-east-north",
-      "name": "lab-collision-east-north",
+      "id": "street-collision-east-north",
+      "name": "street-collision-east-north",
       "parent": "",
       "position": [
         14.5,
@@ -4638,8 +4638,8 @@
       ]
     },
     {
-      "id": "lab-collision-east-side",
-      "name": "lab-collision-east-side",
+      "id": "street-collision-east-side",
+      "name": "street-collision-east-side",
       "parent": "",
       "position": [
         20,
@@ -4675,8 +4675,8 @@
       ]
     },
     {
-      "id": "lab-collision-west-north",
-      "name": "lab-collision-west-north",
+      "id": "street-collision-west-north",
+      "name": "street-collision-west-north",
       "parent": "",
       "position": [
         -0.3,
@@ -4712,8 +4712,8 @@
       ]
     },
     {
-      "id": "lab-collision-west-side",
-      "name": "lab-collision-west-side",
+      "id": "street-collision-west-side",
+      "name": "street-collision-west-side",
       "parent": "",
       "position": [
         -7,
@@ -4749,8 +4749,8 @@
       ]
     },
     {
-      "id": "lab-collision-catch-balcony",
-      "name": "lab-collision-catch-balcony",
+      "id": "street-collision-catch-balcony",
+      "name": "street-collision-catch-balcony",
       "parent": "",
       "position": [
         7.7,
@@ -4786,8 +4786,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-exit-1",
-      "name": "lab-collision-roof-exit-1",
+      "id": "street-collision-roof-exit-1",
+      "name": "street-collision-roof-exit-1",
       "parent": "",
       "position": [
         -6.0,
@@ -4823,8 +4823,8 @@
       ]
     },
     {
-      "id": "lab-collision-roof-exit1",
-      "name": "lab-collision-roof-exit1",
+      "id": "street-collision-roof-exit1",
+      "name": "street-collision-roof-exit1",
       "parent": "",
       "position": [
         0.0,
@@ -4860,8 +4860,8 @@
       ]
     },
     {
-      "id": "lab-collision-clock",
-      "name": "lab-collision-clock",
+      "id": "street-collision-clock",
+      "name": "street-collision-clock",
       "parent": "",
       "position": [
         -16.0,
@@ -4897,8 +4897,8 @@
       ]
     },
     {
-      "id": "lab-collision-distant-0",
-      "name": "lab-collision-distant-0",
+      "id": "street-collision-distant-0",
+      "name": "street-collision-distant-0",
       "parent": "",
       "position": [
         -30.0,
@@ -4934,8 +4934,8 @@
       ]
     },
     {
-      "id": "lab-collision-distant-1",
-      "name": "lab-collision-distant-1",
+      "id": "street-collision-distant-1",
+      "name": "street-collision-distant-1",
       "parent": "",
       "position": [
         30.0,
@@ -4971,8 +4971,8 @@
       ]
     },
     {
-      "id": "lab-collision-distant-2",
-      "name": "lab-collision-distant-2",
+      "id": "street-collision-distant-2",
+      "name": "street-collision-distant-2",
       "parent": "",
       "position": [
         -24.0,
@@ -5008,8 +5008,8 @@
       ]
     },
     {
-      "id": "lab-collision-distant-3",
-      "name": "lab-collision-distant-3",
+      "id": "street-collision-distant-3",
+      "name": "street-collision-distant-3",
       "parent": "",
       "position": [
         30.0,
@@ -5045,8 +5045,8 @@
       ]
     },
     {
-      "id": "lab-collision-distant-4",
-      "name": "lab-collision-distant-4",
+      "id": "street-collision-distant-4",
+      "name": "street-collision-distant-4",
       "parent": "",
       "position": [
         3.0,
@@ -5082,8 +5082,8 @@
       ]
     },
     {
-      "id": "lab-collision-distant-street",
-      "name": "lab-collision-distant-street",
+      "id": "street-collision-distant-street",
+      "name": "street-collision-distant-street",
       "parent": "",
       "position": [
         0.0,
@@ -5119,90 +5119,6 @@
       ]
     },
     {
-      "id": "lab-focus-0",
-      "name": "lab-focus-0",
-      "parent": "",
-      "position": [
-        -14,
-        3,
-        29
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": []
-    },
-    {
-      "id": "lab-focus-1",
-      "name": "lab-focus-1",
-      "parent": "",
-      "position": [
-        5,
-        3,
-        42
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": []
-    },
-    {
-      "id": "lab-focus-2",
-      "name": "lab-focus-2",
-      "parent": "",
-      "position": [
-        14,
-        4,
-        65
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": []
-    },
-    {
-      "id": "lab-focus-3",
-      "name": "lab-focus-3",
-      "parent": "",
-      "position": [
-        -3,
-        7,
-        77
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": []
-    },
-    {
       "id": "park-camera",
       "name": "park-camera",
       "parent": "",
@@ -5236,15 +5152,11 @@
           "type": "Script",
           "id": "script",
           "enabled": true,
-          "behaviour": "GuidanceCamera",
+          "behaviour": "StreetCamera",
           "parameters": {
-            "mode": 4,
-            "mirror": 0,
             "height": 4.5,
             "distance": 7.6,
-            "lead": 3.0,
-            "weight": 0.08,
-            "journey": 1
+            "lead": 3.0
           },
           "data": {
             "kind": "object",
@@ -5252,22 +5164,6 @@
               "target": {
                 "kind": "reference",
                 "value": "park-player"
-              },
-              "focus0": {
-                "kind": "reference",
-                "value": "lab-focus-0"
-              },
-              "focus1": {
-                "kind": "reference",
-                "value": "lab-focus-1"
-              },
-              "focus2": {
-                "kind": "reference",
-                "value": "lab-focus-2"
-              },
-              "focus3": {
-                "kind": "reference",
-                "value": "lab-focus-3"
               }
             }
           }
@@ -5275,8 +5171,8 @@
       ]
     },
     {
-      "id": "lab-destination",
-      "name": "lab-destination",
+      "id": "street-destination",
+      "name": "street-destination",
       "parent": "",
       "position": [
         -3,
