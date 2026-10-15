@@ -1,0 +1,53 @@
+{
+  "sources": [
+    {
+      "name": "Quaternius Downtown City MegaKit Standard",
+      "url": "https://quaternius.com/packs/downtowncitymegakit.html",
+      "license": "CC0-1.0",
+      "archiveSHA256": "5b1a945576d54cdbb4ccc9c3d52711e6d530da74c74c586407ecc28b165335da",
+      "sourceFiles": [
+        "Cornice_Trim_Center.bin",
+        "Cornice_Trim_Center.gltf",
+        "DoorFrame_Wooden.bin",
+        "DoorFrame_Wooden.gltf",
+        "Prop_Bollard.bin",
+        "Prop_Bollard.gltf",
+        "Prop_Drain.bin",
+        "Prop_Drain.gltf",
+        "Prop_Planter_Single.bin",
+        "Prop_Planter_Single.gltf",
+        "Trim_FirstFloor_Wall.bin",
+        "Trim_FirstFloor_Wall.gltf",
+        "Trim_FirstFloor_Window_001.bin",
+        "Trim_FirstFloor_Window_001.gltf",
+        "Trim_Window.bin",
+        "Trim_Window.gltf"
+      ],
+      "processing": "Selected modules only. Original geometry retained; converted and spatially consolidated by AuthorEntranceCafe.py. Native normal maps; no Source-only window shader."
+    },
+    {
+      "name": "Kenney Furniture Kit 2.0",
+      "url": "https://kenney.nl/assets/furniture-kit",
+      "license": "CC0-1.0",
+      "archiveSHA256": "e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0",
+      "sourceFiles": [
+        "chairRounded.mtl",
+        "chairRounded.obj",
+        "kitchenCoffeeMachine.mtl",
+        "kitchenCoffeeMachine.obj",
+        "lampWall.mtl",
+        "lampWall.obj",
+        "plantSmall1.mtl",
+        "plantSmall1.obj",
+        "pottedPlant.mtl",
+        "pottedPlant.obj",
+        "rugDoormat.mtl",
+        "rugDoormat.obj",
+        "tableRound.mtl",
+        "tableRound.obj"
+      ],
+      "processing": "Original meshes retained; origins grounded and centered; matching wood grain assigned during baking."
+    }
+  ],
+  "textureProcessing": "Selected Quaternius textures reduced to at most 1024 pixels with Pillow. ORM source textures retained for provenance; native materials use constant roughness/metallic. Wood, plaster and cafe sign are project-authored."
+}

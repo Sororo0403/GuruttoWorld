@@ -1,10 +1,9 @@
 {
-  "originalObjects": 173,
-  "optimizedObjects": 101,
+  "originalObjects": 180,
+  "optimizedObjects": 111,
   "bakedObjects": [
     "block-foundation",
     "block-ground",
-    "building-entry-left",
     "building-entry-right",
     "building-corner",
     "building-arcade",
@@ -50,9 +49,6 @@
     "planter-2",
     "flowers-2",
     "tree-2",
-    "planter-3",
-    "flowers-3",
-    "tree-3",
     "roof-machine",
     "machine-conduit",
     "shutter-frame",
@@ -120,9 +116,9 @@
   ],
   "sourceModels": [
     "Assets/Models/Park/UnitBox.obj",
-    "Assets/Models/Title/Surface/Commercial/building-e.obj",
     "Assets/Models/Title/Surface/Commercial/building-k.obj",
     "Assets/Models/Title/Surface/Commercial/building-c.obj",
+    "Assets/Models/Title/Surface/Commercial/building-e.obj",
     "Assets/Models/Title/Surface/Commercial/building-skyscraper-a.obj",
     "Assets/Models/Title/Surface/Roads/road-straight.obj",
     "Assets/Models/Title/Surface/Roads/sidewalk.obj",

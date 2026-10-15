@@ -6,6 +6,7 @@ from AuthorSunriseStreet import GAME, material_box, model, script, write_assets
 from GenerateParkAdventure import component, obj, ball, character, coin, nature, ui, write
 from ParkAuthoring import configure_scene
 from SunriseBatching import batch_static
+from AuthorEntranceCafe import scene_objects as cafe_objects
 
 SCENE = 'Assets/Scenes/SunriseBlock.json'
 BATCHES = 'Assets/Models/Sunrise/BlockBatches'
@@ -27,8 +28,13 @@ def assemble(batched=True):
     objects.append(material_box('block-foundation',[0,-3.6,60],[180,6,240],'Grass'))
     objects.append(material_box('block-ground',[1,-.6,44],[48,1.2,112],'Paving',True))
     # Buildings have the title's real facades, scaled against the small hero.
-    for key,x,z,kind,scale in [('entry-left',-10.8,9,'e',(6,13,13)),
-            ('entry-right',10.8,8,'k',(5,9,13)),('corner',-3,31,'k',(7,8.5,15)),
+    objects.extend(cafe_objects())
+    for z in (3,11.7):
+        objects.append(obj(f'cafe-table-collision-{z}',[-4.25,.45,z],[1.2,.8,1.2],
+            [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
+    objects.append(obj('collision-entry-left',[-10.9,4.8,8],[10,9.6,20],
+        [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
+    for key,x,z,kind,scale in [('entry-right',10.8,8,'k',(5,9,13)),('corner',-3,31,'k',(7,8.5,15)),
             ('arcade',18,32,'c',(9,15,17)),('cafe',-15,54,'e',(6,9,14)),
             ('workshop',22,54,'k',(5,9,13))]:
         objects.append(model('building-'+key,[x,0,z],scale,
@@ -56,7 +62,7 @@ def assemble(batched=True):
     for z in (29,35,41):
         objects.append(material_box(f'arcade-canopy-{z}',[13.2,3.8,z],[2,.16,4],'Orange'))
         objects.append(material_box(f'arcade-post-{z}',[12.7,1.8,z],[.18,3.6,.18],'Teal',True))
-    for i,(x,z) in enumerate([(-4.6,16),(12.7,23),(-1,48),(17,55)]):
+    for i,(x,z) in enumerate([(12.7,23),(-1,48),(17,55)]):
         objects.append(material_box(f'planter-{i}',[x,.3,z],[1.5,.6,2.5],'Cream',True))
         objects.append(nature(f'flowers-{i}',[x,.61,z],'flower_yellowC' if i%2 else 'flower_purpleC',2.6))
         objects.append(nature(f'tree-{i}',[x,.6,z+.6],'tree_oak',3.8))

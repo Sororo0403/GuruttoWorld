@@ -51,6 +51,25 @@ class SunriseBlockTests(unittest.TestCase):
         control=next(c for c in shutter['components'] if c['type']=='Script')
         self.assertEqual(control['data']['value']['switch']['value'],'switch-roof')
 
+    def test_cafe_keeps_normal_maps_and_native_materials(self):
+        from AuthorEntranceCafe import scene_objects
+        normal_mapped=0
+        for original in scene_objects():
+            self.assertEqual(original,self.objects[original['id']])
+            renderer=next(c for c in original['components'] if c['type']=='MeshRenderer')
+            mesh=(author.GAME/renderer['model']).read_text(encoding='utf-8')
+            self.assertIn('mtllib Cafe.mtl',mesh)
+            mat=next(c for c in original['components'] if c['type']=='Material')
+            values=json.loads((author.GAME/mat['asset']).read_text(encoding='utf-8'))
+            self.assertTrue(values['physicallyBased'])
+            for key in ('texture','normalTexture'):
+                if values[key]:
+                    self.assertTrue(values[key].startswith('Assets/Textures/'))
+                    self.assertTrue((author.GAME/values[key]).is_file())
+            normal_mapped+=bool(values['normalTexture'])
+        self.assertGreater(normal_mapped,0)
+        self.assertFalse(any(c['type']=='PointLight' for o in self.objects.values() for c in o['components']))
+
     def test_title_atmosphere_and_start(self):
         title=json.loads((author.GAME/'Assets/Scenes/TitleStreet.json').read_text(encoding='utf-8'))
         for kind in ('Sky','DirectionalLight'):

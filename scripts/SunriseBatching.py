@@ -98,7 +98,10 @@ def batch_static(source, folder=FOLDER):
         material = None
         if 'Material' in components:
             material = json.loads((GAME / components['Material']['asset']).read_text(encoding='utf-8'))
-            if material.get('transparent'):
+            # Keep prepared material batches intact: OBJ/MTL cannot represent
+            # our normal textures or the native PBR material settings.
+            if (material.get('transparent') or material.get('physicallyBased') or
+                    material.get('normalTexture') or material.get('shader')):
                 preserved.append(item)
                 continue
         path = GAME / renderer['model']
