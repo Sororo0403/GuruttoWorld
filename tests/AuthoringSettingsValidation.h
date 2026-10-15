@@ -9,6 +9,7 @@
 #include "DeepStateValidation.h"
 #include "FollowupStateValidation.h"
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 
 namespace AuthoringSettingsValidation {
@@ -72,7 +73,9 @@ inline void Run() {
         const auto layout=SceneLayout::Load(entry.path());
         Require(SceneLayout::Parse(layout.Serialize()).Serialize()==layout.Serialize(),"Existing scene roundtrip changed behavior data");
     }
-    const std::filesystem::path output="generated/tests/authoring-settings";
+    const auto output=std::filesystem::path("generated/tests/authoring-settings")/
+        (std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
+    std::cout<<"Authoring output: "<<output.generic_string()<<'\n';
     std::filesystem::create_directories(output);
     auto scene=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/OceanSunset.json");
     scene.settings.gravity={2,-9.81f,1};scene.settings.fixedStep=.02f;scene.settings.maximumFixedSteps=8;

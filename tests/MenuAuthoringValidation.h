@@ -72,7 +72,9 @@ inline void Run() {
     menu.ActivateUi("settings:1");
     check(std::abs(menu.GetSettings().Gain()-.275f)<.0001f,"authored volume range retains fractional gain");
     check(menu.ActivateUi("settings:3")==App::TitleMenuAction::SaveSettings,"fourth settings row saves");
-    const auto path=std::filesystem::path("generated/tests/menu-settings.json");
+    const auto fixtureRoot=std::filesystem::path("generated/tests/menu-authoring")/
+        (std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
+    const auto path=fixtureRoot/"menu-settings.json";
     check(menu.GetSettings().Save(path),"save custom settings");
     App::TitleMenu reload; reload.Configure(config); reload.LoadSettings(App::GameSettings::Load(path));
     check(reload.SettingValues()==menu.SettingValues() && std::abs(reload.GetSettings().Gain()-.275f)<.0001f,"custom settings survive disk reload");
@@ -108,7 +110,7 @@ inline void Run() {
     config.settings[0].step=0; rejected=false;
     try {SceneRuntime::ValidateMenu(config);} catch(const std::exception&) {rejected=true;}
     check(rejected,"zero setting step rejected");
-    const auto root=std::filesystem::absolute("generated/tests/menu-project");
+    const auto root=std::filesystem::absolute(fixtureRoot/"project");
     std::filesystem::create_directories(root/"Assets/Scenes");
     layout.Save(root/"Assets/Scenes/RenamedTitle.json");
     App::SceneFactory factory(root);

@@ -7,7 +7,8 @@ namespace ProjectSettingsValidation
     {
         using SceneRuntime::ProjectSettings;
         const auto require=[](bool success,const char* message) {if(!success) throw std::runtime_error(message);};
-        const auto root=std::filesystem::absolute("generated/tests/project-settings")/std::to_string(GetTickCount64());
+        const auto root=std::filesystem::absolute("generated/tests/project-settings")/
+            (std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
         std::filesystem::create_directories(root/"Assets/Scenes");
         require(ProjectSettings::Load(root).startupScene=="Assets/Scenes/TitleStreet.json","missing project settings use compatible startup");
         std::ofstream(root/"Assets/Scenes/Custom.json")<<"{}";
