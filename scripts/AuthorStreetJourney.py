@@ -59,12 +59,30 @@ def box_hero(objects):
  objects.append(obj('hero-mouth',[0,-.35,.457],[.2,.035,.025],mesh('Eye'),parent='hero-rig'))
 
 
+def box_enemies(objects):
+ # Keep the existing enemy roots and their anticipation/lunge animation.
+ # All visual parts share that root, including removal when it is defeated.
+ enemies=[o for o in objects if o['name']=='ParkEnemy']
+ old_parts={root['id']+suffix for root in enemies for suffix in
+            ('-eye--1','-eye-1','-foot--1','-foot-1')}
+ objects[:]=[o for o in objects if o['id'] not in old_parts]
+ for root in enemies:
+  key=root['id']
+  root['components']=[c for c in root['components'] if c['type'] not in ('MeshRenderer','Material')]
+  objects.append(obj(key+'-body',[0,-.08,0],[.86,1,.86],mesh('Enemy'),parent=key))
+  for side in (-1,1):
+   objects.append(obj(key+'-eye-'+str(side),[side*.16,.04,.437],[.1,.12,.025],mesh('Eye'),parent=key))
+   objects.append(obj(key+'-brow-'+str(side),[side*.16,.17,.44],[.18,.045,.025],mesh('Eye'),parent=key,rotation=[0,0,side*.35]))
+   objects.append(obj(key+'-mouth-'+str(side),[side*.055,-.22,.44],[.125,.035,.025],mesh('Eye'),parent=key,rotation=[0,0,-side*.32]))
+
+
 def assemble(city,geometry):
  old=json.loads((GAME/'Assets/Scenes/SunriseBlock.json').read_text(encoding='utf-8'))
  keep={'block-sky','block-directionallight','music','park-player','hero-rig','hero-body','hero-backpack','hero-backpack-buckle','park-puff','park-ui'}
  objects=[copy.deepcopy(o) for o in old['objects'] if o['id'] in keep or o['id'].startswith(('park-player-','audio-'))]
  objects+=copy.deepcopy(geometry)+copy.deepcopy(city.objects)
  box_hero(objects)
+ box_enemies(objects)
  player=next(o for o in objects if o['id']=='park-player');player['position']=list(city.spawn)
  for c in player['components']:
   if c['type']=='PlayerController':c.update(moveSpeed=4.6,stepHeight=.36)
