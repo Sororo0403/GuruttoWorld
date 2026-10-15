@@ -1,26 +1,27 @@
 """Author the street stage and its START connection."""
 import copy,json,math
-from StreetDistrict import StreetDistrict
-from SunriseDistrictBake import DistrictBake
 from AuthorSunriseStreet import GAME,model,script
 from GenerateParkAdventure import obj,component,coin,character,write,box
 from AuthorEntranceCafe import material
+from StreetArchitecture import StreetArchitecture,StreetArtBake,PAVING,NORMAL,BRICK,BRICK_NORMAL,prepare_art_imports
 
 FOLDER='Assets/Models/StreetJourney'
 SCENE='Assets/Scenes/StreetJourney.json'
 
-class Journey(StreetDistrict):
+class Journey(StreetArchitecture):
  def __init__(self):
   super().__init__()
-  self.b=DistrictBake(FOLDER,'Assets/Materials/StreetJourney','Assets/Textures/StreetJourney','journey')
-  self.limestone=material(color=(.73,.69,.58,1),roughness=.94)
+  self.b=StreetArtBake(FOLDER,'Assets/Materials/StreetJourney','Assets/Textures/StreetJourney','journey')
+  self.limestone=material(PAVING,NORMAL,roughness=.88)
+  self.paving=self.limestone
   self.gardenstone=material(color=(.58,.64,.58,1),roughness=.94)
   self.rooftile=material(color=(.64,.43,.30,1),roughness=.94)
   self.mortar=material(color=(.43,.44,.40,1),roughness=.94)
  def floor(self,key,x0,x1,z0,z1,h=0,surface=None):
-  self.cube(((x0+x1)/2,h-.35,(z0+z1)/2),(x1-x0,.7,z1-z0),self.plaster,key)
+  self.cube(((x0+x1)/2,(h-3.6)/2,(z0+z1)/2),(x1-x0,h+3.6,z1-z0),material(BRICK,BRICK_NORMAL,roughness=.88))
+  self.solid(key,((x0+x1)/2,h-.35,(z0+z1)/2),(x1-x0,.7,z1-z0))
   self.cube(((x0+x1)/2,h+.015,(z0+z1)/2),(x1-x0,.03,z1-z0),surface or self.paving)
-  if surface:
+  if surface and not surface['texture']:
    # Whole-area construction joints, rather than a painted route or arrows.
    for x in range(math.ceil(x0/3)*3,math.ceil(x1),3):
     self.cube((x,h+.032,(z0+z1)/2),(.025,.004,z1-z0),self.mortar)
@@ -135,6 +136,7 @@ class Journey(StreetDistrict):
   for i,(x,z,y) in enumerate(((-12,22,.7),(3.5,26,1.26),(9,52,1.26))):
    e=character('stage-enemy-'+str(i),(x,y,z),'Enemy','ParkEnemy');e[0]['components'][-1]['behaviour']='SunriseEnemy';self.objects+=e
   self.objects.append(obj('stage-checkpoint',(-1,1.26,48)))
+  b.zone=0;self.street_details()
   self.objects+=self.collisions
   self.route=[[-14,10],[-14,22],[-9,23],[-5,23],[3,25],[5,32],[5,44],[-1,44],[-1,48],[-1,52],[9,53],[17,54],[14,54],[14,66],[14,73],[10,73],[5,73],[-3,73],[-3,77]]
   self.shots=[[-14,5],[-12,22],[3,31],[2,48],[14,65],[12,73],[-3,75]]
@@ -163,6 +165,7 @@ def assemble(city,geometry):
  return dict(version=4,settings=copy.deepcopy(old['settings']),objects=objects)
 
 def author():
+ prepare_art_imports()
  city=Journey().build();geometry=city.b.finish();scene=assemble(city,geometry)
  scene['objects'].append(obj('journey-controller',(0,0,0),components=[component('Script',behaviour='StreetJourney',parameters={})]))
  write(GAME/SCENE,scene)

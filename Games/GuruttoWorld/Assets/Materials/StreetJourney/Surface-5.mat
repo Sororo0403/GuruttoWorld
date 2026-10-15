@@ -9,7 +9,7 @@
   "normalFlipY": false,
   "normalTexture": "",
   "physicallyBased": true,
-  "roughness": 0.94,
-  "texture": "Assets/Textures/Sunrise/District/paving.png",
+  "roughness": 0.82,
+  "texture": "Assets/Textures/StreetJourney/Palette.png",
   "transparent": false
 }

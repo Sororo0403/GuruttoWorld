@@ -71,9 +71,10 @@ class DistrictBake:
         palette.save(GAME/self.textures/'Palette.png')
         groups=defaultdict(list)
         for (zone,signature),polygons in self.groups.items():
-            surface=json.loads(signature);tint=surface['color'];surface['color']=[1,1,1,1]
+            surface=json.loads(signature);tint=surface['color']
             uv=None
             if not surface['texture']:
+                surface['color']=[1,1,1,1]
                 uv=((colors.index(tuple(tint[:3]))+.5)/len(colors),.5)
                 surface['texture']=self.textures+'/Palette.png'
                 if surface['roughness']>=.6:surface['roughness']=.82

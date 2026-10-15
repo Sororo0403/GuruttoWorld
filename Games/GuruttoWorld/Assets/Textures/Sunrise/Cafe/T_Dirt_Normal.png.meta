@@ -5,8 +5,8 @@
   "scale": 1.0,
   "texture": {
     "compression": "none",
-    "maxSize": 16384,
-    "mipmaps": false,
+    "maxSize": 1024,
+    "mipmaps": true,
     "srgb": false
   },
   "version": 1

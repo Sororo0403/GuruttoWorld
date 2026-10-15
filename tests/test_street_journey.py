@@ -54,7 +54,19 @@ class StreetJourneyTests(unittest.TestCase):
   scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
   models=[c['model'] for o in scene['objects'] for c in o['components']
           if c['type']=='MeshRenderer' and c.get('model','').startswith('Assets/Models/StreetJourney/Baked/')]
-  self.assertLessEqual(len(models),28)
+  self.assertLessEqual(len(models),34)
   polygons=sum(sum(line.startswith('f ') for line in (GAME/path).read_text(encoding='utf-8').splitlines()) for path in models)
   self.assertLessEqual(polygons,170000)
+ def test_imported_street_textures_match_cc0_sources(self):
+  import hashlib
+  folder=GAME/'Assets/Textures/StreetJourney/PolyHaven'
+  for provenance in folder.glob('*Source.json'):
+   source=json.loads(provenance.read_text(encoding='utf-8'))
+   self.assertEqual(source['license'],'CC0-1.0')
+   for entry in source['files']:
+    path=folder/entry['file']
+    self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),entry['sha256'])
+    self.assertTrue(json.loads(path.with_name(path.name+'.meta').read_text(encoding='utf-8'))['texture']['mipmaps'])
+   for entry in source.get('originalFiles',[]):
+    self.assertEqual(hashlib.sha256((GAME/entry['file']).read_bytes()).hexdigest(),entry['sha256'])
 if __name__=='__main__':unittest.main()

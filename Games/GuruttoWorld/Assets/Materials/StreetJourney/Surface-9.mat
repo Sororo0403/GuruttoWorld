@@ -5,11 +5,11 @@
     1,
     1
   ],
-  "metallic": 0.12,
+  "metallic": 0,
   "normalFlipY": false,
-  "normalTexture": "",
+  "normalTexture": "Assets/Textures/StreetJourney/PolyHaven/wooden_crate_02_nor_gl_1k.png",
   "physicallyBased": true,
-  "roughness": 0.28,
-  "texture": "Assets/Textures/StreetJourney/Palette.png",
+  "roughness": 0.82,
+  "texture": "Assets/Textures/StreetJourney/PolyHaven/wooden_crate_02_diff_1k.png",
   "transparent": false
 }

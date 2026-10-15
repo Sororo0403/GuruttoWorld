@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "505db5b2c5289715a6ef5304a90d6f1e",
+  "scale": 1,
+  "flipV": false,
+  "previousPaths": [],
+  "texture": {
+    "compression": "none",
+    "maxSize": 1024,
+    "mipmaps": true,
+    "srgb": true
+  }
+}

@@ -1,15 +1,15 @@
 {
   "color": [
     1,
-    1,
-    1,
+    0.73,
+    0.55,
     1
   ],
   "metallic": 0,
   "normalFlipY": false,
-  "normalTexture": "",
+  "normalTexture": "Assets/Textures/Sunrise/Cafe/T_Trim_Normal.png",
   "physicallyBased": true,
   "roughness": 0.82,
-  "texture": "Assets/Textures/StreetJourney/Palette.png",
+  "texture": "Assets/Textures/Sunrise/Cafe/T_Trim_BaseColor.png",
   "transparent": false
 }

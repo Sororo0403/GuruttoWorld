@@ -9,7 +9,7 @@
   "normalFlipY": false,
   "normalTexture": "",
   "physicallyBased": true,
-  "roughness": 0.82,
-  "texture": "Assets/Textures/Sunrise/Cafe/CafeSign.png",
+  "roughness": 0.28,
+  "texture": "Assets/Textures/StreetJourney/Palette.png",
   "transparent": false
 }

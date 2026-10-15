@@ -1,0 +1,24 @@
+{
+  "asset": "pavement_05",
+  "author": "Jan Burghardt",
+  "license": "CC0-1.0",
+  "page": "https://polyhaven.com/a/pavement_05",
+  "licenseUrl": "https://polyhaven.com/license",
+  "widthMeters": 3.4,
+  "files": [
+    {
+      "channel": "Diffuse",
+      "file": "pavement_05_diff_1k.png",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/pavement_05/pavement_05_diff_1k.png",
+      "md5": "5c15aaf9a6d239dde61c4dda302eb5d6",
+      "sha256": "dc2de6ac1f788e7bb0da5b6f4dddd1c36d8d07622f5ad72f7c48e1ccae518ffc"
+    },
+    {
+      "channel": "nor_dx",
+      "file": "pavement_05_nor_dx_1k.png",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/pavement_05/pavement_05_nor_dx_1k.png",
+      "md5": "700ed174f729a9bcbffc80228d080246",
+      "sha256": "c91db0ba14a5348f4eab929cbae2794e06cad24ff77c317a0c87f99d0e6b61c5"
+    }
+  ]
+}

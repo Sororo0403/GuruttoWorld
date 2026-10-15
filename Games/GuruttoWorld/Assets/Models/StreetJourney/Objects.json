@@ -1,40 +1,5 @@
 [
   {
-    "id": "journey-block-0-0",
-    "name": "journey-block-0-0",
-    "parent": "",
-    "position": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1,
-      1
-    ],
-    "components": [
-      {
-        "type": "MeshRenderer",
-        "id": "meshrenderer",
-        "enabled": true,
-        "model": "Assets/Models/StreetJourney/Baked/Block-0-0.obj",
-        "instancing": false
-      },
-      {
-        "type": "Material",
-        "id": "material",
-        "enabled": true,
-        "asset": "Assets/Materials/StreetJourney/Surface-0.mat"
-      }
-    ]
-  },
-  {
     "id": "journey-block-0-1",
     "name": "journey-block-0-1",
     "parent": "",
@@ -350,8 +315,8 @@
     ]
   },
   {
-    "id": "journey-block-1-1",
-    "name": "journey-block-1-1",
+    "id": "journey-block-0-10",
+    "name": "journey-block-0-10",
     "parent": "",
     "position": [
       0,
@@ -373,20 +338,20 @@
         "type": "MeshRenderer",
         "id": "meshrenderer",
         "enabled": true,
-        "model": "Assets/Models/StreetJourney/Baked/Block-1-1.obj",
+        "model": "Assets/Models/StreetJourney/Baked/Block-0-10.obj",
         "instancing": false
       },
       {
         "type": "Material",
         "id": "material",
         "enabled": true,
-        "asset": "Assets/Materials/StreetJourney/Surface-1.mat"
+        "asset": "Assets/Materials/StreetJourney/Surface-10.mat"
       }
     ]
   },
   {
-    "id": "journey-block-1-2",
-    "name": "journey-block-1-2",
+    "id": "journey-block-0-11",
+    "name": "journey-block-0-11",
     "parent": "",
     "position": [
       0,
@@ -408,14 +373,189 @@
         "type": "MeshRenderer",
         "id": "meshrenderer",
         "enabled": true,
-        "model": "Assets/Models/StreetJourney/Baked/Block-1-2.obj",
+        "model": "Assets/Models/StreetJourney/Baked/Block-0-11.obj",
         "instancing": false
       },
       {
         "type": "Material",
         "id": "material",
         "enabled": true,
-        "asset": "Assets/Materials/StreetJourney/Surface-2.mat"
+        "asset": "Assets/Materials/StreetJourney/Surface-11.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-0-12",
+    "name": "journey-block-0-12",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-0-12.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-12.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-0-13",
+    "name": "journey-block-0-13",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-0-13.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-13.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-0-14",
+    "name": "journey-block-0-14",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-0-14.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-14.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-0-15",
+    "name": "journey-block-0-15",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-0-15.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-15.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-1-0",
+    "name": "journey-block-1-0",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-1-0.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-0.mat"
       }
     ]
   },
@@ -490,41 +630,6 @@
     ]
   },
   {
-    "id": "journey-block-1-6",
-    "name": "journey-block-1-6",
-    "parent": "",
-    "position": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1,
-      1
-    ],
-    "components": [
-      {
-        "type": "MeshRenderer",
-        "id": "meshrenderer",
-        "enabled": true,
-        "model": "Assets/Models/StreetJourney/Baked/Block-1-6.obj",
-        "instancing": false
-      },
-      {
-        "type": "Material",
-        "id": "material",
-        "enabled": true,
-        "asset": "Assets/Materials/StreetJourney/Surface-6.mat"
-      }
-    ]
-  },
-  {
     "id": "journey-block-1-7",
     "name": "journey-block-1-7",
     "parent": "",
@@ -595,8 +700,8 @@
     ]
   },
   {
-    "id": "journey-block-1-9",
-    "name": "journey-block-1-9",
+    "id": "journey-block-1-10",
+    "name": "journey-block-1-10",
     "parent": "",
     "position": [
       0,
@@ -618,20 +723,20 @@
         "type": "MeshRenderer",
         "id": "meshrenderer",
         "enabled": true,
-        "model": "Assets/Models/StreetJourney/Baked/Block-1-9.obj",
+        "model": "Assets/Models/StreetJourney/Baked/Block-1-10.obj",
         "instancing": false
       },
       {
         "type": "Material",
         "id": "material",
         "enabled": true,
-        "asset": "Assets/Materials/StreetJourney/Surface-9.mat"
+        "asset": "Assets/Materials/StreetJourney/Surface-10.mat"
       }
     ]
   },
   {
-    "id": "journey-block-2-1",
-    "name": "journey-block-2-1",
+    "id": "journey-block-1-11",
+    "name": "journey-block-1-11",
     "parent": "",
     "position": [
       0,
@@ -653,20 +758,20 @@
         "type": "MeshRenderer",
         "id": "meshrenderer",
         "enabled": true,
-        "model": "Assets/Models/StreetJourney/Baked/Block-2-1.obj",
+        "model": "Assets/Models/StreetJourney/Baked/Block-1-11.obj",
         "instancing": false
       },
       {
         "type": "Material",
         "id": "material",
         "enabled": true,
-        "asset": "Assets/Materials/StreetJourney/Surface-1.mat"
+        "asset": "Assets/Materials/StreetJourney/Surface-11.mat"
       }
     ]
   },
   {
-    "id": "journey-block-2-2",
-    "name": "journey-block-2-2",
+    "id": "journey-block-1-12",
+    "name": "journey-block-1-12",
     "parent": "",
     "position": [
       0,
@@ -688,14 +793,119 @@
         "type": "MeshRenderer",
         "id": "meshrenderer",
         "enabled": true,
-        "model": "Assets/Models/StreetJourney/Baked/Block-2-2.obj",
+        "model": "Assets/Models/StreetJourney/Baked/Block-1-12.obj",
         "instancing": false
       },
       {
         "type": "Material",
         "id": "material",
         "enabled": true,
-        "asset": "Assets/Materials/StreetJourney/Surface-2.mat"
+        "asset": "Assets/Materials/StreetJourney/Surface-12.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-1-13",
+    "name": "journey-block-1-13",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-1-13.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-13.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-1-14",
+    "name": "journey-block-1-14",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-1-14.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-14.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-1-15",
+    "name": "journey-block-1-15",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-1-15.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-15.mat"
       }
     ]
   },
@@ -770,41 +980,6 @@
     ]
   },
   {
-    "id": "journey-block-2-6",
-    "name": "journey-block-2-6",
-    "parent": "",
-    "position": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1,
-      1
-    ],
-    "components": [
-      {
-        "type": "MeshRenderer",
-        "id": "meshrenderer",
-        "enabled": true,
-        "model": "Assets/Models/StreetJourney/Baked/Block-2-6.obj",
-        "instancing": false
-      },
-      {
-        "type": "Material",
-        "id": "material",
-        "enabled": true,
-        "asset": "Assets/Materials/StreetJourney/Surface-6.mat"
-      }
-    ]
-  },
-  {
     "id": "journey-block-2-7",
     "name": "journey-block-2-7",
     "parent": "",
@@ -836,6 +1011,146 @@
         "id": "material",
         "enabled": true,
         "asset": "Assets/Materials/StreetJourney/Surface-7.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-2-8",
+    "name": "journey-block-2-8",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-2-8.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-8.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-2-10",
+    "name": "journey-block-2-10",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-2-10.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-10.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-2-11",
+    "name": "journey-block-2-11",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-2-11.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-11.mat"
+      }
+    ]
+  },
+  {
+    "id": "journey-block-2-13",
+    "name": "journey-block-2-13",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/StreetJourney/Baked/Block-2-13.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/StreetJourney/Surface-13.mat"
       }
     ]
   }
