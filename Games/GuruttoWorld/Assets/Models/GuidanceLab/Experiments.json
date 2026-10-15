@@ -1,124 +1,1426 @@
 {
-  "version": 2,
-  "goal": "奥のカフェ",
+  "version": 4,
+  "goal": "屋上のカフェ",
   "cases": [
     {
       "mode": 0,
       "name": "擬人法",
       "group": "定番",
-      "description": "鉢植えが枝で手招きして、通りへ誘う",
+      "description": "広場の建物が、近づいたあなたを迎える",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-0A.json",
-      "objects": 49
+      "objects": 123,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          9,
+          37
+        ],
+        [
+          9,
+          46
+        ],
+        [
+          -5,
+          57
+        ],
+        [
+          -5,
+          63
+        ],
+        [
+          -7,
+          64
+        ],
+        [
+          -7,
+          80
+        ],
+        [
+          -7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          1,
+          90
+        ]
+      ],
+      "alternative": [
+        [
+          -22,
+          12
+        ],
+        [
+          -22,
+          58
+        ],
+        [
+          -7,
+          58
+        ],
+        [
+          -7,
+          64
+        ]
+      ],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          4,
+          18
+        ],
+        [
+          7,
+          37
+        ],
+        [
+          -7,
+          59
+        ],
+        [
+          -7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        1,
+        5.25,
+        90
+      ],
+      "family": "応答する商店街",
+      "renderShots": [
+        [
+          0,
+          1.05,
+          9
+        ],
+        [
+          0,
+          1.05,
+          16
+        ],
+        [
+          9,
+          1.05,
+          35
+        ],
+        [
+          -5,
+          1.05,
+          55
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 24,
+      "polygons": 55572
     },
     {
       "mode": 0,
       "name": "擬人法",
       "group": "定番",
-      "description": "鉢植えが枝で手招きして、通りへ誘う",
+      "description": "広場の建物が、近づいたあなたを迎える",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-0B.json",
-      "objects": 49
+      "objects": 123,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          -9,
+          37
+        ],
+        [
+          -9,
+          46
+        ],
+        [
+          5,
+          57
+        ],
+        [
+          5,
+          63
+        ],
+        [
+          7,
+          64
+        ],
+        [
+          7,
+          80
+        ],
+        [
+          7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          -1,
+          90
+        ]
+      ],
+      "alternative": [
+        [
+          22,
+          12
+        ],
+        [
+          22,
+          58
+        ],
+        [
+          7,
+          58
+        ],
+        [
+          7,
+          64
+        ]
+      ],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          -4,
+          18
+        ],
+        [
+          -7,
+          37
+        ],
+        [
+          7,
+          59
+        ],
+        [
+          7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        -1,
+        5.25,
+        90
+      ],
+      "family": "応答する商店街",
+      "renderShots": [
+        [
+          0,
+          1.05,
+          9
+        ],
+        [
+          0,
+          1.05,
+          16
+        ],
+        [
+          -9,
+          1.05,
+          35
+        ],
+        [
+          5,
+          1.05,
+          55
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 24,
+      "polygons": 55572
     },
     {
       "mode": 1,
       "name": "反復法",
       "group": "定番",
-      "description": "同じ庇を、同じ強さで繰り返す",
+      "description": "同じ入口とテラスを、歩くたびに読み取る",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-1A.json",
-      "objects": 41
+      "objects": 99,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          0,
+          46
+        ],
+        [
+          0,
+          62
+        ],
+        [
+          -7,
+          64
+        ],
+        [
+          -7,
+          80
+        ],
+        [
+          -7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          4,
+          18
+        ],
+        [
+          7,
+          37
+        ],
+        [
+          -7,
+          59
+        ],
+        [
+          -7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        1,
+        5.25,
+        90
+      ],
+      "family": "三つの反復中庭",
+      "renderShots": [
+        [
+          0,
+          1.05,
+          9
+        ],
+        [
+          0,
+          1.05,
+          25
+        ],
+        [
+          0,
+          1.05,
+          47
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 24,
+      "polygons": 88122
     },
     {
       "mode": 1,
       "name": "反復法",
       "group": "定番",
-      "description": "同じ庇を、同じ強さで繰り返す",
+      "description": "同じ入口とテラスを、歩くたびに読み取る",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-1B.json",
-      "objects": 41
+      "objects": 99,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          0,
+          46
+        ],
+        [
+          0,
+          62
+        ],
+        [
+          7,
+          64
+        ],
+        [
+          7,
+          80
+        ],
+        [
+          7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          -1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          -4,
+          18
+        ],
+        [
+          -7,
+          37
+        ],
+        [
+          7,
+          59
+        ],
+        [
+          7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        -1,
+        5.25,
+        90
+      ],
+      "family": "三つの反復中庭",
+      "renderShots": [
+        [
+          0,
+          1.05,
+          9
+        ],
+        [
+          0,
+          1.05,
+          25
+        ],
+        [
+          0,
+          1.05,
+          47
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 24,
+      "polygons": 88122
     },
     {
       "mode": 2,
       "name": "換喩",
       "group": "珍しい",
-      "description": "カップから、その先のカフェを連想する",
+      "description": "店の営みから、奥のカフェを見つける",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-2A.json",
-      "objects": 42
+      "objects": 88,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          -3,
+          18
+        ],
+        [
+          0,
+          27
+        ],
+        [
+          5,
+          37
+        ],
+        [
+          5,
+          45
+        ],
+        [
+          -1,
+          57
+        ],
+        [
+          -1,
+          63
+        ],
+        [
+          -7,
+          64
+        ],
+        [
+          -7,
+          80
+        ],
+        [
+          -7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          4,
+          18
+        ],
+        [
+          7,
+          37
+        ],
+        [
+          -7,
+          59
+        ],
+        [
+          -7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        1,
+        5.25,
+        90
+      ],
+      "family": "カフェの営みをたどる路地",
+      "renderShots": [
+        [
+          -1,
+          1.05,
+          12
+        ],
+        [
+          -2,
+          1.05,
+          24
+        ],
+        [
+          4,
+          1.05,
+          33
+        ],
+        [
+          -1,
+          1.05,
+          53
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 19,
+      "polygons": 93222
     },
     {
       "mode": 2,
       "name": "換喩",
       "group": "珍しい",
-      "description": "カップから、その先のカフェを連想する",
+      "description": "店の営みから、奥のカフェを見つける",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-2B.json",
-      "objects": 42
+      "objects": 88,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          3,
+          18
+        ],
+        [
+          0,
+          27
+        ],
+        [
+          -5,
+          37
+        ],
+        [
+          -5,
+          45
+        ],
+        [
+          1,
+          57
+        ],
+        [
+          1,
+          63
+        ],
+        [
+          7,
+          64
+        ],
+        [
+          7,
+          80
+        ],
+        [
+          7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          -1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          -4,
+          18
+        ],
+        [
+          -7,
+          37
+        ],
+        [
+          7,
+          59
+        ],
+        [
+          7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        -1,
+        5.25,
+        90
+      ],
+      "family": "カフェの営みをたどる路地",
+      "renderShots": [
+        [
+          1,
+          1.05,
+          12
+        ],
+        [
+          2,
+          1.05,
+          24
+        ],
+        [
+          -4,
+          1.05,
+          33
+        ],
+        [
+          1,
+          1.05,
+          53
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 19,
+      "polygons": 93222
     },
     {
       "mode": 3,
       "name": "漸層法",
       "group": "珍しい",
-      "description": "植栽を小・中・大と段階的に強める",
+      "description": "小さな庭から中庭、そして大きな屋上へ",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-3A.json",
-      "objects": 44
+      "objects": 129,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          21
+        ],
+        [
+          0,
+          28
+        ],
+        [
+          0,
+          41
+        ],
+        [
+          0,
+          53
+        ],
+        [
+          0,
+          65
+        ],
+        [
+          0,
+          73
+        ],
+        [
+          0,
+          81
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          4,
+          18
+        ],
+        [
+          7,
+          37
+        ],
+        [
+          -7,
+          59
+        ],
+        [
+          -7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        1,
+        5.25,
+        90
+      ],
+      "family": "小庭から大テラスへ上る漸層",
+      "renderShots": [
+        [
+          0,
+          1.05,
+          10
+        ],
+        [
+          0,
+          1.7,
+          23
+        ],
+        [
+          0,
+          2.6,
+          43
+        ],
+        [
+          0,
+          3.3,
+          67
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 23,
+      "polygons": 80566
     },
     {
       "mode": 3,
       "name": "漸層法",
       "group": "珍しい",
-      "description": "植栽を小・中・大と段階的に強める",
+      "description": "小さな庭から中庭、そして大きな屋上へ",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-3B.json",
-      "objects": 44
+      "objects": 129,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          21
+        ],
+        [
+          0,
+          28
+        ],
+        [
+          0,
+          41
+        ],
+        [
+          0,
+          53
+        ],
+        [
+          0,
+          65
+        ],
+        [
+          0,
+          73
+        ],
+        [
+          0,
+          81
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          -1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          -4,
+          18
+        ],
+        [
+          -7,
+          37
+        ],
+        [
+          7,
+          59
+        ],
+        [
+          7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        -1,
+        5.25,
+        90
+      ],
+      "family": "小庭から大テラスへ上る漸層",
+      "renderShots": [
+        [
+          0,
+          1.05,
+          10
+        ],
+        [
+          0,
+          1.7,
+          23
+        ],
+        [
+          0,
+          2.6,
+          43
+        ],
+        [
+          0,
+          3.3,
+          67
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 23,
+      "polygons": 80566
     },
     {
       "mode": 4,
       "name": "Anadiplosis",
       "group": "激レア",
-      "description": "前の終わりの目印を、次の始まりへ渡す",
+      "description": "時計塔から温室へ、景色の起点を引き継ぐ",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-4A.json",
-      "objects": 43
+      "objects": 89,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          7,
+          23
+        ],
+        [
+          7,
+          37
+        ],
+        [
+          10,
+          46
+        ],
+        [
+          10,
+          56
+        ],
+        [
+          0,
+          62
+        ],
+        [
+          -7,
+          64
+        ],
+        [
+          -7,
+          80
+        ],
+        [
+          -7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          4,
+          18
+        ],
+        [
+          7,
+          37
+        ],
+        [
+          -7,
+          59
+        ],
+        [
+          -7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        1,
+        5.25,
+        90
+      ],
+      "family": "時計塔・温室・屋上の連鎖",
+      "renderShots": [
+        [
+          0,
+          1.05,
+          1
+        ],
+        [
+          7,
+          1.05,
+          29
+        ],
+        [
+          7,
+          1.05,
+          37
+        ],
+        [
+          10,
+          1.05,
+          54
+        ],
+        [
+          -7,
+          4.7,
+          78
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 20,
+      "polygons": 94266
     },
     {
       "mode": 4,
       "name": "Anadiplosis",
       "group": "激レア",
-      "description": "前の終わりの目印を、次の始まりへ渡す",
+      "description": "時計塔から温室へ、景色の起点を引き継ぐ",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-4B.json",
-      "objects": 43
+      "objects": 89,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          -7,
+          23
+        ],
+        [
+          -7,
+          37
+        ],
+        [
+          -10,
+          46
+        ],
+        [
+          -10,
+          56
+        ],
+        [
+          0,
+          62
+        ],
+        [
+          7,
+          64
+        ],
+        [
+          7,
+          80
+        ],
+        [
+          7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          -1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          -4,
+          18
+        ],
+        [
+          -7,
+          37
+        ],
+        [
+          7,
+          59
+        ],
+        [
+          7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        -1,
+        5.25,
+        90
+      ],
+      "family": "時計塔・温室・屋上の連鎖",
+      "renderShots": [
+        [
+          0,
+          1.05,
+          1
+        ],
+        [
+          -7,
+          1.05,
+          29
+        ],
+        [
+          -7,
+          1.05,
+          37
+        ],
+        [
+          -10,
+          1.05,
+          54
+        ],
+        [
+          7,
+          4.7,
+          78
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 20,
+      "polygons": 94266
     },
     {
       "mode": 5,
-      "name": "Anapodoton",
+      "name": "Epanalepsis",
       "group": "激レア",
-      "description": "門とカップの対応を示し、最後の帰結を空ける",
+      "description": "入口の景色が、旅の終わりにもう一度現れる",
       "mirror": false,
       "scene": "Assets/Scenes/GuidanceLab/Course-5A.json",
-      "objects": 43
+      "objects": 96,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          1,
+          23
+        ],
+        [
+          9,
+          32
+        ],
+        [
+          9,
+          54
+        ],
+        [
+          -7,
+          62
+        ],
+        [
+          -7,
+          64
+        ],
+        [
+          -7,
+          80
+        ],
+        [
+          -7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          4,
+          18
+        ],
+        [
+          7,
+          37
+        ],
+        [
+          -7,
+          59
+        ],
+        [
+          -7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        1,
+        5.25,
+        90
+      ],
+      "family": "冒頭の景色へ帰る首尾反復",
+      "renderShots": [
+        [
+          1,
+          1.05,
+          8
+        ],
+        [
+          9,
+          1.05,
+          36
+        ],
+        [
+          -7,
+          1.05,
+          60
+        ],
+        [
+          1,
+          5.25,
+          82
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 26,
+      "polygons": 112548
     },
     {
       "mode": 5,
-      "name": "Anapodoton",
+      "name": "Epanalepsis",
       "group": "激レア",
-      "description": "門とカップの対応を示し、最後の帰結を空ける",
+      "description": "入口の景色が、旅の終わりにもう一度現れる",
       "mirror": true,
       "scene": "Assets/Scenes/GuidanceLab/Course-5B.json",
-      "objects": 43
+      "objects": 96,
+      "route": [
+        [
+          0,
+          10
+        ],
+        [
+          -1,
+          23
+        ],
+        [
+          -9,
+          32
+        ],
+        [
+          -9,
+          54
+        ],
+        [
+          7,
+          62
+        ],
+        [
+          7,
+          64
+        ],
+        [
+          7,
+          80
+        ],
+        [
+          7,
+          85
+        ],
+        [
+          0,
+          88
+        ],
+        [
+          -1,
+          90
+        ]
+      ],
+      "alternative": [],
+      "shots": [
+        [
+          0,
+          1
+        ],
+        [
+          -4,
+          18
+        ],
+        [
+          -7,
+          37
+        ],
+        [
+          7,
+          59
+        ],
+        [
+          7,
+          78
+        ],
+        [
+          0,
+          88
+        ]
+      ],
+      "goal": [
+        -1,
+        5.25,
+        90
+      ],
+      "family": "冒頭の景色へ帰る首尾反復",
+      "renderShots": [
+        [
+          -1,
+          1.05,
+          8
+        ],
+        [
+          -9,
+          1.05,
+          36
+        ],
+        [
+          7,
+          1.05,
+          60
+        ],
+        [
+          -1,
+          5.25,
+          82
+        ],
+        [
+          0,
+          5.25,
+          88
+        ]
+      ],
+      "batches": 26,
+      "polygons": 112548
     }
   ],
-  "grouping": "Presentation familiarity tiers are editorial estimates, not measured public awareness. Greek-origin names are not language-exclusive.",
-  "comparison": "Same collision layout, controls, lighting, camera and destination; cue geometry varies. Reflection swaps left/right.",
+  "grouping": "Editorial familiarity tiers; not surveyed. Foreign names also apply to Japanese.",
+  "comparison": "Authored spatial demonstrations, not a controlled test of rhetoric alone. Architecture, camera focus and temporal response vary.",
   "sources": [
-    "https://rhetoric.byu.edu/Figures/P/personification.htm",
-    "https://rhetoric.byu.edu/Figures/Groupings/of%20Repetition.htm",
-    "https://rhetoric.byu.edu/Figures/M/metonymy.htm",
-    "https://rhetoric.byu.edu/Figures/C/climax.htm",
-    "https://rhetoric.byu.edu/Figures/A/anadiplosis.htm",
-    "https://rhetoric.byu.edu/Figures/A/anapodoton.htm"
+    "https://www.nintendo.com/jp/interview/arzga/02.html",
+    "https://rhetoric.byu.edu/Figures/E/epanalepsis.htm"
   ]
 }

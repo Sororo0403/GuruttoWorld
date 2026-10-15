@@ -1,0 +1,15 @@
+{
+  "color": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "metallic": 0,
+  "normalFlipY": false,
+  "normalTexture": "",
+  "physicallyBased": true,
+  "roughness": 0.82,
+  "texture": "Assets/Textures/GuidanceLab/City1A/Palette.png",
+  "transparent": false
+}

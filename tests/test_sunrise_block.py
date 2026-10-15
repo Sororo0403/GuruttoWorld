@@ -93,9 +93,9 @@ class SunriseBlockTests(unittest.TestCase):
                 original=dict(original,ambient=.4)
             self.assertEqual(original,current)
         canvas=next(c for o in title['objects'] for c in o['components'] if c['type']=='Canvas' and 'menu' in c)
-        self.assertEqual(canvas['menu']['entries'][0]['target'],author.SCENE)
+        self.assertEqual(canvas['menu']['entries'][0]['target'],'Assets/Scenes/GuidanceLab/Course-4A.json')
         start=next(o for o in title['objects'] if o['id']=='world-start')
-        self.assertEqual(next(c for c in start['components'] if c['type']=='Button')['target'],author.SCENE)
+        self.assertEqual(next(c for c in start['components'] if c['type']=='Button')['target'],'Assets/Scenes/GuidanceLab/Course-4A.json')
 
 
 if __name__=='__main__':unittest.main()

@@ -1,0 +1,5502 @@
+[
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      0,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      0,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      0,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      0,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      3,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      3,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      3,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      3,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      6,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      6,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      6,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      6,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      0,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      0,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      0,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      0,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      3,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      3,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      3,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      3,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -33,
+      6,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -31,
+      6,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -29,
+      6,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -27,
+      6,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      0,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      0,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      0,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      0,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      3,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      3,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      3,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      3,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      6,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      6,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      6,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      6,
+      -2
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      0,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      0,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      0,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      0,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      3,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      3,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      3,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      3,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      27,
+      6,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      29,
+      6,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      31,
+      6,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      33,
+      6,
+      82
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -4.1,
+      0,
+      16
+    ],
+    "scale": 0.48,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -4.1,
+      0.2,
+      16
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      6.1,
+      0,
+      16
+    ],
+    "scale": 0.48,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      6.1,
+      0.2,
+      16
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "tableRound",
+    "position": [
+      -4.6,
+      0,
+      18
+    ],
+    "scale": 2.1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      -4.6,
+      0,
+      17.05
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      -4.6,
+      0,
+      18.95
+    ],
+    "scale": 2.2,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "plantSmall1",
+    "position": [
+      -4.6,
+      0.78,
+      18
+    ],
+    "scale": 0.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -18,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -16,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -14,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -12,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -18,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -16,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -14,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -12,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -19,
+      0,
+      12
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -19,
+      0,
+      16
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -19,
+      0,
+      20
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -19,
+      3,
+      12
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -19,
+      3,
+      16
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -19,
+      3,
+      20
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10,
+      0,
+      12
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10,
+      0,
+      16
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10,
+      0,
+      20
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10,
+      3,
+      12
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10,
+      3,
+      16
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10,
+      3,
+      20
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      15,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      17,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      21,
+      0,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      15,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      17,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      21,
+      3,
+      11
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      12,
+      0,
+      12
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      12,
+      0,
+      16
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      12,
+      0,
+      20
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      12,
+      3,
+      12
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      12,
+      3,
+      16
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      12,
+      3,
+      20
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      12
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      16
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      20
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      12
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      16
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      20
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -21,
+      0,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -19,
+      0,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -17,
+      0,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -15,
+      0,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -13,
+      0,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -21,
+      3,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -19,
+      3,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -17,
+      3,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -15,
+      3,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -13,
+      3,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -21,
+      6,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -19,
+      6,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -17,
+      6,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -15,
+      6,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -13,
+      6,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -21,
+      9,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -19,
+      9,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -17,
+      9,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -15,
+      9,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -13,
+      9,
+      34
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      0,
+      35
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      0,
+      39
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      0,
+      47
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      0,
+      51
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      0,
+      55
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      3,
+      35
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      3,
+      39
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      3,
+      47
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      3,
+      51
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      3,
+      55
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      6,
+      35
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      6,
+      39
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      6,
+      47
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      6,
+      51
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      6,
+      55
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      9,
+      35
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      9,
+      39
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      9,
+      43
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      9,
+      47
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      9,
+      51
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -22,
+      9,
+      55
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      0,
+      35
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      0,
+      39
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      0,
+      47
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      0,
+      51
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      0,
+      55
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      3,
+      35
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      3,
+      39
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      3,
+      47
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      3,
+      51
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      3,
+      55
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      6,
+      35
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      6,
+      39
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      6,
+      47
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      6,
+      51
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      6,
+      55
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      9,
+      35
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      9,
+      39
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      9,
+      43
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      9,
+      47
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      9,
+      51
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -12,
+      9,
+      55
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14,
+      0,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      16,
+      0,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      18,
+      0,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      20,
+      0,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      22,
+      0,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14,
+      3,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      16,
+      3,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      18,
+      3,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      20,
+      3,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      22,
+      3,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14,
+      6,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      16,
+      6,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      18,
+      6,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      20,
+      6,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      22,
+      6,
+      38
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      0,
+      39
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      0,
+      47
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      0,
+      51
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      0,
+      55
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      0,
+      59
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      0,
+      63
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      3,
+      39
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      3,
+      47
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      3,
+      51
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      3,
+      55
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      3,
+      59
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      3,
+      63
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      6,
+      39
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      6,
+      47
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      6,
+      51
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      6,
+      55
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      6,
+      59
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      13,
+      6,
+      63
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      39
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      43
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      47
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      51
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      55
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      59
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      0,
+      63
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      39
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      43
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      47
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      51
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      55
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      59
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      3,
+      63
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      6,
+      39
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      6,
+      43
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      6,
+      47
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      6,
+      51
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      6,
+      55
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      6,
+      59
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23,
+      6,
+      63
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -3,
+      0.6,
+      41
+    ],
+    "scale": 0.6719999999999999,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -3,
+      0.8799999999999999,
+      41
+    ],
+    "scale": 3.08,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -3,
+      0.6,
+      47
+    ],
+    "scale": 0.6719999999999999,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -3,
+      0.8799999999999999,
+      47
+    ],
+    "scale": 3.08,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      0,
+      0.6,
+      41
+    ],
+    "scale": 0.6719999999999999,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      0,
+      0.8799999999999999,
+      41
+    ],
+    "scale": 3.08,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      0,
+      0.6,
+      47
+    ],
+    "scale": 0.6719999999999999,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      0,
+      0.8799999999999999,
+      47
+    ],
+    "scale": 3.08,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      3,
+      0.6,
+      41
+    ],
+    "scale": 0.6719999999999999,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      3,
+      0.8799999999999999,
+      41
+    ],
+    "scale": 3.08,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      3,
+      0.6,
+      47
+    ],
+    "scale": 0.6719999999999999,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      3,
+      0.8799999999999999,
+      47
+    ],
+    "scale": 3.08,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_ACUnit",
+    "position": [
+      -10,
+      0.05,
+      57
+    ],
+    "scale": 2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_ACUnit",
+    "position": [
+      10,
+      0.05,
+      57
+    ],
+    "scale": 2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -4.1,
+      4.24,
+      90
+    ],
+    "scale": 0.48,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -4.1,
+      4.44,
+      90
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      6.1,
+      4.24,
+      90
+    ],
+    "scale": 0.48,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      6.1,
+      4.44,
+      90
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "tableRound",
+    "position": [
+      -4.6,
+      4.24,
+      92
+    ],
+    "scale": 2.1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      -4.6,
+      4.24,
+      91.05
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      -4.6,
+      4.24,
+      92.95
+    ],
+    "scale": 2.2,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "plantSmall1",
+    "position": [
+      -4.6,
+      5.0200000000000005,
+      92
+    ],
+    "scale": 0.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -8,
+      4.25,
+      94
+    ],
+    "scale": 0.48,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -8,
+      4.45,
+      94
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      7.8,
+      4.25,
+      94
+    ],
+    "scale": 0.48,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      7.8,
+      4.45,
+      94
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      7.8,
+      4.25,
+      82
+    ],
+    "scale": 0.48,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      7.8,
+      4.45,
+      82
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  }
+]

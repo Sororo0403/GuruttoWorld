@@ -560,7 +560,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "奥のカフェを探してください。移動・ジャンプはいつもの操作です。",
+          "text": "屋上のカフェを探してください。広場・中庭・屋上を自由に探索できます。",
           "font": "Yu Gothic UI",
           "fontSize": 24,
           "color": [
@@ -945,7 +945,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "鉢植えが枝で手招きして、通りへ誘う",
+          "text": "広場の建物が、近づいたあなたを迎える",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1185,7 +1185,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "同じ庇を、同じ強さで繰り返す",
+          "text": "同じ入口とテラスを、歩くたびに読み取る",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1425,7 +1425,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "カップから、その先のカフェを連想する",
+          "text": "店の営みから、奥のカフェを見つける",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1665,7 +1665,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "植栽を小・中・大と段階的に強める",
+          "text": "小さな庭から中庭、そして大きな屋上へ",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1905,7 +1905,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "前の終わりの目印を、次の始まりへ渡す",
+          "text": "時計塔から温室へ、景色の起点を引き継ぐ",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -2057,7 +2057,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "6   激レア  Anapodoton",
+          "text": "6   激レア  Epanalepsis",
           "font": "Yu Gothic UI",
           "fontSize": 25,
           "color": [
@@ -2145,7 +2145,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "門とカップの対応を示し、最後の帰結を空ける",
+          "text": "入口の景色が、旅の終わりにもう一度現れる",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [

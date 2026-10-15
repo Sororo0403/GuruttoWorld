@@ -228,6 +228,21 @@ namespace
         result.update=UpdatePlayer;
         return result;
     }
+    ScriptDefinition GuidancePlayer()
+    {
+        auto result=Player();
+        result.update=[](ScriptContext& c) {
+            if(!c.scene)return;
+            if(c.Pressed(Text(c,"restartAction"))) {c.scene->LoadScene(Text(c,"scene"));return;}
+            if(c.Pressed(Text(c,"cancelAction"))) {c.scene->LoadScene(Text(c,"returnScene"));return;}
+            if(c.object.position[1]<c.Value("fallLimit",-3) || std::abs(c.object.position[0])>26)Respawn(c);
+            const float x=c.Input(Text(c,"rightAction"))-c.Input(Text(c,"leftAction"));
+            const float z=c.Input(Text(c,"forwardAction"))-c.Input(Text(c,"backAction"));
+            if(std::hypot(x,z)>.1f)c.object.rotation[1]=std::atan2(x,z);
+            if(c.Pressed(Text(c,"jumpAction")))Sound(c,"Jump");
+        };
+        return result;
+    }
     ScriptDefinition Camera()
     {
         auto result=ParkCameraSchema();
@@ -438,7 +453,9 @@ bool Register_SunriseStreet(void* owner,SceneRuntime::RegisterModuleScript add)
     const auto player=Player(),camera=Camera(),patrol=Patrol();
     const auto mechanism=Mechanism(),bridge=Bridge(),hero=Hero(),lifetime=Lifetime();
     const auto blockPlayer=BlockPlayer(),blockCamera=BlockCamera(),shutter=Shutter();
+    const auto guidancePlayer=GuidancePlayer();
     return add(owner,"SunrisePlayer",&player) && add(owner,"SunriseCamera",&camera) && add(owner,"SunriseEnemy",&patrol) &&
         add(owner,"SunriseMechanism",&mechanism) && add(owner,"SunriseBridge",&bridge) && add(owner,"SunriseHero",&hero) && add(owner,"SunriseSound",&lifetime) &&
-        add(owner,"SunriseBlockPlayer",&blockPlayer) && add(owner,"SunriseBlockCamera",&blockCamera) && add(owner,"SunriseShutter",&shutter);
+        add(owner,"SunriseBlockPlayer",&blockPlayer) && add(owner,"SunriseBlockCamera",&blockCamera) && add(owner,"SunriseShutter",&shutter) &&
+        add(owner,"GuidancePlayer",&guidancePlayer);
 }
