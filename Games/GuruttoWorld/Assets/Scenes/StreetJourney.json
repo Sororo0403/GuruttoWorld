@@ -5123,12 +5123,12 @@
       "name": "park-camera",
       "parent": "",
       "position": [
-        -14.4,
-        3.3,
-        -6.2
+        -13.5,
+        4.4,
+        -7.6
       ],
       "rotation": [
-        0.18,
+        0.24,
         0,
         0
       ],
@@ -5142,7 +5142,7 @@
           "type": "Camera",
           "id": "camera",
           "enabled": true,
-          "verticalFov": 53,
+          "verticalFov": 58,
           "nearClip": 0.1,
           "farClip": 150,
           "referenceAspect": 1.7777777777777777,

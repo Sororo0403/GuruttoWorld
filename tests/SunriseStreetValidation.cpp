@@ -49,12 +49,12 @@ struct Simulation {
    const auto& player=Find(layout,"park-player");const auto& camera=Find(layout,"park-camera");
    auto delta=camera.position;float length=0;
    for(size_t i=0;i<3;++i){delta[i]-=player.position[i];length+=delta[i]*delta[i];}
-   length=std::sqrt(length);Require(length>.25f && length<14,"Close camera distance remains finite and bounded: "+std::to_string(length)+" at frame "+std::to_string(frames));
+   length=std::sqrt(length);Require(length>.25f && length<11,"Close camera distance remains finite and bounded: "+std::to_string(length)+" at frame "+std::to_string(frames));
    for(auto& value:delta)value/=length;
    const auto hit=physics.Raycast(player.position,delta,length,0xffffffffu,false,player.id);
    Require(!hit || hit->distance>length-.12f,"Smoothed camera does not cross a wall");
    if(frames>0 && std::hypot(player.position[0]-lastPlayer[0],player.position[2]-lastPlayer[2])<6)
-    Require(std::abs(camera.rotation[1]-lastYaw)<.035f,"Authored camera turns continuously during movement");
+    Require(std::abs(camera.rotation[1]-lastYaw)<.009f,"Authored camera turns continuously during movement");
    lastPlayer=player.position;
    minYaw=std::min(minYaw,camera.rotation[1]);maxYaw=std::max(maxYaw,camera.rotation[1]);
    Require(camera.camera && camera.camera->verticalFov>=50 && camera.camera->verticalFov<=65,"Bounded animated field of view");
@@ -334,6 +334,13 @@ void JourneyPlaythrough() {
  Require(Has(s.layout,"journey-shutter"),"Shutter waits for deliberate interaction");
  s.Tick(0,0,false,false,true);s.Tick();
  Require(!Has(s.layout,"journey-shutter"),"Gear physically opens roof stair");
+ // Stand still after using the gear: no timed orbit, crane or zoom.
+ for(int i=0;i<180;++i)s.Tick();
+ const auto resting=Find(s.layout,"park-camera");
+ for(int i=0;i<90;++i)s.Tick();
+ const auto stable=Find(s.layout,"park-camera");
+ Require(std::hypot(stable.position[0]-resting.position[0],stable.position[2]-resting.position[2])<.01f && std::abs(stable.position[1]-resting.position[1])<.01f,"Idle camera settles after interaction");
+ Require(std::abs(stable.rotation[1]-resting.rotation[1])<.001f,"Idle view does not swing after interaction");
  // Falling retains progress and returns to the compact backyard checkpoint.
  Find(s.layout,"park-player").position[1]=-5;s.Tick();
  Require(Find(s.layout,"park-player").position[2]>45,"Fall returns to backyard");
@@ -343,8 +350,8 @@ void JourneyPlaythrough() {
  Require(Find(s.layout,"park-player").position[1]<3.7f,"Missed jump lands on catch balcony");
  s.JumpTo(5,73);s.JumpTo(10,73);s.JumpTo(5,73);s.Walk(-3,73);s.Walk(-3,77);
  Require(s.ui.Value("journeyComplete")==1,"Street journey reaches next district");
- Require(s.maxYaw-s.minYaw>.9f,"Camera makes substantial authored lateral sweeps");
- Require(s.maxFov-s.minFov>8,"Camera visibly changes framing through the journey");
+ Require(s.maxYaw-s.minYaw<.5f,"Camera keeps a stable approach direction throughout the street");
+ Require(s.maxFov-s.minFov<.02f,"Field of view stays fixed throughout action");
  std::cout<<"Camera yaw range "<<(s.maxYaw-s.minYaw)<<", FOV "<<s.minFov<<".."<<s.maxFov<<"\n";
 
  Require(s.scripts.TakeSceneCommands().empty(),"Completion preserves exploration");
