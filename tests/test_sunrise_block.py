@@ -32,7 +32,7 @@ class SunriseBlockTests(unittest.TestCase):
                     if c.get(key):self.assertTrue((author.GAME/c[key]).is_file(),c[key])
 
     def test_collision_survives_static_baking(self):
-        self.assertLessEqual(len(self.objects),120)
+        self.assertLessEqual(len(self.objects),140)
         for o in author.assemble(False)['objects']:
             colliders=[c for c in o['components'] if c['type']=='BoxCollider']
             if colliders:
@@ -40,6 +40,20 @@ class SunriseBlockTests(unittest.TestCase):
                 self.assertEqual(colliders,[c for c in saved['components'] if c['type']=='BoxCollider'])
                 for key in ('position','rotation','scale','parent'):self.assertEqual(o[key],saved[key])
         self.assertEqual(sum(o['id'].startswith('audio-') for o in self.objects.values()),7)
+
+    def test_text_free_stage_and_camera_space(self):
+        self.assertFalse(any(c['type'] in ('Text','Image') for o in self.objects.values() for c in o['components']))
+        for identity in ('park-hint','park-stats','stage-title','park-result','hint-bg','hud-bg','park-clear-bg'):
+            self.assertNotIn(identity,self.objects)
+        building=self.objects['collision-entry-right']
+        self.assertLessEqual(building['position'][2]+building['scale'][2]/2,10)
+        from SunriseDistrictBake import scene_objects
+        for original in scene_objects():
+            self.assertEqual(original,self.objects[original['id']])
+            renderer=next(c for c in original['components'] if c['type']=='MeshRenderer')
+            path=author.GAME/renderer['model']
+            for line in path.read_text().splitlines():
+                if line.startswith('mtllib '):self.assertTrue((path.parent/line[7:]).is_file())
 
     def test_mechanism_and_short_route(self):
         self.assertEqual(sum(o['name']=='ParkCoin' for o in self.objects.values()),6)

@@ -98,7 +98,7 @@ def kenney(name):
 
 
 def generate_textures():
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw
     import random
     folder=GAME/TEXTURES;folder.mkdir(parents=True,exist_ok=True)
     rng=random.Random(240)
@@ -111,11 +111,12 @@ def generate_textures():
         image.putdata(pixels);image.save(folder/(name+'.png'))
     image=Image.new('RGB',(512,256),(29,65,68));draw=ImageDraw.Draw(image)
     draw.rounded_rectangle((8,8,503,247),radius=16,outline=(220,185,126),width=5)
-    font=ImageFont.truetype('C:/Windows/Fonts/segoeuib.ttf',64)
-    small=ImageFont.truetype('C:/Windows/Fonts/segoeui.ttf',23)
-    draw.text((256,84),'MORNING',font=font,anchor='mm',fill=(246,231,194))
-    draw.text((256,151),'COFFEE  /  BAKERY',font=small,anchor='mm',fill=(232,202,151))
-    draw.text((256,202),'OPEN  7:00',font=small,anchor='mm',fill=(232,202,151))
+    # A cup and morning sun communicate the shop without explanatory lettering.
+    draw.ellipse((110,36,190,116),fill=(220,185,126))
+    draw.rounded_rectangle((198,104,322,196),radius=18,fill=(246,231,194))
+    draw.arc((300,106,364,178),-90,90,fill=(246,231,194),width=12)
+    draw.line((185,207,344,207),fill=(220,185,126),width=8)
+    for x in (225,260,295):draw.arc((x-10,40,x+10,102),80,280,fill=(232,202,151),width=5)
     image.save(folder/'CafeSign.png')
 
 

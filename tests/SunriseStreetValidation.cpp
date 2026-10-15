@@ -127,7 +127,18 @@ void BlockPlaythrough() {
  Require(s.states.at("park-player").grounded,"Block entrance grounded");
  const auto& camera=Find(s.layout,"park-camera");
  Require(camera.position[1]<6 && camera.position[2]>-8,"Close camera at street level");
- s.Walk(-2,8);s.Walk(0,18);s.Walk(9,20);s.Walk(8,22);s.Walk(11,38);s.Walk(8,43);
+ const auto visibleCamera=[&]() {
+  const auto p=Find(s.layout,"park-player").position;
+  const auto cameraPosition=Find(s.layout,"park-camera").position;
+  std::array<float,3> delta{};float length=0;
+  for(size_t i=0;i<3;++i){delta[i]=cameraPosition[i]-p[i];length+=delta[i]*delta[i];}
+  length=std::sqrt(length);for(auto& value:delta)value/=length;
+  const auto hit=s.physics.Raycast(p,delta,length,0xffffffffu,false,"park-player");
+  Require(!hit || hit->distance>=length-.1f,"Camera remains on player side of wall after smoothing");
+ };
+ s.Walk(-2,8);s.Walk(0,18);s.Walk(9,20);visibleCamera();
+ s.Walk(8,22);visibleCamera();s.Walk(11,38);s.Walk(8,43);
+ visibleCamera();
  s.Walk(5,46);s.Walk(11,50);s.Walk(15,54);
  Require(!Has(s.layout,"enemy-0") && !Has(s.layout,"enemy-1"),"Courtyard fight completed");
  s.Walk(7,52.6f,false);
@@ -137,8 +148,10 @@ void BlockPlaythrough() {
  Require(!Has(s.layout,"switch-roof"),"Attack operates rooftop gear");
  Require(Find(s.layout,"roof-shutter").position[0]<-10.9f,"Gear slides physical shutter open");
  s.Walk(-6,58);s.Walk(-6,71);s.Walk(-6,82);
+ visibleCamera();
  Require(Find(s.layout,"park-player").position[1]>6,"Full staircase reaches high cafe roof");
  s.Walk(-7,89);s.Walk(0,91);
+ visibleCamera();
  Require(s.ui.Value("parkClear")==1,"Short block completes at rooftop view");
  for(const auto& o:s.layout.objects)if(o.name=="ParkCoin")std::cout<<"Remaining block reward: "<<o.id<<"\n";
  Require(std::none_of(s.layout.objects.begin(),s.layout.objects.end(),[](const auto& o){return o.name=="ParkCoin";}),"All six block rewards reachable");

@@ -300,11 +300,26 @@ namespace
             auto direction=delta;for(auto& value:direction)value/=length;
             const auto obstacle=c.scene->Raycast(player->position,direction,length,0xffffffffu,false,player->id);
             if(obstacle) {
-                const float fraction=std::clamp((obstacle->distance-.35f)/length,.35f,1.0f);
+                const float fraction=std::clamp((obstacle->distance-.35f)/length,.02f,1.0f);
                 for(size_t i=0;i<3;++i)wanted[i]=player->position[i]+delta[i]*fraction;
             }
             const float blend=1-std::exp(-c.Value("response",7)*dt);
             for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
+            // Smoothing may cross the inside of a corner even when its target is
+            // clear. Resolve the actual camera position after smoothing as well.
+            for(size_t i=0;i<3;++i)delta[i]=c.object.position[i]-player->position[i];
+            const float actualLength=std::sqrt(delta[0]*delta[0]+delta[1]*delta[1]+delta[2]*delta[2]);
+            if(actualLength>.01f) {
+                direction=delta;for(auto& value:direction)value/=actualLength;
+                float safeLength=actualLength;
+                for(float offset:{-.22f,0.0f,.22f}) {
+                    auto origin=player->position;origin[0]+=offset;
+                    const auto hit=c.scene->Raycast(origin,direction,actualLength,0xffffffffu,false,player->id);
+                    if(hit)safeLength=std::min(safeLength,std::max(.12f,hit->distance-.35f));
+                }
+                if(safeLength<actualLength)
+                    for(size_t i=0;i<3;++i)c.object.position[i]=player->position[i]+direction[i]*safeLength;
+            }
             const float dx=player->position[0]-c.object.position[0];
             const float dz=player->position[2]+c.Value("lookAhead",4.5f)+roof*2-c.object.position[2];
             c.object.rotation={std::atan2(c.object.position[1]-(c.state["floor"]+1.1f),std::hypot(dx,dz)),std::atan2(dx,dz),0};
@@ -319,14 +334,6 @@ namespace
             if(!c.scene || c.state["clear"]>0 || c.Pressed(Text(c,"restartAction")) || c.Pressed(Text(c,"cancelAction")))return;
             const auto& p=c.object.position;
             if(p[2]<-9 || p[2]>101)Respawn(c);
-            std::string hint;
-            if(p[2]<18)hint=Text(c,"hint1");
-            else if(p[2]<43)hint=Text(c,"hint2");
-            else if(c.scene->Find("switch-roof"))hint=p[2]<51?Text(c,"hint3"):"歯車を J でたたこう。オレンジの線は階段の扉につながっている";
-            else if(p[2]<62)hint="階段の扉が開いた！ 左の階段からカフェの屋上へ";
-            else if(p[2]<80)hint="階段を上ろう。頭の上に広がっていた街を見渡せるよ";
-            else hint="屋上のカフェに到着！ 花を探して、奥のオレンジの目印へ";
-            SetText(c,Id(c,"hint"),hint);
         };
         return result;
     }

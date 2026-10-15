@@ -1,0 +1,15 @@
+{
+  "color": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "texture": "Assets/Textures/Sunrise/Cafe/T_MetalConcrete_BaseColor.png",
+  "normalTexture": "Assets/Textures/Sunrise/Cafe/T_MetalConcrete_Normal.png",
+  "roughness": 0.82,
+  "metallic": 0,
+  "transparent": false,
+  "physicallyBased": true,
+  "normalFlipY": false
+}

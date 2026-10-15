@@ -1,0 +1,7802 @@
+[
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      6.5,
+      0,
+      9.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      6.5,
+      0,
+      7.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      6.5,
+      0,
+      5.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "DoorFrame_Wooden",
+    "position": [
+      6.5,
+      0,
+      3.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      6.500000000000001,
+      0,
+      1.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      6.500000000000001,
+      0,
+      -1.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      6.500000000000001,
+      0,
+      -3.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.5,
+      3,
+      9.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      6.5,
+      3,
+      7.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.5,
+      3,
+      5.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      6.5,
+      3,
+      3.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.500000000000001,
+      3,
+      1.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      6.500000000000001,
+      3,
+      -1.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.500000000000001,
+      3,
+      -3.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.5,
+      6,
+      9.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      6.5,
+      6,
+      7.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.5,
+      6,
+      5.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      6.5,
+      6,
+      3.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.500000000000001,
+      6,
+      1.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      6.500000000000001,
+      6,
+      -1.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.500000000000001,
+      6,
+      -3.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      6.5,
+      9,
+      9.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      6.5,
+      9,
+      7.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      6.5,
+      9,
+      5.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      6.5,
+      9,
+      3.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      6.500000000000001,
+      9,
+      1.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      6.500000000000001,
+      9,
+      -1.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      6.500000000000001,
+      9,
+      -3.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      15.5,
+      0,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      13.5,
+      0,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      11.5,
+      0,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.5,
+      0,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      7.5,
+      0,
+      9.999999999999998
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      15.5,
+      3,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      13.5,
+      3,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      11.5,
+      3,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.5,
+      3,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      7.5,
+      3,
+      9.999999999999998
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      15.5,
+      6,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      13.5,
+      6,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      11.5,
+      6,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.5,
+      6,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      7.5,
+      6,
+      9.999999999999998
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      15.5,
+      9,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      13.5,
+      9,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      11.5,
+      9,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      9.5,
+      9,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      7.5,
+      9,
+      9.999999999999998
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Prop_Bollard",
+    "position": [
+      3.4,
+      0,
+      0
+    ],
+    "scale": 0.8,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Prop_Bollard",
+    "position": [
+      3.4,
+      0,
+      7
+    ],
+    "scale": 0.8,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      5.1,
+      0.02,
+      9.7
+    ],
+    "scale": 0.45,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      4.88,
+      0.22,
+      9.7
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      5.319999999999999,
+      0.22,
+      9.819999999999999
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -10.0,
+      0,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -8.0,
+      0,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -6.0,
+      0,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "DoorFrame_Wooden",
+    "position": [
+      -4.0,
+      0,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -2.0,
+      0,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      0.0,
+      0,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      2.0,
+      0,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      3,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -8.0,
+      3,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -6.0,
+      3,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -4.0,
+      3,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -2.0,
+      3,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      0.0,
+      3,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      2.0,
+      3,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      6,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -8.0,
+      6,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -6.0,
+      6,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -4.0,
+      6,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -2.0,
+      6,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      0.0,
+      6,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      2.0,
+      6,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -8.0,
+      9,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -6.0,
+      9,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -4.0,
+      9,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -2.0,
+      9,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      0.0,
+      9,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      2.0,
+      9,
+      26.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      3.0,
+      0,
+      27.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0,
+      0,
+      29.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      3.0000000000000004,
+      0,
+      31.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0000000000000004,
+      0,
+      33.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      3.0000000000000004,
+      0,
+      35.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0000000000000004,
+      0,
+      37.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      3.000000000000001,
+      0,
+      39.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      3.0,
+      3,
+      27.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0,
+      3,
+      29.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      3.0000000000000004,
+      3,
+      31.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0000000000000004,
+      3,
+      33.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      3.0000000000000004,
+      3,
+      35.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0000000000000004,
+      3,
+      37.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      3.000000000000001,
+      3,
+      39.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      3.0,
+      6,
+      27.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0,
+      6,
+      29.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      3.0000000000000004,
+      6,
+      31.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0000000000000004,
+      6,
+      33.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      3.0000000000000004,
+      6,
+      35.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      3.0000000000000004,
+      6,
+      37.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      3.000000000000001,
+      6,
+      39.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      3.0,
+      9,
+      27.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      3.0,
+      9,
+      29.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      3.0000000000000004,
+      9,
+      31.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      3.0000000000000004,
+      9,
+      33.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      3.0000000000000004,
+      9,
+      35.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      3.0000000000000004,
+      9,
+      37.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      3.000000000000001,
+      9,
+      39.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      14.0,
+      0,
+      41.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      0,
+      39.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      14.0,
+      0,
+      37.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      0,
+      35.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "DoorFrame_Wooden",
+    "position": [
+      14.0,
+      0,
+      33.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      0,
+      31.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      14.0,
+      0,
+      29.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      0,
+      27.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      14.000000000000002,
+      0,
+      25.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.0,
+      3,
+      41.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      3,
+      39.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.0,
+      3,
+      37.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      3,
+      35.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.0,
+      3,
+      33.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      3,
+      31.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.0,
+      3,
+      29.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      3,
+      27.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.000000000000002,
+      3,
+      25.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.0,
+      6,
+      41.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      6,
+      39.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.0,
+      6,
+      37.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      6,
+      35.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.0,
+      6,
+      33.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      6,
+      31.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.0,
+      6,
+      29.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      14.0,
+      6,
+      27.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      14.000000000000002,
+      6,
+      25.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.0,
+      9,
+      41.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.0,
+      9,
+      39.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.0,
+      9,
+      37.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.0,
+      9,
+      35.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.0,
+      9,
+      33.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.0,
+      9,
+      31.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.0,
+      9,
+      29.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.0,
+      9,
+      27.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      14.000000000000002,
+      9,
+      25.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      12.7,
+      0,
+      27
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      12.7,
+      0,
+      33
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      12.7,
+      0,
+      39
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      12.6,
+      0.02,
+      28
+    ],
+    "scale": 0.42,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      12.379999999999999,
+      0.22,
+      28
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      12.82,
+      0.22,
+      28.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      12.6,
+      0.02,
+      38
+    ],
+    "scale": 0.42,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      12.379999999999999,
+      0.22,
+      38
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      12.82,
+      0.22,
+      38.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Prop_ManholeCover",
+    "position": [
+      8,
+      0.028,
+      32
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -10.0,
+      0,
+      45.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      0,
+      47.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -10.0,
+      0,
+      49.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      0,
+      51.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "DoorFrame_Wooden",
+    "position": [
+      -10.0,
+      0,
+      53.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      0,
+      55.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -10.0,
+      0,
+      57.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      0,
+      59.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -9.999999999999998,
+      0,
+      61.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      3,
+      45.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      3,
+      47.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      3,
+      49.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      3,
+      51.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      3,
+      53.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      3,
+      55.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      3,
+      57.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      3,
+      59.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -9.999999999999998,
+      3,
+      61.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      6,
+      45.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      6,
+      47.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      6,
+      49.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      6,
+      51.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      6,
+      53.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      6,
+      55.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -10.0,
+      6,
+      57.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -10.0,
+      6,
+      59.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -9.999999999999998,
+      6,
+      61.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      45.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      47.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      49.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      51.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      53.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      55.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      57.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -10.0,
+      9,
+      59.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      -9.999999999999998,
+      9,
+      61.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      19.0,
+      0,
+      61.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.0,
+      0,
+      59.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      19.0,
+      0,
+      57.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.0,
+      0,
+      55.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "DoorFrame_Wooden",
+    "position": [
+      19.0,
+      0,
+      53.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.0,
+      0,
+      51.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      19.0,
+      0,
+      49.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.0,
+      0,
+      47.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      19.0,
+      0,
+      45.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      19.0,
+      3,
+      61.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.0,
+      3,
+      59.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      19.0,
+      3,
+      57.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.0,
+      3,
+      55.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      19.0,
+      3,
+      53.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.0,
+      3,
+      51.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      19.0,
+      3,
+      49.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.0,
+      3,
+      47.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      19.0,
+      3,
+      45.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      61.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      59.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      57.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      55.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      53.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      51.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      49.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      47.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      6,
+      45.0
+    ],
+    "scale": 1,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -7.5,
+      0.02,
+      46
+    ],
+    "scale": 0.55,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -7.72,
+      0.22,
+      46
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -7.28,
+      0.22,
+      46.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -1.5,
+      0.02,
+      60
+    ],
+    "scale": 0.55,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -1.72,
+      0.22,
+      60
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -1.28,
+      0.22,
+      60.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      17.8,
+      0.02,
+      48
+    ],
+    "scale": 0.55,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      17.580000000000002,
+      0.22,
+      48
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      18.02,
+      0.22,
+      48.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      17.8,
+      0.02,
+      58
+    ],
+    "scale": 0.55,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      17.580000000000002,
+      0.22,
+      58
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      18.02,
+      0.22,
+      58.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -6,
+      0.02,
+      48
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -6.22,
+      0.22,
+      48
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -5.78,
+      0.22,
+      48.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -3,
+      0.02,
+      48
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -3.22,
+      0.22,
+      48
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -2.78,
+      0.22,
+      48.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -6,
+      0.02,
+      51
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -6.22,
+      0.22,
+      51
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -5.78,
+      0.22,
+      51.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -3,
+      0.02,
+      51
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -3.22,
+      0.22,
+      51
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -2.78,
+      0.22,
+      51.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      -9,
+      0,
+      52
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "lampWall",
+    "position": [
+      -9,
+      2.7,
+      52
+    ],
+    "scale": 1.5,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      18,
+      0,
+      52
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "k",
+    "model": "lampWall",
+    "position": [
+      18,
+      2.7,
+      52
+    ],
+    "scale": 1.5,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      -8.45,
+      0,
+      61
+    ],
+    "scale": 1.1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      -3.55,
+      0,
+      61
+    ],
+    "scale": 1.1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Prop_ACUnit",
+    "position": [
+      8.2,
+      0.05,
+      56
+    ],
+    "scale": 2.5,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      0.3,
+      61.5
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      0.6,
+      62.55
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      0.8999999999999999,
+      63.6
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      1.2,
+      64.65
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      1.5,
+      65.7
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      1.7999999999999998,
+      66.75
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      2.1,
+      67.8
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      2.4,
+      68.85
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      2.6999999999999997,
+      69.9
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      3.0,
+      70.95
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      3.3,
+      72.0
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      3.5999999999999996,
+      73.05
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      3.9,
+      74.1
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      4.2,
+      75.15
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      4.5,
+      76.2
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      4.8,
+      77.25
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      5.1,
+      78.3
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 2,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      5.3999999999999995,
+      79.35
+    ],
+    "scale": 1.0920164833920778,
+    "angle": 3.141592653589793,
+    "pitch": 0.27829965900511133,
+    "origin": [
+      0,
+      0.97,
+      0
+    ],
+    "side": 0,
+    "spread": 0.8
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -8.1,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -6.3,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -4.5,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -2.6999999999999993,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -0.8999999999999995,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      0.9000000000000004,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      2.700000000000001,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      4.5,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      6.300000000000001,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      8.1,
+      0.0,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -8.1,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -6.3,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -4.5,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -2.6999999999999993,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -0.8999999999999995,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      0.9000000000000004,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      2.700000000000001,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      4.5,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      6.300000000000001,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      8.1,
+      2.7,
+      80.0
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      9.0,
+      0.0,
+      81.0
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.0,
+      0.0,
+      82.8
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      9.0,
+      0.0,
+      84.6
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.0,
+      0.0,
+      86.4
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      9.0,
+      0.0,
+      88.2
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.0,
+      0.0,
+      90.0
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      9.0,
+      0.0,
+      91.8
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      9.0,
+      2.7,
+      81.0
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.0,
+      2.7,
+      82.8
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      9.0,
+      2.7,
+      84.6
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.0,
+      2.7,
+      86.4
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      9.0,
+      2.7,
+      88.2
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      9.0,
+      2.7,
+      90.0
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      9.0,
+      2.7,
+      91.8
+    ],
+    "scale": 0.9,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -9.0,
+      0.0,
+      93.0
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -9.0,
+      0.0,
+      91.2
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -9.0,
+      0.0,
+      89.4
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -9.0,
+      0.0,
+      87.6
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -9.0,
+      0.0,
+      85.8
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -9.0,
+      0.0,
+      84.0
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      -9.0,
+      0.0,
+      82.2
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -9.0,
+      2.7,
+      93.0
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -9.0,
+      2.7,
+      91.2
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -9.0,
+      2.7,
+      89.4
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -9.0,
+      2.7,
+      87.6
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -9.0,
+      2.7,
+      85.8
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      -9.0,
+      2.7,
+      84.0
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      -9.0,
+      2.7,
+      82.2
+    ],
+    "scale": 0.9,
+    "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      80
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      81
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      82
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      83
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      84
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      85
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      86
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      87
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      88
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      89
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      90
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      91
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      92
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8.9,
+      5.59,
+      93
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      80
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      81
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      82
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      83
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      84
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      85
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      86
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      87
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      88
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      89
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      90
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      91
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      92
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8.9,
+      5.59,
+      93
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -9,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -8,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -7,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -6,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -5,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -4,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -3,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -2,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      -1,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      0,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      1,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      2,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      3,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      4,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      5,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      6,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      7,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Stairs_Rails_Metal_Straight_1",
+    "position": [
+      8,
+      5.59,
+      93.9
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0.97,
+      0.97,
+      0
+    ],
+    "side": 1,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "tableRound",
+    "position": [
+      -2.5,
+      5.42,
+      84.2
+    ],
+    "scale": 2.1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      -2.5,
+      5.42,
+      83.25
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      -2.5,
+      5.42,
+      85.15
+    ],
+    "scale": 2.2,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "plantSmall1",
+    "position": [
+      -2.5,
+      6.2,
+      84.2
+    ],
+    "scale": 0.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "tableRound",
+    "position": [
+      4.8,
+      5.42,
+      86
+    ],
+    "scale": 2.1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      4.8,
+      5.42,
+      85.05
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      4.8,
+      5.42,
+      86.95
+    ],
+    "scale": 2.2,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "plantSmall1",
+    "position": [
+      4.8,
+      6.2,
+      86
+    ],
+    "scale": 0.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "tableRound",
+    "position": [
+      3.5,
+      5.42,
+      90.6
+    ],
+    "scale": 2.1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      3.5,
+      5.42,
+      89.64999999999999
+    ],
+    "scale": 2.2,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "chairRounded",
+    "position": [
+      3.5,
+      5.42,
+      91.55
+    ],
+    "scale": 2.2,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "plantSmall1",
+    "position": [
+      3.5,
+      6.2,
+      90.6
+    ],
+    "scale": 0.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      2.7,
+      5.4,
+      83.5
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      2.7,
+      5.4,
+      90.5
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      7,
+      5.4,
+      83.5
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      7,
+      5.4,
+      90.5
+    ],
+    "scale": 0.9,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -8,
+      5.42,
+      83
+    ],
+    "scale": 0.55,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -8.22,
+      5.62,
+      83
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -7.78,
+      5.62,
+      83.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      -8,
+      5.42,
+      91.5
+    ],
+    "scale": 0.55,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -8.22,
+      5.62,
+      91.5
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      -7.78,
+      5.62,
+      91.62
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      7.8,
+      5.42,
+      92
+    ],
+    "scale": 0.55,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      7.58,
+      5.62,
+      92
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      8.02,
+      5.62,
+      92.12
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Prop_Planter_Single",
+    "position": [
+      7.8,
+      5.42,
+      81.3
+    ],
+    "scale": 0.55,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      7.58,
+      5.62,
+      81.3
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "k",
+    "model": "pottedPlant",
+    "position": [
+      8.02,
+      5.62,
+      81.42
+    ],
+    "scale": 1.7,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 3,
+    "kind": "q",
+    "model": "Prop_ACUnit",
+    "position": [
+      -7.3,
+      5.42,
+      81.5
+    ],
+    "scale": 2,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  }
+]
