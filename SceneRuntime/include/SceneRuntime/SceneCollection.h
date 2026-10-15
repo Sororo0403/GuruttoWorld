@@ -100,21 +100,40 @@ namespace SceneRuntime
                 remap(object.button->sound);
             }
         }
-        /// <summary>実行中に生成された個体を親またはアクティブシーンへ所属させます。</summary>
+        /// <summary>保存済み所属を先に復元し、新しい個体を並び順によらず祖先またはアクティブシーンへ所属させます。</summary>
         void Synchronize(const SceneLayout& layout)
         {
             std::set<std::string> live;
-            for(const auto& object:layout.objects) live.insert(object.id);
+            std::map<std::string,const ScenePlacement*> objects;
+            for(const auto& object:layout.objects) {live.insert(object.id);objects.emplace(object.id,&object);}
             for(auto& entry:entries_) std::erase_if(entry.objects,[&](const auto& id){return !live.contains(id);});
+            std::map<std::string,size_t> owners;
+            for(size_t index=0;index<entries_.size();++index)
+                for(const auto& id:entries_[index].objects) owners.emplace(id,index);
             for(const auto& object:layout.objects)
             {
-                if(object.persistent || std::any_of(entries_.begin(),entries_.end(),[&](const auto& e){return e.objects.contains(object.id);})) continue;
+                if(object.persistent || owners.contains(object.id)) continue;
                 auto owner=std::find_if(entries_.begin(),entries_.end(),[&](const auto& e){
                     const auto saved=layout.sceneObjects.find(e.name);
                     return saved!=layout.sceneObjects.end() && std::find(saved->second.begin(),saved->second.end(),object.id)!=saved->second.end();});
-                if(owner==entries_.end()) owner=std::find_if(entries_.begin(),entries_.end(),[&](const auto& e){return e.objects.contains(object.parentId);});
-                if(owner==entries_.end() && !entries_.empty()) owner=std::prev(entries_.end());
-                if(owner!=entries_.end()) owner->objects.insert(object.id);
+                if(owner!=entries_.end()) {owner->objects.insert(object.id);owners.emplace(object.id,static_cast<size_t>(owner-entries_.begin()));}
+            }
+            for(const auto& object:layout.objects)
+            {
+                if(object.persistent || owners.contains(object.id) || entries_.empty()) continue;
+                std::vector<const ScenePlacement*> chain;
+                std::set<std::string> visited;
+                auto ancestor=&object;
+                size_t owner=entries_.size()-1;
+                while(ancestor && visited.insert(ancestor->id).second)
+                {
+                    if(const auto found=owners.find(ancestor->id);found!=owners.end()) {owner=found->second;break;}
+                    chain.push_back(ancestor);
+                    const auto parent=objects.find(ancestor->parentId);
+                    ancestor=parent==objects.end()?nullptr:parent->second;
+                }
+                for(const auto* member:chain) if(!member->persistent)
+                {entries_[owner].objects.insert(member->id);owners.emplace(member->id,owner);}
             }
         }
         /// <summary>所属をシーン保存とUndoの対象へ含めます。</summary>

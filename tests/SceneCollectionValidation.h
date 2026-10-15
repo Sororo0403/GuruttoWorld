@@ -44,6 +44,23 @@ namespace SceneCollectionValidation
         const auto spawnedId=api.Spawn({});api.Commit();
         const auto withoutOwner=generated.Unload(owned,"Owner");
         Require(std::none_of(withoutOwner.objects.begin(),withoutOwner.objects.end(),[&](const auto& object){return object.id==spawnedId;}),"spawned roots unload with their script owner scene");
+        SceneCollection reversed;reversed.Reset(current,"Owner");auto descendants=reversed.Add(current,Scene(),"Active");
+        ScenePlacement grandchild;grandchild.id="new-grandchild";grandchild.parentId="new-child";
+        ScenePlacement newChild;newChild.id="new-child";newChild.parentId="parent";
+        descendants.objects.insert(descendants.objects.begin(),{grandchild,newChild});
+        auto removeOwner=reversed;
+        const auto withoutAncestor=removeOwner.Unload(descendants,"Owner");
+        Require(withoutAncestor.objects.size()==2 && withoutAncestor.objects[0].id=="parent-scene-1",
+            "all new descendants unload with their ancestor scene regardless of object order");
+        const auto withoutActive=reversed.Unload(descendants,"Active");
+        Require(withoutActive.objects.size()==4 && withoutActive.objects[0].parentId=="new-child",
+            "new descendants inherit their ancestor scene regardless of object order");
+        Require(withoutActive.sceneObjects.at("Owner").size()==4,"saved ownership includes every inherited descendant");
+        SceneCollection savedOwner;savedOwner.Reset(current,"Owner");auto explicitOwner=savedOwner.Add(current,Scene(),"Active");
+        newChild.parentId.clear();explicitOwner.objects.insert(explicitOwner.objects.begin(),{grandchild,newChild});
+        explicitOwner.sceneObjects["Owner"].push_back(newChild.id);
+        Require(savedOwner.Unload(explicitOwner,"Owner").objects.size()==2,
+            "saved ownership is restored before descendants inherit an otherwise unowned parent");
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
@@ -85,5 +102,17 @@ namespace SceneCollectionValidation
         Require(!environment.LoadScene("../outside.json",true,error),"scene path cannot escape content");
         Require(renderer.Render({0,0,0,1},[&](auto* commands,float){environment.Draw(commands,renderer.GetWidth(),renderer.GetHeight());})!=Engine::RenderResult::Failed,"combined scene renders");
         Require(renderer.WaitForIdle(),"scene collection GPU completes");
+        SceneEnvironment edited;auto editable=Scene();for(auto& object:editable.objects) object.scripts.clear();
+        Require(edited.Initialize(renderer,root,editable,error) && edited.LoadScene("Assets/Scenes/B.json",true,error),"edited collection initializes");
+        ScenePlacement leaf;leaf.id="created-leaf";leaf.terrain.emplace();leaf.terrain->columns=2;leaf.terrain->rows=2;leaf.terrain->heights.assign(4,0);std::string created;
+        Require(edited.World().AddObject(leaf,root,created,error),"new leaf is created before its parent");
+        ScenePlacement branch;branch.id="created-branch";branch.parentId="parent";
+        Require(edited.World().AddObject(branch,root,created,error) && edited.World().SetParent(leaf.id,branch.id,error),"editor reparents earlier leaf under a new branch");
+        Require(renderer.Render({0,0,0,1},[&](auto* commands,float){edited.Draw(commands,640,360);})!=Engine::RenderResult::Failed &&
+            renderer.WaitForIdle(),"edited subtree GPU resources render before unloading");
+        Require(edited.UnloadScene("Main",error) && edited.World().Layout().objects.size()==2 &&
+            edited.World().Layout().objects.front().id=="parent-scene-1","actual scene unload removes the full edited subtree");
+        Require(renderer.Render({0,0,0,1},[&](auto* commands,float){edited.Draw(commands,640,360);})!=Engine::RenderResult::Failed &&
+            renderer.WaitForIdle(),"remaining additive scene renders after edited subtree unload");
     }
 }
