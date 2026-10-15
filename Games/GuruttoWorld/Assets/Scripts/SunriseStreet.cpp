@@ -284,6 +284,12 @@ namespace
         auto result=ParkCameraSchema();
         result.fields["height"]={4.2f,2,12};
         result.fields["distance"]={7.8f,3,15};
+        result.fields["plazaExitX"]={8,-20,25};
+        result.fields["plazaFollowSlack"]={.85f,0,1.5f};
+        result.fields["plazaCameraLeft"]={-3,-5,0};
+        result.fields["plazaFocusWeight"]={.22f,0,.3f};
+        result.fields["plazaBlendStart"]={18,10,26};
+        result.fields["plazaBlendEnd"]={34,28,42};
         result.lateUpdate=[](ScriptContext& c) {
             const auto* player=c.Reference("target");
             if(!player || !c.scene) return;
@@ -293,7 +299,21 @@ namespace
             const float roof=std::clamp((player->position[2]-79)/9,0.0f,1.0f);
             const float distance=c.Value("distance",7.8f)+roof*1.2f;
             const float height=c.Value("height",4.2f)+roof*.8f;
-            std::array<float,3> wanted{player->position[0],c.state["floor"]+.7f+height,player->position[2]-distance};
+            // The plaza keeps its forward composition during small detours.
+            // The continuous blend also works when deliberately walking back;
+            // neither the player's facing nor a trigger can flip the camera.
+            const float t=std::clamp((player->position[2]-c.Value("plazaBlendStart",18))/
+                std::max(1.0f,c.Value("plazaBlendEnd",34)-c.Value("plazaBlendStart",18)),0.0f,1.0f);
+            const float plaza=1-t*t*(3-2*t);
+            if(!c.state["framingReady"]) {c.state["anchorX"]=player->position[0];c.state["framingReady"]=1;}
+            const float slack=c.Value("plazaFollowSlack",.85f)*plaza;
+            c.state["anchorX"]=std::clamp(c.state["anchorX"],player->position[0]-slack,player->position[0]+slack);
+            const float anchor=c.state["anchorX"];
+            const float aimX=anchor+(c.Value("plazaExitX",8)-anchor)*c.Value("plazaFocusWeight",.22f)*plaza;
+            std::array<float,3> wanted{anchor-.5f*plaza,c.state["floor"]+.7f+height,player->position[2]-distance};
+            // Reserve the camera's own aisle outside the cafe awning. Following
+            // the player under its overhang would hide them behind the fabric.
+            wanted[0]=std::max(wanted[0],c.Value("plazaCameraLeft",-3)*plaza+player->position[0]*(1-plaza));
             std::array<float,3> delta{};
             for(size_t i=0;i<3;++i) delta[i]=wanted[i]-player->position[i];
             const float length=std::sqrt(delta[0]*delta[0]+delta[1]*delta[1]+delta[2]*delta[2]);
@@ -320,7 +340,11 @@ namespace
                 if(safeLength<actualLength)
                     for(size_t i=0;i<3;++i)c.object.position[i]=player->position[i]+direction[i]*safeLength;
             }
-            const float dx=player->position[0]-c.object.position[0];
+            // Smooth composition separately from collision-safe position. A
+            // wall may pull the camera in immediately without rotating its aim.
+            if(!c.state["aimReady"]) {c.state["aimX"]=aimX;c.state["aimReady"]=1;}
+            c.state["aimX"]+=(aimX-c.state["aimX"])*blend;
+            const float dx=c.state["aimX"]-c.object.position[0];
             const float dz=player->position[2]+c.Value("lookAhead",4.5f)+roof*2-c.object.position[2];
             c.object.rotation={std::atan2(c.object.position[1]-(c.state["floor"]+1.1f),std::hypot(dx,dz)),std::atan2(dx,dz),0};
         };

@@ -5,7 +5,7 @@ import shutil
 from SunriseDistrictBake import DistrictBake, GAME, TEXTURES, FOLDER, MATERIALS
 from AuthorEntranceCafe import TEXTURES as CAFE_TEXTURES, material, quaternius
 from GenerateParkAdventure import write
-from SunriseBlockPlan import BUILDINGS
+from SunriseBlockPlan import BUILDINGS, PLAZA_GARDEN
 
 
 def bake():
@@ -67,26 +67,30 @@ def bake():
         b.zone=zone
         b.cube((2.5,-.045,(start+end)/2),(45,.08,end-start),paving)
     b.zone=0
-    b.cube((0,.002,4.25),(6,.025,28.5),asphalt)
-    b.cube((4,.002,21.5),(14,.025,6),asphalt)
-    for x in (-3.15,3.15):b.cube((x,.07,4.25),(.18,.14,28.5),cream)
-    for z in range(-7,17,5):b.cube((0,.025,z),(.10,.012,2),cream)
-    # Entry-right ends early, leaving room for the camera behind the turn.
+    # Cafe forecourt: continuous paving and an empty centre, rather than a
+    # six-metre strip bounded by two curbs. The next street opens diagonally.
+    b.cube((8,.002,25),(8,.025,6),asphalt)
+    # Move the whole facade with its shared physical building footprint.
     building('entry-right')
-    facade((6.5,0,9),7,3,math.pi/2,door=True)
-    facade((15.5,0,10),5,3,math.pi,door=False)
-    for z in (0,7):b.place('q','Prop_Bollard',(3.4,0,z),.8)
-    planter(5.1,.02,9.7,.45)
+    facade((12.5,0,9),7,3,math.pi/2,door=True)
+    facade((21.5,0,10),5,3,math.pi,door=False)
+    x0,x1,z0,z1,h=PLAZA_GARDEN
+    b.cube(((x0+x1)/2,h/2,(z0+z1)/2),(x1-x0,h,z1-z0),cream)
+    b.cube(((x0+x1)/2,h,(z0+z1)/2),(x1-x0-.22,.025,z1-z0-.22),grass)
+    for x in (8.6,9.3,10.0):
+        b.place('k','pottedPlant',(x,h,4.2),1.8)
+    seating(10,.02,11.8)
 
     b.zone=1
-    b.cube((8,.002,34.25),(6,.025,19.5),asphalt)
-    for x in (4.85,11.15):b.cube((x,.07,34.25),(.18,.14,19.5),cream)
-    for z in range(27,43,5):b.cube((8,.028,z),(.1,.012,2),cream)
+    b.cube((8,.002,36),(8,.025,16),asphalt)
+    # Curbs start inside the street, never draw a line across the forecourt.
+    for x in (3.85,12.15):b.cube((x,.07,36),(.18,.14,16),cream)
     building('corner')
-    facade((-10,0,26),7,3,0,door=True)
-    facade((3,0,27),7,3,-math.pi/2)
+    facade((-10,0,28),6,3,0,door=True)
+    facade((1,0,29),7,3,-math.pi/2)
     building('arcade')
     facade((14,0,41),9,3,math.pi/2,door=True)
+    facade((15,0,24),5,3,0,door=False)
     # Real columns and beams form the arcade; decorations stay behind the curb.
     for z in (27,33,39):
         b.place('q','Metal_Column_Center',(12.7,0,z),1)

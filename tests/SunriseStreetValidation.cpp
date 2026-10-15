@@ -136,8 +136,8 @@ void BlockPlaythrough() {
   const auto hit=s.physics.Raycast(p,delta,length,0xffffffffu,false,"park-player");
   Require(!hit || hit->distance>=length-.1f,"Camera remains on player side of wall after smoothing");
  };
- s.Walk(-2,8);s.Walk(0,18);s.Walk(9,20);visibleCamera();
- s.Walk(8,22);visibleCamera();s.Walk(11,38);s.Walk(8,43);
+ s.Walk(-2.5f,15);s.Walk(-4.5f,15);s.Walk(0,18);s.Walk(9,20);visibleCamera();
+ s.Walk(10.3f,17);s.Walk(10.3f,14.2f);s.Walk(8,22);visibleCamera();s.Walk(11,38);s.Walk(8,43);
  visibleCamera();
  s.Walk(5,46);s.Walk(11,50);s.Walk(15,54);
  Require(!Has(s.layout,"enemy-0") && !Has(s.layout,"enemy-1"),"Courtyard fight completed");
@@ -160,6 +160,53 @@ void BlockPlaythrough() {
  const auto commands=s.scripts.TakeSceneCommands();
  Require(commands.size()==1 && commands[0].scene=="Assets/Scenes/SunriseBlock.json","Block restart returns to same slice");
  std::cout<<"PASS short city block: "<<s.frames<<" frames, close camera, corner, two enemies, shutter, 18 steps, roof, six rewards, clear and restart\n";
+}
+void PlazaExploration() {
+ Simulation s("Games/GuruttoWorld/Assets/Scenes/SunriseBlock.json");
+ for(int i=0;i<60;++i)s.Tick();
+ const auto inFrame=[&](std::array<float,3> point,float margin) {
+  const auto& cam=Find(s.layout,"park-camera");
+  const float pitch=cam.rotation[0],yaw=cam.rotation[1];
+  for(size_t i=0;i<3;++i)point[i]-=cam.position[i];
+  const float right=point[0]*std::cos(yaw)-point[2]*std::sin(yaw);
+  const float up=point[0]*std::sin(yaw)*std::sin(pitch)+point[1]*std::cos(pitch)+point[2]*std::cos(yaw)*std::sin(pitch);
+  const float depth=point[0]*std::sin(yaw)*std::cos(pitch)-point[1]*std::sin(pitch)+point[2]*std::cos(yaw)*std::cos(pitch);
+  const float half=std::tan(49.0f*3.14159265f/360);
+  Require(depth>0 && std::abs(right)<depth*half*16/9*margin && std::abs(up)<depth*half*margin,"Plaza composition keeps player / exit in frame");
+ };
+ const auto composition=[&](bool exit) {
+  const auto p=Find(s.layout,"park-player").position;
+  inFrame(p,.92f);inFrame({p[0],p[1]-.65f,p[2]},.98f);
+  if(exit) inFrame({8,2.5f,28},.96f);
+  const auto& cam=Find(s.layout,"park-camera");
+  Require(std::hypot(cam.position[0]-p[0],cam.position[2]-p[2])<9,"Plaza retains close view");
+  std::array<float,3> d{};float length=0;
+  for(size_t i=0;i<3;++i){d[i]=cam.position[i]-p[i];length+=d[i]*d[i];}
+  length=std::sqrt(length);for(auto& v:d)v/=length;
+  const auto hit=s.physics.Raycast(p,d,length,0xffffffffu,false,"park-player");
+  Require(!hit || hit->distance>=length-.1f,"Plaza detour camera is not behind wall");
+ };
+ // Reach both edges, circle the planter in both directions, and return from
+ // the exit. The player is moved by physics, never teleported for these checks.
+ for(const auto& p:std::vector<std::array<float,2>>{{-4,7},{-2.5f,9},{-2.5f,15},{-4,15},{0,17},{7,1},{7,7},{11.55f,7},{11.55f,1},{7,1},{11.55f,1},{11.55f,7},{7,7},{7,17},{11.5f,18}}) {
+  s.Walk(p[0],p[1],false);composition(true);
+ }
+ for(const auto& p:std::vector<std::array<float,2>>{{8,24},{8,35},{8,24},{8,17},{0,17},{-2.5f,9},{-4,7}}) {s.Walk(p[0],p[1],false);composition(false);}
+ // A small reversal stays inside the camera's slack rather than panning the
+ // whole scene; crossing the blend boundary never snaps the yaw.
+ s.Walk(0,7,false);
+ const float initialX=Find(s.layout,"park-camera").position[0];
+ for(int i=0;i<5;++i)s.Tick(-1,0);
+ for(int i=0;i<40;++i)s.Tick();
+ Require(std::abs(Find(s.layout,"park-camera").position[0]-initialX)<.15f,"Small plaza movement leaves framing stable");
+ s.Walk(8,17,false);
+ float yaw=Find(s.layout,"park-camera").rotation[1];
+ for(int i=0;i<420;++i) {
+  s.Tick(0,i<210?1.0f:-1.0f);
+  const float next=Find(s.layout,"park-camera").rotation[1];
+  Require(std::abs(next-yaw)<.06f,"Camera blend remains continuous in both directions");yaw=next;
+ }
+ std::cout<<"PASS plaza: physical side exploration, garden loop both ways, player/feet/exit framing, close view, wall visibility, dead zone, reversible camera blend\n";
 }
 void AudioPool() {
  Simulation s;for(int i=0;i<30;++i)s.Tick();
@@ -241,7 +288,7 @@ void RenderBlock() {
  Engine::Window window;Engine::DirectX12Renderer renderer;
  Require(window.Create(L"Sunrise block validation",1280,720) && renderer.Initialize(window.GetHandle()),"Block renderer");
  const auto root=std::filesystem::absolute("Games/GuruttoWorld");std::string error;
- for(const auto& [name,pose]:std::vector<std::pair<std::string,std::array<float,3>>>{{"block-entrance",{0,1.05f,1}},{"block-corner",{9,1.05f,22}},{"block-courtyard",{8,1.05f,47}},{"block-stairs",{-6,3.8f,72}},{"block-roof",{-5,6.1f,87}}}) {
+ for(const auto& [name,pose]:std::vector<std::pair<std::string,std::array<float,3>>>{{"block-entrance",{0,1.05f,1}},{"plaza-left",{-4,1.05f,15}},{"plaza-right",{11.5f,1.05f,18}},{"plaza-garden",{11.55f,1.05f,7}},{"block-corner",{9,1.05f,22}},{"block-courtyard",{8,1.05f,47}},{"block-stairs",{-6,3.8f,72}},{"block-roof",{-5,6.1f,87}}}) {
   auto layout=SceneLayout::Load(root/"Assets/Scenes/SunriseBlock.json");Find(layout,"park-player").position=pose;
   Find(layout,"park-camera").position={pose[0],pose[1]+4.6f,pose[2]-7.8f};SceneEnvironment scene;
   Require(renderer.WaitForIdle() && scene.Initialize(renderer,root,layout,error),error);
@@ -255,7 +302,7 @@ int main() {
   std::filesystem::create_directories("generated/sunrise");Engine::Log::Initialize("generated/sunrise/validation.log");
   Require(Register_SunriseStreet(nullptr,Register),"Scripts register");
   const bool blockOnly=GetEnvironmentVariableA("WP1_SUNRISE_BLOCK_ONLY",nullptr,0)!=0;
-  if(!GetEnvironmentVariableA("WP1_SUNRISE_RENDER_ONLY",nullptr,0)) {if(!blockOnly){AudioPool();Playthrough();DirectRoute();}BlockPlaythrough();}
+  if(!GetEnvironmentVariableA("WP1_SUNRISE_RENDER_ONLY",nullptr,0)) {if(!blockOnly){AudioPool();Playthrough();DirectRoute();}PlazaExploration();BlockPlaythrough();}
   if(!GetEnvironmentVariableA("WP1_SUNRISE_CPU_ONLY",nullptr,0)){if(!blockOnly)Render();RenderBlock();}
   std::cout<<"PASS SunriseStreet\n";return 0;
  } catch(const std::exception& e) {std::cerr<<"FAIL: "<<e.what()<<"\n";for(const auto& log:Engine::Log::Recent())if(log.level==Engine::LogLevel::Error)std::cerr<<log.text<<"\n";return 1;}

@@ -8,7 +8,7 @@ from ParkAuthoring import configure_scene
 from SunriseBatching import batch_static
 from AuthorEntranceCafe import scene_objects as cafe_objects
 from SunriseDistrictBake import scene_objects as district_objects
-from SunriseBlockPlan import BUILDINGS
+from SunriseBlockPlan import BUILDINGS, PLAZA_GARDEN
 
 SCENE = 'Assets/Scenes/SunriseBlock.json'
 BATCHES = 'Assets/Models/Sunrise/BlockBatches'
@@ -26,7 +26,8 @@ def assemble(batched=True):
     objects.append(obj('park-camera',[0,4.9,-6.8],rotation=[.30,0,0],components=[
         component('Camera',verticalFov=49,nearClip=.1,farClip=220,referenceAspect=16/9,preserveHorizontal=True),
         component('Script',behaviour='ParkCamera',parameters={'height':4.2,'distance':7.8,'lookAhead':4.5,
-            'horizontalFollow':1,'response':7},data={'target':{'kind':'reference','value':'park-player'}})]))
+            'horizontalFollow':1,'response':7,'plazaExitX':8,'plazaFollowSlack':.85,
+            'plazaFocusWeight':.22,'plazaCameraLeft':-3,'plazaBlendStart':18,'plazaBlendEnd':34},data={'target':{'kind':'reference','value':'park-player'}})]))
     objects.append(material_box('block-foundation',[0,-3.6,60],[180,6,240],'Grass'))
     objects.append(obj('block-ground',[1,-.6,44],[48,1.2,112],
         [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
@@ -38,14 +39,21 @@ def assemble(batched=True):
             [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
     objects.append(obj('collision-entry-left',[-10.9,4.8,8],[10,9.6,20],
         [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
+    objects.append(obj('collision-cafe-awning',[-5.05,3.0,7.25],[1.65,.4,14.4],
+        [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
     for key,(x0,x1,z0,z1,height,zone) in BUILDINGS.items():
         if key=='roof':continue
         objects.append(obj('collision-'+key,[(x0+x1)/2,height/2,(z0+z1)/2],
             [x1-x0,height,z1-z0],[component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
+    x0,x1,z0,z1,h=PLAZA_GARDEN
+    objects.append(obj('plaza-garden-collision',[(x0+x1)/2,h/2,(z0+z1)/2],[x1-x0,h,z1-z0],
+        [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
+    objects.append(obj('plaza-table-collision',[10,.45,11.8],[1.2,.8,1.2],
+        [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
     objects.append(obj('courtyard-garden',[-4.5,.25,49.5],[5,.5,5],
         [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
     # The next district is seen as a skyline, not as hundreds of individual props.
-    for i,(x,z) in enumerate([(-29,18),(29,18),(-29,57),(35,72),(-25,113),(24,125),(-10,145)]):
+    for i,(x,z) in enumerate([(-29,18),(35,44),(-29,57),(35,72),(-25,113),(24,125),(-10,145)]):
         objects.append(model(f'skyline-{i}',[x,0,z],[8+i%2]*3,
             'Assets/Models/Title/Surface/Commercial/building-skyscraper-a.obj'))
     for i,(x,z) in enumerate([(-26,76),(-26,91),(-26,106),(32,78),(32,94),(32,110),(-13,114),(18,115)]):
@@ -54,7 +62,7 @@ def assemble(batched=True):
     for i,(x,z) in enumerate([(-16,69),(-14,79),(-22,84),(-22,99),(24,75),(24,91)]):
         objects.append(nature(f'outer-tree-{i}',[x,.01,z],'tree_oak',3.5))
     # The architectural portal and orange gear show the turn without text.
-    objects.append(model('corner-sign-gear',[3.15,4.8,26.3],[2.1]*3,
+    objects.append(model('corner-sign-gear',[1.15,4.8,28.3],[2.1]*3,
         'Assets/Models/Title/Factory/cog-a.obj',[0,0,math.pi/2]))
     # The courtyard has a small encounter, safe space and a visible machine.
     for i,(x,z) in enumerate([(5,46),(11,50)]):
@@ -96,7 +104,7 @@ def assemble(batched=True):
     for key,pos,size in [('west',[-20,1,44],[.5,2,112]),('east',[25,1,44],[.5,2,112]),
             ('end',[2,1,100],[46,2,.5]),('entry',[0,1,-10],[46,2,.5])]:
         objects.append(material_box('boundary-'+key,pos,size,'Cream',True))
-    for i,pos in enumerate([(-2,1,8),(8,1,22),(11,1,38),(15,1,54),(-6,3.5,71),(-7,6.3,89)]):
+    for i,pos in enumerate([(-4.5,1,15),(10.3,1,14.2),(11,1,38),(15,1,54),(-6,3.5,71),(-7,6.3,89)]):
         objects.append(coin(f'block-flower-{i}',pos))
     for i,(x,z) in enumerate([(0,2),(8,43),(-6,58)]):
         objects.append(ball(f'checkpoint-{i}',[x,.15,z],[.5,.15,.5],'White',name='ParkCheckpoint'))

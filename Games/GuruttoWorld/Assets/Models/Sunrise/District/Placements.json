@@ -4,7 +4,7 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      6.5,
+      12.5,
       0,
       9.0
     ],
@@ -24,7 +24,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      6.5,
+      12.5,
       0,
       7.0
     ],
@@ -44,7 +44,7 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      6.5,
+      12.5,
       0,
       5.0
     ],
@@ -64,7 +64,7 @@
     "kind": "q",
     "model": "DoorFrame_Wooden",
     "position": [
-      6.5,
+      12.5,
       0,
       3.0
     ],
@@ -84,7 +84,7 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      6.500000000000001,
+      12.5,
       0,
       1.0
     ],
@@ -104,7 +104,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      6.500000000000001,
+      12.5,
       0,
       -1.0
     ],
@@ -124,7 +124,7 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      6.500000000000001,
+      12.5,
       0,
       -3.0
     ],
@@ -144,7 +144,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      6.5,
+      12.5,
       3,
       9.0
     ],
@@ -164,7 +164,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      6.5,
+      12.5,
       3,
       7.0
     ],
@@ -184,7 +184,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      6.5,
+      12.5,
       3,
       5.0
     ],
@@ -204,7 +204,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      6.5,
+      12.5,
       3,
       3.0
     ],
@@ -224,7 +224,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      6.500000000000001,
+      12.5,
       3,
       1.0
     ],
@@ -244,7 +244,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      6.500000000000001,
+      12.5,
       3,
       -1.0
     ],
@@ -264,7 +264,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      6.500000000000001,
+      12.5,
       3,
       -3.0
     ],
@@ -284,7 +284,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      6.5,
+      12.5,
       6,
       9.0
     ],
@@ -304,7 +304,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      6.5,
+      12.5,
       6,
       7.0
     ],
@@ -324,7 +324,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      6.5,
+      12.5,
       6,
       5.0
     ],
@@ -344,7 +344,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      6.5,
+      12.5,
       6,
       3.0
     ],
@@ -364,7 +364,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      6.500000000000001,
+      12.5,
       6,
       1.0
     ],
@@ -384,7 +384,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      6.500000000000001,
+      12.5,
       6,
       -1.0
     ],
@@ -404,7 +404,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      6.500000000000001,
+      12.5,
       6,
       -3.0
     ],
@@ -424,7 +424,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      6.5,
+      12.5,
       9,
       9.0
     ],
@@ -444,7 +444,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      6.5,
+      12.5,
       9,
       7.0
     ],
@@ -464,7 +464,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      6.5,
+      12.5,
       9,
       5.0
     ],
@@ -484,7 +484,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      6.5,
+      12.5,
       9,
       3.0
     ],
@@ -504,7 +504,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      6.500000000000001,
+      12.5,
       9,
       1.0
     ],
@@ -524,7 +524,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      6.500000000000001,
+      12.5,
       9,
       -1.0
     ],
@@ -544,7 +544,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      6.500000000000001,
+      12.5,
       9,
       -3.0
     ],
@@ -564,7 +564,7 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      15.5,
+      21.5,
       0,
       10.0
     ],
@@ -584,7 +584,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      13.5,
+      19.5,
       0,
       10.0
     ],
@@ -604,7 +604,7 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      11.5,
+      17.5,
       0,
       10.0
     ],
@@ -624,7 +624,7 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      9.5,
+      15.5,
       0,
       10.0
     ],
@@ -644,7 +644,7 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      7.5,
+      13.5,
       0,
       9.999999999999998
     ],
@@ -663,6 +663,66 @@
     "zone": 0,
     "kind": "q",
     "model": "Trim_Window",
+    "position": [
+      21.5,
+      3,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.5,
+      3,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      17.5,
+      3,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
     "position": [
       15.5,
       3,
@@ -682,69 +742,9 @@
   {
     "zone": 0,
     "kind": "q",
-    "model": "Trim_Plain_3",
+    "model": "Trim_Window",
     "position": [
       13.5,
-      3,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Trim_Window",
-    "position": [
-      11.5,
-      3,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Trim_Plain_3",
-    "position": [
-      9.5,
-      3,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Trim_Window",
-    "position": [
-      7.5,
       3,
       9.999999999999998
     ],
@@ -763,6 +763,66 @@
     "zone": 0,
     "kind": "q",
     "model": "Trim_Window",
+    "position": [
+      21.5,
+      6,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      19.5,
+      6,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      17.5,
+      6,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Trim_Plain_3",
     "position": [
       15.5,
       6,
@@ -782,71 +842,71 @@
   {
     "zone": 0,
     "kind": "q",
-    "model": "Trim_Plain_3",
+    "model": "Trim_Window",
     "position": [
       13.5,
       6,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Trim_Window",
-    "position": [
-      11.5,
-      6,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Trim_Plain_3",
-    "position": [
-      9.5,
-      6,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Trim_Window",
-    "position": [
-      7.5,
-      6,
       9.999999999999998
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      21.5,
+      9,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.5,
+      9,
+      10.0
+    ],
+    "scale": 1,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      17.5,
+      9,
+      10.0
     ],
     "scale": 1,
     "angle": 3.141592653589793,
@@ -886,66 +946,6 @@
     "position": [
       13.5,
       9,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Cornice_Trim_Center",
-    "position": [
-      11.5,
-      9,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Cornice_Trim_Center",
-    "position": [
-      9.5,
-      9,
-      10.0
-    ],
-    "scale": 1,
-    "angle": 3.141592653589793,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 0,
-    "kind": "q",
-    "model": "Cornice_Trim_Center",
-    "position": [
-      7.5,
-      9,
       9.999999999999998
     ],
     "scale": 1,
@@ -961,14 +961,14 @@
   },
   {
     "zone": 0,
-    "kind": "q",
-    "model": "Prop_Bollard",
+    "kind": "k",
+    "model": "pottedPlant",
     "position": [
-      3.4,
-      0,
-      0
+      8.6,
+      0.45,
+      4.2
     ],
-    "scale": 0.8,
+    "scale": 1.8,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -981,14 +981,14 @@
   },
   {
     "zone": 0,
-    "kind": "q",
-    "model": "Prop_Bollard",
+    "kind": "k",
+    "model": "pottedPlant",
     "position": [
-      3.4,
-      0,
-      7
+      9.3,
+      0.45,
+      4.2
     ],
-    "scale": 0.8,
+    "scale": 1.8,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -1001,14 +1001,34 @@
   },
   {
     "zone": 0,
-    "kind": "q",
-    "model": "Prop_Planter_Single",
+    "kind": "k",
+    "model": "pottedPlant",
     "position": [
-      5.1,
+      10.0,
+      0.45,
+      4.2
+    ],
+    "scale": 1.8,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "tableRound",
+    "position": [
+      10,
       0.02,
-      9.7
+      11.8
     ],
-    "scale": 0.45,
+    "scale": 2.1,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -1022,13 +1042,13 @@
   {
     "zone": 0,
     "kind": "k",
-    "model": "pottedPlant",
+    "model": "chairRounded",
     "position": [
-      4.88,
-      0.22,
-      9.7
+      10,
+      0.02,
+      10.850000000000001
     ],
-    "scale": 1.7,
+    "scale": 2.2,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -1042,13 +1062,33 @@
   {
     "zone": 0,
     "kind": "k",
-    "model": "pottedPlant",
+    "model": "chairRounded",
     "position": [
-      5.319999999999999,
-      0.22,
-      9.819999999999999
+      10,
+      0.02,
+      12.75
     ],
-    "scale": 1.7,
+    "scale": 2.2,
+    "angle": 3.141592653589793,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "k",
+    "model": "plantSmall1",
+    "position": [
+      10,
+      0.8,
+      11.8
+    ],
+    "scale": 0.7,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -1066,7 +1106,7 @@
     "position": [
       -10.0,
       0,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1086,7 +1126,7 @@
     "position": [
       -8.0,
       0,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1106,7 +1146,7 @@
     "position": [
       -6.0,
       0,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1126,7 +1166,7 @@
     "position": [
       -4.0,
       0,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1146,7 +1186,7 @@
     "position": [
       -2.0,
       0,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1166,27 +1206,7 @@
     "position": [
       0.0,
       0,
-      26.0
-    ],
-    "scale": 1,
-    "angle": 0,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 1,
-    "kind": "q",
-    "model": "Trim_FirstFloor_Window_001",
-    "position": [
-      2.0,
-      0,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1206,7 +1226,7 @@
     "position": [
       -10.0,
       3,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1226,7 +1246,7 @@
     "position": [
       -8.0,
       3,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1246,7 +1266,7 @@
     "position": [
       -6.0,
       3,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1266,7 +1286,7 @@
     "position": [
       -4.0,
       3,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1286,7 +1306,7 @@
     "position": [
       -2.0,
       3,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1306,27 +1326,7 @@
     "position": [
       0.0,
       3,
-      26.0
-    ],
-    "scale": 1,
-    "angle": 0,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 1,
-    "kind": "q",
-    "model": "Trim_Window",
-    "position": [
-      2.0,
-      3,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1346,7 +1346,7 @@
     "position": [
       -10.0,
       6,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1366,7 +1366,7 @@
     "position": [
       -8.0,
       6,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1386,7 +1386,7 @@
     "position": [
       -6.0,
       6,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1406,7 +1406,7 @@
     "position": [
       -4.0,
       6,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1426,7 +1426,7 @@
     "position": [
       -2.0,
       6,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1446,27 +1446,7 @@
     "position": [
       0.0,
       6,
-      26.0
-    ],
-    "scale": 1,
-    "angle": 0,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 1,
-    "kind": "q",
-    "model": "Trim_Window",
-    "position": [
-      2.0,
-      6,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1486,7 +1466,7 @@
     "position": [
       -10.0,
       9,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1506,7 +1486,7 @@
     "position": [
       -8.0,
       9,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1526,7 +1506,7 @@
     "position": [
       -6.0,
       9,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1546,7 +1526,7 @@
     "position": [
       -4.0,
       9,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1566,7 +1546,7 @@
     "position": [
       -2.0,
       9,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1586,27 +1566,7 @@
     "position": [
       0.0,
       9,
-      26.0
-    ],
-    "scale": 1,
-    "angle": 0,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 1,
-    "kind": "q",
-    "model": "Cornice_Trim_Center",
-    "position": [
-      2.0,
-      9,
-      26.0
+      28.0
     ],
     "scale": 1,
     "angle": 0,
@@ -1624,9 +1584,9 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      3.0,
+      1.0,
       0,
-      27.0
+      29.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -1644,9 +1604,9 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      3.0,
+      1.0000000000000002,
       0,
-      29.0
+      31.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -1664,9 +1624,9 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      3.0000000000000004,
+      1.0000000000000002,
       0,
-      31.0
+      33.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -1684,9 +1644,9 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      3.0000000000000004,
+      1.0000000000000004,
       0,
-      33.0
+      35.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -1704,9 +1664,9 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      3.0000000000000004,
+      1.0000000000000004,
       0,
-      35.0
+      37.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -1724,9 +1684,9 @@
     "kind": "q",
     "model": "Trim_Plain_3",
     "position": [
-      3.0000000000000004,
+      1.0000000000000007,
       0,
-      37.0
+      39.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -1744,9 +1704,9 @@
     "kind": "q",
     "model": "Trim_FirstFloor_Window_001",
     "position": [
-      3.000000000000001,
+      1.0000000000000007,
       0,
-      39.0
+      41.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -1764,27 +1724,7 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      3.0,
-      3,
-      27.0
-    ],
-    "scale": 1,
-    "angle": -1.5707963267948966,
-    "pitch": 0,
-    "origin": [
-      0,
-      0,
-      0
-    ],
-    "side": 0,
-    "spread": 0
-  },
-  {
-    "zone": 1,
-    "kind": "q",
-    "model": "Trim_Plain_3",
-    "position": [
-      3.0,
+      1.0,
       3,
       29.0
     ],
@@ -1802,9 +1742,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Window",
+    "model": "Trim_Plain_3",
     "position": [
-      3.0000000000000004,
+      1.0000000000000002,
       3,
       31.0
     ],
@@ -1822,9 +1762,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Plain_3",
+    "model": "Trim_Window",
     "position": [
-      3.0000000000000004,
+      1.0000000000000002,
       3,
       33.0
     ],
@@ -1842,9 +1782,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Window",
+    "model": "Trim_Plain_3",
     "position": [
-      3.0000000000000004,
+      1.0000000000000004,
       3,
       35.0
     ],
@@ -1862,9 +1802,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Plain_3",
+    "model": "Trim_Window",
     "position": [
-      3.0000000000000004,
+      1.0000000000000004,
       3,
       37.0
     ],
@@ -1882,9 +1822,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Window",
+    "model": "Trim_Plain_3",
     "position": [
-      3.000000000000001,
+      1.0000000000000007,
       3,
       39.0
     ],
@@ -1904,9 +1844,9 @@
     "kind": "q",
     "model": "Trim_Window",
     "position": [
-      3.0,
-      6,
-      27.0
+      1.0000000000000007,
+      3,
+      41.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -1922,9 +1862,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Plain_3",
+    "model": "Trim_Window",
     "position": [
-      3.0,
+      1.0,
       6,
       29.0
     ],
@@ -1942,9 +1882,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Window",
+    "model": "Trim_Plain_3",
     "position": [
-      3.0000000000000004,
+      1.0000000000000002,
       6,
       31.0
     ],
@@ -1962,9 +1902,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Plain_3",
+    "model": "Trim_Window",
     "position": [
-      3.0000000000000004,
+      1.0000000000000002,
       6,
       33.0
     ],
@@ -1982,9 +1922,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Window",
+    "model": "Trim_Plain_3",
     "position": [
-      3.0000000000000004,
+      1.0000000000000004,
       6,
       35.0
     ],
@@ -2002,9 +1942,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Plain_3",
+    "model": "Trim_Window",
     "position": [
-      3.0000000000000004,
+      1.0000000000000004,
       6,
       37.0
     ],
@@ -2022,9 +1962,9 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Trim_Window",
+    "model": "Trim_Plain_3",
     "position": [
-      3.000000000000001,
+      1.0000000000000007,
       6,
       39.0
     ],
@@ -2042,11 +1982,11 @@
   {
     "zone": 1,
     "kind": "q",
-    "model": "Cornice_Trim_Center",
+    "model": "Trim_Window",
     "position": [
-      3.0,
-      9,
-      27.0
+      1.0000000000000007,
+      6,
+      41.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -2064,7 +2004,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      3.0,
+      1.0,
       9,
       29.0
     ],
@@ -2084,7 +2024,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      3.0000000000000004,
+      1.0000000000000002,
       9,
       31.0
     ],
@@ -2104,7 +2044,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      3.0000000000000004,
+      1.0000000000000002,
       9,
       33.0
     ],
@@ -2124,7 +2064,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      3.0000000000000004,
+      1.0000000000000004,
       9,
       35.0
     ],
@@ -2144,7 +2084,7 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      3.0000000000000004,
+      1.0000000000000004,
       9,
       37.0
     ],
@@ -2164,9 +2104,29 @@
     "kind": "q",
     "model": "Cornice_Trim_Center",
     "position": [
-      3.000000000000001,
+      1.0000000000000007,
       9,
       39.0
+    ],
+    "scale": 1,
+    "angle": -1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      1.0000000000000007,
+      9,
+      41.0
     ],
     "scale": 1,
     "angle": -1.5707963267948966,
@@ -2890,6 +2850,406 @@
     ],
     "scale": 1,
     "angle": 1.5707963267948966,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      15.0,
+      0,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      17.0,
+      0,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      19.0,
+      0,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      21.0,
+      0,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_FirstFloor_Window_001",
+    "position": [
+      23.0,
+      0,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      15.0,
+      3,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      17.0,
+      3,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      19.0,
+      3,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      21.0,
+      3,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23.0,
+      3,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      15.0,
+      6,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      17.0,
+      6,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      19.0,
+      6,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Plain_3",
+    "position": [
+      21.0,
+      6,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Trim_Window",
+    "position": [
+      23.0,
+      6,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      15.0,
+      9,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      17.0,
+      9,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      19.0,
+      9,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      21.0,
+      9,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 1,
+    "kind": "q",
+    "model": "Cornice_Trim_Center",
+    "position": [
+      23.0,
+      9,
+      24.0
+    ],
+    "scale": 1,
+    "angle": 0,
     "pitch": 0,
     "origin": [
       0,

@@ -32,7 +32,7 @@ class SunriseBlockTests(unittest.TestCase):
                     if c.get(key):self.assertTrue((author.GAME/c[key]).is_file(),c[key])
 
     def test_collision_survives_static_baking(self):
-        self.assertLessEqual(len(self.objects),140)
+        self.assertLessEqual(len(self.objects),142)
         for o in author.assemble(False)['objects']:
             colliders=[c for c in o['components'] if c['type']=='BoxCollider']
             if colliders:
