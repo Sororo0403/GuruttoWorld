@@ -324,6 +324,51 @@ namespace
             authored.Update(input,0.1)==TitleMenuAction::None,"authored duration ignores invalid configuration and emits once");
     }
 
+    void ValidateSettingsPersistence()
+    {
+        using SceneRuntime::GameSettings;
+        const auto root=std::filesystem::path("generated/tests/settings-persistence")/
+            (std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
+        const auto path=root/"preview-settings.json";
+        std::filesystem::create_directories(root);
+        std::jthread close;
+        AuthoringSettingsValidation::PreviewSettings(root,[&] {
+            const auto held=CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,
+                nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+            Check(held!=INVALID_HANDLE_VALUE,"controlled settings reader opens");
+            close=std::jthread([held] {std::this_thread::sleep_for(std::chrono::milliseconds(40));CloseHandle(held);});
+        });
+        close.join();
+        for(int iteration=0;iteration<1000;++iteration) AuthoringSettingsValidation::PreviewSettings(root,{},false);
+        for(int iteration=0;iteration<100;++iteration) {
+            std::vector<std::jthread> readers;std::atomic<unsigned int> ready=0;
+            struct StopReaders {std::vector<std::jthread>& threads;~StopReaders(){for(auto& thread:threads) thread.request_stop();}} stop{readers};
+            AuthoringSettingsValidation::PreviewSettings(root,[&] {
+                for(int reader=0;reader<8;++reader) readers.emplace_back([&,path](std::stop_token token) {
+                    ++ready;
+                    while(!token.stop_requested()) static_cast<void>(GameSettings::Load(path));
+                });
+                while(ready.load()<8) std::this_thread::yield();
+            },false);
+        }
+        {
+            const auto held=CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,
+                nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+            Check(held!=INVALID_HANDLE_VALUE,"persistent settings reader opens");
+            const auto saved=GameSettings{5,false}.Save(path);const auto error=GetLastError();CloseHandle(held);
+            Check(!saved && (error==ERROR_ACCESS_DENIED || error==ERROR_SHARING_VIOLATION || error==ERROR_UNABLE_TO_REMOVE_REPLACED),
+                "persistent read lock reports its real replacement error");
+            Check(GameSettings::Load(path).Gain()==0,"persistent lock failure preserves previous settings");
+        }
+        const auto attributes=GetFileAttributesW(path.c_str());
+        Check(attributes!=INVALID_FILE_ATTRIBUTES && SetFileAttributesW(path.c_str(),attributes|FILE_ATTRIBUTE_READONLY),"readonly settings fixture prepares");
+        const auto readonlySave=GameSettings{5,false}.Save(path);SetFileAttributesW(path.c_str(),attributes);
+        Check(!readonlySave && GameSettings::Load(path).Gain()==0,"readonly failure preserves previous settings");
+        auto temporary=path;temporary+=".tmp";
+        Check(!std::filesystem::exists(temporary),"failed settings save cleans up its temporary file");
+        Check(GameSettings{5,false}.Save(path) && GameSettings::Load(path).volume==5,"settings save recovers after the lock is removed");
+    }
+
     void ValidateSettings()
     {
         using namespace App;
@@ -3938,6 +3983,18 @@ int main()
             std::cout<<"PASS: collider schema, gravity, grounded jump, wall sweep, disabled components and parent transforms\n";
             return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_SETTINGS_CAUSE_ONLY",nullptr,0)) {
+            phase="Settings cause prefix";EngineEditorReviewValidation::Data();
+            {
+                Engine::Window window;Engine::DirectX12Renderer renderer;
+                Check(window.Create(L"Settings cause prefix",64,64) && renderer.Initialize(window.GetHandle()),"settings prefix renderer");
+                EngineEditorReviewValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                Check(renderer.WaitForIdle(),"settings prefix GPU completion");CheckGpuMessages(renderer.GetDevice());
+            }
+            phase="AuthoringSettingsValidation";AuthoringSettingsValidation::Run();
+            phase="ValidateSettingsPersistence";ValidateSettingsPersistence();ValidateSettings();
+            std::cout<<"PASS: original prefix, 1000 settings cycles, concurrent readers, transient/persistent locks and readonly recovery\n";return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_AUTHORING_ONLY",nullptr,0)) {
             AuthoringSettingsValidation::Run();
             UiValidation::SchemaAndLayout();
@@ -4021,6 +4078,7 @@ int main()
         ProjectSettingsValidation::Run();
         phase="ValidateTitleAnimation"; ValidateTitleAnimation();
         phase="ValidateSettings"; ValidateSettings();
+        phase="ValidateSettingsPersistence"; ValidateSettingsPersistence();
         phase="ValidatePressAnyTitle"; ValidatePressAnyTitle();
         phase="ValidateTitleAudio"; ValidateTitleAudio();
         phase="ValidateRenderTexture"; ValidateRenderTexture();

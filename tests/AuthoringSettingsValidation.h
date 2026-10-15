@@ -10,10 +10,51 @@
 #include "FollowupStateValidation.h"
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <functional>
 #include <stdexcept>
 
 namespace AuthoringSettingsValidation {
 inline void Require(bool condition,const char* message) {if(!condition) throw std::runtime_error(message);}
+/// <summary>設定操作の各段階と保存内容を記録し、保存失敗と入力・読み込みの失敗を区別します。</summary>
+inline void PreviewSettings(const std::filesystem::path& output,const std::function<void()>& beforeSave={},bool verifyFailure=true) {
+    using namespace SceneRuntime;
+    ScenePlacement canvas;canvas.id="menu";canvas.name="Menu";canvas.canvas.emplace();canvas.canvas->menu=DefaultMenuConfiguration();
+    ScenePlacement button;button.id="button";button.name="Button";button.parentId=canvas.id;button.rectTransform.emplace();button.button.emplace();button.button->event="menu:1";
+    SceneLayout menu;menu.objects={canvas,button};UiState ui=SceneUi::Defaults(menu);Editor::TitlePreview preview;
+    const auto settingsFile=output/"preview-settings.json";
+    std::ostringstream trace;
+    const auto record=[&](const char* stage,DWORD error) {
+        std::ifstream source(settingsFile,std::ios::binary);
+        const std::string bytes{std::istreambuf_iterator<char>(source),{}};
+        trace<<stage<<": win32="<<error<<", state="<<Engine::Json(ui.values).dump()<<", file="<<bytes<<'\n';
+    };
+    const auto check=[&](bool condition,const char* message) {
+        if(!condition) throw std::runtime_error(std::string(message)+"\nsettings="+settingsFile.generic_string()+"\n"+trace.str());
+    };
+    {GameSettings initial;check(initial.Save(settingsFile),"Test settings initialization failed");}
+    preview.Initialize(menu,ui,settingsFile);record("initialized",GetLastError());
+    check(preview.Active(),"Menu validation fixture is not visible");
+    preview.Activate({"", "", "", "", "menu:1"},ui);record("opened",GetLastError());
+    check(ui.Value("screen",-1)==1,"Editor preview did not open settings");
+    preview.Activate({"", "", "", "", "settings:0"},ui);record("changed",GetLastError());
+    check(ui.Value("volume",-1)==0,"Editor preview did not change volume");
+    if(beforeSave) beforeSave();
+    SetLastError(ERROR_SUCCESS);preview.Activate({"", "", "", "", "settings:2"},ui);record("saved",GetLastError());
+    check(ui.Value("saveFailed",-1)==0,"Editor preview reported a settings save failure");
+    const auto saved=GameSettings::Load(settingsFile);
+    check(saved.loaded && saved.Gain()==0,"Editor preview did not persist menu settings");
+    UiState resumed=SceneUi::Defaults(menu);Editor::TitlePreview reopened;
+    reopened.Initialize(menu,resumed,settingsFile);
+    check(resumed.Value("volume")==0,"Editor preview did not restore saved settings");
+    if(verifyFailure) {
+        UiState failureUi=SceneUi::Defaults(menu);Editor::TitlePreview failure;
+        failure.Initialize(menu,failureUi,output); // A directory cannot be replaced by a settings file.
+        failure.Activate({"", "", "", "", "menu:1"},failureUi);
+        failure.Activate({"", "", "", "", "settings:2"},failureUi);
+        check(failureUi.Value("saveFailed")==1,"Editor preview hid a settings save failure");
+    }
+}
 inline void ScriptPurposeWidgets() {
     ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.DisplaySize={640,480};io.DeltaTime=1.0f/60;io.Fonts->Build();
     ImGui::NewFrame();ImGui::Begin("Explicit script purpose");
@@ -116,25 +157,7 @@ inline void Run() {
     actor.scripts={{"script",true,"AuthoringCustomData",{},{{"customFlag",{true}},{"targets",{ScriptValue::Array{{ScriptObjectReference{"animated"}}}}}}}};
     animated.objects={actor};auto data=SceneLayout::Parse(animated.Serialize());ScriptRuntime runtime;std::string error;
     Require(runtime.Update(data,.01,error) && data.objects[0].position[0]==7,"Editor-added typed data failed at runtime");
-    ScenePlacement canvas;canvas.id="menu";canvas.name="Menu";canvas.canvas.emplace();canvas.canvas->menu=DefaultMenuConfiguration();
-    ScenePlacement button;button.id="button";button.name="Button";button.parentId=canvas.id;button.rectTransform.emplace();button.button.emplace();button.button->event="menu:1";
-    SceneLayout menu;menu.objects={canvas,button};UiState ui=SceneUi::Defaults(menu);Editor::TitlePreview preview;
-    const auto settingsFile=output/"preview-settings.json";
-    {GameSettings initial;Require(initial.Save(settingsFile),"Test settings initialization failed");}
-    preview.Initialize(menu,ui,settingsFile);
-    Require(preview.Active(),"Menu validation fixture is not visible");
-    preview.Activate({"", "", "", "", "menu:1"},ui);
-    preview.Activate({"", "", "", "", "settings:0"},ui);
-    preview.Activate({"", "", "", "", "settings:2"},ui);
-    Require(GameSettings::Load(settingsFile).Gain()==0,"Editor preview did not persist menu settings");
-    UiState resumed=SceneUi::Defaults(menu);Editor::TitlePreview reopened;
-    reopened.Initialize(menu,resumed,settingsFile);
-    Require(resumed.Value("volume")==0,"Editor preview did not restore saved settings");
-    UiState failureUi=SceneUi::Defaults(menu);Editor::TitlePreview failure;
-    failure.Initialize(menu,failureUi,output); // A directory cannot be replaced by a settings file.
-    failure.Activate({"", "", "", "", "menu:1"},failureUi);
-    failure.Activate({"", "", "", "", "settings:2"},failureUi);
-    Require(failureUi.Value("saveFailed")==1,"Editor preview hid a settings save failure");
+    PreviewSettings(output);
     ScenePlacement body;body.id="body";body.name="Body";body.position={0,3,0};body.boxCollider.emplace();body.rigidBody.emplace();
     SceneLayout physical;physical.objects={body};physical.settings.gravity={0,0,0};
     PhysicsWorld physics;ScenePhysics::States states;
