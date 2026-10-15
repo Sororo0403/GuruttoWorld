@@ -3775,6 +3775,80 @@
       ]
     },
     {
+      "id": "street-collision-cafe-bank-west-south",
+      "name": "street-collision-cafe-bank-west-south",
+      "parent": "",
+      "position": [
+        -8.2,
+        0.38,
+        18.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.76,
+        2.400000000000002
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-cafe-bank-west-north",
+      "name": "street-collision-cafe-bank-west-north",
+      "parent": "",
+      "position": [
+        -8.2,
+        0.38,
+        28.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.76,
+        3.400000000000002
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
       "id": "street-collision-cafe-bank-west-1",
       "name": "street-collision-cafe-bank-west-1",
       "parent": "",
@@ -3829,6 +3903,80 @@
         0.5,
         0.76,
         0.5
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-cafe-bank-east-south",
+      "name": "street-collision-cafe-bank-east-south",
+      "parent": "",
+      "position": [
+        -5.8,
+        0.9400000000000001,
+        18.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.76,
+        2.400000000000002
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-cafe-bank-east-north",
+      "name": "street-collision-cafe-bank-east-north",
+      "parent": "",
+      "position": [
+        -5.8,
+        0.9400000000000001,
+        28.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.76,
+        4.200000000000003
       ],
       "components": [
         {
@@ -4071,6 +4219,43 @@
       ]
     },
     {
+      "id": "street-collision-cafe-front-bench",
+      "name": "street-collision-cafe-front-bench",
+      "parent": "",
+      "position": [
+        -12,
+        0.38,
+        28.9
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        4,
+        0.76,
+        0.6
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
       "id": "street-collision-fork-floor",
       "name": "street-collision-fork-floor",
       "parent": "",
@@ -4114,7 +4299,7 @@
       "position": [
         1.0,
         2.0,
-        37.5
+        36.0
       ],
       "rotation": [
         0,
@@ -4124,7 +4309,7 @@
       "scale": [
         2,
         4,
-        7
+        4
       ],
       "components": [
         {
@@ -4260,7 +4445,7 @@
       "name": "street-collision-shop-arcade-front-1",
       "parent": "",
       "position": [
-        3.3000000000000003,
+        2.5,
         2.41,
         34.5
       ],
@@ -4297,7 +4482,7 @@
       "name": "street-collision-shop-arcade-front1",
       "parent": "",
       "position": [
-        7.5,
+        8.5,
         2.41,
         34.5
       ],
@@ -4330,11 +4515,85 @@
       ]
     },
     {
+      "id": "street-collision-arcade-jamb-west",
+      "name": "street-collision-arcade-jamb-west",
+      "parent": "",
+      "position": [
+        2.25,
+        2.11,
+        34.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        3.1,
+        0.7
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-jamb-east",
+      "name": "street-collision-arcade-jamb-east",
+      "parent": "",
+      "position": [
+        8.75,
+        2.11,
+        34.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        3.1,
+        0.7
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
       "id": "street-collision-arcade-entry-1",
       "name": "street-collision-arcade-entry-1",
       "parent": "",
       "position": [
-        3.3000000000000003,
+        2.5,
         0.9400000000000001,
         34.5
       ],
@@ -4371,7 +4630,7 @@
       "name": "street-collision-arcade-entry1",
       "parent": "",
       "position": [
-        7.5,
+        8.5,
         0.9400000000000001,
         34.5
       ],
@@ -4384,6 +4643,80 @@
         0.5,
         0.76,
         0.5
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-sill-west",
+      "name": "street-collision-arcade-sill-west",
+      "parent": "",
+      "position": [
+        2.5,
+        0.8350000000000001,
+        38
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.55,
+        6
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-arcade-sill-east",
+      "name": "street-collision-arcade-sill-east",
+      "parent": "",
+      "position": [
+        8.5,
+        0.8350000000000001,
+        38
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.55,
+        6
       ],
       "components": [
         {
@@ -4521,7 +4854,7 @@
       "position": [
         13.5,
         5.0,
-        38.5
+        33.75
       ],
       "rotation": [
         0,
@@ -4531,7 +4864,81 @@
       "scale": [
         9,
         10,
-        17
+        7.5
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-shop-rear-terrace",
+      "name": "street-collision-shop-rear-terrace",
+      "parent": "",
+      "position": [
+        13.5,
+        0.21000000000000008,
+        42.25
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        9,
+        0.7,
+        9.5
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-shop-rear-east",
+      "name": "street-collision-shop-rear-east",
+      "parent": "",
+      "position": [
+        18,
+        0.9850000000000001,
+        42.25
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.3,
+        0.85,
+        9.5
       ],
       "components": [
         {
@@ -4668,7 +5075,7 @@
       "parent": "",
       "position": [
         2.5,
-        1.6600000000000001,
+        1.0350000000000001,
         57
       ],
       "rotation": [
@@ -4678,7 +5085,7 @@
       ],
       "scale": [
         19,
-        2.2,
+        0.95,
         0.4
       ],
       "components": [
@@ -6550,13 +6957,87 @@
       ]
     },
     {
+      "id": "street-collision-roof-bank-east-south",
+      "name": "street-collision-roof-bank-east-south",
+      "parent": "",
+      "position": [
+        9.12,
+        4.3,
+        69.625
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.76,
+        0.9499999999999886
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-roof-bank-east-north",
+      "name": "street-collision-roof-bank-east-north",
+      "parent": "",
+      "position": [
+        9.12,
+        4.3,
+        77.375
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.76,
+        0.9499999999999886
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
       "id": "street-collision-roof-bank-east-1",
       "name": "street-collision-roof-bank-east-1",
       "parent": "",
       "position": [
         9.12,
         4.3,
-        69.9
+        70.1
       ],
       "rotation": [
         0,
@@ -6593,7 +7074,7 @@
       "position": [
         9.12,
         4.3,
-        77.1
+        76.9
       ],
       "rotation": [
         0,
@@ -6624,13 +7105,87 @@
       ]
     },
     {
+      "id": "street-collision-roof-bank-west-south",
+      "name": "street-collision-roof-bank-west-south",
+      "parent": "",
+      "position": [
+        6.28,
+        4.3,
+        69.625
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.76,
+        0.9499999999999886
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-roof-bank-west-north",
+      "name": "street-collision-roof-bank-west-north",
+      "parent": "",
+      "position": [
+        6.28,
+        4.3,
+        77.875
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.28,
+        0.76,
+        1.9499999999999886
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
       "id": "street-collision-roof-bank-west-1",
       "name": "street-collision-roof-bank-west-1",
       "parent": "",
       "position": [
         6.28,
         4.3,
-        69.9
+        70.1
       ],
       "rotation": [
         0,
@@ -6667,7 +7222,7 @@
       "position": [
         6.28,
         4.3,
-        77.1
+        76.9
       ],
       "rotation": [
         0,
@@ -6715,6 +7270,43 @@
         2.5999999999999996,
         0.7,
         7
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-roof-seat-bench",
+      "name": "street-collision-roof-seat-bench",
+      "parent": "",
+      "position": [
+        18.8,
+        4.3,
+        76.7
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.7,
+        0.76,
+        0.65
       ],
       "components": [
         {
@@ -6813,7 +7405,7 @@
       "name": "street-collision-exit-walk",
       "parent": "",
       "position": [
-        -3.0,
+        -2.0,
         3.57,
         81.5
       ],
@@ -6823,7 +7415,7 @@
         0
       ],
       "scale": [
-        4,
+        6,
         0.7,
         7
       ],
@@ -6887,7 +7479,7 @@
       "name": "street-collision-exit-walk-right",
       "parent": "",
       "position": [
-        -1,
+        1,
         4.345,
         82
       ],
@@ -6924,7 +7516,7 @@
       "name": "street-collision-exit-walk-end",
       "parent": "",
       "position": [
-        -3,
+        -2,
         4.345,
         85
       ],
@@ -6934,9 +7526,46 @@
         0
       ],
       "scale": [
-        4,
+        6,
         0.85,
         0.25
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "street-collision-lookout-bench",
+      "name": "street-collision-lookout-bench",
+      "parent": "",
+      "position": [
+        -1,
+        4.3,
+        83.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2.8,
+        0.76,
+        0.65
       ],
       "components": [
         {
@@ -7146,9 +7775,9 @@
       "name": "street-collision-distant-4",
       "parent": "",
       "position": [
-        3.0,
+        24.0,
         4.5,
-        91.0
+        94.0
       ],
       "rotation": [
         0,

@@ -77,6 +77,37 @@ class StreetJourneyTests(unittest.TestCase):
   # Both arms remain open and meet in the same courtyard; no new mandatory interaction.
   self.assertLess(bounds('service-loading-plinth')['position'][0]+bounds('service-loading-plinth')['scale'][0]/2,-4.8)
   self.assertIn('street-collision-court-mouth-1',objects)
+ def test_parapet_openings_match_across_real_landings(self):
+  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
+  objects={o['id']:o for o in scene['objects']}
+  collider=lambda key:objects['street-collision-'+key]
+  for west,east in (('cafe-bank-west','cafe-bank-east'),('roof-bank-west','roof-bank-east')):
+   openings=[]
+   for bank in (west,east):
+    a,b=collider(bank+'-south'),collider(bank+'-north')
+    lo=a['position'][2]+a['scale'][2]/2
+    hi=b['position'][2]-b['scale'][2]/2
+    self.assertGreater(hi-lo,6)
+    self.assertGreaterEqual(a['scale'][1],.7)
+    self.assertGreaterEqual(b['scale'][1],.7)
+    openings.append((round(lo,3),round(hi,3)))
+   self.assertEqual(openings[0],openings[1])
+ def test_arcade_is_connected_and_destination_is_a_room(self):
+  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
+  objects={o['id']:o for o in scene['objects']}
+  collider=lambda key:objects['street-collision-'+key]
+  edge=lambda o,side:o['position'][0]+side*o['scale'][0]/2
+  # The arch is attached to the kiosk and shop, with no misleading side slit.
+  self.assertAlmostEqual(edge(collider('arcade-jamb-west'),-1),edge(collider('kiosk'),1))
+  self.assertAlmostEqual(edge(collider('arcade-jamb-east'),1),edge(collider('east-shop'),-1))
+  left,right=collider('shop-arcade-front-1'),collider('shop-arcade-front1')
+  self.assertGreater(edge(right,-1)-edge(left,1),5)
+  for side in ('west','east'):self.assertIn('street-collision-arcade-sill-'+side,objects)
+  lookout=collider('exit-walk')
+  self.assertGreaterEqual(lookout['scale'][0],6)
+  self.assertGreaterEqual(lookout['scale'][2],7)
+  wall=collider('garden-north-left')
+  self.assertLessEqual(wall['scale'][1],1)
  def test_imported_street_textures_match_cc0_sources(self):
   import hashlib
   folder=GAME/'Assets/Textures/StreetJourney/PolyHaven'

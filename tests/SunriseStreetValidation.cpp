@@ -347,20 +347,31 @@ void JourneyPlaythrough() {
    name+" lies inside the camera frame (x="+std::to_string(right/(depth*half*16/9))+")");
   for(auto& v:delta)v/=length;
   const auto hit=s.physics.Raycast(cam.position,delta,length,0xffffffffu,false,"park-player");
-  Require(!hit || hit->distance>length-.15f,name+" has an unobstructed sightline");
+  Require(!hit || hit->distance>length-.15f,name+" has an unobstructed sightline"+
+   (hit?"; blocked by "+hit->object+" from camera "+std::to_string(cam.position[0])+","+std::to_string(cam.position[1])+","+std::to_string(cam.position[2]):""));
   std::cout<<"PASS view: "<<name<<"\n";
  };
- s.Walk(-14,10);s.Walk(-14,22);s.Walk(-9,23);
+ s.Walk(-14,10);
+ visible({-5,1.2f,22},"next cafe terrace before leaving entry street");
+ s.Walk(-14,22);s.Walk(-9,23);
  visible({-5,.75f,23},"cafe landing before first jump");
  const auto before=Find(s.layout,"park-player").position;
  for(int i=0;i<8;++i)s.Tick(1,0);
  Require(Find(s.layout,"park-player").position[0]<-7.8f,"Cafe gap requires a jump");
  s.Walk(before[0],before[2]);s.JumpTo(-5,23);
  Require(Find(s.layout,"park-player").position[1]>1.1f,"First jump lands on cafe terrace");
- s.Walk(3,25);visible({5.4f,2,34.5f},"open shop arcade before fork");s.Walk(5,32);
+ s.Walk(3,25);visible({5.5f,1.4f,34.5f},"walkable arcade entrance before fork");
+ visible({-3.5f,1.4f,33},"service porch entrance before fork");s.Walk(5,32);
  visible({5.4f,2,43.5f},"far end of shop passage");
+ // The architectural promise is a real passage, with usable width rather
+ // than a single centre-line route supplied only to the automated player.
+ s.Walk(3.3f,36);s.Walk(7.6f,40);s.Walk(5,44);
+ visible({14,4.6f,61},"stair flight from arcade exit");
+ s.Walk(14,44);s.Walk(10,46);s.Walk(5,44);
+ s.Walk(5,32);
  // The short service alley has a reward and rejoins the same street.
- s.Walk(-3.5f,32);s.Walk(-3.5f,40);s.Walk(-3.5f,44);s.Walk(5,44);
+ s.Walk(-3.5f,32);s.Walk(-3.5f,40);s.Walk(-3.5f,44);
+ visible({1,1.3f,49},"same courtyard from the service-alley exit");s.Walk(5,44);
  Require(!Has(s.layout,"stage-coin-3"),"Service-alley discovery rewards exploration");
  visible({5.4f,2,44},"main street after service-alley loop");
  s.Walk(-1,44);s.Walk(-1,48);visible({14,4.6f,61},"stair flight on entering courtyard");
@@ -381,13 +392,20 @@ void JourneyPlaythrough() {
  s.Walk(-1,52);s.Walk(9,53);s.Walk(14,54);s.Walk(14,66);s.Walk(14,73);
  Require(Find(s.layout,"park-player").position[1]>4.5f,"Roof reached by twelve real steps");
  visible({5.8f,4.1f,73},"west roof landing before crossing");
+ // The next landing is readable before crossing; the final exit is checked
+ // from that landing below, following the sequence of actual movement.
  s.Walk(10,73);s.Walk(7.7f,73);
  Require(Find(s.layout,"park-player").position[1]<3.7f,"Missed jump lands on catch balcony");
  s.JumpTo(5,73);s.JumpTo(10,73);s.JumpTo(5,73);
+ // The parapets frame a broad crossing. Test another takeoff/landing pair
+ // near one end, not only the known centre waypoint.
+ s.Walk(5,75.6f);s.JumpTo(10,75.6f);s.JumpTo(5,75.6f);s.Walk(5,73);
  visible({-3,5,76},"exit gateway after roof jump");
  visible({-7.5f,10.8f,80},"unique clock tower beside destination");
  s.Walk(-3,73);s.Walk(-3,77);
  Require(s.ui.Value("journeyComplete")==1,"Street journey reaches next district");
+ s.Walk(-3,81);s.Walk(-4,82);s.Walk(0,81);
+ Require(Find(s.layout,"park-player").position[1]>4.4f,"Final gate opens onto a usable lookout terrace");
  Require(s.maxYaw-s.minYaw<.5f,"Camera keeps a stable approach direction throughout the street");
  Require(s.maxFov-s.minFov<.02f,"Field of view stays fixed throughout action");
  std::cout<<"Camera yaw range "<<(s.maxYaw-s.minYaw)<<", FOV "<<s.minFov<<".."<<s.maxFov<<"\n";
