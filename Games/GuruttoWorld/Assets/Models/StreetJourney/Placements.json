@@ -1901,7 +1901,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       -17,
-      0,
+      0.03,
       9
     ],
     "scale": 0.48,
@@ -1921,7 +1921,7 @@
     "model": "tree_oak",
     "position": [
       -17,
-      0.26,
+      0.29000000000000004,
       9
     ],
     "scale": 1.1,
@@ -1941,7 +1941,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       -9.6,
-      0,
+      0.03,
       12
     ],
     "scale": 0.48,
@@ -1961,7 +1961,7 @@
     "model": "tree_oak",
     "position": [
       -9.6,
-      0.26,
+      0.29000000000000004,
       12
     ],
     "scale": 1.1,
@@ -3789,10 +3789,10 @@
     "model": "Metal_Column_Center",
     "position": [
       -17.82,
-      2.35,
+      0.03,
       29.76
     ],
-    "scale": 0.42,
+    "scale": 1.2566666666666668,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -3809,10 +3809,10 @@
     "model": "Metal_Column_Center",
     "position": [
       -10.18,
-      2.35,
+      0.03,
       29.76
     ],
-    "scale": 0.42,
+    "scale": 1.2566666666666668,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -3828,11 +3828,11 @@
     "kind": "q",
     "model": "Metal_Column_Center",
     "position": [
-      -6.52,
-      2.65,
+      -5.62,
+      0.5900000000000001,
       28.76
     ],
-    "scale": 0.42,
+    "scale": 1.17,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -3848,11 +3848,11 @@
     "kind": "q",
     "model": "Metal_Column_Center",
     "position": [
-      -0.8800000000000003,
-      2.65,
+      -1.78,
+      0.5900000000000001,
       28.76
     ],
-    "scale": 0.42,
+    "scale": 1.17,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -3889,7 +3889,7 @@
     "model": "tableRound",
     "position": [
       6.6,
-      0.56,
+      0.5900000000000001,
       20.2
     ],
     "scale": 2.1,
@@ -3909,7 +3909,7 @@
     "model": "chairRounded",
     "position": [
       6.6,
-      0.56,
+      0.5900000000000001,
       19.25
     ],
     "scale": 2.2,
@@ -3929,7 +3929,7 @@
     "model": "chairRounded",
     "position": [
       6.6,
-      0.56,
+      0.5900000000000001,
       21.15
     ],
     "scale": 2.2,
@@ -3949,7 +3949,7 @@
     "model": "plantSmall1",
     "position": [
       6.6,
-      1.34,
+      1.3601413580000001,
       20.2
     ],
     "scale": 0.7,
@@ -3969,7 +3969,7 @@
     "model": "tableRound",
     "position": [
       -15.5,
-      0,
+      0.03,
       26
     ],
     "scale": 2.1,
@@ -3989,7 +3989,7 @@
     "model": "chairRounded",
     "position": [
       -15.5,
-      0,
+      0.03,
       25.05
     ],
     "scale": 2.2,
@@ -4009,7 +4009,7 @@
     "model": "chairRounded",
     "position": [
       -15.5,
-      0,
+      0.03,
       26.95
     ],
     "scale": 2.2,
@@ -4029,7 +4029,7 @@
     "model": "plantSmall1",
     "position": [
       -15.5,
-      0.78,
+      0.8001413580000001,
       26
     ],
     "scale": 0.7,
@@ -4049,7 +4049,7 @@
     "model": "tableRound",
     "position": [
       6.6,
-      0.56,
+      0.5900000000000001,
       28
     ],
     "scale": 1.785,
@@ -4069,7 +4069,7 @@
     "model": "chairRounded",
     "position": [
       6.6,
-      0.56,
+      0.5900000000000001,
       27.1925
     ],
     "scale": 1.87,
@@ -4089,7 +4089,7 @@
     "model": "chairRounded",
     "position": [
       6.6,
-      0.56,
+      0.5900000000000001,
       28.8075
     ],
     "scale": 1.87,
@@ -4109,7 +4109,7 @@
     "model": "plantSmall1",
     "position": [
       6.6,
-      1.223,
+      1.2446201543000002,
       28
     ],
     "scale": 0.595,
@@ -4129,7 +4129,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       -17,
-      0,
+      0.03,
       29
     ],
     "scale": 0.48,
@@ -4149,7 +4149,7 @@
     "model": "tree_oak",
     "position": [
       -17,
-      0.26,
+      0.29000000000000004,
       29
     ],
     "scale": 1.1,
@@ -4168,8 +4168,8 @@
     "kind": "q",
     "model": "Prop_Planter_Single",
     "position": [
-      7.5,
-      0.56,
+      8.1,
+      0.5900000000000001,
       28
     ],
     "scale": 0.48,
@@ -4188,8 +4188,8 @@
     "kind": "n",
     "model": "tree_oak",
     "position": [
-      7.5,
-      0.8200000000000001,
+      8.1,
+      0.8500000000000001,
       28
     ],
     "scale": 1.1,
@@ -4569,8 +4569,8 @@
     "model": "wooden_crate_02",
     "position": [
       -5.15,
-      0.56,
-      33
+      0.6275,
+      33.8
     ],
     "scale": 1.15,
     "angle": 0.1,
@@ -4589,7 +4589,7 @@
     "model": "wooden_crate_02",
     "position": [
       -5.15,
-      0.56,
+      0.6275,
       42
     ],
     "scale": 1.15,
@@ -4609,7 +4609,7 @@
     "model": "kitchenCoffeeMachine",
     "position": [
       -5.4,
-      1.55,
+      1.5275,
       40
     ],
     "scale": 1.4,
@@ -4629,7 +4629,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       -5.4,
-      0.56,
+      0.5900000000000001,
       46
     ],
     "scale": 0.48,
@@ -4649,7 +4649,7 @@
     "model": "tree_oak",
     "position": [
       -5.4,
-      0.8200000000000001,
+      0.8500000000000001,
       46
     ],
     "scale": 1.1,
@@ -7595,7 +7595,7 @@
     "model": "tableRound",
     "position": [
       -2,
-      0.56,
+      0.5900000000000001,
       52
     ],
     "scale": 2.1,
@@ -7615,7 +7615,7 @@
     "model": "chairRounded",
     "position": [
       -2,
-      0.56,
+      0.5900000000000001,
       51.05
     ],
     "scale": 2.2,
@@ -7635,7 +7635,7 @@
     "model": "chairRounded",
     "position": [
       -2,
-      0.56,
+      0.5900000000000001,
       52.95
     ],
     "scale": 2.2,
@@ -7655,7 +7655,7 @@
     "model": "plantSmall1",
     "position": [
       -2,
-      1.34,
+      1.3601413580000001,
       52
     ],
     "scale": 0.7,
@@ -7675,7 +7675,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       -4,
-      0.56,
+      0.5900000000000001,
       55
     ],
     "scale": 0.528,
@@ -7695,7 +7695,7 @@
     "model": "tree_oak",
     "position": [
       -4,
-      0.8460000000000001,
+      0.8760000000000001,
       55
     ],
     "scale": 1.2100000000000002,
@@ -7715,7 +7715,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       3,
-      0.56,
+      0.5900000000000001,
       55
     ],
     "scale": 0.528,
@@ -7735,7 +7735,7 @@
     "model": "tree_oak",
     "position": [
       3,
-      0.8460000000000001,
+      0.8760000000000001,
       55
     ],
     "scale": 1.2100000000000002,
@@ -7755,7 +7755,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       19.8,
-      0.56,
+      0.5900000000000001,
       49
     ],
     "scale": 0.528,
@@ -7775,7 +7775,7 @@
     "model": "tree_oak",
     "position": [
       19.8,
-      0.8460000000000001,
+      0.8760000000000001,
       49
     ],
     "scale": 1.2100000000000002,
@@ -7795,7 +7795,7 @@
     "model": "tableRound",
     "position": [
       17.6,
-      3.92,
+      3.9499999999999997,
       75
     ],
     "scale": 1.785,
@@ -7815,7 +7815,7 @@
     "model": "chairRounded",
     "position": [
       17.6,
-      3.92,
+      3.9499999999999997,
       74.1925
     ],
     "scale": 1.87,
@@ -7835,7 +7835,7 @@
     "model": "chairRounded",
     "position": [
       17.6,
-      3.92,
+      3.9499999999999997,
       75.8075
     ],
     "scale": 1.87,
@@ -7855,7 +7855,7 @@
     "model": "plantSmall1",
     "position": [
       17.6,
-      4.583,
+      4.6046201543,
       75
     ],
     "scale": 0.595,
@@ -7875,7 +7875,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       18.7,
-      3.92,
+      3.9499999999999997,
       70
     ],
     "scale": 0.48,
@@ -7895,7 +7895,7 @@
     "model": "tree_oak",
     "position": [
       18.7,
-      4.18,
+      4.21,
       70
     ],
     "scale": 1.1,
@@ -7915,7 +7915,7 @@
     "model": "Prop_Planter_Single",
     "position": [
       -5,
-      3.92,
+      3.9499999999999997,
       70
     ],
     "scale": 0.48,
@@ -7935,7 +7935,7 @@
     "model": "tree_oak",
     "position": [
       -5,
-      4.18,
+      4.21,
       70
     ],
     "scale": 1.1,
@@ -7955,7 +7955,7 @@
     "model": "wooden_crate_02",
     "position": [
       -0.8,
-      0.56,
+      0.59,
       29
     ],
     "scale": 1.25,
@@ -7975,7 +7975,7 @@
     "model": "wooden_crate_02",
     "position": [
       -1.0,
-      1.1,
+      1.1699431912600993,
       29
     ],
     "scale": 1.1,
@@ -7995,8 +7995,8 @@
     "model": "wooden_crate_02",
     "position": [
       -16.8,
-      0,
-      28.3
+      0.03,
+      27.7
     ],
     "scale": 1.15,
     "angle": 0.4,
@@ -8015,7 +8015,7 @@
     "model": "Prop_Bollard",
     "position": [
       -16,
-      0,
+      0.03,
       8
     ],
     "scale": 1,
@@ -8035,7 +8035,7 @@
     "model": "Prop_Bollard",
     "position": [
       -11,
-      0,
+      0.03,
       12
     ],
     "scale": 1,
@@ -8055,7 +8055,7 @@
     "model": "Prop_Bollard",
     "position": [
       7.7,
-      0.56,
+      0.5900000000000001,
       26
     ],
     "scale": 1,
@@ -8075,7 +8075,7 @@
     "model": "Prop_Bollard",
     "position": [
       7.8,
-      0.56,
+      0.5900000000000001,
       45
     ],
     "scale": 1,
@@ -8135,7 +8135,7 @@
     "model": "Prop_ManholeCover",
     "position": [
       6,
-      0.6,
+      0.645,
       37
     ],
     "scale": 1,
@@ -8155,7 +8155,7 @@
     "model": "Prop_Drain",
     "position": [
       -8.45,
-      0.04,
+      0.03,
       20
     ],
     "scale": 1.2,
@@ -8174,9 +8174,9 @@
     "kind": "q",
     "model": "Prop_Drain",
     "position": [
-      -5.5,
-      0.6,
-      26
+      -5.3,
+      0.59,
+      25.5
     ],
     "scale": 1.2,
     "angle": 0,
@@ -8195,7 +8195,7 @@
     "model": "Prop_Drain",
     "position": [
       8.5,
-      0.6,
+      0.59,
       31
     ],
     "scale": 1.2,

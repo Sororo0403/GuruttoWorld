@@ -57,6 +57,22 @@ class StreetJourneyTests(unittest.TestCase):
   self.assertLessEqual(len(models),34)
   polygons=sum(sum(line.startswith('f ') for line in (GAME/path).read_text(encoding='utf-8').splitlines()) for path in models)
   self.assertLessEqual(polygons,170000)
+ def test_floor_patches_do_not_overlap_at_equal_height(self):
+  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
+  objects={o['id']:o for o in scene['objects']}
+  keys=('entry-floor','entry-apron','cafe-west-floor','cafe-east-floor','fork-floor',
+        'backyard-floor','shop-rear-terrace','east-roof','west-roof',
+        'west-roof-north-left','west-roof-north-right','exit-walk','catch-balcony','distant-street')
+  floors=[objects['street-collision-'+k] for k in keys]
+  for i,a in enumerate(floors):
+   for b in floors[i+1:]:
+    if abs(a['position'][1]-b['position'][1])>1e-5:continue
+    overlap=[min(a['position'][j]+a['scale'][j]/2,b['position'][j]+b['scale'][j]/2)-
+             max(a['position'][j]-a['scale'][j]/2,b['position'][j]-b['scale'][j]/2) for j in (0,2)]
+    self.assertLessEqual(min(overlap),1e-5,(a['id'],b['id'],overlap))
+  for i in range(11):
+   a,b=[objects['street-collision-roof-step-'+str(n)] for n in (i,i+1)]
+   self.assertAlmostEqual(a['position'][2]+a['scale'][2]/2,b['position'][2]-b['scale'][2]/2)
  def test_spatial_openings_and_stair_edges_remain_usable(self):
   scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
   objects={o['id']:o for o in scene['objects']}
@@ -120,4 +136,34 @@ class StreetJourneyTests(unittest.TestCase):
     self.assertTrue(json.loads(path.with_name(path.name+'.meta').read_text(encoding='utf-8'))['texture']['mipmaps'])
    for entry in source.get('originalFiles',[]):
     self.assertEqual(hashlib.sha256((GAME/entry['file']).read_bytes()).hexdigest(),entry['sha256'])
+class StreetDecorationContactTests(unittest.TestCase):
+ @classmethod
+ def setUpClass(cls):
+  import sys
+  sys.path.insert(0,str(GAME.parents[1]/'scripts'))
+  from AuthorStreetJourney import Journey
+  cls.city=Journey().build()
+  cls.placements=cls.city.b.sources
+ @classmethod
+ def height(cls,p):
+  return max(v[1] for _,face in cls.city.b.cache[(p['kind'],p['model'])] for v,uv,n in face)*p['scale']
+ def test_awning_posts_reach_the_floor_and_roof(self):
+  posts=[p for p in self.placements if p['model']=='Metal_Column_Center']
+  self.assertEqual(len(posts),4)
+  for p in posts:
+   expected=.59 if p['position'][0]>-7 else .03
+   self.assertAlmostEqual(p['position'][1],expected)
+   import math
+   roof=3.7 if expected==.03 else 4
+   underside=roof+math.tan(.16)*.66-.06/math.cos(.16)
+   self.assertGreaterEqual(p['position'][1]+self.height(p),underside)
+ def test_tabletop_plants_and_stacked_crate_make_contact(self):
+  for table in (p for p in self.placements if p['model']=='tableRound'):
+   plant=next(p for p in self.placements if p['model']=='plantSmall1' and
+              p['position'][0]==table['position'][0] and p['position'][2]==table['position'][2])
+   self.assertAlmostEqual(plant['position'][1],table['position'][1]+self.height(table))
+  crates=[p for p in self.placements if p['model']=='wooden_crate_02' and p['position'][0] in (-.8,-1)]
+  lower,upper=sorted(crates,key=lambda p:p['position'][1])
+  self.assertAlmostEqual(upper['position'][1],lower['position'][1]+self.height(lower))
+
 if __name__=='__main__':unittest.main()

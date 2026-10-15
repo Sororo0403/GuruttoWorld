@@ -134,29 +134,38 @@ class StreetArchitecture(StreetDistrict):
   if key in ('cafe','east-shop','garden-east'):
    self.b.place('q','Prop_ACUnit',((x0+x1)/2,height-.8,z0-.32),1.3,math.pi)
 
- def awning(self,x,z,width=6,y=3.4):
+ def awning(self,x,z,width=6,y=3.4,floor=0):
   self.b.tilted_box((x,y,z-.9),(width,.12,1.9),self.orange,-.16)
   self.cube((x,y-.3,z-1.83),(width,.35,.12),self.cream)
-  self.cube((x,y-.17,z-.07),(width,.12,.14),self.wood)
+  self.cube((x,y+.07,z-.07),(width,.12,.14),self.wood)
   for dx in (-width/2+.18,width/2-.18):
-   self.b.place('q','Metal_Column_Center',(x+dx,y-1.35,z-.24),.42)
+   self.b.place('q','Metal_Column_Center',(x+dx,floor+.03,z-.24),(y+.10-floor-.03)/3)
+
+ def seating(self,x,z,y=0,size=1):
+  base=y+.03
+  self.b.place('k','tableRound',(x,base,z),2.1*size)
+  for dz,angle in ((-.95,0),(.95,math.pi)):
+   self.b.place('k','chairRounded',(x,base,z+dz*size),2.2*size,angle)
+  top=max(p[1] for _,face in self.b.cache[('k','tableRound')] for p,uv,n in face)
+  self.b.place('k','plantSmall1',(x,base+top*2.1*size,z),.7*size)
 
  def planter(self,x,z,y=0,size=1):
-  self.b.place('q','Prop_Planter_Single',(x,y,z),.48*size)
-  self.b.place('n','tree_oak',(x,y+.26*size,z),1.1*size)
+  self.b.place('q','Prop_Planter_Single',(x,y+.03,z),.48*size)
+  self.b.place('n','tree_oak',(x,y+.03+.26*size,z),1.1*size)
 
  def street_details(self):
   # A few real PBR props establish material scale at the cafe service edge.
-  self.b.place('p','wooden_crate_02',(-.8,.56,29),1.25,.15)
-  self.b.place('p','wooden_crate_02',(-1.0,1.10,29),1.1,-.12)
-  self.b.place('p','wooden_crate_02',(-16.8,0,28.3),1.15,.4)
+  self.b.place('p','wooden_crate_02',(-.8,.59,29),1.25,.15)
+  height=max(p[1] for _,face in self.b.cache[('p','wooden_crate_02')] for p,uv,n in face)
+  self.b.place('p','wooden_crate_02',(-1.0,.59+height*1.25,29),1.1,-.12)
+  self.b.place('p','wooden_crate_02',(-16.8,.03,27.7),1.15,.4)
   self.solid('cafe-crate-stack',(-.9,1.1,29),(1.65,1.1,1))
-  self.solid('cafe-crate-west',(-16.8,.27,28.3),(1.5,.54,1))
+  self.solid('cafe-crate-west',(-16.8,.30,27.7),(1.5,.54,1))
   for x,z,y in ((-16,8,0),(-11,12,0),(7.7,26,.56),(7.8,45,.56)):
-   self.b.place('q','Prop_Bollard',(x,y,z),1)
-  for x,z,y in ((-14,5,.04),(2,22,.6),(6,37,.6)):
+   self.b.place('q','Prop_Bollard',(x,y+.03,z),1)
+  for x,z,y in ((-14,5,.04),(2,22,.6),(6,37,.645)):
    self.b.place('q','Prop_ManholeCover',(x,y,z),1)
-  for x,z,y in ((-8.45,20,.04),(-5.5,26,.6),(8.5,31,.6)):
+  for x,z,y in ((-8.45,20,.03),(-5.3,25.5,.59),(8.5,31,.59)):
    self.b.place('q','Prop_Drain',(x,y,z),1.2)
   # Larger greenery belongs to the margins, keeping jumps and exits clear.
   for x,z,y in ((-20,20,-3.5),(12,23,-3.5),(24,41,-3.5)):
