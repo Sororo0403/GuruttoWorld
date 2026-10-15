@@ -546,150 +546,6 @@
       ]
     },
     {
-      "id": "park-player-eye--1",
-      "name": "park-player-eye--1",
-      "parent": "hero-rig",
-      "position": [
-        -0.16,
-        0.12,
-        0.43
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.14,
-        0.24,
-        0.08
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/PhysicsSphere.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
-        }
-      ]
-    },
-    {
-      "id": "park-player-foot--1",
-      "name": "park-player-foot--1",
-      "parent": "hero-rig",
-      "position": [
-        -0.32,
-        -0.43,
-        0.12
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.42,
-        0.2,
-        0.55
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/PhysicsSphere.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/White.mat"
-        }
-      ]
-    },
-    {
-      "id": "park-player-eye-1",
-      "name": "park-player-eye-1",
-      "parent": "hero-rig",
-      "position": [
-        0.16,
-        0.12,
-        0.43
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.14,
-        0.24,
-        0.08
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/PhysicsSphere.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
-        }
-      ]
-    },
-    {
-      "id": "park-player-foot-1",
-      "name": "park-player-foot-1",
-      "parent": "hero-rig",
-      "position": [
-        0.32,
-        -0.43,
-        0.12
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.42,
-        0.2,
-        0.55
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/PhysicsSphere.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/White.mat"
-        }
-      ]
-    },
-    {
       "id": "hero-rig",
       "name": "hero-rig",
       "parent": "park-player",
@@ -728,7 +584,7 @@
       "parent": "hero-rig",
       "position": [
         0,
-        0,
+        -0.22,
         0
       ],
       "rotation": [
@@ -737,16 +593,16 @@
         0
       ],
       "scale": [
-        1.1,
-        1,
-        1
+        0.9,
+        0.9,
+        0.9
       ],
       "components": [
         {
           "type": "MeshRenderer",
           "id": "meshrenderer",
           "enabled": true,
-          "model": "Assets/Models/PhysicsSphere.obj",
+          "model": "Assets/Models/Park/UnitBox.obj",
           "visibleWhen": "",
           "instancing": true
         },
@@ -755,78 +611,6 @@
           "id": "material",
           "enabled": true,
           "asset": "Assets/Materials/Park/Player.mat"
-        }
-      ]
-    },
-    {
-      "id": "hero-backpack",
-      "name": "hero-backpack",
-      "parent": "hero-rig",
-      "position": [
-        0,
-        -0.02,
-        -0.43
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.57,
-        0.65,
-        0.26
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/PhysicsSphere.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
-        }
-      ]
-    },
-    {
-      "id": "hero-backpack-buckle",
-      "name": "hero-backpack-buckle",
-      "parent": "hero-rig",
-      "position": [
-        0,
-        -0.02,
-        -0.57
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.17,
-        0.17,
-        0.04
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/PhysicsSphere.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/White.mat"
         }
       ]
     },
@@ -8439,6 +8223,114 @@
             1,
             1
           ]
+        }
+      ]
+    },
+    {
+      "id": "park-player-eye--1",
+      "name": "park-player-eye--1",
+      "parent": "hero-rig",
+      "position": [
+        -0.18,
+        -0.1,
+        0.457
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.105,
+        0.13,
+        0.025
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "park-player-eye-1",
+      "name": "park-player-eye-1",
+      "parent": "hero-rig",
+      "position": [
+        0.18,
+        -0.1,
+        0.457
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.105,
+        0.13,
+        0.025
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "hero-mouth",
+      "name": "hero-mouth",
+      "parent": "hero-rig",
+      "position": [
+        0,
+        -0.35,
+        0.457
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.2,
+        0.035,
+        0.025
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Park/UnitBox.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
         }
       ]
     },

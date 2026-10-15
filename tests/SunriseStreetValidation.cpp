@@ -444,7 +444,9 @@ void RenderJourney() {
      {"loading-aisle",{1,1.26f,36}},{"public-gallery",{15,1.26f,36}},
      {"market-choice",{7,1.26f,30}}}) {
   auto layout=SceneLayout::Load(root/"Assets/Scenes/StreetJourney.json");
-  Find(layout,"park-player").position=pose;SceneEnvironment preview;
+  Find(layout,"park-player").position=pose;
+  if(name=="rest-roof")Find(layout,"park-player").rotation[1]=3.14159265f;
+  SceneEnvironment preview;
   Require(renderer.WaitForIdle() && preview.Initialize(renderer,root,layout,error),error);
   for(int i=0;i<90;++i){Require(preview.MovePlayers(1.0/60,0,0),"Rest area physics");preview.Update(1.0/60,true,true);}
   Capture(renderer,preview,name);Require(renderer.WaitForIdle(),"Rest area capture complete");

@@ -1,7 +1,7 @@
 """Author the street stage and its START connection."""
 import copy,json,math
 from AuthorSunriseStreet import GAME,model,script
-from GenerateParkAdventure import obj,component,coin,character,write,box
+from GenerateParkAdventure import obj,component,coin,character,write,box,mesh
 from AuthorEntranceCafe import material
 from StreetArchitecture import StreetArchitecture,StreetArtBake,PAVING,NORMAL,BRICK,BRICK_NORMAL,prepare_art_imports
 
@@ -47,11 +47,24 @@ class Journey(StreetArchitecture):
   return build_town(self)
 
 
+def box_hero(objects):
+ # The visual rig is independent of the capsule and movement controller.
+ # A plain cube, square eyes and a short mouth replace the round silhouette.
+ objects[:]=[o for o in objects if o['id'] not in ('hero-backpack','hero-backpack-buckle','hero-mouth')
+             and not o['id'].startswith(('park-player-eye-','park-player-foot-'))]
+ body=next(o for o in objects if o['id']=='hero-body')
+ body.update(position=[0,-.22,0],scale=[.9,.9,.9],components=mesh('Player'))
+ for side in (-1,1):
+  objects.append(obj('park-player-eye-'+str(side),[side*.18,-.1,.457],[.105,.13,.025],mesh('Eye'),parent='hero-rig'))
+ objects.append(obj('hero-mouth',[0,-.35,.457],[.2,.035,.025],mesh('Eye'),parent='hero-rig'))
+
+
 def assemble(city,geometry):
  old=json.loads((GAME/'Assets/Scenes/SunriseBlock.json').read_text(encoding='utf-8'))
  keep={'block-sky','block-directionallight','music','park-player','hero-rig','hero-body','hero-backpack','hero-backpack-buckle','park-puff','park-ui'}
  objects=[copy.deepcopy(o) for o in old['objects'] if o['id'] in keep or o['id'].startswith(('park-player-','audio-'))]
  objects+=copy.deepcopy(geometry)+copy.deepcopy(city.objects)
+ box_hero(objects)
  player=next(o for o in objects if o['id']=='park-player');player['position']=list(city.spawn)
  for c in player['components']:
   if c['type']=='PlayerController':c.update(moveSpeed=4.6,stepHeight=.36)
