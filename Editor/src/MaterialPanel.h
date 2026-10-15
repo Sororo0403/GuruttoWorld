@@ -27,9 +27,20 @@ namespace Editor
         }
         void SaveAll(const std::filesystem::path& root)
         { for (auto& [path,document] : documents_) if (document.Dirty()) document.Save(root,path); }
+        /// <summary>移動先に未保存のMaterial編集がある場合はファイル移動前に中止します。</summary>
+        void ValidateMove(const std::filesystem::path& source,const std::filesystem::path& destination) const
+        {
+            const auto found=documents_.find(destination);
+            if(source!=destination && found!=documents_.end() && found->second.Dirty())
+                throw std::runtime_error("移動先のMaterialに未保存の変更があります。保存するか編集を破棄してから移動してください。");
+        }
+        /// <summary>古い移動先の読み込みデータを除去し、移動元の編集と履歴を引き継ぎます。</summary>
         void AssetMoved(const std::filesystem::path& source,const std::filesystem::path& destination)
         {
+            if(source==destination) return;
+            ValidateMove(source,destination);
             for(auto& [path,document]:documents_) {static_cast<void>(path);document.AssetMoved(source,destination);}
+            documents_.erase(destination);
             auto entry=documents_.extract(source);
             if (!entry.empty()) { entry.key()=destination; documents_.insert(std::move(entry)); }
         }

@@ -2,6 +2,7 @@
 #include "ProjectCatalog.h"
 #include "AssetDependencies.h"
 #include <Engine/Assets/AssetDatabase.h>
+#include <functional>
 #include <imgui.h>
 namespace Editor {
 class AssetManagementPanel final {
@@ -25,7 +26,9 @@ class AssetManagementPanel final {
         }
     }
 public:
-    std::optional<std::filesystem::path> Draw(const std::filesystem::path& root,const ProjectAsset& asset,bool enabled) {
+    /// <summary>インポートと移動を編集し、移動前の検証を成功させてからファイルを変更します。</summary>
+    std::optional<std::filesystem::path> Draw(const std::filesystem::path& root,const ProjectAsset& asset,bool enabled,
+        const std::function<void(const std::filesystem::path&,const std::filesystem::path&)>& beforeMove={}) {
         std::optional<std::filesystem::path> moved;
         bool disabled=false;
         try {
@@ -49,6 +52,7 @@ public:
                 ImGui::TextWrapped("ファイルの移動・改名はシーンのUndoでは戻せません。戻す場合は元の移動先を指定してください。");
                 if (ImGui::Button("移動・改名を実行###Move")) {
                     const auto target=Engine::AssetDatabase::Path(destination_.data());
+                    if(beforeMove) beforeMove(selected_,target);
                     Engine::AssetDatabase(root).Move(selected_,target); moved=target; selected_.clear(); error_.clear();
                 }
             }

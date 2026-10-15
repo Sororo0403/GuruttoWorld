@@ -190,7 +190,9 @@ namespace Editor
                     if(DrawMaterialWorkflow(state,selected,layout,enabled)) {ImGui::End();return;}
                 }
                 if(found->kind==AssetKind::Audio) {ImGui::BeginDisabled(!enabled); if(ImGui::Button("音声を試聴###Audition audio")) AudioPreview::Play(selected); ImGui::SameLine(); if(ImGui::Button("音声を停止###Stop audio")) AudioPreview::StopRequest(); ImGui::EndDisabled();}
-                if (const auto moved=assetManagement_.Draw(root_,*found,enabled)) {
+                if (const auto moved=assetManagement_.Draw(root_,*found,enabled,[&](const auto& source,const auto& destination) {
+                    materialPanel_.ValidateMove(source,destination);
+                })) {
                     assetMove_=std::pair{found->path,*moved};
                     materialPanel_.AssetMoved(found->path,*moved);
                     selected_=*moved; state.InspectAsset(*moved); InvalidatePreview(); Scan(root_); reloadAssets_=true;

@@ -11,6 +11,8 @@
 #include "../Editor/src/ConsoleFilter.h"
 #include "../Editor/src/SceneDocument.h"
 #include "../Editor/src/MaterialDocument.h"
+#include "../Editor/src/MaterialPanel.h"
+#include "../Editor/src/AssetManagementPanel.h"
 #include "../Editor/src/UiCanvasPanel.h"
 #include "../Editor/src/SceneSnapshotCache.h"
 #include "../Editor/src/SceneRecovery.h"
@@ -2992,6 +2994,67 @@ void ValidateMaterialDocuments()
     movedDraft.Save(root,movingMaterial);
     Check(movedDraft.Undo() && movedDraft.Asset().texture==newTexture && movedDraft.Asset().values.roughness==.5f && movedDraft.Dirty(),
         "Material undo after texture move restores values without reviving missing texture path");
+    {
+        const auto panelRoot=root/"panel-move";
+        const std::filesystem::path source="Assets/Materials/source.mat",destination="Assets/Materials/destination.mat";
+        std::error_code cleanup;for(const auto& path:{source,destination}) std::filesystem::remove(Engine::AssetDatabase::Sidecar(panelRoot/path),cleanup);
+        SceneRuntime::MaterialAsset material;material.Save(panelRoot,source);material.Save(panelRoot,destination);
+        Editor::MaterialPanel panel;Editor::ProjectCatalog catalog;panel.Draft(panelRoot,destination);
+        ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.DisplaySize={1000,1400};io.DeltaTime=1.0f/60;io.Fonts->Build();
+        const auto frame=[&](const std::filesystem::path& path,bool activate) {
+            ImGui::NewFrame();ImGui::SetNextWindowPos({0,0});ImGui::SetNextWindowSize(io.DisplaySize);
+            ImGui::Begin("Material move validation",nullptr,ImGuiWindowFlags_NoTitleBar);
+            if(activate) {
+                auto* context=ImGui::GetCurrentContext();
+                context->NavActivateId=context->NavActivateDownId=ImGui::GetID("###Transparent");
+            }
+            panel.Draw(panelRoot,path,catalog,true);ImGui::End();ImGui::Render();
+        };
+        frame(source,false);frame(source,true);frame(source,false);
+        Check(panel.HasChanges() && panel.Draft(panelRoot,source).values.transparent,"Material Inspector edits the source draft");
+        std::filesystem::remove(panelRoot/destination);std::filesystem::remove(Engine::AssetDatabase::Sidecar(panelRoot/destination));
+        panel.ValidateMove(source,destination);
+        Engine::AssetDatabase(panelRoot).Move(source,destination);panel.AssetMoved(source,destination);
+        Check(panel.HasChanges() && panel.Draft(panelRoot,destination).values.transparent && panel.CanUndo(destination,false),
+            "moving Material preserves its dirty draft and undo history when a stale destination document exists");
+        panel.SaveAll(panelRoot);
+        Check(SceneRuntime::MaterialAsset::Load(panelRoot,destination).values.transparent,"moved Material draft saves to its destination");
+        Check(panel.Undo(destination,false) && !panel.Draft(panelRoot,destination).values.transparent,
+            "moved Material can undo its original Inspector edit");
+        Check(panel.Undo(destination,true) && !panel.HasChanges(),"moved Material redo restores its saved values");
+        frame(destination,true);frame(destination,false);material.Save(panelRoot,source);panel.Draft(panelRoot,source);
+        std::filesystem::remove(panelRoot/destination);std::filesystem::remove(Engine::AssetDatabase::Sidecar(panelRoot/destination));
+        rejected=false;
+        try {panel.ValidateMove(source,destination);Engine::AssetDatabase(panelRoot).Move(source,destination);panel.AssetMoved(source,destination);}
+        catch(const std::exception&) {rejected=true;}
+        Check(rejected && std::filesystem::exists(panelRoot/source) && !std::filesystem::exists(panelRoot/destination) &&
+            panel.HasChanges() && !panel.Draft(panelRoot,destination).values.transparent,
+            "dirty destination blocks the file move while preserving both Material drafts");
+        Editor::AssetManagementPanel management;int validations=0;std::optional<std::filesystem::path> uiMoved;
+        const auto moveFrame=[&](const char* activate) {
+            ImGui::NewFrame();ImGui::SetNextWindowPos({0,0});ImGui::SetNextWindowSize(io.DisplaySize);
+            ImGui::Begin("Asset move validation",nullptr,ImGuiWindowFlags_NoTitleBar);
+            if(activate) {
+                auto* context=ImGui::GetCurrentContext();context->NavActivateId=context->NavActivateDownId=ImGui::GetID(activate);
+                context->NavActivateFlags=ImGuiActivateFlags_PreferInput;
+            }
+            uiMoved=management.Draw(panelRoot,{source,Editor::AssetKind::Material},true,[&](const auto& from,const auto& to){++validations;panel.ValidateMove(from,to);});
+            ImGui::End();ImGui::Render();
+        };
+        moveFrame(nullptr);moveFrame("###Move asset");moveFrame("###Destination");ImGui::GetCurrentContext()->InputTextState.SelectAll();
+        io.AddInputCharactersUTF8(Editor::ProjectCatalog::Text(destination).c_str());moveFrame(nullptr);
+        Check(ImGui::GetCurrentContext()->InputTextState.GetText()==Editor::ProjectCatalog::Text(destination),"asset Inspector destination input accepts the moved path");
+        moveFrame("###Move");
+        Check(validations==1 && !uiMoved && std::filesystem::exists(panelRoot/source) && !std::filesystem::exists(panelRoot/destination),
+            "asset Inspector checks destination drafts before executing its Move button");
+        Check(panel.Undo(destination,false) && !panel.HasChanges(),"destination draft can be restored without discarding source");
+        moveFrame(nullptr);moveFrame("###Move");
+        Check(validations==2 && uiMoved==destination && !std::filesystem::exists(panelRoot/source) && std::filesystem::exists(panelRoot/destination),
+            "asset Inspector permits Move after the destination draft is clean");
+        panel.AssetMoved(source,destination);
+        Check(!panel.HasChanges() && !panel.Draft(panelRoot,destination).values.transparent,"destination reloads the moved source instead of its stale cached values");
+        ImGui::DestroyContext();
+    }
 }
 
 void ValidateEditorTitlePreview()
