@@ -30,17 +30,24 @@ class Journey(StreetArchitecture):
  def rail(self,key,x,z,w,d,h=.85,y=0):
   self.cube((x,y+h/2,z),(w,h,d),self.cream,key)
   self.cube((x,y+h+.03,z),(w+.05,.07,d+.05),self.teal)
+ def landing(self,key,x,z,width,y=0,across=False):
+  # Paired masonry returns belong to the terrace, never a floating sign.
+  for side in (-1,1):
+   px,pz=(x,z+side*width/2) if across else (x+side*width/2,z)
+   self.cube((px,y+.38,pz),(.5,.76,.5),self.cream,key+str(side))
+   self.cube((px,y+.8,pz),(.62,.08,.62),self.teal)
  def build(self):
   b=self.b
   self.spawn=[-14,1.05,0];self.goal=[-3,4.21,75]
   # Entry street: full-size architecture on both sides, an open bend ahead.
-  self.floor('entry-floor',-18,-10,-7,18)
-  self.floor('entry-apron',-18,-8,14,17)
+  self.floor('entry-floor',-18,-9,-7,18)
+  self.floor('entry-apron',-18,-8,11,18)
   self.building('entry-west',(-26,-18,-8,16),10)
-  self.building('entry-east',(-10,-2,-8,14),8)
+  self.building('entry-east',(-9,-1,-8,11),8)
   self.rail('entry-back',-14,-7,8,.3,1.4)
   # Leave the mouth open to the sky; the cafe terrace is the next readable space.
-  self.planter(-17,11);self.planter(-11,14)
+  self.planter(-17,9);self.planter(-9.6,12)
+  self.landing('entry-mouth',-13.5,16.2,8.1)
   # Cafe apron separated by a real narrow drainage channel: first jump.
   self.floor('cafe-west-floor',-18,-8,17,30,surface=self.limestone)
   self.floor('cafe-east-floor',-6,9,17,31,.56,self.limestone)
@@ -49,6 +56,8 @@ class Journey(StreetArchitecture):
   for x in (-8.15,-5.85):
    self.cube((x,.08 if x<-7 else .64,23),(.22,.12,12.8),self.cream)
    for z in (18,29):self.cube((x,.35 if x<-7 else .91,z),(.45,.7,.55),self.plaster)
+  self.landing('cafe-bank-west',-8.2,23,6.8,0,True)
+  self.landing('cafe-bank-east',-5.8,23,6.8,.56,True)
   self.rail('cafe-west-edge',-18,23.5,.3,13)
   self.rail('cafe-south',1.5,17,15,.3,.9,.56)
   self.building('cafe',(-25,-7,30,44),9)
@@ -56,7 +65,9 @@ class Journey(StreetArchitecture):
   self.awning(-3.7,29,6,4.0);self.sign(-3.7,3.0,28.7,.9)
   self.cube((-3.7,1.2,29),(4,1.28,.8),self.wood,'cafe-counter')
   b.place('k','kitchenCoffeeMachine',(-2.7,1.84,29),1.7)
-  self.seating(5.4,22,.56);self.seating(-15.5,26)
+  # Furniture forms inhabited pockets; the landing itself stays a broad empty plane.
+  self.seating(6.6,20.2,.56);self.seating(-15.5,26)
+  self.seating(6.6,28,.56,.85)
   self.planter(-17,29);self.planter(7.5,28,.56)
   # Two entrances around a kiosk. Both are visible before the choice.
   b.zone=1
@@ -65,12 +76,21 @@ class Journey(StreetArchitecture):
   # A shaded service alcove on the left; a taller open arcade on the right.
   # Both passages stay usable and rejoin in view of the same backyard.
   self.cube((-3.4,3.2,35),(4,.16,2.0),self.wood)
+  # A complete shaded loading porch contrasts with the open stone arcade.
+  self.cube((-3.3,.605,38),(5.2,.045,10),self.wood)
+  self.cube((-5.45,.73,36.7),(1.1,.34,3.2),self.cream,'service-loading-plinth')
+  for z in (33,42):
+   self.b.place('p','wooden_crate_02',(-5.15,.56,z),1.15,.1)
+   self.solid('service-crate-'+str(z),(-5.15,.84,z),(1.5,.56,1))
   self.gate('shop-arcade-front',5.4,34.5,4.2,3.7,.56,False)
+  self.landing('arcade-entry',5.4,34.5,4.2,.56)
   # The far end stays open: a second overhead frame would mask the courtyard
   # when it passes between the close camera and the player.
   self.cube((-5.4,1.1,40),(1,.9,3),self.wood,'service-counter')
   b.place('k','kitchenCoffeeMachine',(-5.4,1.55,40),1.4)
-  self.planter(-5,44,.56);self.planter(8,42,.56)
+  self.planter(-5,44,.56);self.planter(8,40,.56)
+  # One shared court is visible from both exits, including on the return journey.
+  self.landing('court-mouth',1.5,47,12.8,.56)
   self.building('east-shop',(9,18,30,47),10)
   # Backyard is a compact encounter and a visible route up the building.
   self.floor('backyard-floor',-6,21,47,57,.56,self.gardenstone)
@@ -80,9 +100,13 @@ class Journey(StreetArchitecture):
   self.rail('garden-north-right',19,57,4,.4,2.2,.56)
   self.rail('garden-east-rail',21,52,.3,10,.9,.56)
   self.seating(-2,52,.56)
-  for x in (-4,3,19):self.planter(x,55,.56,1.1)
-  self.cube((4,.9,49),(4,.68,3),self.cream,'garden-bed')
-  self.cube((4,1.25,49),(3.8,.04,2.8),self.leaf)
+  for x in (-4,3):self.planter(x,55,.56,1.1)
+  self.planter(19.8,49,.56,1.1)
+  self.cube((3.5,.9,49),(3,.68,3),self.cream,'garden-bed')
+  self.cube((3.5,1.25,49),(2.8,.04,2.8),self.leaf)
+  # The court is a room with a readable stair opening, not an unbounded platform.
+  self.rail('garden-west-return',-5.8,51,.25,7,.72,.56)
+  self.rail('garden-east-return',20.8,52,.25,8,.72,.56)
   # Architectural apron and paired supports belong to the stair entrance.
   self.cube((14,.60,55),(5,.06,4),self.limestone)
   for x in (11.8,16.2):
@@ -104,6 +128,10 @@ class Journey(StreetArchitecture):
   for i in range(12):
    h=.56+.28*(i+1)
    self.cube((14,h/2,57.5+i),(4,h,1.03),self.cream,'roof-step-'+str(i))
+   # Low stepped cheeks expose the ascent; no beam can cover the destination.
+   for x in (11.75,16.25):
+    self.cube((x,h/2+.3,57.5+i),(.26,h+.6,1.03),self.plaster,'stair-cheek-'+str(i)+'-'+str(x))
+    self.cube((x,h+.64,57.5+i),(.34,.08,1.03),self.teal)
   roof=.56+3.36
   self.floor('east-roof',9,20,69,78,roof,self.rooftile)
   self.floor('west-roof',-7,6.4,69,79,roof,self.rooftile)
@@ -112,10 +140,13 @@ class Journey(StreetArchitecture):
    self.cube((x,(roof-.7)/2,z),(w,roof-.7,d),self.plaster,key)
   for key,x,z,w,d in [('east-north',14.5,78,11,.3),('east-side',20,73.5,.3,9),('west-north-left',-6,79,2,.3),('west-north-right',2.7,79,7.4,.3),('west-side',-7,74,.3,10)]:self.rail(key,x,z,w,d,.85,roof)
   for x in (9.12,6.28):self.cube((x,roof+.05,73.5),(.22,.1,7.8),self.cream)
+  self.landing('roof-bank-east',9.12,73.5,7.2,roof,True)
+  self.landing('roof-bank-west',6.28,73.5,7.2,roof,True)
   # Low awning below the gap lets a missed jump land visibly rather than in void.
   self.floor('catch-balcony',6.4,9,70,77,2.8)
   self.cube((7.7,2.83,73.5),(2.6,.06,7),self.orange)
-  self.awning(14,77,7,roof+3.0);self.seating(17,74,roof)
+  # Keep the roof-to-roof opening free of furniture and overhead canopies.
+  self.awning(16,77,5,roof+3.0);self.seating(17.6,75,roof,.85)
   self.planter(18.7,70,roof);self.planter(-5,70,roof)
   self.gate('roof-exit',-3,76,6,3.5,roof,False)
   self.floor('exit-walk',-5,-1,78,85,roof,self.rooftile)

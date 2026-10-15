@@ -57,6 +57,26 @@ class StreetJourneyTests(unittest.TestCase):
   self.assertLessEqual(len(models),34)
   polygons=sum(sum(line.startswith('f ') for line in (GAME/path).read_text(encoding='utf-8').splitlines()) for path in models)
   self.assertLessEqual(polygons,170000)
+ def test_spatial_openings_and_stair_edges_remain_usable(self):
+  scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
+  objects={o['id']:o for o in scene['objects']}
+  bounds=lambda key:objects['street-collision-'+key]
+  # The approach opens before the cafe, rather than funneling to a marked lane.
+  self.assertGreaterEqual(bounds('entry-floor')['scale'][0],9)
+  self.assertLessEqual(bounds('entry-east')['position'][2]+bounds('entry-east')['scale'][2]/2,11)
+  self.assertGreaterEqual(bounds('entry-apron')['scale'][2],7)
+  # Matching terrace returns leave generous openings; neither bank narrows the jump.
+  for key in ('cafe-bank-west','cafe-bank-east','roof-bank-east','roof-bank-west'):
+   ends=[bounds(key+str(side)) for side in (-1,1)]
+   clear=ends[1]['position'][2]-ends[0]['position'][2]-(ends[0]['scale'][2]+ends[1]['scale'][2])/2
+   self.assertGreater(clear,6)
+  for i in range(12):
+   west,east=[bounds('stair-cheek-'+str(i)+'-'+str(x)) for x in (11.75,16.25)]
+   self.assertGreater(east['position'][0]-west['position'][0]-.26,4)
+   if i:self.assertGreater(west['scale'][1],bounds('stair-cheek-'+str(i-1)+'-11.75')['scale'][1])
+  # Both arms remain open and meet in the same courtyard; no new mandatory interaction.
+  self.assertLess(bounds('service-loading-plinth')['position'][0]+bounds('service-loading-plinth')['scale'][0]/2,-4.8)
+  self.assertIn('street-collision-court-mouth-1',objects)
  def test_imported_street_textures_match_cc0_sources(self):
   import hashlib
   folder=GAME/'Assets/Textures/StreetJourney/PolyHaven'
