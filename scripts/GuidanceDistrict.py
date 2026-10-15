@@ -11,10 +11,10 @@ from GenerateParkAdventure import component, obj, box
 FOLDER='Assets/Models/GuidanceLab'
 CASES=[('擬人法','広場の建物が、近づいたあなたを迎える'),
        ('反復法','同じ入口とテラスを、歩くたびに読み取る'),
-       ('換喩','店の営みから、奥のカフェを見つける'),
-       ('漸層法','小さな庭から中庭、そして大きな屋上へ'),
+       ('換喩','店の営みを頼りに、左右の広場を巡る'),
+       ('漸層法','小庭から大テラスへ上り、広場へ帰る'),
        ('Anadiplosis','時計塔から温室へ、景色の起点を引き継ぐ'),
-       ('Epanalepsis','入口の景色が、旅の終わりにもう一度現れる')]
+       ('Epanalepsis','入口の門へ、街を巡って帰ってくる')]
 
 
 def baker(name):
@@ -66,8 +66,8 @@ class City:
         if side:
             for x,angle in ((x0,math.pi/2),(x1,-math.pi/2)):
                 for y in range(0,int(height)-1,3):
-                    for z in range(math.ceil(z0+1),math.floor(z1),4):
-                        self.b.place('q','Trim_Window',(x,y,z),1,angle)
+                    for i,z in enumerate(range(math.ceil(z0+1),math.floor(z1),2)):
+                        self.b.place('q','Trim_Window' if i%2==0 else 'Trim_Plain_3',(x,y,z),1,angle)
 
     def planter(self,x,z,y=0,size=1):
         self.b.place('q','Prop_Planter_Single',(x,y,z),.48*size)
@@ -116,7 +116,7 @@ class City:
     def greenhouse(self,x,z):
         # Walk-through conservatory: no invisible box blocking its open end.
         for dx in (-3.6,3.6):
-            self.cube((x+dx,1.7,z),(.16,3.4,7),self.teal)
+            self.cube((x+dx,1.7,z),(.16,3.4,7),self.teal,'greenhouse-side-'+str(dx))
             for dz in (-3.5,0,3.5):self.cube((x+dx,1.8,z+dz),(.22,3.6,.22),self.cream)
             for dz in (-1.8,1.8):self.planter(x+dx*.73,z+dz,size=.8)
         for dz in (-3.5,0,3.5):

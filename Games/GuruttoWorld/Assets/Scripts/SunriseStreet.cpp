@@ -235,11 +235,13 @@ namespace
             if(!c.scene)return;
             if(c.Pressed(Text(c,"restartAction"))) {c.scene->LoadScene(Text(c,"scene"));return;}
             if(c.Pressed(Text(c,"cancelAction"))) {c.scene->LoadScene(Text(c,"returnScene"));return;}
-            if(c.object.position[1]<c.Value("fallLimit",-3) || std::abs(c.object.position[0])>26)Respawn(c);
+            if(c.object.position[1]<c.Value("fallLimit",-3) || c.object.position[0]<c.Value("leftLimit",-36) || c.object.position[0]>c.Value("rightLimit",36))Respawn(c);
             const float x=c.Input(Text(c,"rightAction"))-c.Input(Text(c,"leftAction"));
             const float z=c.Input(Text(c,"forwardAction"))-c.Input(Text(c,"backAction"));
             if(std::hypot(x,z)>.1f)c.object.rotation[1]=std::atan2(x,z);
             if(c.Pressed(Text(c,"jumpAction")))Sound(c,"Jump");
+            c.state["invulnerable"]=std::max(0.0f,c.state["invulnerable"]-static_cast<float>(c.seconds));
+            Combat(c);Collect(c);
         };
         return result;
     }

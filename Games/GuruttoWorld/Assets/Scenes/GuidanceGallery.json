@@ -560,7 +560,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "屋上のカフェを探してください。広場・中庭・屋上を自由に探索できます。",
+          "text": "街の鐘を2つ鳴らして、扉を開こう。近づく／J：操作・攻撃　Space：ジャンプ",
           "font": "Yu Gothic UI",
           "fontSize": 24,
           "color": [
@@ -1425,7 +1425,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "店の営みから、奥のカフェを見つける",
+          "text": "店の営みを頼りに、左右の広場を巡る",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -1665,7 +1665,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "小さな庭から中庭、そして大きな屋上へ",
+          "text": "小庭から大テラスへ上り、広場へ帰る",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [
@@ -2145,7 +2145,7 @@
           "type": "Text",
           "id": "text",
           "enabled": true,
-          "text": "入口の景色が、旅の終わりにもう一度現れる",
+          "text": "入口の門へ、街を巡って帰ってくる",
           "font": "Yu Gothic UI",
           "fontSize": 18,
           "color": [

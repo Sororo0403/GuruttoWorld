@@ -140,6 +140,76 @@
     ]
   },
   {
+    "id": "lab-City4B-block-0-5",
+    "name": "lab-City4B-block-0-5",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/GuidanceLab/City4B/Baked/Block-0-5.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/GuidanceLab/City4B/Surface-5.mat"
+      }
+    ]
+  },
+  {
+    "id": "lab-City4B-block-0-6",
+    "name": "lab-City4B-block-0-6",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/GuidanceLab/City4B/Baked/Block-0-6.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/GuidanceLab/City4B/Surface-6.mat"
+      }
+    ]
+  },
+  {
     "id": "lab-City4B-block-0-7",
     "name": "lab-City4B-block-0-7",
     "parent": "",
@@ -276,6 +346,41 @@
         "id": "material",
         "enabled": true,
         "asset": "Assets/Materials/GuidanceLab/City4B/Surface-1.mat"
+      }
+    ]
+  },
+  {
+    "id": "lab-City4B-block-1-2",
+    "name": "lab-City4B-block-1-2",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/GuidanceLab/City4B/Baked/Block-1-2.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/GuidanceLab/City4B/Surface-2.mat"
       }
     ]
   },
@@ -521,41 +626,6 @@
         "id": "material",
         "enabled": true,
         "asset": "Assets/Materials/GuidanceLab/City4B/Surface-1.mat"
-      }
-    ]
-  },
-  {
-    "id": "lab-City4B-block-2-2",
-    "name": "lab-City4B-block-2-2",
-    "parent": "",
-    "position": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1,
-      1
-    ],
-    "components": [
-      {
-        "type": "MeshRenderer",
-        "id": "meshrenderer",
-        "enabled": true,
-        "model": "Assets/Models/GuidanceLab/City4B/Baked/Block-2-2.obj",
-        "instancing": false
-      },
-      {
-        "type": "Material",
-        "id": "material",
-        "enabled": true,
-        "asset": "Assets/Materials/GuidanceLab/City4B/Surface-2.mat"
       }
     ]
   },

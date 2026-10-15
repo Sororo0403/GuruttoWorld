@@ -338,13 +338,13 @@
             "coinDistance": 1.25,
             "switchDistance": 2.9,
             "checkpointDistance": 1.6,
-            "requiredSwitches": 0,
-            "coinTotal": 0,
+            "requiredSwitches": 2,
+            "coinTotal": 6,
             "goalDistance": 2.0,
             "respawnHeight": 1.05,
             "fallLimit": -3.0,
-            "leftLimit": -26,
-            "rightLimit": 26,
+            "leftLimit": -36,
+            "rightLimit": 36,
             "groundProbe": 0.8,
             "groundNormal": 0.7,
             "floatDelay": 0.25,
@@ -469,7 +469,32 @@
               },
               "coins": {
                 "kind": "array",
-                "value": []
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "stage-coin-0"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "stage-coin-1"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "stage-coin-2"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "stage-coin-3"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "stage-coin-4"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "stage-coin-5"
+                  }
+                ]
               },
               "switches": {
                 "kind": "array",
@@ -477,11 +502,25 @@
               },
               "enemies": {
                 "kind": "array",
-                "value": []
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "stage-enemy-0"
+                  },
+                  {
+                    "kind": "reference",
+                    "value": "stage-enemy-1"
+                  }
+                ]
               },
               "checkpoints": {
                 "kind": "array",
-                "value": []
+                "value": [
+                  {
+                    "kind": "reference",
+                    "value": "stage-checkpoint"
+                  }
+                ]
               }
             }
           }
@@ -1514,6 +1553,41 @@
       ]
     },
     {
+      "id": "lab-City0A-block-1-2",
+      "name": "lab-City0A-block-1-2",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/GuidanceLab/City0A/Baked/Block-1-2.obj",
+          "instancing": false
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/GuidanceLab/City0A/Surface-2.mat"
+        }
+      ]
+    },
+    {
       "id": "lab-City0A-block-1-3",
       "name": "lab-City0A-block-1-3",
       "parent": "",
@@ -1545,76 +1619,6 @@
           "id": "material",
           "enabled": true,
           "asset": "Assets/Materials/GuidanceLab/City0A/Surface-3.mat"
-        }
-      ]
-    },
-    {
-      "id": "lab-City0A-block-1-5",
-      "name": "lab-City0A-block-1-5",
-      "parent": "",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/GuidanceLab/City0A/Baked/Block-1-5.obj",
-          "instancing": false
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/GuidanceLab/City0A/Surface-5.mat"
-        }
-      ]
-    },
-    {
-      "id": "lab-City0A-block-1-6",
-      "name": "lab-City0A-block-1-6",
-      "parent": "",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/GuidanceLab/City0A/Baked/Block-1-6.obj",
-          "instancing": false
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/GuidanceLab/City0A/Surface-6.mat"
         }
       ]
     },
@@ -1759,41 +1763,6 @@
       ]
     },
     {
-      "id": "lab-City0A-block-2-2",
-      "name": "lab-City0A-block-2-2",
-      "parent": "",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/GuidanceLab/City0A/Baked/Block-2-2.obj",
-          "instancing": false
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/GuidanceLab/City0A/Surface-2.mat"
-        }
-      ]
-    },
-    {
       "id": "lab-City0A-block-2-3",
       "name": "lab-City0A-block-2-3",
       "parent": "",
@@ -1934,83 +1903,13 @@
       ]
     },
     {
-      "id": "lab-City0A-block-2-7",
-      "name": "lab-City0A-block-2-7",
-      "parent": "",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/GuidanceLab/City0A/Baked/Block-2-7.obj",
-          "instancing": false
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/GuidanceLab/City0A/Surface-7.mat"
-        }
-      ]
-    },
-    {
-      "id": "lab-City0A-block-2-8",
-      "name": "lab-City0A-block-2-8",
-      "parent": "",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/GuidanceLab/City0A/Baked/Block-2-8.obj",
-          "instancing": false
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/GuidanceLab/City0A/Surface-8.mat"
-        }
-      ]
-    },
-    {
       "id": "host-0-eye-0",
       "name": "host-0-eye-0",
       "parent": "",
       "position": [
-        -1.8,
+        -16.8,
         6,
-        19.35
+        29.35
       ],
       "rotation": [
         0,
@@ -2044,9 +1943,9 @@
       "name": "host-0-pupil-0",
       "parent": "",
       "position": [
-        -1.8,
+        -16.8,
         6,
-        19.27
+        29.27
       ],
       "rotation": [
         0,
@@ -2098,9 +1997,9 @@
       "name": "host-0-lid-0",
       "parent": "",
       "position": [
-        -1.8,
+        -16.8,
         6.3,
-        19.16
+        29.16
       ],
       "rotation": [
         0,
@@ -2152,9 +2051,9 @@
       "name": "host-0-eye-1",
       "parent": "",
       "position": [
-        1.8,
+        -13.2,
         6,
-        19.35
+        29.35
       ],
       "rotation": [
         0,
@@ -2188,9 +2087,9 @@
       "name": "host-0-pupil-1",
       "parent": "",
       "position": [
-        1.8,
+        -13.2,
         6,
-        19.27
+        29.27
       ],
       "rotation": [
         0,
@@ -2242,9 +2141,9 @@
       "name": "host-0-lid-1",
       "parent": "",
       "position": [
-        1.8,
+        -13.2,
         6.3,
-        19.16
+        29.16
       ],
       "rotation": [
         0,
@@ -2296,9 +2195,9 @@
       "name": "host-0-awning-pivot",
       "parent": "",
       "position": [
-        0,
+        -15,
         4.45,
-        19.5
+        29.5
       ],
       "rotation": [
         0,
@@ -2372,9 +2271,9 @@
       "name": "host-1-eye-0",
       "parent": "",
       "position": [
-        7.2,
+        13.2,
         6,
-        41.35
+        43.35
       ],
       "rotation": [
         0,
@@ -2408,9 +2307,9 @@
       "name": "host-1-pupil-0",
       "parent": "",
       "position": [
-        7.2,
+        13.2,
         6,
-        41.27
+        43.27
       ],
       "rotation": [
         0,
@@ -2462,9 +2361,9 @@
       "name": "host-1-lid-0",
       "parent": "",
       "position": [
-        7.2,
+        13.2,
         6.3,
-        41.16
+        43.16
       ],
       "rotation": [
         0,
@@ -2516,9 +2415,9 @@
       "name": "host-1-eye-1",
       "parent": "",
       "position": [
-        10.8,
+        16.8,
         6,
-        41.35
+        43.35
       ],
       "rotation": [
         0,
@@ -2552,9 +2451,9 @@
       "name": "host-1-pupil-1",
       "parent": "",
       "position": [
-        10.8,
+        16.8,
         6,
-        41.27
+        43.27
       ],
       "rotation": [
         0,
@@ -2606,9 +2505,9 @@
       "name": "host-1-lid-1",
       "parent": "",
       "position": [
-        10.8,
+        16.8,
         6.3,
-        41.16
+        43.16
       ],
       "rotation": [
         0,
@@ -2660,9 +2559,9 @@
       "name": "host-1-awning-pivot",
       "parent": "",
       "position": [
-        9,
+        15,
         4.45,
-        41.5
+        43.5
       ],
       "rotation": [
         0,
@@ -2732,103 +2631,49 @@
       ]
     },
     {
-      "id": "host-2-eye-0",
-      "name": "host-2-eye-0",
+      "id": "stage-bell-0",
+      "name": "stage-bell-0",
       "parent": "",
       "position": [
-        -6.8,
-        6,
-        60.35
+        -15,
+        1.3,
+        28
       ],
       "rotation": [
-        0,
+        1.5707963267948966,
         0,
         0
       ],
       "scale": [
-        1.15,
-        1.05,
-        0.1
+        1.8,
+        1.8,
+        1.8
       ],
       "components": [
         {
           "type": "MeshRenderer",
           "id": "meshrenderer",
           "enabled": true,
-          "model": "Assets/Models/Park/UnitBox.obj",
-          "visibleWhen": "",
+          "model": "Assets/Models/Title/Factory/cog-a.obj",
           "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/White.mat"
-        }
-      ]
-    },
-    {
-      "id": "host-2-pupil-0",
-      "name": "host-2-pupil-0",
-      "parent": "",
-      "position": [
-        -6.8,
-        6,
-        60.27
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.36,
-        0.64,
-        0.08
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/Park/UnitBox.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
         },
         {
           "type": "Script",
           "id": "script",
           "enabled": true,
-          "behaviour": "GuidanceWelcome",
-          "parameters": {
-            "kind": 2
-          },
-          "data": {
-            "kind": "object",
-            "value": {
-              "target": {
-                "kind": "reference",
-                "value": "park-player"
-              }
-            }
-          }
+          "behaviour": "GuidanceBell",
+          "parameters": {}
         }
       ]
     },
     {
-      "id": "host-2-lid-0",
-      "name": "host-2-lid-0",
+      "id": "bell-seal-0",
+      "name": "bell-seal-0",
       "parent": "",
       "position": [
-        -6.8,
-        6.3,
-        60.16
+        -15,
+        0.2,
+        28
       ],
       "rotation": [
         0,
@@ -2836,16 +2681,16 @@
         0
       ],
       "scale": [
-        1.28,
-        0.55,
-        0.14
+        1.2,
+        0.16,
+        1.2
       ],
       "components": [
         {
           "type": "MeshRenderer",
           "id": "meshrenderer",
           "enabled": true,
-          "model": "Assets/Models/Park/UnitBox.obj",
+          "model": "Assets/Models/PhysicsSphere.obj",
           "visibleWhen": "",
           "instancing": true
         },
@@ -2853,36 +2698,54 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Wood.mat"
+          "asset": "Assets/Materials/Park/Switch.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-bell-1",
+      "name": "stage-bell-1",
+      "parent": "",
+      "position": [
+        15,
+        1.3,
+        42
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "scale": [
+        1.8,
+        1.8,
+        1.8
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/Title/Factory/cog-a.obj",
+          "instancing": true
         },
         {
           "type": "Script",
           "id": "script",
           "enabled": true,
-          "behaviour": "GuidanceWelcome",
-          "parameters": {
-            "kind": 0
-          },
-          "data": {
-            "kind": "object",
-            "value": {
-              "target": {
-                "kind": "reference",
-                "value": "park-player"
-              }
-            }
-          }
+          "behaviour": "GuidanceBell",
+          "parameters": {}
         }
       ]
     },
     {
-      "id": "host-2-eye-1",
-      "name": "host-2-eye-1",
+      "id": "bell-seal-1",
+      "name": "bell-seal-1",
       "parent": "",
       "position": [
-        -3.2,
-        6,
-        60.35
+        15,
+        0.2,
+        42
       ],
       "rotation": [
         0,
@@ -2890,16 +2753,16 @@
         0
       ],
       "scale": [
-        1.15,
-        1.05,
-        0.1
+        1.2,
+        0.16,
+        1.2
       ],
       "components": [
         {
           "type": "MeshRenderer",
           "id": "meshrenderer",
           "enabled": true,
-          "model": "Assets/Models/Park/UnitBox.obj",
+          "model": "Assets/Models/PhysicsSphere.obj",
           "visibleWhen": "",
           "instancing": true
         },
@@ -2907,18 +2770,18 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/White.mat"
+          "asset": "Assets/Materials/Park/Switch.mat"
         }
       ]
     },
     {
-      "id": "host-2-pupil-1",
-      "name": "host-2-pupil-1",
+      "id": "stage-exit-lock",
+      "name": "stage-exit-lock",
       "parent": "",
       "position": [
-        -3.2,
-        6,
-        60.27
+        -25,
+        1.45,
+        21
       ],
       "rotation": [
         0,
@@ -2926,157 +2789,9 @@
         0
       ],
       "scale": [
-        0.36,
-        0.64,
-        0.08
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/Park/UnitBox.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
-        },
-        {
-          "type": "Script",
-          "id": "script",
-          "enabled": true,
-          "behaviour": "GuidanceWelcome",
-          "parameters": {
-            "kind": 2
-          },
-          "data": {
-            "kind": "object",
-            "value": {
-              "target": {
-                "kind": "reference",
-                "value": "park-player"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "host-2-lid-1",
-      "name": "host-2-lid-1",
-      "parent": "",
-      "position": [
-        -3.2,
-        6.3,
-        60.16
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1.28,
-        0.55,
-        0.14
-      ],
-      "components": [
-        {
-          "type": "MeshRenderer",
-          "id": "meshrenderer",
-          "enabled": true,
-          "model": "Assets/Models/Park/UnitBox.obj",
-          "visibleWhen": "",
-          "instancing": true
-        },
-        {
-          "type": "Material",
-          "id": "material",
-          "enabled": true,
-          "asset": "Assets/Materials/Park/Wood.mat"
-        },
-        {
-          "type": "Script",
-          "id": "script",
-          "enabled": true,
-          "behaviour": "GuidanceWelcome",
-          "parameters": {
-            "kind": 0
-          },
-          "data": {
-            "kind": "object",
-            "value": {
-              "target": {
-                "kind": "reference",
-                "value": "park-player"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "host-2-awning-pivot",
-      "name": "host-2-awning-pivot",
-      "parent": "",
-      "position": [
-        -5,
-        4.45,
-        60.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "components": [
-        {
-          "type": "Script",
-          "id": "script",
-          "enabled": true,
-          "behaviour": "GuidanceWelcome",
-          "parameters": {
-            "kind": 1
-          },
-          "data": {
-            "kind": "object",
-            "value": {
-              "target": {
-                "kind": "reference",
-                "value": "park-player"
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "host-2-awning",
-      "name": "host-2-awning",
-      "parent": "host-2-awning-pivot",
-      "position": [
-        0,
-        0,
-        -0.95
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        8.5,
-        0.14,
-        1.9
+        4.4,
+        2.9,
+        0.24
       ],
       "components": [
         {
@@ -3092,6 +2807,165 @@
           "id": "material",
           "enabled": true,
           "asset": "Assets/Materials/Park/Gate.mat"
+        },
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage-lock-token-0",
+      "name": "stage-lock-token-0",
+      "parent": "",
+      "position": [
+        -26.1,
+        3.1,
+        20.8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.18
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Wood.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-lit-token-0",
+      "name": "stage-lit-token-0",
+      "parent": "",
+      "position": [
+        -26.1,
+        3.1,
+        21.04
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.18
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Switch.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-lock-token-1",
+      "name": "stage-lock-token-1",
+      "parent": "",
+      "position": [
+        -23.9,
+        3.1,
+        20.8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.18
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Wood.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-lit-token-1",
+      "name": "stage-lit-token-1",
+      "parent": "",
+      "position": [
+        -23.9,
+        3.1,
+        21.04
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.18
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Switch.mat"
         }
       ]
     },
@@ -3100,9 +2974,680 @@
       "name": "lab-preview",
       "parent": "",
       "position": [
-        7,
-        10.3,
-        92.8
+        -25,
+        3.7,
+        21
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": []
+    },
+    {
+      "id": "stage-coin-0",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        0,
+        2.25,
+        56
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage-coin-1",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        8,
+        2.25,
+        56
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage-coin-2",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        -8,
+        1.1,
+        17
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage-coin-3",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        8,
+        1.1,
+        18
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage-coin-4",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        -7,
+        1.1,
+        36
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage-coin-5",
+      "name": "ParkCoin",
+      "parent": "",
+      "position": [
+        8,
+        1.1,
+        38
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.25
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Petal.mat"
+        },
+        {
+          "type": "Rotator",
+          "id": "rotator",
+          "enabled": true,
+          "angularVelocity": [
+            0,
+            95,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-0",
+      "name": "ParkEnemy",
+      "parent": "",
+      "position": [
+        8,
+        0.7,
+        32
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.3,
+        1.2,
+        1.3
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Enemy.mat"
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseEnemy",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-0-eye--1",
+      "name": "stage-enemy-0-eye--1",
+      "parent": "stage-enemy-0",
+      "position": [
+        -0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-0-foot--1",
+      "name": "stage-enemy-0-foot--1",
+      "parent": "stage-enemy-0",
+      "position": [
+        -0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-0-eye-1",
+      "name": "stage-enemy-0-eye-1",
+      "parent": "stage-enemy-0",
+      "position": [
+        0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-0-foot-1",
+      "name": "stage-enemy-0-foot-1",
+      "parent": "stage-enemy-0",
+      "position": [
+        0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-1",
+      "name": "ParkEnemy",
+      "parent": "",
+      "position": [
+        -7,
+        0.7,
+        40
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.3,
+        1.2,
+        1.3
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Enemy.mat"
+        },
+        {
+          "type": "Script",
+          "id": "script",
+          "enabled": true,
+          "behaviour": "SunriseEnemy",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-1-eye--1",
+      "name": "stage-enemy-1-eye--1",
+      "parent": "stage-enemy-1",
+      "position": [
+        -0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-1-foot--1",
+      "name": "stage-enemy-1-foot--1",
+      "parent": "stage-enemy-1",
+      "position": [
+        -0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-1-eye-1",
+      "name": "stage-enemy-1-eye-1",
+      "parent": "stage-enemy-1",
+      "position": [
+        0.16,
+        0.12,
+        0.43
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.14,
+        0.24,
+        0.08
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/Eye.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-enemy-1-foot-1",
+      "name": "stage-enemy-1-foot-1",
+      "parent": "stage-enemy-1",
+      "position": [
+        0.32,
+        -0.43,
+        0.12
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.2,
+        0.55
+      ],
+      "components": [
+        {
+          "type": "MeshRenderer",
+          "id": "meshrenderer",
+          "enabled": true,
+          "model": "Assets/Models/PhysicsSphere.obj",
+          "visibleWhen": "",
+          "instancing": true
+        },
+        {
+          "type": "Material",
+          "id": "material",
+          "enabled": true,
+          "asset": "Assets/Materials/Park/White.mat"
+        }
+      ]
+    },
+    {
+      "id": "stage-checkpoint",
+      "name": "stage-checkpoint",
+      "parent": "",
+      "position": [
+        0,
+        0.7,
+        13
       ],
       "rotation": [
         0,
@@ -3121,9 +3666,9 @@
       "name": "lab-focus-0",
       "parent": "",
       "position": [
-        0,
+        -15,
         6,
-        20
+        30
       ],
       "rotation": [
         0,
@@ -3142,9 +3687,9 @@
       "name": "lab-focus-1",
       "parent": "",
       "position": [
-        9,
+        15,
         6,
-        42
+        44
       ],
       "rotation": [
         0,
@@ -3163,9 +3708,9 @@
       "name": "lab-focus-2",
       "parent": "",
       "position": [
-        -5,
-        6,
-        61
+        -25,
+        3,
+        23
       ],
       "rotation": [
         0,
@@ -3184,9 +3729,9 @@
       "name": "lab-focus-3",
       "parent": "",
       "position": [
-        1,
-        7,
-        90
+        0,
+        2,
+        56
       ],
       "rotation": [
         0,
@@ -3207,7 +3752,7 @@
       "position": [
         0,
         -0.6,
-        45
+        28
       ],
       "rotation": [
         0,
@@ -3215,9 +3760,9 @@
         0
       ],
       "scale": [
-        50,
+        70,
         1.2,
-        114
+        76
       ],
       "components": [
         {
@@ -3242,9 +3787,9 @@
       "name": "lab-collision-edge--1",
       "parent": "",
       "position": [
-        -25,
-        0.7,
-        45
+        -35,
+        0.8,
+        28
       ],
       "rotation": [
         0,
@@ -3253,8 +3798,8 @@
       ],
       "scale": [
         0.3,
-        1.4,
-        114
+        1.6,
+        76
       ],
       "components": [
         {
@@ -3275,13 +3820,13 @@
       ]
     },
     {
-      "id": "lab-collision-skyline--1-6",
-      "name": "lab-collision-skyline--1-6",
+      "id": "lab-collision-skyline--1-3",
+      "name": "lab-collision-skyline--1-3",
       "parent": "",
       "position": [
-        -30.0,
+        -40.0,
         4.5,
-        6.0
+        3.0
       ],
       "rotation": [
         0,
@@ -3291,7 +3836,7 @@
       "scale": [
         8,
         9,
-        16
+        14
       ],
       "components": [
         {
@@ -3312,13 +3857,13 @@
       ]
     },
     {
-      "id": "lab-collision-skyline--1-51",
-      "name": "lab-collision-skyline--1-51",
+      "id": "lab-collision-skyline--1-35",
+      "name": "lab-collision-skyline--1-35",
       "parent": "",
       "position": [
-        -30.0,
+        -40.0,
         4.5,
-        51.0
+        35.0
       ],
       "rotation": [
         0,
@@ -3328,7 +3873,7 @@
       "scale": [
         8,
         9,
-        16
+        14
       ],
       "components": [
         {
@@ -3349,13 +3894,13 @@
       ]
     },
     {
-      "id": "lab-collision-skyline--1-90",
-      "name": "lab-collision-skyline--1-90",
+      "id": "lab-collision-skyline--1-66",
+      "name": "lab-collision-skyline--1-66",
       "parent": "",
       "position": [
-        -30.0,
+        -40.0,
         4.5,
-        90.0
+        66.0
       ],
       "rotation": [
         0,
@@ -3365,7 +3910,7 @@
       "scale": [
         8,
         9,
-        16
+        14
       ],
       "components": [
         {
@@ -3390,9 +3935,9 @@
       "name": "lab-collision-edge-1",
       "parent": "",
       "position": [
-        25,
-        0.7,
-        45
+        35,
+        0.8,
+        28
       ],
       "rotation": [
         0,
@@ -3401,8 +3946,8 @@
       ],
       "scale": [
         0.3,
-        1.4,
-        114
+        1.6,
+        76
       ],
       "components": [
         {
@@ -3423,13 +3968,13 @@
       ]
     },
     {
-      "id": "lab-collision-skyline-1-6",
-      "name": "lab-collision-skyline-1-6",
+      "id": "lab-collision-skyline-1-3",
+      "name": "lab-collision-skyline-1-3",
       "parent": "",
       "position": [
-        30.0,
+        40.0,
         4.5,
-        6.0
+        3.0
       ],
       "rotation": [
         0,
@@ -3439,7 +3984,7 @@
       "scale": [
         8,
         9,
-        16
+        14
       ],
       "components": [
         {
@@ -3460,13 +4005,13 @@
       ]
     },
     {
-      "id": "lab-collision-skyline-1-51",
-      "name": "lab-collision-skyline-1-51",
+      "id": "lab-collision-skyline-1-35",
+      "name": "lab-collision-skyline-1-35",
       "parent": "",
       "position": [
-        30.0,
+        40.0,
         4.5,
-        51.0
+        35.0
       ],
       "rotation": [
         0,
@@ -3476,7 +4021,7 @@
       "scale": [
         8,
         9,
-        16
+        14
       ],
       "components": [
         {
@@ -3497,13 +4042,13 @@
       ]
     },
     {
-      "id": "lab-collision-skyline-1-90",
-      "name": "lab-collision-skyline-1-90",
+      "id": "lab-collision-skyline-1-66",
+      "name": "lab-collision-skyline-1-66",
       "parent": "",
       "position": [
-        30.0,
+        40.0,
         4.5,
-        90.0
+        66.0
       ],
       "rotation": [
         0,
@@ -3513,7 +4058,7 @@
       "scale": [
         8,
         9,
-        16
+        14
       ],
       "components": [
         {
@@ -3539,8 +4084,8 @@
       "parent": "",
       "position": [
         0,
-        0.7,
-        -12
+        0.8,
+        -10
       ],
       "rotation": [
         0,
@@ -3548,8 +4093,8 @@
         0
       ],
       "scale": [
-        50,
-        1.4,
+        70,
+        1.6,
         0.3
       ],
       "components": [
@@ -3576,8 +4121,8 @@
       "parent": "",
       "position": [
         0,
-        0.7,
-        102
+        0.8,
+        66
       ],
       "rotation": [
         0,
@@ -3585,9 +4130,194 @@
         0
       ],
       "scale": [
-        50,
-        1.4,
+        70,
+        1.6,
         0.3
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-entry-west",
+      "name": "lab-collision-entry-west",
+      "parent": "",
+      "position": [
+        -27.5,
+        4.0,
+        2.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        13,
+        8,
+        13
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-entry-east",
+      "name": "lab-collision-entry-east",
+      "parent": "",
+      "position": [
+        27.5,
+        4.0,
+        2.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        13,
+        8,
+        13
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-north-west",
+      "name": "lab-collision-north-west",
+      "parent": "",
+      "position": [
+        -11.5,
+        4.0,
+        63.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        13,
+        8,
+        5
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-north-east",
+      "name": "lab-collision-north-east",
+      "parent": "",
+      "position": [
+        11.5,
+        4.0,
+        63.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        13,
+        8,
+        5
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-plaza-garden",
+      "name": "lab-collision-plaza-garden",
+      "parent": "",
+      "position": [
+        0,
+        0.32,
+        25
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        9,
+        0.64,
+        7
       ],
       "components": [
         {
@@ -3612,9 +4342,9 @@
       "name": "lab-collision-host-0-1",
       "parent": "",
       "position": [
-        -4.5,
+        -19.5,
         2.3,
-        20
+        30
       ],
       "rotation": [
         0,
@@ -3649,9 +4379,9 @@
       "name": "lab-collision-host-01",
       "parent": "",
       "position": [
-        4.5,
+        -10.5,
         2.3,
-        20
+        30
       ],
       "rotation": [
         0,
@@ -3686,9 +4416,9 @@
       "name": "lab-collision-host-0-upper",
       "parent": "",
       "position": [
-        0,
+        -15,
         6.55,
-        20
+        30
       ],
       "rotation": [
         0,
@@ -3723,9 +4453,9 @@
       "name": "lab-collision-host-wing-0",
       "parent": "",
       "position": [
-        -8.5,
+        -23.0,
         3.0,
-        24.0
+        33.5
       ],
       "rotation": [
         0,
@@ -3733,9 +4463,9 @@
         0
       ],
       "scale": [
-        7,
         6,
-        8
+        6,
+        7
       ],
       "components": [
         {
@@ -3760,9 +4490,9 @@
       "name": "lab-collision-host-1-1",
       "parent": "",
       "position": [
-        4.5,
+        10.5,
         2.3,
-        42
+        44
       ],
       "rotation": [
         0,
@@ -3797,9 +4527,9 @@
       "name": "lab-collision-host-11",
       "parent": "",
       "position": [
-        13.5,
+        19.5,
         2.3,
-        42
+        44
       ],
       "rotation": [
         0,
@@ -3834,9 +4564,9 @@
       "name": "lab-collision-host-1-upper",
       "parent": "",
       "position": [
-        9,
+        15,
         6.55,
-        42
+        44
       ],
       "rotation": [
         0,
@@ -3871,9 +4601,9 @@
       "name": "lab-collision-host-wing-1",
       "parent": "",
       "position": [
-        0.5,
+        7.0,
         3.0,
-        46.0
+        47.5
       ],
       "rotation": [
         0,
@@ -3881,9 +4611,9 @@
         0
       ],
       "scale": [
-        7,
         6,
-        8
+        6,
+        7
       ],
       "components": [
         {
@@ -3904,13 +4634,50 @@
       ]
     },
     {
-      "id": "lab-collision-host-2-1",
-      "name": "lab-collision-host-2-1",
+      "id": "lab-collision-quiet-workshop",
+      "name": "lab-collision-quiet-workshop",
       "parent": "",
       "position": [
-        -9.5,
-        2.3,
-        61
+        1.0,
+        3.0,
+        54.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        8,
+        6,
+        10
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-exit-1",
+      "name": "lab-collision-exit-1",
+      "parent": "",
+      "position": [
+        -29.0,
+        1.95,
+        21
       ],
       "rotation": [
         0,
@@ -3919,7 +4686,7 @@
       ],
       "scale": [
         0.46,
-        4.6,
+        3.9,
         0.55
       ],
       "components": [
@@ -3941,13 +4708,13 @@
       ]
     },
     {
-      "id": "lab-collision-host-21",
-      "name": "lab-collision-host-21",
+      "id": "lab-collision-exit1",
+      "name": "lab-collision-exit1",
       "parent": "",
       "position": [
-        -0.5,
-        2.3,
-        61
+        -21.0,
+        1.95,
+        21
       ],
       "rotation": [
         0,
@@ -3956,7 +4723,7 @@
       ],
       "scale": [
         0.46,
-        4.6,
+        3.9,
         0.55
       ],
       "components": [
@@ -3978,13 +4745,13 @@
       ]
     },
     {
-      "id": "lab-collision-host-2-upper",
-      "name": "lab-collision-host-2-upper",
+      "id": "lab-collision-exit-side--1",
+      "name": "lab-collision-exit-side--1",
       "parent": "",
       "position": [
-        -5,
-        6.55,
-        61
+        -29.3,
+        1.6,
+        23
       ],
       "rotation": [
         0,
@@ -3992,9 +4759,9 @@
         0
       ],
       "scale": [
-        9.3,
-        3.4,
-        0.8
+        0.4,
+        3.2,
+        6
       ],
       "components": [
         {
@@ -4015,13 +4782,13 @@
       ]
     },
     {
-      "id": "lab-collision-host-wing-2",
-      "name": "lab-collision-host-wing-2",
+      "id": "lab-collision-exit-side-1",
+      "name": "lab-collision-exit-side-1",
       "parent": "",
       "position": [
-        -13.5,
-        3.0,
-        65.0
+        -20.7,
+        1.6,
+        23
       ],
       "rotation": [
         0,
@@ -4029,8 +4796,82 @@
         0
       ],
       "scale": [
-        7,
-        6,
+        0.4,
+        3.2,
+        6
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-exit-back",
+      "name": "lab-collision-exit-back",
+      "parent": "",
+      "position": [
+        -25,
+        1.6,
+        26
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        8.6,
+        3.2,
+        0.4
+      ],
+      "components": [
+        {
+          "type": "BoxCollider",
+          "id": "boxcollider",
+          "enabled": true,
+          "center": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lab-collision-optional-roof",
+      "name": "lab-collision-optional-roof",
+      "parent": "",
+      "position": [
+        0,
+        0.7,
+        56
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        10,
+        1.4,
         8
       ],
       "components": [
@@ -4052,50 +4893,13 @@
       ]
     },
     {
-      "id": "lab-collision-roof",
-      "name": "lab-collision-roof",
+      "id": "lab-collision-optional-step-0",
+      "name": "lab-collision-optional-step-0",
       "parent": "",
       "position": [
-        0.0,
-        2.1,
-        88.0
-      ],
-      "rotation": [
         0,
-        0,
-        0
-      ],
-      "scale": [
-        18,
-        4.2,
-        16
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-0",
-      "name": "lab-collision-step-0",
-      "parent": "",
-      "position": [
-        -7,
         0.14,
-        65.5
+        47.5
       ],
       "rotation": [
         0,
@@ -4103,7 +4907,7 @@
         0
       ],
       "scale": [
-        4.2,
+        3.5,
         0.28,
         1.03
       ],
@@ -4126,13 +4930,13 @@
       ]
     },
     {
-      "id": "lab-collision-step-1",
-      "name": "lab-collision-step-1",
+      "id": "lab-collision-optional-step-1",
+      "name": "lab-collision-optional-step-1",
       "parent": "",
       "position": [
-        -7,
+        0,
         0.28,
-        66.5
+        48.5
       ],
       "rotation": [
         0,
@@ -4140,7 +4944,7 @@
         0
       ],
       "scale": [
-        4.2,
+        3.5,
         0.56,
         1.03
       ],
@@ -4163,13 +4967,13 @@
       ]
     },
     {
-      "id": "lab-collision-step-2",
-      "name": "lab-collision-step-2",
+      "id": "lab-collision-optional-step-2",
+      "name": "lab-collision-optional-step-2",
       "parent": "",
       "position": [
-        -7,
+        0,
         0.42000000000000004,
-        67.5
+        49.5
       ],
       "rotation": [
         0,
@@ -4177,7 +4981,7 @@
         0
       ],
       "scale": [
-        4.2,
+        3.5,
         0.8400000000000001,
         1.03
       ],
@@ -4200,13 +5004,13 @@
       ]
     },
     {
-      "id": "lab-collision-step-3",
-      "name": "lab-collision-step-3",
+      "id": "lab-collision-optional-step-3",
+      "name": "lab-collision-optional-step-3",
       "parent": "",
       "position": [
-        -7,
+        0,
         0.56,
-        68.5
+        50.5
       ],
       "rotation": [
         0,
@@ -4214,7 +5018,7 @@
         0
       ],
       "scale": [
-        4.2,
+        3.5,
         1.12,
         1.03
       ],
@@ -4237,13 +5041,13 @@
       ]
     },
     {
-      "id": "lab-collision-step-4",
-      "name": "lab-collision-step-4",
+      "id": "lab-collision-optional-step-4",
+      "name": "lab-collision-optional-step-4",
       "parent": "",
       "position": [
-        -7,
+        0,
         0.7000000000000001,
-        69.5
+        51.5
       ],
       "rotation": [
         0,
@@ -4251,7 +5055,7 @@
         0
       ],
       "scale": [
-        4.2,
+        3.5,
         1.4000000000000001,
         1.03
       ],
@@ -4274,13 +5078,13 @@
       ]
     },
     {
-      "id": "lab-collision-step-5",
-      "name": "lab-collision-step-5",
+      "id": "lab-collision-jump-ledge",
+      "name": "lab-collision-jump-ledge",
       "parent": "",
       "position": [
-        -7,
-        0.8400000000000001,
-        70.5
+        8,
+        0.7,
+        56
       ],
       "rotation": [
         0,
@@ -4288,564 +5092,9 @@
         0
       ],
       "scale": [
-        4.2,
-        1.6800000000000002,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-6",
-      "name": "lab-collision-step-6",
-      "parent": "",
-      "position": [
-        -7,
-        0.9800000000000001,
-        71.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        1.9600000000000002,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-7",
-      "name": "lab-collision-step-7",
-      "parent": "",
-      "position": [
-        -7,
-        1.12,
-        72.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        2.24,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-8",
-      "name": "lab-collision-step-8",
-      "parent": "",
-      "position": [
-        -7,
-        1.2600000000000002,
-        73.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        2.5200000000000005,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-9",
-      "name": "lab-collision-step-9",
-      "parent": "",
-      "position": [
-        -7,
-        1.4000000000000001,
-        74.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        2.8000000000000003,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-10",
-      "name": "lab-collision-step-10",
-      "parent": "",
-      "position": [
-        -7,
-        1.54,
-        75.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        3.08,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-11",
-      "name": "lab-collision-step-11",
-      "parent": "",
-      "position": [
-        -7,
-        1.6800000000000002,
-        76.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        3.3600000000000003,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-12",
-      "name": "lab-collision-step-12",
-      "parent": "",
-      "position": [
-        -7,
-        1.8200000000000003,
-        77.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        3.6400000000000006,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-13",
-      "name": "lab-collision-step-13",
-      "parent": "",
-      "position": [
-        -7,
-        1.9600000000000002,
-        78.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        3.9200000000000004,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-step-14",
-      "name": "lab-collision-step-14",
-      "parent": "",
-      "position": [
-        -7,
-        2.1,
-        79.5
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        4.2,
-        4.2,
-        1.03
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-roof-edge--8.9",
-      "name": "lab-collision-roof-edge--8.9",
-      "parent": "",
-      "position": [
-        -8.9,
-        4.55,
-        88
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.22,
-        0.65,
-        16
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-roof-edge-8.9",
-      "name": "lab-collision-roof-edge-8.9",
-      "parent": "",
-      "position": [
-        8.9,
-        4.55,
-        88
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.22,
-        0.65,
-        16
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-roof-back",
-      "name": "lab-collision-roof-back",
-      "parent": "",
-      "position": [
-        0,
-        4.55,
-        95.9
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        18,
-        0.65,
-        0.22
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-roof-front",
-      "name": "lab-collision-roof-front",
-      "parent": "",
-      "position": [
-        3,
-        4.55,
-        80.1
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        12,
-        0.65,
-        0.22
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-roof-pergola-1",
-      "name": "lab-collision-roof-pergola-1",
-      "parent": "",
-      "position": [
-        -4.0,
-        6.04,
-        91
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.46,
-        3.6,
-        0.55
-      ],
-      "components": [
-        {
-          "type": "BoxCollider",
-          "id": "boxcollider",
-          "enabled": true,
-          "center": [
-            0,
-            0,
-            0
-          ],
-          "size": [
-            1,
-            1,
-            1
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lab-collision-roof-pergola1",
-      "name": "lab-collision-roof-pergola1",
-      "parent": "",
-      "position": [
-        6.0,
-        6.04,
-        91
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.46,
-        3.6,
-        0.55
+        2.4,
+        1.4,
+        3
       ],
       "components": [
         {
@@ -4889,9 +5138,9 @@
           "type": "Camera",
           "id": "camera",
           "enabled": true,
-          "verticalFov": 51,
+          "verticalFov": 58,
           "nearClip": 0.1,
-          "farClip": 180,
+          "farClip": 150,
           "referenceAspect": 1.7777777777777777,
           "preserveHorizontal": true
         },
@@ -4903,13 +5152,10 @@
           "parameters": {
             "mode": 0,
             "mirror": 0,
-            "height": 4.3,
-            "distance": 7.4,
-            "lead": 4.7,
-            "weight": 0.23,
-            "boundary0": 26,
-            "boundary1": 49,
-            "boundary2": 72
+            "height": 4.5,
+            "distance": 7.6,
+            "lead": 3.0,
+            "weight": 0.08
           },
           "data": {
             "kind": "object",
@@ -4944,9 +5190,9 @@
       "name": "lab-destination",
       "parent": "",
       "position": [
-        1,
-        5.25,
-        90
+        -25,
+        0.85,
+        23
       ],
       "rotation": [
         0,
@@ -4965,9 +5211,9 @@
       "name": "lab-goal",
       "parent": "",
       "position": [
-        1,
-        5.25,
-        90
+        -25,
+        0.85,
+        23
       ],
       "rotation": [
         1.5707963267948966,
@@ -4975,9 +5221,9 @@
         0
       ],
       "scale": [
-        2.4,
-        2.4,
-        2.4
+        1.8,
+        1.8,
+        1.8
       ],
       "components": [
         {

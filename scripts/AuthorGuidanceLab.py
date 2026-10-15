@@ -10,7 +10,8 @@ from AuthorSunriseStreet import GAME, script
 from SunriseDistrictBake import DistrictBake
 from GenerateParkAdventure import component, obj, write, ui
 
-from GuidanceDistrict import CASES, build_city
+from GuidanceDistrict import CASES
+from GuidanceAdventure import build_city
 GROUPS=['定番','定番','珍しい','珍しい','激レア','激レア']
 FOLDER='Assets/Models/GuidanceLab'
 GALLERY='Assets/Scenes/GuidanceGallery.json'
@@ -48,25 +49,25 @@ def course(mode,mirror,city,geometry):
             o['position'][0]*=-1
             o['rotation'][1]*=-1
         objects.append(o)
-    player=next(o for o in objects if o['id']=='park-player');player['position']=[0,1.05,1]
+    player=next(o for o in objects if o['id']=='park-player');player['position']=list(city.spawn)
     for c in player['components']:
         if c['type']=='PlayerController':c.update(moveSpeed=4.6,stepHeight=.36)
         if c['type']=='Script':
-            c['behaviour']='GuidancePlayer';c['parameters'].update(requiredSwitches=0,leftLimit=-26,rightLimit=26,coinTotal=0)
+            c['behaviour']='GuidancePlayer';c['parameters'].update(requiredSwitches=2,leftLimit=-36,rightLimit=36,coinTotal=6)
             data=c['data']['value'];data['scene']={'kind':'string','value':f'Assets/Scenes/GuidanceLab/Course-{mode}{"B" if mirror else "A"}.json'}
             data['returnScene']={'kind':'string','value':GALLERY}
             for key in ('goal','gate','stats','hint','result'):data[key]={'kind':'reference','value':''}
             for key in ('coins','switches','enemies','checkpoints'):data[key]={'kind':'array','value':[]}
+            for key,prefix in (('coins','stage-coin-'),('enemies','stage-enemy-'),('checkpoints','stage-checkpoint')):
+                data[key]={'kind':'array','value':[{'kind':'reference','value':o['id']} for o in objects if o['id'].startswith(prefix) and (key!='enemies' or o['name']=='ParkEnemy')]}
     camera=script('GuidanceCamera',target='park-player',**{'focus'+str(i):'lab-focus-'+str(i) for i in range(4)})
-    camera['parameters']={'mode':mode,'mirror':int(mirror),'height':4.3,'distance':7.4,
-        'lead':4.7,'weight':[.23,.08,.30,.08,.23,.16][mode],
-        'boundary0':[26,25,26,27,23,25][mode],'boundary1':[49,47,47,49,40,51][mode],'boundary2':72}
+    camera['parameters']={'mode':mode,'mirror':int(mirror),'height':4.5,'distance':7.6,'lead':3.0,'weight':.08}
     objects.append(obj('park-camera',[-.6*signX,4.3,-6.4],rotation=[.22,0,0],components=[
-        component('Camera',verticalFov=51,nearClip=.1,farClip=180,referenceAspect=16/9,preserveHorizontal=True),camera]))
+        component('Camera',verticalFov=58,nearClip=.1,farClip=150,referenceAspect=16/9,preserveHorizontal=True),camera]))
     from AuthorSunriseStreet import model
     goal=list(city.goal);goal[0]*=signX
     objects.append(obj('lab-destination',goal))
-    objects.append(model('lab-goal',goal,[2.4]*3,'Assets/Models/Title/Factory/cog-a.obj',[math.pi/2,0,0]))
+    objects.append(model('lab-goal',goal,[1.8]*3,'Assets/Models/Title/Factory/cog-a.obj',[math.pi/2,0,0]))
     objects.append(controller(mode,mirror))
     return dict(version=4,settings=copy.deepcopy(old['settings']),objects=objects)
 
@@ -87,7 +88,7 @@ def gallery():
     objects.append(ui('lab-backdrop',[0,0],[1280,720],color=[.07,.13,.16,.98]))
     objects.append(ui('lab-heading',[52,30],[1170,50],'ことばで道をつくる  /  修辞の街'))
     next(c for c in objects[-1]['components'] if c['type']=='Text')['fontSize']=34
-    objects.append(ui('lab-task',[52,82],[1170,45],'屋上のカフェを探してください。広場・中庭・屋上を自由に探索できます。'))
+    objects.append(ui('lab-task',[52,82],[1170,45],'街の鐘を2つ鳴らして、扉を開こう。近づく／J：操作・攻撃　Space：ジャンプ'))
     objects.append(button('lab-layout',[52,134],[360,42],'配置 A  /  Mで反転','guidance:mirror',font=20))
     objects.append(button('lab-blind',[434,134],[790,42],'発表モード：技法名を表示  /  Bで切替','guidance:blind',font=20))
     for i,(name,description) in enumerate(CASES):
@@ -119,9 +120,11 @@ def author():
                 objects=len(scene['objects']),route=reflect(city.route),alternative=reflect(city.alternative),
                 shots=reflect(city.shots),goal=[city.goal[0]*side,*city.goal[1:]],
                 family=city.family,renderShots=[[x*side,y,z] for x,y,z in city.renderShots],
+                bells=[[x*side,y,z] for x,y,z in city.bells],spawn=city.spawn,
+                optionalRoute=reflect(city.optional_route),jumpTarget=[city.jump_target[0]*side,city.jump_target[1]],
                 batches=len(geometry),polygons=sum(len(p) for p in city.b.groups.values())))
     write(GAME/GALLERY,gallery())
-    write(GAME/(FOLDER+'/Experiments.json'),dict(version=4,goal='屋上のカフェ',cases=records,
+    write(GAME/(FOLDER+'/Experiments.json'),dict(version=5,goal='2つの鐘で街の扉を開く',cases=records,
           grouping='Editorial familiarity tiers; not surveyed. Foreign names also apply to Japanese.',
           comparison='Authored spatial demonstrations, not a controlled test of rhetoric alone. Architecture, camera focus and temporal response vary.',
           sources=['https://www.nintendo.com/jp/interview/arzga/02.html',

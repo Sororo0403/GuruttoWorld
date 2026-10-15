@@ -280,6 +280,41 @@
     ]
   },
   {
+    "id": "lab-City5A-block-0-8",
+    "name": "lab-City5A-block-0-8",
+    "parent": "",
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "components": [
+      {
+        "type": "MeshRenderer",
+        "id": "meshrenderer",
+        "enabled": true,
+        "model": "Assets/Models/GuidanceLab/City5A/Baked/Block-0-8.obj",
+        "instancing": false
+      },
+      {
+        "type": "Material",
+        "id": "material",
+        "enabled": true,
+        "asset": "Assets/Materials/GuidanceLab/City5A/Surface-8.mat"
+      }
+    ]
+  },
+  {
     "id": "lab-City5A-block-0-9",
     "name": "lab-City5A-block-0-9",
     "parent": "",
@@ -311,41 +346,6 @@
         "id": "material",
         "enabled": true,
         "asset": "Assets/Materials/GuidanceLab/City5A/Surface-9.mat"
-      }
-    ]
-  },
-  {
-    "id": "lab-City5A-block-0-10",
-    "name": "lab-City5A-block-0-10",
-    "parent": "",
-    "position": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1,
-      1
-    ],
-    "components": [
-      {
-        "type": "MeshRenderer",
-        "id": "meshrenderer",
-        "enabled": true,
-        "model": "Assets/Models/GuidanceLab/City5A/Baked/Block-0-10.obj",
-        "instancing": false
-      },
-      {
-        "type": "Material",
-        "id": "material",
-        "enabled": true,
-        "asset": "Assets/Materials/GuidanceLab/City5A/Surface-10.mat"
       }
     ]
   },
@@ -595,76 +595,6 @@
     ]
   },
   {
-    "id": "lab-City5A-block-1-10",
-    "name": "lab-City5A-block-1-10",
-    "parent": "",
-    "position": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1,
-      1
-    ],
-    "components": [
-      {
-        "type": "MeshRenderer",
-        "id": "meshrenderer",
-        "enabled": true,
-        "model": "Assets/Models/GuidanceLab/City5A/Baked/Block-1-10.obj",
-        "instancing": false
-      },
-      {
-        "type": "Material",
-        "id": "material",
-        "enabled": true,
-        "asset": "Assets/Materials/GuidanceLab/City5A/Surface-10.mat"
-      }
-    ]
-  },
-  {
-    "id": "lab-City5A-block-2-0",
-    "name": "lab-City5A-block-2-0",
-    "parent": "",
-    "position": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1,
-      1
-    ],
-    "components": [
-      {
-        "type": "MeshRenderer",
-        "id": "meshrenderer",
-        "enabled": true,
-        "model": "Assets/Models/GuidanceLab/City5A/Baked/Block-2-0.obj",
-        "instancing": false
-      },
-      {
-        "type": "Material",
-        "id": "material",
-        "enabled": true,
-        "asset": "Assets/Materials/GuidanceLab/City5A/Surface-0.mat"
-      }
-    ]
-  },
-  {
     "id": "lab-City5A-block-2-1",
     "name": "lab-City5A-block-2-1",
     "parent": "",
@@ -731,41 +661,6 @@
         "id": "material",
         "enabled": true,
         "asset": "Assets/Materials/GuidanceLab/City5A/Surface-2.mat"
-      }
-    ]
-  },
-  {
-    "id": "lab-City5A-block-2-3",
-    "name": "lab-City5A-block-2-3",
-    "parent": "",
-    "position": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1,
-      1
-    ],
-    "components": [
-      {
-        "type": "MeshRenderer",
-        "id": "meshrenderer",
-        "enabled": true,
-        "model": "Assets/Models/GuidanceLab/City5A/Baked/Block-2-3.obj",
-        "instancing": false
-      },
-      {
-        "type": "Material",
-        "id": "material",
-        "enabled": true,
-        "asset": "Assets/Materials/GuidanceLab/City5A/Surface-3.mat"
       }
     ]
   },

@@ -50,10 +50,12 @@ class GuidanceTests(unittest.TestCase):
                 self.assertTrue(all(refs['focus'+str(i)]['value']=='lab-focus-'+str(i) for i in range(4)))
                 camera_data.append([current[refs['focus'+str(i)]['value']]['position'] for i in range(4)])
                 footprints.append([(o['id'],o['position'],o['scale']) for o in current.values() if o['id'].startswith('lab-collision-')])
-                self.assertIn('lab-collision-step-14',current)
-                self.assertEqual(current['lab-collision-step-14']['scale'][1],4.2)
+                self.assertIn('lab-collision-optional-step-4',current)
+                self.assertIn('stage-exit-lock',current)
+                self.assertTrue(all('stage-bell-'+str(i) in current for i in range(2)))
                 self.assertIn('lab-destination',current)
-                self.assertEqual(current['lab-destination']['position'][1],5.25)
+                self.assertLessEqual(current['lab-destination']['position'][2],30)
+                self.assertGreaterEqual(len([o for o in current.values() if o['name']=='ParkCoin']),6)
                 self.assertNotIn('lab-collision-island',current)
             self.assertEqual(len({json.dumps(v) for v in camera_data}),6)
             self.assertEqual(len({json.dumps(v) for v in footprints}),6)
@@ -79,6 +81,20 @@ class GuidanceTests(unittest.TestCase):
             scene=items(load(f'Assets/Scenes/GuidanceLab/Course-{mode}A.json'))
             self.assertTrue(any(k.startswith(f'lab-City{mode}') for k in scene))
         self.assertEqual(CASES[5][0],'Epanalepsis')
+
+    def test_square_world_and_routes_require_lateral_exploration_and_return(self):
+        manifest=load('Assets/Models/GuidanceLab/Experiments.json')
+        self.assertEqual(manifest['version'],5)
+        for c in manifest['cases']:
+            route=c['route'];goal=c['goal'];scene=items(load(c['scene']))
+            self.assertGreater(max(x for x,z in route)-min(x for x,z in route),25)
+            self.assertTrue(any(b[1]<a[1]-4 for a,b in zip(route,route[1:])))
+            self.assertLess(goal[2],max(p[2] for p in c['bells']))
+            floor=scene['lab-collision-floor']['scale']
+            self.assertLess(max(floor[0],floor[2])/min(floor[0],floor[2]),1.4)
+            player=scene['park-player'];data=next(p for p in player['components'] if p['type']=='Script')['data']['value']
+            self.assertEqual(len(data['enemies']['value']),2)
+            self.assertEqual(len(data['coins']['value']),6)
 
     def test_title_and_gallery_entry(self):
         title=items(load('Assets/Scenes/TitleStreet.json'))

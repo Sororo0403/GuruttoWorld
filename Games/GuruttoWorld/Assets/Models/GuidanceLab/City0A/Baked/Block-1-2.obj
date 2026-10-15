@@ -1,0 +1,16 @@
+# CC0 district geometry; SunriseDistrictBake.py
+mtllib District.mtl
+usemtl white
+v -25.715 3.22875 -20.78
+vt 0 0
+vn 0 0 1
+v -24.285 3.22875 -20.78
+vt 1 0
+vn 0 0 1
+v -24.285 4.17125 -20.78
+vt 1 1
+vn 0 0 1
+v -25.715 4.17125 -20.78
+vt 0 1
+vn 0 0 1
+f 1/1/1 2/2/2 3/3/3 4/4/4

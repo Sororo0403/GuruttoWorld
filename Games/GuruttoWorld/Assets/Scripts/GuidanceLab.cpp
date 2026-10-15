@@ -18,11 +18,11 @@ const std::array<std::string,6> names{"定番  擬人法","定番  反復法","�
 const std::array<std::string,6> descriptions{
     "広場の建物が、近づいたあなたを迎える。",
     "同じ入口とテラスを、歩くたびに読み取る。",
-    "店の営みから、奥のカフェを見つける。",
-    "小さな庭から中庭、そして大きな屋上へ。",
+    "店の営みを頼りに、左右の広場を巡る。",
+    "小庭から大テラスへ上り、広場へ帰る。",
     "時計塔から温室へ、景色の起点を引き継ぐ。",
-    "入口の景色が、旅の終わりにもう一度現れる。"};
-struct Result {bool present=false;float seconds=0,distance=0,choice=0,decision=0,backtracks=0;std::string status;};
+    "入口の門へ、街を巡って帰ってくる。"};
+struct Result {bool present=false;float seconds=0,distance=0,bells=0,coins=0;std::string status;};
 struct Session {bool mirror=false,blind=false,exportError=false;std::array<Result,6> last{};} session;
 std::string Course(int mode,bool mirror) {return "Assets/Scenes/GuidanceLab/Course-"+std::to_string(mode)+(mirror?"B":"A")+".json";}
 std::filesystem::path Root() {
@@ -49,10 +49,10 @@ void Refresh(ScriptContext& c) {
  for(int i=0;i<6;++i) {
   const auto prefix=std::to_string(i+1)+"   ";
   Text(c,"lab-name-"+std::to_string(i),prefix+(session.blind?"コース "+std::to_string(i+1):names[i]));
-  Text(c,"lab-description-"+std::to_string(i),session.blind?"屋上のカフェを見つけてください。":descriptions[i]);
+  Text(c,"lab-description-"+std::to_string(i),session.blind?"鐘を2つ鳴らして、街の扉を開いてください。":descriptions[i]);
   const auto& r=session.last[i];
   std::ostringstream out;out<<std::fixed<<std::setprecision(1);
-  if(r.present) out<<(r.status=="complete"?"到着":"中断")<<"  "<<r.seconds<<"秒 / "<<r.distance<<"m / 最初の分岐 "<<(r.choice>0?"右":r.choice<0?"左":"未選択");
+  if(r.present) out<<(r.status=="complete"?"到着":"中断")<<"  "<<r.seconds<<"秒 / "<<r.distance<<"m / 鐘 "<<static_cast<int>(r.bells)<<"/2 / 花 "<<static_cast<int>(r.coins)<<"/6";
   else out<<"未プレイ";
   Text(c,"lab-result-"+std::to_string(i),out.str());
  }
@@ -63,18 +63,18 @@ void Record(ScriptContext& c,const std::string& status) {
  c.state["recorded"]=1;
  const int mode=static_cast<int>(c.Value("mode"));
  auto& result=session.last[mode];
- result={true,c.state["elapsed"],c.state["distance"],c.state["choice"],c.state["decision"],c.state["backtracks"],status};
+ result={true,c.state["elapsed"],c.state["distance"],c.state["bell0"]+c.state["bell1"],c.state["collectedCoins"],status};
  std::array<wchar_t,32768> overridePath{};
  const auto overrideLength=GetEnvironmentVariableW(L"WP1_GUIDANCE_RESULTS",overridePath.data(),static_cast<DWORD>(overridePath.size()));
- const auto file=overrideLength && overrideLength<overridePath.size()?std::filesystem::path(overridePath.data()):Root()/"generated/guidance/trials-v4.csv";
+ const auto file=overrideLength && overrideLength<overridePath.size()?std::filesystem::path(overridePath.data()):Root()/"generated/guidance/trials-v5.csv";
  std::error_code ec;std::filesystem::create_directories(file.parent_path(),ec);
  if(ec) {session.exportError=true;return;}
  const bool header=!std::filesystem::exists(file) || std::filesystem::file_size(file,ec)==0;
  std::ofstream output(file,std::ios::app);output.imbue(std::locale::classic());
- if(header)output<<"study_version,run_id,case_id,layout,blind,status,seconds,distance_m,first_branch,decision_seconds,backtracks,stationary_seconds\n";
- output<<"4,"<<std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()<<','
+ if(header)output<<"study_version,run_id,case_id,layout,blind,status,seconds,distance_m,bells,coins,stationary_seconds\n";
+ output<<"5,"<<std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()<<','
      <<mode<<','<<(c.Value("mirror")>0?'B':'A')<<','<<(c.state["blind"]>0?1:0)<<','<<status<<','
-     <<std::fixed<<std::setprecision(3)<<result.seconds<<','<<result.distance<<','<<result.choice<<','<<result.decision<<','<<result.backtracks<<','<<c.state["stationary"]<<'\n';
+     <<std::fixed<<std::setprecision(3)<<result.seconds<<','<<result.distance<<','<<result.bells<<','<<result.coins<<','<<c.state["stationary"]<<'\n';
  output.flush();session.exportError=!output;
 }
 void Launch(ScriptContext& c,int mode) {c.scene->LoadScene(Course(mode,session.mirror));}
@@ -110,7 +110,8 @@ ScriptDefinition Controller() {
   if(c.Pressed("GuidanceMirror")) {Record(c,"mirror");session.mirror=!session.mirror;Launch(c,mode);return;}
   if(c.Pressed("Restart") || c.Pressed("Cancel")) {Record(c,c.Pressed("Restart")?"restart":"menu");return;}
   const auto* player=c.scene->Find("park-player");if(!player)return;
-  const auto p=player->position;
+  const auto p=player->position;const auto playerId=player->id;
+  c.state["collectedCoins"]=6.0f-static_cast<float>(c.scene->FindByName("ParkCoin").size());
   if(c.state["done"])return;
   if(!c.state["started"] && (c.Input("MoveForward")+c.Input("MoveBack")+c.Input("MoveLeft")+c.Input("MoveRight")>.1f)) {
    c.state["started"]=1;c.state["px"]=p[0];c.state["pz"]=p[2];
@@ -119,15 +120,29 @@ ScriptDefinition Controller() {
   const float dt=static_cast<float>(c.seconds),distance=std::hypot(p[0]-c.state["px"],p[2]-c.state["pz"]);
   c.state["elapsed"]+=dt;if(distance<4)c.state["distance"]+=distance;
   if(distance<.005f)c.state["stationary"]+=dt;
-  if(!c.state["approach"] && p[2]>=14) {c.state["approach"]=1;c.state["approachTime"]=c.state["elapsed"];}
-  const float branch=p[2]>=23 && p[2]<40 && std::abs(p[0])>4.0f?(p[0]>0?1.0f:-1.0f):0;
-  if(branch && !c.state["choice"]) {c.state["choice"]=branch;c.state["decision"]=c.state["elapsed"]-c.state["approachTime"];}
-  if(branch)c.state["inBranch"]=1;
-  if(c.state["inBranch"] && p[2]<16) {c.state["backtracks"]+=1;c.state["inBranch"]=0;}
+  for(int i=0;i<2;++i) {
+   const auto id=std::to_string(i);const auto* bell=c.scene->Find("stage-bell-"+id);
+   if(!bell || c.state["bell"+id])continue;
+   const float bellDistance=std::hypot(p[0]-bell->position[0],p[2]-bell->position[2]);
+   if(std::abs(p[1]-bell->position[1])>1.0f || (bellDistance>1.2f && !(bellDistance<2.6f && c.Pressed("Attack"))))continue;
+   const std::array<float,3> origin{p[0],p[1]+.2f,p[2]};
+   auto ray=bell->position;float length=0;
+   for(size_t axis=0;axis<3;++axis){ray[axis]-=origin[axis];length+=ray[axis]*ray[axis];}
+   length=std::sqrt(length);if(length>.01f)for(auto& v:ray)v/=length;
+   const auto obstacle=c.scene->Raycast(origin,ray,length,0xffffffffu,false,playerId);
+   if(obstacle && obstacle->distance<length-.15f)continue;
+   const auto bellId=bell->id;
+   c.state["bell"+id]=1;c.scene->Destroy("bell-seal-"+id);c.scene->Destroy("stage-lock-token-"+id);
+   ScriptEvent ring;ring.name="guidance:ring";ring.target=bellId;c.scene->Emit(std::move(ring));
+   ScriptEvent sound;sound.name="sunrise:play";sound.target="audio-Mechanism";c.scene->Emit(std::move(sound));
+  }
+  const bool unlocked=c.state["bell0"] && c.state["bell1"];
+  if(unlocked && !c.state["unlocked"]) {c.state["unlocked"]=1;c.scene->Destroy("stage-exit-lock");}
+  c.scene->SetUiValue("guidanceBells",c.state["bell0"]+c.state["bell1"]);
   c.state["px"]=p[0];c.state["pz"]=p[2];
   const auto* goal=c.scene->Find("lab-destination");
-  if(goal && std::abs(p[1]-goal->position[1])<1.5f && std::hypot(p[0]-goal->position[0],p[2]-goal->position[2])<1.7f) {
-   c.state["done"]=1;Record(c,"complete");
+  if(unlocked && goal && std::abs(p[1]-goal->position[1])<1.5f && std::hypot(p[0]-goal->position[0],p[2]-goal->position[2])<1.7f) {
+   c.state["done"]=1;c.scene->SetUiValue("guidanceComplete",1);Record(c,"complete");
    ScriptEvent event;event.name="sunrise:play";event.target="audio-Clear";c.scene->Emit(std::move(event));
   }
  };
@@ -149,18 +164,23 @@ ScriptDefinition Camera() {
   const float dt=static_cast<float>(c.seconds),blend=1-std::exp(-5*dt);
   const auto ground=c.scene->Raycast(p->position,{0,-1,0},1.8f,0xffffffffu,false,p->id);
   if(ground && ground->normal[1]>.7f)c.state["floor"]+=(ground->position[1]-c.state["floor"])*(1-std::exp(-10*dt));
-  auto focus=p->position;
-  if(const auto* f=c.Reference("focus0"))focus=f->position;
-  for(int i=0;i<3;++i)if(const auto* next=c.Reference("focus"+std::to_string(i+1))) {
-   const float boundary=c.Value("boundary"+std::to_string(i));
-   const float t=Smooth(boundary-5,boundary+7,p->position[2]);
-   for(size_t axis=0;axis<3;++axis)focus[axis]+=(next->position[axis]-focus[axis])*t;
+  auto focus=p->position;float sum=0;
+  std::array<float,3> centroid{};
+  for(int i=0;i<4;++i)if(const auto* f=c.Reference("focus"+std::to_string(i))) {
+   const float d=std::hypot(f->position[0]-p->position[0],f->position[2]-p->position[2]);
+   const float weight=1/(16+d*d);sum+=weight;
+   for(size_t axis=0;axis<3;++axis)centroid[axis]+=f->position[axis]*weight;
   }
-  // Architectural focus is subordinate to the controllable foreground. Yaw
-  // stays small and continuous; input remains in its original world frame.
-  const float bias=std::clamp((focus[0]-p->position[0])*c.Value("weight"),-2.4f,2.4f);
-  const float rise=c.Value("mode")==3?Smooth(12,75,p->position[2])*.35f:0;
-  std::array<float,3> wanted{p->position[0]-.30f*bias,c.state["floor"]+c.Value("height")+rise,p->position[2]-c.Value("distance")};
+  if(sum>0)for(size_t axis=0;axis<3;++axis)focus[axis]=centroid[axis]/sum;
+  if(!c.state["motionReady"]) {c.state["px"]=p->position[0];c.state["pz"]=p->position[2];c.state["motionReady"]=1;}
+  const float vx=std::clamp((p->position[0]-c.state["px"])/std::max(dt,.001f),-5.0f,5.0f);
+  const float vz=std::clamp((p->position[2]-c.state["pz"])/std::max(dt,.001f),-5.0f,5.0f);
+  c.state["px"]=p->position[0];c.state["pz"]=p->position[2];
+  c.state["vx"]+=(vx-c.state["vx"])*blend;c.state["vz"]+=(vz-c.state["vz"])*blend;
+  const float bias=std::clamp(c.state["vx"]*.48f,-2.3f,2.3f)+std::clamp((focus[0]-p->position[0])*c.Value("weight"),-.7f,.7f);
+  const float ahead=c.state["vz"]<-.3f?-2.4f:c.Value("lead");
+  c.state["lead"]+=(ahead-c.state["lead"])*blend;
+  std::array<float,3> wanted{p->position[0]+bias,c.state["floor"]+c.Value("height"),p->position[2]-c.Value("distance")};
   const auto safe=[&](const std::array<float,3>& candidate) {
    std::array<float,3> delta{};float length=0;
    for(size_t i=0;i<3;++i){delta[i]=candidate[i]-p->position[i];length+=delta[i]*delta[i];}
@@ -188,10 +208,8 @@ ScriptDefinition Camera() {
   if(!c.state["ready"]) {c.object.position=wanted;c.state["aimX"]=p->position[0]+bias;c.state["ready"]=1;}
   else for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
   c.object.position=safe(c.object.position);
-  c.state["aimX"]+=(p->position[0]+bias-c.state["aimX"])*blend;
-  const float dx=c.state["aimX"]-c.object.position[0],dz=p->position[2]+c.Value("lead")-c.object.position[2];
-  const float aimHeight=c.state["floor"]+1.9f+rise+std::clamp((focus[1]-c.state["floor"]-3)*.08f,0.0f,.55f);
-  c.object.rotation={std::atan2(c.object.position[1]-aimHeight,std::hypot(dx,dz)),std::atan2(dx,dz),0};
+  const float dz=std::max(1.0f,p->position[2]+c.state["lead"]-c.object.position[2]);
+  c.object.rotation={std::atan2(c.object.position[1]-(c.state["floor"]+1.9f),dz),0,0};
  };
  return s;
 }
@@ -209,8 +227,18 @@ ScriptDefinition Welcome() {
  };
  return s;
 }
+ScriptDefinition Bell() {
+ ScriptDefinition s;
+ s.onEvent=[](ScriptContext& c) {if(c.event && c.event->name=="guidance:ring")c.state["lit"]=1;};
+ s.update=[](ScriptContext& c) {
+  if(!c.state["lit"])return;
+  c.state["time"]+=static_cast<float>(c.seconds);
+  c.object.rotation[2]=std::sin(c.state["time"]*8)*.25f*std::exp(-c.state["time"]);
+ };
+ return s;
+}
 }
 bool Register_GuidanceLab(void* owner,SceneRuntime::RegisterModuleScript add) {
- const auto controller=Controller(),camera=Camera(),welcome=Welcome();
- return add(owner,"GuidanceLab",&controller) && add(owner,"GuidanceCamera",&camera) && add(owner,"GuidanceWelcome",&welcome);
+ const auto controller=Controller(),camera=Camera(),welcome=Welcome(),bell=Bell();
+ return add(owner,"GuidanceLab",&controller) && add(owner,"GuidanceCamera",&camera) && add(owner,"GuidanceWelcome",&welcome) && add(owner,"GuidanceBell",&bell);
 }
