@@ -4048,9 +4048,9 @@
     "kind": "k",
     "model": "tableRound",
     "position": [
-      6.6,
+      7.9,
       0.5900000000000001,
-      28
+      31
     ],
     "scale": 1.785,
     "angle": 0,
@@ -4068,9 +4068,9 @@
     "kind": "k",
     "model": "chairRounded",
     "position": [
-      6.6,
+      7.9,
       0.5900000000000001,
-      27.1925
+      30.1925
     ],
     "scale": 1.87,
     "angle": 0,
@@ -4088,9 +4088,9 @@
     "kind": "k",
     "model": "chairRounded",
     "position": [
-      6.6,
+      7.9,
       0.5900000000000001,
-      28.8075
+      31.8075
     ],
     "scale": 1.87,
     "angle": 3.141592653589793,
@@ -4108,11 +4108,51 @@
     "kind": "k",
     "model": "plantSmall1",
     "position": [
-      6.6,
+      7.9,
       1.2446201543000002,
-      28
+      31
     ],
     "scale": 0.595,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      7.180000000000001,
+      0.5900000000000001,
+      31.76
+    ],
+    "scale": 1.17,
+    "angle": 0,
+    "pitch": 0,
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "side": 0,
+    "spread": 0
+  },
+  {
+    "zone": 0,
+    "kind": "q",
+    "model": "Metal_Column_Center",
+    "position": [
+      8.620000000000001,
+      0.5900000000000001,
+      31.76
+    ],
+    "scale": 1.17,
     "angle": 0,
     "pitch": 0,
     "origin": [
@@ -4168,9 +4208,9 @@
     "kind": "q",
     "model": "Prop_Planter_Single",
     "position": [
-      8.1,
+      7.9,
       0.5900000000000001,
-      28
+      23.5
     ],
     "scale": 0.48,
     "angle": 0,
@@ -4188,9 +4228,9 @@
     "kind": "n",
     "model": "tree_oak",
     "position": [
-      8.1,
+      7.9,
       0.8500000000000001,
-      28
+      23.5
     ],
     "scale": 1.1,
     "angle": 0,
@@ -4568,9 +4608,9 @@
     "kind": "p",
     "model": "wooden_crate_02",
     "position": [
-      -5.15,
-      0.6275,
-      33.8
+      -5.2,
+      0.9,
+      35.7
     ],
     "scale": 1.15,
     "angle": 0.1,
@@ -4588,9 +4628,9 @@
     "kind": "p",
     "model": "wooden_crate_02",
     "position": [
-      -5.15,
+      -5.2,
       0.6275,
-      42
+      40
     ],
     "scale": 1.15,
     "angle": 0.1,
@@ -4608,7 +4648,7 @@
     "kind": "k",
     "model": "kitchenCoffeeMachine",
     "position": [
-      -5.4,
+      -1.25,
       1.5275,
       40
     ],
@@ -7596,7 +7636,7 @@
     "position": [
       -2,
       0.5900000000000001,
-      52
+      55
     ],
     "scale": 2.1,
     "angle": 0,
@@ -7616,7 +7656,7 @@
     "position": [
       -2,
       0.5900000000000001,
-      51.05
+      54.05
     ],
     "scale": 2.2,
     "angle": 0,
@@ -7636,7 +7676,7 @@
     "position": [
       -2,
       0.5900000000000001,
-      52.95
+      55.95
     ],
     "scale": 2.2,
     "angle": 3.141592653589793,
@@ -7656,7 +7696,7 @@
     "position": [
       -2,
       1.3601413580000001,
-      52
+      55
     ],
     "scale": 0.7,
     "angle": 0,

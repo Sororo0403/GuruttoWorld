@@ -74,11 +74,16 @@ class Journey(StreetArchitecture):
   b.place('k','kitchenCoffeeMachine',(-2.7,1.84,29),1.7)
   # Furniture forms inhabited pockets; the landing itself stays a broad empty plane.
   self.seating(6.6,20.2,.56);self.seating(-15.5,26)
-  self.seating(6.6,28,.56,.85)
+  self.seating(7.9,31,.56,.85)
+  # A weather roof belongs to the occupied cafe seating, not to the route.
+  self.awning(7.9,32,1.8,4.0,floor=.56)
+  # A physical roof also lets the existing camera clearance avoid the shelter
+  # when walking along the shop edge. No camera settings are changed.
+  self.solid('cafe-seat-roof',(7.9,3.89,31.1),(1.8,.67,1.95))
   # The cafe frontage is an occupied terrace, rather than another apparent exit.
   self.cube((-12,.38,28.9),(4,.76,.6),self.wood,'cafe-front-bench')
   self.cube((-12,.87,29.12),(4,.65,.16),self.wood)
-  self.planter(-17,29);self.planter(8.1,28,.56)
+  self.planter(-17,29);self.planter(7.9,23.5,.56)
   # Two entrances around a kiosk. Both are visible before the choice.
   b.zone=1
   self.floor('fork-floor',-6,9,30,47,.56)
@@ -87,15 +92,19 @@ class Journey(StreetArchitecture):
   self.building('kiosk',(0,2,34,38),4)
   # A shaded service alcove on the left; a taller open arcade on the right.
   # Both passages stay usable and rejoin in view of the same backyard.
-  self.cube((-3.4,3.2,35),(4,.16,2.0),self.wood)
   # A complete shaded loading porch contrasts with the open stone arcade.
   self.cube((-3.3,.605,38),(5.2,.045,10),self.wood)
-  for x in (-5.25,-1.55):
-   self.cube((x,(.6275+3.2)/2,35.7),(.14,3.2-.6275,.14),self.wood,'service-canopy-post-'+str(x))
-  self.cube((-5.45,.73,36.7),(1.1,.34,3.2),self.cream,'service-loading-plinth')
-  for z in (33.8,42):
-   self.b.place('p','wooden_crate_02',(-5.15,.6275,z),1.15,.1)
-   self.solid('service-crate-'+str(z),(-5.15,.9075,z),(1.5,.56,1))
+  # Three timber post pairs protect deliveries beside the open walking aisle.
+  # Keeping the roof over the goods leaves the close camera above the player clear.
+  self.cube((-5,3.15,38),(1.8,.16,9.4),self.wood)
+  for i,z in enumerate((34,38,42)):
+   for side,x in (('outer',-5.65),('inner',-4.35)):
+    self.cube((x,(.6275+3.15)/2,z),(.14,3.15-.6275,.14),self.wood,'loading-post-'+side+'-'+str(i))
+   self.cube((-5,2.9,z),(1.8,.16,.18),self.wood)
+  self.cube((-5.2,.73,35.7),(1.1,.34,2),self.cream,'service-loading-plinth')
+  for i,(z,base) in enumerate(((35.7,.9),(40,.6275))):
+   self.b.place('p','wooden_crate_02',(-5.2,base,z),1.15,.1)
+   self.solid('service-crate-'+str(i),(-5.2,base+.28,z),(.9,.56,1.5))
   # The arcade fills the space between the kiosk and the shop; its arch truly
   # belongs to a passage. Broad jambs close misleading slits beside the arch.
   self.gate('shop-arcade-front',5.5,34.5,6,3.7,.56,False)
@@ -104,11 +113,19 @@ class Journey(StreetArchitecture):
   self.landing('arcade-entry',5.5,34.5,6,.56)
   for side,x in (('west',2.5),('east',8.5)):
    self.rail('arcade-sill-'+side,x,38,.28,6,.55,.56)
+   # Side cornices and three post pairs form an actual public gallery.
+   # No repeated cross-beams are placed between the camera and the hero.
+   self.cube((x,4.19,38.5),(.45,.14,8.8),self.cream)
+   for i,z in enumerate((34.5,38.5,42.5)):
+    if i:
+     self.cube((x,(.59+4.19)/2,z),(.3,4.19-.59,.36),self.teal,'gallery-pier-'+side+'-'+str(i))
+     self.cube((x,.75,z),(.65,.32,.7),self.cream)
+    self.cube((x,4.09,z),(.6,.16,.65),self.cream)
   self.cube((5.5,.61,38.8),(5.7,.05,8),self.limestone)
   # The far end stays open: a second overhead frame would mask the courtyard
   # when it passes between the close camera and the player.
-  self.cube((-5.4,1.0775,40),(1,.9,3),self.wood,'service-counter')
-  b.place('k','kitchenCoffeeMachine',(-5.4,1.5275,40),1.4)
+  self.cube((-1.25,1.0775,40),(1,.9,1.8),self.wood,'service-counter')
+  b.place('k','kitchenCoffeeMachine',(-1.25,1.5275,40),1.4)
   self.planter(-5.4,46,.56)
   # One shared court is visible from both exits, including on the return journey.
   self.landing('court-mouth',1.5,47,12.8,.56)
@@ -126,7 +143,14 @@ class Journey(StreetArchitecture):
   self.rail('garden-north-left',2.5,57,19,.4,.95,.56)
   self.rail('garden-north-right',19,57,4,.4,2.2,.56)
   self.rail('garden-east-rail',21,52,.3,10,.9,.56)
-  self.seating(-2,52,.56)
+  # The same seating group moves from a solid cafe roof, to an open timber
+  # garden trellis, to the unroofed terrace above. Each shelter has a real use.
+  self.seating(-2,55,.56)
+  for side,x in (('west',-5),('east',1)):
+   for end,z in (('front',53.65),('back',56.25)):
+    self.cube((x,(.59+3.87)/2,z),(.16,3.87-.59,.16),self.wood,'garden-trellis-'+side+'-'+end)
+   self.cube((x,3.87,54.95),(.18,.14,2.9),self.wood)
+  for i in range(6):self.cube((-2,3.98,53.65+i*.52),(6.3,.1,.12),self.wood)
   for x in (-4,3):self.planter(x,55,.56,1.1)
   self.planter(19.8,49,.56,1.1)
   self.cube((3.5,.9,49),(3,.68,3),self.cream,'garden-bed')

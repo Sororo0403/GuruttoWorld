@@ -91,7 +91,8 @@ class StreetJourneyTests(unittest.TestCase):
    self.assertGreater(east['position'][0]-west['position'][0]-.26,4)
    if i:self.assertGreater(west['scale'][1],bounds('stair-cheek-'+str(i-1)+'-11.75')['scale'][1])
   # Both arms remain open and meet in the same courtyard; no new mandatory interaction.
-  self.assertLess(bounds('service-loading-plinth')['position'][0]+bounds('service-loading-plinth')['scale'][0]/2,-4.8)
+  # Keep a capsule radius plus 25cm margin beside the aisle at x=-3.5.
+  self.assertLessEqual(bounds('service-loading-plinth')['position'][0]+bounds('service-loading-plinth')['scale'][0]/2,-3.5-.35-.25)
   self.assertIn('street-collision-court-mouth-1',objects)
  def test_parapet_openings_match_across_real_landings(self):
   scene=json.loads((GAME/'Assets/Scenes/StreetJourney.json').read_text(encoding='utf-8'))
@@ -149,7 +150,7 @@ class StreetDecorationContactTests(unittest.TestCase):
   return max(v[1] for _,face in cls.city.b.cache[(p['kind'],p['model'])] for v,uv,n in face)*p['scale']
  def test_awning_posts_reach_the_floor_and_roof(self):
   posts=[p for p in self.placements if p['model']=='Metal_Column_Center']
-  self.assertEqual(len(posts),4)
+  self.assertEqual(len(posts),6)
   for p in posts:
    expected=.59 if p['position'][0]>-7 else .03
    self.assertAlmostEqual(p['position'][1],expected)
@@ -165,5 +166,49 @@ class StreetDecorationContactTests(unittest.TestCase):
   crates=[p for p in self.placements if p['model']=='wooden_crate_02' and p['position'][0] in (-.8,-1)]
   lower,upper=sorted(crates,key=lambda p:p['position'][1])
   self.assertAlmostEqual(upper['position'][1],lower['position'][1]+self.height(lower))
+  for p in self.placements:
+   if p['model']=='wooden_crate_02' and p['position'][0]==-5.2:
+    self.assertAlmostEqual(p['position'][1],.9 if p['position'][2]==35.7 else .6275)
+ def test_roof_cover_decreases_across_actual_rest_areas(self):
+  # Cast vertical samples through the authored polygons, not a label assigned
+  # by the authoring script. Cover is solid, slatted, then absent.
+  def coverage(x,z,floor):
+   faces=[]
+   for polygons in self.city.b.groups.values():
+    for face in polygons:
+     points=[(p[0],p[1],-p[2]) for p,uv,n in face]
+     if min(p[1] for p in points)<floor+1.5 or max(p[1] for p in points)>floor+5:continue
+     if max(p[0] for p in points)<x-.5 or min(p[0] for p in points)>x+.5:continue
+     if max(p[2] for p in points)<z-.6 or min(p[2] for p in points)>z+.6:continue
+     a,b,c=points[:3];u=[b[i]-a[i] for i in range(3)];v=[c[i]-a[i] for i in range(3)]
+     ny=u[2]*v[0]-u[0]*v[2]
+     if abs(ny)>1e-8:faces.append(points)
+   hits=0
+   for i in range(13):
+    px,pz=x,z-.6+i*.1
+    for points in faces:
+     signs=[(b[0]-a[0])*(pz-a[2])-(b[2]-a[2])*(px-a[0]) for a,b in zip(points,points[1:]+points[:1])]
+     if min(signs)>=-1e-7 or max(signs)<=1e-7:hits+=1;break
+   return hits/13
+  cafe,garden,roof=coverage(7.9,31,.56),coverage(-2,55,.56),coverage(17.6,75,3.92)
+  self.assertGreater(cafe,.9)
+  self.assertGreater(garden,.1);self.assertLess(garden,.6)
+  self.assertEqual(roof,0)
+ def test_loading_and_gallery_posts_are_grounded(self):
+  objects={o['id']:o for o in self.city.objects+self.city.collisions}
+  loading=[o for k,o in objects.items() if k.startswith('street-collision-loading-post-')]
+  gallery=[o for k,o in objects.items() if k.startswith('street-collision-gallery-pier-')]
+  self.assertEqual(len(loading),6);self.assertEqual(len(gallery),4)
+  for o in loading:
+   self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.6275)
+   self.assertGreater(o['position'][1]+o['scale'][1]/2,3.07)
+  for o in gallery:
+   self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.59)
+   self.assertGreater(o['position'][1]+o['scale'][1]/2,4.12)
+  trellis=[o for k,o in objects.items() if k.startswith('street-collision-garden-trellis-')]
+  self.assertEqual(len(trellis),4)
+  for o in trellis:
+   self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.59)
+   self.assertGreater(o['position'][1]+o['scale'][1]/2,3.80)
 
 if __name__=='__main__':unittest.main()

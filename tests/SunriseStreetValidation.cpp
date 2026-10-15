@@ -445,6 +445,17 @@ void RenderJourney() {
   Capture(renderer,scene,"journey-point-"+std::to_string(waypoint));
  }
  Require(scene.Ui().Value("journeyComplete")==1,"Rendered journey reaches finish");
+ // Inspect the three actual rest areas from settled, unmodified stage cameras.
+ for(const auto& [name,pose]:std::vector<std::pair<std::string,std::array<float,3>>>{
+     {"rest-cafe",{7.9f,1.26f,27.2f}},{"rest-garden",{-2,1.26f,50}},
+     {"rest-roof",{17.6f,4.62f,71}},
+     {"loading-aisle",{-3.5f,1.26f,37}},{"public-gallery",{5.5f,1.26f,36}}}) {
+  auto layout=SceneLayout::Load(root/"Assets/Scenes/StreetJourney.json");
+  Find(layout,"park-player").position=pose;SceneEnvironment preview;
+  Require(renderer.WaitForIdle() && preview.Initialize(renderer,root,layout,error),error);
+  for(int i=0;i<90;++i){Require(preview.MovePlayers(1.0/60,0,0),"Rest area physics");preview.Update(1.0/60,true,true);}
+  Capture(renderer,preview,name);Require(renderer.WaitForIdle(),"Rest area capture complete");
+ }
  std::cout<<"PASS rendered street journey: "<<frame<<" frames, "<<shot<<" captures\n";
 }
 
