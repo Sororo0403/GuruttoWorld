@@ -61,9 +61,15 @@ namespace
         {
             const std::wstring_view token(tokens[index]);
             if (token == L"--profile-park")
-                profile.scene = "Assets/Scenes/ParkAdventure.json";
+                profile.scene = "park";
             else if (token == L"--profile-title")
-                profile.scene = "Assets/Scenes/TitleStreet.json";
+                profile.scene = "title";
+            else if (token.starts_with(L"--profile-scene="))
+            {
+                const std::filesystem::path scene(token.substr(16));
+                const auto bytes = scene.u8string();
+                profile.scene.assign(bytes.begin(), bytes.end());
+            }
             else if (token == L"--profile-replay-input")
                 profile.replayInput = true;
             else if (token == L"--profile-simulate-inactive")

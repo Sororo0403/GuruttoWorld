@@ -1,10 +1,15 @@
 #include "TitleScene.h"
 #include <utility>
+#include <SceneRuntime/ProjectSettings.h>
 namespace App
 {
     TitleScene::TitleScene(std::filesystem::path root, bool playIntro, std::filesystem::path scene,
                            std::shared_ptr<SceneRuntime::SceneEnvironment> environment, bool simulateInactive)
-        : implementation_(std::move(root), std::move(scene), std::move(environment), simulateInactive, playIntro)
+        : implementation_(root,
+                          scene.empty()
+                              ? Engine::AssetDatabase::Path(SceneRuntime::ProjectSettings::Load(root).startupScene)
+                              : std::move(scene),
+                          std::move(environment), simulateInactive, playIntro)
     {
     }
     bool TitleScene::Initialize(Engine::DirectX12Renderer& renderer)

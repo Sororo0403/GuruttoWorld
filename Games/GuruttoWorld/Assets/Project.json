@@ -1,5 +1,7 @@
 {
   "assetReferences": {
+    "Assets/Scenes/Game.json": "4422b45251ef4b8581f791913c1e33a2",
+    "Assets/Scenes/ParkAdventure.json": "ac379a03f4a7c08fc68d1137092d100b",
     "Assets/Scenes/TitleStreet.json": "1f0e809df9d447e8b2eab18c11c18317"
   },
   "height": 720,
@@ -107,6 +109,12 @@
       "mouseButtons": 0,
       "threshold": 0.5
     }
+  },
+  "sceneAliases": {
+    "EngineDemo": "Assets/Scenes/Game.json",
+    "Game": "Assets/Scenes/Game.json",
+    "park": "Assets/Scenes/ParkAdventure.json",
+    "title": "Assets/Scenes/TitleStreet.json"
   },
   "startupScene": "Assets/Scenes/TitleStreet.json",
   "title": "ぐるっとワールド",

@@ -11,8 +11,7 @@ namespace App
         /// <summary>
         /// タイトルの資源と共有環境、診断時だけ背景でもシミュレーションする設定を受け取ります。
         /// </summary>
-        explicit TitleScene(std::filesystem::path root, bool playIntro = true,
-                            std::filesystem::path scene = "Assets/Scenes/TitleStreet.json",
+        explicit TitleScene(std::filesystem::path root, bool playIntro = true, std::filesystem::path scene = {},
                             std::shared_ptr<SceneRuntime::SceneEnvironment> environment =
                                 std::make_shared<SceneRuntime::SceneEnvironment>(),
                             bool simulateInactive = false);

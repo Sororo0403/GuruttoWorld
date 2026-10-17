@@ -6,6 +6,7 @@
 #include "../App/src/Scenes/TitleScene.h"
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/TitlePreview.h"
+#include <SceneRuntime/ProjectSettings.h>
 #include <limits>
 
 namespace MenuAuthoringValidation
@@ -209,8 +210,14 @@ namespace MenuAuthoringValidation
         auto scene = factory.Create("Assets/Scenes/RenamedTitle.json");
         check(dynamic_cast<App::TitleScene*>(scene.get()), "renamed title selects menu runtime by saved configuration");
         const auto normal = SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/Game.json");
-        normal.Save(root / "Assets/Scenes/Game.json");
+        normal.Save(root / "Assets/Scenes/CustomGameplay.json");
+        SceneRuntime::ProjectSettings project;
+        project.title = "Independent menu fixture";
+        project.startupScene = "Assets/Scenes/RenamedTitle.json";
+        project.sceneAliases = {{"EngineDemo", "Assets/Scenes/CustomGameplay.json"}};
+        project.Save(root);
         scene = factory.Create("EngineDemo");
-        check(dynamic_cast<App::AuthoredScene*>(scene.get()), "legacy engine demo uses editor-authored scene");
+        check(dynamic_cast<App::AuthoredScene*>(scene.get()), "legacy name resolves through project configuration");
+        check(!factory.Create("Game"), "unconfigured game aliases do not open sample scenes");
     }
 }

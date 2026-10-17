@@ -16,8 +16,8 @@ namespace App
         std::string scene(name);
         if (name == "Title")
             scene = SceneRuntime::ProjectSettings::Load(root_).startupScene;
-        if (name == "Game" || name == "EngineDemo")
-            scene = "Assets/Scenes/Game.json";
+        else if (!SceneRuntime::ProjectSettings::ScenePath(scene))
+            scene = SceneRuntime::ProjectSettings::Load(root_).ResolveScene(name);
         if (scene.starts_with("Assets/Scenes/") && scene.ends_with(".json") && scene.find("..") == std::string::npos &&
             scene.find('\\') == std::string::npos && scene.find(':') == std::string::npos)
         {

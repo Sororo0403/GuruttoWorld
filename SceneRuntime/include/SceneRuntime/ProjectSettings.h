@@ -5,13 +5,17 @@
 #include <filesystem>
 #include <fstream>
 #include <Engine/Platform/Window.h>
+#include <map>
+#include <string_view>
+#include <algorithm>
 
 namespace SceneRuntime
 {
     struct ProjectSettings
     {
-        std::string title = "ぐるっとワールド";
-        std::string startupScene = "Assets/Scenes/TitleStreet.json";
+        std::string title = "Game";
+        std::string startupScene;
+        std::map<std::string, std::string> sceneAliases;
         int width = 1280, height = 720;
         Engine::InputActions::Bindings inputActions = Engine::InputActions::Defaults();
 
@@ -29,20 +33,41 @@ namespace SceneRuntime
             if (title.empty() || title.size() > 1024 || title.find('\0') != std::string::npos ||
                 !ScenePath(startupScene) || width < 320 || width > 8192 || height < 240 || height > 8192)
                 throw std::runtime_error("Invalid project settings");
+            if (sceneAliases.size() > 64)
+                throw std::runtime_error("Too many scene aliases");
+            for (const auto& [name, scene] : sceneAliases)
+            {
+                if (name.empty() || name.size() > 64 || !ScenePath(scene) ||
+                    !std::all_of(name.begin(), name.end(),
+                                 [](unsigned char c)
+                                 {
+                                     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                                            (c >= '0' && c <= '9') || c == '_' || c == '-';
+                                 }))
+                    throw std::runtime_error("Invalid scene alias");
+            }
+        }
+        /// <summary>プロジェクトで定義した別名、または明示的なシーンパスを解決します。</summary>
+        std::string ResolveScene(std::string_view name) const
+        {
+            if (ScenePath(std::string(name)))
+                return std::string(name);
+            const auto found = sceneAliases.find(std::string(name));
+            return found == sceneAliases.end() ? std::string{} : found->second;
         }
         static ProjectSettings Load(const std::filesystem::path& root)
         {
             const auto path = root / "Assets/Project.json";
-            if (!std::filesystem::exists(path))
-                return {};
             std::ifstream input(path);
             if (!input)
                 throw std::runtime_error("Cannot read project settings");
             auto json = Engine::Json::parse(input);
-            Engine::AssetDatabase(root).References(json);
+            References(root, json);
             ProjectSettings result;
             result.title = json.at("title").get<std::string>();
             result.startupScene = json.at("startupScene").get<std::string>();
+            if (json.contains("sceneAliases"))
+                result.sceneAliases = json.at("sceneAliases").get<decltype(sceneAliases)>();
             for (const char* key : {"width", "height"})
             {
                 if (!json.at(key).is_number_integer() || Engine::JsonNumber(json.at(key)) < 1 ||
@@ -62,6 +87,12 @@ namespace SceneRuntime
             const auto scene = root / std::filesystem::path(std::u8string(startupScene.begin(), startupScene.end()));
             if (!std::filesystem::is_regular_file(scene))
                 throw std::runtime_error("Startup scene does not exist");
+            for (const auto& [name, target] : sceneAliases)
+            {
+                static_cast<void>(name);
+                if (!std::filesystem::is_regular_file(root / Engine::AssetDatabase::Path(target)))
+                    throw std::runtime_error("Aliased scene does not exist");
+            }
             const auto path = root / "Assets/Project.json";
             auto temporary = path;
             temporary += ".tmp." + std::to_string(GetCurrentProcessId()) + "." + std::to_string(GetTickCount64());
@@ -73,7 +104,9 @@ namespace SceneRuntime
                                      {"width", width},
                                      {"height", height},
                                      {"inputActions", Engine::InputActions::Serialize(inputActions)}};
-                Engine::AssetDatabase(root).References(json);
+                if (!sceneAliases.empty())
+                    json["sceneAliases"] = sceneAliases;
+                References(root, json);
                 output << json.dump(2) << '\n';
                 output.close();
                 if (!output ||
@@ -86,6 +119,29 @@ namespace SceneRuntime
                 std::filesystem::remove(temporary, error);
                 throw;
             }
+        }
+
+    private:
+        /// <summary>起動先と別名の参照を既存のアセット ID 管理へ渡し、改名後も同じシーンを追跡します。</summary>
+        static void References(const std::filesystem::path& root, Engine::Json& json)
+        {
+            Engine::Json references = {{"objects", Engine::Json::array({{{"startupScene", json.at("startupScene")}}})}};
+            if (json.contains("assetReferences"))
+                references["assetReferences"] = json.at("assetReferences");
+            if (json.contains("sceneAliases"))
+            {
+                if (!json.at("sceneAliases").is_object())
+                    throw std::runtime_error("Scene aliases must be an object");
+                for (const auto& value : json.at("sceneAliases"))
+                    references["objects"].push_back({{"startupScene", value}});
+            }
+            Engine::AssetDatabase(root).References(references);
+            json["startupScene"] = references.at("objects").at(0).at("startupScene");
+            size_t index = 1;
+            if (json.contains("sceneAliases"))
+                for (auto& value : json.at("sceneAliases"))
+                    value = references.at("objects").at(index++).at("startupScene");
+            json["assetReferences"] = references.at("assetReferences");
         }
     };
 }
