@@ -2,7 +2,7 @@
 
 `Editor.slnx` はDebug／Developmentでエディター・Engine・SceneRuntimeをビルドします。ゲーム本体とゲーム処理DLLはビルドしません。
 `Game.slnx` は `Games/GuruttoWorld/GuruttoWorld.slnx` と同じ移行済みゲームをビルドします。`WP1.slnx` は全体開発用です。
-既存のシーン・Prefab・素材・ゲーム処理・設定は `Games/GuruttoWorld` に移行済みで、エディターとゲームのチャットを分ける運用は[並行開発の説明](ParallelDevelopment.md)に記載しています。
+既存のシーン・Prefab・素材・ゲーム処理・設定は `Games/GuruttoWorld` に移行済みで、エディターとゲームの作業を分ける運用は[並行開発](#並行開発)に記載しています。
 
 ## 独立したゲームを作成する
 
@@ -70,3 +70,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/BuildPlayer.ps1 -Pro
 共通部分も同時にビルド・変更する場合は、ゲームが参照するWP1を別worktreeにして競合を避けます。
 外部プロジェクトの参照先を移すときは `WP1.project.json` の `engineRoot`、`.vcxproj` の `WP1Root`、`.slnx` のEngine・SceneRuntime参照を同じチェックアウトへ変更します。
 移行済みの `Games/GuruttoWorld` は相対パス `../..` を使用するため、WP1の別worktreeではそのworktreeのEngine・SceneRuntimeを参照します。
+
+## 再生処理の共有
+
+エディターのGame再生と配布プレイヤーは、`SceneRuntime::GamePlayback` と `TitleController` を共用します。
+AppとEditorでゲームの動作を別々に実装せず、共通処理またはゲーム側のScriptへ追加します。
+Editorは編集データの複製・Pause・StepとGameパネルの座標変換を担当し、Appはウィンドウ入力を取得します。QUITはEditorでは再生停止、Appでは終了として受け取ります。
+設定の保存先は両方とも `GameSettings::UserPath()` です。CONFIGの移動先・戻り先・時間はCanvasのメニュー設定とシーンのTransformで編集します。
+共通の再生動作は `GamePlaybackParityValidation`、CONFIGの停止・再開・復元は `TitleConfigTransitionValidation` で検証します。

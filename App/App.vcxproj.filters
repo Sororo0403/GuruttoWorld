@@ -27,9 +27,6 @@
     <Filter Include="src">
       <UniqueIdentifier>{CE68F4CA-E6D9-5CA5-BE83-5E72DF4A425D}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\DevTools">
-      <UniqueIdentifier>{59E524DA-740A-51BA-B278-DB253FD7D384}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(WP1Root)App\src\main.cpp">
@@ -143,45 +140,9 @@
     <None Include="Assets\Textures\Checker.png">
       <Filter>Assets\Textures</Filter>
     </None>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\DebugPanel.cpp">
-      <Filter>src\DevTools</Filter>
-    </ClCompile>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\DebugPanel.h">
-      <Filter>src\DevTools</Filter>
-    </ClInclude>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\LightingPanel.h">
-      <Filter>src\DevTools</Filter>
-    </ClInclude>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\UvTransformPanel.h">
-      <Filter>src\DevTools</Filter>
-    </ClInclude>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\LightingPanel.cpp">
-      <Filter>src\DevTools</Filter>
-    </ClCompile>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\UvTransformPanel.cpp">
-      <Filter>src\DevTools</Filter>
-    </ClCompile>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\AudioPanel.cpp">
-      <Filter>src\DevTools</Filter>
-    </ClCompile>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\AudioPanel.h">
-      <Filter>src\DevTools</Filter>
-    </ClInclude>
     <None Include="Assets\Audio\Sample.wav">
       <Filter>Assets\Audio</Filter>
     </None>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\InputPanel.cpp">
-      <Filter>src\DevTools</Filter>
-    </ClCompile>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\InputPanel.h">
-      <Filter>src\DevTools</Filter>
-    </ClInclude>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\CameraPanel.cpp">
-      <Filter>src\DevTools</Filter>
-    </ClCompile>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\CameraPanel.h">
-      <Filter>src\DevTools</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(GameContentRoot)Shaders\Particle.hlsl">
@@ -201,21 +162,12 @@
     <ClInclude Include="$(WP1Root)App\src\Scenes\TitleScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
-    <ClCompile Include="$(WP1Root)App\src\Scenes\TitleMenu.cpp">
-      <Filter>src\Scenes</Filter>
-    </ClCompile>
-    <ClCompile Include="$(WP1Root)App\src\Scenes\GameSettings.cpp">
-      <Filter>src\Scenes</Filter>
-    </ClCompile>
     <ClInclude Include="$(WP1Root)App\src\Scenes\TitleMenu.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="$(WP1Root)App\src\Scenes\GameSettings.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
-    <ClCompile Include="$(WP1Root)App\src\Scenes\TitleUi.cpp">
-      <Filter>src\Scenes</Filter>
-    </ClCompile>
     <ClInclude Include="$(WP1Root)App\src\Scenes\TitleUi.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>

@@ -418,3 +418,9 @@ FodyWeavers.xsd
 !Games/**/*.meta
 /Games/*/generated/
 /Games/*/Assets/Scripts/Bin/
+
+# ローカルの個人設定と一時資料
+/Games/generated/
+/.slide-build/
+/.chart-data-*/
+/output/

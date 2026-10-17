@@ -187,18 +187,6 @@
     <None Include="Assets\Fonts\MPlus1p\OFL.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\DebugPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\DebugPanel.h" />
-    <ClInclude Include="$(WP1Root)App\src\DevTools\LightingPanel.h" />
-    <ClInclude Include="$(WP1Root)App\src\DevTools\UvTransformPanel.h" />
-    <ClCompile Include="$(WP1Root)App\src\DevTools\LightingPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\UvTransformPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup Condition="'$(GameProjectRoot)' != ''">
     <None Include="$(GameContentRoot)Assets\**\*" Exclude="$(GameContentRoot)Assets\Scripts\Bin\**\*" />
@@ -229,10 +217,6 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\AudioPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\AudioPanel.h" />
     <None Include="Assets\Audio\Sample.wav" />
   </ItemGroup>
   <Target Name="CopyAudio" AfterTargets="Build">
@@ -242,16 +226,8 @@
     <Copy SourceFiles="@(AudioAssets)" DestinationFiles="@(AudioAssets-&gt;'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\InputPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\InputPanel.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(WP1Root)App\src\DevTools\CameraPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'!='Debug' And '$(Configuration)'!='Development'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClInclude Include="$(WP1Root)App\src\DevTools\CameraPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(GameContentRoot)Shaders\Particle.hlsl" />

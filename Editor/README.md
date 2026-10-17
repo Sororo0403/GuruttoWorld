@@ -13,7 +13,7 @@ Animationでは任意の時計名を入力でき、3Dスケール、ライト、
 
 ゲーム処理の公開データは、配列の要素型・構造内の項目・追加データをInspectorから編集できます。C++で宣言した最上位フィールドの型は互換性のため固定です。オブジェクト参照はHierarchyからドラッグでき、配列・構造内の参照も複製とPrefabで変換されます。シーンを表す文字列にはシーンアセット選択も表示します。
 
-メニューの選択・状態出力・設定の保存処理はSceneRuntimeをAppとEditorで共有します。Editor Playの設定保存先は`generated/editor/menu-settings.json`で、再生し直すと復元します。保存失敗も画面の状態へ反映します。Appは従来のユーザー設定ファイルを使用します。
+メニューの選択・状態出力・設定の保存処理はSceneRuntimeをAppとEditorで共有します。AppとEditor Playは `GameSettings::UserPath()` が返すユーザー領域の `settings.json` を使用します。保存失敗も画面の状態へ反映します。
 
 公園のParkPlayerではHP、戦闘・収集・チェックポイント・クリアの距離と条件、復帰境界、戻り先、入力Action、UI対象・文言を編集できます。文言には`{hp}`・`{coins}`・`{switches}`・`{elapsed}`・`{coinTotal}`・`{requiredSwitches}`を使えます。対象配列はオブジェクト参照です。`useNameLookup`を有効にした場合のみ、空配列で設定した名前を検索します。ParkCameraは追従率・前後の範囲・注視点も編集できます。既存公園シーンは従来の値と対象参照を明示して保存しています。
 

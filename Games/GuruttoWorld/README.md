@@ -14,4 +14,4 @@
 シーン・Prefab・素材・C++ゲーム処理は、このプロジェクトの `Assets` で制作します。シェーダーは `Shaders`、ゲームの起動・入力設定は `Assets/Project.json` に保存します。
 Engine・SceneRuntime・共通プレイヤーは `../..` のWP1を参照します。プロジェクトをWP1ごと別worktreeへ移しても、参照先はそのworktree内に切り替わります。
 
-エディター修正と並行して制作する運用は[並行開発の説明](../../docs/ParallelDevelopment.md)を参照してください。
+エディター修正と並行して制作する運用は[並行開発の説明](../../docs/GameProjects.md#並行開発)を参照してください。
