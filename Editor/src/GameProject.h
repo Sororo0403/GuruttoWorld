@@ -29,7 +29,7 @@ namespace Editor
             if(engine.is_relative()) engine=(path/engine).lexically_normal();
             if(!std::filesystem::is_regular_file(engine/"scripts/BuildPlayer.ps1"))
                 throw std::runtime_error("Game project engine checkout is missing.");
-            if(!std::filesystem::is_regular_file(path/"Assets/Project.json") || !std::filesystem::is_directory(path/"Shaders"))
+            if(!std::filesystem::is_regular_file(path/"Assets/Project.json") || !std::filesystem::is_directory(Engine::ContentFiles::Resolve(path/"Shaders/Mesh.hlsl").parent_path()))
                 throw std::runtime_error("Game project content is missing.");
             SceneRuntime::ProjectSettings::Load(path);
             return path;

@@ -58,7 +58,21 @@ namespace Editor
                     error_.clear();
                 }
                 ImGui::TextWrapped("アセットID: %s", settings_.id.c_str());
-                ImGui::BeginDisabled(!enabled);
+                const bool shared = Engine::ContentFiles::IsShared(root / asset.path);
+                if (shared)
+                {
+                    ImGui::TextUnformatted("共通素材（読み取り専用）");
+                    ImGui::BeginDisabled(!enabled);
+                    if (ImGui::Button("ゲーム側へ複製して編集###Override shared asset"))
+                    {
+                        Engine::ContentFiles::Override(root, asset.path);
+                        selected_.clear();
+                    }
+                    ImGui::EndDisabled();
+                }
+                if (!shared && !Engine::ContentFiles::SharedFile(root / asset.path).empty())
+                    ImGui::TextUnformatted("共有素材をゲーム側で上書き中（IDとパスを維持）");
+                ImGui::BeginDisabled(!enabled || !Engine::ContentFiles::SharedFile(root / asset.path).empty());
                 disabled = true;
                 if (asset.kind == AssetKind::Model && ImGui::CollapsingHeader("インポート設定###Import settings"))
                 {

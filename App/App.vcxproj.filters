@@ -35,16 +35,16 @@
     <None Include="$(WP1Root)App\Shaders\Triangle.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="$(GameContentRoot)Shaders\Sprite.hlsl">
+    <None Include="$(WP1Root)Content\Shaders\Sprite.hlsl">
       <Filter>Shaders</Filter>
     </None>
     <None Include="$(WP1Root)App\Shaders\Sphere.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="$(GameContentRoot)Shaders\Sky.hlsl">
+    <None Include="$(WP1Root)Content\Shaders\Sky.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="$(GameContentRoot)Shaders\Mesh.hlsl">
+    <None Include="$(WP1Root)Content\Shaders\Mesh.hlsl">
       <Filter>Shaders</Filter>
     </None>
     <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-c.obj">
@@ -134,7 +134,7 @@
     <None Include="Assets\Models\Cube.mtl">
       <Filter>Assets\Models</Filter>
     </None>
-    <None Include="$(GameContentRoot)Shaders\Common\UvTransform.hlsli">
+    <None Include="$(WP1Root)Content\Shaders\Common\UvTransform.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
     <None Include="Assets\Textures\Checker.png">
@@ -145,7 +145,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(GameContentRoot)Shaders\Particle.hlsl">
+    <None Include="$(WP1Root)Content\Shaders\Particle.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
@@ -193,7 +193,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(GameContentRoot)Shaders\GlowParticle.hlsl">
+    <None Include="$(WP1Root)Content\Shaders\GlowParticle.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

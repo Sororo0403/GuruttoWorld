@@ -22,7 +22,7 @@ namespace Editor
                                                                 return part == "..";
                                                             }))
                     throw std::runtime_error("プロジェクトのアセットパスが不正です");
-                const auto path = root / asset.path;
+                const auto path = Engine::ContentFiles::Resolve(root / asset.path);
                 result.bytes = std::filesystem::file_size(path);
                 if ((asset.kind == AssetKind::Model && path.extension() != ".glb") || asset.kind == AssetKind::Scene ||
                     asset.kind == AssetKind::Prefab || asset.kind == AssetKind::Material ||

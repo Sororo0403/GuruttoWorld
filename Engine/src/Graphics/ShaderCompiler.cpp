@@ -31,7 +31,7 @@ namespace
 
     bool Read(const std::filesystem::path& path, std::string& bytes)
     {
-        std::ifstream file(path, std::ios::binary);
+        std::ifstream file(Engine::ContentFiles::Resolve(path), std::ios::binary);
         if (!file) return false;
         bytes.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
         return !file.bad();
@@ -212,13 +212,13 @@ namespace Engine
         std::error_code error;
         auto sourcePath = std::filesystem::weakly_canonical(path, error);
         if (error) return false;
-        if(!std::filesystem::is_regular_file(sourcePath))
+        if(!std::filesystem::is_regular_file(ContentFiles::Resolve(sourcePath)))
         {
             const auto root=AssetDatabase::Root(sourcePath);
             const auto relative=sourcePath.lexically_relative(root);
             if(root.empty() || !AssetDatabase::Valid(relative)) return false;
             sourcePath=std::filesystem::weakly_canonical(root/AssetDatabase(root).Resolve(relative),error);
-            if(error || !std::filesystem::is_regular_file(sourcePath)) return false;
+            if(error || !std::filesystem::is_regular_file(ContentFiles::Resolve(sourcePath))) return false;
         }
         struct CachedSource
         {

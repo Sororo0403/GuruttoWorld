@@ -46,6 +46,18 @@ namespace Editor
                 ScanFolder(root, "Assets", assets, folders);
                 if (std::filesystem::is_directory(root / "Shaders"))
                     ScanFolder(root, "Shaders", assets, folders);
+                for (const auto& [relative, source] : Engine::ContentFiles::List(root))
+                {
+                    if (!Engine::ContentFiles::IsShared(root / relative))
+                        continue;
+                    const auto kind = Kind(relative);
+                    if (!kind)
+                        continue;
+                    Engine::AssetDatabase::Ensure(root / relative);
+                    assets.push_back({relative, *kind});
+                    for (auto parent = relative.parent_path(); !parent.empty(); parent = parent.parent_path())
+                        folders.insert(parent);
+                }
                 std::sort(assets.begin(), assets.end(),
                           [](const auto& a, const auto& b)
                           {

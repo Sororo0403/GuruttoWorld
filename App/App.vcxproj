@@ -148,11 +148,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="$(WP1Root)App\Shaders\Triangle.hlsl" />
-    <None Include="$(GameContentRoot)Shaders\Sprite.hlsl" />
+    <None Include="$(WP1Root)Content\Shaders\Sprite.hlsl" />
     <None Include="$(WP1Root)App\Shaders\Sphere.hlsl" />
-    <None Include="$(GameContentRoot)Shaders\Mesh.hlsl" />
-    <None Include="$(GameContentRoot)Shaders\Sky.hlsl" />
-    <None Include="$(GameContentRoot)Shaders\GlowParticle.hlsl" />
+    <None Include="$(WP1Root)Content\Shaders\Mesh.hlsl" />
+    <None Include="$(WP1Root)Content\Shaders\Sky.hlsl" />
+    <None Include="$(WP1Root)Content\Shaders\GlowParticle.hlsl" />
     <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-c.obj" />
     <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-c.mtl" />
     <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\Textures\colormap.png" />
@@ -182,7 +182,7 @@
     <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-e.mtl" />
     <None Include="Assets\Models\Pyramid.obj" />
     <None Include="Assets\Models\Cube.mtl" />
-    <None Include="$(GameContentRoot)Shaders\Common\UvTransform.hlsli" />
+    <None Include="$(WP1Root)Content\Shaders\Common\UvTransform.hlsli" />
     <None Include="Assets\Textures\Checker.png" />
     <None Include="Assets\Fonts\MPlus1p\MPLUS1p-Black.ttf" />
     <None Include="Assets\Fonts\MPlus1p\OFL.txt" />
@@ -206,7 +206,7 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(GameContentRoot)Shaders\Particle.hlsl" />
+    <None Include="$(WP1Root)Content\Shaders\Particle.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(WP1Root)App\src\Game.h" />

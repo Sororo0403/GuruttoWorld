@@ -9,7 +9,7 @@ $destinationRoot=[IO.Path]::GetFullPath($Destination)
 if (Test-Path -LiteralPath $destinationRoot) { throw 'Choose a new folder; existing projects are never overwritten.' }
 if (!$TemplateContent) { $TemplateContent=Join-Path $engineRoot 'Games/GuruttoWorld' }
 $TemplateContent=[IO.Path]::GetFullPath($TemplateContent)
-foreach ($required in @('Assets/Project.json','Shaders')) {
+foreach ($required in @('Assets/Project.json')) {
     if (!(Test-Path -LiteralPath (Join-Path $TemplateContent $required))) { throw "Template is missing $required" }
 }
 function Write-ProjectFile([string]$Path,[string]$Text) {
@@ -17,7 +17,7 @@ function Write-ProjectFile([string]$Path,[string]$Text) {
 }
 New-Item -ItemType Directory -Path $destinationRoot | Out-Null
 . (Join-Path $PSScriptRoot 'BuildContentSnapshot.ps1')
-Copy-BuildContentSnapshot -Content $TemplateContent -Destination $destinationRoot
+Copy-BuildContentSnapshot -Content $TemplateContent -Destination $destinationRoot -IncludeShared $false
 $guid=[Guid]::NewGuid().ToString().ToUpperInvariant()
 $escapedRoot=[Security.SecurityElement]::Escape($engineRoot+'\')
 $project=@'

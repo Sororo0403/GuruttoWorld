@@ -12,7 +12,7 @@ namespace Editor
     public:
         void Refresh(const std::filesystem::path& root, const ProjectAsset& asset)
         {
-            const auto path = root / asset.path;
+            const auto path = Engine::ContentFiles::Resolve(root / asset.path);
             const auto now = std::chrono::steady_clock::now();
             if (path == path_ && now < next_)
                 return;

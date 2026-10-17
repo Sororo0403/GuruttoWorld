@@ -146,7 +146,7 @@ namespace SceneRuntime
         void Save(const std::filesystem::path& root, const std::filesystem::path& path) const
         {
             Validate();
-            if (!shader.empty() && !std::filesystem::is_regular_file(root / shader))
+            if (!shader.empty() && !std::filesystem::is_regular_file(Engine::ContentFiles::Resolve(root / shader)))
                 throw std::runtime_error("Material shader does not exist");
             const auto validationValues2 = std::array{texture, normalTexture, environmentTexture, lightmap};
             if (std::any_of(validationValues2.begin(), validationValues2.end(),

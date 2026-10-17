@@ -6,6 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'FileHash.ps1')
+. (Join-Path $PSScriptRoot 'ContentLayers.ps1')
 
 function Get-FullDirectory([string]$Path) {
     $full = [IO.Path]::GetFullPath($Path)
@@ -56,6 +57,9 @@ if ($destinationRoot -eq [IO.Path]::GetPathRoot($destinationRoot)) {
     throw 'A volume root cannot be used as a content output directory.'
 }
 $sources = @()
+$shared = Get-SharedContentRoot -Content $Content
+Assert-SharedAssetIds -Shared $shared -Content $Content
+if ($shared) { $sources += Get-FullDirectory $shared }
 if ($FallbackContent) { $sources += Get-FullDirectory $FallbackContent }
 $sources += Get-FullDirectory $Content
 $inventory = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -68,6 +72,7 @@ foreach ($source in $sources) {
     foreach ($folder in @('Assets', 'Shaders')) {
         $sourceFolder = Join-Path $source $folder
         if (!(Test-Path -LiteralPath $sourceFolder -PathType Container)) {
+            if ($folder -eq 'Shaders' -and $source -eq (Get-FullDirectory $Content) -and $shared) { continue }
             throw "Content folder is missing: $sourceFolder"
         }
         foreach ($outputFolder in @('Assets', 'Shaders')) {

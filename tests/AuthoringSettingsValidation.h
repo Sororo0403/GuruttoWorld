@@ -8,6 +8,7 @@
 #include "../Editor/src/ScriptDataPanel.h"
 #include "DeepStateValidation.h"
 #include "FollowupStateValidation.h"
+#include "SharedContentValidation.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -203,6 +204,7 @@ namespace AuthoringSettingsValidation
                             (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         std::cout << "Authoring output: " << output.generic_string() << '\n';
         std::filesystem::create_directories(output);
+        SharedContentValidation::Run(std::filesystem::absolute(output / "shared-content"));
         auto scene = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/OceanSunset.json");
         scene.settings.gravity = {2, -9.81f, 1};
         scene.settings.fixedStep = .02f;
@@ -283,7 +285,7 @@ namespace AuthoringSettingsValidation
         material.shader = "Shaders/Mesh.hlsl";
         const auto materialRoot = output / "material";
         std::filesystem::create_directories(materialRoot / "Shaders");
-        std::filesystem::copy_file("Games/GuruttoWorld/Shaders/Mesh.hlsl", materialRoot / material.shader,
+        std::filesystem::copy_file("Content/Shaders/Mesh.hlsl", materialRoot / material.shader,
                                    std::filesystem::copy_options::overwrite_existing);
         material.Save(materialRoot, "Assets/Materials/Shader.mat");
         Require(MaterialAsset::Load(materialRoot, "Assets/Materials/Shader.mat").shader == material.shader,

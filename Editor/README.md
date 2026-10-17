@@ -400,7 +400,7 @@ C++のJSON処理はnlohmann/json 3.12.0へ統一しています。依存ヘッ�
 
 英数字はFira Mono Regular、日本語はM PLUS 1p Regularを同じImGuiフォントへ合成し、16pxを基準に表示します。Fira MonoのASCIIを維持し、同梱の日本語フォントでひらがな・カタカナ・漢字・日本語記号を補います。ImGui 1.92の動的字形読み込みを使い、旧GetGlyphRangesJapaneseの常用漢字リストで制限しません。
 
-フォントはGames/GuruttoWorld/Assets/Fontsから読み込み、配布ビルドにもTTFとOFLライセンスをコピーします。Windowsへのフォントインストールは不要です。欠損時は起動エラーを表示し、別のフォントへの無言の置き換えは行いません。フォントを更新した場合はEditorを起動し直してください。出典とSHA-256はGames/GuruttoWorld/Assets/Fonts/README.mdに記録しています。
+フォントの正本はContent/Assets/Fontsに置き、Editorはここから読み込み、配布ビルドにもTTFとOFLライセンスをコピーします。Windowsへのフォントインストールは不要です。欠損時は起動エラーを表示し、別のフォントへの無言の置き換えは行いません。フォントを更新した場合はEditorを起動し直してください。出典とSHA-256はContent/Assets/Fonts/README.mdに記録しています。
 
 エディターのメニュー、パネル、ツールバー、コンポーネントの設定項目、保存確認、操作結果は日本語で表示します。ドッキングの標準メニュー・説明も日本語です。InputTextは既存のWin32 Unicode／IME入力を使ってUTF-8の値を編集します。英語表記の旧パネル配置は読み込み時に移行し、位置・サイズ・ドッキング・選択タブを引き継ぎます。
 

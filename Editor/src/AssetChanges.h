@@ -30,12 +30,13 @@ namespace Editor
         /// </summary>
         static Files Capture(const std::filesystem::path& root)
         {
+            if (!std::filesystem::is_directory(root / "Assets"))
+                throw std::runtime_error("変更監視対象のAssetsフォルダーがありません。");
             Files files;
-            for (const auto& directory : {root / "Assets", root / "Shaders"})
-                for (const auto& entry : std::filesystem::recursive_directory_iterator(directory))
-                    if (entry.is_regular_file() && Watched(entry.path().lexically_relative(root)))
-                        files.emplace(entry.path(),
-                                      Stamp{entry.last_write_time(), entry.file_size(), ShaderHash(entry.path())});
+            for (const auto& [relative, source] : Engine::ContentFiles::List(root))
+                if (Watched(relative))
+                    files.emplace(source, Stamp{std::filesystem::last_write_time(source),
+                                                std::filesystem::file_size(source), ShaderHash(source)});
             return files;
         }
         void Observe(Files files)
@@ -159,15 +160,16 @@ namespace Editor
     {
         try
         {
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(root / "Shaders"))
+            for (const auto& [relative, source] : Engine::ContentFiles::List(root))
             {
-                if (!entry.is_regular_file() || !AssetChanges::IsShaderSource(entry.path()))
+                static_cast<void>(source);
+                if (!relative.generic_string().starts_with("Shaders/") || !AssetChanges::IsShaderSource(relative))
                     continue;
                 Microsoft::WRL::ComPtr<ID3DBlob> vertex, pixel;
-                if (!Engine::CompileShader(entry.path(), "VSMain", "vs_5_0", vertex) ||
-                    !Engine::CompileShader(entry.path(), "PSMain", "ps_5_0", pixel))
+                if (!Engine::CompileShader(root / relative, "VSMain", "vs_5_0", vertex) ||
+                    !Engine::CompileShader(root / relative, "PSMain", "ps_5_0", pixel))
                 {
-                    error = "シェーダーの再読み込みに失敗しました：" + entry.path().filename().string() +
+                    error = "シェーダーの再読み込みに失敗しました：" + relative.filename().string() +
                             "（コンソールを確認してください）";
                     return false;
                 }

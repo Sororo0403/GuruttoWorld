@@ -19,6 +19,9 @@
     <Filter Include="include\Engine">
       <UniqueIdentifier>{74EC03EE-11D0-58D0-9FF3-3F58A20893BF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\Engine\Assets">
+      <UniqueIdentifier>{D35A5A3A-FCB8-434C-BDBC-B630D308791E}</UniqueIdentifier>
+    </Filter>
     <Filter Include="include\Engine\Audio">
       <UniqueIdentifier>{2EF40603-60BF-5A36-B99C-E88CA81099FD}</UniqueIdentifier>
     </Filter>
@@ -129,6 +132,9 @@
     <ClCompile Include="src\Graphics\Materials\UvTransform.cpp">
       <Filter>src\Graphics\Materials</Filter>
     </ClCompile>
+    <ClInclude Include="include\Engine\Assets\ContentFiles.h">
+      <Filter>include\Engine\Assets</Filter>
+    </ClInclude>
     <ClInclude Include="include\Engine\Core\Application.h">
       <Filter>include\Engine\Core</Filter>
     </ClInclude>

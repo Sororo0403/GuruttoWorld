@@ -132,12 +132,12 @@ namespace SceneCollectionValidation
         const auto root = std::filesystem::absolute("generated/tests/scene-collection");
         std::filesystem::create_directories(root / "Assets/Scenes");
         std::filesystem::create_directories(root / "Shaders");
-        for (const auto& entry : std::filesystem::recursive_directory_iterator("Games/GuruttoWorld/Shaders"))
-            if (entry.is_regular_file())
+        for (const auto& [relative, source] : Engine::ContentFiles::List("Games/GuruttoWorld"))
+            if (relative.generic_string().starts_with("Shaders/"))
             {
-                const auto target = root / "Shaders" / entry.path().lexically_relative("Games/GuruttoWorld/Shaders");
+                const auto target = root / relative;
                 std::filesystem::create_directories(target.parent_path());
-                std::filesystem::copy_file(entry.path(), target, std::filesystem::copy_options::overwrite_existing);
+                std::filesystem::copy_file(source, target, std::filesystem::copy_options::overwrite_existing);
             }
         auto stopped = std::make_shared<int>(0);
         ScriptDefinition definition;

@@ -3,6 +3,7 @@
 #include <iterator>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/TextureImport.h>
+#include <Engine/Assets/ContentFiles.h>
 #include <filesystem>
 #include <fstream>
 #include <random>
@@ -45,7 +46,7 @@ public:
     static bool ValidId(const std::string& id) { return id.size()==32 && std::all_of(id.begin(),id.end(),[](char c) { return (c>='0' && c<='9') || (c>='a' && c<='f'); }); }
     static std::filesystem::path Sidecar(std::filesystem::path path) { path+=".meta"; return path; }
     static AssetMetadata Read(const std::filesystem::path& path) {
-        AssetMetadata result; std::ifstream input(Sidecar(path)); if (!input) return result;
+        AssetMetadata result; std::ifstream input(ContentFiles::Resolve(Sidecar(path))); if (!input) return result;
         const auto json=Json::parse(input); result.id=json.at("id").get<std::string>();
         result.scale=static_cast<float>(JsonNumber(json.value("scale",Json(1)))); result.flipV=json.value("flipV",false);
         result.previousPaths=json.value("previousPaths",std::vector<std::string>{});
@@ -62,6 +63,7 @@ public:
         return result;
     }
     static void Write(const std::filesystem::path& path,const AssetMetadata& metadata) {
+        if (ContentFiles::IsShared(path)) throw std::runtime_error("Shared content is read-only; create a game override first");
         metadata.texture.Validate();
         if (!ValidId(metadata.id) || !Engine::InRange(metadata.scale,0.0001f,10000)) throw std::runtime_error("Invalid import settings");
         if(metadata.previousPaths.size()>1024 || std::any_of(metadata.previousPaths.begin(),metadata.previousPaths.end(),[](const auto& previous){return !Valid(previous);}))
@@ -89,18 +91,25 @@ public:
     }
     /// <summary>snapshot はプレイ中の参照解決用にメタデータを保持します。編集時は既定の最新読み込みを使います。</summary>
     explicit AssetDatabase(std::filesystem::path root,bool snapshot=false) : root_(std::move(root)),snapshot_(snapshot) {
+        std::map<std::filesystem::path,std::string> identities;
+        for (const auto& layer : ContentFiles::Layers(root_)) {
         for (const auto* folder : {"Assets","Shaders"}) {
-            if (!std::filesystem::is_directory(root_/folder)) continue;
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(root_/folder)) {
+            if (!std::filesystem::is_directory(layer/folder)) continue;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(layer/folder)) {
                 if (!entry.is_regular_file() || entry.path().extension()!=".meta") continue;
                 auto source=entry.path(); source.replace_extension(); if (!std::filesystem::is_regular_file(source)) continue;
-                const auto metadata=Read(source); const auto relative=source.lexically_relative(root_);
-                if(snapshot_) metadata_.emplace(Text(relative),metadata);
-                if (!ids_.emplace(metadata.id,relative).second) throw std::runtime_error("Duplicate asset ID: "+metadata.id);
+                const auto metadata=Read(source); const auto relative=source.lexically_relative(layer);
+                const auto identity=identities.find(relative);
+                if (identity!=identities.end() && identity->second!=metadata.id) throw std::runtime_error("Shared override must preserve asset ID: "+Text(relative));
+                identities[relative]=metadata.id;
+                if(snapshot_) metadata_.insert_or_assign(Text(relative),metadata);
+                const auto [found,inserted]=ids_.emplace(metadata.id,relative);
+                if (!inserted && found->second!=relative) throw std::runtime_error("Duplicate asset ID: "+metadata.id);
                 for (const auto& alias : metadata.previousPaths) {
                     aliases_[alias].insert(relative);
                 }
             }
+        }
         }
     }
     std::filesystem::path Resolve(const std::filesystem::path& path,const std::string& id={}) const {
@@ -127,6 +136,7 @@ public:
         if (capture) json["assetReferences"]=updated;
     }
     void Move(const std::filesystem::path& from,const std::filesystem::path& to) {
+        if (!ContentFiles::SharedFile(root_/from).empty() || !ContentFiles::SharedFile(root_/to).empty()) throw std::runtime_error("Shared content and overrides keep their asset ID and path");
         ValidateDestination(from,to);
         auto metadata=Ensure(root_/from); const auto originalMetadata=metadata;
         if(std::find(metadata.previousPaths.begin(),metadata.previousPaths.end(),Text(from))==metadata.previousPaths.end()) {
