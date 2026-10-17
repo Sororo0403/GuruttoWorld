@@ -21,8 +21,8 @@ namespace Engine
     /// <param name="vertexView">頂点バッファービューの出力先。</param>
     /// <param name="indexView">インデックスバッファービューの出力先。</param>
     /// <returns>生成と転送に成功した場合は true。失敗時は出力を変更しません。</returns>
-    bool CreateIndexedMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue,
-        std::span<const std::byte> vertices, UINT vertexStride, std::span<const std::uint32_t> indices,
-        Microsoft::WRL::ComPtr<ID3D12Resource>& resource,
-        D3D12_VERTEX_BUFFER_VIEW& vertexView, D3D12_INDEX_BUFFER_VIEW& indexView);
+    bool CreateIndexedMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue, std::span<const std::byte> vertices,
+                                 UINT vertexStride, std::span<const std::uint32_t> indices,
+                                 Microsoft::WRL::ComPtr<ID3D12Resource>& resource, D3D12_VERTEX_BUFFER_VIEW& vertexView,
+                                 D3D12_INDEX_BUFFER_VIEW& indexView);
 }

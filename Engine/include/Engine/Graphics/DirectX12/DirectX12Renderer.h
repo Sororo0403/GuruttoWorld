@@ -22,7 +22,13 @@ namespace Engine
         Failed
     };
 
-    struct FrameTelemetry { double cpuRenderMilliseconds=0,gpuMilliseconds=0; UINT64 frames=0; bool gpuSample=false; std::vector<ProfileSample> cpuScopes,gpuPasses; };
+    struct FrameTelemetry
+    {
+        double cpuRenderMilliseconds = 0, gpuMilliseconds = 0;
+        UINT64 frames = 0;
+        bool gpuSample = false;
+        std::vector<ProfileSample> cpuScopes, gpuPasses;
+    };
 
     class DirectX12Renderer final
     {
@@ -63,8 +69,8 @@ namespace Engine
         /// <param name="debugUi">Debug / Development 構成で UI フレーム開始後に呼ぶパネル構築処理。Release では使用しません。</param>
         /// <returns>表示、描画休止、失敗の状態。休止時の待機は呼び出し側で行ってください。</returns>
         RenderResult Render(const std::array<float, 4>& clearColor,
-            const std::function<void(ID3D12GraphicsCommandList*, float)>& draw = {},
-            const std::function<void()>& debugUi = {});
+                            const std::function<void(ID3D12GraphicsCommandList*, float)>& draw = {},
+                            const std::function<void()>& debugUi = {});
 
         /// <summary>
         /// 描画リソースの生成に使用するデバイスを取得します。所有権は移譲しません。
@@ -94,7 +100,10 @@ namespace Engine
         /// 描画呼び出しの外で GPU 完了を待機します。シーンのリソースを解放する前に使用します。
         /// </summary>
         bool WaitForIdle();
-        const FrameTelemetry& Telemetry() const { return telemetry_; }
+        const FrameTelemetry& Telemetry() const
+        {
+            return telemetry_;
+        }
 
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         // Call outside Render after GPU idle; the returned handle stays stable across Scene resizes.
@@ -224,9 +233,9 @@ namespace Engine
         FrameTelemetry telemetry_;
         Microsoft::WRL::ComPtr<ID3D12QueryHeap> timestampQueries_;
         Microsoft::WRL::ComPtr<ID3D12Resource> timestampReadback_;
-        UINT64 timestampFrequency_=0;
-        std::array<bool,2> timestampPending_{};
-        std::array<std::vector<GpuProfileRecord>,2> gpuRecords_;
+        UINT64 timestampFrequency_ = 0;
+        std::array<bool, 2> timestampPending_{};
+        std::array<std::vector<GpuProfileRecord>, 2> gpuRecords_;
 
         static constexpr UINT BufferCount = 2;
         static constexpr DXGI_FORMAT BufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;

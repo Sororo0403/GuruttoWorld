@@ -38,6 +38,7 @@ namespace Engine
         /// 現在のシーンの識別子を取得します。未開始時は空です。
         /// </summary>
         const std::string& GetActiveName() const;
+
     private:
         /// <summary>
         /// 新シーンの生成・初期化に成功した場合のみ旧シーンを置き換えます。

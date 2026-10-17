@@ -11,54 +11,111 @@ namespace Editor
     class EditHistory final
     {
     public:
-        struct State { std::string json; std::string selection; std::vector<std::string> selections{}; };
-        void Reset(State state) { states_={std::move(state)}; cursor_=0; pending_.reset(); interaction_.clear(); saved_=states_[0].json; }
+        struct State
+        {
+            std::string json;
+            std::string selection;
+            std::vector<std::string> selections{};
+        };
+        void Reset(State state)
+        {
+            states_ = {std::move(state)};
+            cursor_ = 0;
+            pending_.reset();
+            interaction_.clear();
+            saved_ = states_[0].json;
+        }
         void Observe(State state, std::string_view interaction)
         {
-            if (states_.empty()) { Reset(std::move(state)); return; }
-            if (!interaction.empty() && interaction_!=interaction) Commit();
-            interaction_=interaction;
-            pending_=std::move(state);
-            if (interaction.empty()) Commit();
+            if (states_.empty())
+            {
+                Reset(std::move(state));
+                return;
+            }
+            if (!interaction.empty() && interaction_ != interaction)
+                Commit();
+            interaction_ = interaction;
+            pending_ = std::move(state);
+            if (interaction.empty())
+                Commit();
         }
         // Idle frames update selection without copying the entire scene JSON.
-        void Observe(const std::string& json,const std::string& selection,const std::vector<std::string>& selections,std::string_view interaction)
+        void Observe(const std::string& json, const std::string& selection, const std::vector<std::string>& selections,
+                     std::string_view interaction)
         {
-            if(states_.empty()) {Reset({json,selection,selections});return;}
-            if(!interaction.empty() && interaction_!=interaction) Commit();
-            interaction_=interaction;
-            auto& current=pending_?*pending_:states_[cursor_];
-            if(current.json==json) {current.selection=selection;current.selections=selections;}
-            else pending_=State{json,selection,selections};
-            if(interaction.empty()) Commit();
+            if (states_.empty())
+            {
+                Reset({json, selection, selections});
+                return;
+            }
+            if (!interaction.empty() && interaction_ != interaction)
+                Commit();
+            interaction_ = interaction;
+            auto& current = pending_ ? *pending_ : states_[cursor_];
+            if (current.json == json)
+            {
+                current.selection = selection;
+                current.selections = selections;
+            }
+            else
+                pending_ = State{json, selection, selections};
+            if (interaction.empty())
+                Commit();
         }
         void Commit()
         {
             interaction_.clear();
-            if (!pending_) return;
-            if (pending_->json!=states_[cursor_].json)
+            if (!pending_)
+                return;
+            if (pending_->json != states_[cursor_].json)
             {
-                states_.resize(cursor_+1);
+                states_.resize(cursor_ + 1);
                 states_.push_back(std::move(*pending_));
-                if (states_.size()>101) states_.erase(states_.begin());
-                cursor_=states_.size()-1;
+                if (states_.size() > 101)
+                    states_.erase(states_.begin());
+                cursor_ = states_.size() - 1;
             }
             else
             {
-                states_[cursor_].selection=pending_->selection;
-                states_[cursor_].selections=pending_->selections;
+                states_[cursor_].selection = pending_->selection;
+                states_[cursor_].selections = pending_->selections;
             }
             pending_.reset();
         }
-        bool CanUndo() const { return cursor_>0; }
-        bool CanRedo() const { return cursor_+1<states_.size(); }
-        const State& Target(bool redo) const { return states_.at(redo ? cursor_+1 : cursor_-1); }
-        void Applied(bool redo) { if (redo) ++cursor_; else --cursor_; pending_.reset(); interaction_.clear(); }
-        void Saved(const std::string& json) { Commit(); saved_=json; }
-        bool Dirty(const std::string& json) const { return json!=saved_; }
+        bool CanUndo() const
+        {
+            return cursor_ > 0;
+        }
+        bool CanRedo() const
+        {
+            return cursor_ + 1 < states_.size();
+        }
+        const State& Target(bool redo) const
+        {
+            return states_.at(redo ? cursor_ + 1 : cursor_ - 1);
+        }
+        void Applied(bool redo)
+        {
+            if (redo)
+                ++cursor_;
+            else
+                --cursor_;
+            pending_.reset();
+            interaction_.clear();
+        }
+        void Saved(const std::string& json)
+        {
+            Commit();
+            saved_ = json;
+        }
+        bool Dirty(const std::string& json) const
+        {
+            return json != saved_;
+        }
+
     private:
         std::vector<State> states_;
-        size_t cursor_=0;
+        size_t cursor_ = 0;
         std::optional<State> pending_;
         std::string saved_;
         std::string interaction_;

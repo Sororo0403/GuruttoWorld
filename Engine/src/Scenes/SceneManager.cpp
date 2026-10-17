@@ -8,7 +8,8 @@ namespace Engine
     SceneManager::SceneManager(ISceneFactory& factory) : factory_(factory) {}
     bool SceneManager::RequestChange(std::string name)
     {
-        if (name.empty() || !pendingName_.empty()) return false;
+        if (name.empty() || !pendingName_.empty())
+            return false;
         pendingName_ = std::move(name);
         return true;
     }
@@ -17,13 +18,16 @@ namespace Engine
         if (current_ && pendingName_.empty())
         {
             auto next = current_->Update(deltaSeconds, keyboard);
-            if (!next.empty()) RequestChange(std::move(next));
-            if(const auto name=current_->ActiveSceneName();!name.empty()) activeName_=name;
+            if (!next.empty())
+                RequestChange(std::move(next));
+            if (const auto name = current_->ActiveSceneName(); !name.empty())
+                activeName_ = name;
         }
     }
     bool SceneManager::ApplyPending(DirectX12Renderer& renderer)
     {
-        if (pendingName_.empty()) return true;
+        if (pendingName_.empty())
+            return true;
         const auto name = std::exchange(pendingName_, {});
         auto next = factory_.Create(name);
         if (!next)
@@ -32,7 +36,8 @@ namespace Engine
             return false;
         }
         // 旧シーンの描画命令が完了してから生成・交換します。
-        if (!renderer.WaitForIdle() || !next->Initialize(renderer)) return false;
+        if (!renderer.WaitForIdle() || !next->Initialize(renderer))
+            return false;
         current_ = std::move(next);
         activeName_ = name;
         Log::Info("Scene changed: " + name);
@@ -40,8 +45,12 @@ namespace Engine
     }
     RenderResult SceneManager::Draw(DirectX12Renderer& renderer)
     {
-        if (!ApplyPending(renderer) || !current_) return RenderResult::Failed;
+        if (!ApplyPending(renderer) || !current_)
+            return RenderResult::Failed;
         return current_->Draw(renderer);
     }
-    const std::string& SceneManager::GetActiveName() const { return activeName_; }
+    const std::string& SceneManager::GetActiveName() const
+    {
+        return activeName_;
+    }
 }

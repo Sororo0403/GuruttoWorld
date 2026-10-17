@@ -26,9 +26,9 @@ namespace
 
 namespace Engine
 {
-    bool TriangleRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& texturePath,
-        const std::filesystem::path& shaderPath,
-        const std::array<TriangleVertex, 3>& vertices)
+    bool TriangleRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
+                                      const std::filesystem::path& texturePath, const std::filesystem::path& shaderPath,
+                                      const std::array<TriangleVertex, 3>& vertices)
     {
         if (device == nullptr || queue == nullptr || initialized_)
         {
@@ -87,8 +87,8 @@ namespace Engine
         description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
         ComPtr<ID3DBlob> signature;
         ComPtr<ID3DBlob> errors;
-        const HRESULT result = D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1,
-            &signature, &errors);
+        const HRESULT result =
+            D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &errors);
         if (errors)
         {
             Log::Error(static_cast<const char*>(errors->GetBufferPointer()));
@@ -98,7 +98,8 @@ namespace Engine
             return false;
         }
         return Check(device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(),
-            IID_PPV_ARGS(&rootSignature_)), "Create triangle root signature");
+                                                 IID_PPV_ARGS(&rootSignature_)),
+                     "Create triangle root signature");
     }
 
     bool TriangleRenderer::CreatePipelineState(ID3D12Device* device, const std::filesystem::path& shaderPath)
@@ -110,17 +111,18 @@ namespace Engine
         {
             return false;
         }
-        const D3D12_INPUT_ELEMENT_DESC elements[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, position)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, color)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, uv)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-        };
+        const D3D12_INPUT_ELEMENT_DESC elements[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, position)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, color)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(TriangleVertex, uv)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
         D3D12_GRAPHICS_PIPELINE_STATE_DESC description{};
         description.pRootSignature = rootSignature_.Get();
-        description.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
-        description.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
-        description.InputLayout = { elements, 3 };
+        description.VS = {vertexShader->GetBufferPointer(), vertexShader->GetBufferSize()};
+        description.PS = {pixelShader->GetBufferPointer(), pixelShader->GetBufferSize()};
+        description.InputLayout = {elements, 3};
         description.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
         description.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
         description.RasterizerState.DepthClipEnable = TRUE;
@@ -144,37 +146,43 @@ namespace Engine
         description.DSVFormat = DepthBuffer::Format;
         description.SampleDesc.Count = 1;
         return Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),
-            "Create triangle pipeline state");
+                     "Create triangle pipeline state");
     }
 
     bool TriangleRenderer::CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue,
-        const std::array<TriangleVertex, 3>& vertices)
+                                            const std::array<TriangleVertex, 3>& vertices)
     {
-        constexpr std::array<std::uint32_t, 3> Indices{ 0, 1, 2 };
+        constexpr std::array<std::uint32_t, 3> Indices{0, 1, 2};
         return CreateIndexedMeshBuffer(device, queue, std::as_bytes(std::span(vertices)), sizeof(TriangleVertex),
-            Indices, meshBuffer_, vertexBufferView_, indexBufferView_);
+                                       Indices, meshBuffer_, vertexBufferView_, indexBufferView_);
     }
 
     void TriangleRenderer::Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY,
-        const std::array<float, 3>& translation, const std::array<float, 4>& tint, const UvTransform& uvTransform) const
+                                const std::array<float, 3>& translation, const std::array<float, 4>& tint,
+                                const UvTransform& uvTransform) const
     {
         if (!initialized_ || commands == nullptr || aspectRatio <= 0.0f)
         {
             return;
         }
-        const std::array<float, 12> constants
-        {
-            std::min(1.0f, 1.0f / aspectRatio), std::min(1.0f, aspectRatio),
-            std::cos(rotationY), std::sin(rotationY),
-            translation[0], translation[1], translation[2], 0.0f,
-            tint[0], tint[1], tint[2], tint[3]
-        };
+        const std::array<float, 12> constants{std::min(1.0f, 1.0f / aspectRatio),
+                                              std::min(1.0f, aspectRatio),
+                                              std::cos(rotationY),
+                                              std::sin(rotationY),
+                                              translation[0],
+                                              translation[1],
+                                              translation[2],
+                                              0.0f,
+                                              tint[0],
+                                              tint[1],
+                                              tint[2],
+                                              tint[3]};
         commands->SetPipelineState(pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
         commands->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(constants.size()), constants.data(), 0);
         const auto uvConstants = uvTransform.GetConstants();
         commands->SetGraphicsRoot32BitConstants(2, 8, uvConstants.data(), 0);
-        ID3D12DescriptorHeap* heaps[] = { texture_.GetDescriptorHeap() };
+        ID3D12DescriptorHeap* heaps[] = {texture_.GetDescriptorHeap()};
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, texture_.GetGpuHandle());
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

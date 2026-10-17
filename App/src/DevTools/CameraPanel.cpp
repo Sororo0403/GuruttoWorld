@@ -19,9 +19,11 @@ namespace App
             ImGui::TextUnformatted("RMB + WASD: move / Q,E: down,up");
             ImGui::TextUnformatted("Shift: boost / R: reset");
             auto position = camera.GetPosition();
-            if (ImGui::DragFloat3("Position", position.data(), 0.05f)) camera.GetCamera().SetPosition(position);
+            if (ImGui::DragFloat3("Position", position.data(), 0.05f))
+                camera.GetCamera().SetPosition(position);
             float speed = camera.GetMoveSpeed();
-            if (ImGui::SliderFloat("Move speed", &speed, 0.1f, 20.0f)) camera.SetMoveSpeed(speed);
+            if (ImGui::SliderFloat("Move speed", &speed, 0.1f, 20.0f))
+                camera.SetMoveSpeed(speed);
             if (ImGui::Button("Reset camera"))
             {
                 camera.Reset();
@@ -34,15 +36,20 @@ namespace App
     void CameraPanel::UpdateInput(Engine::DebugCamera& camera, const Engine::Keyboard& keyboard, double deltaSeconds)
     {
         const auto& io = ImGui::GetIO();
-        const bool started = keyboard.IsActive() && !io.WantCaptureMouse && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
-        if (started) ImGui::SetWindowFocus(nullptr);
+        const bool started =
+            keyboard.IsActive() && !io.WantCaptureMouse && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+        if (started)
+            ImGui::SetWindowFocus(nullptr);
         const bool allowInput = keyboard.IsActive() && !io.WantCaptureMouse && (!io.WantCaptureKeyboard || started);
-        if (!allowInput || !ImGui::IsMouseDown(ImGuiMouseButton_Right)) dragging_ = false;
-        if (started) dragging_ = true;
+        if (!allowInput || !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+            dragging_ = false;
+        if (started)
+            dragging_ = true;
         if (dragging_)
         {
             // 操作開始時の移動量は捨て、クリックした瞬間の視点ジャンプを防ぎます。
-            if (!started) camera.Rotate(io.MouseDelta.x, io.MouseDelta.y);
+            if (!started)
+                camera.Rotate(io.MouseDelta.x, io.MouseDelta.y);
             const float right = float(keyboard.IsDown(DIK_D)) - float(keyboard.IsDown(DIK_A));
             const float up = float(keyboard.IsDown(DIK_E)) - float(keyboard.IsDown(DIK_Q));
             const float forward = float(keyboard.IsDown(DIK_W)) - float(keyboard.IsDown(DIK_S));

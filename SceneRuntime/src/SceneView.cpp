@@ -7,87 +7,118 @@ namespace SceneRuntime
 {
     const ScenePlacement* SceneView::CameraObject(const SceneLayout& layout)
     {
-        const auto found=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object) {
-            return object.camera && object.camera->enabled &&
-                (layout.settings.mainCamera.empty() || object.id==layout.settings.mainCamera);
-        });
-        return found==layout.objects.end() ? nullptr : &*found;
+        const auto found =
+            std::find_if(layout.objects.begin(), layout.objects.end(),
+                         [&](const auto& object)
+                         {
+                             return object.camera && object.camera->enabled &&
+                                    (layout.settings.mainCamera.empty() || object.id == layout.settings.mainCamera);
+                         });
+        return found == layout.objects.end() ? nullptr : &*found;
     }
     bool SceneView::Camera(const SceneWorld& world, float aspect, double seconds, Engine::Camera& camera)
     {
-        const auto* placement=CameraObject(world.Layout());
-        if (!placement) return false;
-        DirectX::XMFLOAT4X4 transform,rotation;
-        if (!world.RenderWorldMatrix(placement->id,transform) || !world.RenderWorldRotation(placement->id,rotation)) return false;
-        std::array<float,3> offset{};
+        const auto* placement = CameraObject(world.Layout());
+        if (!placement)
+            return false;
+        DirectX::XMFLOAT4X4 transform, rotation;
+        if (!world.RenderWorldMatrix(placement->id, transform) || !world.RenderWorldRotation(placement->id, rotation))
+            return false;
+        std::array<float, 3> offset{};
         if (placement->cameraSway && placement->cameraSway->enabled)
-            for (size_t axis=0;axis<3;++axis)
-                offset[axis]=placement->cameraSway->amplitude[axis]*static_cast<float>(std::sin(
-                    seconds*2*std::numbers::pi/placement->cameraSway->period[axis]));
-        const auto matrix=DirectX::XMLoadFloat4x4(&rotation);
+            for (size_t axis = 0; axis < 3; ++axis)
+                offset[axis] =
+                    placement->cameraSway->amplitude[axis] *
+                    static_cast<float>(std::sin(seconds * 2 * std::numbers::pi / placement->cameraSway->period[axis]));
+        const auto matrix = DirectX::XMLoadFloat4x4(&rotation);
         DirectX::XMFLOAT3 movement;
-        DirectX::XMStoreFloat3(&movement,DirectX::XMVector3TransformNormal(
-            DirectX::XMVectorSet(offset[0],offset[1],offset[2],0),matrix));
-        auto candidate=camera;
-        if (!candidate.SetPosition({transform._41+movement.x,transform._42+movement.y,transform._43+movement.z}) ||
-            !candidate.SetOrientation({rotation._31,rotation._32,rotation._33},{rotation._21,rotation._22,rotation._23})) return false;
-        const auto& config=*placement->camera;
-        float fov=config.verticalFov*std::numbers::pi_v<float>/180;
-        if (config.preserveHorizontal) fov=2*std::atan(std::tan(fov*0.5f)*std::max(1.0f,config.referenceAspect/aspect));
-        fov=std::min(fov,DirectX::XM_PI-0.002f);
-        if (!candidate.SetPerspective(fov,aspect,config.nearClip,config.farClip)) return false;
-        camera=candidate;
+        DirectX::XMStoreFloat3(&movement, DirectX::XMVector3TransformNormal(
+                                              DirectX::XMVectorSet(offset[0], offset[1], offset[2], 0), matrix));
+        auto candidate = camera;
+        if (!candidate.SetPosition(
+                {transform._41 + movement.x, transform._42 + movement.y, transform._43 + movement.z}) ||
+            !candidate.SetOrientation({rotation._31, rotation._32, rotation._33},
+                                      {rotation._21, rotation._22, rotation._23}))
+            return false;
+        const auto& config = *placement->camera;
+        float fov = config.verticalFov * std::numbers::pi_v<float> / 180;
+        if (config.preserveHorizontal)
+            fov = 2 * std::atan(std::tan(fov * 0.5f) * std::max(1.0f, config.referenceAspect / aspect));
+        fov = std::min(fov, DirectX::XM_PI - 0.002f);
+        if (!candidate.SetPerspective(fov, aspect, config.nearClip, config.farClip))
+            return false;
+        camera = candidate;
         return true;
     }
     Engine::DirectionalLight SceneView::Light(const SceneWorld& world)
     {
         Engine::DirectionalLight result;
-        const auto& fog=world.Layout().settings.fog;
-        result.fog={fog.enabled,fog.color,fog.start,fog.end,fog.strength};
-        result.intensity=0; result.ambientIntensity=0; result.specularStrength=0;
-        const auto& objects=world.Layout().objects;
-        const auto found=std::find_if(objects.begin(),objects.end(),[](const auto& object) {
-            return object.directionalLight && object.directionalLight->enabled;
-        });
-        if (found!=objects.end())
+        const auto& fog = world.Layout().settings.fog;
+        result.fog = {fog.enabled, fog.color, fog.start, fog.end, fog.strength};
+        result.intensity = 0;
+        result.ambientIntensity = 0;
+        result.specularStrength = 0;
+        const auto& objects = world.Layout().objects;
+        const auto found = std::find_if(objects.begin(), objects.end(),
+                                        [](const auto& object)
+                                        {
+                                            return object.directionalLight && object.directionalLight->enabled;
+                                        });
+        if (found != objects.end())
         {
-            const auto& config=*found->directionalLight;
-            result.color=config.color; result.intensity=config.intensity; result.ambientIntensity=config.ambient;
-            result.specularStrength=config.specular; result.shininess=config.shininess;
-            result.shadowsEnabled=config.shadowsEnabled; result.shadowDistance=config.shadowDistance; result.shadowBias=config.shadowBias;
+            const auto& config = *found->directionalLight;
+            result.color = config.color;
+            result.intensity = config.intensity;
+            result.ambientIntensity = config.ambient;
+            result.specularStrength = config.specular;
+            result.shininess = config.shininess;
+            result.shadowsEnabled = config.shadowsEnabled;
+            result.shadowDistance = config.shadowDistance;
+            result.shadowBias = config.shadowBias;
             DirectX::XMFLOAT4X4 rotation;
-            if (world.RenderWorldRotation(found->id,rotation))
+            if (world.RenderWorldRotation(found->id, rotation))
             {
                 DirectX::XMFLOAT3 direction;
-                DirectX::XMStoreFloat3(&direction,DirectX::XMVector3TransformNormal(
-                    DirectX::XMVectorSet(config.direction[0],config.direction[1],config.direction[2],0),DirectX::XMLoadFloat4x4(&rotation)));
-                result.direction={direction.x,direction.y,direction.z};
+                DirectX::XMStoreFloat3(&direction, DirectX::XMVector3TransformNormal(
+                                                       DirectX::XMVectorSet(config.direction[0], config.direction[1],
+                                                                            config.direction[2], 0),
+                                                       DirectX::XMLoadFloat4x4(&rotation)));
+                result.direction = {direction.x, direction.y, direction.z};
             }
         }
         for (const auto& object : objects)
         {
-            const bool point=object.pointLight && object.pointLight->enabled;
-            const bool spot=object.spotLight && object.spotLight->enabled;
-            if (!point && !spot) continue;
+            const bool point = object.pointLight && object.pointLight->enabled;
+            const bool spot = object.spotLight && object.spotLight->enabled;
+            if (!point && !spot)
+                continue;
             DirectX::XMFLOAT4X4 transform;
-            if (!world.RenderWorldMatrix(object.id,transform)) continue;
-            Engine::LocalLight light; light.position={transform._41,transform._42,transform._43};
+            if (!world.RenderWorldMatrix(object.id, transform))
+                continue;
+            Engine::LocalLight light;
+            light.position = {transform._41, transform._42, transform._43};
             if (point)
             {
-                light.color=object.pointLight->color; light.intensity=object.pointLight->intensity; light.range=object.pointLight->range;
-                light.shadowCount=object.pointLight->shadowsEnabled ? 6.0f : 0.0f;
+                light.color = object.pointLight->color;
+                light.intensity = object.pointLight->intensity;
+                light.range = object.pointLight->range;
+                light.shadowCount = object.pointLight->shadowsEnabled ? 6.0f : 0.0f;
                 result.localLights.push_back(light);
             }
             if (spot)
             {
                 DirectX::XMFLOAT4X4 rotation;
-                if (!world.RenderWorldRotation(object.id,rotation)) continue;
-                light.direction={rotation._31,rotation._32,rotation._33}; light.spot=1;
-                light.color=object.spotLight->color; light.intensity=object.spotLight->intensity; light.range=object.spotLight->range;
-                constexpr float radians=std::numbers::pi_v<float>/360;
-                light.innerCosine=std::cos(object.spotLight->innerAngle*radians);
-                light.outerCosine=std::cos(object.spotLight->outerAngle*radians);
-                light.shadowCount=object.spotLight->shadowsEnabled ? 1.0f : 0.0f;
+                if (!world.RenderWorldRotation(object.id, rotation))
+                    continue;
+                light.direction = {rotation._31, rotation._32, rotation._33};
+                light.spot = 1;
+                light.color = object.spotLight->color;
+                light.intensity = object.spotLight->intensity;
+                light.range = object.spotLight->range;
+                constexpr float radians = std::numbers::pi_v<float> / 360;
+                light.innerCosine = std::cos(object.spotLight->innerAngle * radians);
+                light.outerCosine = std::cos(object.spotLight->outerAngle * radians);
+                light.shadowCount = object.spotLight->shadowsEnabled ? 1.0f : 0.0f;
                 result.localLights.push_back(light);
             }
         }

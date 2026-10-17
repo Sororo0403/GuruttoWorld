@@ -10,7 +10,8 @@ namespace
 {
     std::uint32_t Read32(const unsigned char* bytes)
     {
-        return bytes[0] | (std::uint32_t(bytes[1]) << 8) | (std::uint32_t(bytes[2]) << 16) | (std::uint32_t(bytes[3]) << 24);
+        return bytes[0] | (std::uint32_t(bytes[1]) << 8) | (std::uint32_t(bytes[2]) << 16) |
+               (std::uint32_t(bytes[3]) << 24);
     }
 
     WORD Read16(const unsigned char* bytes)
@@ -49,21 +50,26 @@ namespace
         bool hasFormat = false, hasData = false;
         for (std::uint64_t offset = 12; offset < end;)
         {
-            if (end - offset < 8) return Reject();
+            if (end - offset < 8)
+                return Reject();
             const auto* chunk = bytes.data() + static_cast<size_t>(offset);
             const std::uint32_t size = Read32(chunk + 4);
             const std::uint64_t next = offset + 8 + size + (size & 1);
-            if (next > end) return Reject();
+            if (next > end)
+                return Reject();
             const auto* data = chunk + 8;
             if (std::memcmp(chunk, "fmt ", 4) == 0)
             {
-                if (hasFormat || size < 16) return Reject();
-                if (!ReadPcmFormat(data, loaded.format)) return false;
+                if (hasFormat || size < 16)
+                    return Reject();
+                if (!ReadPcmFormat(data, loaded.format))
+                    return false;
                 hasFormat = true;
             }
             else if (std::memcmp(chunk, "data", 4) == 0)
             {
-                if (hasData || size == 0) return Reject();
+                if (hasData || size == 0)
+                    return Reject();
                 loaded.samples.assign(data, data + size);
                 hasData = true;
             }

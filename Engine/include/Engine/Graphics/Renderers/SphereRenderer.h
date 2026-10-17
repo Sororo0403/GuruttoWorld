@@ -41,8 +41,8 @@ namespace Engine
         /// <param name="texturePath">球体に貼り付ける画像。</param>
         /// <param name="shaderPath">球体用 HLSL ファイル。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
-        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-            const std::filesystem::path& texturePath, const std::filesystem::path& shaderPath);
+        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& texturePath,
+                        const std::filesystem::path& shaderPath);
 
         /// <summary>
         /// 深度テスト・裏面除去・陰影を使って球体を描画します。
@@ -54,9 +54,9 @@ namespace Engine
         /// <param name="cameraPosition">ビュー行列と対応するワールド空間のカメラ位置。</param>
         /// <param name="uvTransform">テクスチャ座標の拡縮・回転・移動。</param>
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
-            const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
-            const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
-            const UvTransform& uvTransform = {}) const;
+                  const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
+                  const std::array<float, 3>& cameraPosition = {0.0f, 0.0f, -3.5f},
+                  const UvTransform& uvTransform = {}) const;
 
     private:
         /// <summary>

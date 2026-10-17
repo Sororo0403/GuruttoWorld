@@ -79,7 +79,7 @@ namespace Engine
         static float ConsumeMouseWheel(HWND handle);
 
     private:
-        static void HandleInputMessage(HWND handle,UINT message,WPARAM wParam);
+        static void HandleInputMessage(HWND handle, UINT message, WPARAM wParam);
         /// <summary>
         /// ウィンドウへのメッセージを処理し、閉じる操作を終了要求として記録します。
         /// </summary>
@@ -95,7 +95,7 @@ namespace Engine
         ATOM classAtom_ = 0;
         bool closeRequested_ = false;
         std::vector<char32_t> textInput_;
-        char32_t highSurrogate_=0;
-        float mouseWheel_=0;
+        char32_t highSurrogate_ = 0;
+        float mouseWheel_ = 0;
     };
 }

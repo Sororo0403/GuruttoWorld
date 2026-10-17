@@ -16,23 +16,24 @@ namespace
         const float fx = static_cast<float>(x);
         const float fy = static_cast<float>(y);
         const float length = std::sqrt(fx * fx + fy * fy);
-        if (length <= deadZone) return {};
+        if (length <= deadZone)
+            return {};
         const float magnitude = (std::min(length, 32767.0f) - deadZone) / (32767.0f - deadZone);
-        return { fx / length * magnitude, fy / length * magnitude };
+        return {fx / length * magnitude, fy / length * magnitude};
     }
 
     float Trigger(BYTE value)
     {
-        return value <= XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? 0.0f :
-            static_cast<float>(value - XINPUT_GAMEPAD_TRIGGER_THRESHOLD) / (255 - XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+        return value <= XINPUT_GAMEPAD_TRIGGER_THRESHOLD
+                   ? 0.0f
+                   : static_cast<float>(value - XINPUT_GAMEPAD_TRIGGER_THRESHOLD) /
+                         (255 - XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
     }
 }
 
 namespace Engine
 {
-    Gamepad::Gamepad(unsigned int userIndex) noexcept : userIndex_(userIndex)
-    {
-    }
+    Gamepad::Gamepad(unsigned int userIndex) noexcept : userIndex_(userIndex) {}
 
     Gamepad::~Gamepad()
     {
@@ -102,27 +103,31 @@ namespace Engine
 
     bool Gamepad::Vibrate(float left, float right, float seconds)
     {
-        if (!active_ || !std::isfinite(left) || !std::isfinite(right) || !std::isfinite(seconds) ||
-            left < 0.0f || left > 1.0f || right < 0.0f || right > 1.0f || seconds <= 0.0f || seconds > 60.0f)
+        if (!active_ || !std::isfinite(left) || !std::isfinite(right) || !std::isfinite(seconds) || left < 0.0f ||
+            left > 1.0f || right < 0.0f || right > 1.0f || seconds <= 0.0f || seconds > 60.0f)
         {
             return false;
         }
         XINPUT_VIBRATION vibration{};
         vibration.wLeftMotorSpeed = static_cast<WORD>(left * 65535.0f);
         vibration.wRightMotorSpeed = static_cast<WORD>(right * 65535.0f);
-        if (XInputSetState(userIndex_, &vibration) != ERROR_SUCCESS) return false;
+        if (XInputSetState(userIndex_, &vibration) != ERROR_SUCCESS)
+            return false;
         vibrating_ = left > 0.0f || right > 0.0f;
-        vibrationEnd_ = std::chrono::steady_clock::now() +
+        vibrationEnd_ =
+            std::chrono::steady_clock::now() +
             std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<float>(seconds));
         return true;
     }
 
     void Gamepad::StopVibration()
     {
-        if (!vibrating_) return;
+        if (!vibrating_)
+            return;
         XINPUT_VIBRATION vibration{};
         const DWORD result = XInputSetState(userIndex_, &vibration);
-        if (result == ERROR_SUCCESS || result == ERROR_DEVICE_NOT_CONNECTED) vibrating_ = false;
+        if (result == ERROR_SUCCESS || result == ERROR_DEVICE_NOT_CONNECTED)
+            vibrating_ = false;
         vibrationEnd_ = {};
     }
 }

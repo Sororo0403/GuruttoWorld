@@ -51,8 +51,7 @@ namespace Engine
         /// <param name="vertices">描画する三角形の頂点位置、色、UV 座標。</param>
         /// <returns>初期化に成功した場合は true、失敗または初期化済みの場合は false。</returns>
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& texturePath,
-            const std::filesystem::path& shaderPath,
-            const std::array<TriangleVertex, 3>& vertices);
+                        const std::filesystem::path& shaderPath, const std::array<TriangleVertex, 3>& vertices);
 
         /// <summary>
         /// 記録中のコマンドリストに三角形の描画命令を追加します。
@@ -64,9 +63,9 @@ namespace Engine
         /// <param name="tint">テクスチャと頂点色に乗算する RGBA 色。</param>
         /// <param name="uvTransform">テクスチャ座標の拡縮・回転・移動。</param>
         void Draw(ID3D12GraphicsCommandList* commands, float aspectRatio, float rotationY = 0.0f,
-            const std::array<float, 3>& translation = { 0.0f, 0.0f, 0.0f },
-            const std::array<float, 4>& tint = { 1.0f, 1.0f, 1.0f, 1.0f },
-            const UvTransform& uvTransform = {}) const;
+                  const std::array<float, 3>& translation = {0.0f, 0.0f, 0.0f},
+                  const std::array<float, 4>& tint = {1.0f, 1.0f, 1.0f, 1.0f},
+                  const UvTransform& uvTransform = {}) const;
 
     private:
         /// <summary>
@@ -91,7 +90,8 @@ namespace Engine
         /// <param name="queue">転送に使用する DIRECT 型キュー。</param>
         /// <param name="vertices">転送する三頂点。</param>
         /// <returns>生成と書き込みに成功した場合は true。</returns>
-        bool CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue, const std::array<TriangleVertex, 3>& vertices);
+        bool CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue,
+                              const std::array<TriangleVertex, 3>& vertices);
 
         bool initialized_ = false;
         Texture2D texture_;

@@ -52,11 +52,16 @@ namespace
     {
         switch (level)
         {
-        case Engine::LogLevel::Debug: return "DEBUG";
-        case Engine::LogLevel::Info: return "INFO";
-        case Engine::LogLevel::Warning: return "WARNING";
-        case Engine::LogLevel::Error: return "ERROR";
-        default: return "UNKNOWN";
+        case Engine::LogLevel::Debug:
+            return "DEBUG";
+        case Engine::LogLevel::Info:
+            return "INFO";
+        case Engine::LogLevel::Warning:
+            return "WARNING";
+        case Engine::LogLevel::Error:
+            return "ERROR";
+        default:
+            return "UNKNOWN";
         }
     }
 }
@@ -112,14 +117,14 @@ namespace Engine
 
     std::vector<LogEntry> Log::Recent()
     {
-        auto& state=GetState();
+        auto& state = GetState();
         const std::lock_guard lock(state.mutex);
-        return {state.recent.begin(),state.recent.end()};
+        return {state.recent.begin(), state.recent.end()};
     }
 
     void Log::ClearRecent()
     {
-        auto& state=GetState();
+        auto& state = GetState();
         const std::lock_guard lock(state.mutex);
         state.recent.clear();
     }
@@ -130,13 +135,13 @@ namespace Engine
         const std::lock_guard lock(state.mutex);
         SYSTEMTIME time{};
         GetLocalTime(&time);
-        const auto entry = std::format(
-            "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}] [{}] {}\n",
-            time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute,
-            time.wSecond, time.wMilliseconds, LevelName(level), message);
+        const auto entry =
+            std::format("[{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}] [{}] {}\n", time.wYear, time.wMonth, time.wDay,
+                        time.wHour, time.wMinute, time.wSecond, time.wMilliseconds, LevelName(level), message);
 
-        state.recent.push_back({++state.sequence,level,entry});
-        if (state.recent.size()>500) state.recent.pop_front();
+        state.recent.push_back({++state.sequence, level, entry});
+        if (state.recent.size() > 500)
+            state.recent.pop_front();
         WriteDebugger(entry);
         if (state.file.is_open())
         {
@@ -150,8 +155,20 @@ namespace Engine
         }
     }
 
-    void Log::Debug(std::string_view message) { Write(LogLevel::Debug, message); }
-    void Log::Info(std::string_view message) { Write(LogLevel::Info, message); }
-    void Log::Warning(std::string_view message) { Write(LogLevel::Warning, message); }
-    void Log::Error(std::string_view message) { Write(LogLevel::Error, message); }
+    void Log::Debug(std::string_view message)
+    {
+        Write(LogLevel::Debug, message);
+    }
+    void Log::Info(std::string_view message)
+    {
+        Write(LogLevel::Info, message);
+    }
+    void Log::Warning(std::string_view message)
+    {
+        Write(LogLevel::Warning, message);
+    }
+    void Log::Error(std::string_view message)
+    {
+        Write(LogLevel::Error, message);
+    }
 }

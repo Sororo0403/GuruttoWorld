@@ -19,7 +19,8 @@ namespace
 
     bool Check(HRESULT result, const char* operation)
     {
-        if (SUCCEEDED(result)) return true;
+        if (SUCCEEDED(result))
+            return true;
         Engine::Log::Error(std::format("{} failed: 0x{:08X}", operation, static_cast<unsigned long>(result)));
         return false;
     }
@@ -27,10 +28,12 @@ namespace
     bool IsSupportedPcmFormat(const WAVEFORMATEX& format)
     {
         return !(format.wFormatTag != WAVE_FORMAT_PCM || format.cbSize != 0 ||
-            (format.nChannels != 1 && format.nChannels != 2) || format.nSamplesPerSec < 8000 || format.nSamplesPerSec > 192000 ||
-            (format.wBitsPerSample != 8 && format.wBitsPerSample != 16 && format.wBitsPerSample != 24 && format.wBitsPerSample != 32) ||
-            format.nBlockAlign != format.nChannels * (format.wBitsPerSample / 8) ||
-            format.nAvgBytesPerSec != format.nSamplesPerSec * format.nBlockAlign);
+                 (format.nChannels != 1 && format.nChannels != 2) || format.nSamplesPerSec < 8000 ||
+                 format.nSamplesPerSec > 192000 ||
+                 (format.wBitsPerSample != 8 && format.wBitsPerSample != 16 && format.wBitsPerSample != 24 &&
+                  format.wBitsPerSample != 32) ||
+                 format.nBlockAlign != format.nChannels * (format.wBitsPerSample / 8) ||
+                 format.nAvgBytesPerSec != format.nSamplesPerSec * format.nBlockAlign);
     }
 
     bool NormalizePcmFormat(const WAVEFORMATEX* allocated, UINT32 size, WAVEFORMATEX& format)
@@ -45,9 +48,10 @@ namespace
                 return false;
             }
             const auto& extended = *reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(allocated);
-            const DWORD defaultMask = format.nChannels == 1 ? SPEAKER_FRONT_CENTER : SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
-            if (!IsEqualGUID(extended.SubFormat, MFAudioFormat_PCM) ||
-                extended.Samples.wValidBitsPerSample == 0 || extended.Samples.wValidBitsPerSample > format.wBitsPerSample ||
+            const DWORD defaultMask =
+                format.nChannels == 1 ? SPEAKER_FRONT_CENTER : SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+            if (!IsEqualGUID(extended.SubFormat, MFAudioFormat_PCM) || extended.Samples.wValidBitsPerSample == 0 ||
+                extended.Samples.wValidBitsPerSample > format.wBitsPerSample ||
                 (extended.dwChannelMask != 0 && extended.dwChannelMask != defaultMask))
             {
                 Engine::Log::Error("Unsupported decoded PCM subtype, valid bits or channel layout.");
@@ -70,40 +74,53 @@ namespace
     {
         ComPtr<IMFMediaType> requested;
         ComPtr<IMFMediaType> actual;
-        if (!Check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_ALL_STREAMS), FALSE), "Deselect media streams") ||
-            !Check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), TRUE), "Select audio stream") ||
+        if (!Check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_ALL_STREAMS), FALSE),
+                   "Deselect media streams") ||
+            !Check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), TRUE),
+                   "Select audio stream") ||
             !Check(MFCreateMediaType(&requested), "Create PCM type") ||
             !Check(requested->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio), "Set audio type") ||
             !Check(requested->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM), "Set PCM subtype") ||
-            !Check(reader->SetCurrentMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), nullptr, requested.Get()), "Configure audio decoder") ||
-            !Check(reader->GetCurrentMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), &actual), "Get PCM type")) return false;
+            !Check(reader->SetCurrentMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), nullptr,
+                                               requested.Get()),
+                   "Configure audio decoder") ||
+            !Check(reader->GetCurrentMediaType(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), &actual),
+                   "Get PCM type"))
+            return false;
         WAVEFORMATEX* allocated = nullptr;
         UINT32 size = 0;
         const HRESULT result = MFCreateWaveFormatExFromMFMediaType(actual.Get(), &allocated, &size);
         const std::unique_ptr<WAVEFORMATEX, decltype(&CoTaskMemFree)> owner(allocated, CoTaskMemFree);
-        if (!Check(result, "Convert PCM format") || allocated == nullptr || size < sizeof(WAVEFORMATEX)) return false;
+        if (!Check(result, "Convert PCM format") || allocated == nullptr || size < sizeof(WAVEFORMATEX))
+            return false;
         format = *allocated;
         return NormalizePcmFormat(allocated, size, format);
     }
 
-    bool AppendSample(IMFSample* sample, std::vector<unsigned char>& samples,size_t limit=MaxDecodedBytes)
+    bool AppendSample(IMFSample* sample, std::vector<unsigned char>& samples, size_t limit = MaxDecodedBytes)
     {
         ComPtr<IMFMediaBuffer> buffer;
-        if (!Check(sample->ConvertToContiguousBuffer(&buffer), "Get audio buffer")) return false;
+        if (!Check(sample->ConvertToContiguousBuffer(&buffer), "Get audio buffer"))
+            return false;
         BYTE* data = nullptr;
         DWORD length = 0;
-        if (!Check(buffer->Lock(&data, nullptr, &length), "Lock audio buffer")) return false;
+        if (!Check(buffer->Lock(&data, nullptr, &length), "Lock audio buffer"))
+            return false;
         struct Unlock
         {
             IMFMediaBuffer* buffer;
-            ~Unlock() { buffer->Unlock(); }
-        } unlock{ buffer.Get() };
-        if (samples.size()>limit || length>limit-samples.size())
+            ~Unlock()
+            {
+                buffer->Unlock();
+            }
+        } unlock{buffer.Get()};
+        if (samples.size() > limit || length > limit - samples.size())
         {
             Engine::Log::Error("Decoded audio exceeds buffer limit.");
             return false;
         }
-        if (length != 0) samples.insert(samples.end(), data, data + length);
+        if (length != 0)
+            samples.insert(samples.end(), data, data + length);
         return true;
     }
 }
@@ -119,21 +136,28 @@ namespace Engine
             return false;
         }
         ComPtr<IMFSourceReader> reader;
-        if (!Check(MFCreateSourceReaderFromURL(path.c_str(), nullptr, &reader), "Open audio source")) return false;
+        if (!Check(MFCreateSourceReaderFromURL(path.c_str(), nullptr, &reader), "Open audio source"))
+            return false;
         WaveData decoded;
-        if (!ConfigureReader(reader.Get(), decoded.format)) return false;
+        if (!ConfigureReader(reader.Get(), decoded.format))
+            return false;
         for (;;)
         {
             DWORD flags = 0;
             ComPtr<IMFSample> sample;
-            if (!Check(reader->ReadSample(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), 0, nullptr, &flags, nullptr, &sample), "Decode audio sample")) return false;
+            if (!Check(reader->ReadSample(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), 0, nullptr, &flags,
+                                          nullptr, &sample),
+                       "Decode audio sample"))
+                return false;
             if ((flags & (MF_SOURCE_READERF_ERROR | MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED)) != 0)
             {
                 Log::Error("Audio decoding failed or PCM format changed during decoding.");
                 return false;
             }
-            if (sample && !AppendSample(sample.Get(), decoded.samples)) return false;
-            if ((flags & MF_SOURCE_READERF_ENDOFSTREAM) != 0) break;
+            if (sample && !AppendSample(sample.Get(), decoded.samples))
+                return false;
+            if ((flags & MF_SOURCE_READERF_ENDOFSTREAM) != 0)
+                break;
         }
         if (decoded.samples.empty() || decoded.samples.size() % decoded.format.nBlockAlign != 0)
         {
@@ -146,30 +170,49 @@ namespace Engine
     bool AudioStream::Open(const std::filesystem::path& path)
     {
         std::error_code error;
-        if (!std::filesystem::is_regular_file(path,error) || error) return false;
+        if (!std::filesystem::is_regular_file(path, error) || error)
+            return false;
         ComPtr<IMFSourceReader> reader;
         WAVEFORMATEX format{};
-        if (!Check(MFCreateSourceReaderFromURL(path.c_str(),nullptr,&reader),"Open streamed audio") ||
-            !ConfigureReader(reader.Get(),format)) return false;
-        reader_=std::move(reader); format_=format; return true;
+        if (!Check(MFCreateSourceReaderFromURL(path.c_str(), nullptr, &reader), "Open streamed audio") ||
+            !ConfigureReader(reader.Get(), format))
+            return false;
+        reader_ = std::move(reader);
+        format_ = format;
+        return true;
     }
-    bool AudioStream::Read(std::vector<unsigned char>& bytes,bool& ended)
+    bool AudioStream::Read(std::vector<unsigned char>& bytes, bool& ended)
     {
-        if (!reader_) return false;
-        DWORD flags=0; ComPtr<IMFSample> sample;
-        if (!Check(reader_->ReadSample(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM),0,nullptr,&flags,nullptr,&sample),"Stream audio sample") ||
-            (flags&(MF_SOURCE_READERF_ERROR|MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED))!=0) {Log::Error("Stream decoding flags: "+std::to_string(flags));return false;}
+        if (!reader_)
+            return false;
+        DWORD flags = 0;
+        ComPtr<IMFSample> sample;
+        if (!Check(reader_->ReadSample(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM), 0, nullptr, &flags,
+                                       nullptr, &sample),
+                   "Stream audio sample") ||
+            (flags & (MF_SOURCE_READERF_ERROR | MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED)) != 0)
+        {
+            Log::Error("Stream decoding flags: " + std::to_string(flags));
+            return false;
+        }
         std::vector<unsigned char> pending;
-        if (sample && !AppendSample(sample.Get(),pending,4*1024*1024)) return false;
+        if (sample && !AppendSample(sample.Get(), pending, 4 * 1024 * 1024))
+            return false;
         // One decoder sample must remain bounded; streamed playback never retains the complete file.
-        if (pending.size()>4*1024*1024 || pending.size()%format_.nBlockAlign!=0) return false;
-        bytes=std::move(pending); ended=(flags&MF_SOURCE_READERF_ENDOFSTREAM)!=0; return true;
+        if (pending.size() > 4 * 1024 * 1024 || pending.size() % format_.nBlockAlign != 0)
+            return false;
+        bytes = std::move(pending);
+        ended = (flags & MF_SOURCE_READERF_ENDOFSTREAM) != 0;
+        return true;
     }
     bool AudioStream::Rewind()
     {
-        if (!reader_) return false;
-        PROPVARIANT position{};position.vt=VT_I8;position.hVal.QuadPart=0;
-        return Check(reader_->Flush(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM)),"Flush stream decoder")&&
-            Check(reader_->SetCurrentPosition(GUID_NULL,position),"Rewind streamed audio");
+        if (!reader_)
+            return false;
+        PROPVARIANT position{};
+        position.vt = VT_I8;
+        position.hVal.QuadPart = 0;
+        return Check(reader_->Flush(static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM)), "Flush stream decoder") &&
+               Check(reader_->SetCurrentPosition(GUID_NULL, position), "Rewind streamed audio");
     }
 }

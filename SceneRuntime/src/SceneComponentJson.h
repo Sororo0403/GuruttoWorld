@@ -4,7 +4,6 @@
 
 namespace SceneRuntime
 {
-    void ReadSceneComponents(const Engine::Json& object,
-        ScenePlacement& placement, bool legacy);
+    void ReadSceneComponents(const Engine::Json& object, ScenePlacement& placement, bool legacy);
     Engine::Json WriteSceneComponents(const ScenePlacement& placement);
 }

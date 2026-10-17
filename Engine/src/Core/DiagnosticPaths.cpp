@@ -13,7 +13,8 @@ namespace Engine
         PWSTR directory = nullptr;
         const HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT, nullptr, &directory);
         const std::unique_ptr<wchar_t, decltype(&CoTaskMemFree)> owner(directory, CoTaskMemFree);
-        if (FAILED(result) || directory == nullptr) return {};
+        if (FAILED(result) || directory == nullptr)
+            return {};
         return std::filesystem::path(directory) / "WP1";
     }
 }

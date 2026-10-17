@@ -17,14 +17,17 @@
 #include <vector>
 #include <algorithm>
 
-namespace Engine { class AssetDatabase; }
+namespace Engine
+{
+    class AssetDatabase;
+}
 namespace SceneRuntime
 {
     struct ScenePlacement
     {
         std::string id;
         std::string name;
-        bool persistent=false;
+        bool persistent = false;
         std::optional<PrefabLink> prefab;
         std::optional<MeshRendererComponent> meshRenderer;
         std::optional<MaterialComponent> material;
@@ -64,35 +67,107 @@ namespace SceneRuntime
         std::optional<RagdollComponent> ragdoll;
         bool HasComponentId(const std::string& componentId) const
         {
-            if(joint && joint->id==componentId) return true;
-            const auto matches=[&](const auto& component) { return component && component->id==componentId; };
-            if(matches(ragdoll)) return true;
-            if(matches(inputField) || matches(slider) || matches(toggle) || matches(scrollView) || matches(mask) || matches(layoutGroup)) return true;
-            const std::initializer_list<bool> found{componentId=="transform",matches(meshRenderer),matches(material),matches(rotator),matches(playerController),matches(boxCollider),matches(rigidBody),matches(camera),
-                matches(directionalLight),matches(pointLight),matches(spotLight),matches(sky),matches(particleEmitter),matches(cameraSway),matches(canvas),
-                matches(rectTransform),matches(image),matches(text),matches(button),matches(terrain),matches(tilemap),matches(navMesh),matches(navAgent),matches(audioSource),matches(audioListener),matches(audioMixer),matches(animation),matches(animator)};
-            return std::any_of(found.begin(),found.end(),[](bool value){return value;}) ||
-                std::any_of(scripts.begin(),scripts.end(),[&](const auto& script) { return script.id==componentId; });
+            if (joint && joint->id == componentId)
+                return true;
+            const auto matches = [&](const auto& component)
+            {
+                return component && component->id == componentId;
+            };
+            if (matches(ragdoll))
+                return true;
+            if (matches(inputField) || matches(slider) || matches(toggle) || matches(scrollView) || matches(mask) ||
+                matches(layoutGroup))
+                return true;
+            const std::initializer_list<bool> found{componentId == "transform",
+                                                    matches(meshRenderer),
+                                                    matches(material),
+                                                    matches(rotator),
+                                                    matches(playerController),
+                                                    matches(boxCollider),
+                                                    matches(rigidBody),
+                                                    matches(camera),
+                                                    matches(directionalLight),
+                                                    matches(pointLight),
+                                                    matches(spotLight),
+                                                    matches(sky),
+                                                    matches(particleEmitter),
+                                                    matches(cameraSway),
+                                                    matches(canvas),
+                                                    matches(rectTransform),
+                                                    matches(image),
+                                                    matches(text),
+                                                    matches(button),
+                                                    matches(terrain),
+                                                    matches(tilemap),
+                                                    matches(navMesh),
+                                                    matches(navAgent),
+                                                    matches(audioSource),
+                                                    matches(audioListener),
+                                                    matches(audioMixer),
+                                                    matches(animation),
+                                                    matches(animator)};
+            return std::any_of(found.begin(), found.end(),
+                               [](bool value)
+                               {
+                                   return value;
+                               }) ||
+                   std::any_of(scripts.begin(), scripts.end(),
+                               [&](const auto& script)
+                               {
+                                   return script.id == componentId;
+                               });
         }
         auto Components() const
         {
-            return std::tie(ragdoll, inputField, slider, toggle, scrollView, mask, layoutGroup, joint, persistent, meshRenderer, material, rotator, playerController, boxCollider, rigidBody, scripts, camera, directionalLight, pointLight, spotLight, sky, particleEmitter, cameraSway, canvas, rectTransform, image, text, button, terrain, tilemap, navMesh, navAgent, audioSource, audioListener, audioMixer, animation, animator);
+            return std::tie(ragdoll, inputField, slider, toggle, scrollView, mask, layoutGroup, joint, persistent,
+                            meshRenderer, material, rotator, playerController, boxCollider, rigidBody, scripts, camera,
+                            directionalLight, pointLight, spotLight, sky, particleEmitter, cameraSway, canvas,
+                            rectTransform, image, text, button, terrain, tilemap, navMesh, navAgent, audioSource,
+                            audioListener, audioMixer, animation, animator);
         }
         bool SameComponents(const ScenePlacement& other) const
         {
-            return Components()==other.Components();
+            return Components() == other.Components();
         }
         void CopyComponents(const ScenePlacement& other)
         {
-            ragdoll=other.ragdoll;
-            persistent=other.persistent;
-            joint=other.joint;
-            inputField=other.inputField; slider=other.slider; toggle=other.toggle; scrollView=other.scrollView; mask=other.mask; layoutGroup=other.layoutGroup;
-            meshRenderer=other.meshRenderer; material=other.material; rotator=other.rotator; playerController=other.playerController; boxCollider=other.boxCollider; rigidBody=other.rigidBody; scripts=other.scripts; camera=other.camera;
-            directionalLight=other.directionalLight; sky=other.sky; particleEmitter=other.particleEmitter; cameraSway=other.cameraSway;
-            pointLight=other.pointLight; spotLight=other.spotLight;
-            canvas=other.canvas; rectTransform=other.rectTransform; image=other.image; text=other.text; button=other.button; terrain=other.terrain; tilemap=other.tilemap; navMesh=other.navMesh; navAgent=other.navAgent; audioSource=other.audioSource; audioListener=other.audioListener; audioMixer=other.audioMixer;
-            animation=other.animation; animator=other.animator;
+            ragdoll = other.ragdoll;
+            persistent = other.persistent;
+            joint = other.joint;
+            inputField = other.inputField;
+            slider = other.slider;
+            toggle = other.toggle;
+            scrollView = other.scrollView;
+            mask = other.mask;
+            layoutGroup = other.layoutGroup;
+            meshRenderer = other.meshRenderer;
+            material = other.material;
+            rotator = other.rotator;
+            playerController = other.playerController;
+            boxCollider = other.boxCollider;
+            rigidBody = other.rigidBody;
+            scripts = other.scripts;
+            camera = other.camera;
+            directionalLight = other.directionalLight;
+            sky = other.sky;
+            particleEmitter = other.particleEmitter;
+            cameraSway = other.cameraSway;
+            pointLight = other.pointLight;
+            spotLight = other.spotLight;
+            canvas = other.canvas;
+            rectTransform = other.rectTransform;
+            image = other.image;
+            text = other.text;
+            button = other.button;
+            terrain = other.terrain;
+            tilemap = other.tilemap;
+            navMesh = other.navMesh;
+            navAgent = other.navAgent;
+            audioSource = other.audioSource;
+            audioListener = other.audioListener;
+            audioMixer = other.audioMixer;
+            animation = other.animation;
+            animator = other.animator;
         }
         const std::filesystem::path& Model() const
         {
@@ -101,8 +176,9 @@ namespace SceneRuntime
         }
         void SetModel(std::filesystem::path path)
         {
-            if (!meshRenderer) meshRenderer.emplace();
-            meshRenderer->model=std::move(path);
+            if (!meshRenderer)
+                meshRenderer.emplace();
+            meshRenderer->model = std::move(path);
         }
         const std::filesystem::path& Material() const
         {
@@ -111,28 +187,28 @@ namespace SceneRuntime
         }
         std::array<float, 3> position{};
         std::array<float, 3> rotation{}; // XYZ、ラジアン。
-        std::array<float, 3> scale{ 1.0f, 1.0f, 1.0f };
+        std::array<float, 3> scale{1.0f, 1.0f, 1.0f};
         std::string parentId; // Empty means root. Position, rotation and scale are always relative to the parent.
     };
 
     struct FogSettings
     {
-        bool enabled=false;
-        std::array<float,3> color{0.76f,0.84f,0.85f};
-        float start=24, end=155, strength=0.72f;
+        bool enabled = false;
+        std::array<float, 3> color{0.76f, 0.84f, 0.85f};
+        float start = 24, end = 155, strength = 0.72f;
         bool operator==(const FogSettings&) const = default;
     };
     struct SceneSettings
     {
-        std::array<float,3> gravity{0,-20,0};
-        float fixedStep=1.0f/60.0f;
-        unsigned int maximumFixedSteps=4;
-        unsigned int shadowResolution=2048,localShadowResolution=512;
-        float sceneRenderScale=1,gameRenderScale=1;
-        bool sceneRealtime=true,gameRealtime=true;
-        std::filesystem::path skyShader,oceanShader,particleShader,postShader;
-        std::array<std::string,5> playerInputs{"MoveRight","MoveLeft","MoveForward","MoveBack","Jump"};
-        std::array<float,4> background{0.66f,0.79f,0.83f,1};
+        std::array<float, 3> gravity{0, -20, 0};
+        float fixedStep = 1.0f / 60.0f;
+        unsigned int maximumFixedSteps = 4;
+        unsigned int shadowResolution = 2048, localShadowResolution = 512;
+        float sceneRenderScale = 1, gameRenderScale = 1;
+        bool sceneRealtime = true, gameRealtime = true;
+        std::filesystem::path skyShader, oceanShader, particleShader, postShader;
+        std::array<std::string, 5> playerInputs{"MoveRight", "MoveLeft", "MoveForward", "MoveBack", "Jump"};
+        std::array<float, 4> background{0.66f, 0.79f, 0.83f, 1};
         std::string mainCamera;
         FogSettings fog;
         Engine::PostEffectSettings postEffects;
@@ -143,8 +219,8 @@ namespace SceneRuntime
     {
         std::vector<ScenePlacement> objects;
         SceneSettings settings;
-        std::map<std::string,std::string> assetReferences;
-        std::map<std::string,std::vector<std::string>> sceneObjects;
+        std::map<std::string, std::string> assetReferences;
+        std::map<std::string, std::vector<std::string>> sceneObjects;
         void ResolveAssets(const std::filesystem::path& root);
         /// <summary>ロード済み索引で参照を解決し、ディレクトリの再探索を避けます。</summary>
         void ResolveAssets(const Engine::AssetDatabase& index);
@@ -157,6 +233,6 @@ namespace SceneRuntime
         std::string Serialize() const;
         // With overwrite=false, the final atomic commit also refuses an existing destination.
         void Save(const std::filesystem::path& path, bool overwrite = true) const;
-        static SceneLayout Load(const std::filesystem::path& path,const std::filesystem::path& assetsRoot={});
+        static SceneLayout Load(const std::filesystem::path& path, const std::filesystem::path& assetsRoot = {});
     };
 }

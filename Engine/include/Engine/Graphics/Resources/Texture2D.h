@@ -59,14 +59,30 @@ namespace Engine
         /// <summary>RGBA 画素を転送します。遅延転送では同じ DIRECT キューの後続描画で使用でき、CPU は完了を待ちません。</summary>
         /// <param name="deferUpload">true の場合は転送資源を Fence 完了まで保持します。後続描画には転送と同じキューを使ってください。</param>
         bool InitializePixels(ID3D12Device* device, ID3D12CommandQueue* queue, UINT width, UINT height,
-            std::vector<unsigned char> pixels,const TextureImportSettings& settings={},bool deferUpload=false);
-        UINT GetMipLevels() const noexcept { return resource_ ? resource_->GetDesc().MipLevels : 0; }
-        DXGI_FORMAT GetFormat() const noexcept { return resource_ ? resource_->GetDesc().Format : DXGI_FORMAT_UNKNOWN; }
+                              std::vector<unsigned char> pixels, const TextureImportSettings& settings = {},
+                              bool deferUpload = false);
+        UINT GetMipLevels() const noexcept
+        {
+            return resource_ ? resource_->GetDesc().MipLevels : 0;
+        }
+        DXGI_FORMAT GetFormat() const noexcept
+        {
+            return resource_ ? resource_->GetDesc().Format : DXGI_FORMAT_UNKNOWN;
+        }
 
-        UINT GetWidth() const noexcept { return resource_ ? static_cast<UINT>(resource_->GetDesc().Width) : 0; }
-        UINT GetHeight() const noexcept { return resource_ ? resource_->GetDesc().Height : 0; }
+        UINT GetWidth() const noexcept
+        {
+            return resource_ ? static_cast<UINT>(resource_->GetDesc().Width) : 0;
+        }
+        UINT GetHeight() const noexcept
+        {
+            return resource_ ? resource_->GetDesc().Height : 0;
+        }
         D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceView() const noexcept
-        { return cpuDescriptorHeap_ ? cpuDescriptorHeap_->GetCPUDescriptorHandleForHeapStart() : D3D12_CPU_DESCRIPTOR_HANDLE{}; }
+        {
+            return cpuDescriptorHeap_ ? cpuDescriptorHeap_->GetCPUDescriptorHandleForHeapStart()
+                                      : D3D12_CPU_DESCRIPTOR_HANDLE{};
+        }
 
     private:
         struct ImageData
@@ -90,7 +106,7 @@ namespace Engine
         /// <param name="device">生成に使用するデバイス。</param>
         /// <param name="image">画像のサイズ情報。</param>
         /// <returns>生成に成功した場合は true。</returns>
-        bool CreateResource(ID3D12Device* device, const std::vector<TextureLevel>& levels,bool compressed);
+        bool CreateResource(ID3D12Device* device, const std::vector<TextureLevel>& levels, bool compressed);
 
         /// <summary>
         /// 行ピッチの配置規則に従い画素をアップロードバッファーへ書き込みます。
@@ -101,7 +117,8 @@ namespace Engine
         /// <param name="footprint">テクスチャ転送時の配置情報の出力先。</param>
         /// <returns>生成と書き込みに成功した場合は true。</returns>
         bool CreateUploadBuffer(ID3D12Device* device, const std::vector<TextureLevel>& levels,
-            Microsoft::WRL::ComPtr<ID3D12Resource>& upload,std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints);
+                                Microsoft::WRL::ComPtr<ID3D12Resource>& upload,
+                                std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints);
 
         /// <summary>
         /// 画素のコピーとシェーダー参照状態への遷移を実行し、通常は待機、遅延時は転送資源を保持します。
@@ -112,7 +129,7 @@ namespace Engine
         /// <param name="footprint">コピー元の配置情報。</param>
         /// <returns>転送と待機に成功した場合は true。</returns>
         bool UploadAndWait(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Resource* upload,
-            const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints,bool deferUpload=false);
+                           const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints, bool deferUpload = false);
 
         /// <summary>
         /// 描画用の SRV ヒープとテクスチャビューを生成します。

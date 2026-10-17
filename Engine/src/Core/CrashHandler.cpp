@@ -43,22 +43,22 @@ namespace
         GetLocalTime(&time);
         char message[512]{};
         const int length = sprintf_s(message,
-            "[%04u-%02u-%02u %02u:%02u:%02u] [CRASH] "
-            "code=0x%08lX address=%p thread=%lu\r\n",
-            static_cast<unsigned>(time.wYear), static_cast<unsigned>(time.wMonth),
-            static_cast<unsigned>(time.wDay), static_cast<unsigned>(time.wHour),
-            static_cast<unsigned>(time.wMinute), static_cast<unsigned>(time.wSecond),
-            record->ExceptionCode, record->ExceptionAddress, state.threadId);
+                                     "[%04u-%02u-%02u %02u:%02u:%02u] [CRASH] "
+                                     "code=0x%08lX address=%p thread=%lu\r\n",
+                                     static_cast<unsigned>(time.wYear), static_cast<unsigned>(time.wMonth),
+                                     static_cast<unsigned>(time.wDay), static_cast<unsigned>(time.wHour),
+                                     static_cast<unsigned>(time.wMinute), static_cast<unsigned>(time.wSecond),
+                                     record->ExceptionCode, record->ExceptionAddress, state.threadId);
         OutputDebugStringA(message);
 
         // ダンプ生成が停止しても例外情報が残るよう、先に書き込んでフラッシュします。
-        const HANDLE log = CreateFileW(state.logPath.c_str(), GENERIC_WRITE,
-            FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        const HANDLE log = CreateFileW(state.logPath.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_NEW,
+                                       FILE_ATTRIBUTE_NORMAL, nullptr);
         if (log != INVALID_HANDLE_VALUE)
         {
             DWORD written = 0;
             if (length > 0 && (!WriteFile(log, message, static_cast<DWORD>(length), &written, nullptr) ||
-                written != static_cast<DWORD>(length)))
+                               written != static_cast<DWORD>(length)))
             {
                 OutputDebugStringW(L"[CrashHandler] Cannot write the crash information.\n");
             }
@@ -69,8 +69,8 @@ namespace
             OutputDebugStringW(L"[CrashHandler] Cannot open the crash log.\n");
         }
 
-        const HANDLE dump = CreateFileW(state.dumpPath.c_str(), GENERIC_WRITE,
-            FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        const HANDLE dump = CreateFileW(state.dumpPath.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_NEW,
+                                        FILE_ATTRIBUTE_NORMAL, nullptr);
         DWORD dumpError = ERROR_SUCCESS;
         if (dump != INVALID_HANDLE_VALUE)
         {
@@ -78,8 +78,8 @@ namespace
             information.ThreadId = state.threadId;
             information.ExceptionPointers = state.exception;
             information.ClientPointers = FALSE;
-            if (!MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), dump,
-                MiniDumpNormal, &information, nullptr, nullptr))
+            if (!MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), dump, MiniDumpNormal, &information,
+                                   nullptr, nullptr))
             {
                 dumpError = GetLastError();
             }
@@ -99,7 +99,7 @@ namespace
         {
             DWORD written = 0;
             if (resultLength > 0 && (!WriteFile(log, message, static_cast<DWORD>(resultLength), &written, nullptr) ||
-                written != static_cast<DWORD>(resultLength)))
+                                     written != static_cast<DWORD>(resultLength)))
             {
                 OutputDebugStringW(L"[CrashHandler] Cannot append the dump result.\n");
             }
@@ -147,7 +147,7 @@ namespace
         record.ExceptionCode = TerminateCode;
         record.ExceptionFlags = EXCEPTION_NONCONTINUABLE;
         record.ExceptionAddress = reinterpret_cast<void*>(context.Rip);
-        EXCEPTION_POINTERS exception{ &record, &context };
+        EXCEPTION_POINTERS exception{&record, &context};
         RecordCrash(&exception);
         TerminateProcess(GetCurrentProcess(), TerminateCode);
     }
@@ -208,9 +208,9 @@ namespace Engine
 
         SYSTEMTIME time{};
         GetLocalTime(&time);
-        const auto name = std::format(L"Crash_{:04}{:02}{:02}_{:02}{:02}{:02}_{:03}_{}_{}",
-            time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond,
-            time.wMilliseconds, GetCurrentProcessId(), GetTickCount64());
+        const auto name = std::format(L"Crash_{:04}{:02}{:02}_{:02}{:02}{:02}_{:03}_{}_{}", time.wYear, time.wMonth,
+                                      time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds,
+                                      GetCurrentProcessId(), GetTickCount64());
         state.dumpPath = (path / (name + L".dmp")).wstring();
         state.logPath = (path / (name + L".log")).wstring();
         InterlockedExchange(&state.handling, 0);

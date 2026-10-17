@@ -7,7 +7,7 @@
 namespace Engine
 {
     bool SphereRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-        const std::filesystem::path& texturePath, const std::filesystem::path& shaderPath)
+                                    const std::filesystem::path& texturePath, const std::filesystem::path& shaderPath)
     {
         MeshData mesh;
         GenerateMesh(mesh.vertices, mesh.indices);
@@ -36,8 +36,8 @@ namespace Engine
             {
                 const float u = static_cast<float>(longitude) / LongitudeCount;
                 const float phi = longitude == LongitudeCount ? 0.0f : u * 2.0f * std::numbers::pi_v<float>;
-                const std::array<float, 3> position{ radius * std::cos(phi), std::cos(theta), radius * std::sin(phi) };
-                vertices.push_back({ position, position, { u, v } });
+                const std::array<float, 3> position{radius * std::cos(phi), std::cos(theta), radius * std::sin(phi)};
+                vertices.push_back({position, position, {u, v}});
             }
         }
         for (UINT latitude = 0; latitude < LatitudeCount; ++latitude)
@@ -48,19 +48,19 @@ namespace Engine
                 const UINT b = a + LongitudeCount + 1;
                 if (latitude != 0)
                 {
-                    indices.insert(indices.end(), { a, a + 1, b });
+                    indices.insert(indices.end(), {a, a + 1, b});
                 }
                 if (latitude + 1 != LatitudeCount)
                 {
-                    indices.insert(indices.end(), { a + 1, b + 1, b });
+                    indices.insert(indices.end(), {a + 1, b + 1, b});
                 }
             }
         }
     }
 
     void SphereRenderer::Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
-        const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
-        const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform) const
+                              const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light,
+                              const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform) const
     {
         renderer_.Draw(commands, world, viewProjection, light, cameraPosition, uvTransform);
     }

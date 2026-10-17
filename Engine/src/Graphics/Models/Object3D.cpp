@@ -22,22 +22,24 @@ namespace Engine
     }
 
     bool Object3D::SetTransform(const std::array<float, 3>& position, const std::array<float, 3>& rotation,
-        const std::array<float, 3>& scale)
+                                const std::array<float, 3>& scale)
     {
         for (size_t axis = 0; axis < position.size(); ++axis)
         {
-            if (!std::isfinite(position[axis]) || !std::isfinite(rotation[axis]) ||
-                !std::isfinite(scale[axis]) || scale[axis] == 0.0f) return false;
+            if (!std::isfinite(position[axis]) || !std::isfinite(rotation[axis]) || !std::isfinite(scale[axis]) ||
+                scale[axis] == 0.0f)
+                return false;
         }
         using namespace DirectX;
-        const XMMATRIX world = XMMatrixScaling(scale[0], scale[1], scale[2]) *
-            XMMatrixRotationX(rotation[0]) * XMMatrixRotationY(rotation[1]) * XMMatrixRotationZ(rotation[2]) *
-            XMMatrixTranslation(position[0], position[1], position[2]);
+        const XMMATRIX world = XMMatrixScaling(scale[0], scale[1], scale[2]) * XMMatrixRotationX(rotation[0]) *
+                               XMMatrixRotationY(rotation[1]) * XMMatrixRotationZ(rotation[2]) *
+                               XMMatrixTranslation(position[0], position[1], position[2]);
         XMVECTOR determinant;
         const XMMATRIX inverse = XMMatrixInverse(&determinant, world);
-        if (!std::isfinite(XMVectorGetX(determinant)) || XMVectorGetX(determinant) == 0.0f) return false;
-        if (XMMatrixIsNaN(world) || XMMatrixIsInfinite(world) ||
-            XMMatrixIsNaN(inverse) || XMMatrixIsInfinite(inverse)) return false;
+        if (!std::isfinite(XMVectorGetX(determinant)) || XMVectorGetX(determinant) == 0.0f)
+            return false;
+        if (XMMatrixIsNaN(world) || XMMatrixIsInfinite(world) || XMMatrixIsNaN(inverse) || XMMatrixIsInfinite(inverse))
+            return false;
         position_ = position;
         rotation_ = rotation;
         scale_ = scale;
@@ -48,15 +50,16 @@ namespace Engine
     bool Object3D::SetWorldMatrix(const DirectX::XMFLOAT4X4& matrix)
     {
         using namespace DirectX;
-        const auto world=XMLoadFloat4x4(&matrix);
-        if (XMMatrixIsNaN(world) || XMMatrixIsInfinite(world) ||
-            std::abs(matrix._14)>1e-6f || std::abs(matrix._24)>1e-6f ||
-            std::abs(matrix._34)>1e-6f || std::abs(matrix._44-1)>1e-6f) return false;
+        const auto world = XMLoadFloat4x4(&matrix);
+        if (XMMatrixIsNaN(world) || XMMatrixIsInfinite(world) || std::abs(matrix._14) > 1e-6f ||
+            std::abs(matrix._24) > 1e-6f || std::abs(matrix._34) > 1e-6f || std::abs(matrix._44 - 1) > 1e-6f)
+            return false;
         XMVECTOR determinant;
-        const auto inverse=XMMatrixInverse(&determinant,world);
-        const auto value=XMVectorGetX(determinant);
-        if (!std::isfinite(value) || value==0 || XMMatrixIsNaN(inverse) || XMMatrixIsInfinite(inverse)) return false;
-        world_=matrix;
+        const auto inverse = XMMatrixInverse(&determinant, world);
+        const auto value = XMVectorGetX(determinant);
+        if (!std::isfinite(value) || value == 0 || XMMatrixIsNaN(inverse) || XMMatrixIsInfinite(inverse))
+            return false;
+        world_ = matrix;
         return true;
     }
 
@@ -80,14 +83,20 @@ namespace Engine
         return world_;
     }
 
-    void Object3D::Draw(ID3D12GraphicsCommandList* commands, const Camera& camera,
-        const DirectionalLight& light, const UvTransform& uvTransform,MaterialPass pass) const
+    void Object3D::Draw(ID3D12GraphicsCommandList* commands, const Camera& camera, const DirectionalLight& light,
+                        const UvTransform& uvTransform, MaterialPass pass) const
     {
-        if (model_) model_->Draw(commands, world_, camera.GetViewProjectionMatrix(), light, camera.GetPosition(), material_ ? material_->uv : uvTransform,material_.get(),{materialSlots_,pass});
+        if (model_)
+            model_->Draw(commands, world_, camera.GetViewProjectionMatrix(), light, camera.GetPosition(),
+                         material_ ? material_->uv : uvTransform, material_.get(), {materialSlots_, pass});
     }
-    bool Object3D::HasMaterialPass(MaterialPass pass) const {
-        if(!model_) return false;
-        for(size_t i=0;i<model_->MeshCount();++i) if(MatchesMaterialPass(MaterialForMesh(i),pass)) return true;
+    bool Object3D::HasMaterialPass(MaterialPass pass) const
+    {
+        if (!model_)
+            return false;
+        for (size_t i = 0; i < model_->MeshCount(); ++i)
+            if (MatchesMaterialPass(MaterialForMesh(i), pass))
+                return true;
         return false;
     }
 }

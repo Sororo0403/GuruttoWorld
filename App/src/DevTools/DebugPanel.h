@@ -15,8 +15,7 @@ namespace App
         /// <param name="speedDegrees">1 秒あたりの回転角度（度）。</param>
         /// <param name="rotating">自動回転する場合は true。</param>
         /// <param name="backgroundColor">背景色の RGBA 値。</param>
-        static void Draw(double& rotationY, float& speedDegrees, bool& rotating,
-            std::array<float, 4>& backgroundColor);
+        static void Draw(double& rotationY, float& speedDegrees, bool& rotating, std::array<float, 4>& backgroundColor);
     };
 }
 #endif

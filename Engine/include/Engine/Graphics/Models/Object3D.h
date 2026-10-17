@@ -27,11 +27,26 @@ namespace Engine
         /// 最後の参照を解放する前に GPU 処理を完了させるか、ModelManager に所有権を保持させてください。
         /// </summary>
         void SetModel(std::shared_ptr<const ModelRenderer> model);
-        void SetMaterial(std::shared_ptr<const Material> material) { material_=std::move(material); }
-        const std::shared_ptr<const Material>& GetMaterial() const { return material_; }
-        void SetMaterialSlots(MaterialSlots slots) {materialSlots_=std::move(slots);}
-        const MaterialSlots& GetMaterialSlots() const {return materialSlots_;}
-        const Material* MaterialForMesh(size_t index) const {return MaterialForSlot(index,material_.get(),materialSlots_);}
+        void SetMaterial(std::shared_ptr<const Material> material)
+        {
+            material_ = std::move(material);
+        }
+        const std::shared_ptr<const Material>& GetMaterial() const
+        {
+            return material_;
+        }
+        void SetMaterialSlots(MaterialSlots slots)
+        {
+            materialSlots_ = std::move(slots);
+        }
+        const MaterialSlots& GetMaterialSlots() const
+        {
+            return materialSlots_;
+        }
+        const Material* MaterialForMesh(size_t index) const
+        {
+            return MaterialForSlot(index, material_.get(), materialSlots_);
+        }
         bool HasMaterialPass(MaterialPass pass) const;
 
         /// <summary>
@@ -44,7 +59,7 @@ namespace Engine
         /// 非有限値・ゼロ拡縮・逆行列を計算できない変換は false を返し、直前の状態を維持します。
         /// </summary>
         bool SetTransform(const std::array<float, 3>& position, const std::array<float, 3>& rotation,
-            const std::array<float, 3>& scale);
+                          const std::array<float, 3>& scale);
 
         // Set the full affine draw matrix, retaining shear. SRT getters retain the values from SetTransform.
         // Invalid matrices leave the previous draw matrix unchanged.
@@ -74,9 +89,8 @@ namespace Engine
         /// 保持するワールド行列と共有モデルで描画します。モデル未設定時は何もしません。
         /// 描画リソースを解放する前に、利用中の GPU 処理を完了させてください。
         /// </summary>
-        void Draw(ID3D12GraphicsCommandList* commands, const Camera& camera,
-            const DirectionalLight& light = {},
-            const UvTransform& uvTransform = {},MaterialPass pass=MaterialPass::All) const;
+        void Draw(ID3D12GraphicsCommandList* commands, const Camera& camera, const DirectionalLight& light = {},
+                  const UvTransform& uvTransform = {}, MaterialPass pass = MaterialPass::All) const;
 
     private:
         std::shared_ptr<const ModelRenderer> model_;
@@ -84,7 +98,7 @@ namespace Engine
         MaterialSlots materialSlots_;
         std::array<float, 3> position_{};
         std::array<float, 3> rotation_{};
-        std::array<float, 3> scale_{ 1.0f, 1.0f, 1.0f };
+        std::array<float, 3> scale_{1.0f, 1.0f, 1.0f};
         DirectX::XMFLOAT4X4 world_{};
     };
 }

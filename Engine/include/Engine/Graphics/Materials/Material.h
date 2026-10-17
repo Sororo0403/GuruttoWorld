@@ -8,30 +8,38 @@
 namespace Engine
 {
     class MeshResources;
-    enum class MaterialPass {All,Opaque,Transparent};
+    enum class MaterialPass
+    {
+        All,
+        Opaque,
+        Transparent
+    };
     struct Material
     {
         std::shared_ptr<MeshResources> shaderResources;
-        std::array<float,4> color{1,1,1,1};
-        float roughness=0.5f,metallic=0,effectAmount=0,effectVariant=0;
-        bool transparent=false;
+        std::array<float, 4> color{1, 1, 1, 1};
+        float roughness = 0.5f, metallic = 0, effectAmount = 0, effectVariant = 0;
+        bool transparent = false;
         // 既存資産は従来の照明を維持し、PBR は明示的に有効化します。
-        bool physicallyBased=false;
-        bool normalFlipY=false;
+        bool physicallyBased = false;
+        bool normalFlipY = false;
         UvTransform uv;
         // Empty uses the model's texture. Resource lifetime must cover all draws.
         std::shared_ptr<const Texture2D> texture;
         // 接線空間の法線画像（RGB、線形値）。未指定時は幾何法線を使います。
         std::shared_ptr<const Texture2D> normalTexture;
-        std::shared_ptr<const Texture2D> environmentTexture,lightmap;
-        float environmentIntensity=1;
+        std::shared_ptr<const Texture2D> environmentTexture, lightmap;
+        float environmentIntensity = 1;
     };
-    using MaterialSlots=std::vector<std::shared_ptr<const Material>>;
-    inline const Material* MaterialForSlot(size_t index,const Material* fallback,std::span<const std::shared_ptr<const Material>> slots) {
-        return index<slots.size() && slots[index] ? slots[index].get():fallback;
+    using MaterialSlots = std::vector<std::shared_ptr<const Material>>;
+    inline const Material* MaterialForSlot(size_t index, const Material* fallback,
+                                           std::span<const std::shared_ptr<const Material>> slots)
+    {
+        return index < slots.size() && slots[index] ? slots[index].get() : fallback;
     }
-    inline bool MatchesMaterialPass(const Material* material,MaterialPass pass) {
-        const bool transparent=material && (material->transparent || material->color[3]<1);
-        return pass==MaterialPass::All || (pass==MaterialPass::Transparent)==transparent;
+    inline bool MatchesMaterialPass(const Material* material, MaterialPass pass)
+    {
+        const bool transparent = material && (material->transparent || material->color[3] < 1);
+        return pass == MaterialPass::All || (pass == MaterialPass::Transparent) == transparent;
     }
 }

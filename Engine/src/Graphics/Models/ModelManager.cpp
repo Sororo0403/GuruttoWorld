@@ -4,9 +4,11 @@
 
 namespace Engine
 {
-    bool ModelManager::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& shaderPath)
+    bool ModelManager::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
+                                  const std::filesystem::path& shaderPath)
     {
-        if (shaderPath.empty() || device_ || device == nullptr || queue == nullptr || queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT)
+        if (shaderPath.empty() || device_ || device == nullptr || queue == nullptr ||
+            queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT)
         {
             return false;
         }
@@ -24,13 +26,15 @@ namespace Engine
 
     std::shared_ptr<const ModelRenderer> ModelManager::Load(const std::filesystem::path& path)
     {
-        if (!device_ || path.empty()) return {};
+        if (!device_ || path.empty())
+            return {};
         std::error_code error;
         const auto key = std::filesystem::weakly_canonical(path, error);
         if (error)
         {
-            const auto utf8=path.generic_u8string();
-            Log::Error("Cannot resolve the model cache path: "+std::string(utf8.begin(),utf8.end())+" ("+error.message()+")");
+            const auto utf8 = path.generic_u8string();
+            Log::Error("Cannot resolve the model cache path: " + std::string(utf8.begin(), utf8.end()) + " (" +
+                       error.message() + ")");
             return {};
         }
         if (const auto found = models_.find(key); found != models_.end())
@@ -38,24 +42,39 @@ namespace Engine
             return found->second;
         }
         auto model = std::make_shared<ModelRenderer>();
-        if (!model->Initialize(device_.Get(), queue_.Get(), key, shaderPath_)) return {};
+        if (!model->Initialize(device_.Get(), queue_.Get(), key, shaderPath_))
+            return {};
         models_.emplace(key, model);
         return model;
     }
 
-    std::shared_ptr<const ModelRenderer> ModelManager::Procedural(const std::string& key,const std::string& signature,const std::function<std::vector<MeshData>()>& generate)
+    std::shared_ptr<const ModelRenderer> ModelManager::Procedural(
+        const std::string& key, const std::string& signature, const std::function<std::vector<MeshData>()>& generate)
     {
-        if(!device_||key.empty()||!generate) return {};
-        const auto found=procedural_.find(key); if(found!=procedural_.end()&&found->second.signature==signature) return found->second.model;
-        const auto data=generate();
-        if(data.empty()||data.front().indices.empty()) {procedural_[key]={signature,{}};return {};}
-        auto model=std::make_shared<ModelRenderer>(); if(!model->Initialize(device_.Get(),queue_.Get(),data,shaderPath_)) throw std::runtime_error("Procedural model GPU upload failed");
-        procedural_[key]={signature,model};return model;
+        if (!device_ || key.empty() || !generate)
+            return {};
+        const auto found = procedural_.find(key);
+        if (found != procedural_.end() && found->second.signature == signature)
+            return found->second.model;
+        const auto data = generate();
+        if (data.empty() || data.front().indices.empty())
+        {
+            procedural_[key] = {signature, {}};
+            return {};
+        }
+        auto model = std::make_shared<ModelRenderer>();
+        if (!model->Initialize(device_.Get(), queue_.Get(), data, shaderPath_))
+            throw std::runtime_error("Procedural model GPU upload failed");
+        procedural_[key] = {signature, model};
+        return model;
     }
     void ModelManager::Swap(ModelManager& other) noexcept
     {
-        device_.Swap(other.device_); queue_.Swap(other.queue_);
-        shaderPath_.swap(other.shaderPath_); models_.swap(other.models_); procedural_.swap(other.procedural_);
+        device_.Swap(other.device_);
+        queue_.Swap(other.queue_);
+        shaderPath_.swap(other.shaderPath_);
+        models_.swap(other.models_);
+        procedural_.swap(other.procedural_);
     }
 
     bool ModelManager::PathLess::operator()(const std::filesystem::path& left, const std::filesystem::path& right) const

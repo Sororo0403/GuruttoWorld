@@ -53,8 +53,8 @@ namespace Engine
         return true;
     }
 
-    bool WaitForGpuFence(ID3D12Device* device, ID3D12Fence* fence, UINT64 value,
-        HANDLE event, DWORD timeoutMilliseconds)
+    bool WaitForGpuFence(ID3D12Device* device, ID3D12Fence* fence, UINT64 value, HANDLE event,
+                         DWORD timeoutMilliseconds)
     {
         const ULONGLONG started = GetTickCount64();
         bool registered = false;

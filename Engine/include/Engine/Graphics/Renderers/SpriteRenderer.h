@@ -10,17 +10,17 @@ namespace Engine
     struct SpriteDrawParameters
     {
         // 画面左上を原点とするピクセル座標と、回転前の幅・高さです。
-        std::array<float, 2> position{ 0.0f, 0.0f };
-        std::array<float, 2> size{ 128.0f, 128.0f };
+        std::array<float, 2> position{0.0f, 0.0f};
+        std::array<float, 2> size{128.0f, 128.0f};
         // 中心を軸とする時計回りの回転角度（ラジアン）です。
         float rotation = 0.0f;
-        std::array<float, 4> color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        std::array<float, 4> color{1.0f, 1.0f, 1.0f, 1.0f};
         // 画像を切り出す UV 範囲（左、上、右、下）です。
-        std::array<float, 4> uvRect{ 0.0f, 0.0f, 1.0f, 1.0f };
+        std::array<float, 4> uvRect{0.0f, 0.0f, 1.0f, 1.0f};
         // UV 範囲で切り出した座標に変換を適用します。
         UvTransform uvTransform;
         // Optional b1 constants; the standard sprite shader ignores them.
-        std::array<float,96> pixelConstants{};
+        std::array<float, 96> pixelConstants{};
     };
 
     class SpriteRenderer final
@@ -55,8 +55,8 @@ namespace Engine
         /// <param name="shaderPath">スプライト用の VSMain・PSMain を定義した HLSL ファイル。</param>
         /// <param name="depthWrite">depthTestが有効な場合だけ、シェーダーが返す深度を書き込みます。既定は書き込みません。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
-        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-            std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest=false, bool depthWrite=false);
+        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, std::shared_ptr<const Texture2D> texture,
+                        const std::filesystem::path& shaderPath, bool depthTest = false, bool depthWrite = false);
 
         /// <summary>既存スプライトの描画資源を共有し、同じデバイスのテクスチャだけを差し替えます。</summary>
         bool InitializeShared(const SpriteRenderer& prototype, std::shared_ptr<const Texture2D> texture);
@@ -69,10 +69,13 @@ namespace Engine
         /// <param name="viewportHeight">描画領域の高さ（ピクセル）。</param>
         /// <param name="parameters">位置、サイズ、回転、色、UV 範囲。</param>
         void Draw(ID3D12GraphicsCommandList* commands, UINT viewportWidth, UINT viewportHeight,
-            const SpriteDrawParameters& parameters) const;
+                  const SpriteDrawParameters& parameters) const;
 
         /// <summary>二つのスプライトがメッシュ・描画パイプラインを共有しているかを取得します。</summary>
-        bool SharesPipelineWith(const SpriteRenderer& other) const { return sharedPipeline_ && sharedPipeline_ == other.sharedPipeline_; }
+        bool SharesPipelineWith(const SpriteRenderer& other) const
+        {
+            return sharedPipeline_ && sharedPipeline_ == other.sharedPipeline_;
+        }
 
     private:
         /// <summary>

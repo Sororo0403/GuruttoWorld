@@ -15,7 +15,8 @@ namespace
 {
     void Check(bool condition, const char* message)
     {
-        if (!condition) throw std::runtime_error(message);
+        if (!condition)
+            throw std::runtime_error(message);
     }
 }
 
@@ -24,12 +25,12 @@ int main()
     try
     {
         Engine::Camera camera;
-        Check(camera.SetPosition({ 1, 2, -3 }), "camera position");
+        Check(camera.SetPosition({1, 2, -3}), "camera position");
         Check(camera.SetRotation(0, 0), "camera rotation");
         DirectX::XMFLOAT4X4 view;
         DirectX::XMStoreFloat4x4(&view, camera.GetViewMatrix());
         Check(view._41 == -1 && view._42 == -2 && view._43 == 3, "view follows position");
-        Check(!camera.SetPosition({ std::numeric_limits<float>::infinity(), 0, 0 }), "invalid camera position");
+        Check(!camera.SetPosition({std::numeric_limits<float>::infinity(), 0, 0}), "invalid camera position");
         Check(camera.GetPosition()[0] == 1, "invalid position preserves camera");
         Check(camera.SetPerspective(DirectX::XM_PIDIV4, 2, 0.1f, 100), "perspective");
         DirectX::XMFLOAT4X4 projection;
@@ -71,8 +72,8 @@ int main()
         Check(!particles.CreateGroup("Glow", device.Get(), queue.Get(), white, shader), "duplicate group rejected");
         Check(!particles.CreateGroup("Invalid", device.Get(), queue.Get(), {}, shader), "invalid texture rejected");
         Engine::Particle particle;
-        particle.position = { 1, 2, 3 };
-        particle.velocity = { 0, 1, 0 };
+        particle.position = {1, 2, 3};
+        particle.velocity = {0, 1, 0};
         particle.lifetime = 1;
         Check(particles.Emit("Checker", particle), "emit first group");
         particle.lifetime = 2;
@@ -84,16 +85,19 @@ int main()
         particles.Update(std::numeric_limits<double>::quiet_NaN());
         Check(particles.GetParticleCount("Checker") == 1, "invalid update ignored");
         particles.Update(1);
-        Check(particles.GetParticleCount("Checker") == 0 && particles.GetParticleCount("Glow") == 1, "independent group lifetimes");
+        Check(particles.GetParticleCount("Checker") == 0 && particles.GetParticleCount("Glow") == 1,
+              "independent group lifetimes");
         particles.Update(1);
         Check(particles.GetParticleCount("Glow") == 0, "expired removed");
         particle = {};
-        for (int index = 0; index < 1024; ++index) Check(particles.Emit("Glow", particle), "emit within capacity");
+        for (int index = 0; index < 1024; ++index)
+            Check(particles.Emit("Glow", particle), "emit within capacity");
         Check(!particles.Emit("Glow", particle), "capacity enforced");
         particles.Update(2);
         Check(particles.Emit("Glow", particle), "capacity recycled");
         particles.Draw(nullptr, camera);
-        std::cout << "PASS: camera transforms/projection, shared camera API, texture groups, emit validation, lifetime and capacity\n";
+        std::cout
+            << "PASS: camera transforms/projection, shared camera API, texture groups, emit validation, lifetime and capacity\n";
         return 0;
     }
     catch (const std::exception& error)

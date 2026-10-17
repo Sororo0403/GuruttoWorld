@@ -19,8 +19,7 @@ namespace
     {
         if (FAILED(result))
         {
-            Engine::Log::Error(std::format("{} failed: 0x{:08X}", operation,
-                static_cast<unsigned long>(result)));
+            Engine::Log::Error(std::format("{} failed: 0x{:08X}", operation, static_cast<unsigned long>(result)));
             return false;
         }
         return true;
@@ -29,13 +28,13 @@ namespace
     void LogSelectedAdapter(const DXGI_ADAPTER_DESC1& description)
     {
         std::array<char, 512> name{};
-        const int length = WideCharToMultiByte(CP_UTF8, 0, description.Description, -1,
-            name.data(), static_cast<int>(name.size()), nullptr, nullptr);
+        const int length = WideCharToMultiByte(CP_UTF8, 0, description.Description, -1, name.data(),
+                                               static_cast<int>(name.size()), nullptr, nullptr);
         Engine::Log::Info(std::format(
             "DirectX 12 GPU: {} (dedicated VRAM: {} MiB, vendor: {:04X}, device: {:04X}, LUID: {:08X}:{:08X}).",
-            length > 0 ? name.data() : "Unknown GPU",
-            description.DedicatedVideoMemory / (1024 * 1024), description.VendorId, description.DeviceId,
-            static_cast<unsigned int>(description.AdapterLuid.HighPart), description.AdapterLuid.LowPart));
+            length > 0 ? name.data() : "Unknown GPU", description.DedicatedVideoMemory / (1024 * 1024),
+            description.VendorId, description.DeviceId, static_cast<unsigned int>(description.AdapterLuid.HighPart),
+            description.AdapterLuid.LowPart));
     }
 }
 
@@ -65,7 +64,11 @@ namespace Engine
             CloseHandle(fenceEvent_);
             fenceEvent_ = nullptr;
         }
-        timestampQueries_.Reset(); timestampReadback_.Reset(); timestampFrequency_=0; timestampPending_.fill(false); telemetry_={};
+        timestampQueries_.Reset();
+        timestampReadback_.Reset();
+        timestampFrequency_ = 0;
+        timestampPending_.fill(false);
+        telemetry_ = {};
         commands_.Reset();
         for (auto& allocator : allocators_)
         {
@@ -96,7 +99,8 @@ namespace Engine
     }
 
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
-    D3D12_GPU_DESCRIPTOR_HANDLE DirectX12Renderer::SetSceneTexture(D3D12_CPU_DESCRIPTOR_HANDLE source, unsigned int slot)
+    D3D12_GPU_DESCRIPTOR_HANDLE DirectX12Renderer::SetSceneTexture(D3D12_CPU_DESCRIPTOR_HANDLE source,
+                                                                   unsigned int slot)
     {
         return debugUi_.SetSceneTexture(device_.Get(), source, slot);
     }
@@ -148,8 +152,7 @@ namespace Engine
     bool DirectX12Renderer::SetTargetWindow(HWND handle)
     {
         RECT client{};
-        if (!IsWindow(handle) || !GetClientRect(handle, &client) ||
-            client.right <= 0 || client.bottom <= 0)
+        if (!IsWindow(handle) || !GetClientRect(handle, &client) || client.right <= 0 || client.bottom <= 0)
         {
             Log::Error("Invalid DirectX 12 target window.");
             return false;
@@ -173,9 +176,9 @@ namespace Engine
         }
         else
         {
-            Log::Warning(std::format(
-                "DirectX 12 debug layer unavailable: 0x{:08X}. Check Windows Graphics Tools installation.",
-                static_cast<unsigned long>(result)));
+            Log::Warning(
+                std::format("DirectX 12 debug layer unavailable: 0x{:08X}. Check Windows Graphics Tools installation.",
+                            static_cast<unsigned long>(result)));
         }
 #endif
     }
@@ -192,15 +195,16 @@ namespace Engine
         DXGI_ADAPTER_DESC1 selectedDescription{};
         if (!useGpuPreference)
         {
-            Log::Warning("DXGI GPU preference is unavailable; selecting the compatible GPU with the most dedicated VRAM.");
+            Log::Warning(
+                "DXGI GPU preference is unavailable; selecting the compatible GPU with the most dedicated VRAM.");
         }
-        for (UINT index = 0; ; ++index)
+        for (UINT index = 0;; ++index)
         {
             ComPtr<IDXGIAdapter1> adapter;
             const HRESULT result = useGpuPreference
-                ? preferredFactory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                    IID_PPV_ARGS(&adapter))
-                : factory_->EnumAdapters1(index, &adapter);
+                                       ? preferredFactory->EnumAdapterByGpuPreference(
+                                             index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter))
+                                       : factory_->EnumAdapters1(index, &adapter);
             if (result == DXGI_ERROR_NOT_FOUND)
             {
                 break;
@@ -219,8 +223,7 @@ namespace Engine
                 continue;
             }
             ComPtr<ID3D12Device> candidate;
-            if (FAILED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0,
-                IID_PPV_ARGS(&candidate))))
+            if (FAILED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&candidate))))
             {
                 continue;
             }
@@ -246,8 +249,7 @@ namespace Engine
     {
         ComPtr<IDXGIAdapter> warp;
         if (!Check(factory_->EnumWarpAdapter(IID_PPV_ARGS(&warp)), "EnumWarpAdapter") ||
-            !Check(D3D12CreateDevice(warp.Get(), D3D_FEATURE_LEVEL_11_0,
-                IID_PPV_ARGS(&device_)), "D3D12CreateDevice"))
+            !Check(D3D12CreateDevice(warp.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device_)), "D3D12CreateDevice"))
         {
             return false;
         }
@@ -278,8 +280,9 @@ namespace Engine
         swapDescription.BufferCount = BufferCount;
         swapDescription.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         ComPtr<IDXGISwapChain1> initialSwapChain;
-        if (!Check(factory_->CreateSwapChainForHwnd(queue_.Get(), window_, &swapDescription,
-            nullptr, nullptr, &initialSwapChain), "CreateSwapChainForHwnd") ||
+        if (!Check(factory_->CreateSwapChainForHwnd(queue_.Get(), window_, &swapDescription, nullptr, nullptr,
+                                                    &initialSwapChain),
+                   "CreateSwapChainForHwnd") ||
             !Check(initialSwapChain.As(&swapChain_), "Query IDXGISwapChain3") ||
             !Check(factory_->MakeWindowAssociation(window_, DXGI_MWA_NO_ALT_ENTER), "MakeWindowAssociation"))
         {
@@ -294,7 +297,8 @@ namespace Engine
         D3D12_DESCRIPTOR_HEAP_DESC heapDescription{};
         heapDescription.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
         heapDescription.NumDescriptors = BufferCount;
-        if (!Check(device_->CreateDescriptorHeap(&heapDescription, IID_PPV_ARGS(&renderTargetHeap_)), "CreateDescriptorHeap"))
+        if (!Check(device_->CreateDescriptorHeap(&heapDescription, IID_PPV_ARGS(&renderTargetHeap_)),
+                   "CreateDescriptorHeap"))
         {
             return false;
         }
@@ -306,14 +310,15 @@ namespace Engine
     {
         for (auto& allocator : allocators_)
         {
-            if (!Check(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                IID_PPV_ARGS(&allocator)), "CreateCommandAllocator"))
+            if (!Check(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator)),
+                       "CreateCommandAllocator"))
             {
                 return false;
             }
         }
-        if (!Check(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
-            allocators_[0].Get(), nullptr, IID_PPV_ARGS(&commands_)), "CreateCommandList"))
+        if (!Check(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocators_[0].Get(), nullptr,
+                                              IID_PPV_ARGS(&commands_)),
+                   "CreateCommandList"))
         {
             return false;
         }
@@ -346,14 +351,8 @@ namespace Engine
             return false;
         }
         EnableDebugLayer();
-        if (!CreateFactory() ||
-            !CreateDevice() ||
-            !CreateCommandQueue() ||
-            !CreateSwapChain() ||
-            !CreateRenderTargetHeap() ||
-            !CreateRenderTargets() ||
-            !CreateDepthBuffers() ||
-            !CreateDrawingCommands() ||
+        if (!CreateFactory() || !CreateDevice() || !CreateCommandQueue() || !CreateSwapChain() ||
+            !CreateRenderTargetHeap() || !CreateRenderTargets() || !CreateDepthBuffers() || !CreateDrawingCommands() ||
             !CreateSynchronizationObjects())
         {
             ReleaseResources();
@@ -372,16 +371,30 @@ namespace Engine
         return true;
     }
 
-    void DirectX12Renderer::InitializeTelemetry() {
-        D3D12_QUERY_HEAP_DESC queries{}; queries.Type=D3D12_QUERY_HEAP_TYPE_TIMESTAMP; queries.Count=BufferCount*GpuProfileContext::Queries;
-        D3D12_HEAP_PROPERTIES heap{}; heap.Type=D3D12_HEAP_TYPE_READBACK;
-        D3D12_RESOURCE_DESC resource{}; resource.Dimension=D3D12_RESOURCE_DIMENSION_BUFFER;
-        resource.Width=sizeof(UINT64)*BufferCount*GpuProfileContext::Queries; resource.Height=1; resource.DepthOrArraySize=1; resource.MipLevels=1;
-        resource.SampleDesc.Count=1; resource.Layout=D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        if (FAILED(queue_->GetTimestampFrequency(&timestampFrequency_)) || timestampFrequency_==0 ||
-            FAILED(device_->CreateQueryHeap(&queries,IID_PPV_ARGS(&timestampQueries_))) ||
-            FAILED(device_->CreateCommittedResource(&heap,D3D12_HEAP_FLAG_NONE,&resource,D3D12_RESOURCE_STATE_COPY_DEST,nullptr,IID_PPV_ARGS(&timestampReadback_)))) {
-            timestampQueries_.Reset(); timestampReadback_.Reset(); timestampFrequency_=0;
+    void DirectX12Renderer::InitializeTelemetry()
+    {
+        D3D12_QUERY_HEAP_DESC queries{};
+        queries.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+        queries.Count = BufferCount * GpuProfileContext::Queries;
+        D3D12_HEAP_PROPERTIES heap{};
+        heap.Type = D3D12_HEAP_TYPE_READBACK;
+        D3D12_RESOURCE_DESC resource{};
+        resource.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        resource.Width = sizeof(UINT64) * BufferCount * GpuProfileContext::Queries;
+        resource.Height = 1;
+        resource.DepthOrArraySize = 1;
+        resource.MipLevels = 1;
+        resource.SampleDesc.Count = 1;
+        resource.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        if (FAILED(queue_->GetTimestampFrequency(&timestampFrequency_)) || timestampFrequency_ == 0 ||
+            FAILED(device_->CreateQueryHeap(&queries, IID_PPV_ARGS(&timestampQueries_))) ||
+            FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &resource,
+                                                    D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                    IID_PPV_ARGS(&timestampReadback_))))
+        {
+            timestampQueries_.Reset();
+            timestampReadback_.Reset();
+            timestampFrequency_ = 0;
             Log::Warning("GPU timestamp telemetry is unavailable.");
         }
     }
@@ -407,10 +420,10 @@ namespace Engine
     }
 
     RenderResult DirectX12Renderer::Render(const std::array<float, 4>& clearColor,
-        const std::function<void(ID3D12GraphicsCommandList*, float)>& draw,
-        const std::function<void()>& debugUi)
+                                           const std::function<void(ID3D12GraphicsCommandList*, float)>& draw,
+                                           const std::function<void()>& debugUi)
     {
-        const auto cpuStart=std::chrono::steady_clock::now();
+        const auto cpuStart = std::chrono::steady_clock::now();
         if (!ready_)
         {
             return RenderResult::Failed;
@@ -453,10 +466,12 @@ namespace Engine
         {
             draw(commands_.Get(), static_cast<float>(width_) / static_cast<float>(height_));
         }
-        const auto result=EndFrame(index);
-        telemetry_.cpuRenderMilliseconds=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-cpuStart).count();
-        telemetry_.cpuScopes=CpuProfiler::Take();
-        if (result==RenderResult::Presented) ++telemetry_.frames;
+        const auto result = EndFrame(index);
+        telemetry_.cpuRenderMilliseconds =
+            std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cpuStart).count();
+        telemetry_.cpuScopes = CpuProfiler::Take();
+        if (result == RenderResult::Presented)
+            ++telemetry_.frames;
         return result;
     }
 
@@ -470,8 +485,8 @@ namespace Engine
         {
             buffer.Reset();
         }
-        if (!Check(swapChain_->ResizeBuffers(BufferCount, newWidth, newHeight,
-            BufferFormat, 0), "ResizeBuffers") || !CreateRenderTargets())
+        if (!Check(swapChain_->ResizeBuffers(BufferCount, newWidth, newHeight, BufferFormat, 0), "ResizeBuffers") ||
+            !CreateRenderTargets())
         {
             ready_ = false;
             return false;
@@ -492,44 +507,72 @@ namespace Engine
     }
 
     bool DirectX12Renderer::BeginFrame(UINT index, const std::array<float, 4>& clearColor,
-        const std::function<void()>& debugUi)
+                                       const std::function<void()>& debugUi)
     {
-        static_assert(BufferCount==RenderFrameContext::SlotCount);
+        static_assert(BufferCount == RenderFrameContext::SlotCount);
 #if !defined(_DEBUG) && !defined(ENGINE_DEVELOPMENT)
         (void)debugUi;
 #endif
         {
             CpuScope cpu("Frame fence wait");
-            if (!WaitForFence(frameFenceValues_[index])) return false;
+            if (!WaitForFence(frameFenceValues_[index]))
+                return false;
         }
         if (!Check(allocators_[index]->Reset(), "Reset command allocator") ||
             !Check(commands_->Reset(allocators_[index].Get(), nullptr), "Reset command list"))
         {
             return false;
         }
-        RenderFrameContext{index,++recordingSerial_}.Record(commands_.Get());
-        if (timestampReadback_ && timestampPending_[index]) {
-            telemetry_.gpuSample=false; telemetry_.gpuPasses.clear();
-            const SIZE_T offset=sizeof(UINT64)*index*GpuProfileContext::Queries;
-            const D3D12_RANGE read{offset,offset+sizeof(UINT64)*GpuProfileContext::Queries}; void* mapped=nullptr;
-            if (SUCCEEDED(timestampReadback_->Map(0,&read,&mapped))) {
-                const auto* values=reinterpret_cast<const UINT64*>(static_cast<const unsigned char*>(mapped)+offset);
-                if (values[1]>=values[0]) { telemetry_.gpuMilliseconds=static_cast<double>(values[1]-values[0])*1000.0/static_cast<double>(timestampFrequency_); telemetry_.gpuSample=true; }
-                for (const auto& record : gpuRecords_[index]) {
-                    const UINT query=record.query-index*GpuProfileContext::Queries;
-                    if (values[query+1]<values[query]) continue;
-                    const double elapsed=static_cast<double>(values[query+1]-values[query])*1000.0/static_cast<double>(timestampFrequency_);
-                    auto found=std::find_if(telemetry_.gpuPasses.begin(),telemetry_.gpuPasses.end(),[&](const auto& sample){return sample.name==record.name;});
-                    if(found==telemetry_.gpuPasses.end()) telemetry_.gpuPasses.push_back({record.name,elapsed,1});
-                    else { found->milliseconds+=elapsed; ++found->calls; }
+        RenderFrameContext{index, ++recordingSerial_}.Record(commands_.Get());
+        if (timestampReadback_ && timestampPending_[index])
+        {
+            telemetry_.gpuSample = false;
+            telemetry_.gpuPasses.clear();
+            const SIZE_T offset = sizeof(UINT64) * index * GpuProfileContext::Queries;
+            const D3D12_RANGE read{offset, offset + sizeof(UINT64) * GpuProfileContext::Queries};
+            void* mapped = nullptr;
+            if (SUCCEEDED(timestampReadback_->Map(0, &read, &mapped)))
+            {
+                const auto* values =
+                    reinterpret_cast<const UINT64*>(static_cast<const unsigned char*>(mapped) + offset);
+                if (values[1] >= values[0])
+                {
+                    telemetry_.gpuMilliseconds =
+                        static_cast<double>(values[1] - values[0]) * 1000.0 / static_cast<double>(timestampFrequency_);
+                    telemetry_.gpuSample = true;
                 }
-                const D3D12_RANGE written{0,0}; timestampReadback_->Unmap(0,&written);
-            } timestampPending_[index]=false;
+                for (const auto& record : gpuRecords_[index])
+                {
+                    const UINT query = record.query - index * GpuProfileContext::Queries;
+                    if (values[query + 1] < values[query])
+                        continue;
+                    const double elapsed = static_cast<double>(values[query + 1] - values[query]) * 1000.0 /
+                                           static_cast<double>(timestampFrequency_);
+                    auto found = std::find_if(telemetry_.gpuPasses.begin(), telemetry_.gpuPasses.end(),
+                                              [&](const auto& sample)
+                                              {
+                                                  return sample.name == record.name;
+                                              });
+                    if (found == telemetry_.gpuPasses.end())
+                        telemetry_.gpuPasses.push_back({record.name, elapsed, 1});
+                    else
+                    {
+                        found->milliseconds += elapsed;
+                        ++found->calls;
+                    }
+                }
+                const D3D12_RANGE written{0, 0};
+                timestampReadback_->Unmap(0, &written);
+            }
+            timestampPending_[index] = false;
         }
         gpuRecords_[index].clear();
-        const GpuProfileContext profiling{timestampQueries_.Get(),index*GpuProfileContext::Queries,&gpuRecords_[index]};
-        commands_->SetPrivateData(GpuScope::Key,sizeof(profiling),&profiling);
-        if (timestampQueries_) commands_->EndQuery(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,index*GpuProfileContext::Queries);
+        const GpuProfileContext profiling{timestampQueries_.Get(), index * GpuProfileContext::Queries,
+                                          &gpuRecords_[index]};
+        commands_->SetPrivateData(GpuScope::Key, sizeof(profiling), &profiling);
+        if (timestampQueries_)
+            commands_->EndQuery(timestampQueries_.Get(), D3D12_QUERY_TYPE_TIMESTAMP,
+                                index * GpuProfileContext::Queries);
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         debugUi_.BeginFrame();
         if (debugUi)
@@ -549,9 +592,9 @@ namespace Engine
         commands_->ClearRenderTargetView(descriptor, clearColor.data(), 0, nullptr);
         const auto depthDescriptor = depthBuffers_[index].GetHandle();
         commands_->ClearDepthStencilView(depthDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-        const D3D12_VIEWPORT viewport{ 0.0f, 0.0f, static_cast<float>(width_), static_cast<float>(height_), 0.0f, 1.0f };
-        const D3D12_RECT scissor{ 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
-        RenderTargetBinding{descriptor,depthDescriptor,viewport,scissor}.Bind(commands_.Get());
+        const D3D12_VIEWPORT viewport{0.0f, 0.0f, static_cast<float>(width_), static_cast<float>(height_), 0.0f, 1.0f};
+        const D3D12_RECT scissor{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
+        RenderTargetBinding{descriptor, depthDescriptor, viewport, scissor}.Bind(commands_.Get());
         return true;
     }
 
@@ -563,8 +606,12 @@ namespace Engine
         descriptor.ptr += static_cast<SIZE_T>(index) * descriptorSize_;
         const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
         const D3D12_RECT scissor{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
-        RenderTargetBinding{descriptor,{},viewport,scissor}.Bind(commands_.Get());
-        { GpuScope gpu(commands_.Get(),"Editor UI"); CpuScope cpu("Editor UI"); debugUi_.Render(commands_.Get()); }
+        RenderTargetBinding{descriptor, {}, viewport, scissor}.Bind(commands_.Get());
+        {
+            GpuScope gpu(commands_.Get(), "Editor UI");
+            CpuScope cpu("Editor UI");
+            debugUi_.Render(commands_.Get());
+        }
 #endif
         D3D12_RESOURCE_BARRIER barrier{};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -573,23 +620,26 @@ namespace Engine
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
         commands_->ResourceBarrier(1, &barrier);
-        if (timestampQueries_) {
-            const UINT base=index*GpuProfileContext::Queries;
-            commands_->EndQuery(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,base+1);
-            commands_->ResolveQueryData(timestampQueries_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,base,2+static_cast<UINT>(gpuRecords_[index].size())*2,timestampReadback_.Get(),sizeof(UINT64)*base);
+        if (timestampQueries_)
+        {
+            const UINT base = index * GpuProfileContext::Queries;
+            commands_->EndQuery(timestampQueries_.Get(), D3D12_QUERY_TYPE_TIMESTAMP, base + 1);
+            commands_->ResolveQueryData(timestampQueries_.Get(), D3D12_QUERY_TYPE_TIMESTAMP, base,
+                                        2 + static_cast<UINT>(gpuRecords_[index].size()) * 2, timestampReadback_.Get(),
+                                        sizeof(UINT64) * base);
         }
         if (!Check(commands_->Close(), "Close command list"))
         {
             return RenderResult::Failed;
         }
-        commands_->SetPrivateData(RenderFrameContext::Key,0,nullptr);
-        commands_->SetPrivateData(GpuScope::Key,0,nullptr);
-        ID3D12CommandList* lists[] = { commands_.Get() };
+        commands_->SetPrivateData(RenderFrameContext::Key, 0, nullptr);
+        commands_->SetPrivateData(GpuScope::Key, 0, nullptr);
+        ID3D12CommandList* lists[] = {commands_.Get()};
         queue_->ExecuteCommandLists(1, lists);
         HRESULT present;
         {
             CpuScope cpu("Present wait");
-            present=swapChain_->Present(1, 0);
+            present = swapChain_->Present(1, 0);
         }
         // このフレームの完了値を記録し、同じバッファーを再利用するときだけ待機します。
         const UINT64 submittedFence = ++fenceValue_;
@@ -598,7 +648,7 @@ namespace Engine
             return RenderResult::Failed;
         }
         frameFenceValues_[index] = submittedFence;
-        timestampPending_[index]=timestampQueries_!=nullptr;
+        timestampPending_[index] = timestampQueries_ != nullptr;
         if (!Check(present, "Present"))
         {
             return RenderResult::Failed;

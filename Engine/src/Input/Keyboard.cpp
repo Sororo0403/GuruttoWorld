@@ -9,7 +9,8 @@ namespace
 {
     bool Check(HRESULT result, const char* operation)
     {
-        if (SUCCEEDED(result)) return true;
+        if (SUCCEEDED(result))
+            return true;
         Engine::Log::Error(std::format("{} failed: 0x{:08X}", operation, static_cast<unsigned long>(result)));
         return false;
     }
@@ -24,12 +25,15 @@ namespace Engine
 
     bool Keyboard::Initialize(HWND window)
     {
-        if (input_ || !IsWindow(window)) return false;
+        if (input_ || !IsWindow(window))
+            return false;
         if (!Check(DirectInput8Create(GetModuleHandleW(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8W,
-            reinterpret_cast<void**>(input_.GetAddressOf()), nullptr), "Create DirectInput") ||
+                                      reinterpret_cast<void**>(input_.GetAddressOf()), nullptr),
+                   "Create DirectInput") ||
             !Check(input_->CreateDevice(GUID_SysKeyboard, device_.GetAddressOf(), nullptr), "Create keyboard") ||
             !Check(device_->SetDataFormat(&c_dfDIKeyboard), "Set keyboard format") ||
-            !Check(device_->SetCooperativeLevel(window, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE), "Set keyboard cooperative level"))
+            !Check(device_->SetCooperativeLevel(window, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE),
+                   "Set keyboard cooperative level"))
         {
             Shutdown();
             return false;
@@ -40,7 +44,8 @@ namespace Engine
 
     void Keyboard::Shutdown()
     {
-        if (device_) device_->Unacquire();
+        if (device_)
+            device_->Unacquire();
         device_.Reset();
         input_.Reset();
         window_ = nullptr;
@@ -60,7 +65,8 @@ namespace Engine
     {
         if (!device_ || GetForegroundWindow() != window_)
         {
-            if (device_) device_->Unacquire();
+            if (device_)
+                device_->Unacquire();
             ClearState();
             return;
         }
@@ -85,12 +91,17 @@ namespace Engine
         active_ = true;
     }
 
-    void Keyboard::ApplyDiagnosticState(HWND window, bool active, const std::array<BYTE,256>& keys, DiagnosticPointer pointer) noexcept
+    void Keyboard::ApplyDiagnosticState(HWND window, bool active, const std::array<BYTE, 256>& keys,
+                                        DiagnosticPointer pointer) noexcept
     {
         window_ = window;
         diagnostic_ = true;
         pointer_ = active ? pointer : DiagnosticPointer{};
-        if (!active) { ClearState(); return; }
+        if (!active)
+        {
+            ClearState();
+            return;
+        }
         previous_ = active_ ? current_ : keys;
         current_ = keys;
         active_ = true;

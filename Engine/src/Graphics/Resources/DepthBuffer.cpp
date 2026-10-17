@@ -51,7 +51,9 @@ namespace Engine
         clear.Format = Format;
         clear.DepthStencil.Depth = 1.0f;
         return Check(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
-            D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear, IID_PPV_ARGS(&resource_)), "Create depth buffer");
+                                                     D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear,
+                                                     IID_PPV_ARGS(&resource_)),
+                     "Create depth buffer");
     }
 
     bool DepthBuffer::CreateView(ID3D12Device* device)

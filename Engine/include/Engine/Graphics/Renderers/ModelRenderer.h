@@ -15,9 +15,10 @@
 
 namespace Engine
 {
-    struct ModelDrawOptions {
+    struct ModelDrawOptions
+    {
         std::span<const std::shared_ptr<const Material>> slots;
-        MaterialPass pass=MaterialPass::All;
+        MaterialPass pass = MaterialPass::All;
         std::span<const DirectX::XMFLOAT4X4> instances;
     };
     class ModelRenderer final
@@ -36,9 +37,10 @@ namespace Engine
             PreparedPose(const PreparedPose&) = delete;
             /// <summary>候補のコピー代入を禁止します。</summary>
             PreparedPose& operator=(const PreparedPose&) = delete;
+
         private:
             friend class ModelRenderer;
-            const ModelRenderer* owner_=nullptr;
+            const ModelRenderer* owner_ = nullptr;
             std::shared_ptr<const SkeletonData> rig_;
             std::vector<BonePose> pose_;
             std::vector<DirectX::XMFLOAT4X4> matrices_;
@@ -73,10 +75,11 @@ namespace Engine
         /// <param name="modelPath">読み込む OBJ ファイル。</param>
         /// <param name="shaderPath">モデル用 HLSL ファイル。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
-        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-            const std::filesystem::path& modelPath, const std::filesystem::path& shaderPath);
+        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& modelPath,
+                        const std::filesystem::path& shaderPath);
         /// <summary>ファイルを生成せず、手続き生成したメッシュをGPUへ転送します。</summary>
-        bool Initialize(ID3D12Device* device,ID3D12CommandQueue* queue,const std::vector<MeshData>& meshes,const std::filesystem::path& shaderPath);
+        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::vector<MeshData>& meshes,
+                        const std::filesystem::path& shaderPath);
 
         /// <summary>
         /// 深度テスト・裏面除去・陰影を使ってモデルを描画します。
@@ -88,33 +91,55 @@ namespace Engine
         /// <param name="cameraPosition">ビュー行列と対応するワールド空間のカメラ位置。</param>
         /// <param name="uvTransform">テクスチャ座標の拡縮・回転・移動。</param>
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
-            const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
-            const std::array<float, 3>& cameraPosition = { 0.0f, 0.0f, -3.5f },
-            const UvTransform& uvTransform = {},const Material* material=nullptr,
-            const ModelDrawOptions& options={}) const;
+                  const DirectX::XMFLOAT4X4& viewProjection, const DirectionalLight& light = {},
+                  const std::array<float, 3>& cameraPosition = {0.0f, 0.0f, -3.5f}, const UvTransform& uvTransform = {},
+                  const Material* material = nullptr, const ModelDrawOptions& options = {}) const;
 
-        size_t MeshCount() const { return meshes_.size(); }
-        size_t TriangleCount() const { return triangleCount_; }
-        size_t MeshTriangleCount(size_t index) const {return meshes_.at(index)->TriangleCount();}
+        size_t MeshCount() const
+        {
+            return meshes_.size();
+        }
+        size_t TriangleCount() const
+        {
+            return triangleCount_;
+        }
+        size_t MeshTriangleCount(size_t index) const
+        {
+            return meshes_.at(index)->TriangleCount();
+        }
         /// <summary>指定メッシュの共有頂点領域を取得します。</summary>
-        ID3D12Resource* GeometryResource(size_t index) const { return meshes_.at(index)->GeometryResource(); }
-        const DirectX::BoundingBox& Bounds() const { return bounds_; }
-        const std::shared_ptr<const SkeletonData>& Rig() const { return rig_; }
+        ID3D12Resource* GeometryResource(size_t index) const
+        {
+            return meshes_.at(index)->GeometryResource();
+        }
+        const DirectX::BoundingBox& Bounds() const
+        {
+            return bounds_;
+        }
+        const std::shared_ptr<const SkeletonData>& Rig() const
+        {
+            return rig_;
+        }
         /// <summary>アニメーションクリップまたはスキンを持つモデルかを判定します。</summary>
         bool IsAnimated() const noexcept;
-        const std::vector<BonePose>& Pose() const { return pose_; }
-        std::shared_ptr<ModelRenderer> AnimatedCopy(ID3D12Device* device,ID3D12CommandQueue* queue) const;
+        const std::vector<BonePose>& Pose() const
+        {
+            return pose_;
+        }
+        std::shared_ptr<ModelRenderer> AnimatedCopy(ID3D12Device* device, ID3D12CommandQueue* queue) const;
         /// <summary>姿勢を検証して反映します。頂点バッファーは変更しません。</summary>
         bool ApplyPose(const std::vector<BonePose>& pose);
         /// <summary>行列とBoundsを計算して候補に保存します。失敗時は現在のモデルと出力候補を保持します。</summary>
-        bool PreparePose(const std::vector<BonePose>& pose,PreparedPose& result) const;
+        bool PreparePose(const std::vector<BonePose>& pose, PreparedPose& result) const;
         /// <summary>このモデルで準備した候補を割り当てなしで反映します。候補は1度だけ使用できます。</summary>
         bool ApplyPreparedPose(PreparedPose&& pose) noexcept;
         /// <summary>モデル内のすべてのメッシュを光源の深度へ描画します。</summary>
-        void DrawShadow(ID3D12GraphicsCommandList* commands,const DirectX::XMFLOAT4X4& world,const ShadowMap& shadow,
-            const Material* material=nullptr,std::span<const std::shared_ptr<const Material>> slots={}) const;
+        void DrawShadow(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world, const ShadowMap& shadow,
+                        const Material* material = nullptr,
+                        std::span<const std::shared_ptr<const Material>> slots = {}) const;
         // ローカル空間の単位レイを三角形へ当て、最も近い交点距離を返します。
         bool IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const;
+
     private:
         bool Rebuild(const std::vector<MeshData>& data);
         /// <summary>ボーンごとの頂点領域を一度だけ集計します。</summary>
@@ -127,8 +152,8 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_;
         DirectX::BoundingBox bounds_{};
-        size_t triangleCount_=0;
-        mutable bool pickDirty_=false;
+        size_t triangleCount_ = 0;
+        mutable bool pickDirty_ = false;
         mutable std::vector<DirectX::XMFLOAT3> trianglePositions_;
         std::vector<std::vector<std::optional<DirectX::BoundingBox>>> skinBounds_;
         std::vector<std::vector<SkinMatrix>> palettes_;

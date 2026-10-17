@@ -43,8 +43,8 @@ namespace Engine
         /// <param name="framesInFlight">同時に GPU で処理するフレーム数。</param>
         /// <param name="format">レンダーターゲットの形式。</param>
         /// <returns>すべての初期化に成功した場合は true。</returns>
-        bool Initialize(HWND window, ID3D12Device* device, ID3D12CommandQueue* queue,
-            int framesInFlight, DXGI_FORMAT format);
+        bool Initialize(HWND window, ID3D12Device* device, ID3D12CommandQueue* queue, int framesInFlight,
+                        DXGI_FORMAT format);
 
         /// <summary>
         /// バックエンド、コンテキスト、ヒープを解放します。GPU 待機後に呼んでください。
@@ -73,7 +73,8 @@ namespace Engine
         static bool ProcessMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
 
         // Copies a Scene/Game/asset SRV into a persistent UI slot. Wait for GPU idle before replacing it.
-        D3D12_GPU_DESCRIPTOR_HANDLE SetSceneTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE source, unsigned int slot = 0);
+        D3D12_GPU_DESCRIPTOR_HANDLE SetSceneTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE source,
+                                                    unsigned int slot = 0);
 
     private:
         /// <summary>

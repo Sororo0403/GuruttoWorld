@@ -26,50 +26,60 @@ namespace
 
     void ValidateCamera(const SceneRuntime::SceneLayout& layout)
     {
-        if (layout.settings.mainCamera.empty()) return;
-        if (std::none_of(layout.objects.begin(),layout.objects.end(),[&](const auto& object) {
-            return object.id==layout.settings.mainCamera && object.camera;
-        })) throw std::runtime_error("Main camera must reference an object with Camera");
+        if (layout.settings.mainCamera.empty())
+            return;
+        if (std::none_of(layout.objects.begin(), layout.objects.end(),
+                         [&](const auto& object)
+                         {
+                             return object.id == layout.settings.mainCamera && object.camera;
+                         }))
+            throw std::runtime_error("Main camera must reference an object with Camera");
     }
 
     void ValidateParents(const std::vector<SceneRuntime::ScenePlacement>& objects)
     {
-        std::unordered_map<std::string,size_t> indices;
+        std::unordered_map<std::string, size_t> indices;
         indices.reserve(objects.size());
-        for (size_t index=0;index<objects.size();++index) indices.emplace(objects[index].id,index);
+        for (size_t index = 0; index < objects.size(); ++index)
+            indices.emplace(objects[index].id, index);
         std::vector<std::optional<size_t>> parents(objects.size());
-        for (size_t index=0;index<objects.size();++index)
+        for (size_t index = 0; index < objects.size(); ++index)
         {
-            const auto& object=objects[index];
-            if (object.parentId.empty()) continue;
-            const auto found=indices.find(object.parentId);
-            if (found==indices.end()) throw std::runtime_error(object.id+": missing parent "+object.parentId);
-            if (found->second==index) throw std::runtime_error(object.id+": object cannot parent itself");
-            parents[index]=found->second;
+            const auto& object = objects[index];
+            if (object.parentId.empty())
+                continue;
+            const auto found = indices.find(object.parentId);
+            if (found == indices.end())
+                throw std::runtime_error(object.id + ": missing parent " + object.parentId);
+            if (found->second == index)
+                throw std::runtime_error(object.id + ": object cannot parent itself");
+            parents[index] = found->second;
         }
-        std::vector<unsigned char> visited(objects.size(),0);
+        std::vector<unsigned char> visited(objects.size(), 0);
         std::vector<size_t> chain;
         chain.reserve(objects.size());
-        for (size_t index=0;index<objects.size();++index)
+        for (size_t index = 0; index < objects.size(); ++index)
         {
             chain.clear();
-            std::optional<size_t> current=index;
-            while (current && visited[*current]==0)
+            std::optional<size_t> current = index;
+            while (current && visited[*current] == 0)
             {
-                visited[*current]=1;
+                visited[*current] = 1;
                 chain.push_back(*current);
-                current=parents[*current];
+                current = parents[*current];
             }
-            if (current && visited[*current]==1) throw std::runtime_error(objects[*current].id+": parent cycle detected");
-            for (const auto item : chain) visited[item]=2;
+            if (current && visited[*current] == 1)
+                throw std::runtime_error(objects[*current].id + ": parent cycle detected");
+            for (const auto item : chain)
+                visited[item] = 2;
         }
     }
 
-    std::array<float, 3> ReadVector(const Json& object,
-        const char* key, bool scale = false)
+    std::array<float, 3> ReadVector(const Json& object, const char* key, bool scale = false)
     {
         const auto& values = JsonArray(object.at(key));
-        if (values.size() != 3) throw std::runtime_error("Transform requires three components");
+        if (values.size() != 3)
+            throw std::runtime_error("Transform requires three components");
         std::array<float, 3> result;
         for (uint32_t i = 0; i < 3; ++i)
         {
@@ -85,101 +95,135 @@ namespace
 
 namespace SceneRuntime
 {
-static bool ValidPrefabLink(const PrefabLink &link) {
-    return Prefab::ValidPath(link.asset) && !link.sourceId.empty() && !link.rootId.empty() && !link.baseline.empty() && link.baseline.size() <= 1048576;
-}
-static void ReadPrefabLink(const Json &object, ScenePlacement &placement)
-{
-    if (object.contains("prefab"))
+    static bool ValidPrefabLink(const PrefabLink& link)
     {
-        const auto &prefabValue = JsonObject(object.at("prefab"));
-        const auto asset = prefabValue.at("asset").get<std::string>();
-        PrefabLink link; link.asset = std::filesystem::path(std::u8string(asset.begin(), asset.end()));
-        link.sourceId = prefabValue.at("source").get<std::string>(); link.rootId = prefabValue.at("root").get<std::string>();
-        link.baseline = prefabValue.at("baseline").get<std::string>();
-        if (!ValidPrefabLink(link))
-            throw std::runtime_error("Invalid prefab link");
-        placement.prefab = std::move(link);
+        return Prefab::ValidPath(link.asset) && !link.sourceId.empty() && !link.rootId.empty() &&
+               !link.baseline.empty() && link.baseline.size() <= 1048576;
     }
-}
+    static void ReadPrefabLink(const Json& object, ScenePlacement& placement)
+    {
+        if (object.contains("prefab"))
+        {
+            const auto& prefabValue = JsonObject(object.at("prefab"));
+            const auto asset = prefabValue.at("asset").get<std::string>();
+            PrefabLink link;
+            link.asset = std::filesystem::path(std::u8string(asset.begin(), asset.end()));
+            link.sourceId = prefabValue.at("source").get<std::string>();
+            link.rootId = prefabValue.at("root").get<std::string>();
+            link.baseline = prefabValue.at("baseline").get<std::string>();
+            if (!ValidPrefabLink(link))
+                throw std::runtime_error("Invalid prefab link");
+            placement.prefab = std::move(link);
+        }
+    }
 
-static ScenePlacement ReadPlacement(const Json &value, double version, std::unordered_set<std::string> &ids)
-{
-    const auto &object = JsonObject(value);
-    ScenePlacement placement;
-    placement.id = object.at("id").get<std::string>();
-    if (placement.id.empty() || !ids.insert(placement.id).second)
-        throw std::runtime_error("Empty or duplicate object ID: " + placement.id);
-    try
+    static ScenePlacement ReadPlacement(const Json& value, double version, std::unordered_set<std::string>& ids)
     {
-        placement.name = object.at("name").get<std::string>();
-        if (object.contains("persistent")) placement.persistent = object.at("persistent").get<bool>();
-        if (object.contains("parent")) placement.parentId = object.at("parent").get<std::string>();
-        ReadSceneComponents(object, placement, version == 2.0);
-        ReadPrefabLink(object, placement);
-        placement.position = ReadVector(object, "position");
-        placement.rotation = ReadVector(object, "rotation");
-        placement.scale = ReadVector(object, "scale", true);
+        const auto& object = JsonObject(value);
+        ScenePlacement placement;
+        placement.id = object.at("id").get<std::string>();
+        if (placement.id.empty() || !ids.insert(placement.id).second)
+            throw std::runtime_error("Empty or duplicate object ID: " + placement.id);
+        try
+        {
+            placement.name = object.at("name").get<std::string>();
+            if (object.contains("persistent"))
+                placement.persistent = object.at("persistent").get<bool>();
+            if (object.contains("parent"))
+                placement.parentId = object.at("parent").get<std::string>();
+            ReadSceneComponents(object, placement, version == 2.0);
+            ReadPrefabLink(object, placement);
+            placement.position = ReadVector(object, "position");
+            placement.rotation = ReadVector(object, "rotation");
+            placement.scale = ReadVector(object, "scale", true);
+        }
+        catch (const std::exception& error)
+        {
+            throw std::runtime_error(placement.id + ": " + error.what());
+        }
+        return placement;
     }
-    catch (const std::exception &error)
-    {
-        throw std::runtime_error(placement.id + ": " + error.what());
-    }
-    return placement;
-}
 
-static void ValidateSceneCounts(const SceneLayout &layout)
-{
-    const auto menus = std::count_if(layout.objects.begin(), layout.objects.end(), [](const auto &object) {
-                return object.canvas && object.canvas->enabled && object.canvas->menu;
-            });
-    if (menus > 1) throw std::runtime_error("At most one enabled menu Canvas is supported");
-    size_t localLights = 0;
-    for (const auto &object : layout.objects)
+    static void ValidateSceneCounts(const SceneLayout& layout)
     {
-        if (object.pointLight && object.pointLight->enabled) ++localLights;
-        if (object.spotLight && object.spotLight->enabled) ++localLights;
+        const auto menus = std::count_if(layout.objects.begin(), layout.objects.end(),
+                                         [](const auto& object)
+                                         {
+                                             return object.canvas && object.canvas->enabled && object.canvas->menu;
+                                         });
+        if (menus > 1)
+            throw std::runtime_error("At most one enabled menu Canvas is supported");
+        size_t localLights = 0;
+        for (const auto& object : layout.objects)
+        {
+            if (object.pointLight && object.pointLight->enabled)
+                ++localLights;
+            if (object.spotLight && object.spotLight->enabled)
+                ++localLights;
+        }
+        if (localLights > 32)
+            throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
     }
-    if (localLights > 32) throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
-}
-static void ValidateSceneOwnership(const SceneLayout &layout)
-{
-    std::set<std::string> membership;
-    for(const auto& [name,ids]:layout.sceneObjects) {
-        if(name.empty() || name.size()>4096 || name.find('\0')!=std::string::npos) throw std::runtime_error("Invalid scene ownership name");
-        const auto duplicate=std::find_if(ids.begin(),ids.end(),[&](const auto& id){return !membership.insert(id).second;});
-        if(duplicate!=ids.end()) throw std::runtime_error("Duplicate scene ownership object: "+*duplicate);
+    static void ValidateSceneOwnership(const SceneLayout& layout)
+    {
+        std::set<std::string> membership;
+        for (const auto& [name, ids] : layout.sceneObjects)
+        {
+            if (name.empty() || name.size() > 4096 || name.find('\0') != std::string::npos)
+                throw std::runtime_error("Invalid scene ownership name");
+            const auto duplicate = std::find_if(ids.begin(), ids.end(),
+                                                [&](const auto& id)
+                                                {
+                                                    return !membership.insert(id).second;
+                                                });
+            if (duplicate != ids.end())
+                throw std::runtime_error("Duplicate scene ownership object: " + *duplicate);
+        }
     }
-}
-static void ValidateLayoutContents(const SceneLayout &layout)
-{
-    ValidateSceneOwnership(layout);
-    if (std::any_of(layout.objects.begin(), layout.objects.end(), [](const auto &p) {
-                return (p.terrain && p.tilemap) || ((p.terrain || p.tilemap) && p.meshRenderer);
-            })) throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
-    ValidateParents(layout.objects);
-    if (std::any_of(std::begin(layout.objects), std::end(layout.objects), [](const auto &object) { return object.ragdoll && !object.animator; })) throw std::runtime_error("Ragdoll requires an Animator");
-    ValidateCamera(layout);
-    ValidateSceneCounts(layout);
-}
+    static void ValidateLayoutContents(const SceneLayout& layout)
+    {
+        ValidateSceneOwnership(layout);
+        if (std::any_of(layout.objects.begin(), layout.objects.end(),
+                        [](const auto& p)
+                        {
+                            return (p.terrain && p.tilemap) || ((p.terrain || p.tilemap) && p.meshRenderer);
+                        }))
+            throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
+        ValidateParents(layout.objects);
+        if (std::any_of(std::begin(layout.objects), std::end(layout.objects),
+                        [](const auto& object)
+                        {
+                            return object.ragdoll && !object.animator;
+                        }))
+            throw std::runtime_error("Ragdoll requires an Animator");
+        ValidateCamera(layout);
+        ValidateSceneCounts(layout);
+    }
     static SceneLayout ParseDocument(const Json& document)
     {
         try
         {
             JsonObject(document);
-            const double version=JsonNumber(document.at("version"));
-            if (version!=2.0 && version!=3.0 && version!=4.0)
+            const double version = JsonNumber(document.at("version"));
+            if (version != 2.0 && version != 3.0 && version != 4.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
-            if(document.contains("sceneObjects")) layout.sceneObjects=document.at("sceneObjects").get<std::map<std::string,std::vector<std::string>>>();
-            if (document.contains("assetReferences")) layout.assetReferences=document.at("assetReferences").get<std::map<std::string,std::string>>();
-            for (const auto& [path,id] : layout.assetReferences) if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id)) throw std::runtime_error("Invalid asset reference metadata");
-            if (version==4.0) layout.settings=ReadSceneSettings(JsonObject(document.at("settings")));
-            if (document.contains("transformSpace")) throw std::runtime_error("Scenes always use local transforms");
+            if (document.contains("sceneObjects"))
+                layout.sceneObjects =
+                    document.at("sceneObjects").get<std::map<std::string, std::vector<std::string>>>();
+            if (document.contains("assetReferences"))
+                layout.assetReferences = document.at("assetReferences").get<std::map<std::string, std::string>>();
+            for (const auto& [path, id] : layout.assetReferences)
+                if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
+                    throw std::runtime_error("Invalid asset reference metadata");
+            if (version == 4.0)
+                layout.settings = ReadSceneSettings(JsonObject(document.at("settings")));
+            if (document.contains("transformSpace"))
+                throw std::runtime_error("Scenes always use local transforms");
             std::unordered_set<std::string> ids;
             for (const auto& value : JsonArray(document.at("objects")))
             {
-                auto placement=ReadPlacement(value,version,ids);
+                auto placement = ReadPlacement(value, version, ids);
                 layout.objects.push_back(std::move(placement));
             }
             ValidateLayoutContents(layout);
@@ -193,20 +237,46 @@ static void ValidateLayoutContents(const SceneLayout &layout)
 
     SceneLayout SceneLayout::Parse(std::string_view json)
     {
-        try { return ParseDocument(Json::parse(json)); }
-        catch(const Json::exception& error) { throw std::runtime_error("Invalid layout JSON: "+std::string(error.what())); }
+        try
+        {
+            return ParseDocument(Json::parse(json));
+        }
+        catch (const Json::exception& error)
+        {
+            throw std::runtime_error("Invalid layout JSON: " + std::string(error.what()));
+        }
     }
 
     static Json LayoutDocument(const SceneLayout& layout)
     {
-        Json document={{"version",4},{"settings",WriteSceneSettings(layout.settings)},
-            {"objects",Json::array()},{"assetReferences",layout.assetReferences},{"sceneObjects",layout.sceneObjects}};
-        for(const auto& p:layout.objects) {
-            Json object={{"id",p.id},{"name",p.name},{"parent",p.parentId},
-                {"components",WriteSceneComponents(p)},{"position",p.position},{"rotation",p.rotation},{"scale",p.scale}};
-            if(p.persistent) object["persistent"]=true;
-            if(p.prefab) object["prefab"]={{"asset",p.prefab->asset},{"source",p.prefab->sourceId},{"root",p.prefab->rootId},{"baseline",p.prefab->baseline}};
-            for (const auto& vector:{p.position,p.rotation,p.scale}) if (std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);})) throw std::runtime_error("Cannot save nonfinite transform");
+        Json document = {{"version", 4},
+                         {"settings", WriteSceneSettings(layout.settings)},
+                         {"objects", Json::array()},
+                         {"assetReferences", layout.assetReferences},
+                         {"sceneObjects", layout.sceneObjects}};
+        for (const auto& p : layout.objects)
+        {
+            Json object = {{"id", p.id},
+                           {"name", p.name},
+                           {"parent", p.parentId},
+                           {"components", WriteSceneComponents(p)},
+                           {"position", p.position},
+                           {"rotation", p.rotation},
+                           {"scale", p.scale}};
+            if (p.persistent)
+                object["persistent"] = true;
+            if (p.prefab)
+                object["prefab"] = {{"asset", p.prefab->asset},
+                                    {"source", p.prefab->sourceId},
+                                    {"root", p.prefab->rootId},
+                                    {"baseline", p.prefab->baseline}};
+            for (const auto& vector : {p.position, p.rotation, p.scale})
+                if (std::any_of(vector.begin(), vector.end(),
+                                [](float value)
+                                {
+                                    return !std::isfinite(value);
+                                }))
+                    throw std::runtime_error("Cannot save nonfinite transform");
             document["objects"].push_back(std::move(object));
         }
         return document;
@@ -217,100 +287,145 @@ static void ValidateLayoutContents(const SceneLayout &layout)
         static_cast<void>(ParseDocument(LayoutDocument(*this)));
     }
 
-    static void ValidateObjectChanges(const ScenePlacement &object, const ScenePlacement &before)
+    static void ValidateObjectChanges(const ScenePlacement& object, const ScenePlacement& before)
     {
-        for (const auto &vector : {object.position, object.rotation, object.scale}) if (std::any_of(vector.begin(), vector.end(), [](float value) { return !std::isfinite(value); })) throw std::runtime_error("Cannot save nonfinite transform");
-        if (std::any_of(object.scale.begin(), object.scale.end(), [](float value) { return std::abs(value) < 0.000001f; }))
+        for (const auto& vector : {object.position, object.rotation, object.scale})
+            if (std::any_of(vector.begin(), vector.end(),
+                            [](float value)
+                            {
+                                return !std::isfinite(value);
+                            }))
+                throw std::runtime_error("Cannot save nonfinite transform");
+        if (std::any_of(object.scale.begin(), object.scale.end(),
+                        [](float value)
+                        {
+                            return std::abs(value) < 0.000001f;
+                        }))
             throw std::runtime_error("Transform contains an invalid number or zero scale");
         if (!object.SameComponents(before))
         {
             ScenePlacement checked;
             ReadSceneComponents(Json{{"components", WriteSceneComponents(object)}}, checked, false);
         }
-        if (object.prefab != before.prefab && object.prefab &&
-            (!ValidPrefabLink(*object.prefab)))
+        if (object.prefab != before.prefab && object.prefab && (!ValidPrefabLink(*object.prefab)))
             throw std::runtime_error("Invalid prefab link");
         if ((object.terrain && object.tilemap) || ((object.terrain || object.tilemap) && object.meshRenderer))
             throw std::runtime_error("Procedural renderer cannot share a MeshRenderer or other procedural renderer");
-        if (object.ragdoll && !object.animator) throw std::runtime_error("Ragdoll requires an Animator");
+        if (object.ragdoll && !object.animator)
+            throw std::runtime_error("Ragdoll requires an Animator");
     }
-    static void ValidateChangedAssetReferences(const SceneLayout &layout, const SceneLayout &validatedBefore)
+    static void ValidateChangedAssetReferences(const SceneLayout& layout, const SceneLayout& validatedBefore)
     {
         if (layout.assetReferences != validatedBefore.assetReferences)
-            for (const auto &[path, id] : layout.assetReferences)
+            for (const auto& [path, id] : layout.assetReferences)
                 if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
                     throw std::runtime_error("Invalid asset reference metadata");
     }
-    static void CountSceneComponents(const ScenePlacement &object, size_t &menus, size_t &localLights)
+    static void CountSceneComponents(const ScenePlacement& object, size_t& menus, size_t& localLights)
     {
-        if (object.canvas && object.canvas->enabled && object.canvas->menu) ++menus;
-        if (object.pointLight && object.pointLight->enabled) ++localLights;
-        if (object.spotLight && object.spotLight->enabled) ++localLights;
+        if (object.canvas && object.canvas->enabled && object.canvas->menu)
+            ++menus;
+        if (object.pointLight && object.pointLight->enabled)
+            ++localLights;
+        if (object.spotLight && object.spotLight->enabled)
+            ++localLights;
     }
     void SceneLayout::ValidateChanges(const SceneLayout& validatedBefore) const
     {
-        if (objects.size()!=validatedBefore.objects.size()) { Validate(); return; }
-        for (size_t index=0;index<objects.size();++index)
-            if (objects[index].id!=validatedBefore.objects[index].id) { Validate(); return; }
+        if (objects.size() != validatedBefore.objects.size())
+        {
+            Validate();
+            return;
+        }
+        for (size_t index = 0; index < objects.size(); ++index)
+            if (objects[index].id != validatedBefore.objects[index].id)
+            {
+                Validate();
+                return;
+            }
         try
         {
-            if (settings!=validatedBefore.settings) static_cast<void>(ReadSceneSettings(WriteSceneSettings(settings)));
-            ValidateChangedAssetReferences(*this,validatedBefore);
-            if(sceneObjects!=validatedBefore.sceneObjects) ValidateSceneOwnership(*this);
+            if (settings != validatedBefore.settings)
+                static_cast<void>(ReadSceneSettings(WriteSceneSettings(settings)));
+            ValidateChangedAssetReferences(*this, validatedBefore);
+            if (sceneObjects != validatedBefore.sceneObjects)
+                ValidateSceneOwnership(*this);
             // Object IDs already match the validated baseline; only parent edits can invalidate its hierarchy.
-            bool parentsChanged=false;
-            size_t menus=0,localLights=0;
-            for (size_t index=0;index<objects.size();++index)
+            bool parentsChanged = false;
+            size_t menus = 0, localLights = 0;
+            for (size_t index = 0; index < objects.size(); ++index)
             {
-                const auto& object=objects[index];
-                const auto& before=validatedBefore.objects[index];
-                parentsChanged=parentsChanged || object.parentId!=before.parentId;
-                ValidateObjectChanges(object,before);
-                CountSceneComponents(object,menus,localLights);
+                const auto& object = objects[index];
+                const auto& before = validatedBefore.objects[index];
+                parentsChanged = parentsChanged || object.parentId != before.parentId;
+                ValidateObjectChanges(object, before);
+                CountSceneComponents(object, menus, localLights);
             }
-            if (parentsChanged) ValidateParents(objects);
+            if (parentsChanged)
+                ValidateParents(objects);
             ValidateCamera(*this);
-            if (menus>1) throw std::runtime_error("At most one enabled menu Canvas is supported");
-            if (localLights>32) throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
+            if (menus > 1)
+                throw std::runtime_error("At most one enabled menu Canvas is supported");
+            if (localLights > 32)
+                throw std::runtime_error("At most 32 enabled Point/Spot lights are supported");
         }
         catch (const Json::exception& error)
         {
-            throw std::runtime_error("Invalid layout JSON: "+std::string(error.what()));
+            throw std::runtime_error("Invalid layout JSON: " + std::string(error.what()));
         }
     }
 
     std::string SceneLayout::Serialize() const
     {
-        const auto settingsObject=WriteSceneSettings(settings);
-        std::string json="{\n  \"version\": 4,\n  \"settings\": "+settingsObject.dump()+",\n  \"objects\": [\n";
-        for(size_t i=0;i<objects.size();++i) {
-            const auto& p=objects[i];
-            Json object={{"id",p.id},{"name",p.name},{"parent",p.parentId},
-                {"components",WriteSceneComponents(p)},{"position",p.position},{"rotation",p.rotation},{"scale",p.scale}};
-            if (p.persistent) object["persistent"]=true;
-            if (p.prefab) object["prefab"]={{"asset",p.prefab->asset},{"source",p.prefab->sourceId},{"root",p.prefab->rootId},{"baseline",p.prefab->baseline}};
-            for (const auto& vector:{p.position,p.rotation,p.scale}) if (std::any_of(vector.begin(),vector.end(),[](float value){return !std::isfinite(value);})) throw std::runtime_error("Cannot save nonfinite transform");
-            json+="    "+object.dump()+(i+1==objects.size()?"\n":",\n");
+        const auto settingsObject = WriteSceneSettings(settings);
+        std::string json = "{\n  \"version\": 4,\n  \"settings\": " + settingsObject.dump() + ",\n  \"objects\": [\n";
+        for (size_t i = 0; i < objects.size(); ++i)
+        {
+            const auto& p = objects[i];
+            Json object = {{"id", p.id},
+                           {"name", p.name},
+                           {"parent", p.parentId},
+                           {"components", WriteSceneComponents(p)},
+                           {"position", p.position},
+                           {"rotation", p.rotation},
+                           {"scale", p.scale}};
+            if (p.persistent)
+                object["persistent"] = true;
+            if (p.prefab)
+                object["prefab"] = {{"asset", p.prefab->asset},
+                                    {"source", p.prefab->sourceId},
+                                    {"root", p.prefab->rootId},
+                                    {"baseline", p.prefab->baseline}};
+            for (const auto& vector : {p.position, p.rotation, p.scale})
+                if (std::any_of(vector.begin(), vector.end(),
+                                [](float value)
+                                {
+                                    return !std::isfinite(value);
+                                }))
+                    throw std::runtime_error("Cannot save nonfinite transform");
+            json += "    " + object.dump() + (i + 1 == objects.size() ? "\n" : ",\n");
         }
-        json+="  ],\n  \"assetReferences\": "+Json(assetReferences).dump()+",\n  \"sceneObjects\": "+Json(sceneObjects).dump()+"\n}\n";
+        json += "  ],\n  \"assetReferences\": " + Json(assetReferences).dump() +
+                ",\n  \"sceneObjects\": " + Json(sceneObjects).dump() + "\n}\n";
         static_cast<void>(Parse(json));
         return json;
     }
 
     void SceneLayout::Save(const std::filesystem::path& path, bool overwrite) const
     {
-        auto document=Json::parse(Serialize());
-        const auto root=Engine::AssetDatabase::Root(path);
-        if (!root.empty()) Engine::AssetDatabase(root).References(document,true,false);
-        const auto json = document.dump(2)+"\n";
-        static std::atomic<unsigned long long> sequence{ 0 };
+        auto document = Json::parse(Serialize());
+        const auto root = Engine::AssetDatabase::Root(path);
+        if (!root.empty())
+            Engine::AssetDatabase(root).References(document, true, false);
+        const auto json = document.dump(2) + "\n";
+        static std::atomic<unsigned long long> sequence{0};
         auto temporary = path;
-        temporary += L"." + std::to_wstring(GetCurrentProcessId()) + L"." +
-            std::to_wstring(GetTickCount64()) + L"." + std::to_wstring(sequence++) + L".tmp";
-        HANDLE file = CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
-            FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (file == INVALID_HANDLE_VALUE) throw std::runtime_error("Cannot create save file (error " +
-            std::to_string(GetLastError()) + ")");
+        temporary += L"." + std::to_wstring(GetCurrentProcessId()) + L"." + std::to_wstring(GetTickCount64()) + L"." +
+                     std::to_wstring(sequence++) + L".tmp";
+        HANDLE file =
+            CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (file == INVALID_HANDLE_VALUE)
+            throw std::runtime_error("Cannot create save file (error " + std::to_string(GetLastError()) + ")");
         try
         {
             size_t offset = 0;
@@ -322,37 +437,47 @@ static void ValidateLayoutContents(const SceneLayout &layout)
                     throw std::runtime_error("Cannot write save file");
                 offset += written;
             }
-            if (!FlushFileBuffers(file)) throw std::runtime_error("Cannot flush save file");
+            if (!FlushFileBuffers(file))
+                throw std::runtime_error("Cannot flush save file");
             CloseHandle(file);
             file = INVALID_HANDLE_VALUE;
-            if (!MoveFileExW(temporary.c_str(), path.c_str(), (overwrite ? MOVEFILE_REPLACE_EXISTING : 0) | MOVEFILE_WRITE_THROUGH))
+            if (!MoveFileExW(temporary.c_str(), path.c_str(),
+                             (overwrite ? MOVEFILE_REPLACE_EXISTING : 0) | MOVEFILE_WRITE_THROUGH))
                 throw std::runtime_error("Cannot replace layout file (error " + std::to_string(GetLastError()) + ")");
         }
         catch (...)
         {
-            if (file != INVALID_HANDLE_VALUE) CloseHandle(file);
+            if (file != INVALID_HANDLE_VALUE)
+                CloseHandle(file);
             DeleteFileW(temporary.c_str());
             throw;
         }
     }
 
-    void SceneLayout::ResolveAssets(const std::filesystem::path& root) {
+    void SceneLayout::ResolveAssets(const std::filesystem::path& root)
+    {
         ResolveAssets(Engine::AssetDatabase(root));
     }
-    void SceneLayout::ResolveAssets(const Engine::AssetDatabase& index) {
-        auto document=Json::parse(Serialize()); index.References(document);
-        *this=Parse(document.dump());
+    void SceneLayout::ResolveAssets(const Engine::AssetDatabase& index)
+    {
+        auto document = Json::parse(Serialize());
+        index.References(document);
+        *this = Parse(document.dump());
     }
-    SceneLayout SceneLayout::Load(const std::filesystem::path& path,const std::filesystem::path& assetsRoot)
+    SceneLayout SceneLayout::Load(const std::filesystem::path& path, const std::filesystem::path& assetsRoot)
     {
         std::ifstream stream(path, std::ios::binary);
-        if (!stream) throw std::runtime_error("Cannot open layout: " + path.string());
-        std::string json{ std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>() };
-        if (stream.bad()) throw std::runtime_error("Cannot read layout: " + path.string());
+        if (!stream)
+            throw std::runtime_error("Cannot open layout: " + path.string());
+        std::string json{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+        if (stream.bad())
+            throw std::runtime_error("Cannot read layout: " + path.string());
         // 一般的なテキストエディターが付けるUTF-8 BOMを許可します。
-        if (json.starts_with("\xEF\xBB\xBF")) json.erase(0, 3);
-        auto layout=Parse(json);
-        if (!assetsRoot.empty()) layout.ResolveAssets(assetsRoot);
+        if (json.starts_with("\xEF\xBB\xBF"))
+            json.erase(0, 3);
+        auto layout = Parse(json);
+        if (!assetsRoot.empty())
+            layout.ResolveAssets(assetsRoot);
         return layout;
     }
 }

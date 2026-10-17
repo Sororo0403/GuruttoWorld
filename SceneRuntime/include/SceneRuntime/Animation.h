@@ -9,9 +9,13 @@
 namespace SceneRuntime
 {
     struct ScenePlacement;
-    struct AnimationProperty {
-        const char* name=""; const char* label=""; float minimum=0,maximum=0; unsigned int channels=1;
-        bool (*apply)(ScenePlacement&,const std::array<float,4>&)=nullptr;
+    struct AnimationProperty
+    {
+        const char* name = "";
+        const char* label = "";
+        float minimum = 0, maximum = 0;
+        unsigned int channels = 1;
+        bool (*apply)(ScenePlacement&, const std::array<float, 4>&) = nullptr;
     };
     struct AnimationKey
     {
@@ -41,10 +45,10 @@ namespace SceneRuntime
     public:
         /// <summary>シーンの時計からトラックを評価します。負の時計は未開始として扱います。</summary>
         static std::optional<std::array<float, 4>> Sample(const AnimationTrack& track,
-            const std::map<std::string, float>& clocks);
+                                                          const std::map<std::string, float>& clocks);
         /// <summary>プロパティ・補間・時刻・値の保存可能性を検証します。</summary>
         static bool Valid(const AnimationTrack& track);
         static std::span<const AnimationProperty> Properties();
-        static bool Apply(ScenePlacement& placement,const std::string& property,const std::array<float,4>& value);
+        static bool Apply(ScenePlacement& placement, const std::string& property, const std::array<float, 4>& value);
     };
 }

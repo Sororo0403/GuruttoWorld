@@ -39,60 +39,85 @@ namespace
     }
 }
 
-namespace {
-bool MatchingDevices(const ID3D12Device *device, ID3D12CommandQueue *queue, const Engine::Texture2D &texture)
+namespace
 {
-    using Microsoft::WRL::ComPtr;
-    ComPtr<ID3D12Device> textureDevice;
-    ComPtr<ID3D12Device> queueDevice;
-    if (queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT ||
-        FAILED(texture.GetDescriptorHeap()->GetDevice(IID_PPV_ARGS(&textureDevice))) || textureDevice.Get() != device ||
-        FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) || queueDevice.Get() != device)
+    bool MatchingDevices(const ID3D12Device* device, ID3D12CommandQueue* queue, const Engine::Texture2D& texture)
     {
-        return false;
+        using Microsoft::WRL::ComPtr;
+        ComPtr<ID3D12Device> textureDevice;
+        ComPtr<ID3D12Device> queueDevice;
+        if (queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT ||
+            FAILED(texture.GetDescriptorHeap()->GetDevice(IID_PPV_ARGS(&textureDevice))) ||
+            textureDevice.Get() != device || FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) ||
+            queueDevice.Get() != device)
+        {
+            return false;
+        }
+        return true;
     }
-    return true;
-}
 }
 
 namespace Engine
 {
     bool SpriteRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-        std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath, bool depthTest, bool depthWrite)
+                                    std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath,
+                                    bool depthTest, bool depthWrite)
     {
-        if (device == nullptr || queue == nullptr || initialized_ || !texture || texture->GetDescriptorHeap() == nullptr || (depthWrite && !depthTest))
+        if (device == nullptr || queue == nullptr || initialized_ || !texture ||
+            texture->GetDescriptorHeap() == nullptr || (depthWrite && !depthTest))
         {
             return false;
         }
-        if(!MatchingDevices(device,queue,*texture)) return false;
+        if (!MatchingDevices(device, queue, *texture))
+            return false;
         std::string revision;
-        if (!GetShaderRevision(shaderPath, revision)) return false;
+        if (!GetShaderRevision(shaderPath, revision))
+            return false;
         using Key = std::tuple<ID3D12Device*, ID3D12CommandQueue*, std::string, bool, bool>;
         static std::mutex mutex;
         static std::map<Key, std::weak_ptr<SpritePipeline>> pipelines;
         std::lock_guard lock(mutex);
-        std::erase_if(pipelines, [](const auto& item) { return item.second.expired(); });
-        const Key key{ device, queue, std::move(revision), depthTest, depthWrite };
+        std::erase_if(pipelines,
+                      [](const auto& item)
+                      {
+                          return item.second.expired();
+                      });
+        const Key key{device, queue, std::move(revision), depthTest, depthWrite};
         std::shared_ptr<SpritePipeline> shared;
-        if (const auto found = pipelines.find(key); found != pipelines.end()) shared = found->second.lock();
+        if (const auto found = pipelines.find(key); found != pipelines.end())
+            shared = found->second.lock();
         depthTest_ = depthTest;
         depthWrite_ = depthWrite;
         if (!shared)
         {
-            if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) || !CreateMeshBuffer(device, queue))
+            if (!CreateRootSignature(device) || !CreatePipelineState(device, shaderPath) ||
+                !CreateMeshBuffer(device, queue))
             {
-                meshBuffer_.Reset(); vertexBufferView_ = {}; indexBufferView_ = {};
-                pipelineState_.Reset(); hdrPipelineState_.Reset(); rootSignature_.Reset();
+                meshBuffer_.Reset();
+                vertexBufferView_ = {};
+                indexBufferView_ = {};
+                pipelineState_.Reset();
+                hdrPipelineState_.Reset();
+                rootSignature_.Reset();
                 return false;
             }
             shared = std::make_shared<SpritePipeline>();
-            shared->device = device; shared->queue = queue; shared->mesh = meshBuffer_;
-            shared->vertex = vertexBufferView_; shared->index = indexBufferView_;
-            shared->root = rootSignature_; shared->pipeline = pipelineState_; shared->hdrPipeline = hdrPipelineState_;
+            shared->device = device;
+            shared->queue = queue;
+            shared->mesh = meshBuffer_;
+            shared->vertex = vertexBufferView_;
+            shared->index = indexBufferView_;
+            shared->root = rootSignature_;
+            shared->pipeline = pipelineState_;
+            shared->hdrPipeline = hdrPipelineState_;
             pipelines.insert_or_assign(key, shared);
         }
-        meshBuffer_ = shared->mesh; vertexBufferView_ = shared->vertex; indexBufferView_ = shared->index;
-        rootSignature_ = shared->root; pipelineState_ = shared->pipeline; hdrPipelineState_ = shared->hdrPipeline;
+        meshBuffer_ = shared->mesh;
+        vertexBufferView_ = shared->vertex;
+        indexBufferView_ = shared->index;
+        rootSignature_ = shared->root;
+        pipelineState_ = shared->pipeline;
+        hdrPipelineState_ = shared->hdrPipeline;
         sharedPipeline_ = std::move(shared);
         texture_ = std::move(texture);
         initialized_ = true;
@@ -102,14 +127,25 @@ namespace Engine
 
     bool SpriteRenderer::InitializeShared(const SpriteRenderer& prototype, std::shared_ptr<const Texture2D> texture)
     {
-        if (initialized_ || !prototype.initialized_ || !prototype.sharedPipeline_ || !texture || !texture->GetDescriptorHeap()) return false;
+        if (initialized_ || !prototype.initialized_ || !prototype.sharedPipeline_ || !texture ||
+            !texture->GetDescriptorHeap())
+            return false;
         ComPtr<ID3D12Device> textureDevice, pipelineDevice;
         if (FAILED(texture->GetDescriptorHeap()->GetDevice(IID_PPV_ARGS(&textureDevice))) ||
-            FAILED(prototype.pipelineState_->GetDevice(IID_PPV_ARGS(&pipelineDevice))) || textureDevice.Get() != pipelineDevice.Get()) return false;
+            FAILED(prototype.pipelineState_->GetDevice(IID_PPV_ARGS(&pipelineDevice))) ||
+            textureDevice.Get() != pipelineDevice.Get())
+            return false;
         sharedPipeline_ = prototype.sharedPipeline_;
-        meshBuffer_ = prototype.meshBuffer_; vertexBufferView_ = prototype.vertexBufferView_; indexBufferView_ = prototype.indexBufferView_;
-        rootSignature_ = prototype.rootSignature_; pipelineState_ = prototype.pipelineState_; hdrPipelineState_ = prototype.hdrPipelineState_;
-        depthTest_ = prototype.depthTest_; depthWrite_=prototype.depthWrite_; texture_ = std::move(texture); initialized_ = true;
+        meshBuffer_ = prototype.meshBuffer_;
+        vertexBufferView_ = prototype.vertexBufferView_;
+        indexBufferView_ = prototype.indexBufferView_;
+        rootSignature_ = prototype.rootSignature_;
+        pipelineState_ = prototype.pipelineState_;
+        hdrPipelineState_ = prototype.hdrPipelineState_;
+        depthTest_ = prototype.depthTest_;
+        depthWrite_ = prototype.depthWrite_;
+        texture_ = std::move(texture);
+        initialized_ = true;
         return true;
     }
 
@@ -137,9 +173,10 @@ namespace Engine
         parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         parameters[3].Descriptor.ShaderRegister = 1;
         parameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        parameters[4].ParameterType=D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        parameters[4].Constants.ShaderRegister=3; parameters[4].Constants.Num32BitValues=1;
-        parameters[4].ShaderVisibility=D3D12_SHADER_VISIBILITY_PIXEL;
+        parameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        parameters[4].Constants.ShaderRegister = 3;
+        parameters[4].Constants.Num32BitValues = 1;
+        parameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -158,8 +195,8 @@ namespace Engine
         description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
         ComPtr<ID3DBlob> signature;
         ComPtr<ID3DBlob> errors;
-        const HRESULT result = D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1,
-            &signature, &errors);
+        const HRESULT result =
+            D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &errors);
         if (errors)
         {
             Log::Error(static_cast<const char*>(errors->GetBufferPointer()));
@@ -169,7 +206,8 @@ namespace Engine
             return false;
         }
         return Check(device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(),
-            IID_PPV_ARGS(&rootSignature_)), "Create sprite root signature");
+                                                 IID_PPV_ARGS(&rootSignature_)),
+                     "Create sprite root signature");
     }
 
     bool SpriteRenderer::CreatePipelineState(ID3D12Device* device, const std::filesystem::path& shaderPath)
@@ -181,15 +219,13 @@ namespace Engine
         {
             return false;
         }
-        const D3D12_INPUT_ELEMENT_DESC elements[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-        };
+        const D3D12_INPUT_ELEMENT_DESC elements[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
         D3D12_GRAPHICS_PIPELINE_STATE_DESC description{};
-        description.InputLayout = { elements, 1 };
+        description.InputLayout = {elements, 1};
         description.pRootSignature = rootSignature_.Get();
-        description.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
-        description.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
+        description.VS = {vertexShader->GetBufferPointer(), vertexShader->GetBufferSize()};
+        description.PS = {pixelShader->GetBufferPointer(), pixelShader->GetBufferSize()};
         description.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
         description.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
         description.RasterizerState.DepthClipEnable = TRUE;
@@ -204,8 +240,10 @@ namespace Engine
         blend.LogicOp = D3D12_LOGIC_OP_NOOP;
         blend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
         description.DepthStencilState.DepthEnable = depthTest_ ? TRUE : FALSE;
-        description.DepthStencilState.DepthWriteMask = depthWrite_ ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-        description.DepthStencilState.DepthFunc = depthTest_ ? D3D12_COMPARISON_FUNC_LESS_EQUAL : D3D12_COMPARISON_FUNC_ALWAYS;
+        description.DepthStencilState.DepthWriteMask =
+            depthWrite_ ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+        description.DepthStencilState.DepthFunc =
+            depthTest_ ? D3D12_COMPARISON_FUNC_LESS_EQUAL : D3D12_COMPARISON_FUNC_ALWAYS;
         description.DepthStencilState.StencilEnable = FALSE;
         description.SampleMask = UINT_MAX;
         description.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -213,51 +251,66 @@ namespace Engine
         description.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         description.DSVFormat = DepthBuffer::Format;
         description.SampleDesc.Count = 1;
-        if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),"Create sprite pipeline state")) return false;
-        description.RTVFormats[0]=DXGI_FORMAT_R16G16B16A16_FLOAT;
-        return Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&hdrPipelineState_)),"Create HDR sprite pipeline");
+        if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipelineState_)),
+                   "Create sprite pipeline state"))
+            return false;
+        description.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        return Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&hdrPipelineState_)),
+                     "Create HDR sprite pipeline");
     }
 
     bool SpriteRenderer::CreateMeshBuffer(ID3D12Device* device, ID3D12CommandQueue* queue)
     {
-        constexpr std::array<std::array<float, 2>, 4> Vertices
-        {
-            std::array<float, 2>{ 0.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { 1.0f, 1.0f }
-        };
-        constexpr std::array<std::uint32_t, 6> Indices{ 0, 1, 2, 2, 1, 3 };
-        return CreateIndexedMeshBuffer(device, queue, std::as_bytes(std::span(Vertices)), sizeof(Vertices[0]),
-            Indices, meshBuffer_, vertexBufferView_, indexBufferView_);
+        constexpr std::array<std::array<float, 2>, 4> Vertices{
+            std::array<float, 2>{0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f}};
+        constexpr std::array<std::uint32_t, 6> Indices{0, 1, 2, 2, 1, 3};
+        return CreateIndexedMeshBuffer(device, queue, std::as_bytes(std::span(Vertices)), sizeof(Vertices[0]), Indices,
+                                       meshBuffer_, vertexBufferView_, indexBufferView_);
     }
 
     void SpriteRenderer::Draw(ID3D12GraphicsCommandList* commands, UINT viewportWidth, UINT viewportHeight,
-        const SpriteDrawParameters& parameters) const
+                              const SpriteDrawParameters& parameters) const
     {
         if (!initialized_ || commands == nullptr || viewportWidth == 0 || viewportHeight == 0 ||
             parameters.size[0] <= 0.0f || parameters.size[1] <= 0.0f)
         {
             return;
         }
-        const std::array<float, 16> constants
-        {
-            static_cast<float>(viewportWidth), static_cast<float>(viewportHeight),
-            parameters.position[0], parameters.position[1], parameters.size[0], parameters.size[1],
-            std::cos(parameters.rotation), std::sin(parameters.rotation),
-            parameters.color[0], parameters.color[1], parameters.color[2], parameters.color[3],
-            parameters.uvRect[0], parameters.uvRect[1], parameters.uvRect[2], parameters.uvRect[3]
-        };
+        const std::array<float, 16> constants{static_cast<float>(viewportWidth),
+                                              static_cast<float>(viewportHeight),
+                                              parameters.position[0],
+                                              parameters.position[1],
+                                              parameters.size[0],
+                                              parameters.size[1],
+                                              std::cos(parameters.rotation),
+                                              std::sin(parameters.rotation),
+                                              parameters.color[0],
+                                              parameters.color[1],
+                                              parameters.color[2],
+                                              parameters.color[3],
+                                              parameters.uvRect[0],
+                                              parameters.uvRect[1],
+                                              parameters.uvRect[2],
+                                              parameters.uvRect[3]};
         RenderTargetBinding target;
-        const UINT hdr=RenderTargetBinding::Current(commands,target) && target.format==DXGI_FORMAT_R16G16B16A16_FLOAT ? 1U : 0U;
+        const UINT hdr =
+            RenderTargetBinding::Current(commands, target) && target.format == DXGI_FORMAT_R16G16B16A16_FLOAT ? 1U : 0U;
         commands->SetPipelineState(hdr ? hdrPipelineState_.Get() : pipelineState_.Get());
         commands->SetGraphicsRootSignature(rootSignature_.Get());
         commands->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(constants.size()), constants.data(), 0);
         const auto uvConstants = parameters.uvTransform.GetConstants();
         commands->SetGraphicsRoot32BitConstants(2, 8, uvConstants.data(), 0);
-        const auto shared=std::static_pointer_cast<SpritePipeline>(sharedPipeline_);
-        const auto pixelConstants=shared->constants.Prepare(shared->device.Get(),commands,parameters.pixelConstants);
-        if(!pixelConstants) {Log::Error("Cannot prepare sprite constants");return;}
-        commands->SetGraphicsRootConstantBufferView(3,pixelConstants);
-        commands->SetGraphicsRoot32BitConstants(4,1,&hdr,0);
-        ID3D12DescriptorHeap* heaps[] = { texture_->GetDescriptorHeap() };
+        const auto shared = std::static_pointer_cast<SpritePipeline>(sharedPipeline_);
+        const auto pixelConstants =
+            shared->constants.Prepare(shared->device.Get(), commands, parameters.pixelConstants);
+        if (!pixelConstants)
+        {
+            Log::Error("Cannot prepare sprite constants");
+            return;
+        }
+        commands->SetGraphicsRootConstantBufferView(3, pixelConstants);
+        commands->SetGraphicsRoot32BitConstants(4, 1, &hdr, 0);
+        ID3D12DescriptorHeap* heaps[] = {texture_->GetDescriptorHeap()};
         commands->SetDescriptorHeaps(1, heaps);
         commands->SetGraphicsRootDescriptorTable(1, texture_->GetGpuHandle());
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

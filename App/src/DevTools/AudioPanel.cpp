@@ -14,10 +14,13 @@ namespace App
             ImGui::TextUnformatted(sound == 0 ? "Audio unavailable" : "Sample.wav");
             ImGui::BeginDisabled(sound == 0);
             ImGui::Checkbox("Loop (next play)", &loop);
-            if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f)) audio.SetVolume(sound, volume);
-            if (ImGui::Button("Play")) audio.Play(sound, loop);
+            if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f))
+                audio.SetVolume(sound, volume);
+            if (ImGui::Button("Play"))
+                audio.Play(sound, loop);
             ImGui::SameLine();
-            if (ImGui::Button("Stop")) audio.Stop(sound);
+            if (ImGui::Button("Stop"))
+                audio.Stop(sound);
             ImGui::TextUnformatted(audio.IsPlaying(sound) ? "Playing" : "Stopped");
             ImGui::EndDisabled();
         }

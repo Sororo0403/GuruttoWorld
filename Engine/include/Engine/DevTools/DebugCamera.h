@@ -66,7 +66,7 @@ namespace Engine
         /// </summary>
         DirectX::XMVECTOR GetForward() const noexcept;
 
-        std::array<float, 3> resetPosition_{ 0.0f, 0.0f, -3.5f };
+        std::array<float, 3> resetPosition_{0.0f, 0.0f, -3.5f};
         float resetYaw_ = 0.0f;
         float resetPitch_ = 0.0f;
         Camera camera_;

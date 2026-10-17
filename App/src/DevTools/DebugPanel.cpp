@@ -4,8 +4,7 @@
 
 namespace App
 {
-    void DebugPanel::Draw(double& rotationY, float& speedDegrees, bool& rotating,
-        std::array<float, 4>& backgroundColor)
+    void DebugPanel::Draw(double& rotationY, float& speedDegrees, bool& rotating, std::array<float, 4>& backgroundColor)
     {
         ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(340.0f, 240.0f), ImGuiCond_FirstUseEver);

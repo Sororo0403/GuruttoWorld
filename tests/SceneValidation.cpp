@@ -7,16 +7,42 @@
 
 namespace
 {
-    void Check(bool value, const char* message) { if (!value) throw std::runtime_error(message); }
-    struct Counts { int initialized = 0; int updated = 0; int drawn = 0; int destroyed = 0; };
+    void Check(bool value, const char* message)
+    {
+        if (!value)
+            throw std::runtime_error(message);
+    }
+    struct Counts
+    {
+        int initialized = 0;
+        int updated = 0;
+        int drawn = 0;
+        int destroyed = 0;
+    };
     class TestScene final : public Engine::IScene
     {
     public:
         TestScene(Counts& counts, bool fail) : counts_(counts), fail_(fail) {}
-        ~TestScene() override { ++counts_.destroyed; }
-        bool Initialize(Engine::DirectX12Renderer&) override { ++counts_.initialized; return !fail_; }
-        std::string Update(double, const Engine::Keyboard&) override { ++counts_.updated; return "Second"; }
-        Engine::RenderResult Draw(Engine::DirectX12Renderer&) override { ++counts_.drawn; return Engine::RenderResult::Presented; }
+        ~TestScene() override
+        {
+            ++counts_.destroyed;
+        }
+        bool Initialize(Engine::DirectX12Renderer&) override
+        {
+            ++counts_.initialized;
+            return !fail_;
+        }
+        std::string Update(double, const Engine::Keyboard&) override
+        {
+            ++counts_.updated;
+            return "Second";
+        }
+        Engine::RenderResult Draw(Engine::DirectX12Renderer&) override
+        {
+            ++counts_.drawn;
+            return Engine::RenderResult::Presented;
+        }
+
     private:
         Counts& counts_;
         bool fail_;
@@ -27,7 +53,8 @@ namespace
         Counts counts;
         std::unique_ptr<Engine::IScene> Create(std::string_view name) override
         {
-            if (name == "Missing") return {};
+            if (name == "Missing")
+                return {};
             return std::make_unique<TestScene>(counts, name == "Failed");
         }
     };
@@ -61,7 +88,8 @@ int main()
             Check(manager.GetActiveName() == "Second" && factory.counts.destroyed == 1, "old retained on unknown");
             Check(manager.RequestChange("Failed"), "failed init request");
             Check(manager.Draw(renderer) == Engine::RenderResult::Failed, "init failure reported");
-            Check(manager.GetActiveName() == "Second" && factory.counts.destroyed == 2, "failed candidate released, old retained");
+            Check(manager.GetActiveName() == "Second" && factory.counts.destroyed == 2,
+                  "failed candidate released, old retained");
             Check(manager.Draw(renderer) == Engine::RenderResult::Presented, "old scene remains usable");
             Check(renderer.WaitForIdle(), "idle before shutdown");
         }
@@ -69,5 +97,9 @@ int main()
         std::cout << "PASS: factory dispatch, deferred transition, lifecycle, unknown scene and init failure\n";
         return 0;
     }
-    catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
+    catch (const std::exception& error)
+    {
+        std::cerr << error.what() << '\n';
+        return 1;
+    }
 }

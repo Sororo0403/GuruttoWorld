@@ -18,8 +18,8 @@ namespace Engine
 
     int Application::Run(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks)
     {
-        if (!callbacks.draw || settings.inactiveWaitMilliseconds == 0 ||
-            !std::isfinite(settings.maxDeltaSeconds) || settings.maxDeltaSeconds <= 0.0)
+        if (!callbacks.draw || settings.inactiveWaitMilliseconds == 0 || !std::isfinite(settings.maxDeltaSeconds) ||
+            settings.maxDeltaSeconds <= 0.0)
         {
             return 1;
         }
@@ -38,8 +38,8 @@ namespace Engine
         return exitCode;
     }
 
-    int Application::RunLoop(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks,
-        Window& window, DirectX12Renderer& renderer, Keyboard& keyboard)
+    int Application::RunLoop(const ApplicationSettings& settings, const ApplicationCallbacks& callbacks, Window& window,
+                             DirectX12Renderer& renderer, Keyboard& keyboard)
     {
         int exitCode = 1;
         auto previousTime = std::chrono::steady_clock::now();
@@ -48,10 +48,12 @@ namespace Engine
         {
             if (deferClose && window.TakeCloseRequest())
             {
-                if (IsIconic(window.GetHandle())) ShowWindow(window.GetHandle(), SW_RESTORE);
+                if (IsIconic(window.GetHandle()))
+                    ShowWindow(window.GetHandle(), SW_RESTORE);
                 callbacks.closeRequested();
             }
-            if (deferClose && callbacks.shouldClose()) break;
+            if (deferClose && callbacks.shouldClose())
+                break;
             const auto currentTime = std::chrono::steady_clock::now();
             const double elapsedSeconds = std::chrono::duration<double>(currentTime - previousTime).count();
             const double deltaSeconds = std::min(elapsedSeconds, settings.maxDeltaSeconds);
@@ -69,8 +71,8 @@ namespace Engine
             }
             if (result == RenderResult::Paused)
             {
-                MsgWaitForMultipleObjectsEx(0, nullptr, settings.inactiveWaitMilliseconds,
-                    QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                MsgWaitForMultipleObjectsEx(0, nullptr, settings.inactiveWaitMilliseconds, QS_ALLINPUT,
+                                            MWMO_INPUTAVAILABLE);
             }
         }
         return exitCode;
@@ -93,7 +95,8 @@ namespace Engine
         logInitialized_ = true;
         Log::Info("Engine started.");
 
-        if (!window.Create(settings.title.c_str(), settings.width, settings.height) || !renderer.Initialize(window.GetHandle()))
+        if (!window.Create(settings.title.c_str(), settings.width, settings.height) ||
+            !renderer.Initialize(window.GetHandle()))
         {
             return false;
         }

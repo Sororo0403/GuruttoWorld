@@ -8,12 +8,13 @@ namespace Editor
     class SceneSelection final
     {
     public:
-        static void Update(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-            EditState& state, const SceneViewport& viewport, bool active);
-        static void Draw(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-            const EditState& state, const SceneViewport& viewport);
+        static void Update(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera, EditState& state,
+                           const SceneViewport& viewport, bool active);
+        static void Draw(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera, const EditState& state,
+                         const SceneViewport& viewport);
+
     private:
         static void DrawObject(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
-            const std::string& id, const SceneViewport& viewport, bool primary);
+                               const std::string& id, const SceneViewport& viewport, bool primary);
     };
 }

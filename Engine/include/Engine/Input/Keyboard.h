@@ -66,7 +66,10 @@ namespace Engine
         /// 入力が取得できているか返します。非アクティブ時は false です。
         /// </summary>
         bool IsActive() const noexcept;
-        HWND WindowHandle() const noexcept { return window_; }
+        HWND WindowHandle() const noexcept
+        {
+            return window_;
+        }
 
         /// <summary>
         /// DIK_* で指定したキーを押しているか返します。範囲外は false です。
@@ -86,11 +89,15 @@ namespace Engine
         /// <summary>
         /// 診断再生専用の状態を適用します。デバイス取得は行わず、再開時の押下抑止は実入力と同じです。
         /// </summary>
-        void ApplyDiagnosticState(HWND window, bool active, const std::array<BYTE,256>& keys, DiagnosticPointer pointer) noexcept;
+        void ApplyDiagnosticState(HWND window, bool active, const std::array<BYTE, 256>& keys,
+                                  DiagnosticPointer pointer) noexcept;
         /// <summary>
         /// 診断用ポインターを返します。実デバイス入力では nullptr を返します。
         /// </summary>
-        const DiagnosticPointer* GetDiagnosticPointer() const noexcept { return diagnostic_ ? &pointer_ : nullptr; }
+        const DiagnosticPointer* GetDiagnosticPointer() const noexcept
+        {
+            return diagnostic_ ? &pointer_ : nullptr;
+        }
 
     private:
         /// <summary>

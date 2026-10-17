@@ -1,6 +1,7 @@
 #pragma once
 #include "TitleMenu.h"
 #include <SceneRuntime/TitleUi.h>
-namespace App {
-using SceneRuntime::TitleUi;
+namespace App
+{
+    using SceneRuntime::TitleUi;
 }

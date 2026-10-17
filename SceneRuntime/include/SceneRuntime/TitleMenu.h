@@ -7,10 +7,36 @@
 
 namespace SceneRuntime
 {
-    enum class TitleMenuCue { None, Select, Confirm, Back, Error };
-    enum class TitleMenuItem { Start, Settings, Exit };
-    enum class TitleMenuAction { None, Start, Exit, SaveSettings };
-    enum TitleMenuButton : unsigned int { MenuUp = 1, MenuDown = 2, MenuConfirm = 4, MenuLeft = 8, MenuRight = 16, MenuBack = 32 };
+    enum class TitleMenuCue
+    {
+        None,
+        Select,
+        Confirm,
+        Back,
+        Error
+    };
+    enum class TitleMenuItem
+    {
+        Start,
+        Settings,
+        Exit
+    };
+    enum class TitleMenuAction
+    {
+        None,
+        Start,
+        Exit,
+        SaveSettings
+    };
+    enum TitleMenuButton : unsigned int
+    {
+        MenuUp = 1,
+        MenuDown = 2,
+        MenuConfirm = 4,
+        MenuLeft = 8,
+        MenuRight = 16,
+        MenuBack = 32
+    };
 
     struct TitleMenuInput
     {
@@ -29,27 +55,60 @@ namespace SceneRuntime
         /// <summary>初回だけ登場演出を有効にします。</summary>
         explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false, bool twoItems = false)
             : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton)
-        { if(twoItems) items_.pop_back(); LoadSettings({}); }
+        {
+            if (twoItems)
+                items_.pop_back();
+            LoadSettings({});
+        }
         /// <summary>ポインターの選択を反映します。設定中・開始中は変更しません。</summary>
         void SelectUi(TitleMenuItem item);
-        bool UsesPressAnyButton() const { return pressAnyButton_; }
+        bool UsesPressAnyButton() const
+        {
+            return pressAnyButton_;
+        }
         /// <summary>登場演出の進行率を返します。</summary>
-        float IntroProgress() const { return introSeconds_ / introDuration_; }
+        float IntroProgress() const
+        {
+            return introSeconds_ / introDuration_;
+        }
         /// <summary>選択時の強調量を返します。</summary>
-        float SelectionPulse() const { return selectionSeconds_ / selectionDuration_; }
+        float SelectionPulse() const
+        {
+            return selectionSeconds_ / selectionDuration_;
+        }
         /// <summary>画面遷移の進行率を返します。</summary>
-        float TransitionProgress() const { return transitionSeconds_ / transitionDuration_; }
-        bool IsTransitioning() const {return finished_;}
+        float TransitionProgress() const
+        {
+            return transitionSeconds_ / transitionDuration_;
+        }
+        bool IsTransitioning() const
+        {
+            return finished_;
+        }
         /// <summary>シーンに保存した開始演出の長さを設定します。不正値は無視します。</summary>
         void SetTransitionDuration(float seconds);
         void SetPresentationDurations(float intro, float selection);
         void SetItems(const std::vector<TitleMenuItem>& items);
         void Configure(SceneRuntime::MenuConfiguration configuration);
-        const SceneRuntime::MenuConfiguration& Configuration() const { return configuration_; }
+        const SceneRuntime::MenuConfiguration& Configuration() const
+        {
+            return configuration_;
+        }
         const SceneRuntime::MenuEntry* SelectedEntry() const;
-        const std::map<std::string,float>& SettingValues() const { return draft_.values; }
-        const std::string& PendingTarget() const { return pendingTarget_; }
-        bool TakeAssignments(std::string& result) { result=std::move(assignments_); assignments_.clear(); return !result.empty(); }
+        const std::map<std::string, float>& SettingValues() const
+        {
+            return draft_.values;
+        }
+        const std::string& PendingTarget() const
+        {
+            return pendingTarget_;
+        }
+        bool TakeAssignments(std::string& result)
+        {
+            result = std::move(assignments_);
+            assignments_.clear();
+            return !result.empty();
+        }
         void LoadSettings(const GameSettings& settings);
         /// <summary>
         /// 入力の立ち上がりで選択・決定します。初回・復帰・接続直後の押下は抑止します。
@@ -59,29 +118,60 @@ namespace SceneRuntime
         /// <summary>
         /// 現在の選択項目を返します。
         /// </summary>
-        TitleMenuItem GetSelected() const { return selected_; }
+        TitleMenuItem GetSelected() const
+        {
+            return selected_;
+        }
         /// <summary>
         /// 最後に操作した入力がゲームパッドかを返します。
         /// </summary>
-        bool UsesGamepad() const { return usesGamepad_; }
+        bool UsesGamepad() const
+        {
+            return usesGamepad_;
+        }
         /// <summary>設定画面を表示中か返します。</summary>
-        bool IsSettingsOpen() const { return settingsOpen_; }
+        bool IsSettingsOpen() const
+        {
+            return settingsOpen_;
+        }
         /// <summary>設定画面の選択行を返します。</summary>
-        int GetSettingsRow() const { return settingsRow_; }
+        int GetSettingsRow() const
+        {
+            return settingsRow_;
+        }
         /// <summary>編集中の設定を返します。</summary>
-        const GameSettings& GetSettings() const { return draft_; }
+        const GameSettings& GetSettings() const
+        {
+            return draft_;
+        }
         /// <summary>この更新で発生した操作音を返します。</summary>
-        TitleMenuCue GetCue() const { return cue_; }
+        TitleMenuCue GetCue() const
+        {
+            return cue_;
+        }
         /// <summary>保存済み設定を読み込みます。</summary>
         /// <summary>保存成功時だけ設定画面を閉じます。</summary>
-        void CompleteSave(bool success) { cue_ = success ? TitleMenuCue::Confirm : TitleMenuCue::Error; saveFailed_ = !success; if (success) { saved_ = draft_; settingsOpen_ = false; } }
+        void CompleteSave(bool success)
+        {
+            cue_ = success ? TitleMenuCue::Confirm : TitleMenuCue::Error;
+            saveFailed_ = !success;
+            if (success)
+            {
+                saved_ = draft_;
+                settingsOpen_ = false;
+            }
+        }
         /// <summary>保存に失敗したか返します。</summary>
-        bool SaveFailed() const { return saveFailed_; }
+        bool SaveFailed() const
+        {
+            return saveFailed_;
+        }
+
     private:
         void CaptureSelectedTarget();
         void ChangeVolumeUi();
 
-        SceneRuntime::MenuConfiguration configuration_=SceneRuntime::DefaultMenuConfiguration();
+        SceneRuntime::MenuConfiguration configuration_ = SceneRuntime::DefaultMenuConfiguration();
         std::string pendingTarget_, assignments_;
         void ChangeSetting(int direction, bool confirm);
         TitleMenuAction UpdateTransition(float elapsed);
@@ -91,7 +181,7 @@ namespace SceneRuntime
         TitleMenuAction UpdateMainMenu(unsigned int pressed);
         TitleMenuCue cue_ = TitleMenuCue::None;
         float introSeconds_ = 0.65f;
-        float introDuration_=0.65f, selectionDuration_=0.16f;
+        float introDuration_ = 0.65f, selectionDuration_ = 0.16f;
         float selectionSeconds_ = 0.0f;
         float transitionSeconds_ = 0.0f;
         float transitionDuration_ = 0.32f;
@@ -112,6 +202,6 @@ namespace SceneRuntime
         bool usesGamepad_ = false;
         bool finished_ = false;
         bool pressAnyButton_ = false;
-        std::vector<TitleMenuItem> items_{TitleMenuItem::Start,TitleMenuItem::Settings,TitleMenuItem::Exit};
+        std::vector<TitleMenuItem> items_{TitleMenuItem::Start, TitleMenuItem::Settings, TitleMenuItem::Exit};
     };
 }

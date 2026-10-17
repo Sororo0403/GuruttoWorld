@@ -16,14 +16,16 @@ namespace
     using Microsoft::WRL::ComPtr;
     void Check(bool condition, const char* message)
     {
-        if (!condition) throw std::runtime_error(message);
+        if (!condition)
+            throw std::runtime_error(message);
     }
     void Hr(HRESULT result)
     {
-        if (FAILED(result)) throw std::runtime_error("Media Foundation test encoder failed: " + std::to_string(result));
+        if (FAILED(result))
+            throw std::runtime_error("Media Foundation test encoder failed: " + std::to_string(result));
     }
     std::vector<unsigned char> WritePcmWave(const std::filesystem::path& path, WORD bits, WORD channels,
-        bool extensible, WORD validBits, DWORD channelMask)
+                                            bool extensible, WORD validBits, DWORD channelMask)
     {
         constexpr DWORD Frames = 4800;
         const WORD block = static_cast<WORD>(channels * bits / 8);
@@ -36,15 +38,29 @@ namespace
                 samples[frame * block + (channel + 1) * (bits / 8) - 1] = (frame + channel) % 2 == 0 ? 0x20 : 0xE0;
         }
         std::ofstream file(path, std::ios::binary);
-        auto put = [&](auto value) { file.write(reinterpret_cast<const char*>(&value), sizeof(value)); };
-        file.write("RIFF", 4); put(DWORD(20 + formatSize + bytes)); file.write("WAVEfmt ", 8); put(formatSize);
-        put(WORD(extensible ? WAVE_FORMAT_EXTENSIBLE : WAVE_FORMAT_PCM)); put(channels);
-        put(DWORD(48000)); put(DWORD(48000 * block)); put(block); put(bits);
+        auto put = [&](auto value)
+        {
+            file.write(reinterpret_cast<const char*>(&value), sizeof(value));
+        };
+        file.write("RIFF", 4);
+        put(DWORD(20 + formatSize + bytes));
+        file.write("WAVEfmt ", 8);
+        put(formatSize);
+        put(WORD(extensible ? WAVE_FORMAT_EXTENSIBLE : WAVE_FORMAT_PCM));
+        put(channels);
+        put(DWORD(48000));
+        put(DWORD(48000 * block));
+        put(block);
+        put(bits);
         if (extensible)
         {
-            put(WORD(22)); put(validBits); put(channelMask); put(MFAudioFormat_PCM);
+            put(WORD(22));
+            put(validBits);
+            put(channelMask);
+            put(MFAudioFormat_PCM);
         }
-        file.write("data", 4); put(bytes);
+        file.write("data", 4);
+        put(bytes);
         file.write(reinterpret_cast<const char*>(samples.data()), samples.size());
         file.close();
         Check(bool(file), "write PCM fixture");
@@ -59,14 +75,16 @@ namespace
             const auto expected = WritePcmWave(path, 32, 2, true, 24, mask);
             Engine::WaveData decoded;
             Check(Engine::DecodeAudioFile(path, decoded) && decoded.format.wBitsPerSample == 32 &&
-                decoded.samples == expected, "left-aligned valid bits preserve samples");
+                      decoded.samples == expected,
+                  "left-aligned valid bits preserve samples");
         }
         const auto unsupported = folder / "nonstandard-layout.wav";
         WritePcmWave(unsupported, 24, 2, true, 24, SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
         Engine::WaveData preserved;
         preserved.samples = {1, 2, 3};
-        Check(!Engine::DecodeAudioFile(unsupported, preserved) && preserved.samples == std::vector<unsigned char>({1, 2, 3}),
-            "unsupported channel layout rejected without losing output");
+        Check(!Engine::DecodeAudioFile(unsupported, preserved) &&
+                  preserved.samples == std::vector<unsigned char>({1, 2, 3}),
+              "unsupported channel layout rejected without losing output");
     }
 
     void ValidatePcmFormats(Engine::AudioSystem& audio, const std::filesystem::path& folder)
@@ -78,16 +96,18 @@ namespace
                 for (bool extensible : {false, true})
                 {
                     const auto path = folder / (std::to_string(channels) + "ch-" + std::to_string(bits) +
-                        (extensible ? "-ext.wav" : "-pcm.wav"));
+                                                (extensible ? "-ext.wav" : "-pcm.wav"));
                     const DWORD mask = channels == 1 ? SPEAKER_FRONT_CENTER : SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
                     const auto expected = WritePcmWave(path, bits, channels, extensible, bits, mask);
                     Engine::WaveData decoded;
                     Check(Engine::DecodeAudioFile(path, decoded), "decode mono/stereo PCM and extensible WAV");
                     Check(decoded.format.wFormatTag == WAVE_FORMAT_PCM && decoded.format.cbSize == 0 &&
-                        decoded.format.nChannels == channels && decoded.format.wBitsPerSample == bits &&
-                        decoded.samples == expected, "normalized PCM preserves format and sample bytes");
+                              decoded.format.nChannels == channels && decoded.format.wBitsPerSample == bits &&
+                              decoded.samples == expected,
+                          "normalized PCM preserves format and sample bytes");
                     const auto handle = audio.Load(path);
-                    Check(handle != 0 && audio.SetVolume(handle, 0) && audio.Play(handle), "play normalized PCM silently");
+                    Check(handle != 0 && audio.SetVolume(handle, 0) && audio.Play(handle),
+                          "play normalized PCM silently");
                     audio.Unload(handle);
                 }
             }
@@ -146,29 +166,41 @@ int main()
         EncodeAac(compressed);
         Engine::WaveData decoded;
         Check(Engine::DecodeAudioFile(compressed, decoded), "decode AAC");
-        Check(decoded.format.wFormatTag == WAVE_FORMAT_PCM && decoded.format.nSamplesPerSec == 48000 && !decoded.samples.empty(), "decoded PCM");
+        Check(decoded.format.wFormatTag == WAVE_FORMAT_PCM && decoded.format.nSamplesPerSec == 48000 &&
+                  !decoded.samples.empty(),
+              "decoded PCM");
         {
-        Engine::AudioStream stream;
-        Check(stream.Open(compressed),"open compressed streaming decoder");
-        std::vector<unsigned char> streamed; bool ended=false;
-        for(size_t chunk=0;!ended&&chunk<10000;++chunk) {
-            std::vector<unsigned char> bytes; Check(stream.Read(bytes,ended),"decode compressed stream chunk");
-            streamed.insert(streamed.end(),bytes.begin(),bytes.end());
-        }
-        Check(ended&&streamed==decoded.samples&&stream.Rewind(),"streamed AAC PCM matches complete decoder and rewinds");
-        std::vector<unsigned char> replayChunk;ended=false;
-        Check(stream.Read(replayChunk,ended)&&!replayChunk.empty(),"AAC decoder produces samples after rewind");
-        const auto streamedHandle=audio.Load(compressed,true);
-        Check(streamedHandle!=0,"AAC streaming load");
-        Check(audio.SetVolume(streamedHandle,0),"AAC streaming mute");
-        Check(audio.Play(streamedHandle,true),"AAC streaming playback");
-        audio.Update(); Check(audio.IsPlaying(streamedHandle)&&audio.BufferedBytes(streamedHandle)>0,"AAC buffers queued");
-        audio.Unload(streamedHandle);
+            Engine::AudioStream stream;
+            Check(stream.Open(compressed), "open compressed streaming decoder");
+            std::vector<unsigned char> streamed;
+            bool ended = false;
+            for (size_t chunk = 0; !ended && chunk < 10000; ++chunk)
+            {
+                std::vector<unsigned char> bytes;
+                Check(stream.Read(bytes, ended), "decode compressed stream chunk");
+                streamed.insert(streamed.end(), bytes.begin(), bytes.end());
+            }
+            Check(ended && streamed == decoded.samples && stream.Rewind(),
+                  "streamed AAC PCM matches complete decoder and rewinds");
+            std::vector<unsigned char> replayChunk;
+            ended = false;
+            Check(stream.Read(replayChunk, ended) && !replayChunk.empty(), "AAC decoder produces samples after rewind");
+            const auto streamedHandle = audio.Load(compressed, true);
+            Check(streamedHandle != 0, "AAC streaming load");
+            Check(audio.SetVolume(streamedHandle, 0), "AAC streaming mute");
+            Check(audio.Play(streamedHandle, true), "AAC streaming playback");
+            audio.Update();
+            Check(audio.IsPlaying(streamedHandle) && audio.BufferedBytes(streamedHandle) > 0, "AAC buffers queued");
+            audio.Unload(streamedHandle);
         }
         const auto before = decoded.samples;
         const auto invalid = folder / "invalid.mp3";
-        { std::ofstream file(invalid); file << "not audio"; }
-        Check(!Engine::DecodeAudioFile(invalid, decoded) && decoded.samples == before, "failed decode preserves output");
+        {
+            std::ofstream file(invalid);
+            file << "not audio";
+        }
+        Check(!Engine::DecodeAudioFile(invalid, decoded) && decoded.samples == before,
+              "failed decode preserves output");
         Check(audio.Load(invalid) == 0 && audio.Load(folder / "missing.mp3") == 0, "invalid files rejected");
         const auto wav = audio.Load("App/Assets/Audio/Sample.wav");
         const auto aac = audio.Load(compressed);
@@ -177,25 +209,25 @@ int main()
         Check(audio.SetVolume(wav, 0.25f) && audio.GetVolume(wav) == 0.25f, "volume readback");
         Check(!audio.SetVolume(wav, -1.0f) && audio.GetVolume(wav) == 0.25f, "invalid volume preserves state");
         std::filesystem::rename(compressed, folder / "moved.m4a");
-        for (const auto handle : { wav, aac })
+        for (const auto handle : {wav, aac})
         {
             Check(audio.SetVolume(handle, 0), "mute test playback");
             Check(audio.GetVolume(handle) == 0, "UI reads muted volume from audio");
             Check(audio.Play(handle), "play cached audio");
             Check(audio.IsPlaying(handle), "playing state");
-            Check(audio.Pause(handle,true), "pause finite voice");
+            Check(audio.Pause(handle, true), "pause finite voice");
             std::this_thread::sleep_for(std::chrono::milliseconds(900));
             Check(audio.IsPlaying(handle), "paused finite buffer does not advance");
-            Check(audio.Pause(handle,false), "resume finite voice from retained buffer");
+            Check(audio.Pause(handle, false), "resume finite voice from retained buffer");
             std::this_thread::sleep_for(std::chrono::milliseconds(900));
             Check(!audio.IsPlaying(handle), "playback completes");
             Check(audio.Play(handle, true), "loop replay without source file");
             std::this_thread::sleep_for(std::chrono::milliseconds(700));
             Check(audio.IsPlaying(handle), "loop remains active");
-            Check(audio.Pause(handle,true), "pause keeps queued audio");
+            Check(audio.Pause(handle, true), "pause keeps queued audio");
             std::this_thread::sleep_for(std::chrono::milliseconds(700));
             Check(audio.IsPlaying(handle), "paused loop retains buffer");
-            Check(audio.Pause(handle,false), "resume voice");
+            Check(audio.Pause(handle, false), "resume voice");
             audio.Stop(handle);
             Check(!audio.IsPlaying(handle), "stop");
             audio.Unload(handle);
@@ -208,14 +240,16 @@ int main()
         const auto reloaded = audio.Load(folder / "moved.m4a");
         Check(reloaded != 0, "decode after reinitialize");
         Check(audio.SetVolume(reloaded, 0.25f) && audio.GetVolume(reloaded) == 0.25f,
-            "recreated sound exposes fresh scene volume rather than previous mute");
-        std::cout << "PASS: PCM/extensible WAV 8/16/24/32-bit, valid bits, channel layouts, AAC, playback and lifecycle\n";
+              "recreated sound exposes fresh scene volume rather than previous mute");
+        std::cout
+            << "PASS: PCM/extensible WAV 8/16/24/32-bit, valid bits, channel layouts, AAC, playback and lifecycle\n";
         return 0;
     }
     catch (const std::exception& error)
     {
         std::cerr << error.what() << '\n';
-        for(const auto& entry:Engine::Log::Recent()) std::cerr<<entry.text<<'\n';
+        for (const auto& entry : Engine::Log::Recent())
+            std::cerr << entry.text << '\n';
         return 1;
     }
 }

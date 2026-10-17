@@ -13,7 +13,17 @@
 
 namespace Editor
 {
-    enum class AssetKind { Model, Scene, Texture, Audio, Shader, Font, Prefab, Material };
+    enum class AssetKind
+    {
+        Model,
+        Scene,
+        Texture,
+        Audio,
+        Shader,
+        Font,
+        Prefab,
+        Material
+    };
     struct ProjectAsset
     {
         std::filesystem::path path;
@@ -24,8 +34,8 @@ namespace Editor
     public:
         static std::string Text(const std::filesystem::path& path)
         {
-            const auto utf8=path.generic_u8string();
-            return {utf8.begin(),utf8.end()};
+            const auto utf8 = path.generic_u8string();
+            return {utf8.begin(), utf8.end()};
         }
         bool Scan(const std::filesystem::path& root)
         {
@@ -33,90 +43,144 @@ namespace Editor
             {
                 std::vector<ProjectAsset> assets;
                 std::set<std::filesystem::path> folders{"Assets"};
-                ScanFolder(root,"Assets",assets,folders);
-                if (std::filesystem::is_directory(root/"Shaders")) ScanFolder(root,"Shaders",assets,folders);
-                std::sort(assets.begin(),assets.end(), [](const auto& a,const auto& b) { return a.path<b.path; });
+                ScanFolder(root, "Assets", assets, folders);
+                if (std::filesystem::is_directory(root / "Shaders"))
+                    ScanFolder(root, "Shaders", assets, folders);
+                std::sort(assets.begin(), assets.end(),
+                          [](const auto& a, const auto& b)
+                          {
+                              return a.path < b.path;
+                          });
                 static_cast<void>(Engine::AssetDatabase(root));
-                root_=root; assets_=std::move(assets);
-                folders_={folders.begin(),folders.end()};
+                root_ = root;
+                assets_ = std::move(assets);
+                folders_ = {folders.begin(), folders.end()};
                 children_.clear();
-                for (const auto& folder : folders_) children_[folder.parent_path()].push_back(folder);
+                for (const auto& folder : folders_)
+                    children_[folder.parent_path()].push_back(folder);
                 error_.clear();
                 return true;
             }
-            catch (const std::exception& error) { error_=error.what(); return false; }
+            catch (const std::exception& error)
+            {
+                error_ = error.what();
+                return false;
+            }
         }
         static std::optional<AssetKind> Kind(const std::filesystem::path& path)
         {
-            const auto extension=Lower(Text(path.extension()));
-            if (extension==".mat" && Text(path).starts_with("Assets/Materials/")) return AssetKind::Material;
-            if (extension==".prefab" && Text(path).starts_with("Assets/Prefabs/")) return AssetKind::Prefab;
-            if (extension==".obj" || extension==".gltf" || extension==".glb") return AssetKind::Model;
-            if (extension==".json" && Text(path).starts_with("Assets/Scenes/")) return AssetKind::Scene;
-            if (HasExtension(extension,{".png",".jpg",".jpeg",".bmp",".tif",".tiff",".dds"})) return AssetKind::Texture;
-            if (HasExtension(extension,{".wav",".mp3",".aac",".m4a",".ogg",".flac"})) return AssetKind::Audio;
-            if (HasExtension(extension,{".hlsl",".hlsli"})) return AssetKind::Shader;
-            if (HasExtension(extension,{".ttf",".otf"})) return AssetKind::Font;
+            const auto extension = Lower(Text(path.extension()));
+            if (extension == ".mat" && Text(path).starts_with("Assets/Materials/"))
+                return AssetKind::Material;
+            if (extension == ".prefab" && Text(path).starts_with("Assets/Prefabs/"))
+                return AssetKind::Prefab;
+            if (extension == ".obj" || extension == ".gltf" || extension == ".glb")
+                return AssetKind::Model;
+            if (extension == ".json" && Text(path).starts_with("Assets/Scenes/"))
+                return AssetKind::Scene;
+            if (HasExtension(extension, {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".dds"}))
+                return AssetKind::Texture;
+            if (HasExtension(extension, {".wav", ".mp3", ".aac", ".m4a", ".ogg", ".flac"}))
+                return AssetKind::Audio;
+            if (HasExtension(extension, {".hlsl", ".hlsli"}))
+                return AssetKind::Shader;
+            if (HasExtension(extension, {".ttf", ".otf"}))
+                return AssetKind::Font;
             return std::nullopt;
         }
         static const char* Label(AssetKind kind)
         {
             switch (kind)
             {
-            case AssetKind::Model: return "モデル";
-            case AssetKind::Scene: return "シーン";
-            case AssetKind::Texture: return "画像";
-            case AssetKind::Audio: return "音声";
-            case AssetKind::Shader: return "シェーダー";
-            case AssetKind::Font: return "フォント";
-            case AssetKind::Prefab: return "Prefab";
-            case AssetKind::Material: return "Material";
+            case AssetKind::Model:
+                return "モデル";
+            case AssetKind::Scene:
+                return "シーン";
+            case AssetKind::Texture:
+                return "画像";
+            case AssetKind::Audio:
+                return "音声";
+            case AssetKind::Shader:
+                return "シェーダー";
+            case AssetKind::Font:
+                return "フォント";
+            case AssetKind::Prefab:
+                return "Prefab";
+            case AssetKind::Material:
+                return "Material";
             }
             return "アセット";
         }
         static bool Matches(const ProjectAsset& asset, const std::filesystem::path& folder, const std::string& search)
         {
-            if (search.empty()) return asset.path.parent_path()==folder;
-            return Lower(Text(asset.path)).find(Lower(search))!=std::string::npos;
+            if (search.empty())
+                return asset.path.parent_path() == folder;
+            return Lower(Text(asset.path)).find(Lower(search)) != std::string::npos;
         }
-        const std::filesystem::path& Root() const { return root_; }
-        const std::vector<ProjectAsset>& Assets() const { return assets_; }
-        const std::vector<std::filesystem::path>& Folders() const { return folders_; }
+        const std::filesystem::path& Root() const
+        {
+            return root_;
+        }
+        const std::vector<ProjectAsset>& Assets() const
+        {
+            return assets_;
+        }
+        const std::vector<std::filesystem::path>& Folders() const
+        {
+            return folders_;
+        }
         const std::vector<std::filesystem::path>& Children(const std::filesystem::path& folder) const
         {
             static const std::vector<std::filesystem::path> empty;
-            const auto found=children_.find(folder);
-            return found==children_.end() ? empty : found->second;
+            const auto found = children_.find(folder);
+            return found == children_.end() ? empty : found->second;
         }
-        const std::string& Error() const { return error_; }
+        const std::string& Error() const
+        {
+            return error_;
+        }
+
     private:
         static bool HasExtension(const std::string& extension, std::initializer_list<std::string_view> supported)
-        { return std::find(supported.begin(),supported.end(),extension)!=supported.end(); }
+        {
+            return std::find(supported.begin(), supported.end(), extension) != supported.end();
+        }
         static void ScanFolder(const std::filesystem::path& root, const std::filesystem::path& folder,
-            std::vector<ProjectAsset>& assets, std::set<std::filesystem::path>& folders)
+                               std::vector<ProjectAsset>& assets, std::set<std::filesystem::path>& folders)
         {
             folders.insert(folder);
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(root/folder))
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(root / folder))
             {
-                if (entry.is_directory()) { folders.insert(entry.path().lexically_relative(root)); continue; }
-                if (!entry.is_regular_file()) continue;
-                const auto relative=entry.path().lexically_relative(root);
-                const auto kind=Kind(relative);
-                if (!kind) continue;
+                if (entry.is_directory())
+                {
+                    folders.insert(entry.path().lexically_relative(root));
+                    continue;
+                }
+                if (!entry.is_regular_file())
+                    continue;
+                const auto relative = entry.path().lexically_relative(root);
+                const auto kind = Kind(relative);
+                if (!kind)
+                    continue;
                 Engine::AssetDatabase::Ensure(entry.path());
-                assets.push_back({relative,*kind});
-                for (auto parent=relative.parent_path(); !parent.empty(); parent=parent.parent_path()) folders.insert(parent);
+                assets.push_back({relative, *kind});
+                for (auto parent = relative.parent_path(); !parent.empty(); parent = parent.parent_path())
+                    folders.insert(parent);
             }
         }
         static std::string Lower(std::string value)
         {
-            std::transform(value.begin(),value.end(),value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            std::transform(value.begin(), value.end(), value.begin(),
+                           [](unsigned char c)
+                           {
+                               return static_cast<char>(std::tolower(c));
+                           });
             return value;
         }
         std::filesystem::path root_;
         std::vector<ProjectAsset> assets_;
         std::vector<std::filesystem::path> folders_;
-        std::map<std::filesystem::path,std::vector<std::filesystem::path>> children_;
+        std::map<std::filesystem::path, std::vector<std::filesystem::path>> children_;
         std::string error_;
     };
 }

@@ -17,26 +17,42 @@ namespace Editor
             hovered_ = false;
             focused_ = false;
             PanelLayout::Place(PanelLayout::Panel::Scene);
-            if (!ImGui::Begin(name, nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) return false;
-            focused_=ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+            if (!ImGui::Begin(name, nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+                return false;
+            focused_ = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
             const auto size = ImGui::GetContentRegionAvail();
-            if (size.x < 1 || size.y < 1 || !texture) return false;
+            if (size.x < 1 || size.y < 1 || !texture)
+                return false;
             const auto position = ImGui::GetCursorScreenPos();
             ImGui::Image(static_cast<ImTextureID>(texture), size);
             viewport_ = {position.x, position.y, size.x, size.y};
             hovered_ = ImGui::IsItemHovered();
             return true;
         }
-        static void End() { ImGui::End(); }
-        const SceneViewport& Viewport() const { return viewport_; }
-        bool Hovered() const { return hovered_; }
-        bool Focused() const { return focused_; }
+        static void End()
+        {
+            ImGui::End();
+        }
+        const SceneViewport& Viewport() const
+        {
+            return viewport_;
+        }
+        bool Hovered() const
+        {
+            return hovered_;
+        }
+        bool Focused() const
+        {
+            return focused_;
+        }
         std::array<unsigned int, 2> RequestedSize() const
         {
-            if (!viewport_.Valid()) return {};
+            if (!viewport_.Valid())
+                return {};
             return {static_cast<unsigned int>(std::clamp(viewport_.width, 1.0f, 16384.0f)),
-                static_cast<unsigned int>(std::clamp(viewport_.height, 1.0f, 16384.0f))};
+                    static_cast<unsigned int>(std::clamp(viewport_.height, 1.0f, 16384.0f))};
         }
+
     private:
         SceneViewport viewport_;
         bool hovered_ = false;

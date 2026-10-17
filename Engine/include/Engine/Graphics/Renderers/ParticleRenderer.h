@@ -38,14 +38,14 @@ namespace Engine
         /// <param name="texture">同一デバイスで読み込み済みの共有テクスチャ。画像の再読み込みは行いません。</param>
         /// <param name="shaderPath">パーティクル用の VSMain・PSMain を定義した HLSL ファイル。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
-        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
-            std::shared_ptr<const Texture2D> texture, const std::filesystem::path& shaderPath);
+        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, std::shared_ptr<const Texture2D> texture,
+                        const std::filesystem::path& shaderPath);
 
         /// <summary>
         /// 深度テストあり・深度書き込みなしの加算合成で描画します。描画順によるソートは不要です。
         /// </summary>
         void Draw(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& worldViewProjection,
-            const std::array<float, 4>& color) const;
+                  const std::array<float, 4>& color) const;
 
     private:
         /// <summary>

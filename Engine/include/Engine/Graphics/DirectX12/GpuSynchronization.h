@@ -24,6 +24,6 @@ namespace Engine
     /// <param name="event">待機イベント。nullptr の場合はポーリングします。</param>
     /// <param name="timeoutMilliseconds">待機の制限時間。</param>
     /// <returns>GPU 処理が正常に完了した場合は true。false の場合はデバイスを再利用できません。</returns>
-    bool WaitForGpuFence(ID3D12Device* device, ID3D12Fence* fence, UINT64 value,
-        HANDLE event, DWORD timeoutMilliseconds = 30000);
+    bool WaitForGpuFence(ID3D12Device* device, ID3D12Fence* fence, UINT64 value, HANDLE event,
+                         DWORD timeoutMilliseconds = 30000);
 }

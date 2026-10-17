@@ -39,7 +39,7 @@ namespace Engine
         }
 
         constexpr DWORD Style = WS_OVERLAPPEDWINDOW;
-        RECT rectangle{ 0, 0, 0, 0 };
+        RECT rectangle{0, 0, 0, 0};
         if (!AdjustWindowRectEx(&rectangle, Style, FALSE, 0))
         {
             Log::Error(std::format("AdjustWindowRectEx failed: {}", GetLastError()));
@@ -74,9 +74,8 @@ namespace Engine
         }
 
         closeRequested_ = false;
-        handle_ = CreateWindowExW(0, WindowClassName, title, Style,
-            CW_USEDEFAULT, CW_USEDEFAULT, width + borderWidth, height + borderHeight,
-            nullptr, nullptr, instance_, this);
+        handle_ = CreateWindowExW(0, WindowClassName, title, Style, CW_USEDEFAULT, CW_USEDEFAULT, width + borderWidth,
+                                  height + borderHeight, nullptr, nullptr, instance_, this);
         if (handle_ == nullptr)
         {
             Log::Error(std::format("CreateWindowExW failed: {}", GetLastError()));
@@ -131,29 +130,50 @@ namespace Engine
 
     std::vector<char32_t> Window::ConsumeTextInput(HWND handle)
     {
-        auto* window=reinterpret_cast<Window*>(GetWindowLongPtrW(handle,GWLP_USERDATA));
-        if(!window) return {};
-        auto result=std::move(window->textInput_); window->textInput_.clear(); return result;
+        auto* window = reinterpret_cast<Window*>(GetWindowLongPtrW(handle, GWLP_USERDATA));
+        if (!window)
+            return {};
+        auto result = std::move(window->textInput_);
+        window->textInput_.clear();
+        return result;
     }
     float Window::ConsumeMouseWheel(HWND handle)
     {
-        auto* window=reinterpret_cast<Window*>(GetWindowLongPtrW(handle,GWLP_USERDATA));
-        if(!window) return 0;
-        const float result=window->mouseWheel_; window->mouseWheel_=0; return result;
+        auto* window = reinterpret_cast<Window*>(GetWindowLongPtrW(handle, GWLP_USERDATA));
+        if (!window)
+            return 0;
+        const float result = window->mouseWheel_;
+        window->mouseWheel_ = 0;
+        return result;
     }
     void Window::HandleInputMessage(HWND handle, UINT message, WPARAM wParam)
     {
-        auto *inputWindow = reinterpret_cast<Window *>(GetWindowLongPtrW(handle, GWLP_USERDATA));
-        if (inputWindow) {
-            if (message == WM_KILLFOCUS) {inputWindow->textInput_.clear(); inputWindow->highSurrogate_ = 0; inputWindow->mouseWheel_ = 0;}
-            if (message == WM_MOUSEWHEEL) inputWindow->mouseWheel_ += static_cast<SHORT>(HIWORD(wParam)) / static_cast<float>(WHEEL_DELTA);
-            if (message == WM_CHAR && inputWindow->textInput_.size() < 4096) {
+        auto* inputWindow = reinterpret_cast<Window*>(GetWindowLongPtrW(handle, GWLP_USERDATA));
+        if (inputWindow)
+        {
+            if (message == WM_KILLFOCUS)
+            {
+                inputWindow->textInput_.clear();
+                inputWindow->highSurrogate_ = 0;
+                inputWindow->mouseWheel_ = 0;
+            }
+            if (message == WM_MOUSEWHEEL)
+                inputWindow->mouseWheel_ += static_cast<SHORT>(HIWORD(wParam)) / static_cast<float>(WHEEL_DELTA);
+            if (message == WM_CHAR && inputWindow->textInput_.size() < 4096)
+            {
                 const auto character = static_cast<char32_t>(wParam);
-                if (character >= 0xd800 && character <= 0xdbff) inputWindow->highSurrogate_ = character;
-                else {
-                    if (character >= 0xdc00 && character <= 0xdfff) {
-                        if (inputWindow->highSurrogate_ != 0) inputWindow->textInput_.push_back(0x10000 + ((inputWindow->highSurrogate_ - 0xd800) << 10) + (character - 0xdc00));
-                    } else inputWindow->textInput_.push_back(character);
+                if (character >= 0xd800 && character <= 0xdbff)
+                    inputWindow->highSurrogate_ = character;
+                else
+                {
+                    if (character >= 0xdc00 && character <= 0xdfff)
+                    {
+                        if (inputWindow->highSurrogate_ != 0)
+                            inputWindow->textInput_.push_back(0x10000 + ((inputWindow->highSurrogate_ - 0xd800) << 10) +
+                                                              (character - 0xdc00));
+                    }
+                    else
+                        inputWindow->textInput_.push_back(character);
                     inputWindow->highSurrogate_ = 0;
                 }
             }
@@ -186,7 +206,7 @@ namespace Engine
             }
             SetWindowLongPtrW(handle, GWLP_USERDATA, 0);
         }
-        HandleInputMessage(handle,message,wParam);
+        HandleInputMessage(handle, message, wParam);
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
         if (ImGuiLayer::ProcessMessage(handle, message, wParam, lParam))
         {

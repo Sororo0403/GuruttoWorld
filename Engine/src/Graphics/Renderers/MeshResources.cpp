@@ -28,22 +28,28 @@ namespace
 
 namespace Engine
 {
-    bool MeshResources::Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath, ID3D12CommandQueue* queue)
+    bool MeshResources::Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath,
+                                   ID3D12CommandQueue* queue)
     {
         if (device == nullptr || device_)
         {
             return false;
         }
         std::string revision;
-        if (!GetShaderRevision(shaderPath, revision)) return false;
+        if (!GetShaderRevision(shaderPath, revision))
+            return false;
         using Key = std::tuple<ID3D12Device*, ID3D12CommandQueue*, std::string>;
         static std::mutex mutex;
         static std::map<Key, std::weak_ptr<PipelineBundle>> cache;
         std::lock_guard lock(mutex);
         for (auto iterator = cache.begin(); iterator != cache.end();)
-            if (iterator->second.expired()) iterator = cache.erase(iterator); else ++iterator;
+            if (iterator->second.expired())
+                iterator = cache.erase(iterator);
+            else
+                ++iterator;
         Key key{device, queue, std::move(revision)};
-        if (const auto found = cache.find(key); found != cache.end()) pipeline_ = found->second.lock();
+        if (const auto found = cache.find(key); found != cache.end())
+            pipeline_ = found->second.lock();
         if (!pipeline_)
         {
             pipeline_ = std::make_shared<PipelineBundle>();
@@ -65,8 +71,8 @@ namespace Engine
         return true;
     }
 
-    std::shared_ptr<Texture2D> MeshResources::GetTexture(ID3D12Device* device,
-        ID3D12CommandQueue* queue, const std::filesystem::path& path)
+    std::shared_ptr<Texture2D> MeshResources::GetTexture(ID3D12Device* device, ID3D12CommandQueue* queue,
+                                                         const std::filesystem::path& path)
     {
         if (device == nullptr || device != device_.Get() || queue == nullptr)
         {
@@ -79,13 +85,22 @@ namespace Engine
             Log::Error("Cannot resolve the texture cache path.");
             return {};
         }
-        std::pair<std::filesystem::file_time_type,std::filesystem::file_time_type> stamp{};
-        if (!key.empty()) {
-            stamp.first=std::filesystem::last_write_time(key,error); if(error) return {};
-            auto metadata=key; metadata+=".meta";
-            if(std::filesystem::exists(metadata,error)) { stamp.second=std::filesystem::last_write_time(metadata,error); if(error) return {}; }
+        std::pair<std::filesystem::file_time_type, std::filesystem::file_time_type> stamp{};
+        if (!key.empty())
+        {
+            stamp.first = std::filesystem::last_write_time(key, error);
+            if (error)
+                return {};
+            auto metadata = key;
+            metadata += ".meta";
+            if (std::filesystem::exists(metadata, error))
+            {
+                stamp.second = std::filesystem::last_write_time(metadata, error);
+                if (error)
+                    return {};
+            }
         }
-        if (const auto found = textures_.find(key); found != textures_.end() && textureStamps_.at(key)==stamp)
+        if (const auto found = textures_.find(key); found != textures_.end() && textureStamps_.at(key) == stamp)
         {
             return found->second;
         }
@@ -94,7 +109,8 @@ namespace Engine
         {
             return {};
         }
-        textures_[key]=texture; textureStamps_[key]=stamp;
+        textures_[key] = texture;
+        textureStamps_[key] = stamp;
         return texture;
     }
 
@@ -103,15 +119,20 @@ namespace Engine
         return pipeline_ ? pipeline_->rootSignature_.Get() : nullptr;
     }
 
-    ID3D12PipelineState* MeshResources::GetPipelineState(bool mirrored,bool transparent,bool hdr) const noexcept
+    ID3D12PipelineState* MeshResources::GetPipelineState(bool mirrored, bool transparent, bool hdr) const noexcept
     {
-        if (!pipeline_) return nullptr;
-        if (hdr) return pipeline_->hdrPipelineStates_[(transparent ? 2 : 0)+(mirrored ? 1 : 0)].Get();
-        if (transparent) return mirrored ? pipeline_->transparentMirroredPipelineState_.Get() : pipeline_->transparentPipelineState_.Get();
+        if (!pipeline_)
+            return nullptr;
+        if (hdr)
+            return pipeline_->hdrPipelineStates_[(transparent ? 2 : 0) + (mirrored ? 1 : 0)].Get();
+        if (transparent)
+            return mirrored ? pipeline_->transparentMirroredPipelineState_.Get()
+                            : pipeline_->transparentPipelineState_.Get();
         return mirrored ? pipeline_->mirroredPipelineState_.Get() : pipeline_->pipelineState_.Get();
     }
 
-    bool MeshResources::PathLess::operator()(const std::filesystem::path& left, const std::filesystem::path& right) const
+    bool MeshResources::PathLess::operator()(const std::filesystem::path& left,
+                                             const std::filesystem::path& right) const
     {
         return CompareStringOrdinal(left.c_str(), -1, right.c_str(), -1, TRUE) == CSTR_LESS_THAN;
     }
@@ -150,14 +171,15 @@ namespace Engine
         sampler.MaxLOD = D3D12_FLOAT32_MAX;
         sampler.ShaderRegister = 0;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        std::array<D3D12_STATIC_SAMPLER_DESC,3> samplers{sampler,sampler,sampler};
-        auto& comparison=samplers[1];
-        comparison.ShaderRegister=1;
-        comparison.Filter=D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-        comparison.AddressU=comparison.AddressV=comparison.AddressW=D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-        comparison.BorderColor=D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
-        comparison.ComparisonFunc=D3D12_COMPARISON_FUNC_LESS_EQUAL;
-        samplers[2].ShaderRegister=2; samplers[2].AddressV=D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        std::array<D3D12_STATIC_SAMPLER_DESC, 3> samplers{sampler, sampler, sampler};
+        auto& comparison = samplers[1];
+        comparison.ShaderRegister = 1;
+        comparison.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+        comparison.AddressU = comparison.AddressV = comparison.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        comparison.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+        comparison.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        samplers[2].ShaderRegister = 2;
+        samplers[2].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         D3D12_ROOT_SIGNATURE_DESC description{};
         description.NumParameters = 4;
         description.pParameters = parameters;
@@ -166,8 +188,8 @@ namespace Engine
         description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
         ComPtr<ID3DBlob> signature;
         ComPtr<ID3DBlob> errors;
-        const HRESULT result = D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1,
-            &signature, &errors);
+        const HRESULT result =
+            D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &errors);
         if (errors)
         {
             Log::Error(static_cast<const char*>(errors->GetBufferPointer()));
@@ -177,7 +199,8 @@ namespace Engine
             return false;
         }
         return Check(device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(),
-            IID_PPV_ARGS(&pipeline_->rootSignature_)), "Create mesh root signature");
+                                                 IID_PPV_ARGS(&pipeline_->rootSignature_)),
+                     "Create mesh root signature");
     }
 
     bool MeshResources::CreatePipelineState(ID3D12Device* device, const std::filesystem::path& shaderPath)
@@ -189,20 +212,24 @@ namespace Engine
         {
             return false;
         }
-        const D3D12_INPUT_ELEMENT_DESC elements[] =
-        {
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, color)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, position)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, normal)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, uv)), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "BLENDINDICES",0,DXGI_FORMAT_R32G32B32A32_UINT,0,static_cast<UINT>(offsetof(MeshVertex,joints)),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
-            { "BLENDWEIGHT",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,static_cast<UINT>(offsetof(MeshVertex,weights)),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 }
-        };
+        const D3D12_INPUT_ELEMENT_DESC elements[] = {
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, color)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, position)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, normal)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, uv)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, static_cast<UINT>(offsetof(MeshVertex, joints)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<UINT>(offsetof(MeshVertex, weights)),
+             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
         D3D12_GRAPHICS_PIPELINE_STATE_DESC description{};
         description.pRootSignature = pipeline_->rootSignature_.Get();
-        description.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
-        description.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
-        description.InputLayout = { elements, 6 };
+        description.VS = {vertexShader->GetBufferPointer(), vertexShader->GetBufferSize()};
+        description.PS = {pixelShader->GetBufferPointer(), pixelShader->GetBufferSize()};
+        description.InputLayout = {elements, 6};
         description.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
         description.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
         description.RasterizerState.DepthClipEnable = TRUE;
@@ -226,23 +253,38 @@ namespace Engine
         description.DSVFormat = DepthBuffer::Format;
         description.SampleDesc.Count = 1;
         if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipeline_->pipelineState_)),
-            "Create mesh pipeline state")) return false;
+                   "Create mesh pipeline state"))
+            return false;
         description.RasterizerState.FrontCounterClockwise = TRUE;
-        if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipeline_->mirroredPipelineState_)),"Create mirrored mesh pipeline state")) return false;
-        blend.BlendEnable=TRUE; blend.SrcBlend=D3D12_BLEND_SRC_ALPHA; blend.DestBlend=D3D12_BLEND_INV_SRC_ALPHA;
-        blend.DestBlendAlpha=D3D12_BLEND_INV_SRC_ALPHA;
-        description.DepthStencilState.DepthWriteMask=D3D12_DEPTH_WRITE_MASK_ZERO;
-        if (!Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&pipeline_->transparentMirroredPipelineState_)),"Create transparent mirrored mesh pipeline")) return false;
-        description.RasterizerState.FrontCounterClockwise=FALSE;
-        if (!Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&pipeline_->transparentPipelineState_)),"Create transparent mesh pipeline")) return false;
-        description.RTVFormats[0]=DXGI_FORMAT_R16G16B16A16_FLOAT;
-        for (size_t index=0;index<pipeline_->hdrPipelineStates_.size();++index)
+        if (!Check(device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipeline_->mirroredPipelineState_)),
+                   "Create mirrored mesh pipeline state"))
+            return false;
+        blend.BlendEnable = TRUE;
+        blend.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+        blend.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+        blend.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+        description.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+        if (!Check(device->CreateGraphicsPipelineState(&description,
+                                                       IID_PPV_ARGS(&pipeline_->transparentMirroredPipelineState_)),
+                   "Create transparent mirrored mesh pipeline"))
+            return false;
+        description.RasterizerState.FrontCounterClockwise = FALSE;
+        if (!Check(
+                device->CreateGraphicsPipelineState(&description, IID_PPV_ARGS(&pipeline_->transparentPipelineState_)),
+                "Create transparent mesh pipeline"))
+            return false;
+        description.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        for (size_t index = 0; index < pipeline_->hdrPipelineStates_.size(); ++index)
         {
-            const bool transparent=index>=2;
-            description.RasterizerState.FrontCounterClockwise=(index%2)!=0;
-            blend.BlendEnable=transparent ? TRUE : FALSE;
-            description.DepthStencilState.DepthWriteMask=transparent ? D3D12_DEPTH_WRITE_MASK_ZERO : D3D12_DEPTH_WRITE_MASK_ALL;
-            if (!Check(device->CreateGraphicsPipelineState(&description,IID_PPV_ARGS(&pipeline_->hdrPipelineStates_[index])),"Create HDR mesh pipeline")) return false;
+            const bool transparent = index >= 2;
+            description.RasterizerState.FrontCounterClockwise = (index % 2) != 0;
+            blend.BlendEnable = transparent ? TRUE : FALSE;
+            description.DepthStencilState.DepthWriteMask =
+                transparent ? D3D12_DEPTH_WRITE_MASK_ZERO : D3D12_DEPTH_WRITE_MASK_ALL;
+            if (!Check(device->CreateGraphicsPipelineState(&description,
+                                                           IID_PPV_ARGS(&pipeline_->hdrPipelineStates_[index])),
+                       "Create HDR mesh pipeline"))
+                return false;
         }
         return true;
     }

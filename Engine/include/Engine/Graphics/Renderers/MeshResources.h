@@ -36,7 +36,8 @@ namespace Engine
         /// <param name="shaderPath">共通メッシュ用シェーダー。</param>
         /// <param name="queue">共有範囲を分離する描画キュー。省略時は独立した共有範囲。</param>
         /// <returns>初期化に成功した場合は true。</returns>
-        bool Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath, ID3D12CommandQueue* queue = nullptr);
+        bool Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath,
+                        ID3D12CommandQueue* queue = nullptr);
 
         /// <summary>
         /// 正規化したパスに対応する画像を共有します。未登録の場合のみ転送し、完了を待機します。
@@ -46,7 +47,7 @@ namespace Engine
         /// <param name="path">画像のパス。空の場合は共有の白テクスチャ。</param>
         /// <returns>共有テクスチャ。失敗時は空。</returns>
         std::shared_ptr<Texture2D> GetTexture(ID3D12Device* device, ID3D12CommandQueue* queue,
-            const std::filesystem::path& path);
+                                              const std::filesystem::path& path);
 
         /// <summary>
         /// 所有権を移譲せず共有ルートシグネチャを取得します。
@@ -55,17 +56,26 @@ namespace Engine
         /// <summary>
         /// 所有権を移譲せず共有 PSO を取得します。鏡映時は正面の巻き順を反転します。
         /// </summary>
-        ID3D12PipelineState* GetPipelineState(bool mirrored = false,bool transparent = false,bool hdr=false) const noexcept;
+        ID3D12PipelineState* GetPipelineState(bool mirrored = false, bool transparent = false,
+                                              bool hdr = false) const noexcept;
 
         /// <summary>現在の描画フレームへ局所ライトの不変データを準備します。</summary>
-        LocalLightView PrepareLights(ID3D12GraphicsCommandList* commands,std::span<const LocalLight> lights,const ShadowMap* shadows=nullptr,std::array<float,2> environment={})
-        { return localLights_.Prepare(device_.Get(),commands,lights,shadows,environment); }
+        LocalLightView PrepareLights(ID3D12GraphicsCommandList* commands, std::span<const LocalLight> lights,
+                                     const ShadowMap* shadows = nullptr, std::array<float, 2> environment = {})
+        {
+            return localLights_.Prepare(device_.Get(), commands, lights, shadows, environment);
+        }
         /// <summary>現在のフレームへスキニングの行列を準備します。</summary>
-        SkinPaletteView PrepareSkin(ID3D12GraphicsCommandList* commands,std::span<const SkinMatrix> palette)
-        { return skinPalettes_.Prepare(device_.Get(),commands,palette); }
+        SkinPaletteView PrepareSkin(ID3D12GraphicsCommandList* commands, std::span<const SkinMatrix> palette)
+        {
+            return skinPalettes_.Prepare(device_.Get(), commands, palette);
+        }
         /// <summary>同じメッシュの個体行列を現在のフレームへ不変データとして準備します。</summary>
-        SkinPaletteView PrepareInstances(ID3D12GraphicsCommandList* commands,std::span<const SkinMatrix> instances)
-        { return instances_.Prepare(device_.Get(),commands,instances); }
+        SkinPaletteView PrepareInstances(ID3D12GraphicsCommandList* commands, std::span<const SkinMatrix> instances)
+        {
+            return instances_.Prepare(device_.Get(), commands, instances);
+        }
+
     private:
         LocalLightBuffer localLights_;
         SkinPaletteBuffer skinPalettes_;
@@ -99,11 +109,13 @@ namespace Engine
             Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature_;
             Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState_;
             Microsoft::WRL::ComPtr<ID3D12PipelineState> mirroredPipelineState_;
-            Microsoft::WRL::ComPtr<ID3D12PipelineState> transparentPipelineState_,transparentMirroredPipelineState_;
-            std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>,4> hdrPipelineStates_;
+            Microsoft::WRL::ComPtr<ID3D12PipelineState> transparentPipelineState_, transparentMirroredPipelineState_;
+            std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, 4> hdrPipelineStates_;
         };
         std::shared_ptr<PipelineBundle> pipeline_;
         std::map<std::filesystem::path, std::shared_ptr<Texture2D>, PathLess> textures_;
-        std::map<std::filesystem::path,std::pair<std::filesystem::file_time_type,std::filesystem::file_time_type>,PathLess> textureStamps_;
+        std::map<std::filesystem::path, std::pair<std::filesystem::file_time_type, std::filesystem::file_time_type>,
+                 PathLess>
+            textureStamps_;
     };
 }

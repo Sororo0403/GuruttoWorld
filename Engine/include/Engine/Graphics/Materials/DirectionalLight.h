@@ -9,28 +9,28 @@ namespace Engine
     class ShadowMap;
     struct LocalLight
     {
-        std::array<float,3> position{};
-        float range=10;
-        std::array<float,3> direction{0,0,1};
-        float spot=0;
-        std::array<float,3> color{1,1,1};
-        float intensity=1;
-        float innerCosine=.9659258f,outerCosine=.8660254f;
-        float shadowFirst=-1,shadowCount=0;
+        std::array<float, 3> position{};
+        float range = 10;
+        std::array<float, 3> direction{0, 0, 1};
+        float spot = 0;
+        std::array<float, 3> color{1, 1, 1};
+        float intensity = 1;
+        float innerCosine = .9659258f, outerCosine = .8660254f;
+        float shadowFirst = -1, shadowCount = 0;
         bool operator==(const LocalLight&) const = default;
     };
-    static_assert(sizeof(LocalLight)==64);
+    static_assert(sizeof(LocalLight) == 64);
     struct DistanceFog
     {
-        bool enabled=false;
-        std::array<float,3> color{1,1,1};
-        float start=0, end=100, strength=1;
+        bool enabled = false;
+        std::array<float, 3> color{1, 1, 1};
+        float start = 0, end = 100, strength = 1;
     };
     struct DirectionalLight
     {
         // ワールド空間で光が進む方向です。ゼロの場合、直接光は無効になります。
-        std::array<float, 3> direction{ 0.4f, -0.7f, 1.0f };
-        std::array<float, 3> color{ 1.0f, 1.0f, 1.0f };
+        std::array<float, 3> direction{0.4f, -0.7f, 1.0f};
+        std::array<float, 3> color{1.0f, 1.0f, 1.0f};
         float intensity = 0.8f;
         float ambientIntensity = 0.2f;
         // Blinn-Phong 反射の強さと鋭さです。
@@ -40,10 +40,10 @@ namespace Engine
         bool enabled = true;
         // Scene-wide fog travels with lighting parameters to the mesh shader.
         DistanceFog fog;
-        bool shadowsEnabled=false;
-        float shadowDistance=70,shadowBias=.0001f;
-        const ShadowMap* shadow=nullptr;
-        const ShadowMap* localShadow=nullptr;
+        bool shadowsEnabled = false;
+        float shadowDistance = 70, shadowBias = .0001f;
+        const ShadowMap* shadow = nullptr;
+        const ShadowMap* localShadow = nullptr;
         std::vector<LocalLight> localLights;
     };
 }

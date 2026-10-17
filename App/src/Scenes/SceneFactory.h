@@ -20,10 +20,15 @@ namespace App
         /// <summary>
         /// 診断計測用に、シーンで共有する環境の参照を返します。
         /// </summary>
-        SceneRuntime::SceneEnvironment& Environment() const noexcept { return *environment_; }
+        SceneRuntime::SceneEnvironment& Environment() const noexcept
+        {
+            return *environment_;
+        }
+
     private:
         std::filesystem::path root_;
         bool simulateInactive_ = false;
-        std::shared_ptr<SceneRuntime::SceneEnvironment> environment_=std::make_shared<SceneRuntime::SceneEnvironment>();
+        std::shared_ptr<SceneRuntime::SceneEnvironment> environment_ =
+            std::make_shared<SceneRuntime::SceneEnvironment>();
     };
 }

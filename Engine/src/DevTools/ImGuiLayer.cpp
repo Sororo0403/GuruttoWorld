@@ -20,11 +20,11 @@ namespace Engine
         Shutdown();
     }
 
-    bool ImGuiLayer::Initialize(HWND window, ID3D12Device* device, ID3D12CommandQueue* queue,
-        int framesInFlight, DXGI_FORMAT format)
+    bool ImGuiLayer::Initialize(HWND window, ID3D12Device* device, ID3D12CommandQueue* queue, int framesInFlight,
+                                DXGI_FORMAT format)
     {
-        if (context_ != nullptr || ImGui::GetCurrentContext() != nullptr ||
-            !IsWindow(window) || device == nullptr || queue == nullptr || framesInFlight <= 0)
+        if (context_ != nullptr || ImGui::GetCurrentContext() != nullptr || !IsWindow(window) || device == nullptr ||
+            queue == nullptr || framesInFlight <= 0)
         {
             Log::Error("Invalid ImGui initialization arguments or context already exists.");
             return false;
@@ -36,7 +36,8 @@ namespace Engine
         const HRESULT result = device->CreateDescriptorHeap(&description, IID_PPV_ARGS(&descriptorHeap_));
         if (FAILED(result))
         {
-            Log::Error(std::format("Create ImGui descriptor heap failed: 0x{:08X}", static_cast<unsigned long>(result)));
+            Log::Error(
+                std::format("Create ImGui descriptor heap failed: 0x{:08X}", static_cast<unsigned long>(result)));
             return false;
         }
         descriptorSize_ = device->GetDescriptorHandleIncrementSize(description.Type);
@@ -62,13 +63,13 @@ namespace Engine
         info.RTVFormat = format;
         info.SrvDescriptorHeap = descriptorHeap_.Get();
         info.UserData = this;
-        info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* data,
-            D3D12_CPU_DESCRIPTOR_HANDLE* cpu, D3D12_GPU_DESCRIPTOR_HANDLE* gpu)
+        info.SrvDescriptorAllocFn =
+            [](ImGui_ImplDX12_InitInfo* data, D3D12_CPU_DESCRIPTOR_HANDLE* cpu, D3D12_GPU_DESCRIPTOR_HANDLE* gpu)
         {
             static_cast<ImGuiLayer*>(data->UserData)->AllocateDescriptor(*cpu, *gpu);
         };
-        info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* data,
-            D3D12_CPU_DESCRIPTOR_HANDLE cpu, D3D12_GPU_DESCRIPTOR_HANDLE)
+        info.SrvDescriptorFreeFn =
+            [](ImGui_ImplDX12_InitInfo* data, D3D12_CPU_DESCRIPTOR_HANDLE cpu, D3D12_GPU_DESCRIPTOR_HANDLE)
         {
             static_cast<ImGuiLayer*>(data->UserData)->FreeDescriptor(cpu);
         };
@@ -102,8 +103,8 @@ namespace Engine
             context_ = nullptr;
         }
         descriptorHeap_.Reset();
-        std::fill_n(sceneCpu_,5,D3D12_CPU_DESCRIPTOR_HANDLE{});
-        std::fill_n(sceneGpu_,5,D3D12_GPU_DESCRIPTOR_HANDLE{});
+        std::fill_n(sceneCpu_, 5, D3D12_CPU_DESCRIPTOR_HANDLE{});
+        std::fill_n(sceneGpu_, 5, D3D12_GPU_DESCRIPTOR_HANDLE{});
         descriptorSize_ = 0;
         allocated_.fill(false);
     }
@@ -119,15 +120,18 @@ namespace Engine
     void ImGuiLayer::Render(ID3D12GraphicsCommandList* commands)
     {
         ImGui::Render();
-        ID3D12DescriptorHeap* heaps[] = { descriptorHeap_.Get() };
+        ID3D12DescriptorHeap* heaps[] = {descriptorHeap_.Get()};
         commands->SetDescriptorHeaps(1, heaps);
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commands);
     }
 
-    D3D12_GPU_DESCRIPTOR_HANDLE ImGuiLayer::SetSceneTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE source, unsigned int slot)
+    D3D12_GPU_DESCRIPTOR_HANDLE ImGuiLayer::SetSceneTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE source,
+                                                            unsigned int slot)
     {
-        if (!rendererInitialized_ || !device || !source.ptr || slot >= 5) return {};
-        if (!sceneCpu_[slot].ptr) AllocateDescriptor(sceneCpu_[slot], sceneGpu_[slot]);
+        if (!rendererInitialized_ || !device || !source.ptr || slot >= 5)
+            return {};
+        if (!sceneCpu_[slot].ptr)
+            AllocateDescriptor(sceneCpu_[slot], sceneGpu_[slot]);
         device->CopyDescriptorsSimple(1, sceneCpu_[slot], source, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
         return sceneGpu_[slot];
     }
@@ -135,7 +139,7 @@ namespace Engine
     bool ImGuiLayer::ProcessMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
     {
         return ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().BackendPlatformUserData != nullptr &&
-            ImGui_ImplWin32_WndProcHandler(window, message, wParam, lParam) != 0;
+               ImGui_ImplWin32_WndProcHandler(window, message, wParam, lParam) != 0;
     }
 
     void ImGuiLayer::AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE& cpu, D3D12_GPU_DESCRIPTOR_HANDLE& gpu)

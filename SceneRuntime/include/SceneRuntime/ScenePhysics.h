@@ -8,10 +8,14 @@ namespace SceneRuntime
     class ScenePhysics final
     {
     public:
-        struct Body { float verticalSpeed=0; bool grounded=false; };
-        using States=std::map<std::string,Body>;
+        struct Body
+        {
+            float verticalSpeed = 0;
+            bool grounded = false;
+        };
+        using States = std::map<std::string, Body>;
         // Call with copies and commit only on success. Inputs are local to the controller parent.
-        static bool Advance(SceneLayout& layout, States& states, double seconds,
-            float horizontal, float vertical, bool jump);
+        static bool Advance(SceneLayout& layout, States& states, double seconds, float horizontal, float vertical,
+                            bool jump);
     };
 }

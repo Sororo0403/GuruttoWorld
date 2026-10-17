@@ -21,9 +21,11 @@ namespace App
             ImGui::SliderFloat("Left motor", &leftMotor, 0.0f, 1.0f);
             ImGui::SliderFloat("Right motor", &rightMotor, 0.0f, 1.0f);
             ImGui::BeginDisabled(!gamepad.IsConnected());
-            if (ImGui::Button("Vibrate 0.5s")) gamepad.Vibrate(leftMotor, rightMotor, 0.5f);
+            if (ImGui::Button("Vibrate 0.5s"))
+                gamepad.Vibrate(leftMotor, rightMotor, 0.5f);
             ImGui::SameLine();
-            if (ImGui::Button("Stop")) gamepad.StopVibration();
+            if (ImGui::Button("Stop"))
+                gamepad.StopVibration();
             ImGui::EndDisabled();
         }
         ImGui::End();
