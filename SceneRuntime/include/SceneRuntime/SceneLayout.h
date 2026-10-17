@@ -188,7 +188,7 @@ namespace SceneRuntime
         std::array<float, 3> position{};
         std::array<float, 3> rotation{}; // XYZ、ラジアン。
         std::array<float, 3> scale{1.0f, 1.0f, 1.0f};
-        std::string parentId; // Empty means root. Position, rotation and scale are always relative to the parent.
+        std::string parentId; // 空の場合はルートです。位置・回転・スケールは常に親を基準とします。
     };
 
     struct FogSettings
@@ -231,7 +231,9 @@ namespace SceneRuntime
         /// <summary>検証済みの変更前配置との成分差分を検証します。未検証の配置を変更前に指定してはいけません。</summary>
         void ValidateChanges(const SceneLayout& validatedBefore) const;
         std::string Serialize() const;
-        // With overwrite=false, the final atomic commit also refuses an existing destination.
+        /// <summary>
+        /// overwrite=false の場合は、最後のアトミックな確定処理でも既存の出力先を拒否します。
+        /// </summary>
         void Save(const std::filesystem::path& path, bool overwrite = true) const;
         static SceneLayout Load(const std::filesystem::path& path, const std::filesystem::path& assetsRoot = {});
     };

@@ -19,7 +19,7 @@ namespace Engine
         std::array<float, 4> uvRect{0.0f, 0.0f, 1.0f, 1.0f};
         // UV 範囲で切り出した座標に変換を適用します。
         UvTransform uvTransform;
-        // Optional b1 constants; the standard sprite shader ignores them.
+        // 省略可能な b1 定数です。標準のスプライトシェーダーでは使用しません。
         std::array<float, 96> pixelConstants{};
     };
 

@@ -8,7 +8,9 @@ namespace SceneRuntime
     {
     public:
         static const ScenePlacement* CameraObject(const SceneLayout& layout);
-        // Parent scale affects position; only ancestor rotations affect orientation.
+        /// <summary>
+        /// 親のスケールは位置に影響します。向きには祖先の回転だけが影響します。
+        /// </summary>
         static bool Camera(const SceneWorld& world, float aspect, double seconds, Engine::Camera& camera);
         static Engine::DirectionalLight Light(const SceneWorld& world);
     };

@@ -1,4 +1,4 @@
-"""Guard the playable short block, camera framing and title handoff."""
+"""プレイ可能な短い街区・カメラの構図・タイトルからの引き継ぎを検証します。"""
 import json
 import sys
 import unittest

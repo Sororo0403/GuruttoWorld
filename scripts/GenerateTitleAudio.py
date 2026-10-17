@@ -1,4 +1,4 @@
-"""Generate original title cues without external samples (Python standard library)."""
+"""外部のサンプル音源を使わず、Python 標準ライブラリで独自のタイトル用効果音を生成します。"""
 import math
 import random
 import struct
@@ -26,7 +26,7 @@ def note(samples, start, duration, midi, level, bright=False):
             tone += 0.22 * math.sin(4 * math.pi * frequency * t)
         samples[(round(start * RATE) + i) % len(samples)] += level * envelope * tone
 
-# Eight bars at 120 BPM: warm electric-key chords, syncopated bass and soft drums.
+# 120 BPM の 8 小節で、柔らかな電子鍵盤の和音・シンコペーションのベース・穏やかなドラムを作ります。
 music = [0.0] * (16 * RATE)
 rng = random.Random(1701)
 chords = [(57, 60, 64, 67), (53, 57, 60, 64), (55, 59, 62, 65), (52, 55, 59, 62)]

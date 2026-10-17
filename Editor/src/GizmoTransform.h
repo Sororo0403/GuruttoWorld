@@ -7,7 +7,9 @@
 
 namespace Editor::GizmoTransform
 {
-    // The handle frame is independent of inherited shear and mirrored scales.
+    /// <summary>
+    /// ハンドルの座標系は、親から継承したせん断や反転スケールに依存しません。
+    /// </summary>
     inline bool Build(const SceneRuntime::SceneWorld& world, const SceneRuntime::ScenePlacement& current, bool scale,
                       DirectX::XMFLOAT4X4& output)
     {
@@ -48,7 +50,7 @@ namespace Editor::GizmoTransform
         auto result = reference;
         if (!SceneRuntime::SceneTransforms::ReadTransform(local, reference, result))
             return false;
-        // A rotation handle must remain orthonormal; do not silently discard scale changes.
+        // 回転ハンドルは正規直交を保つ必要があります。スケールの変更を黙って破棄しません。
         if (!std::all_of(result.scale.begin(), result.scale.end(),
                          [](float value)
                          {

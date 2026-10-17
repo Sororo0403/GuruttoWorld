@@ -123,7 +123,7 @@ namespace Editor
         }
         static Lines Spot(const SceneRuntime::SpotLightComponent& c)
         {
-            // Light attenuation is spherical; cone boundary ends on the range sphere.
+            // 光の減衰範囲は球形で、円錐の境界はその範囲の球面で終わります。
             Lines result;
             for (float angle : {c.innerAngle, c.outerAngle})
             {

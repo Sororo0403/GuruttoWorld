@@ -1,4 +1,4 @@
-"""Authored CC0 streets, courtyard and rooftop; geometry follows the route first."""
+"""CC0 の通り・中庭・屋上を作成します。形状は経路を優先して構成します。"""
 import math
 import shutil
 
@@ -26,13 +26,13 @@ def bake():
     active_bounds=None
 
     def facade(position,count,floors,angle,scale=1,door=False,cap=True):
-        # Source front faces -Z after the native handedness conversion.
+        # エンジンの座標系変換後、元データの正面は -Z を向きます。
         for floor in range(floors):
             for i in range(count):
                 x=position[0]+math.cos(angle)*i*2*scale
                 z=position[2]-math.sin(angle)*i*2*scale
-                # Detect facade rows pointing away from their building before
-                # they become floating walls over an otherwise clear collider.
+                # 建物と逆向きの外壁列を事前に検出し、
+                # 何もない衝突形状の上に壁だけが浮く状態を防ぎます。
                 if active_bounds:
                     x0,x1,z0,z1=active_bounds
                     assert x0-.15<=x<=x1+.15 and z0-.15<=z<=z1+.15,(x,z,active_bounds)
@@ -62,15 +62,15 @@ def bake():
             b.place('k','chairRounded',(x,y,z+dz),2.2,angle)
         b.place('k','plantSmall1',(x,y+.78,z),.7)
 
-    # A continuous street surface replaces overlapping straight-road tiles.
+    # 重なった直線道路のタイルを、連続した路面へ置き換えます。
     for zone,start,end in ((0,-10,22),(1,22,44),(2,44,64),(3,64,100)):
         b.zone=zone
         b.cube((2.5,-.045,(start+end)/2),(45,.08,end-start),paving)
     b.zone=0
-    # Cafe forecourt: continuous paving and an empty centre, rather than a
-    # six-metre strip bounded by two curbs. The next street opens diagonally.
+    # カフェの前庭は、両側の縁石に挟まれた幅 6 メートルの帯ではなく、
+    # 連続した舗装と空いた中央部で構成します。次の通りは斜めに開きます。
     b.cube((8,.002,25),(8,.025,6),asphalt)
-    # Move the whole facade with its shared physical building footprint.
+    # 外壁全体を、対応する建物の物理的な平面形状とともに移動します。
     building('entry-right')
     facade((12.5,0,9),7,3,math.pi/2,door=True)
     facade((21.5,0,10),5,3,math.pi,door=False)
@@ -83,7 +83,7 @@ def bake():
 
     b.zone=1
     b.cube((8,.002,36),(8,.025,16),asphalt)
-    # Curbs start inside the street, never draw a line across the forecourt.
+    # 縁石は通りの内側から始め、前庭を横切る線を作りません。
     for x in (3.85,12.15):b.cube((x,.07,36),(.18,.14,16),cream)
     building('corner')
     facade((-10,0,28),6,3,0,door=True)
@@ -91,7 +91,7 @@ def bake():
     building('arcade')
     facade((14,0,41),9,3,math.pi/2,door=True)
     facade((15,0,24),5,3,0,door=False)
-    # Real columns and beams form the arcade; decorations stay behind the curb.
+    # 実際の柱と梁でアーケードを構成し、装飾は縁石の奥に置きます。
     for z in (27,33,39):
         b.place('q','Metal_Column_Center',(12.7,0,z),1)
         b.cube((13.3,3.05,z), (1.9,.18,4.4),wood)
@@ -104,7 +104,7 @@ def bake():
     facade((-10,0,45),9,3,-math.pi/2,door=True)
     building('workshop')
     facade((19,0,61),9,2,math.pi/2,door=True)
-    # Framing the courtyard leaves the combat space and return path open.
+    # 中庭を囲みながら、戦闘用の空間と戻り道を空けます。
     for x,z in ((-7.5,46),(-1.5,60),(17.8,48),(17.8,58)):
         planter(x,.02,z,.55)
     for x,z in ((-6,48),(-3,48),(-6,51),(-3,51)):
@@ -113,14 +113,14 @@ def bake():
         b.place('q','Metal_Column_Center',(x,0,52),1)
         b.place('k','lampWall',(x,2.7,52),1.5)
     b.cube((.5,.035,57),(13,.04,1.8),cream)
-    # The machine physically connects to the shutter and stair portal.
+    # 機械をシャッターと階段の入口へ物理的につなげます。
     b.place('q','Metal_Column_Center',(-8.45,0,61),1.1)
     b.place('q','Metal_Column_Center',(-3.55,0,61),1.1)
     b.cube((-6,3.45,61),(5.4,.28,.6),teal)
     for y in (.35,.8,1.25,1.7,2.15,2.6):
         b.cube((-8.2,y,61.18),(.22,.06,.12),orange)
     b.place('q','Prop_ACUnit',(8.2,.05,56),2.5,math.pi)
-    # Stair side rails rise with each tread, without changing the model's proportions.
+    # モデルの比率を保ち、階段の横の手すりを各段に合わせて上げます。
     step_length=math.hypot(1.05,.3)
     for i in range(18):
         b.place('q','Stairs_Rails_Metal_Straight_1',(-6,.3*(i+1),61.5+i*1.05),
@@ -128,21 +128,21 @@ def bake():
 
     b.zone=3
     active_bounds=BUILDINGS['roof'][:4]
-    # A planted forecourt fills the otherwise empty apron beside the staircase.
+    # 階段脇の空いた場所を、植栽のある前庭にします。
     b.cube((-14.7,-.025,72),(9,.06,17),grass)
-    # Two uniformly scaled storeys meet the existing 5.4m playable roof.
+    # 一様に拡縮した 2 階分を、既存の高さ 5.4 m のプレイ可能な屋上に合わせます。
     b.cube((0,2.675,87),(17.3,5.35,13.3),plaster)
     facade((-8.1,0,80),10,2,0,.9,cap=False)
     facade((9,0,81),7,2,-math.pi/2,.9,cap=False)
     facade((-9,0,93),7,2,math.pi/2,.9,cap=False)
     b.cube((0,5.36,87),(18,.08,14),paving)
-    # Parapet caps and open CC0 railings preserve the view beyond the roof.
+    # 胸壁の笠木と見通しのよい CC0 の手すりで、屋上の先の眺めを保ちます。
     for x in (-8.9,8.9):
         b.cube((x,5.50,87),(.22,.20,14),cream)
         for z in range(80,94):b.place('q','Stairs_Rails_Metal_Straight_1',(x,5.59,z),1,math.pi,origin=(.97,.97,0),side=1)
     b.cube((0,5.5,93.9),(18,.2,.22),cream)
     for x in range(-9,9):b.place('q','Stairs_Rails_Metal_Straight_1',(x,5.59,93.9),1,-math.pi/2,origin=(.97,.97,0),side=1)
-    # The cafe roof is a terrace: seating, a pergola, planting and service equipment.
+    # カフェの屋上を、座席・パーゴラ・植栽・設備のあるテラスにします。
     for x,z in ((-2.5,84.2),(4.8,86),(3.5,90.6)):seating(x,5.42,z)
     for x in (2.7,7):
         for z in (83.5,90.5):b.place('q','Metal_Column_Center',(x,5.4,z),.9)
@@ -153,7 +153,7 @@ def bake():
     b.cube((0,5.43,91),(3,.025,2.7),cream)
     objects=b.finish()
     write(GAME/FOLDER/'Plan.json',BUILDINGS)
-    # The moving door keeps source proportions; three rigid copies fill the portal.
+    # 動くドアは元の比率を保ち、3 個の固定した複製で開口部を埋めます。
     polygons=quaternius('Door_1')
     assert all(surface==polygons[0][0] for surface,poly in polygons)
     lines=['# Quaternius CC0 Door_1, native material kept separately','mtllib District.mtl','usemtl white']

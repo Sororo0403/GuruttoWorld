@@ -106,7 +106,9 @@ namespace Engine
         }
 
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
-        // Call outside Render after GPU idle; the returned handle stays stable across Scene resizes.
+        /// <summary>
+        /// GPU の完了後、Render の外で呼んでください。返されたハンドルは Scene のサイズ変更後も維持されます。
+        /// </summary>
         D3D12_GPU_DESCRIPTOR_HANDLE SetSceneTexture(D3D12_CPU_DESCRIPTOR_HANDLE source, unsigned int slot = 0);
 #endif
 

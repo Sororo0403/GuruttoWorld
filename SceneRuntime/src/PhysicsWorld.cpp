@@ -736,7 +736,7 @@ namespace SceneRuntime
                 return false;
             if (!a)
                 return true;
-            // Movement settings are consumed by Step; only body construction settings invalidate the world.
+            // 移動設定は Step が使用します。ワールドを無効化するのは、物理ボディーの構築設定の変更だけです。
             return a->id == b->id && a->enabled == b->enabled && a->usePhysics == b->usePhysics &&
                    a->maxSlopeDegrees == b->maxSlopeDegrees;
         }
@@ -751,7 +751,7 @@ namespace SceneRuntime
         bool MatchesShape(const ScenePlacement& a, const Matrix& matrix) const
         {
             const auto& entry = entries.at(a.id);
-            // The immutable construction matrix already passed shape validation.
+            // 変更されない構築時の行列は、すでに形状の検証を通過しています。
             if (std::memcmp(&matrix, &entry.basis, sizeof(Matrix)) == 0)
                 return true;
             bool baked = false;
@@ -1339,7 +1339,7 @@ namespace SceneRuntime
         {
             ValidateControllers(layout);
             auto candidateStates = states;
-            // Step only writes physical placements; save those fields rather than cloning every component.
+            // Step が書き換えるのは物理配置だけなので、全コンポーネントを複製せずに該当フィールドだけを保存します。
             transforms = CaptureTransforms(layout);
             std::unique_ptr<Impl> replacement;
             auto* activeWorld = impl_.get();

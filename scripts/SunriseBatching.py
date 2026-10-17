@@ -1,4 +1,4 @@
-"""Bake static street scenery into spatial OBJ batches, preserving collision objects."""
+"""衝突オブジェクトを保持し、街の静的な背景を空間ごとの OBJ バッチへ焼き込みます。"""
 import copy
 import json
 import math
@@ -98,8 +98,8 @@ def batch_static(source, folder=FOLDER):
         material = None
         if 'Material' in components:
             material = json.loads((GAME / components['Material']['asset']).read_text(encoding='utf-8'))
-            # Keep prepared material batches intact: OBJ/MTL cannot represent
-            # our normal textures or the native PBR material settings.
+            # 準備済みのマテリアルバッチを維持します。OBJ/MTL では、
+            # このプロジェクトの法線テクスチャやエンジンの PBR 設定を表現できないためです。
             if (material.get('transparent') or material.get('physicallyBased') or
                     material.get('normalTexture') or material.get('shader')):
                 preserved.append(item)
@@ -110,7 +110,7 @@ def batch_static(source, folder=FOLDER):
         vertices, uvs, normals, faces, materials = cached[path]
         zone = math.floor((item['position'][2]+20)/32)
         for name, corners in faces:
-            # Assimp's default OBJ material uses diffuse 0.6 when there is no MTL.
+            # MTL がない場合、Assimp の OBJ の既定マテリアルは拡散色 0.6 を使います。
             surface = copy.deepcopy(materials.get(name, {'color': [.6, .6, .6], 'texture': ''}))
             if material:
                 surface['color'] = [surface['color'][i]*material['color'][i] for i in range(3)]
@@ -120,8 +120,8 @@ def batch_static(source, folder=FOLDER):
             world = []
             for vi, ti, ni in corners:
                 vertex = vertices[vi]
-                # Importer converts OBJ to left-handed space before applying scene SRT.
-                # Bake that exact transform, then convert back for the exported OBJ.
+                # インポーターはシーンの SRT を適用する前に、OBJ を左手座標系へ変換します。
+                # 同じ変換を正確に焼き込み、OBJ の書き出し時に元の座標系へ戻します。
                 transformed = rotate([vertex[i]*item['scale'][i]*(-1 if i == 2 else 1) for i in range(3)], item['rotation'])
                 position = tuple((transformed[i]+item['position'][i])*(-1 if i == 2 else 1) for i in range(3))
                 normal = None

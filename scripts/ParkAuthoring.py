@@ -1,4 +1,4 @@
-"""Materialize native script defaults and stable object references into authored scenes."""
+"""エンジン内のスクリプトの既定値と安定したオブジェクト参照を、編集用シーンに反映します。"""
 from pathlib import Path
 import json
 from copy import deepcopy

@@ -1,4 +1,4 @@
-"""Create an owned three-node IK chain and a zero/half/full-weight comparison scene."""
+"""このプロジェクトの 3 ノードの IK チェーンと、重み 0・半分・最大の比較シーンを作成します。"""
 import copy
 import hashlib
 import json

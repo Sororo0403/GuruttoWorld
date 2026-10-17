@@ -74,7 +74,7 @@ namespace SpriteResourceValidation
                 "different queue retirement isolated");
         Microsoft::WRL::ComPtr<ID3D12Fence> gate;
         require(SUCCEEDED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&gate))), "retirement gate");
-        // Ensure the queue is released even if an assertion throws.
+        // アサーションが例外を送出した場合も、キューを確実に解放します。
         struct GateRelease
         {
             ID3D12Fence* fence;

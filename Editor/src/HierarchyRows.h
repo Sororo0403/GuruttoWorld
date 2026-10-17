@@ -10,7 +10,9 @@ namespace Editor
         size_t index = 0, depth = 0;
         bool children = false;
     };
-    // Validated scene graph, traversed iteratively so deep hierarchies do not exhaust the stack.
+    /// <summary>
+    /// 検証済みのシーングラフを反復処理でたどり、深い階層でもスタックを使い切らないようにします。
+    /// </summary>
     inline std::vector<HierarchyRow> BuildHierarchyRows(const SceneRuntime::SceneLayout& layout,
                                                         const std::unordered_set<std::string>& collapsed)
     {

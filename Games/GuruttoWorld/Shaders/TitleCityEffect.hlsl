@@ -1,5 +1,5 @@
-// Flag bits 12..21 hold blend strength; bits 22..23 select black, white or grayscale.
-// Keep alpha and the opaque depth path independent of the transition strength.
+// フラグのビット 12～21 に混合の強さを格納し、22～23 で黒・白・グレースケールを選びます。
+// アルファと不透明描画の深度処理を、遷移の強さから独立させます。
 #define PSMain TitleBasePSMain
 #include "Mesh.hlsl"
 #undef PSMain
@@ -12,14 +12,14 @@ float4 PSMain(VertexOutput input) : SV_TARGET
     float gray = dot(base.rgb, float3(0.2126, 0.7152, 0.0722));
     float3 target = variant == 2 ? gray.xxx : (variant == 1 ? float3(1,1,1) : float3(0,0,0));
 #ifdef TITLE_WHITE_TEXTURE_MASK
-    // Keep EXIT's white lettering and arrow legible when its green background becomes black.
+    // EXIT の緑の背景が黒くなっても、白い文字と矢印の読みやすさを保ちます。
     float3 texel = meshTexture.Sample(textureSampler, input.uv).rgb;
     if (variant == 1) target = step(0.92, min(texel.r, min(texel.g, texel.b))).xxx;
 #endif
 #ifdef TITLE_BUILDING_WINDOWS
-    // Kenney's window palette is dark gray/blue (for example 110/115/138),
-    // while wall plaster is 221/221/233 or brighter. Classify the unlit
-    // texture so shadows on a white wall cannot turn it into a black window.
+    // Kenney の窓の配色は暗い灰色・青色（例: 110/115/138）で、
+    // 壁のしっくいは 221/221/233 以上の明るさです。照明適用前のテクスチャを分類し、
+    // 白い壁の影を黒い窓と誤判定しないようにします。
     float3 buildingTexel = meshTexture.Sample(textureSampler, input.uv).rgb;
     float wallMask = step(0.62, dot(buildingTexel, float3(0.2126, 0.7152, 0.0722)));
     if (variant == 1) target = wallMask.xxx;

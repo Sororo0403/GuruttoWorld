@@ -36,8 +36,10 @@ namespace Editor::Language
         }
     }
 
-    // Plain legacy names hashed differently from ### names. Migrate window sections
-    // and selected tab IDs while preserving dock nodes, positions and sizes.
+    /// <summary>
+    /// 旧形式の通常名と ### 付きの名前ではハッシュ値が異なるため、ドックノード・位置・サイズを保持して、
+    /// ウィンドウのセクションと選択中のタブ ID を移行します。
+    /// </summary>
     inline std::string MigrateLayout(std::string text)
     {
         for (const char* name : {"Street Editor", "Inspector", "Scene", "Debug Camera", "Console"})

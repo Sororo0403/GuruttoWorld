@@ -231,7 +231,7 @@ namespace ParkResourceValidation
         Require(Find(scene.World().Layout(), "park-stats").text->text == "RESOURCE CACHE 123",
                 "runtime text mutation commits");
         NoExpensiveResources();
-        // FixedUpdate commits independently before Update; compare the resource mutation against that committed boundary.
+        // FixedUpdate は Update の前に独立して確定するため、その確定状態を基準としてリソースの変更を比較します。
         Require(scene.MovePlayers(1.0 / 60, 0, 0), "failure probe fixed phase commits before resource mutation");
         const auto saved = scene.World().Layout().Serialize();
         update("Bad");

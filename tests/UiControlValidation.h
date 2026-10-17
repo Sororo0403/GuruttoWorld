@@ -239,7 +239,7 @@ namespace UiControlValidation
                                     ui.Draw(commands, layout, 64, 32, state);
                                 }) != Engine::RenderResult::Failed,
                 "cached old sprite is submitted before replacement");
-        // B stays alive, so A switches to B's cached signature without uploading or pruning.
+        // B を生存させたまま、転送やキャッシュの削除を行わずに、A を B のキャッシュ済みシグネチャへ切り替えます。
         layout.objects[1].text->text = layout.objects[2].text->text;
         Require(ui.Prepare(renderer, root, layout, error, state),
                 "cache-hit replacement synchronizes the old sprite release");

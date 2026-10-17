@@ -35,7 +35,7 @@ namespace Editor
                                });
                 const bool json = asset.kind == AssetKind::Scene || asset.kind == AssetKind::Prefab ||
                                   asset.kind == AssetKind::Material;
-                // Binary assets have no supported text dependency format; never read their contents.
+                // バイナリアセットには対応するテキスト依存形式がないため、内容を読み取りません。
                 if (json || extension == ".gltf" || extension == ".obj")
                 {
                     std::ifstream input(path, std::ios::binary);

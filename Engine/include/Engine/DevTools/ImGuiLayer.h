@@ -72,7 +72,9 @@ namespace Engine
         /// <returns>バックエンドが処理した場合は true。</returns>
         static bool ProcessMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
 
-        // Copies a Scene/Game/asset SRV into a persistent UI slot. Wait for GPU idle before replacing it.
+        /// <summary>
+        /// Scene・Game・アセットの SRV を永続的な UI スロットへコピーします。置き換え前に GPU の完了を待ってください。
+        /// </summary>
         D3D12_GPU_DESCRIPTOR_HANDLE SetSceneTexture(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE source,
                                                     unsigned int slot = 0);
 

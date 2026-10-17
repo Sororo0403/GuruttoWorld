@@ -1,5 +1,5 @@
 #pragma once
-// Pinned nlohmann/json 3.12.0; see Engine/externals/nlohmann/README.md.
+// nlohmann/json は 3.12.0 に固定します。Engine/externals/nlohmann/README.md を参照してください。
 #include "../../../externals/nlohmann/json.hpp"
 #include <stdexcept>
 namespace Engine

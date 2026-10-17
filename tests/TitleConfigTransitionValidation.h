@@ -121,7 +121,7 @@ namespace TitleConfigTransitionValidation
         for (auto& object : authored.objects)
         {
             if (object.cameraSway)
-                object.cameraSway->enabled = false; // Isolate the authored target pose from decorative view shake.
+                object.cameraSway->enabled = false; // 視点の揺れを除いて目標姿勢を検証します。
             if (object.canvas && object.canvas->menu)
             {
                 object.canvas->menu->configTransition.enterDuration = .4f;

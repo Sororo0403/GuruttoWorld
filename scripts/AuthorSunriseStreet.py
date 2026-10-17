@@ -1,4 +1,4 @@
-"""Explicit authoring tool for the saved SunriseStreet scene. Never runs in builds."""
+"""保存済み SunriseStreet シーンを明示的に編集するツールです。ビルドでは実行しません。"""
 import copy
 import json
 import math
@@ -41,11 +41,11 @@ def assemble(batched=True):
         component('Script', behaviour='ParkCamera', parameters={'height': 10.5, 'distance': 14, 'minZ': 1, 'maxZ': 115,
             'lookAhead': 3, 'horizontalFollow': .95}, data={'target': {'kind': 'reference', 'value': 'park-player'}})]))
 
-    # A walkable city block: plaza -> two routes -> courtyard -> canal -> park.
+    # 歩ける街区を、広場 → 2 本の経路 → 中庭 → 運河 → 公園の順に構成します。
     objects.append(material_box('scenery-foundation', [0, -4.5, 60], [220, 3, 240], 'Grass'))
     for identity, start, end in [('south', -18, 52), ('north', 60, 145)]:
         objects.append(material_box('ground-' + identity, [0, -.6, (start+end)/2], [120, 1.2, end-start], 'Paving', True))
-    # Reuse the title's textured paving at a street-sized tile scale, below the road.
+    # タイトルのテクスチャ付き舗装を道路向けのタイル寸法で再利用し、路面の下に置きます。
     for x in (-15,-9,-3,3,9,15):
         for z in (-6,2,10,18,26,34,42,48):
             objects.append(model(f'plaza-paving-{x}-{z}',[x,-.012,z],[6,1,8],
@@ -74,7 +74,7 @@ def assemble(batched=True):
                                (0,48),(0,64),(-4,72),(0,80),(4,87),(0,96),(0,104),(0,112)]):
         objects.append(model(f'road-{i}', [x,.008,z], [8,1,6],
             'Assets/Models/Title/Surface/Roads/road-straight.obj', [0,math.pi/2,0]))
-    # Central shop island forces an early choice, instead of decorating a straight road.
+    # 直線道路を飾る代わりに、中央の店舗区画で早い段階に進路を選ばせます。
     objects.append(material_box('market-island', [0,2,29], [5.6,4,20], 'Cream', True))
     objects.append(material_box('market-fascia', [0,3.5,18.8], [6,.65,.25], 'Orange'))
     for x in (-1.7,1.7):
@@ -86,7 +86,7 @@ def assemble(batched=True):
         objects.append(material_box(f'shop-window-bar-{z}',[2.93,1.65,z],[.13,1.7,.1],'Cream'))
     objects.append(material_box('fork-mark', [0,.025,13], [7,.05,.35], 'Orange'))
 
-    # The left branch climbs a cafe, crosses its roof and descends into the courtyard.
+    # 左の分岐はカフェを上り、屋上を渡って中庭へ下ります。
     for i in range(10):
         h=.3*(i+1)
         objects.append(material_box(f'terrace-step-{i}', [-7,h/2,16+i*1.05], [3.6,h,1.1], 'Cream', True))
@@ -109,7 +109,7 @@ def assemble(batched=True):
     objects.append(material_box('roof-sign', [-10,4.2,35], [.2,2.4,2], 'Orange'))
     objects.append(material_box('roof-secret-ledge', [-11.5,2.85,35], [2,.3,3], 'Cream', True))
 
-    # Ground branch passes through an open arcade; its side door hides a real room.
+    # 地上の分岐は開放的なアーケードを通り、横のドアの奥には実際の部屋を設けます。
     objects.append(material_box('arcade-back', [9.8,1.6,24], [.35,3.2,6], 'Cream', True))
     objects.append(material_box('arcade-awning', [9.3,3.5,24], [1.5,.2,6], 'Orange'))
     for z in (21,27):
@@ -126,7 +126,7 @@ def assemble(batched=True):
     objects.append(nature('secret-flowers',[16,.1,36],'flower_purpleC',3))
     objects.append(material_box('secret-bench',[15,.4,36],[2.6,.8,.8],'Teal'))
 
-    # A planted courtyard hides the next vista until the two routes rejoin.
+    # 植栽のある中庭で、2 本の経路が合流するまで次の眺めを隠します。
     objects.append(material_box('courtyard-bed', [1.5,.35,44], [5,.7,2], 'Cream', True))
     objects.append(nature('courtyard-tree',[1.5,.7,44],'tree_oak',3.5))
     for key,x,z in [('canal',3.8,49),('vista',-3.8,86)]:
@@ -141,10 +141,10 @@ def assemble(batched=True):
     objects.append(bridge)
     for x in (-2.2,2.2):
         objects.append(material_box(f'bridge-track-{x}',[x,-.35,56],[.15,.15,9],'Teal'))
-    # An optional lateral jumping route spans the canal independently of the bridge.
+    # 橋とは別に、運河を横に跳び渡る任意の経路を設けます。
     for i,(x,z) in enumerate([(10,52.8),(12,55.3),(10.5,58),(10,60.2)]):
         objects.append(material_box(f'canal-stone-{i}',[x,-.2,z],[2.4,.4,2],'Cream',True))
-    # Offset garden beds turn the northern route without creating a maze.
+    # 花壇をずらして北側の経路を曲げ、迷路にはしません。
     for key,x,z in [('west',-5,70),('east',5,80)]:
         objects.append(material_box('garden-bed-'+key,[x,.45,z],[9,.9,2.4],'Cream',True))
         for dx in (-2.5,0,2.5):
@@ -188,7 +188,7 @@ def assemble(batched=True):
         component('MeshRenderer', model='Assets/Models/PhysicsSphere.obj', visibleWhen='parkAttack=1'),
         component('Material', asset='Assets/Materials/Sunrise/Attack.mat')], parent='park-player'))
 
-    # Goal tower repeats the orange motif and is visible above the street.
+    # ゴールの塔にもオレンジ色の意匠を使い、通りの上に見えるようにします。
     objects += [material_box('goal-plinth', [0, .25, 111], [6, .5, 6], 'Cream', True),
                 material_box('tower-base', [0, 2.5, 119], [5, 5, 4], 'Cream'),
                 material_box('tower-column', [0, 7, 119], [2, 5, 2], 'Teal'),

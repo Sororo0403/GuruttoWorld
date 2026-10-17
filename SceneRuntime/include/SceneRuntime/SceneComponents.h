@@ -9,7 +9,7 @@
 
 namespace SceneRuntime
 {
-    // IDs are stable within their owning object. Transform is mandatory and has reserved ID "transform".
+    // ID は所有元のオブジェクト内で安定して保持します。Transform は必須で、予約 ID "transform" を持ちます。
     struct MeshLod
     {
         float distance = 20;
@@ -101,7 +101,7 @@ namespace SceneRuntime
     {
         std::string id = "rotator";
         bool enabled = true;
-        std::array<float, 3> angularVelocity{0, 90, 0}; // Local Euler degrees per second.
+        std::array<float, 3> angularVelocity{0, 90, 0}; // ローカル座標のオイラー角速度です。単位は度毎秒です。
         bool operator==(const RotatorComponent&) const = default;
     };
 }

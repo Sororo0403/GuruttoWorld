@@ -1,4 +1,4 @@
-"""Material-preserving spatial batches for the CC0 district, in game space."""
+"""ゲーム空間で CC0 の街区を空間ごとにバッチ化し、マテリアルを保持します。"""
 import json
 import math
 from collections import defaultdict
@@ -9,8 +9,8 @@ from GenerateParkAdventure import component, obj, write as write_source
 
 
 def write(path,value):
-    # Native mesh readers can keep large files open. Leave identical assets
-    # untouched rather than reopening them for truncation on every cue change.
+    # エンジンのメッシュ読み込みで大きなファイルが開かれたままになる場合があるため、
+    # 変更のないアセットは、演出の変更ごとに切り詰めて書き直さず、そのまま保持します。
     text=value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2)+'\n'
     encoded=text.replace('\r\n','\n').replace('\n','\r\n').encode('utf-8')
     if path.is_file() and path.read_bytes()==encoded and path.with_name(path.name+'.meta').is_file():return

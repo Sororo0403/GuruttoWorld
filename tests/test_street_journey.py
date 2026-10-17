@@ -1,4 +1,4 @@
-"""Resource integrity and playable topology of the authored START stage."""
+"""作成した START ステージのリソース整合性と、プレイ可能な経路のつながりを検証します。"""
 import json,unittest
 from pathlib import Path
 GAME=Path(__file__).resolve().parents[1]/'Games/GuruttoWorld'
@@ -93,7 +93,7 @@ class TownTopologyTests(unittest.TestCase):
   self.assertEqual(len(self.route['entryLoop']),4)
   self.assertEqual(self.route['roofLoop'][0],self.route['roofLoop'][-1])
   cafe=self.objects['street-collision-cafe']
-  # The cafe lies inside the square, with full walking width on both flanks.
+  # カフェを広場の内側に置き、両側に十分な歩行幅を確保します。
   self.assertGreater(cafe['position'][0]-cafe['scale'][0]/2-(-22),5)
   self.assertGreater(0-(cafe['position'][0]+cafe['scale'][0]/2),5)
   lookout=self.objects['street-collision-clock-lookout']
@@ -111,8 +111,8 @@ class TownTopologyTests(unittest.TestCase):
   self.assertEqual(len(posts),6)
   for o in posts:self.assertAlmostEqual(o['position'][1]-o['scale'][1]/2,.59)
  def test_cover_changes_on_the_walkable_route(self):
-  # Measure the actual baked roof polygons. A name or a material change alone
-  # cannot satisfy the solid -> slatted -> open sequence.
+  # 焼き込み後の実際の屋根のポリゴンを測定します。名前やマテリアルの変更だけでは、
+  # 閉じた面 → 格子 → 開放の順序を満たしたことにはしません。
   def coverage(spec):
    x,z0,z1,floor=[spec[k] for k in ('x','z0','z1','floor')]
    faces=[]
@@ -144,8 +144,8 @@ class TownTopologyTests(unittest.TestCase):
   roof=self.objects['street-collision-market-common-roof']
   self.assertAlmostEqual(roof['position'][0]-roof['scale'][0]/2,-6)
   self.assertAlmostEqual(roof['position'][0]+roof['scale'][0]/2,20)
-  # The hall is recessed enough for a common decision area, with real floor
-  # on both flanks. These are not separate optional showcases of a technique.
+  # 市場棟を十分に奥へ下げ、両側に実際の床を持つ共通の進路選択用の空間を設けます。
+  # それぞれを、技法を見せるための独立した任意の展示空間にはしません。
   hall=self.objects['street-collision-market-hall']
   self.assertGreaterEqual(hall['position'][2]-hall['scale'][2]/2,38)
   for x in (1,14):
@@ -157,7 +157,7 @@ class TownTopologyTests(unittest.TestCase):
   wheel=self.objects['journey-lever'];housing=self.objects['street-collision-gear-wheel']
   vertices=[tuple(map(float,line.split()[1:4])) for line in
             (GAME/'Assets/Models/Title/Factory/cog-a.obj').read_text().splitlines() if line.startswith('v ')]
-  # The existing model is rotated 90 degrees about X. Its local Z becomes Y.
+  # 既存のモデルは X 軸周りに 90 度回転しているため、ローカルの Z は Y になります。
   bottom=wheel['position'][1]-max(v[2] for v in vertices)*wheel['scale'][2]
   self.assertGreaterEqual(bottom,.59)
   for axis,local in ((0,0),(1,2)):

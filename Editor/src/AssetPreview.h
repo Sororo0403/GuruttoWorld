@@ -11,7 +11,7 @@
 
 namespace Editor
 {
-    // UI requests resources; Prepare owns uploads and replacement outside Render after GPU idle.
+    // UI はリソースを要求し、Prepare が GPU の完了後、Render の外で転送と置き換えを行います。
     class AssetPreview final
     {
     public:

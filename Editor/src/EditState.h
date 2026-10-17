@@ -41,7 +41,7 @@ namespace Editor
         std::vector<SceneRuntime::ScenePlacement> componentBatch{};
     };
 
-    // Shared editing state and operations; independent of panels and ImGui.
+    // パネルや ImGui に依存しない、共通の編集状態と操作です。
     class EditState final
     {
     public:

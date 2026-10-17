@@ -83,7 +83,9 @@ namespace Editor
             updates_ = 0;
             return true;
         }
-        // Only accepted ticks advance the runtime. Pause and invalid timing leave it frozen.
+        /// <summary>
+        /// 受理した更新だけが実行状態を進めます。一時停止中や時刻が無効な場合は進めません。
+        /// </summary>
         bool Advance(double seconds)
         {
             return mode_ == Mode::Playing && Tick(seconds);

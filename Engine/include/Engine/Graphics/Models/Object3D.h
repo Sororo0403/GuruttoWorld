@@ -61,8 +61,10 @@ namespace Engine
         bool SetTransform(const std::array<float, 3>& position, const std::array<float, 3>& rotation,
                           const std::array<float, 3>& scale);
 
-        // Set the full affine draw matrix, retaining shear. SRT getters retain the values from SetTransform.
-        // Invalid matrices leave the previous draw matrix unchanged.
+        /// <summary>
+        /// せん断を保持した完全なアフィン行列を描画用に設定します。SRT の取得値は SetTransform で設定した値を保持します。
+        /// 無効な行列の場合は直前の描画行列を変更しません。
+        /// </summary>
         bool SetWorldMatrix(const DirectX::XMFLOAT4X4& matrix);
 
         /// <summary>

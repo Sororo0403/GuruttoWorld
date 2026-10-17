@@ -1,4 +1,4 @@
-"""Generate repository-owned PBR materials, tangent-space normals and sample scene."""
+"""このリポジトリの PBR マテリアル・接線空間の法線・サンプルシーンを生成します。"""
 import hashlib
 import json
 import math
@@ -27,7 +27,7 @@ def obj(identity, position, scale, components, rotation=None):
 
 
 def main():
-    # Analytic periodic relief: normals encode (-dh/du,-dh/dv,1) in linear RGB.
+    # 解析的な周期模様の凹凸です。法線は (-dh/du,-dh/dv,1) を線形 RGB に格納します。
     size = 64
     pixels = bytearray()
     for y in range(size):
@@ -38,7 +38,7 @@ def main():
             rgb = [round((n * inverse * .5 + .5) * 255) for n in (-dx, -dy, 1)]
             pixels.extend(reversed(rgb))
     header = struct.pack("<2sIHHI", b"BM", 54 + len(pixels), 0, 0, 54)
-    # Top-down rows agree with texture UVs, and 64*3 is already DWORD aligned.
+    # 上から下への行順はテクスチャの UV と一致し、64*3 はすでに DWORD 境界に揃っています。
     header += struct.pack("<IiiHHIIiiII", 40, size, -size, 1, 24, 0, len(pixels), 2835, 2835, 0, 0)
     write("Assets/Textures/PbrRelief.bmp", header + pixels)
     scene = dict(version=4, settings=dict(background=[.025, .035, .055, 1], mainCamera="Camera"), objects=[

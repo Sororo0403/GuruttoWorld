@@ -10,7 +10,9 @@ namespace Editor
     class ScenePanel final
     {
     public:
-        // Keep the Scene window current while constructing its overlays; always pair with End.
+        /// <summary>
+        /// オーバーレイの構築中は Scene ウィンドウを現在のウィンドウに保ち、必ず End と対にして呼び出します。
+        /// </summary>
         bool Begin(std::uint64_t texture, const char* name = "シーン###Scene")
         {
             viewport_ = {};

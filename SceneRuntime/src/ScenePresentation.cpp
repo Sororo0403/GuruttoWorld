@@ -132,7 +132,7 @@ namespace SceneRuntime
         for (size_t index = 0; index < sky.clouds.size(); ++index)
         {
             const auto offset = 24 + index * 4;
-            // Stationary clouds retain their exact authored center. Moving clouds wrap outside the screen.
+            // 静止した雲は編集時の中心位置を正確に保持します。移動する雲は画面外で折り返します。
             for (size_t axis = 0; axis < 2; ++axis)
             {
                 const auto center = sky.clouds[index].center[axis];

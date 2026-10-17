@@ -25,7 +25,9 @@ namespace Editor
             bool operator==(const Stamp&) const = default;
         };
         using Files = std::map<std::filesystem::path, Stamp>;
-        // Scene JSON is authoring data; it never triggers a resource reload or replaces unsaved edits.
+        /// <summary>
+        /// シーンの JSON は編集データとして扱い、リソースの再読み込みや未保存の編集内容の置き換えを発生させません。
+        /// </summary>
         static Files Capture(const std::filesystem::path& root)
         {
             Files files;
@@ -55,7 +57,7 @@ namespace Editor
         }
         void Poll(const std::filesystem::path& root, double seconds)
         {
-            // Only completed scans touch editor state. Never wait for disk I/O in a frame.
+            // 完了した走査だけをエディターの状態へ反映します。フレーム内でディスク I/O の完了を待ちません。
             if (scan_.valid() && scan_.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
             {
                 try

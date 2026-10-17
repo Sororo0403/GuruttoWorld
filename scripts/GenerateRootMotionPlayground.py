@@ -1,4 +1,4 @@
-"""Generate owned translating/turning root clips and an in-place/moving comparison."""
+"""このプロジェクトの移動・旋回するルートクリップと、その場再生・移動再生の比較を生成します。"""
 import base64
 import copy
 import hashlib

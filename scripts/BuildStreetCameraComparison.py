@@ -1,4 +1,4 @@
-"""Package the same playable street with authored and fixed camera settings."""
+"""同じプレイ可能な街を、制作時のカメラ設定と固定カメラ設定でパッケージ化します。"""
 import argparse
 import hashlib
 import json
@@ -71,7 +71,7 @@ def main():
     write_json(scene_path, scene)
     for package in (good, bad):
         validate(package)
-    # Executable, script module, title, geometry, lighting and controls must match.
+    # 実行ファイル・スクリプトモジュール・タイトル・形状・照明・操作を一致させてください。
     a, b = inventory(good), inventory(bad)
     differences = sorted(k for k in a.keys() | b.keys() if a.get(k) != b.get(k))
     content_differences = [k for k in differences if not k.startswith('Diagnostics/')]

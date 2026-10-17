@@ -46,7 +46,9 @@ namespace Engine
         std::shared_ptr<const ModelRenderer> Procedural(const std::string& key, const std::string& signature,
                                                         const std::function<std::vector<MeshData>()>& generate);
 
-        // Swap complete caches only after GPU idle. Existing shared models keep their ownership.
+        /// <summary>
+        /// GPU の完了後にキャッシュ全体を交換します。既存の共有モデルの所有関係は維持します。
+        /// </summary>
         void Swap(ModelManager& other) noexcept;
 
     private:

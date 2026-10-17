@@ -95,7 +95,7 @@ float3 TransformNormal(float3 normal,float3 row0,float3 row1,float3 row2)
     float3 cofactor2=cross(row0,row1);
     float3 largest=max(abs(cofactor0),max(abs(cofactor1),abs(cofactor2)));
     float scale=max(max(largest.x,largest.y),max(largest.z,1e-30f));
-    // One uniform scale per object preserves interpolation while keeping large/small transforms in range.
+    // オブジェクトごとに一様なスケールを使い、補間を維持しながら大小の変換値を範囲内に収めます。
     return (normal.x*(cofactor0/scale)+normal.y*(cofactor1/scale)+normal.z*(cofactor2/scale))*sign(dot(row0,cofactor0));
 }
 
@@ -172,7 +172,7 @@ float ShadowVisibility(float3 worldPosition,float3 normal)
         float3 offset=worldPosition+normal*(shadowTexel*shadowRadius)-shadowCenter;
         float2 uv=float2(dot(offset,x),-dot(offset,y))/(2*shadowRadius)+.5;
         float depth=(dot(offset,z)+2*shadowRadius)/(4*shadowRadius)-shadowBias;
-        // Compare each tap against the receiver plane at that tap, not a constant depth.
+        // 各サンプル位置で、一定の深度ではなく、その位置の受け面と比較します。
         float2 dx=ddx(uv),dy=ddy(uv);
         float dzdx=ddx(depth),dzdy=ddy(depth);
         float determinant=dx.x*dy.y-dx.y*dy.x;

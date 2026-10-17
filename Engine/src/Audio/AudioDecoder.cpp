@@ -198,7 +198,7 @@ namespace Engine
         std::vector<unsigned char> pending;
         if (sample && !AppendSample(sample.Get(), pending, 4 * 1024 * 1024))
             return false;
-        // One decoder sample must remain bounded; streamed playback never retains the complete file.
+        // デコーダーの 1 サンプルのサイズには上限を設け、ストリーミング再生でファイル全体を保持しません。
         if (pending.size() > 4 * 1024 * 1024 || pending.size() % format_.nBlockAlign != 0)
             return false;
         bytes = std::move(pending);

@@ -144,7 +144,7 @@ namespace GamePlaybackParityValidation
                     startRequested = true;
                 const auto input = Engine::InputActions::Capture(keyboard, nullptr, true);
                 actions.Update(input);
-                // These are the host adapters in production: input is staged, then the shared frame tick runs.
+                // 実際のホストのアダプターと同じように、入力を準備してから共通のフレーム更新を実行します。
                 if (active)
                     editor.PrepareInput(actions, true, 1.0 / 60, &input);
                 editor.Playback().Pointer(*editor.Runtime(), renderer.GetWidth(), renderer.GetHeight(),

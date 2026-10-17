@@ -52,7 +52,7 @@ inline bool ValidateShaderCache(ID3D12Device* device, ID3D12CommandQueue* queue,
     write(include, "float4 Value() { return float4(1,0,0,1); }\n");
     if (!require(Engine::CompileShader(shader, "PSMain", "ps_5_0", changed), "repaired include compiles"))
         return false;
-    // Packaging moves its staging directory. Absolute source locations must not invalidate portable bytecode.
+    // パッケージ化で作業ディレクトリが移動しても、ソースの絶対パスの違いで移動可能なバイトコードを無効にしてはいけません。
     const auto relocated = root.parent_path() / "relocated-project";
     std::filesystem::create_directories(relocated / "nested");
     std::filesystem::copy_file(shader, relocated / "test.hlsl", std::filesystem::copy_options::overwrite_existing);
@@ -73,7 +73,7 @@ inline bool ValidateShaderCache(ID3D12Device* device, ID3D12CommandQueue* queue,
                 std::filesystem::current_path(path, ignored);
             }
         } restore;
-        // D3DPreprocess expands even a basename source name relative to the process working directory.
+        // D3DPreprocess はファイル名だけを指定した場合も、プロセスの作業ディレクトリを基準にソース名を展開します。
         std::filesystem::current_path(relocated);
         if (!require(Engine::GetShaderRevision(relocated / "test.hlsl", relocatedRevision) &&
                          originalRevision == relocatedRevision,

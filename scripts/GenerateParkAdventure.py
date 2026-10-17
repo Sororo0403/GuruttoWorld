@@ -1,4 +1,4 @@
-"""Author and assemble the park's bounded gameplay modules; never run during builds."""
+"""公園の範囲を定めたゲームプレイ用モジュールを作成・組み立てます。ビルド中は実行しません。"""
 import argparse
 import copy
 import hashlib
@@ -198,7 +198,7 @@ def assemble(seed, scene_path="Assets/Scenes/ParkAdventure.json"):
         ids = {item["id"]: f"{kind}-{item['id']}" for item in source["objects"]}
         for special in ("park-gate", "park-goal"):
             ids[special] = special
-        # Bake the module root into world positions; child character visuals retain their hierarchy.
+        # モジュールのルートをワールド座標に焼き込み、子のキャラクター表示は階層を保持します。
         for item in copy.deepcopy(source["objects"]):
             if item["id"] == "module":
                 continue
@@ -231,7 +231,7 @@ def assemble(seed, scene_path="Assets/Scenes/ParkAdventure.json"):
         cue="parkBgm", volumeBinding="volumeGain")]))
     objects.append(obj("park-puff", [0, 0, 1.7], [3.4, 1.7, 3.4],
                        mesh("White", True, "parkAttack=1"), parent="park-player"))
-    # A distant landmark makes the destination readable throughout the course.
+    # 遠方の目印によって、コース全体で目的地を把握できるようにします。
     objects += [box("tower-base", [0, 2, 85], [6, 4, 5], "Stone"),
                 box("tower-column", [0, 6, 85], [3.5, 6, 3.5], "Gate"),
                 ball("tower-crown", [0, 10, 85], [5, 3, 5], "Petal")]
@@ -269,7 +269,7 @@ def validate(scene):
     gate = next(item for item in objects if item["id"] == "park-gate")
     if any(item["position"][2] >= gate["position"][2] for item in objects if item["name"] == "ParkSwitch"):
         raise ValueError("A required switch is behind its gate")
-    # Check the authored center route against actual solid box extents, excluding the removable gate.
+    # 取り外し可能な門を除き、設定した中央の経路を実際の衝突ボックスの範囲と照合します。
     solids = [item for item in objects if not item["parent"] and item["id"] != "park-gate" and any(
         part["type"] == "BoxCollider" and not part.get("isTrigger", False) and part.get("shape", "box") == "box"
         for part in item["components"])]

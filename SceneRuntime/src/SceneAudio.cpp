@@ -128,7 +128,7 @@ namespace SceneRuntime
             error.clear();
             return true;
         }
-        // A failed candidate may have changed live routing; reapply the last successful configuration on recovery.
+        // 失敗した候補が現在の音声経路を変更している可能性があるため、復旧時は最後に成功した設定を再適用します。
         configured_ = false;
         Engine::CpuScope scope("Audio source reconciliation");
         bool needed = false;

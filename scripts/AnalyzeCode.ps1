@@ -43,7 +43,7 @@ try {
         '-Igenerated/intermediate/assimp/include', '-Igenerated/dependencies/jolt-src',
         "--file-list=$output/translation-units.txt"
     )
-    # Windows PowerShell may treat redirected native diagnostics as error records.
+    # Windows PowerShell は、リダイレクトされた外部コマンドの診断をエラーレコードとして扱う場合があります。
     $ErrorActionPreference = "Continue"
     $cppcheckExit = 0
     foreach ($configuration in @('Debug','Development','Release')) {

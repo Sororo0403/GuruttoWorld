@@ -4,14 +4,16 @@
 
 namespace SceneRuntime
 {
-    // All outputs are preserved on failure. Full matrices retain shear from nonuniform parent scales.
+    // 失敗時はすべての出力を保持します。完全な行列には、親の非均等スケールによるせん断も保持します。
     class SceneTransforms final
     {
     public:
         static bool Compose(const ScenePlacement& placement, DirectX::XMFLOAT4X4& output);
         static bool WorldToLocal(const DirectX::XMFLOAT4X4& world, const DirectX::XMFLOAT4X4& parentWorld,
                                  DirectX::XMFLOAT4X4& output);
-        // Resolve parent-relative SRT into world matrices, in layout.objects order.
+        /// <summary>
+        /// 親を基準とする SRT を、layout.objects の順序でワールド行列に変換します。
+        /// </summary>
         static bool Resolve(const SceneLayout& layout, std::vector<DirectX::XMFLOAT4X4>& output, std::string& error);
         /// <summary>描画用のローカル行列差分を適用して親子姿勢を解決し、物理配置は変更しません。</summary>
         static bool Resolve(const SceneLayout& layout, const std::map<std::string, DirectX::XMFLOAT4X4>& localOverrides,
@@ -20,7 +22,9 @@ namespace SceneRuntime
         static bool ResolveChanges(const SceneLayout& layout, const SceneLayout& validatedBefore,
                                    const std::vector<DirectX::XMFLOAT4X4>& previousWorldMatrices,
                                    std::vector<DirectX::XMFLOAT4X4>& output, std::string& error);
-        // Decompose an affine matrix into editable SRT; preserve output on failure and reject shear.
+        /// <summary>
+        /// アフィン行列を編集可能な SRT に分解します。せん断を拒否し、失敗時は出力を保持します。
+        /// </summary>
         static bool ReadTransform(const DirectX::XMFLOAT4X4& matrix, const ScenePlacement& reference,
                                   ScenePlacement& output);
         static bool Matches(const DirectX::XMFLOAT4X4& left, const DirectX::XMFLOAT4X4& right);

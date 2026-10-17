@@ -117,7 +117,7 @@ namespace Engine
         description.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
         description.InputLayout = {elements, 3};
         description.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-        // Both sides cast shadows, including mirrored transforms and thin CC0 sign geometry.
+        // 反転した変換や薄い CC0 の看板形状も含め、両面から影を落とします。
         description.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
         description.RasterizerState.DepthClipEnable = TRUE;
         description.RasterizerState.DepthBias = 100;
@@ -237,7 +237,7 @@ namespace Engine
         const float radius = std::clamp(light.shadowDistance, 10.0f, 200.0f), texel = 2 * radius / resolution_;
         const auto inverseView = XMMatrixInverse(nullptr, camera.GetViewMatrix());
         auto center = inverseView.r[3] + inverseView.r[2] * (radius * .4f) + XMVectorSet(0, radius * .25f, 0, 0);
-        // Align light-space XY to texels so camera motion does not crawl across fixed surfaces.
+        // 光源空間の XY をテクセルに揃え、カメラ移動で静止面の影がちらつかないようにします。
         center += x * (std::round(XMVectorGetX(XMVector3Dot(center, x)) / texel) * texel -
                        XMVectorGetX(XMVector3Dot(center, x)));
         center += y * (std::round(XMVectorGetX(XMVector3Dot(center, y)) / texel) * texel -

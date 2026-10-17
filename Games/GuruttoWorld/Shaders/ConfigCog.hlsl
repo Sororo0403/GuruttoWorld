@@ -1,4 +1,4 @@
-// A dedicated effect control occupies flag bits 12..21; opacity and depth writes stay intact.
+// 専用の効果制御にはフラグのビット 12～21 を使い、不透明度と深度の書き込みは維持します。
 #define PSMain TitleBasePSMain
 #include "Mesh.hlsl"
 #undef PSMain

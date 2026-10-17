@@ -1,4 +1,4 @@
-"""Shared CC0 architecture helpers for the street stage."""
+"""街のステージで共有する CC0 建築用の補助処理です。"""
 import math
 from AuthorEntranceCafe import material, TEXTURES as CAFE_TEXTURES
 from SunriseDistrictBake import TEXTURES
@@ -29,11 +29,11 @@ class StreetDistrict:
         x0,x1,z0,z1=bounds
         self.cube(((x0+x1)/2,height/2,(z0+z1)/2),(x1-x0-.3,height,z1-z0-.3),self.plaster)
         self.solid(key,((x0+x1)/2,height/2,(z0+z1)/2),(x1-x0,height,z1-z0))
-        # A solid roof cap belongs to scenery buildings. The playable terrace
-        # has its own paving and parapets at the actual collider height.
+        # 背景の建物には閉じた屋根を付けます。プレイ可能なテラスには、
+        # 実際の衝突形状の高さに合わせた専用の舗装と胸壁を設けます。
         if key!='roof':self.cube(((x0+x1)/2,height+.10,(z0+z1)/2),(x1-x0+.35,.20,z1-z0+.35),self.teal)
-        # Keep architectural modules at their native proportions. Sparse upper
-        # windows leave the skyline readable instead of filling every surface.
+        # 建築モジュールは元の比率を保ちます。上部の窓はまばらにして、
+        # 全面を埋めずに街の輪郭を読み取りやすくします。
         if front:
             for y in range(0,int(height)-1,3):
                 for x in range(math.ceil(x0+1),math.floor(x1),2):

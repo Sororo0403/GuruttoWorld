@@ -4,7 +4,7 @@
 
 namespace SceneRuntime
 {
-    // Platform adapters supply input and render targets; game rules live here.
+    // プラットフォームのアダプターが入力と描画先を提供し、ゲームのルールはここで管理します。
     class GamePlayback final
     {
     public:

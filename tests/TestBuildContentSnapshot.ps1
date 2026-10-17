@@ -18,7 +18,7 @@ if(!(Test-Path -LiteralPath (Join-Path $destination 'Assets/Scripts/Game.cpp')))
 if(Test-Path -LiteralPath (Join-Path $destination 'Assets/Scripts/Bin')) {throw 'Snapshot included stale compiled script modules.'}
 Set-Content -LiteralPath $scene -Value 'later edit'
 if((Get-Content -LiteralPath (Join-Path $destination 'Assets/Scenes/Main.json') -Raw).Trim() -ne 'original') {throw 'Snapshot changed with live Content.'}
-# Inject a source edit immediately after copying an isolated test fixture.
+# 独立したテスト用データのコピー直後に、元データへの編集を挿入します。
 function Copy-Item {
     param([string]$LiteralPath,[string]$Destination)
     Microsoft.PowerShell.Management\Copy-Item -LiteralPath $LiteralPath -Destination $Destination

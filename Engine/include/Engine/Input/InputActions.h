@@ -15,9 +15,9 @@ namespace Engine
     {
         std::vector<unsigned int> keys;
         unsigned int buttons = 0;
-        int axis = 0; // +/-1,2: left X,Y; +/-3,4: right X,Y; 5,6: left,right trigger.
+        int axis = 0; // +/-1,2 は左スティックの X,Y、+/-3,4 は右の X,Y、5,6 は左右のトリガーです。
         float threshold = 0.5f;
-        unsigned int mouseButtons = 0; // Bits: left, right, middle, X1, X2.
+        unsigned int mouseButtons = 0; // ビットは左・右・中央・X1・X2 の順です。
         bool operator==(const InputBinding&) const = default;
     };
     struct InputSnapshot

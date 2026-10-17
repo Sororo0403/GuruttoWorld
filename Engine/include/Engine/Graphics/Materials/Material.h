@@ -24,7 +24,7 @@ namespace Engine
         bool physicallyBased = false;
         bool normalFlipY = false;
         UvTransform uv;
-        // Empty uses the model's texture. Resource lifetime must cover all draws.
+        // 未指定時はモデルのテクスチャを使います。リソースはすべての描画が完了するまで保持してください。
         std::shared_ptr<const Texture2D> texture;
         // 接線空間の法線画像（RGB、線形値）。未指定時は幾何法線を使います。
         std::shared_ptr<const Texture2D> normalTexture;

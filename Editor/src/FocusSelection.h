@@ -12,7 +12,9 @@
 
 namespace Editor
 {
-    // Fit a sphere around the transformed bounds while preserving the current viewing direction.
+    /// <summary>
+    /// 現在の視線方向を保ち、変換後の境界を囲む球が収まるように調整します。
+    /// </summary>
     inline std::optional<std::array<float, 3>> FocusPosition(std::span<const std::array<float, 3>> corners,
                                                              const Engine::Camera& camera)
     {

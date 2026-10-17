@@ -350,7 +350,7 @@ namespace SceneRuntime
             ValidateChangedAssetReferences(*this, validatedBefore);
             if (sceneObjects != validatedBefore.sceneObjects)
                 ValidateSceneOwnership(*this);
-            // Object IDs already match the validated baseline; only parent edits can invalidate its hierarchy.
+            // オブジェクト ID は検証済みの基準状態と一致しているため、階層が無効になる可能性があるのは親の編集時だけです。
             bool parentsChanged = false;
             size_t menus = 0, localLights = 0;
             for (size_t index = 0; index < objects.size(); ++index)

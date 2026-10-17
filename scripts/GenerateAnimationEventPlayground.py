@@ -1,4 +1,4 @@
-"""Generate an owned animation-event scene with visible per-character light pulses."""
+"""キャラクターごとの光の点滅で確認できる、このプロジェクトのアニメーションイベント用シーンを生成します。"""
 import hashlib
 import json
 from pathlib import Path

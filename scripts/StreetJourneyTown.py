@@ -1,7 +1,6 @@
-"""A connected waterside neighbourhood, authored in metres.
+"""メートル単位で作成した、つながりのある水辺の街区です。
 
-Route metadata is for offline validation only; none of it is rendered as guidance.
-"""
+経路のメタデータはオフライン検証専用で、誘導表示としては描画しません。"""
 import math
 from AuthorSunriseStreet import model
 from GenerateParkAdventure import component, coin, character, obj, box
@@ -24,8 +23,8 @@ def build_town(t):
  def crate(key,x,z,y):
   b.place('p','wooden_crate_02',(x,y,z),1.15,.08)
   t.solid(key,(x,y+.267,z),(.65,.534,1.34))
- # A cafe is an island in a small neighbourhood square. Walking straight
- # ahead meets its occupied facade; both sides visibly wrap around it.
+ # 小さな街の広場の中央にカフェを置きます。直進すると店舗の正面に当たり、
+ # 両側から回り込めることを見せます。
  ground('arrival-square',-22,0,-6,16)
  ground('quayside',-22,0,16,28)
  t.building('entry-west',(-30,-22,-8,28),9)
@@ -40,8 +39,8 @@ def build_town(t):
  t.rail('quay-north',-11,28,22,.3,1)
  t.rail('quay-west',-22,22,.3,12,1)
  bench('quay-bench',-16,26)
- # The canal runs across the town, with two real banks and a broad break in
- # the coping. The facing market terrace is the first attainable destination.
+ # 運河は街を横切り、実際の両岸と広い護岸の切れ目を設けます。
+ # 向かいの市場のテラスを、最初に到達できる目的地にします。
  t.cube((1,-.8,23),(2,.08,25),t.water)
  ground('market-apron',2,20,16,32,.56)
  ground('market-west-forecourt',-6,2,28,32,.56)
@@ -49,43 +48,43 @@ def build_town(t):
  t.bank('canal-east',2.15,16.2,31.8,(19.6,26.4),.56)
  t.rail('market-south',11,16,18,.3,.9,.56)
  t.building('east-shop',(20,28,16,45),9)
- # Stall frontage stays at the edge, leaving a quiet common forecourt from
- # which both sides of the recessed hall can be inspected before choosing.
+ # 屋台の正面は端に寄せ、共通の落ち着いた前庭を空けます。
+ # そこから奥まった市場棟の両側を見て、進路を選べるようにします。
  t.cube((18.5,1.1,30.4),(1.2,1.08,3.4),t.wood,'market-counter')
  b.place('k','kitchenCoffeeMachine',(18.5,1.64,30.4),1.7)
  t.seating(4.7,18.9,.56,.85)
  crate('market-stock',18.5,26,.59)
  t.planter(18.6,18.1,.56)
- # An offset market hall separates genuinely different public and service
- # streets. Both terminate in the same garden; neither is a disguised dead end.
+ # 市場棟をずらして、公共の通りと業務用の通りを異なる空間として分けます。
+ # どちらも同じ庭へつなぎ、実質的な行き止まりにはしません。
  b.zone=1
  ground('market-streets',-6,20,32,48,.56)
  t.building('market-hall',(5,9,38,43.5),4.5)
  t.building('garden-west',(-14,-6,32,48),7)
- # A real covered market: the common roof and both passages share a single
- # structure. Its soffit stays above the existing close camera, so walking
- # underneath does not require a forced camera change or transparent roof.
+ # 実際の屋根付き市場として、共通の屋根と 2 本の通路を一つの構造にまとめます。
+ # 軒裏は既存の近接カメラより上に保ち、下を歩いても
+ # カメラの強制切り替えや屋根の透明化を必要としないようにします。
  t.cube((7,6.1,35.75),(26,.18,17.5),t.cream,'market-common-roof')
  t.cube((7,6.3,27.15),(26,.22,.2),t.teal)
  for side,x in (('loading',-5.5),('hall',4.3),('west',10.5),('east',19.5)):
   t.cube((x,5.94,35.75),(.3,.2,17.5),t.wood)
   for i,z in enumerate((27.5,36,44.5)):
-   # The rear pier bears on the hall's corner, leaving clearance for the
-   # established close camera on the common garden approach.
+   # 奥の柱は市場棟の角で支え、共通の庭への進入路では、
+   # 既存の近接カメラに必要な空間を確保します。
    px=(16 if i==0 else 9.3 if i==2 else x) if side=='west' else x
    t.cube((px,3.26,z),(.3,5.4,.34),t.teal,'arcade-'+side+'-'+str(i))
    t.cube((px,.76,z),(.68,.4,.72),t.cream)
    t.cube((px,5.95,z),(.65,.15,.7),t.cream)
  for z in (27.5,36,44.5):t.cube((7,5.74,z),(26,.2,.28),t.wood)
- # Lower timber storage bays contrast with the tall, uncluttered arcade.
- # The shelter covers stock, leaving the player/camera aisle open.
+ # 低い木造の保管区画と、高くすっきりしたアーケードを対比させます。
+ # ひさしは在庫を覆い、プレイヤーとカメラが通る通路は空けます。
  t.cube((-4.7,3.05,38),(2,.16,9),t.wood)
  for i,z in enumerate((34,38,42)):
   for j,x in enumerate((-5.5,-3.9)):
    t.cube((x,1.82,z),(.14,2.46,.14),t.wood,'warehouse-post-'+str(i)+'-'+str(j))
   crate('warehouse-stock-'+str(i),-4.7,z,.59)
  t.cube((-2,1.01,38),(1,.9,2),t.wood,'packing-table')
- # A lateral street reveals the stair building before entering the court.
+ # 横の通りから、中庭へ入る前に階段の建物を見せます。
  t.rail('market-west-return',-6,46,.3,4,.8,.56)
  t.planter(5,44.8,.56);bench('market-bench',-2,46.5,.56)
  ground('garden-court',-6,20,48,57,.56,t.gardenstone)
@@ -95,10 +94,10 @@ def build_town(t):
  t.rail('court-north-east',18.8,57,4.4,.35,.85,.56)
  bed('court-planting',2.5,52,4,2.7,.56)
  t.seating(-2,54.5,.56,.85);t.seating(17.5,49,.56,.85)
- # Both market streets necessarily enter this shared shaded garden. Roof
- # height stays constant while actual overhead coverage changes from solid
- # to slatted; the following stair and roof garden have no ceiling at all.
- # Supports continue the market bays instead of creating ceremonial gates.
+ # 市場の両方の通りは必ずこの共通の日陰の庭へつながります。屋根の高さは
+ # 一定に保ち、頭上を覆う形状を閉じた面から格子へ変えます。
+ # 続く階段と屋上庭園には、天井を設けません。
+ # 支柱は市場の区画の続きとして配置し、儀礼的な門にはしません。
  for x in (-5.5,4.3,10.5,19.5):
   for z in (50.5,56.5):
    t.cube((x,3.26,z),(.24,5.4,.24),t.wood,'trellis-'+str(x)+'-'+str(z))
@@ -106,8 +105,8 @@ def build_town(t):
  for z in (45,50.5,56.5):t.cube((7,5.72,z),(26,.22,.28),t.wood)
  for i in range(11):t.cube((7,6.08,44.95+i*1.1),(26,.06,.23),t.wood)
  t.planter(7.3,55.5,.56);t.planter(18.5,55.5,.56)
- # A working stair shutter: the attached gear and drive shaft describe how
- # the barrier operates without new UI, labels or floating symbols.
+ # 階段のシャッターを実際に動かし、取り付けた歯車と駆動軸によって、
+ # 新しい UI・ラベル・浮いた記号を使わずに障壁の動き方を伝えます。
  lever=model('journey-lever',(19,1.5,54),(1.7,1.7,1.7),'Assets/Models/Title/Factory/cog-a.obj',(math.pi/2,0,0))
  lever['components'].append(component('Script',behaviour='StreetGear',parameters={}))
  t.objects.append(lever)
@@ -140,7 +139,7 @@ def build_town(t):
                     ('west-north',-3.3,82,9.4,.3),('lookout-left',-16,85.5,.3,7),
                     ('lookout-right',-8,85.5,.3,7),('lookout-end',-12,89,8,.3)):
   t.rail(key,x,z,w,d,.85,roof)
- # The roof is a garden with a second loop, not a line of platforms.
+ # 屋上は足場の列ではなく、もう一つの周回経路を持つ庭にします。
  bed('roof-east-bed',10,79,5,2,roof)
  bed('roof-west-bed',-5.5,76,5,2.5,roof)
  t.seating(17,78,roof,.85);t.planter(18.5,71,roof)
@@ -148,14 +147,14 @@ def build_town(t):
  t.gate('lookout-entrance',-12,82,7,3.5,roof,False)
  bench('clock-bench',-12,87.3,roof,4)
  t.goal=[-12,roof+.85,84]
- # There is exactly one clock, attached to the final accessible lookout.
+ # 時計は一つだけとし、最後に到達できる見晴らし台に取り付けます。
  t.clock(-19,85,13)
  t.cube((-17.5,.16,85),(3,7.52,4),t.plaster)
  for i,(x,z,h) in enumerate(((-32,35,11),(35,28,12),(-27,65,10),(32,84,14),(8,99,9))):
   t.building('distant-'+str(i),(x-4,x+4,z-4,z+4),h,False,False)
  t.cube((0,-4,42),(110,.8,150),material(color=(.34,.39,.34,1)))
- # Everyday details belong to the places they serve; discoveries stay in
- # pockets, never arranged as a trail leading to the exit.
+ # 生活感のある細部は用途に合った場所に置き、発見物は小さな空間に収めます。
+ # 出口へ導く道筋のようには並べません。
  b.zone=0
  for x,z,y in ((-18,1,.04),(-4,22,.04),(12,27,.6),(15,45,.6)):
   b.place('q','Prop_ManholeCover',(x,y,z),1)

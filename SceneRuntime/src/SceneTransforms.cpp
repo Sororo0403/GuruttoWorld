@@ -44,7 +44,7 @@ namespace
                                                   });
                            });
     }
-    // Keep the existing mirror signs and choose the equivalent Euler angles nearest the inspector values.
+    // 既存の反転の符号を保持し、インスペクターの値に最も近い等価なオイラー角を選びます。
     bool ReadSrt(const DirectX::XMFLOAT4X4& matrix, const SceneRuntime::ScenePlacement& reference,
                  SceneRuntime::ScenePlacement& output)
     {

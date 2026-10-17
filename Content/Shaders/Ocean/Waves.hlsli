@@ -1,16 +1,16 @@
 #ifndef OCEAN_WAVES_HLSLI
 #define OCEAN_WAVES_HLSLI
-// Linear deep-water gravity waves: omega^2 = g k (NVIDIA GPU Gems 1, ch. 1).
-// Metres/seconds, analytic derivatives, no photograph or screen-space reflection.
-// The nine directions, amplitude weights and pixel footprint are rendering choices,
-// not measured weather. This bounded height field does not model breaking waves.
+// 深水域の線形重力波を使います: omega^2 = g k（NVIDIA GPU Gems 1、第 1 章）。
+// 単位はメートル・秒で、解析的な微分を使います。写真やスクリーン空間反射は使いません。
+// 9 方向・振幅の重み・ピクセルの範囲は描画表現のための設定であり、
+// 実測の気象値ではありません。この有界な高さ場は砕ける波を表現しません。
 struct SeaHit { float distance; float3 position; float3 normal; bool hit; };
 
 float SeaFootprint(float3 origin, float3 ray)
 {
     float planeDistance=abs((origin.y-cameraForward.w)/max(abs(ray.y),1e-5));
-    // Approximate one angular pixel projected onto the horizontal sea. Fix this
-    // footprint throughout an intersection solve so its derivative stays analytic.
+    // 水平な海面に投影した 1 ピクセルの角度範囲を近似します。交点を求める間はこの範囲を
+    // 固定し、微分を解析的に計算できるようにします。
     float angularPixel=2.0*abs(cameraUp.w)/max(viewportSize.y,1.0);
     return min(4000.0,planeDistance*angularPixel/max(abs(ray.y),.025));
 }
@@ -43,7 +43,7 @@ float2 SeaBounds(float footprint)
         float a=max(0,zenithAmplitude.w)*pow(max(waveShape.w,0.001),j)*exp(-k*footprint);
         bounds+=float2(a,a*k);
     }
-    return bounds; // absolute height and horizontal-gradient upper bounds
+    return bounds; // 高さの絶対値と水平方向の勾配の上限。
 }
 SeaHit IntersectSea(float3 origin,float3 direction,float maxDistance)
 {
@@ -58,7 +58,7 @@ SeaHit IntersectSea(float3 origin,float3 direction,float maxDistance)
             float planeT=(cameraForward.w-origin.y)/direction.y;
             if(planeT>1e-4 && planeT<=maxDistance)
             { result.hit=true; result.distance=planeT; result.position=origin+direction*planeT; }
-            // Amplitude zero is exactly the sea-level plane.
+            // 振幅 0 は、厳密に海面の平面と一致します。
         }
         else
         {
@@ -67,13 +67,13 @@ SeaHit IntersectSea(float3 origin,float3 direction,float maxDistance)
             float t=max(0,min(a,b)),limit=min(maxDistance,max(a,b));
             if(limit>t)
             {
-                // Conservative residual/Lipschitz advances cannot jump over a nearer crest.
+                // 残差と Lipschitz 定数に基づく保守的な前進量で、手前の波頭を飛び越えないようにします。
                 float lipschitz=abs(direction.y)+bounds.y*length(direction.xz);
                 float initial=origin.y-cameraForward.w-SeaShape(origin.xz,footprint).x;
                 float side=initial>=0 ? 1.0 : -1.0;
                 bool marchFinished=false;
-                // Below-surface origins find the exit interface with its upward normal.
-                // SeaRadiance is above-water only; underwater absorption is out of scope.
+                // 水面下から始まる場合は、上向きの法線を持つ出口の界面を探します。
+                // SeaRadiance は水面上だけを対象とし、水中の吸収は扱いません。
                 [loop] for(int iteration=0;iteration<(int)intersection.y;++iteration)
                 {
                     float3 position=origin+direction*t;
@@ -93,8 +93,8 @@ SeaHit IntersectSea(float3 origin,float3 direction,float maxDistance)
                 }
                 if(!marchFinished)
                 {
-                    // Almost tangent rays converge slowly. Finish inside a sign
-                    // bracket rather than permitting unbounded Newton steps.
+                    // ほぼ接線方向のレイは収束が遅いため、Newton 法のステップを無制限にせず、
+                    // 符号が変わる区間内で解を確定します。
                     float3 lowPosition=origin+direction*t;
                     float low=(lowPosition.y-cameraForward.w-SeaShape(lowPosition.xz,footprint).x)*side;
                     float3 highPosition=origin+direction*limit;
@@ -118,10 +118,10 @@ SeaHit IntersectSea(float3 origin,float3 direction,float maxDistance)
                 }
             }
         }
-        // An above-water downward ray must cross the bounded height slab.
-        // For unresolved wave detail only, a numerical tangent-solver failure
-        // resolves to its mean plane. Require the entire slab within the clip
-        // distance, so this approximation never resurrects a clipped interface.
+        // 水面上から下向きに進むレイは、高さの上下限で挟まれた領域を必ず通過します。
+        // 解像できない波の細部に限り、接線方向の数値解法が失敗した場合は
+        // 平均平面で解決します。領域全体がクリップ距離内にあることを要求し、
+        // この近似によってクリップ済みの界面が再び現れないようにします。
         if(!result.hit && direction.y<0 && origin.y>cameraForward.w+bounds.x &&
             bounds.x<=footprint*.5)
         {
@@ -143,18 +143,18 @@ float WaterFresnel(float cosTheta)
     float ct=sqrt(max(0,1-(1-c*c)/(eta*eta)));
     float rs=(c-eta*ct)/max(c+eta*ct,1e-7);
     float rp=(eta*c-ct)/max(eta*c+ct,1e-7);
-    return saturate(.5*(rs*rs+rp*rp)); // unpolarized dielectric Fresnel (PBRT 4e)
+    return saturate(.5*(rs*rs+rp*rp)); // 無偏光の誘電体の Fresnel 反射（PBRT 第 4 版）。
 }
 float3 SeaRadiance(SeaHit hit,float3 incomingRay)
 {
     float3 reflection=reflect(incomingRay,hit.normal);
     float cosine=saturate(dot(-incomingRay,hit.normal));
     float fresnel=WaterFresnel(cosine);
-    // Keep the true reflection direction even when it points below the horizon.
-    // EnvironmentRadiance includes the finite solar disk: do not add a second sun.
+    // 反射方向が地平線の下を向く場合も、実際の反射方向を保持します。
+    // EnvironmentRadiance は有限の大きさの太陽円盤を含むため、太陽を二重に加算しないでください。
     float3 reflected=EnvironmentRadiance(hit.position+hit.normal*.01,reflection);
-    // RGB body albedo is an editable approximation for subsurface scattering,
-    // lit by sky plus cloud-shadowed sunlight and weighted by transmitted energy.
+    // RGB の内部アルベドは編集可能な表面下散乱の近似です。
+    // 空と雲の影を受けた日光で照らし、透過エネルギーで重み付けします。
     float3 diffuseSky=SkyRadiance(hit.position,float3(0,1,0),sunlight.w);
     float3 illumination=diffuseSky+SolarAtPoint(hit.position)*
         CloudSunTransmittance(hit.position)*max(dot(hit.normal,solar.xyz),0)/3.141592654;

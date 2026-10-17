@@ -1,4 +1,4 @@
-"""Close-view street assembly using the bundled CC0 architectural modules."""
+"""同梱の CC0 建築モジュールを使い、近距離で見る街を組み立てます。"""
 import json
 import math
 from StreetDistrict import StreetDistrict
@@ -13,8 +13,8 @@ BRICK='Assets/Textures/Sunrise/Cafe/T_RedBrick_BaseColor.png'
 BRICK_NORMAL='Assets/Textures/Sunrise/Cafe/T_RedBrick_Normal.png'
 
 def prepare_art_imports():
- # Generate mip chains at load time; detailed CC0 surfaces otherwise crawl in
- # motion even when a still image looks sharp. Source image bytes stay intact.
+ # 読み込み時にミップマップを生成します。これがないと、細かな CC0 の表面は静止画で鮮明でも
+ # 移動中にちらつきます。元の画像のバイト列は変更しません。
  textures=[PAVING,NORMAL,BRICK,BRICK_NORMAL]
  textures += [f'Assets/Textures/StreetJourney/PolyHaven/wooden_crate_02_{channel}_1k.png' for channel in ('diff','nor_gl')]
  for name in ('Trim','MetalConcrete','Ornaments','Dirt'):
@@ -90,8 +90,8 @@ class StreetArchitecture(StreetDistrict):
   if not front and not side:
    super().building(key,bounds,height,front,side);return
   x0,x1,z0,z1=bounds
-  # Recess the structural core beyond the glass, not through the window recess.
-  # The source's +Z-facing surfaces become -Z after the glTF-to-world mirror.
+  # 構造の芯は窓のくぼみを貫通させず、ガラスより奥へ下げます。
+  # 元データで +Z を向く面は、glTF からワールドへの反転後に -Z を向きます。
   shell=material(BRICK,BRICK_NORMAL,roughness=.88)
   self.cube(((x0+x1)/2,height/2,(z0+z1)/2),(x1-x0-.65,height,z1-z0-.65),shell)
   self.solid(key,((x0+x1)/2,height/2,(z0+z1)/2),(x1-x0,height,z1-z0))
@@ -100,8 +100,8 @@ class StreetArchitecture(StreetDistrict):
   for y in range(3,int(height),3):
    self.cube(((x0+x1)/2,y,(z0+z1)/2),(x1-x0+.12,.12,z1-z0+.12),self.cream)
   self.cube(((x0+x1)/2,height+.12,(z0+z1)/2),(x1-x0+.35,.24,z1-z0+.35),self.teal)
-  # Every facade is selected from the playable side, rather than decorating
-  # invisible outer walls and spending the same budget on distant scenery.
+  # 外壁はプレイ側から見えるものを選び、見えない外壁を飾ったり、
+  # 遠景に同じ処理量を費やしたりしないようにします。
   faces=[]
   if front and key not in ('entry-west','entry-east'):
    faces.append((x0,x1,z0,0,(0,0,-1)))
@@ -121,7 +121,7 @@ class StreetArchitecture(StreetDistrict):
      self.b.place('q',name,pos(y),1,angle,tint=tint)
     cornice=pos(height-.8)
     self.b.place('q','Cornice_Trim_Center',cornice,1,angle)
-   # Recessed shop glazing, stone corner piers and occasional wall fixtures.
+   # くぼんだ店舗のガラス面・石造りの角柱・一部の壁付け設備を配置します。
    for along in (lo+.35,hi-.35):
     p=(along,0,edge) if out[2] else (edge,0,along)
     self.b.place('q','Trim_Column_Center',p,.9,angle)
@@ -154,7 +154,7 @@ class StreetArchitecture(StreetDistrict):
   self.b.place('n','tree_oak',(x,y+.03+.26*size,z),1.1*size)
 
  def street_details(self):
-  # A few real PBR props establish material scale at the cafe service edge.
+  # カフェの接客部分の端に少数の PBR の小物を置き、素材のスケールを示します。
   self.b.place('p','wooden_crate_02',(-.8,.59,29),1.25,.15)
   height=max(p[1] for _,face in self.b.cache[('p','wooden_crate_02')] for p,uv,n in face)
   self.b.place('p','wooden_crate_02',(-1.0,.59+height*1.25,29),1.1,-.12)
@@ -167,9 +167,9 @@ class StreetArchitecture(StreetDistrict):
    self.b.place('q','Prop_ManholeCover',(x,y,z),1)
   for x,z,y in ((-8.45,20,.03),(-5.3,25.5,.59),(8.5,31,.59)):
    self.b.place('q','Prop_Drain',(x,y,z),1.2)
-  # Larger greenery belongs to the margins, keeping jumps and exits clear.
+  # 大きな植栽は端に置き、ジャンプする場所と出口を空けます。
   for x,z,y in ((-20,20,-3.5),(12,23,-3.5),(24,41,-3.5)):
    self.b.place('n','tree_oak',(x,y,z),6)
    self.cube((x,y-.3,z),(3,.6,3),self.cream)
-  # Non-playable lower city street lies below the fall reset plane.
+  # プレイ範囲外の低い通りは、落下時に戻す平面より下に置きます。
   self.cube((0,-4,42),(110,.8,150),material(color=(.34,.39,.34,1)))

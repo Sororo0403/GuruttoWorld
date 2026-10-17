@@ -7,7 +7,7 @@
 
 namespace Editor
 {
-    // Scene snapshots keep deleted objects, IDs and ordering intact. GPU restoration is done by the caller.
+    // シーンのスナップショットは削除したオブジェクト・ID・順序を保持します。GPU リソースの復元は呼び出し側が行います。
     class EditHistory final
     {
     public:
@@ -39,7 +39,9 @@ namespace Editor
             if (interaction.empty())
                 Commit();
         }
-        // Idle frames update selection without copying the entire scene JSON.
+        /// <summary>
+        /// 編集のないフレームでは、シーンの JSON 全体をコピーせずに選択状態を更新します。
+        /// </summary>
         void Observe(const std::string& json, const std::string& selection, const std::vector<std::string>& selections,
                      std::string_view interaction)
         {

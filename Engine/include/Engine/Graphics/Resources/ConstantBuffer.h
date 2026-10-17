@@ -9,7 +9,7 @@
 
 namespace Engine
 {
-    // Each draw gets immutable data until its frame slot's fence has completed.
+    // 各描画のデータは、そのフレームスロットのフェンスが完了するまで変更しません。
     class ConstantBuffer final
     {
     public:

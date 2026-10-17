@@ -1,5 +1,5 @@
-"""Shared architectural footprints: both rendered structure and physical walls use these."""
-# x minimum, x maximum, z minimum, z maximum, height, spatial batch zone
+"""描画する構造物と物理的な壁で共有する、建築の平面形状です。"""
+# X 最小値、X 最大値、Z 最小値、Z 最大値、高さ、空間バッチの区画。
 BUILDINGS={
     'entry-right':(12.5,22.5,-4,10,9,0),
     'corner':(-11,1,28,42,9,1),
@@ -9,6 +9,6 @@ BUILDINGS={
     'roof':(-9,9,80,94,5.4,3),
 }
 
-# A small off-centre garden has two ways around it. Geometry and collision
-# deliberately share these dimensions; the open centre is not a marked lane.
+# 中心からずらした小さな庭に、両側から回り込める経路を設けます。形状と衝突判定では
+# 意図的にこの寸法を共有し、開いた中央部を印付きの通路にはしません。
 PLAZA_GARDEN=(8.0,10.6,3.2,5.2,.45)

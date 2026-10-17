@@ -1,8 +1,7 @@
-"""Rebuild the editable morning title from CC0 models and original vector UI.
+"""CC0 モデルと独自のベクター UI から、編集可能な朝のタイトルを再構築します。
 
-Run once to reset the composition. Subsequent art direction belongs in the Editor;
-normal builds never run this script or overwrite an edited scene.
-"""
+構図をリセットするときに一度だけ実行します。その後の見た目の調整は Editor で行います。
+通常ビルドではこのスクリプトを実行せず、編集済みのシーンも上書きしません。"""
 import json
 import math
 from pathlib import Path
@@ -55,7 +54,7 @@ for index in range(24):
     for side, x in [("left", -2.8), ("right", 2.8)]:
         mesh(f"sidewalk-{index:02}-{side}", "Surface/Roads/sidewalk", (x, 0.08, z), (1.6, 4, 4))
 
-# A clear foreground, open central plaza and varied skyline: three readable depths.
+# 明確な前景・開けた中央広場・変化のある街の輪郭で、3 段階の奥行きを見せます。
 for index, (model, x, z, scale, yaw) in enumerate([
     ("k", -7.2, 2, (4.2, 4.5, 4), -math.pi / 2),
     ("e", -6.8, 13, (4, 5.5, 4), -math.pi / 2),
@@ -122,7 +121,7 @@ objects[-1]["components"].append(dict(type="Button", id="button", enabled=True, 
 text("world-footer", "GURUTTO WORLD", (35, 672), (250, 25), CREAM, 16)
 text("morning-help", "任意のキー・ゲームパッドのボタンで開始", (440, 677), (480, 26), CREAM, 16)
 
-# Final fullscreen ink guarantees coverage at any window aspect ratio.
+# 最後に全画面を塗り、どのウィンドウの縦横比でも全体を覆うようにします。
 item("title-transition-canvas", "開始 / 全画面", components=[
     dict(type="Canvas", id="canvas", enabled=True, referenceSize=[1280, 720], scaleWithScreen=False, stateDefaults={})])
 for identifier, color, binding in [("title-transitionPink", PINK, "transitionPink"), ("title-transition", INK, "transition")]:

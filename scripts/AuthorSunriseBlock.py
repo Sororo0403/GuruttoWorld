@@ -1,4 +1,4 @@
-"""Author the short close-camera city block. Does not edit the title or the old stage."""
+"""近接カメラで遊ぶ短い街区を作成します。タイトルと旧ステージは編集しません。"""
 import copy
 import json
 import math
@@ -31,7 +31,7 @@ def assemble(batched=True):
     objects.append(material_box('block-foundation',[0,-3.6,60],[180,6,240],'Grass'))
     objects.append(obj('block-ground',[1,-.6,44],[48,1.2,112],
         [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
-    # Near facades and furniture share one CC0 material system and metric modules.
+    # 近景の外壁と家具で、同じ CC0 のマテリアル体系とメートル単位のモジュールを共有します。
     objects.extend(cafe_objects())
     objects.extend(district_objects())
     for z in (3,11.7):
@@ -52,7 +52,7 @@ def assemble(batched=True):
         [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
     objects.append(obj('courtyard-garden',[-4.5,.25,49.5],[5,.5,5],
         [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
-    # The next district is seen as a skyline, not as hundreds of individual props.
+    # 次の地区は、数百個の小物ではなく街の輪郭として見せます。
     for i,(x,z) in enumerate([(-29,18),(35,44),(-29,57),(35,72),(-25,113),(24,125),(-10,145)]):
         objects.append(model(f'skyline-{i}',[x,0,z],[8+i%2]*3,
             'Assets/Models/Title/Surface/Commercial/building-skyscraper-a.obj'))
@@ -61,10 +61,10 @@ def assemble(batched=True):
             'Assets/Models/Title/Surface/Commercial/building-e.obj'))
     for i,(x,z) in enumerate([(-16,69),(-14,79),(-22,84),(-22,99),(24,75),(24,91)]):
         objects.append(nature(f'outer-tree-{i}',[x,.01,z],'tree_oak',3.5))
-    # The architectural portal and orange gear show the turn without text.
+    # 建築の開口部とオレンジ色の歯車で、文字を使わずに曲がる方向を示します。
     objects.append(model('corner-sign-gear',[1.15,4.8,28.3],[2.1]*3,
         'Assets/Models/Title/Factory/cog-a.obj',[0,0,math.pi/2]))
-    # The courtyard has a small encounter, safe space and a visible machine.
+    # 中庭には小規模な遭遇・安全な場所・見える機械を配置します。
     for i,(x,z) in enumerate([(5,46),(11,50)]):
         enemy=character(f'enemy-{i}',[x,.7,z],'Enemy','ParkEnemy')
         enemy[0]['components'][-1]['behaviour']='SunriseEnemy'
@@ -74,7 +74,7 @@ def assemble(batched=True):
     gear=model('gear-roof',[7,1.5,54.87],[2.7]*3,'Assets/Models/Title/Factory/cog-a.obj',[math.pi/2,0,0])
     gear['components'].append(script('SunriseMechanism',switch='switch-roof'))
     objects.append(gear)
-    # A cable visually connects the machine to the shutter, and the shutter exposes stairs.
+    # ケーブルで機械とシャッターのつながりを見せ、シャッターを開くと階段が現れるようにします。
     objects.append(material_box('machine-conduit',[.5,.045,57],[13,.09,.15],'Orange'))
     objects.append(material_box('shutter-frame',[-6,3.3,61],[5.2,.3,.5],'Teal'))
     shutter=obj('roof-shutter',[-6,1.6,61],components=[
@@ -91,7 +91,7 @@ def assemble(batched=True):
     for x in (-7.9,-4.1):
         objects.append(obj(f'stair-side-{x}',[x,3.4,70.95],[.2,1.05,19.65],
             [component('BoxCollider',center=[0,0,0],size=[1,1,1])],rotation=[-math.atan2(.3,1.05),0,0]))
-    # Collisions share the architectural footprint; detailed surfaces are CC0 batches.
+    # 衝突形状は建築の平面形状と一致させ、細かな表面は CC0 のバッチで表現します。
     x0,x1,z0,z1,height,zone=BUILDINGS['roof']
     objects.append(obj('roof-building',[(x0+x1)/2,height/2,(z0+z1)/2],[x1-x0,height,z1-z0],
         [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
@@ -100,7 +100,7 @@ def assemble(batched=True):
             [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
     objects.append(obj('roof-balcony-rail',[0,5.95,94],[18,1.1,.2],
         [component('BoxCollider',center=[0,0,0],size=[1,1,1])]))
-    # Low street barriers are outside all playable turns, rather than lining an empty plane.
+    # 低い道路の障壁は、空の平面に並べず、プレイ可能なすべての曲がり角の外側に置きます。
     for key,pos,size in [('west',[-20,1,44],[.5,2,112]),('east',[25,1,44],[.5,2,112]),
             ('end',[2,1,100],[46,2,.5]),('entry',[0,1,-10],[46,2,.5])]:
         objects.append(material_box('boundary-'+key,pos,size,'Cream',True))
@@ -124,7 +124,7 @@ def assemble(batched=True):
         component('MeshRenderer',model='Assets/Models/PhysicsSphere.obj',visibleWhen='parkAttack=1'),
         component('Material',asset='Assets/Materials/Sunrise/Attack.mat')],parent='park-player'))
     objects.append(ball('park-goal',[0,6.5,91],[1.5]*3,'Petal'))
-    # The next landmark is scenery. The short playable slice ends on the rooftop.
+    # 次の目印は背景です。この短いプレイ区間は屋上で終わります。
     objects.append(model('next-tower',[4,0,127],[6]*3,
         'Assets/Models/Title/Surface/Commercial/building-skyscraper-a.obj'))
     objects.append(material_box('next-tower-roof',[4,18.2,127],[9,.4,8],'Orange'))

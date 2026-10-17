@@ -1,4 +1,4 @@
-"""Generate a repository-owned scene comparing nested 1D, Cartesian 2D and Direct blending."""
+"""入れ子の 1D・直交座標の 2D・Direct ブレンドを比較する、このリポジトリのシーンを生成します。"""
 import copy
 import hashlib
 import json

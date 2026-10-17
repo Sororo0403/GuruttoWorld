@@ -18,7 +18,7 @@ int main(int argc, char** argv)
         const auto root = std::filesystem::absolute("Games/GuruttoWorld");
         if (argc == 2 && std::string_view(argv[1]) == "--departure-only")
         {
-            // Parity loads the source script module before the shared host ticks and departure validation.
+            // 一致検証では、共通ホストの更新と出発処理の検証より前に、元のスクリプトモジュールを読み込みます。
             GamePlaybackParityValidation::Run(renderer, root, true);
             TitleDepartureValidation::Run(renderer, root);
             if (!renderer.WaitForIdle())

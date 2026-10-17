@@ -73,7 +73,7 @@ namespace
             bool overlap = true;
             for (size_t axis = 0; axis < 3; ++axis)
             {
-                // Project the world-space agent cylinder into each box-local axis.
+                // ワールド空間のエージェントの円柱を、各ボックスのローカル軸へ射影します。
                 const float extent = radius * std::hypot(obstacle.inverse.m[0][axis], obstacle.inverse.m[2][axis]);
                 overlap = overlap && std::max(low[axis], high[axis]) + extent >= c.center[axis] - c.size[axis] * .5f &&
                           std::min(low[axis], high[axis]) - extent < c.center[axis] + c.size[axis] * .5f;
@@ -95,7 +95,7 @@ namespace
     std::array<float, 3> ParentDisplacement(std::string id, const std::map<std::string, std::string>& parents,
                                             Displacements& moves)
     {
-        // Navigation changes translation only; non-agent descendants inherit their nearest moving ancestor's world delta.
+        // ナビゲーションは平行移動だけを変更します。エージェントでない子孫は、最も近い移動中の祖先のワールド移動量を継承します。
         std::vector<std::string> chain;
         while (!id.empty() && !moves.contains(id))
         {
@@ -330,7 +330,7 @@ namespace SceneRuntime
             std::vector<DirectX::XMFLOAT4X4> matrices;
             if (!SceneTransforms::Resolve(layout, matrices, error))
                 return false;
-            // All agents plan from the same pre-step hierarchy and NavMesh, regardless of object order.
+            // オブジェクトの順序にかかわらず、すべてのエージェントは更新前の同じ階層と NavMesh を使って計画します。
             Displacements targets, moves;
             std::vector<size_t> stopped;
             for (size_t i = 0; i < layout.objects.size(); ++i)

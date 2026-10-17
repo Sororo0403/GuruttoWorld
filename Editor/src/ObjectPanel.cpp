@@ -393,7 +393,7 @@ namespace Editor
         TrackInspectorEdit(state);
         if (ImGui::IsItemDeactivatedAfterEdit() && invalidName_)
         {
-            observedName_.clear(); // Restore the last valid name on the next frame.
+            observedName_.clear(); // 次のフレームで直前の有効な名前に戻します。
         }
         bool persistent = placement.persistent;
         if (ImGui::Checkbox("シーン切り替え後も保持###Persistent", &persistent))

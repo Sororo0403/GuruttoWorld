@@ -286,7 +286,7 @@ namespace Engine
         std::shared_ptr<UploadResources> retained;
         if (deferUpload)
         {
-            // Finish all allocations before submission; rollback may destroy this Texture2D immediately.
+            // 送信前にすべての割り当てを完了します。復元処理でこの Texture2D が直ちに破棄される可能性があります。
             retirement = GpuRetirement::Dedicated(device, queue);
             if (!retirement)
                 return false;
@@ -304,7 +304,7 @@ namespace Engine
         {
             try
             {
-                // Retire returns false only after SignalGpuFence has confirmed device loss (or terminated).
+                // Retire が false を返すのは、SignalGpuFence がデバイス喪失を確認した場合だけです。確認できなければプロセスを終了します。
                 if (!retirement->Retire(retained))
                     return false;
                 uploadRetirement_ = std::move(retirement);
@@ -312,7 +312,7 @@ namespace Engine
             }
             catch (...)
             {
-                // The fallback fence already exists: an allocation failure in Retire must not free in-flight resources.
+                // 代替のフェンスは作成済みです。Retire 内の割り当て失敗でも、処理中のリソースを解放してはいけません。
                 if (SignalGpuFence(device, queue, fence.Get(), 1))
                     WaitForGpuFence(device, fence.Get(), 1, nullptr);
                 throw;

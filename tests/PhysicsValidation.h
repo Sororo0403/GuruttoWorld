@@ -111,7 +111,7 @@ namespace PhysicsValidation
         const auto restored = SceneLayout::Parse(serialized);
         Require(restored.objects.back().SameComponents(layout.objects.back()), "physics component JSON roundtrip");
         auto old = Engine::Json::parse(serialized);
-        // Find by type; serialization order is not a data contract.
+        // シリアライズの順序はデータの仕様ではないため、型で検索します。
         for (auto& component : old["objects"][2]["components"])
             if (component["type"] == "PlayerController")
             {

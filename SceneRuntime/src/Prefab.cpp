@@ -385,7 +385,7 @@ namespace SceneRuntime
                     found->rotation = object.rotation;
                 if (found->scale == old.scale)
                     found->scale = object.scale;
-                // Parent links are structural; source changes restore the source hierarchy.
+                // 親への参照は構造の一部です。元データの変更時は元の階層を復元します。
                 found->parentId = object.parentId;
             }
             found->prefab = PrefabLink{path, sourceId, rootId, baseline};

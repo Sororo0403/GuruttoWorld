@@ -372,7 +372,7 @@ namespace SceneRuntime
                 replacement->second.sceneSprite != value.sceneSprite)
                 replaced->emplace(key, value);
         }
-        // Register the old resources before committing. A failed signal leaves the current UI intact.
+        // 確定前に古いリソースを登録します。シグナルの送信に失敗した場合は現在の UI を維持します。
         if (!replaced->empty() && !(retirement_ ? retirement_ : retirement)->Retire(replaced))
             throw std::runtime_error("Cannot retire UI resources");
     }

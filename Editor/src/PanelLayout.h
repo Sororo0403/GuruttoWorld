@@ -106,5 +106,5 @@ namespace Editor::PanelLayout
         if (ImGui::GetIO().WantSaveIniSettings)
             Save();
     }
-    inline void Place(Panel) {} // Window placement now belongs to the dockspace/settings.
+    inline void Place(Panel) {} // ウィンドウの配置はドックスペースと設定で管理します。
 }

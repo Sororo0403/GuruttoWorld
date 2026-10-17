@@ -192,7 +192,7 @@ namespace
         int frames = 0;
         Simulation()
         {
-            // Keep all playable geometry and scripts; omit scenery with no collision from CPU replay.
+            // プレイに必要な形状とスクリプトをすべて保持し、衝突判定のない背景だけを CPU 再生から除外します。
             std::erase_if(layout.objects,
                           [](const auto& item)
                           {
@@ -281,7 +281,7 @@ namespace
         sim.WalkTo(0, 46);
         Require(Find(sim.layout, "park-player").position[2] > 41, "Actual character crosses canal gap");
         std::cout << "Canal verified\n" << std::flush;
-        // A fall restores the latest checkpoint, keeping collected rewards.
+        // 落下時は、獲得済みの報酬を保持したまま最後のチェックポイントへ戻します。
         Find(sim.layout, "park-player").position[1] = -5;
         sim.Tick();
         Require(Find(sim.layout, "park-player").position[2] > 40, "Fall restores checkpoint");

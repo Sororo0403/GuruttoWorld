@@ -160,7 +160,7 @@ namespace Engine
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
         parameters[0].Constants.Num32BitValues = 16;
-        // Ray-generation pixel shaders also use viewport and projection constants.
+        // レイを生成するピクセルシェーダーでも、ビューポートと射影の定数を使用します。
         parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
         parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;

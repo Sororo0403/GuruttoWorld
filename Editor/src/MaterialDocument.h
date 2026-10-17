@@ -7,7 +7,7 @@
 
 namespace Editor
 {
-    // Each asset retains its own draft. Failed loads never expose another asset's values.
+    // 各アセットが個別の編集中データを保持します。読み込みに失敗しても別のアセットの値を表示しません。
     class MaterialDocument final
     {
     public:

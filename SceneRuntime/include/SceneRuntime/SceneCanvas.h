@@ -8,7 +8,7 @@
 
 namespace SceneRuntime
 {
-    // Editor representation: 100 UI pixels per world unit, centered on the root Canvas.
+    // エディター表示ではルート Canvas を中心とし、ワールドの 1 単位を UI の 100 ピクセルとして扱います。
     struct SceneCanvas
     {
         static const ScenePlacement* Root(const SceneLayout& layout, const ScenePlacement& object)

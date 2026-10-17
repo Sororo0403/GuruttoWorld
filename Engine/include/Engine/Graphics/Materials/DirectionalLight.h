@@ -38,7 +38,7 @@ namespace Engine
         float shininess = 32.0f;
         // false の場合は照明計算を行わず、テクスチャの色をそのまま使用します。
         bool enabled = true;
-        // Scene-wide fog travels with lighting parameters to the mesh shader.
+        // シーン全体の霧の設定を、照明パラメーターとともにメッシュシェーダーへ渡します。
         DistanceFog fog;
         bool shadowsEnabled = false;
         float shadowDistance = 70, shadowBias = .0001f;

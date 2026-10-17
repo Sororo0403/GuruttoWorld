@@ -1,11 +1,11 @@
 #ifndef OCEAN_CLOUDS_INCLUDED
 #define OCEAN_CLOUDS_INCLUDED
 
-// Independent implementation of single-scattering volume transport.
-// Beer-Lambert: pbr-book.org/4ed/Volume_Scattering/Transmittance
-// HG phase: pbr-book.org/4ed/Volume_Scattering/Phase_Functions
-// All positions and integration lengths are metres. The procedural weather
-// field is an artistic cloud distribution, not a measured meteorological map.
+// 単一散乱によるボリューム内の光輸送を独自に実装します。
+// Beer-Lambert 則の参照先: pbr-book.org/4ed/Volume_Scattering/Transmittance
+// HG 位相関数の参照先: pbr-book.org/4ed/Volume_Scattering/Phase_Functions
+// 位置と積分距離の単位はすべてメートルです。手続き的な天候場は、
+// 実測の気象図ではなく、表現のために設定した雲の分布です。
 struct CloudResult { float3 radiance; float transmittance; };
 
 float CloudHash(float3 p)
@@ -33,8 +33,8 @@ float CloudDensity(float3 position, float footprint)
     if (h > 0.0 && h < 1.0 && weather.x > 0.001)
     {
         float3 p = position + float3(eyeTime.w * weather.y * cloudShape.y, 0.0, eyeTime.w * weather.y * cloudShape.z);
-        // Broad 3D masses with advected small-scale erosion. Filtering unresolved
-        // octaves toward their mean prevents distant stair-stepped cloud skirts.
+        // 大きな立体の塊に、移流する細かな侵食形状を加えます。解像できないオクターブを
+        // 平均値へ近づけることで、遠方の雲の裾が階段状になるのを防ぎます。
         p *= cloudShape.x;
         float coarse = CloudNoise(p * noiseFrequencies.x + noiseOffsets.x);
         float mediumWeight = 1.0 - smoothstep(350.0, 1200.0, footprint);
@@ -76,7 +76,7 @@ float CloudSunTransmittance(float3 origin)
         result = 1.0;
         if (CloudSlab(origin, solar.xyz, enter, leave))
         {
-            // Four deterministic strata; a finite 60 km radius bounds grazing rays.
+            // 再現可能な 4 層に分け、かすめるレイの範囲を半径 60 km に制限します。
             float stepLength = (leave - enter) / max(integration.w,1.0);
             float opticalDepth = 0.0;
             [loop] for (int i = 0; i < (int)integration.w; ++i)
@@ -92,8 +92,8 @@ float CloudSunTransmittance(float3 origin)
 
 float CloudPhase(float cosineAngle)
 {
-    // View ray points into scene; light arrives along -sun. Forward scattering
-    // is therefore strongest when the view ray points toward the sun.
+    // 視線のレイはシーンの奥へ向かい、光は -sun 方向から届きます。このため前方散乱は、
+    // 視線のレイが太陽へ向かう場合に最も強くなります。
     float g = clamp(zenithAmplitude.y, -0.9, 0.9);
     float denom = max(1.0 + g*g - 2.0*g*cosineAngle, 0.001);
     return (1.0 - g*g) / (4.0 * PI * denom * sqrt(denom));
@@ -111,8 +111,8 @@ CloudResult TraceClouds(float3 origin, float3 direction)
         float stepLength = (leave - enter) / max(integration.z,1.0);
         float3 reference = origin + direction * (enter + (leave - enter) * 0.35);
         float3 sunlight = SolarAtPoint(reference);
-        // A single zenith sample is an approximate hemispherical ambient integral;
-        // this does not claim to solve cloud multiple scattering or droplet Mie.
+        // 天頂の 1 サンプルで半球全体の環境光の積分を近似します。
+        // 雲の多重散乱や水滴の Mie 散乱を解いているわけではありません。
         float3 ambient = SkyRadiance(reference, float3(0,1,0), 0.0) * 0.35;
         float phase = CloudPhase(dot(direction, solar.xyz));
         [loop] for (int i = 0; i < (int)integration.z; ++i)
@@ -126,8 +126,8 @@ CloudResult TraceClouds(float3 origin, float3 direction)
                 float opticalDepth = density * max(horizonHaze.z, 0.0) * stepLength;
                 float segmentT = exp(-min(opticalDepth, 80.0));
                 float3 incident = sunlight * CloudSunTransmittance(p) * phase + ambient;
-                // Near-unity single-scattering albedo approximates visible water
-                // droplets; exact integration for constant density within a step.
+                // 1 に近い単一散乱アルベドで可視光の水滴を近似し、
+                // 各ステップ内では密度を一定として厳密に積分します。
                 result.radiance += result.transmittance * (1.0 - segmentT) * 0.999 * incident;
                 result.transmittance *= segmentT;
                 if (result.transmittance < 0.005) break;

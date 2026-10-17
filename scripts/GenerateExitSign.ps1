@@ -1,4 +1,4 @@
-# Render the tourist gate's farewell sign using the bundled Japanese font.
+# 同梱の日本語フォントを使い、観光用の門の別れの看板を描画します。
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $gateRoot = Split-Path $PSScriptRoot -Parent

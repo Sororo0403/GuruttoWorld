@@ -86,7 +86,7 @@ namespace AuthoringSettingsValidation
         {
             UiState failureUi = SceneUi::Defaults(menu);
             Editor::TitlePreview failure;
-            failure.Initialize(menu, failureUi, output); // A directory cannot be replaced by a settings file.
+            failure.Initialize(menu, failureUi, output); // ディレクトリを設定ファイルで置き換えることはできません。
             failure.Activate({"", "", "", "", "menu:1"}, failureUi);
             failure.Activate({"", "", "", "", "settings:2"}, failureUi);
             check(failureUi.Value("saveFailed") == 1, "Editor preview hid a settings save failure");

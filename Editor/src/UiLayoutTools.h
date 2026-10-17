@@ -27,7 +27,7 @@ namespace Editor
                     result.push_back(object);
             if (result.size() != state.SelectedIds().size())
                 return {};
-            // Siblings share a coordinate space; nested selections would otherwise move twice.
+            // 同じ親を持つ要素は座標系を共有します。入れ子の選択を含めると二重に移動してしまいます。
             if (!result.empty() && std::any_of(result.begin(), result.end(),
                                                [&](const auto& object)
                                                {

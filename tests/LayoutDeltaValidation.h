@@ -27,7 +27,7 @@ namespace LayoutDeltaValidation
         grandchild.position = {1, 0, 2};
         ScenePlacement independent;
         independent.id = "independent";
-        // Parents deliberately follow their children in layout order.
+        // 配置データでは、意図的に親を子より後ろに置いています。
         before.objects = {grandchild, child, independent, root};
         before.Validate();
         std::vector<DirectX::XMFLOAT4X4> previous;

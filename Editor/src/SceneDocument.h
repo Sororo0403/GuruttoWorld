@@ -101,7 +101,9 @@ namespace Editor
                 throw std::runtime_error("そのシーンは既に存在します。別の名前を指定してください。");
             return target;
         }
-        // Caller must wait for GPU idle and call outside Render. Failures preserve the active document and world.
+        /// <summary>
+        /// 呼び出し側で GPU の完了を待ち、Render の外で呼んでください。失敗時は現在のドキュメントとワールドを保持します。
+        /// </summary>
         bool Apply(SceneRuntime::SceneWorld& world, const std::filesystem::path& root, std::string& error)
         {
             if (!Ready())

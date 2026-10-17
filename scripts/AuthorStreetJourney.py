@@ -1,4 +1,4 @@
-"""Author the street stage and its START connection."""
+"""街のステージと START からの接続を作成します。"""
 import copy,json,math
 from AuthorSunriseStreet import GAME,model,script
 from GenerateParkAdventure import obj,component,coin,character,write,box,mesh
@@ -22,7 +22,7 @@ class Journey(StreetArchitecture):
   self.solid(key,((x0+x1)/2,h-.35,(z0+z1)/2),(x1-x0,.7,z1-z0))
   self.cube(((x0+x1)/2,h+.015,(z0+z1)/2),(x1-x0,.03,z1-z0),surface or self.paving)
   if surface and not surface['texture']:
-   # Whole-area construction joints, rather than a painted route or arrows.
+   # 塗装した経路や矢印の代わりに、領域全体の施工目地を配置します。
    for x in range(math.ceil(x0/3)*3,math.ceil(x1),3):
     self.cube((x,h+.032,(z0+z1)/2),(.025,.004,z1-z0),self.mortar)
    for z in range(math.ceil(z0/3)*3,math.ceil(z1),3):
@@ -31,13 +31,13 @@ class Journey(StreetArchitecture):
   self.cube((x,y+h/2,z),(w,h,d),self.cream,key)
   self.cube((x,y+h+.03,z),(w+.05,.07,d+.05),self.teal)
  def landing(self,key,x,z,width,y=0,across=False):
-  # Paired masonry returns belong to the terrace, never a floating sign.
+  # 対の石積みの袖壁をテラスの一部とし、浮いた案内表示にしません。
   for side in (-1,1):
    px,pz=(x,z+side*width/2) if across else (x+side*width/2,z)
    self.cube((px,y+.38,pz),(.5,.76,.5),self.cream,key+str(side))
    self.cube((px,y+.8,pz),(.62,.08,.62),self.teal)
  def bank(self,key,x,z0,z1,opening,y=0):
-  # The opening is a real gap in a continuous parapet, not a row of cue props.
+  # 開口部は連続する胸壁の実際の切れ目とし、誘導用の小物の列にはしません。
   lo,hi=opening
   for suffix,a,b in (('south',z0,lo),('north',hi,z1)):
    self.rail(key+'-'+suffix,x,(a+b)/2,.28,b-a,.76,y)
@@ -48,8 +48,8 @@ class Journey(StreetArchitecture):
 
 
 def box_hero(objects):
- # The visual rig is independent of the capsule and movement controller.
- # A plain cube, square eyes and a short mouth replace the round silhouette.
+ # 見た目の階層は、カプセルと移動コントローラーから独立させます。
+ # 丸いシルエットを、単純な立方体・四角い目・短い口へ置き換えます。
  objects[:]=[o for o in objects if o['id'] not in ('hero-backpack','hero-backpack-buckle','hero-mouth')
              and not o['id'].startswith(('park-player-eye-','park-player-foot-'))]
  body=next(o for o in objects if o['id']=='hero-body')
@@ -60,8 +60,8 @@ def box_hero(objects):
 
 
 def box_enemies(objects):
- # Keep the existing enemy roots and their anticipation/lunge animation.
- # All visual parts share that root, including removal when it is defeated.
+ # 既存の敵のルートと、予備動作・突進のアニメーションを保持します。
+ # すべての見た目の部品でそのルートを共有し、倒された際の削除も共通にします。
  enemies=[o for o in objects if o['name']=='ParkEnemy']
  old_parts={root['id']+suffix for root in enemies for suffix in
             ('-eye--1','-eye-1','-foot--1','-foot-1')}

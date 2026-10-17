@@ -7,7 +7,9 @@ namespace Editor
 {
     inline constexpr const char* ModelPayload = "WP1_PROJECT_MODEL";
 
-    // Place on the editor ground plane; horizon/sky drops use a point eight units along the ray.
+    /// <summary>
+    /// エディターの地面に配置します。地平線や空へのドロップでは、レイに沿って 8 単位先の点を使います。
+    /// </summary>
     inline std::optional<std::array<float, 3>> ModelDropPosition(const Engine::Camera& camera,
                                                                  const SceneViewport& viewport, float x, float y)
     {

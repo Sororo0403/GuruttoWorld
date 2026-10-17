@@ -1,4 +1,4 @@
-"""Author a separate editor scene and original wave ambience. No existing scene is changed."""
+"""独立したエディター用シーンと独自の波の環境音を作成します。既存のシーンは変更しません。"""
 import argparse
 import datetime as dt
 import json
@@ -14,7 +14,7 @@ CONTENT = ROOT / "Games/GuruttoWorld"
 
 
 def solar_position(date, latitude, longitude):
-    """NOAA fractional-year approximation, local JST. Azimuth clockwise from north."""
+    """NOAA の端数年による近似を日本標準時で計算します。方位角は北から時計回りです。"""
     day = date.timetuple().tm_yday
     hour = date.hour + date.minute / 60
     gamma = 2 * math.pi / 365 * (day - 1 + (hour - 12) / 24)
@@ -47,7 +47,7 @@ def write_json(path, value):
 
 
 def ambience(path):
-    """Seeded, circularly filtered broadband surf. No notes, instruments or music."""
+    """シードを固定し、広帯域ノイズを循環フィルターで処理して波音を作ります。音符・楽器・音楽は使いません。"""
     rate, duration = 32000, 36
     count = rate * duration
     rng = random.Random(20261012)
@@ -55,7 +55,7 @@ def ambience(path):
     for channel in range(2):
         noise = [rng.uniform(-1, 1) for _ in range(count)]
         low, mid = 0.0, 0.0
-        # Warm up the filters with the end of this same circular noise buffer.
+        # 同じ循環ノイズバッファーの末尾を使って、フィルターの初期状態を整えます。
         for sample in noise[-4096:]:
             low += .004 * (sample - low)
             mid += .075 * (sample - mid)

@@ -1,8 +1,8 @@
-"""Generate only the farewell sign; gate geometry is Kenney Castle Kit CC0."""
+"""別れの看板だけを生成します。門の形状には Kenney Castle Kit の CC0 素材を使います。"""
 from pathlib import Path
 root = Path(__file__).resolve().parents[1] / 'Games/GuruttoWorld/Assets/Models/Title/Exit'
 root.mkdir(parents=True, exist_ok=True)
-# Assimp flips Z and UVs. The sign faces the same direction as the CC0 gate.
+# Assimp は Z と UV を反転します。看板は CC0 の門と同じ方向を向けます。
 lines = ['mtllib ExitFacade.mtl', 'usemtl farewell']
 for x,y,z in [(2.3,5.20,-.55),(-2.3,5.20,-.55),(-2.3,5.98,-.55),(2.3,5.98,-.55)]:
     lines.append(f'v {x} {y} {z}')

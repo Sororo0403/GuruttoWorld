@@ -1,4 +1,4 @@
-"""Author editable title clips. Runtime builds do not execute this script."""
+"""編集可能なタイトルのクリップを作成します。実行用ビルドではこのスクリプトを実行しません。"""
 import json
 from pathlib import Path
 

@@ -1,4 +1,4 @@
-"""Validate deterministic variation, required objectives and rejection of broken modules."""
+"""再現可能な変化・必須目標・壊れたモジュールの拒否を検証します。"""
 import copy
 import importlib.util
 import unittest

@@ -1,4 +1,4 @@
-"""Rebuild the repository-owned physics sample and round primitive meshes."""
+"""このリポジトリの物理サンプルと、丸い基本形状のメッシュを再構築します。"""
 import hashlib
 import json
 import math
@@ -37,7 +37,7 @@ def round_model(path, half_height=0):
         for side in range(sides):
             a = ring * (sides + 1) + side + 1
             b, c, d = a + 1, a + sides + 1, a + sides + 2
-            # Counter-clockwise outward faces; Assimp converts to the renderer's convention.
+            # 外向きの面は反時計回りにし、Assimp でレンダラーの規約に変換します。
             for face in ((a, c, b), (b, c, d)):
                 if ring == 0 and face == (a, c, b):
                     continue

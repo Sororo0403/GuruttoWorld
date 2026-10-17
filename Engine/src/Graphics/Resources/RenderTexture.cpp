@@ -151,7 +151,7 @@ namespace Engine
         if (!commands || recording_ != commands)
             return false;
         Transition(commands, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        // Unbind the target before sampling; the caller sets the next output target.
+        // サンプリング前にターゲットのバインドを解除します。次の出力先は呼び出し側で設定します。
         commands->OMSetRenderTargets(0, nullptr, FALSE, nullptr);
         commands->SetPrivateData(RenderTargetBinding::Key, 0, nullptr);
         recording_ = nullptr;

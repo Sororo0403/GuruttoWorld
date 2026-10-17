@@ -1,8 +1,8 @@
 #ifndef OCEAN_ATMOSPHERE_INCLUDED
 #define OCEAN_ATMOSPHERE_INCLUDED
-// Independent numerical integration of participating-medium single scattering.
-// Earth model constants follow Hillaire 2020 / Bruneton's published Earth model.
-// Atmospheric calculations use kilometres; renderer/world inputs use metres.
+// 散乱・吸収を伴う媒質の単一散乱を、独自に数値積分します。
+// 地球モデルの定数は、Hillaire 2020 と Bruneton が公開した地球モデルに従います。
+// 大気の計算にはキロメートルを使い、レンダラーとワールドからの入力にはメートルを使います。
 static const float EarthRadius=6360.0;
 static const float AtmosphereRadius=6460.0;
 static const float3 RayleighCoefficient=float3(.005802,.013558,.033100); // 1/km
@@ -16,7 +16,7 @@ float3 AtmospherePosition(float3 world)
 float2 SphereInterval(float3 origin,float3 direction,float radius)
 {
     float b=dot(origin,direction);
-    // Difference of squares in this form keeps low-altitude intersections stable.
+    // この形の平方差を使い、低高度での交差判定を安定させます。
     float altitude=length(origin)-radius;
     float c=altitude*(length(origin)+radius);
     float discriminant=b*b-c;
@@ -110,7 +110,7 @@ float3 SunDiskRadiance(float3 origin,float3 direction)
 {
     float angle=acos(clamp(dot(direction,solar.xyz),-1,1));
     float footprint=max(2*cameraUp.w/viewportSize.y,.00005);
-    // Integrate the tiny disk's coverage over the angular pixel footprint.
+    // ピクセルの角度範囲内で、小さな円盤の被覆率を積分します。
     float coverage=1-smoothstep(max(0,solar.w-footprint),solar.w+footprint,angle);
     float solidAngle=2*PI*(1-cos(solar.w));
     return SolarAtPoint(origin)*coverage/max(solidAngle,.0000001);

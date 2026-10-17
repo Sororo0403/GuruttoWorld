@@ -102,7 +102,7 @@ namespace SceneRuntime
         std::array<float, 3> cloudHigh{1, 0.98f, 0.91f};
         float cloudOpacity = 0.86f;
         std::array<CloudBank, 3> clouds{{{{0.20f, 0.24f}, 1.05f}, {{0.51f, 0.12f}, 0.85f}, {{0.90f, 0.31f}, 1.20f}}};
-        std::array<float, 2> cloudVelocity{}; // UV per second; zero keeps clouds stationary.
+        std::array<float, 2> cloudVelocity{}; // 1 秒あたりの UV 移動量です。0 の場合は雲を静止させます。
         float referenceAspect = 16.0f / 9.0f;
         std::optional<OceanSkySettings> ocean;
         bool operator==(const SkyComponent&) const = default;

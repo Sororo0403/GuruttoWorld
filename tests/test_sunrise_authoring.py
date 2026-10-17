@@ -1,4 +1,4 @@
-"""Guard play-critical layout, title connection and resolved stage resources."""
+"""プレイに必要な配置・タイトルとの接続・参照先のステージリソースを検証します。"""
 import importlib.util
 import json
 import sys

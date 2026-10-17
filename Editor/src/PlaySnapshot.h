@@ -13,7 +13,9 @@ namespace Editor
             : json_(world.Layout().Serialize()), state_(state), history_(history), document_(document)
         {
         }
-        // Caller must wait for GPU idle. An unchanged edit world needs no asset reload.
+        /// <summary>
+        /// 呼び出し側で GPU の完了を待ってください。編集ワールドに変更がなければアセットの再読み込みは不要です。
+        /// </summary>
         bool Restore(SceneRuntime::SceneWorld& world, const std::filesystem::path& root, EditState& state,
                      EditHistory& history, SceneDocument& document, std::string& error) const
         {

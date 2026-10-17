@@ -1,4 +1,4 @@
-"""Author a physical sign from the downloaded Openclipart CC0 source; explicit only."""
+"""ダウンロード済みの Openclipart の CC0 素材から立体の看板を作成します。明示的に実行した場合だけ動作します。"""
 from pathlib import Path
 import shutil
 from PIL import Image, ImageDraw, ImageFont
@@ -21,7 +21,7 @@ def quad(points, material, textured=False):
     global count
     lines.append(f"usemtl {material}")
     for x, y, z in points:
-        lines.append(f"v {x} {y} {-z}")  # OBJ to engine left-handed conversion.
+        lines.append(f"v {x} {y} {-z}")  # OBJ からエンジンの左手座標系への変換です。
     indices = range(count+1, count+5)
     lines.append("f " + " ".join(f"{i}/{uv}" if textured else str(i) for i, uv in zip(indices,(1,2,3,4))))
     lines.append("f " + " ".join(f"{i}/{uv}" if textured else str(i) for i, uv in reversed(list(zip(indices,(1,2,3,4))))))

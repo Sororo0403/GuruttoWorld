@@ -5,7 +5,7 @@
 
 namespace Editor
 {
-    // Screen-space content rectangle; excludes any future Scene panel title/tab bar.
+    // 画面座標で表した内容領域です。今後 Scene パネルに追加するタイトルやタブのバーは含めません。
     struct SceneViewport
     {
         float x = 0, y = 0, width = 0, height = 0;
@@ -22,7 +22,7 @@ namespace Editor
         float Aspect() const
         {
             return width / height;
-        } // Call only for a valid rectangle.
+        } // 有効な矩形に対してだけ呼び出してください。
         std::optional<std::array<float, 2>> ToNdc(float screenX, float screenY) const
         {
             if (!Contains(screenX, screenY))

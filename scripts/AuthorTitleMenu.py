@@ -1,4 +1,4 @@
-"""Explicitly author the street menu; never run by a normal build."""
+"""街のメニューを明示的に作成します。通常ビルドでは実行しません。"""
 import copy
 import json
 import shutil
@@ -35,7 +35,7 @@ def author(scene):
         scene["objects"].append(node)
         return node
 
-    # A genuine CC0 cog from Kenney Factory Kit; retain its material and licence.
+    # Kenney Factory Kit の CC0 の歯車を使用し、マテリアルとライセンスを保持します。
     source = ROOT / "generated/title-assets/factory"
     dest = ROOT / "Games/GuruttoWorld/Assets/Models/Title/Factory"
     dest.mkdir(parents=True, exist_ok=True)
@@ -44,12 +44,12 @@ def author(scene):
     shutil.copy2(source / "License.txt", dest / "License.txt")
     (dest / "Textures").mkdir(exist_ok=True)
     shutil.copy2(source / "Models/OBJ format/Textures/colormap.png", dest / "Textures/colormap.png")
-    # A palette-only derivative of the CC0 cog: orange reads clearly on the dark facade.
+    # CC0 の歯車の配色だけを変更し、暗い外壁でもオレンジ色が見えるようにします。
     palette=Image.open(dest / "Textures/colormap.png").convert("RGB")
     Image.new("RGB",palette.size,(255,151,69)).save(dest / "Textures/colormap.png")
     add("config-building", "Assets/Models/Title/Surface/Commercial/building-e.obj",
         (9, .08, 18), (4, 8, 4), (0, 0, 0))["name"] = "CONFIG / CC0の歯車付き施設"
-    # The cog lies in XZ in its source file. Stand it upright on the street-facing facade.
+    # 元ファイルの歯車は XZ 平面上にあるため、通りに面した外壁に直立させます。
     add("config-cog", "Assets/Models/Title/Factory/cog-a.obj",
         (9, 5.6, 15.65), (3.2, 3.2, 3.2), (1.5707963, 0, 0))["name"] = "CONFIG / Kenney CC0の歯車看板"
     add("quit-sign", "Assets/Models/Title/EmergencyExit/Sign.obj",
@@ -115,7 +115,7 @@ def author(scene):
             key["value"][0]+=2
             key["value"][1]+=2
         scene["objects"].insert(scene["objects"].index(node),shadow)
-        # A small neutral dot follows keyboard and pointer selection.
+        # キーボードとポインターの選択に、小さな中立色の点を追従させます。
         marker = copy.deepcopy(node)
         marker.update(id=f"menu-selection-{index}", name=f"選択 / {index}")
         marker["components"] = [copy.deepcopy(component(node, "RectTransform")),
@@ -125,7 +125,7 @@ def author(scene):
                                                   rotation=0, opacityBinding="",visibleWhen=f"screen=0&selected={index}")
         scene["objects"].append(marker)
 
-    # Existing saved UI nodes vary between authored versions; remove obsolete instructions only.
+    # 保存済みの UI ノードは制作時の版によって異なるため、古い案内だけを削除します。
     for node in scene["objects"]:
         if node["id"] in ("morning-help", "world-help"):
             for c in node["components"]:

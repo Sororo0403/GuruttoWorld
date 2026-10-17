@@ -8,7 +8,7 @@
 
 namespace Editor
 {
-    // Restore both the asset and its ID metadata when scene preparation fails.
+    // シーンの準備に失敗した場合は、アセットと ID メタデータを両方とも復元します。
     class AssetFileTransaction final
     {
     public:

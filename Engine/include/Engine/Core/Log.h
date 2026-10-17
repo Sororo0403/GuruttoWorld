@@ -43,7 +43,9 @@ namespace Engine
         /// </summary>
         static void Shutdown();
 
-        // Thread-safe snapshots of the latest 500 entries. Clear only affects this in-memory history.
+        /// <summary>
+        /// 最新 500 件のスナップショットをスレッドセーフに取得します。Clear はこのメモリー内の履歴だけを消去します。
+        /// </summary>
         static std::vector<LogEntry> Recent();
         static void ClearRecent();
 

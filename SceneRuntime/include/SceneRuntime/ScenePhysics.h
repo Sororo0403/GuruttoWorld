@@ -4,7 +4,7 @@
 
 namespace SceneRuntime
 {
-    // Kinematic controllers versus conservative world-axis boxes; no rigid-body impulses.
+    // キネマティックコントローラーと、形状を包含するワールド軸に沿った箱との判定です。剛体への力積は適用しません。
     class ScenePhysics final
     {
     public:
@@ -14,7 +14,9 @@ namespace SceneRuntime
             bool grounded = false;
         };
         using States = std::map<std::string, Body>;
-        // Call with copies and commit only on success. Inputs are local to the controller parent.
+        /// <summary>
+        /// コピーを渡して呼び出し、成功時だけ確定してください。入力はコントローラーの親を基準とするローカル値です。
+        /// </summary>
         static bool Advance(SceneLayout& layout, States& states, double seconds, float horizontal, float vertical,
                             bool jump);
     };

@@ -64,7 +64,7 @@ namespace Editor
             if (!captured_)
                 return;
             RECT current{};
-            // Do not overwrite capture acquired by another app after a focus change.
+            // フォーカス変更後に別のアプリが取得したキャプチャーを上書きしません。
             if (GetClipCursor(&current) && EqualRect(&current, &bounds_))
                 ClipCursor(&previous_);
             captured_ = false;

@@ -1,4 +1,4 @@
-"""One-time version 1 -> version 2 scene conversion; versions 2, 3 and 4 already use local transforms."""
+"""バージョン 1 から 2 へ一度だけシーンを変換します。バージョン 2・3・4 はすでにローカル変換を使っています。"""
 import argparse
 import copy
 import json
@@ -120,7 +120,7 @@ def convert(document):
     if space not in ("world", "local") or (version >= 2 and "transformSpace" in document):
         raise ValueError("Unsupported coordinate convention")
     source = document["objects"]
-    resolve(source)  # Validate hierarchy even when the old placements are world coordinates.
+    resolve(source)  # 旧配置がワールド座標の場合も、階層を検証します。
     original = [compose(obj) for obj in source] if space == "world" else resolve(source)
     result = copy.deepcopy(document)
     if space == "world":
@@ -138,7 +138,7 @@ def convert(document):
 
 
 def format_document(document, original_text):
-    # Preserve unchanged object lines, including their original numeric spelling.
+    # 変更のないオブジェクトの行は、数値の元の表記も含めて保持します。
     lines = {}
     for line in original_text.splitlines():
         candidate = line.strip().removesuffix(",")
