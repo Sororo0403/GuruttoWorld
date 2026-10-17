@@ -76,6 +76,10 @@ try {
     Copy-Item -LiteralPath $executable -Destination (Join-Path $staging 'App.exe')
     $licenseFolder=Join-Path (Split-Path $executable -Parent) 'Licenses'
     if (Test-Path -LiteralPath $licenseFolder) { Copy-Item -LiteralPath $licenseFolder -Destination (Join-Path $staging 'Licenses') -Recurse }
+    # SkipBuild でも、古い出力先の同梱漏れを引き継がず原文を揃える。
+    & $msbuild $playerProject '/t:CopyThirdPartyLicenses' "/p:Configuration=$Configuration" `
+        '/p:Platform=x64' "/p:OutDir=$staging/" '/m:1' '/nr:false' '/v:minimal' '/nologo'
+    if ($LASTEXITCODE -ne 0) { throw 'Third-party license staging failed.' }
     $redistRoot=Join-Path $installation 'VC/Redist/MSVC'
     $version=Get-ChildItem -LiteralPath $redistRoot -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' } | Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
     if (!$version) { throw 'MSVC redistributable runtime is missing.' }

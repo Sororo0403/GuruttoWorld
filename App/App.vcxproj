@@ -15,6 +15,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <FallbackContentRoot>$(MSBuildThisFileDirectory)</FallbackContentRoot>
     <GameContentRoot Condition="'$(GameContentRoot)' == ''">$(MSBuildThisFileDirectory)..\Games\GuruttoWorld\</GameContentRoot>
     <WP1Root Condition="'$(WP1Root)' == ''">$(MSBuildThisFileDirectory)..\</WP1Root>
     <VCProjectVersion>18.0</VCProjectVersion>
@@ -192,39 +193,14 @@
     <None Include="$(GameContentRoot)Assets\**\*" Exclude="$(GameContentRoot)Assets\Scripts\Bin\**\*" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Target Name="CopyShaders" AfterTargets="Build">
-    <MakeDir Directories="$(OutDir)Shaders;$(OutDir)Shaders\Common" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)Shaders\Triangle.hlsl;$(MSBuildThisFileDirectory)Shaders\Sphere.hlsl" DestinationFolder="$(OutDir)Shaders" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="CopyModels" AfterTargets="Build">
-    <ItemGroup>
-      <ModelAssets Include="$(MSBuildThisFileDirectory)Assets\Models\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(ModelAssets)" DestinationFiles="@(ModelAssets-&gt;'$(OutDir)Assets\Models\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
-    <MakeDir Directories="$(OutDir)Licenses" />
-    <Copy SourceFiles="$(WP1Root)Engine\externals\assimp\LICENSE.txt;$(WP1Root)Engine\externals\assimp\zlib-LICENSE.txt" DestinationFolder="$(OutDir)Licenses" SkipUnchangedFiles="true" />
-  </Target>
   <Target Name="CopyTitleFontLicense" AfterTargets="Build">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)Assets\Fonts\MPlus1p\OFL.txt" DestinationFolder="$(OutDir)Licenses\MPlus1p" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="CopyTextures" AfterTargets="Build">
-    <MakeDir Directories="$(OutDir)Assets\Textures" />
-    <ItemGroup>
-      <TextureAssets Include="$(MSBuildThisFileDirectory)Assets\Textures\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(TextureAssets)" DestinationFiles="@(TextureAssets-&gt;'$(OutDir)Assets\Textures\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
     <None Include="Assets\Audio\Sample.wav" />
   </ItemGroup>
-  <Target Name="CopyAudio" AfterTargets="Build">
-    <ItemGroup>
-      <AudioAssets Include="$(MSBuildThisFileDirectory)Assets\Audio\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(AudioAssets)" DestinationFiles="@(AudioAssets-&gt;'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
-  </Target>
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
