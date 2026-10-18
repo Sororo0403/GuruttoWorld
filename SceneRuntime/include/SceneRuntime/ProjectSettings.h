@@ -15,6 +15,7 @@ namespace SceneRuntime
     {
         std::string title = "Game";
         std::string startupScene;
+        bool importLegacySettings = false;
         std::map<std::string, std::string> sceneAliases;
         int width = 1280, height = 720;
         Engine::InputActions::Bindings inputActions = Engine::InputActions::Defaults();
@@ -65,6 +66,7 @@ namespace SceneRuntime
             References(root, json);
             ProjectSettings result;
             result.title = json.at("title").get<std::string>();
+            result.importLegacySettings = json.value("importLegacySettings", false);
             result.startupScene = json.at("startupScene").get<std::string>();
             if (json.contains("sceneAliases"))
                 result.sceneAliases = json.at("sceneAliases").get<decltype(sceneAliases)>();
@@ -100,6 +102,7 @@ namespace SceneRuntime
             {
                 std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
                 Engine::Json json = {{"title", title},
+                                     {"importLegacySettings", importLegacySettings},
                                      {"startupScene", startupScene},
                                      {"width", width},
                                      {"height", height},
@@ -112,6 +115,7 @@ namespace SceneRuntime
                 if (!output ||
                     !MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
                     throw std::runtime_error("Cannot save project settings");
+                static_cast<void>(Engine::AssetDatabase::Ensure(path));
             }
             catch (...)
             {

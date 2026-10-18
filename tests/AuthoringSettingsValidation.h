@@ -9,6 +9,7 @@
 #include "DeepStateValidation.h"
 #include "FollowupStateValidation.h"
 #include "SharedContentValidation.h"
+#include "ProjectUserSettingsValidation.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -205,6 +206,9 @@ namespace AuthoringSettingsValidation
         std::cout << "Authoring output: " << output.generic_string() << '\n';
         std::filesystem::create_directories(output);
         SharedContentValidation::Run(std::filesystem::absolute(output / "shared-content"));
+        ProjectUserSettingsValidation::Run(
+            std::filesystem::temp_directory_path() /
+            ("settings-" + std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64())));
         auto scene = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/OceanSunset.json");
         scene.settings.gravity = {2, -9.81f, 1};
         scene.settings.fixedStep = .02f;

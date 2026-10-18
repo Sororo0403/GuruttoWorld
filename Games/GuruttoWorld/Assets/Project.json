@@ -1,4 +1,5 @@
 {
+  "importLegacySettings": true,
   "assetReferences": {
     "Assets/Scenes/Game.json": "4422b45251ef4b8581f791913c1e33a2",
     "Assets/Scenes/ParkAdventure.json": "ac379a03f4a7c08fc68d1137092d100b",

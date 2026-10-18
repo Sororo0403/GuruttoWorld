@@ -13,17 +13,17 @@ namespace SceneRuntime
             return title_;
         }
         void Initialize(SceneEnvironment& environment, const std::filesystem::path& root,
-                        const std::filesystem::path& settingsPath = GameSettings::UserPath(), bool playIntro = true)
+                        const std::filesystem::path& settingsPath = {}, bool playIntro = true)
         {
             root_ = root;
-            settingsPath_ = settingsPath;
+            settingsPath_ = settingsPath.empty() ? GameSettings::UserPath(root) : settingsPath;
             playIntro_ = playIntro;
             pending_.reset();
             Refresh(environment);
             std::string error;
             if (!environment.StartAudio(root, error))
                 Engine::Log::Warning(error);
-            environment.Ui().values["volumeGain"] = GameSettings::Load(settingsPath).Gain();
+            environment.Ui().values["volumeGain"] = GameSettings::Load(settingsPath_).Gain();
             title_.ApplyAnimation(environment);
         }
         std::optional<UiEvent> PrepareInput(SceneEnvironment& environment, const Engine::InputActions& actions,

@@ -15,3 +15,7 @@
 Engine・SceneRuntime・共通プレイヤーは `../..` のWP1を参照します。プロジェクトをWP1ごと別worktreeへ移しても、参照先はそのworktree内に切り替わります。
 
 エディター修正と並行して制作する運用は[並行開発の説明](../../docs/GameProjects.md#並行開発)を参照してください。
+
+プレイヤーとEditor再生の個人設定は `%LOCALAPPDATA%/WP1/games/<Assets/Project.json.metaのID>/settings.json` に保存します。同じゲームの更新・移動・タイトル変更ではこのIDを維持してください。別ゲームを作る場合は `scripts/NewGameProject.ps1` を使うと新しいIDになり、設定を分離できます。
+
+このゲームは `Assets/Project.json` の `importLegacySettings` を有効にしています。ゲーム別の設定がまだない場合だけ、旧 `WP1/settings.json` または `settings.txt` を引き継ぎます。旧ファイルは保持し、新しい設定がある場合は上書きしません。新規ゲームではこの指定を無効にします。

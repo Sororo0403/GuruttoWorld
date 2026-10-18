@@ -14,8 +14,7 @@ namespace App
         AuthoredScene(std::filesystem::path root, std::filesystem::path scene,
                       std::shared_ptr<SceneRuntime::SceneEnvironment> environment =
                           std::make_shared<SceneRuntime::SceneEnvironment>(),
-                      bool simulateInactive = false, bool playIntro = true,
-                      std::filesystem::path settingsPath = SceneRuntime::GameSettings::UserPath())
+                      bool simulateInactive = false, bool playIntro = true, std::filesystem::path settingsPath = {})
             : root_(std::move(root)), scene_(std::move(scene)), environmentOwner_(std::move(environment)),
               environment_(*environmentOwner_), simulateInactive_(simulateInactive), playIntro_(playIntro),
               settingsPath_(std::move(settingsPath))

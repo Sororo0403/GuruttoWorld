@@ -374,7 +374,7 @@ namespace
         using namespace App;
         const auto folder = std::filesystem::path("generated/tests/settings") / std::to_string(GetTickCount64());
         const auto path = folder / "settings.txt";
-        Check(GameSettings::UserPath() == Engine::GetDiagnosticsRoot() / "settings.json", "user settings location");
+        Check(GameSettings::UserPath("Games/GuruttoWorld", folder / "user") == folder / "user/games" / Engine::AssetDatabase::Read("Games/GuruttoWorld/Assets/Project.json").id / "settings.json", "user settings location");
         Check(GameSettings::Load(path).volume == 10, "missing settings defaults");
         GameSettings settings{ 3, false };
         Check(settings.Save(path), "save settings");

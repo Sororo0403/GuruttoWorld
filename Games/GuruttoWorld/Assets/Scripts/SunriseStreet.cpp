@@ -35,7 +35,7 @@ namespace
         }
         void Acquire(const std::string& clip)
         {
-            if(users++==0) {ready=audio.Initialize();gain=GameSettings::Load(GameSettings::UserPath()).Gain();}
+            if(users++==0) {ready=audio.Initialize();gain=GameSettings::Load(GameSettings::UserPath(Root())).Gain();}
             if(ready && !handles.contains(clip)) handles[clip]=audio.Load(Root()/"Assets/Audio/Sunrise"/(clip+".wav"));
         }
         void Release()

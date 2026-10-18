@@ -21,8 +21,11 @@ namespace SceneRuntime
         {
             return 0.25f * Gain();
         }
-        /// <summary>ユーザー領域の設定ファイルのパスを返します。</summary>
-        static std::filesystem::path UserPath();
+        /// <summary>プロジェクトのアセット ID ごとに保存先を分離し、明示された旧設定を初回だけ引き継ぎます。</summary>
+        static std::filesystem::path UserPath(const std::filesystem::path& content);
+        /// <summary>指定したユーザー領域を使い、実際の個人設定に触れず保存先と移行を検証できます。</summary>
+        static std::filesystem::path UserPath(const std::filesystem::path& content,
+                                              const std::filesystem::path& userRoot);
         /// <summary>欠損・不正なファイルでは既定値を返します。</summary>
         static GameSettings Load(const std::filesystem::path& path);
         /// <summary>一時ファイルを書き終えてから置換します。失敗時は false を返します。</summary>

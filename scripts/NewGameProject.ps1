@@ -18,6 +18,19 @@ function Write-ProjectFile([string]$Path,[string]$Text) {
 New-Item -ItemType Directory -Path $destinationRoot | Out-Null
 . (Join-Path $PSScriptRoot 'BuildContentSnapshot.ps1')
 Copy-BuildContentSnapshot -Content $TemplateContent -Destination $destinationRoot -IncludeShared $false
+# 複製元の設定保存先と旧設定の移行指定を、新しいゲームへ引き継がない。
+$settingsPath = Join-Path $destinationRoot 'Assets/Project.json'
+$settings = Get-Content -LiteralPath $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$settings | Add-Member -NotePropertyName importLegacySettings -NotePropertyValue $false -Force
+Write-ProjectFile $settingsPath ($settings | ConvertTo-Json -Depth 100)
+$metadataPath = "$settingsPath.meta"
+$metadata = if (Test-Path -LiteralPath $metadataPath) {
+    Get-Content -LiteralPath $metadataPath -Raw -Encoding UTF8 | ConvertFrom-Json
+} else {
+    [pscustomobject]@{ version = 1; id = ''; scale = 1; flipV = $false; previousPaths = @() }
+}
+$metadata.id = [Guid]::NewGuid().ToString('N')
+Write-ProjectFile $metadataPath ($metadata | ConvertTo-Json -Depth 100)
 $guid=[Guid]::NewGuid().ToString().ToUpperInvariant()
 $escapedRoot=[Security.SecurityElement]::Escape($engineRoot+'\')
 $project=@'

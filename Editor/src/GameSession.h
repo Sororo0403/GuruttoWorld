@@ -20,7 +20,7 @@ namespace Editor
         std::optional<SceneRuntime::UiEvent> PrepareInput(const Engine::InputActions& actions,bool active,double seconds,const Engine::InputSnapshot* snapshot=nullptr) {return runtime_ ? playback_.PrepareInput(*runtime_,actions,active,seconds,snapshot) : std::nullopt;}
         // Create and release resources outside Render after GPU idle.
         bool Play(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
-            const SceneRuntime::SceneLayout& layout, std::string& error,const std::filesystem::path& settingsPath=SceneRuntime::GameSettings::UserPath())
+            const SceneRuntime::SceneLayout& layout, std::string& error,const std::filesystem::path& settingsPath={})
         {
             if (!state_.CanPlay()) { error="ゲームは既に再生中です"; return false; }
             if (state_.IsEditing())
@@ -86,7 +86,7 @@ namespace Editor
             if (runtime_) runtime_->Draw(commands,width,height);
         }
     private:
-        std::filesystem::path settingsPath_=SceneRuntime::GameSettings::UserPath();
+        std::filesystem::path settingsPath_;
         std::optional<SceneRuntime::UiEvent> command_;
         PlayState state_;
         SceneRuntime::GamePlayback playback_;

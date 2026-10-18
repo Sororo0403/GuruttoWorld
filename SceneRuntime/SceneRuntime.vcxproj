@@ -143,6 +143,7 @@
     <ClCompile Include="src\TitleMenu.cpp" />
     <ClCompile Include="src\TitleUi.cpp" />
     <ClCompile Include="src\GameSettings.cpp" />
+    <ClCompile Include="src\ProjectUserSettings.cpp" />
 
     <ClCompile Include="src\Animator.cpp" />
     <ClInclude Include="include\SceneRuntime\Animator.h" />

@@ -97,11 +97,6 @@ SceneRuntime::GameSettings JsonSettings(const std::string& content) {
 }
 namespace SceneRuntime
 {
-    std::filesystem::path GameSettings::UserPath()
-    {
-        const auto root = Engine::GetDiagnosticsRoot();
-        return root.empty() ? std::filesystem::path{} : root / "settings.json";
-    }
     GameSettings GameSettings::Load(const std::filesystem::path& path)
     {
         std::error_code error;
