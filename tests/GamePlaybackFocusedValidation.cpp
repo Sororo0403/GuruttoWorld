@@ -1,6 +1,7 @@
 #include "GamePlaybackParityValidation.h"
 #include "TitleConfigTransitionValidation.h"
 #include "TitleDepartureValidation.h"
+#include "TitleIsolationValidation.h"
 #include <Engine/Platform/Window.h>
 #include <Engine/Core/Log.h>
 #include <iostream>
@@ -10,6 +11,7 @@ int main(int argc, char** argv)
 {
     try
     {
+        TitleIsolationValidation::Run();
         Engine::Log::Initialize("generated/tests/playback-focused.log");
         Engine::Window window;
         Engine::DirectX12Renderer renderer;
@@ -37,21 +39,26 @@ int main(int argc, char** argv)
         material.Save(materialRoot, materialPath);
         Editor::MaterialDocument draft;
         draft.Reload(materialRoot, materialPath);
-        draft.Asset().values.effectAmount = .75f;
+        draft.Asset().values.shaderParameters = {.75f, 0, -4, 23};
         draft.Observe({});
-        if (!draft.Dirty() || !draft.Undo() || draft.Dirty() || draft.Asset().values.effectAmount != 0 ||
-            !draft.Undo(true) || !draft.Dirty() || draft.Asset().values.effectAmount != .75f)
+        if (!draft.Dirty() || !draft.Undo() || draft.Dirty() || draft.Asset().values.shaderParameters[0] != 0 ||
+            !draft.Undo(true) || !draft.Dirty() || draft.Asset().values.shaderParameters[0] != .75f)
             throw std::runtime_error("effectAmount-only material Dirty/Undo/Redo regression");
         draft.Save(materialRoot, materialPath);
-        if (draft.Dirty() || SceneRuntime::MaterialAsset::Load(materialRoot, materialPath).values.effectAmount != .75f)
+        if (draft.Dirty() ||
+            SceneRuntime::MaterialAsset::Load(materialRoot, materialPath).values.shaderParameters[0] != .75f)
             throw std::runtime_error("effectAmount material save roundtrip regression");
-        draft.Asset().values.effectVariant = 2;
+        if (SceneRuntime::MaterialAsset::Load(materialRoot, materialPath).values.shaderParameters !=
+            std::array<float, 4>{.75f, 0, -4, 23})
+            throw std::runtime_error("all four generic shader parameters round trip");
+        draft.Asset().values.shaderParameters[1] = 2;
         draft.Observe({});
-        if (!draft.Dirty() || !draft.Undo() || draft.Dirty() || draft.Asset().values.effectVariant != 0 ||
-            !draft.Undo(true) || draft.Asset().values.effectVariant != 2)
+        if (!draft.Dirty() || !draft.Undo() || draft.Dirty() || draft.Asset().values.shaderParameters[1] != 0 ||
+            !draft.Undo(true) || draft.Asset().values.shaderParameters[1] != 2)
             throw std::runtime_error("effectVariant-only material Dirty/Undo/Redo regression");
         draft.Save(materialRoot, materialPath);
-        if (draft.Dirty() || SceneRuntime::MaterialAsset::Load(materialRoot, materialPath).values.effectVariant != 2)
+        if (draft.Dirty() ||
+            SceneRuntime::MaterialAsset::Load(materialRoot, materialPath).values.shaderParameters[1] != 2)
             throw std::runtime_error("effectVariant material save roundtrip regression");
         GamePlaybackParityValidation::Run(renderer, root);
         TitleConfigTransitionValidation::Run(renderer, root);

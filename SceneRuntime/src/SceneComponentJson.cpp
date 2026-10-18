@@ -274,8 +274,7 @@ namespace
             material.color = component.at("color").get<std::array<float, 4>>();
         material.roughness = component.value("roughness", .5f);
         material.metallic = component.value("metallic", 0.0f);
-        material.effectAmount = component.value("effectAmount", 0.0f);
-        material.effectVariant = component.value("effectVariant", 0.0f);
+        material.shaderParameters = SceneRuntime::MaterialAsset::ReadShaderParameters(component);
         if (std::any_of(std::begin(material.color), std::end(material.color),
                         [](const auto channel)
                         {
@@ -283,7 +282,11 @@ namespace
                         }))
             throw std::runtime_error("Invalid material override color");
         if (!Engine::InRange(material.roughness, .04f, 1) || !Engine::InRange(material.metallic, 0, 1) ||
-            !Engine::InRange(material.effectAmount, 0, 1) || !Engine::InRange(material.effectVariant, 0, 2))
+            std::any_of(material.shaderParameters.begin(), material.shaderParameters.end(),
+                        [](float value)
+                        {
+                            return !Engine::InRange(value, -100000, 100000);
+                        }))
             throw std::runtime_error("Invalid material override surface");
         if (component.contains("slots"))
         {
@@ -623,8 +626,7 @@ namespace
             object["color"] = material.color;
             object["roughness"] = material.roughness;
             object["metallic"] = material.metallic;
-            object["effectAmount"] = material.effectAmount;
-            object["effectVariant"] = material.effectVariant;
+            object["shaderParameters"] = material.shaderParameters;
             if (!material.slots.empty())
                 object["slots"] = material.slots;
             components.push_back(std::move(object));

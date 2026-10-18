@@ -48,10 +48,7 @@ namespace
         field("introDuration", "登場・入力待ち時間（秒）###Intro duration", .65f, .01f, 10);
         field("startDuration", "開始時の遷移時間（秒）###Start duration", .32f, .1f, 10);
         field("selectionDuration", "選択演出の時間（秒）###Selection duration", .16f, .01f, 10);
-        field("selectionOffset", "選択時の移動量###Selection offset", 12, -1000, 1000);
-        field("inactiveOpacity", "非選択項目の不透明度###Inactive opacity", .6f, 0, 1);
         field("musicFadeDuration", "BGMフェード時間（秒）###Music fade duration", .4f, .01f, 10);
-        field("transitionPinkScale", "遷移帯の進行倍率###Transition band scale", 1.25f, .01f, 10);
         ImGui::TreePop();
     }
     void Asset(std::filesystem::path& value, const Editor::ProjectCatalog* catalog, Editor::AssetKind kind)

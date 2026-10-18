@@ -49,7 +49,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -125,7 +125,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -201,7 +201,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -277,7 +277,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -353,7 +353,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -429,7 +429,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -505,7 +505,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -581,7 +581,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -657,7 +657,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -733,7 +733,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -809,7 +809,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -885,7 +885,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -961,7 +961,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1037,7 +1037,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1113,7 +1113,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1189,7 +1189,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1265,7 +1265,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1341,7 +1341,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1417,7 +1417,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1493,7 +1493,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1569,7 +1569,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1645,7 +1645,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1721,7 +1721,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1797,7 +1797,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1873,7 +1873,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -1949,7 +1949,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2025,7 +2025,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2101,7 +2101,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2177,7 +2177,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2253,7 +2253,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2329,7 +2329,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2405,7 +2405,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2481,7 +2481,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2557,7 +2557,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2633,7 +2633,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2709,7 +2709,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2785,7 +2785,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2861,7 +2861,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -2937,7 +2937,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3013,7 +3013,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3089,7 +3089,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3165,7 +3165,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3241,7 +3241,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3317,7 +3317,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3393,7 +3393,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3469,7 +3469,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3545,7 +3545,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3621,7 +3621,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3697,7 +3697,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3773,7 +3773,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3849,7 +3849,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -3925,7 +3925,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4001,7 +4001,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4077,7 +4077,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4153,7 +4153,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4229,7 +4229,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4305,7 +4305,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4381,7 +4381,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4457,7 +4457,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4533,7 +4533,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4609,7 +4609,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4685,7 +4685,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4761,7 +4761,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4837,7 +4837,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4913,7 +4913,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -4989,7 +4989,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5065,7 +5065,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5141,7 +5141,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5217,7 +5217,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5293,7 +5293,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5369,7 +5369,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5445,7 +5445,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5521,7 +5521,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5597,7 +5597,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5673,7 +5673,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5749,7 +5749,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5825,7 +5825,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5901,7 +5901,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -5977,7 +5977,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6053,7 +6053,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6129,7 +6129,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6205,7 +6205,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6281,7 +6281,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6357,7 +6357,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6433,7 +6433,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6530,7 +6530,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6606,7 +6606,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6682,7 +6682,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6758,7 +6758,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6834,7 +6834,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6910,7 +6910,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -6986,7 +6986,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7062,7 +7062,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7159,7 +7159,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7235,7 +7235,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7311,7 +7311,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7387,7 +7387,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7463,7 +7463,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7539,7 +7539,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7615,7 +7615,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7691,7 +7691,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7767,7 +7767,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7843,7 +7843,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7919,7 +7919,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -7995,7 +7995,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8071,7 +8071,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8147,7 +8147,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8244,7 +8244,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8320,7 +8320,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8396,7 +8396,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8472,7 +8472,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8548,7 +8548,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8624,7 +8624,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8700,7 +8700,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8776,7 +8776,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8852,7 +8852,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -8928,7 +8928,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -9004,7 +9004,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -9080,7 +9080,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -9156,7 +9156,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -9232,7 +9232,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -9308,7 +9308,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -10111,9 +10111,9 @@
               "enterDuration": 2,
               "returnDuration": 0.55,
               "zoomDelay": 0.45
-            },
+            ,"clock":"configEnterTime","enabledState":"configTransitionEnabled","idleValues":{"screen":0},"heldValues":{"screen":1},"transitionValues":{"screen":3}},
             "settingsScreen": true,
-            "returnScene": "Assets/Scenes/TitleStreet.json"
+            "returnScene": "Assets/Scenes/TitleStreet.json","transitionClock":"titleEffectTime","transitionFallbackClock":"configEnterTime","transitionClockScale":2,"transitionDefaults":{"departureKind":-1}
           },
           "type": "Canvas"
         }
@@ -11180,7 +11180,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -11277,7 +11277,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,
@@ -11389,7 +11389,7 @@
           "enabled": true,
           "tracks": [
             {
-              "property": "material.effectAmount",
+              "property": "material.shaderParameterX",
               "clock": "configEnterTime",
               "easing": "smooth",
               "delay": 0,

@@ -253,20 +253,28 @@ namespace SceneRuntime
             p.material->roughness = v[0];
             return true;
         }
-        bool Set_material_effectAmount(ScenePlacement& p, const std::array<float, 4>& v)
+        bool Set_material_shaderParameters(ScenePlacement& p, const std::array<float, 4>& v)
         {
             if (!p.material)
                 return false;
             p.material->surfaceOverride = true;
-            p.material->effectAmount = v[0];
+            p.material->shaderParameters = v;
             return true;
         }
-        bool Set_material_effectVariant(ScenePlacement& p, const std::array<float, 4>& v)
+        bool Set_material_shaderParameterX(ScenePlacement& p, const std::array<float, 4>& v)
         {
             if (!p.material)
                 return false;
             p.material->surfaceOverride = true;
-            p.material->effectVariant = v[0];
+            p.material->shaderParameters[0] = v[0];
+            return true;
+        }
+        bool Set_material_shaderParameterY(ScenePlacement& p, const std::array<float, 4>& v)
+        {
+            if (!p.material)
+                return false;
+            p.material->surfaceOverride = true;
+            p.material->shaderParameters[1] = v[0];
             return true;
         }
         bool Set_material_metallic(ScenePlacement& p, const std::array<float, 4>& v)
@@ -414,8 +422,12 @@ namespace SceneRuntime
             {"material.color", "マテリアル色", 0.0f, 1.0f, 4, Set_material_color},
             {"material.roughness", "マテリアル粗さ", 0.04f, 1.0f, 1, Set_material_roughness},
             {"material.metallic", "マテリアル金属感", 0.0f, 1.0f, 1, Set_material_metallic},
-            {"material.effectAmount", "演出の強さ", 0.0f, 1.0f, 1, Set_material_effectAmount},
-            {"material.effectVariant", "演出の種類（黒・白・白黒）", 0.0f, 2.0f, 1, Set_material_effectVariant},
+            {"material.shaderParameters", "シェーダーパラメーター", -100000.0f, 100000.0f, 4,
+             Set_material_shaderParameters},
+            {"material.shaderParameterX", "シェーダーパラメーター X", -100000.0f, 100000.0f, 1,
+             Set_material_shaderParameterX},
+            {"material.shaderParameterY", "シェーダーパラメーター Y", -100000.0f, 100000.0f, 1,
+             Set_material_shaderParameterY},
             {"ocean.refractiveIndex", "水の屈折率", 1.01f, 2.0f, 1, Set_ocean_refractiveIndex},
             {"ocean.solarIntensity", "太陽光強度", 0.0f, 1000.0f, 1, Set_ocean_solarIntensity},
             {"ocean.solarColor", "太陽光色", 0.0f, 1.0f, 3, Set_ocean_solarColor},

@@ -144,7 +144,7 @@ namespace Engine
         textureRange.NumDescriptors = 9;
         textureRange.BaseShaderRegister = 0;
         textureRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-        D3D12_ROOT_PARAMETER parameters[4]{};
+        D3D12_ROOT_PARAMETER parameters[5]{};
         parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[0].Constants.ShaderRegister = 0;
         parameters[0].Constants.Num32BitValues = 32;
@@ -153,14 +153,17 @@ namespace Engine
         parameters[1].DescriptorTable.NumDescriptorRanges = 1;
         parameters[1].DescriptorTable.pDescriptorRanges = &textureRange;
         parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        parameters[2].Constants.ShaderRegister = 1;
-        parameters[2].Constants.Num32BitValues = 26;
+        parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        parameters[2].Descriptor.ShaderRegister = 1;
         parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
         parameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
         parameters[3].Constants.ShaderRegister = 2;
         parameters[3].Constants.Num32BitValues = 5;
         parameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+        parameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        parameters[4].Constants.ShaderRegister = 5;
+        parameters[4].Constants.Num32BitValues = 4;
+        parameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
         D3D12_STATIC_SAMPLER_DESC sampler{};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -181,7 +184,7 @@ namespace Engine
         samplers[2].ShaderRegister = 2;
         samplers[2].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         D3D12_ROOT_SIGNATURE_DESC description{};
-        description.NumParameters = 4;
+        description.NumParameters = 5;
         description.pParameters = parameters;
         description.NumStaticSamplers = 3;
         description.pStaticSamplers = samplers.data();

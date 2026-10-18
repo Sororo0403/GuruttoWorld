@@ -11,7 +11,7 @@
     <Link><TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors><SubSystem>Console</SubSystem><GenerateDebugInformation>true</GenerateDebugInformation></Link>
     <Manifest><EnableSegmentHeap>true</EnableSegmentHeap></Manifest>
   </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp" /><ClCompile Include="GamePlaybackFocusedValidation.cpp" /><ClInclude Include="GamePlaybackParityValidation.h" /><ClInclude Include="GamePlaybackCapture.h" /><ClInclude Include="TitleConfigTransitionValidation.h" /><ClInclude Include="TitleDepartureValidation.h" /></ItemGroup>
+  <ItemGroup><ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp" /><ClCompile Include="GamePlaybackFocusedValidation.cpp" /><ClInclude Include="GamePlaybackParityValidation.h" /><ClInclude Include="GamePlaybackCapture.h" /><ClInclude Include="TitleConfigTransitionValidation.h" /><ClInclude Include="TitleDepartureValidation.h" /><ClInclude Include="TitleIsolationValidation.h" /></ItemGroup>
   <ItemGroup><ProjectReference Include="..\Engine\Engine.vcxproj"><Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project></ProjectReference><ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj"><Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}</Project></ProjectReference></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

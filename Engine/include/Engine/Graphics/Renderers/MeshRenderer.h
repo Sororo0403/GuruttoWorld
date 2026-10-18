@@ -12,6 +12,7 @@
 #include <limits>
 #include <Engine/Graphics/Models/MeshData.h>
 #include <Engine/Graphics/Renderers/ShadowMap.h>
+#include <Engine/Graphics/Resources/ConstantBuffer.h>
 
 namespace Engine
 {
@@ -67,7 +68,7 @@ namespace Engine
         /// <summary>
         /// 深度テスト・裏面除去・陰影を使ってメッシュを描画します。
         /// </summary>
-        /// <param name="commands">描画先・D32_FLOAT 深度・ビューポートが設定済みのコマンドリスト。</param>
+        /// <param name="commands">フェンス待機済みの RenderFrameContext と描画先・深度・ビューポートが設定済みのコマンドリスト。</param>
         /// <param name="world">メッシュのワールド行列。逆行列を持つアフィン変換を指定してください。</param>
         /// <param name="viewProjection">ビュー行列と射影行列をこの順に乗算した行列。</param>
         /// <param name="light">平行光源、環境光、ハイライトの設定。</param>
@@ -100,7 +101,8 @@ namespace Engine
         };
         static TransformConstants MakeTransforms(DirectX::FXMMATRIX worldMatrix,const DirectX::XMFLOAT4X4& viewProjection,const Material* material);
         ID3D12DescriptorHeap* SurfaceBindings(ID3D12GraphicsCommandList* commands,const DirectionalLight& light,const Material* material,const LocalLightView& lights,const SkinPaletteView& skin,const SkinPaletteView& instances) const;
-        void BindDraw(ID3D12GraphicsCommandList* commands,const DrawBindings& bindings) const;
+        /// <summary>描画単位の汎用パラメーターと GPU リソースを設定します。</summary>
+        bool BindDraw(ID3D12GraphicsCommandList* commands,const DrawBindings& bindings) const;
 
         bool PrepareLocalLighting(ID3D12GraphicsCommandList* commands,const DirectionalLight& light,const Material* material,std::array<float,26>& constants,LocalLightView& lights) const;
         bool PrepareDeformation(ID3D12GraphicsCommandList* commands,const MeshDeformation& deformation,const DirectX::XMFLOAT4X4& viewProjection,bool mirrored,SkinPaletteView& view) const;
@@ -124,6 +126,7 @@ namespace Engine
         // フレーム情報のない独自コマンドでは、従来どおり呼び出し側がGPU完了を管理します。
         mutable std::map<BindingKey,std::shared_ptr<Binding>> unmanagedBindings_;
         size_t requiredPaletteSize_=1;
+        mutable ConstantBuffer lightingBuffer_;
         bool initialized_ = false;
         UINT indexCount_ = 0;
         std::shared_ptr<MeshResources> resources_;

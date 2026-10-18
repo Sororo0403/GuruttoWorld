@@ -58,13 +58,13 @@ namespace TitleConfigTransitionValidation
             {
                 ++silhouettes;
                 require(object.material->color[3] == 1, "silhouettes remain opaque");
-                require(object.material->effectAmount == 1, "dedicated material effect reaches full silhouette");
+                require(object.material->shaderParameters[0] == 1, "dedicated material effect reaches full silhouette");
             }
         for (const auto& object : session.Runtime()->World().Layout().objects)
             if (object.meshRenderer && object.material && object.material->asset.filename() == "ConfigCog.mat")
             {
                 ++cogs;
-                require(object.material->color[3] == 1 && object.material->effectAmount == 1 &&
+                require(object.material->color[3] == 1 && object.material->shaderParameters[0] == 1 &&
                             std::abs(object.rotation[1]) > 1,
                         "white cog stays opaque and rotates");
             }

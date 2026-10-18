@@ -49,9 +49,7 @@ static std::array<float, 26> LightConstants(const DirectionalLight &light, const
         }
         // lightingEnabled は整数ビット列: 照明、法線画像、Y反転、局所ライト。
         lightConstants[13] = static_cast<float>((light.enabled ? 1 : 0) |
-                                                (material->normalTexture ? 2 : 0) | (material->normalFlipY ? 4 : 0) |
-                                                (static_cast<unsigned int>(std::lround(std::clamp(material->effectAmount,0.0f,1.0f)*1023))<<12) |
-                                                (static_cast<unsigned int>(std::lround(std::clamp(material->effectVariant,0.0f,2.0f)))<<22));
+                                                (material->normalTexture ? 2 : 0) | (material->normalFlipY ? 4 : 0));
     }
     return lightConstants;
 }
@@ -247,16 +245,22 @@ bool MeshRenderer::PrepareDeformation(ID3D12GraphicsCommandList *commands, const
         static_assert(sizeof(constants) == sizeof(float) * 32);
         return constants;
     }
-    void MeshRenderer::BindDraw(ID3D12GraphicsCommandList *commands, const DrawBindings &bindings) const
+    bool MeshRenderer::BindDraw(ID3D12GraphicsCommandList *commands, const DrawBindings &bindings) const
     {
         const auto &[mirrored, hdr, material, transform, lighting, uv, heap] = bindings;
         const auto &constants = *transform; const auto &lightConstants = *lighting; const auto &uvTransform = *uv;
-        // Transform/tint 32 + lighting 26 + compact UV 5 + SRV table 1 = 64 DWORD.
+        // 変換 32 + 照明 CBV 2 + UV 5 + 汎用値 4 + SRV テーブル 1 = 44 DWORD。
+        Microsoft::WRL::ComPtr<ID3D12Device> device;
+        if (FAILED(meshBuffer_->GetDevice(IID_PPV_ARGS(&device)))) return false;
+        const auto lightingAddress = lightingBuffer_.Prepare(device.Get(), commands, lightConstants);
+        if (!lightingAddress) { Log::Error("Cannot prepare mesh lighting constants."); return false; }
         const auto &pipeline = material && material->shaderResources ? material->shaderResources : resources_;
         commands->SetPipelineState(pipeline->GetPipelineState(mirrored, material && (material->transparent || material->color[3] < 1), hdr));
         commands->SetGraphicsRootSignature(pipeline->GetRootSignature());
         commands->SetGraphicsRoot32BitConstants(0, 32, &constants, 0);
-        commands->SetGraphicsRoot32BitConstants(2, 26, lightConstants.data(), 0);
+        commands->SetGraphicsRootConstantBufferView(2, lightingAddress);
+        const auto shaderParameters = material ? material->shaderParameters : std::array<float, 4>{};
+        commands->SetGraphicsRoot32BitConstants(4, 4, shaderParameters.data(), 0);
         const std::array<float, 5> uvConstants{uvTransform.scale[0], uvTransform.scale[1], uvTransform.rotation, uvTransform.translation[0], uvTransform.translation[1]};
         commands->SetGraphicsRoot32BitConstants(3, 5, uvConstants.data(), 0);
         ID3D12DescriptorHeap *heaps[] = {heap};
@@ -265,6 +269,7 @@ bool MeshRenderer::PrepareDeformation(ID3D12GraphicsCommandList *commands, const
         commands->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         commands->IASetVertexBuffers(0, 1, &vertexView_);
         commands->IASetIndexBuffer(&indexView_);
+        return true;
     }
     ID3D12DescriptorHeap *MeshRenderer::SurfaceBindings(ID3D12GraphicsCommandList* commands,const DirectionalLight &light, const Material *material, const LocalLightView &localLights, const SkinPaletteView &skin, const SkinPaletteView &instanceView) const
     {
@@ -298,7 +303,7 @@ bool MeshRenderer::PrepareDeformation(ID3D12GraphicsCommandList *commands, const
         if(!instances.empty()) lightConstants[13]=static_cast<float>(static_cast<unsigned int>(lightConstants[13])|32U);
         auto* heap=SurfaceBindings(commands,light,material,localLights,skin,instanceView);
         if (!heap) { Log::Error("Cannot allocate mesh texture/shadow bindings."); return; }
-        BindDraw(commands,{mirrored,hdr,material,&constants,&lightConstants,&uvTransform,heap});
+        if (!BindDraw(commands,{mirrored,hdr,material,&constants,&lightConstants,&uvTransform,heap})) return;
         commands->DrawIndexedInstanced(indexCount_, instances.empty() ? 1U : static_cast<UINT>(instances.size()), 0, 0, 0);
     }
 }

@@ -1,4 +1,4 @@
-// フラグのビット 12～21 に混合の強さを格納し、22～23 で黒・白・グレースケールを選びます。
+// X は混合の強さ、Y は黒・白・グレースケールの選択に使います。
 // アルファと不透明描画の深度処理を、遷移の強さから独立させます。
 #define PSMain TitleBasePSMain
 #include "Mesh.hlsl"
@@ -6,9 +6,8 @@
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
     float4 base = TitleBasePSMain(input);
-    uint flags = (uint)lightingEnabled;
-    uint variant = (flags >> 22) & 3;
-    float amount = ((flags >> 12) & 1023) / 1023.0;
+    uint variant = (uint)floor(clamp(shaderParameters.y, 0, 2) + 0.5);
+    float amount = floor(saturate(shaderParameters.x) * 1023 + 0.5) / 1023.0;
     float gray = dot(base.rgb, float3(0.2126, 0.7152, 0.0722));
     float3 target = variant == 2 ? gray.xxx : (variant == 1 ? float3(1,1,1) : float3(0,0,0));
 #ifdef TITLE_WHITE_TEXTURE_MASK

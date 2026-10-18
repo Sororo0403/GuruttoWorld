@@ -441,9 +441,8 @@ namespace Editor
         {
             edited |= ImGui::ColorEdit4("色・透明度###Override color", material.color.data());
             edited |= ImGui::SliderFloat("粗さ###Override roughness", &material.roughness, .04f, 1);
-            edited |= ImGui::SliderFloat("演出の強さ###Effect amount", &material.effectAmount, 0, 1);
-            edited |= ImGui::SliderFloat("演出の種類（0:黒 1:白 2:白黒）###Effect variant", &material.effectVariant, 0,
-                                         2, "%.0f");
+            edited |= ImGui::DragFloat4("シェーダーパラメーター###Shader parameters", material.shaderParameters.data(),
+                                        .01f, -100000, 100000);
             edited |= ImGui::SliderFloat("金属感###Override metallic", &material.metallic, 0, 1);
         }
         const auto label =

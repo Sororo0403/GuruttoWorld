@@ -178,7 +178,6 @@ namespace SceneRuntime
             return;
         }
         uiState_.values["transition"] = progress;
-        uiState_.values["transitionPink"] = std::min(1.0f, progress * uiState_.Value("transitionPinkScale", 1.25f));
     }
     void SceneEnvironment::AnimateCameraFocus(float elapsed)
     {

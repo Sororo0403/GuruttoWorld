@@ -15,7 +15,9 @@ namespace SceneRuntime
              {"focus", e.focus},
              {"view", e.view},
              {"focusClock", e.focusClock},
-             {"transitionCameraTarget", e.transitionCameraTarget}};
+             {"transitionCameraTarget", e.transitionCameraTarget},
+             {"transitionApproach", e.transitionApproach},
+             {"transitionValues", e.transitionValues}};
     }
     void from_json(const Engine::Json& j, MenuEntry& e)
     {
@@ -26,12 +28,15 @@ namespace SceneRuntime
         j.at("view").get_to(e.view);
         j.at("focusClock").get_to(e.focusClock);
         e.transitionCameraTarget = j.value("transitionCameraTarget", std::string{});
+        e.transitionApproach = j.value("transitionApproach", 1.0f);
+        e.transitionValues = j.value("transitionValues", std::map<std::string, float>{});
     }
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuSetting, key, action, minimum, maximum, step, initial)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuStateBinding, key, source, operation, factor, compare, scale, offset,
                                        minimum, maximum, factorDefault)
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuConfigTransition, enabled, cameraTarget, returnCameraTarget, enterDuration,
-                                       returnDuration, zoomDelay)
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MenuConfigTransition, enabled, cameraTarget, returnCameraTarget,
+                                                    enterDuration, returnDuration, zoomDelay, clock, enabledState,
+                                                    idleValues, heldValues, transitionValues)
     void to_json(Engine::Json& j, const MenuConfiguration& c)
     {
         j = {{"entries", c.entries},
@@ -43,7 +48,11 @@ namespace SceneRuntime
              {"focusState", c.focusState},
              {"configTransition", c.configTransition},
              {"settingsScreen", c.settingsScreen},
-             {"returnScene", c.returnScene}};
+             {"returnScene", c.returnScene},
+             {"transitionClock", c.transitionClock},
+             {"transitionFallbackClock", c.transitionFallbackClock},
+             {"transitionClockScale", c.transitionClockScale},
+             {"transitionDefaults", c.transitionDefaults}};
     }
     void from_json(const Engine::Json& j, MenuConfiguration& c)
     {
@@ -58,6 +67,10 @@ namespace SceneRuntime
             j.at("configTransition").get_to(c.configTransition);
         c.settingsScreen = j.value("settingsScreen", false);
         c.returnScene = j.value("returnScene", std::string{});
+        c.transitionClock = j.value("transitionClock", std::string{});
+        c.transitionFallbackClock = j.value("transitionFallbackClock", std::string{});
+        c.transitionClockScale = j.value("transitionClockScale", 1.0f);
+        c.transitionDefaults = j.value("transitionDefaults", std::map<std::string, float>{});
     }
 }
 namespace

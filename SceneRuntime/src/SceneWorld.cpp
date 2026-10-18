@@ -49,9 +49,9 @@ bool HasPhysicalPose(const SceneRuntime::ScenePlacement &p)
         if(!placement.material || !placement.material->enabled || !placement.material->surfaceOverride) return;
         const auto& surface=*placement.material;
         const auto apply=[&](const std::shared_ptr<const Engine::Material>& original) -> std::shared_ptr<const Engine::Material> {
-            if(original && original->color==surface.color && original->roughness==surface.roughness && original->metallic==surface.metallic && original->effectAmount==surface.effectAmount && original->effectVariant==surface.effectVariant) return original;
+            if(original && original->color==surface.color && original->roughness==surface.roughness && original->metallic==surface.metallic && original->shaderParameters==surface.shaderParameters) return original;
             auto material=original ? std::make_shared<Engine::Material>(*original) : std::make_shared<Engine::Material>();
-            material->color=surface.color;material->roughness=surface.roughness;material->metallic=surface.metallic;material->effectAmount=surface.effectAmount;material->effectVariant=surface.effectVariant;
+            material->color=surface.color;material->roughness=surface.roughness;material->metallic=surface.metallic;material->shaderParameters=surface.shaderParameters;
             return material;
         };
         object.SetMaterial(apply(object.GetMaterial()));

@@ -1,3 +1,7 @@
+cbuffer MaterialParameters : register(b5)
+{
+    float4 shaderParameters;
+};
 cbuffer UvConstants : register(b2)
 {
     float4 uvScaleRotationOffsetX;

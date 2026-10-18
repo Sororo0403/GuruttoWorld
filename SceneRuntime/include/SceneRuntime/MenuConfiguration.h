@@ -16,6 +16,8 @@ struct MenuEntry {
     float focus=0, view=0;
     std::string focusClock;
     std::string transitionCameraTarget;
+    float transitionApproach=1;
+    std::map<std::string,float> transitionValues;
     bool operator==(const MenuEntry&) const = default;
 };
 struct MenuSetting {
@@ -33,6 +35,8 @@ struct MenuConfigTransition {
     bool enabled=false;
     std::string cameraTarget,returnCameraTarget;
     float enterDuration=2,returnDuration=.55f,zoomDelay=.45f;
+    std::string clock,enabledState;
+    std::map<std::string,float> idleValues,heldValues,transitionValues;
     bool operator==(const MenuConfigTransition&) const = default;
 };
 struct MenuConfiguration {
@@ -46,6 +50,9 @@ struct MenuConfiguration {
     MenuConfigTransition configTransition;
     bool settingsScreen=false;
     std::string returnScene;
+    std::string transitionClock,transitionFallbackClock;
+    float transitionClockScale=1;
+    std::map<std::string,float> transitionDefaults;
     bool operator==(const MenuConfiguration&) const = default;
     /// <summary>複製やPrefab配置に合わせて、メニューの内部カメラ参照を変換します。</summary>
     template<class IdMap> void RemapCameras(const IdMap& ids) {
@@ -56,23 +63,8 @@ struct MenuConfiguration {
 };
 inline MenuConfiguration DefaultMenuConfiguration() {
     MenuConfiguration c;
-    c.entries[0].focusClock="homeFocusTime";
-    c.entries[1].focusClock="configFocusTime";
-    c.entries[2].focusClock="quitFocusTime";
     for(const auto* key:{"screen","screenNotSettings","selected","row","gamepad","intro","volume","motion","saveFailed","cameraFocus","focusView","quitTransition","transition"})
         c.bindings.push_back({key,key});
-    c.bindings.push_back({"pulse","selectionPulse","value","selectionOffset"});
-    c.bindings.back().factorDefault=12;
-    c.bindings.push_back({"transitionPink","transition","value","transitionPinkScale",0,1,0,0,1});
-    c.bindings.back().factorDefault=1.25f;
-    for(int i=0;i<3;++i) {
-        c.bindings.push_back({"inactive"+std::to_string(i),"selected","notEqual","",static_cast<float>(i)});
-        c.bindings.push_back({"rowInactive"+std::to_string(i),"row","notEqual","",static_cast<float>(i)});
-    }
-    c.bindings.push_back({"startEmphasis","selected","emphasis","inactiveOpacity",0});
-    c.bindings.push_back({"configEmphasis","selected","emphasis","inactiveOpacity",1});
-    c.bindings.push_back({"quitEmphasis","selected","emphasis","inactiveOpacity",2});
-    for(auto& binding:c.bindings) if(binding.operation=="emphasis") binding.factorDefault=.6f;
     return c;
 }
 inline float EvaluateMenuBinding(const MenuStateBinding& binding,float value,const std::map<std::string,float>& defaults) {
@@ -88,7 +80,14 @@ namespace MenuValidation {
 inline void Require(bool ok) {if (!ok) throw std::runtime_error("Invalid menu configuration");}
 inline bool Key(const std::string &value) { return Engine::ValidString(value, 128, true) && value.find_first_of("=&") == std::string::npos; }
 inline bool Number(float value) { return Engine::InRange(value, -100000, 100000); }
+/// <summary>シーンで指定された演出用の状態名と値を検証します。</summary>
+inline void Values(const std::map<std::string,float>& values) {
+    Require(values.size()<=128);
+    for(const auto& [key,value]:values) Require(Key(key) && Number(value));
+}
 inline void Entry(const MenuEntry &entry, std::set<int> &indices) {
+    Require(Engine::InRange(entry.transitionApproach,.05f,1));
+    Values(entry.transitionValues);
     Require(entry.index >= 0 && entry.index < 128 && indices.insert(entry.index).second && Number(entry.focus) && Number(entry.view) && Engine::ValidString(entry.focusClock, 128) && Engine::ValidString(entry.transitionCameraTarget,128));
     Require(Engine::OneOf(entry.action, {"loadScene", "quit", "settings", "setState"}));
     Require(Engine::ValidString(entry.target, 16384));
@@ -120,6 +119,9 @@ inline void ValidateMenu(const MenuConfiguration& configuration) {
     for(const auto& cue:configuration.cues) Require(Engine::ValidString(cue,128));
     Require(Key(configuration.focusState));
     const auto& transition=configuration.configTransition;
+    Require(Engine::ValidString(transition.clock,128) && Engine::ValidString(transition.enabledState,128));
+    Require(Engine::ValidString(configuration.transitionClock,128) && Engine::ValidString(configuration.transitionFallbackClock,128) && Number(configuration.transitionClockScale));
+    Values(transition.idleValues); Values(transition.heldValues); Values(transition.transitionValues); Values(configuration.transitionDefaults);
     Require(Engine::ValidString(transition.cameraTarget,128) && Engine::ValidString(transition.returnCameraTarget,128));
     Require(!configuration.settingsScreen || (!configuration.returnScene.empty() && configuration.returnScene.starts_with("Assets/Scenes/") && configuration.returnScene.ends_with(".json") && configuration.returnScene.find("..") == std::string::npos && configuration.returnScene.find_first_of("\\:")==std::string::npos));
     Require(!transition.enabled || !transition.cameraTarget.empty());

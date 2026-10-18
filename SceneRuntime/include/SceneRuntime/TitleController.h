@@ -49,7 +49,7 @@ namespace SceneRuntime
                 ScenePlacement target;DirectX::XMFLOAT4X4 matrix;
                 if(camera && environment.World().WorldMatrix(menu_->SelectedEntry()->transitionCameraTarget,matrix) && SceneTransforms::ReadTransform(matrix,{},target)) {
                     // Ease into the road/exit direction from the actual current camera, including unfinished selection motion.
-                    const float approach=std::clamp(environment.Ui().Value(menu_->SelectedEntry()->action+"ApproachFraction",1),.05f,1.0f);
+                    const float approach=menu_->SelectedEntry()->transitionApproach;
                     const float p=std::min(1.0f,menu_->TransitionProgress()/approach);const float blend=p*p*(3-2*p);
                     for(size_t axis=0;axis<3;++axis) {
                         target.position[axis]=departureFrom_->position[axis]+(target.position[axis]-departureFrom_->position[axis])*blend;
@@ -114,12 +114,14 @@ namespace SceneRuntime
             return menu_ && menu_->IsTransitioning() && menu_->SelectedEntry() && !menu_->SelectedEntry()->transitionCameraTarget.empty();
         }
         void SyncDeparture(UiState& state) const {
-            state.values["departureKind"]=-1;
-            state.values["titleEffectTime"]=state.Value("configEnterTime");
-            if(!Departing()) return;
-            state.values["departureKind"]=menu_->SelectedEntry()->action=="quit" ? 1.0f : 0.0f;
-            state.values["titleEffectTime"]=menu_->TransitionProgress()*2;
-            state.values["screen"]=3;
+            if(!menu_) return;
+            const auto& configuration=menu_->Configuration();
+            const bool transitioning=menu_->IsTransitioning() && menu_->SelectedEntry();
+            for(const auto& [key,value]:configuration.transitionDefaults) state.values[key]=value;
+            if(!configuration.transitionClock.empty())
+                state.values[configuration.transitionClock]=transitioning ? menu_->TransitionProgress()*configuration.transitionClockScale : state.Value(configuration.transitionFallbackClock);
+            if(transitioning)
+                for(const auto& [key,value]:menu_->SelectedEntry()->transitionValues) state.values[key]=value;
         }
         void QueueScene(const std::string& scene) {if(!scene.empty()) {UiEvent event;event.action="loadScene";event.target=scene;pending_=std::move(event);}}
         void Action(SceneRuntime::TitleMenuAction action)

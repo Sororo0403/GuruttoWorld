@@ -75,6 +75,7 @@ namespace Editor
                 widgets.number("焦点ビュー値###View", e.view);
                 widgets.string("カメラ移動Animationの時計###Focus animation clock", e.focusClock);
                 widgets.string("決定後のカメラ到着先ID###Transition camera target", e.transitionCameraTarget);
+                widgets.number("カメラ到達までの進行率###Transition approach", e.transitionApproach, .05f, 1);
                 if (ImGui::SmallButton("項目を削除###Remove entry"))
                     remove = static_cast<int>(i);
                 ImGui::PopID();
@@ -220,17 +221,11 @@ namespace Editor
                 const std::pair<const char*, float> defaults[] = {{"introDuration", .65f},
                                                                   {"startDuration", .32f},
                                                                   {"selectionDuration", .16f},
-                                                                  {"selectionOffset", 12.0f},
-                                                                  {"inactiveOpacity", .6f},
                                                                   {"musicFadeDuration", .4f},
-                                                                  {"transitionPinkScale", 1.25f},
                                                                   {"screen", 0.0f},
                                                                   {"selected", 0.0f},
                                                                   {"intro", 1.0f},
-                                                                  {"row", 0.0f},
-                                                                  {"homeFocusTime", -1.0f},
-                                                                  {"configFocusTime", -1.0f},
-                                                                  {"quitFocusTime", -1.0f}};
+                                                                  {"row", 0.0f}};
                 for (const auto& [key, value] : defaults)
                     canvas.stateDefaults.try_emplace(key, value);
             }

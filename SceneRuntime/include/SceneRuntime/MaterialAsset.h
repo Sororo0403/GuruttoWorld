@@ -22,6 +22,19 @@ namespace SceneRuntime
         std::filesystem::path normalTexture;
         std::filesystem::path environmentTexture, lightmap;
         std::filesystem::path shader;
+        /// <summary>省略可能な汎用シェーダー値を、4 成分の配列として読み込みます。</summary>
+        static std::array<float, 4> ReadShaderParameters(const Engine::Json& source)
+        {
+            std::array<float, 4> result{};
+            if (!source.contains("shaderParameters"))
+                return result;
+            const auto& values = Engine::JsonArray(source.at("shaderParameters"));
+            if (values.size() != result.size())
+                throw std::runtime_error("Shader parameters need four components");
+            for (size_t index = 0; index < result.size(); ++index)
+                result[index] = static_cast<float>(Engine::JsonNumber(values[index]));
+            return result;
+        }
         static bool ValidPath(const std::filesystem::path& path)
         {
             const auto utf8 = path.generic_u8string();
@@ -67,10 +80,9 @@ namespace SceneRuntime
                                 return !Engine::InRange(channel, 0, 1);
                             }))
                 throw std::runtime_error("Invalid material color");
-            if (!Engine::InRange(values.effectAmount, 0, 1))
-                throw std::runtime_error("Invalid material effect amount");
-            if (!Engine::InRange(values.effectVariant, 0, 2))
-                throw std::runtime_error("Invalid material effect variant");
+            for (const float value : values.shaderParameters)
+                if (!Engine::InRange(value, -100000, 100000))
+                    throw std::runtime_error("Invalid material shader parameter");
             if (!Engine::InRange(values.roughness, 0.04f, 1) || !Engine::InRange(values.metallic, 0, 1))
                 throw std::runtime_error("Invalid material surface");
             if (!Engine::InRange(values.environmentIntensity, 0, 100))
@@ -111,8 +123,7 @@ namespace SceneRuntime
                 asset.values.color[index] = static_cast<float>(Engine::JsonNumber(color[index]));
             asset.values.roughness = static_cast<float>(Engine::JsonNumber(json.at("roughness")));
             asset.values.metallic = static_cast<float>(Engine::JsonNumber(json.at("metallic")));
-            asset.values.effectAmount = json.value("effectAmount", 0.0f);
-            asset.values.effectVariant = json.value("effectVariant", 0.0f);
+            asset.values.shaderParameters = ReadShaderParameters(json);
             asset.values.transparent = json.at("transparent").get<bool>();
             const auto texture = json.at("texture").get<std::string>();
             asset.texture = std::filesystem::path(std::u8string(texture.begin(), texture.end()));
@@ -163,8 +174,7 @@ namespace SceneRuntime
             Engine::Json json = {{"color", values.color},
                                  {"roughness", values.roughness},
                                  {"metallic", values.metallic},
-                                 {"effectAmount", values.effectAmount},
-                                 {"effectVariant", values.effectVariant},
+                                 {"shaderParameters", values.shaderParameters},
                                  {"transparent", values.transparent},
                                  {"texture", std::string(text.begin(), text.end())},
                                  {"physicallyBased", values.physicallyBased},

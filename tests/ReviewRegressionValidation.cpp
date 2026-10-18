@@ -66,6 +66,7 @@
 #include "LocalLightValidation.h"
 #include "PostEffectValidation.h"
 #include "TitlePresentationValidation.h"
+#include "TitleIsolationValidation.h"
 #include "GamePlaybackParityValidation.h"
 #include "ShadowValidation.h"
 #include "EditorFontValidation.h"
@@ -236,6 +237,7 @@ namespace
 
     void ValidateTitleAuthoring()
     {
+        TitleIsolationValidation::Run();
         using namespace App;
         auto layout=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
         for(auto& object:layout.objects) if(TitleBindings::Item(object)==TitleMenuItem::Start) object.button->target="Assets/Scenes/StartFixture.json";
@@ -258,7 +260,7 @@ namespace
         Check(menu.ActivateUi("menu:1")==TitleMenuAction::None && !menu.IsSettingsOpen(),"disabled settings event is ignored");
         menu.SetItems({});
         Check(menu.ActivateUi("menu:0")==TitleMenuAction::None,"empty menu cannot start");
-        TitleMenu intro(true); intro.SetPresentationDurations(1.3f,.4f);
+        TitleMenu intro(true); intro.Configure(*TitleBindings::Configuration(layout)); intro.SetPresentationDurations(1.3f,.4f);
         input.keyboardButtons=0;
         for(int i=0;i<8;++i) intro.Update(input,.1);
         Check(intro.IntroProgress()<1,"authored intro duration governs input wait");
@@ -3019,14 +3021,14 @@ void ValidateMaterialDocuments()
     materialHistory.Reload(root,second);
     Check(!materialHistory.CanUndo() && !materialHistory.CanRedo() && !materialHistory.Dirty(),"Material reload resets asset-local history");
     Editor::MaterialDocument effectHistory;effectHistory.Reload(root,second);
-    effectHistory.Asset().values.effectAmount=.75f;effectHistory.Observe({});
+    effectHistory.Asset().values.shaderParameters[0]=.75f;effectHistory.Observe({});
     Check(effectHistory.Dirty() && effectHistory.CanUndo(),"effectAmount-only material edit creates dirty undo state");
-    Check(effectHistory.Undo() && effectHistory.Asset().values.effectAmount==0 && !effectHistory.Dirty(),"effectAmount undo restores saved material");
-    Check(effectHistory.Undo(true) && effectHistory.Asset().values.effectAmount==.75f && effectHistory.Dirty(),"effectAmount redo restores independent edit");
+    Check(effectHistory.Undo() && effectHistory.Asset().values.shaderParameters[0]==0 && !effectHistory.Dirty(),"effectAmount undo restores saved material");
+    Check(effectHistory.Undo(true) && effectHistory.Asset().values.shaderParameters[0]==.75f && effectHistory.Dirty(),"effectAmount redo restores independent edit");
     effectHistory.Save(root,second);
-    Check(!effectHistory.Dirty() && SceneRuntime::MaterialAsset::Load(root,second).values.effectAmount==.75f,"effectAmount saves and round trips without other edits");
+    Check(!effectHistory.Dirty() && SceneRuntime::MaterialAsset::Load(root,second).values.shaderParameters[0]==.75f,"effectAmount saves and round trips without other edits");
     effectHistory.Reload(root,second);
-    Check(effectHistory.Asset().values.effectAmount==.75f && !effectHistory.Dirty(),"effectAmount material reload preserves saved value");
+    Check(effectHistory.Asset().values.shaderParameters[0]==.75f && !effectHistory.Dirty(),"effectAmount material reload preserves saved value");
     const std::filesystem::path oldTexture="Assets/Textures/old.png",newTexture="Assets/Textures/new.png",movingMaterial="Assets/Materials/moving.mat";
     std::filesystem::create_directories(root/"Assets/Textures");
     {std::ofstream texture(root/oldTexture);texture<<"texture reference fixture";}

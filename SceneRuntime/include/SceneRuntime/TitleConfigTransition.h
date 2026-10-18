@@ -15,9 +15,9 @@ namespace SceneRuntime
         void Configure(const SceneLayout& layout,const MenuConfigTransition& configuration,UiState& state,bool settingsScreen)
         {
             *this={};configuration_=configuration;
-            configuration_.enabled=configuration_.enabled && state.Value("configTransitionEnabled",1)!=0;
+            configuration_.enabled=configuration_.enabled && state.Value(configuration_.enabledState,1)!=0;
             for(const auto& object:layout.objects) if(object.animation) for(const auto& track:object.animation->tracks)
-                if(track.clock=="configEnterTime" && !track.keys.empty()) clipDuration_=std::max(clipDuration_,track.keys.back().time);
+                if(!configuration_.clock.empty() && track.clock==configuration_.clock && !track.keys.empty()) clipDuration_=std::max(clipDuration_,track.keys.back().time);
             clipDuration_=std::max(.01f,clipDuration_);
             if(configuration_.enabled && settingsScreen) {phase_=Phase::Held;settingsOpen_=true;inputReady_=true;}
             Sync(state);
@@ -87,17 +87,18 @@ namespace SceneRuntime
         void Sync(UiState& state) const
         {
             if(!configuration_.enabled) return;
-            if(phase_==Phase::Entering || phase_==Phase::Returning) state.values["screen"]=3;
-            else if(phase_==Phase::Held) state.values["screen"]=1;
-            else state.values["screen"]=settingsOpen_ ? 1.0f : 0.0f;
+            const auto& values=phase_==Phase::Entering || phase_==Phase::Returning ? configuration_.transitionValues :
+                phase_==Phase::Held || settingsOpen_ ? configuration_.heldValues : configuration_.idleValues;
+            for(const auto& [key,value]:values) state.values[key]=value;
             const float progress=phase_==Phase::Held ? 1 : phase_==Phase::Entering ? elapsed_/configuration_.enterDuration :
                 phase_==Phase::Returning ? 1-elapsed_/configuration_.returnDuration : 0;
-            state.values["configEnterTime"]=std::clamp(progress,0.0f,1.0f)*clipDuration_;
+            if(!configuration_.clock.empty()) state.values[configuration_.clock]=std::clamp(progress,0.0f,1.0f)*clipDuration_;
         }
         void Fail(SceneEnvironment& environment,const char* error)
         {
             Engine::Log::Warning(error);configuration_.enabled=false;phase_=Phase::Idle;
-            environment.Ui().values["screen"]=settingsOpen_ ? 1.0f : 0.0f;
+            const auto& values=settingsOpen_ ? configuration_.heldValues : configuration_.idleValues;
+            for(const auto& [key,value]:values) environment.Ui().values[key]=value;
         }
         MenuConfigTransition configuration_;
         Phase phase_=Phase::Idle;

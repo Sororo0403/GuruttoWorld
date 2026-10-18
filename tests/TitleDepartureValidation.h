@@ -116,8 +116,8 @@ namespace TitleDepartureValidation
                         if (object.id == "quit-sign")
                         {
                             ++exit;
-                            require(object.material->color[3] == 1 && object.material->effectAmount == 1 &&
-                                        object.material->effectVariant == (quit ? 1 : 0),
+                            require(object.material->color[3] == 1 && object.material->shaderParameters[0] == 1 &&
+                                        object.material->shaderParameters[1] == (quit ? 1 : 0),
                                     "EXIT lettering stays opaque white on QUIT and black on START");
                         }
                         else if (object.material->asset.filename() == "TitleBuildingEffect.mat")
@@ -138,14 +138,14 @@ namespace TitleDepartureValidation
                                 blackSkyline += !white;
                             }
                             require(
-                                object.material->color[3] == 1 && object.material->effectAmount == 1 &&
-                                    object.material->effectVariant == (white ? 1 : 0),
+                                object.material->color[3] == 1 && object.material->shaderParameters[0] == 1 &&
+                                    object.material->shaderParameters[1] == (white ? 1 : 0),
                                 "START shows three foreground buildings and five selected skyline buildings white; other buildings remain black");
                         }
                         else if (object.material->asset.filename() == "TitleCityEffect.mat")
                         {
                             ++city;
-                            require(object.material->color[3] == 1 && object.material->effectAmount == 1,
+                            require(object.material->color[3] == 1 && object.material->shaderParameters[0] == 1,
                                     "departure effect reaches full strength without transparency");
                             const bool isCog = object.meshRenderer->model.filename() == "cog-a.obj";
                             cog += isCog;
@@ -154,7 +154,7 @@ namespace TitleDepartureValidation
                                 model == "road-straight.obj" || model == "sidewalk.obj" || model == "road-bridge.obj";
                             roads += isRoad;
                             require(
-                                object.material->effectVariant == (!quit && isRoad ? 1 : 0),
+                                object.material->shaderParameters[1] == (!quit && isRoad ? 1 : 0),
                                 "START roads are white while ground/cog stay black; QUIT streets and cog stay black");
                         }
                     }
