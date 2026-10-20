@@ -13,11 +13,29 @@ namespace Engine
         static std::filesystem::path Root(const std::filesystem::path& file)
         {
             auto parent = std::filesystem::weakly_canonical(std::filesystem::absolute(file)).parent_path();
-            for (auto current = parent; current != current.root_path(); current = current.parent_path())
+            auto fallback = parent;
+            for (auto current = parent;; current = current.parent_path())
+            {
+                if (std::filesystem::is_regular_file(current / "WP1.project.json") ||
+                    std::filesystem::is_regular_file(current / "WP1.runtime.json"))
+                    return current;
+                // 記述ファイルのない素材用ルートでも、途中の同名フォルダーで領域を分割しません。
                 if (CompareStringOrdinal(current.filename().c_str(), -1, L"Assets", -1, TRUE) == CSTR_EQUAL ||
                     CompareStringOrdinal(current.filename().c_str(), -1, L"Shaders", -1, TRUE) == CSTR_EQUAL)
-                    return current.parent_path();
-            return parent;
+                    fallback = current.parent_path();
+                if (current == current.root_path())
+                    return fallback;
+            }
+        }
+        /// <summary>保存記録を通常の素材やフォルダーとして索引へ混ぜないために識別します。</summary>
+        static bool IsJournalPath(const std::filesystem::path& path)
+        {
+            return std::any_of(path.begin(), path.end(),
+                               [](const auto& part)
+                               {
+                                   return CompareStringOrdinal(part.c_str(), -1, L".wp1-transactions", -1, TRUE) ==
+                                          CSTR_EQUAL;
+                               });
         }
         /// <summary>異常終了で放棄された排他も取得し、呼出元に復旧の機会を与えます。</summary>
         explicit FileSaveLock(const std::filesystem::path& root)

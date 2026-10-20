@@ -204,6 +204,8 @@ namespace
             throw std::runtime_error("recovery checkpoint not reached");
         }
         auto plans = Plans(root);
+        if (mode == L"--nested-assets" || mode == L"--nested-shaders")
+            plans = Plans(root / "Assets/Models/Package" / (mode == L"--nested-assets" ? "Assets" : "Shaders"));
         if (mode == L"--api-gap" || mode == L"--api-committed")
             plans = {Editor::FileTransaction::Prepare(root / "Assets/Scenes/scene.json", "candidate-scene"),
                      Editor::FileTransaction::Prepare(root / "Assets/Materials/value.mat", "candidate-material")};
@@ -233,8 +235,9 @@ namespace
             {
                 ++renames;
                 if (mode == L"--gap" || mode == L"--api-gap" || mode == L"--project-gap" || mode == L"--meta-gap" ||
-                    mode == L"--create-delete" || (mode == L"--mixed" && renames == 2) ||
-                    (mode == L"--second-gap" && renames == 3) || (mode == L"--all-installed" && renames == 4))
+                    mode == L"--nested-assets" || mode == L"--nested-shaders" || mode == L"--create-delete" ||
+                    (mode == L"--mixed" && renames == 2) || (mode == L"--second-gap" && renames == 3) ||
+                    (mode == L"--all-installed" && renames == 4))
                     TerminateProcess(GetCurrentProcess(), 77);
                 if (mode == L"--rollback-gap" && renames >= 5)
                     TerminateProcess(GetCurrentProcess(), 77);
@@ -253,6 +256,68 @@ namespace
                                            return mode != L"--rollback-gap";
                                        });
         throw std::runtime_error("save checkpoint not reached: " + error);
+    }
+    void NestedDomains(const std::filesystem::path& root)
+    {
+        const auto executable =
+            Executable().parent_path().parent_path() / "FileSaveApiValidation/FileSaveApiValidation.exe";
+        for (const bool legacy : {false, true})
+            for (const auto* mode : {L"--nested-assets", L"--nested-shaders"})
+            {
+                const auto directory = root / (std::wstring(mode) + (legacy ? L"-legacy" : L"-current"));
+                Seed(directory);
+                const auto nested = directory / "Assets/Models/Package" /
+                                    (std::wstring(mode) == L"--nested-assets" ? "Assets" : "Shaders");
+                Seed(nested);
+                const auto descriptor =
+                    Engine::Json{{"version", 1},
+                                 {"name", "Recovery"},
+                                 {"engineRoot", FileContents::Text(Engine::ProjectContext::SourceEngineRoot())},
+                                 {"project", "Recovery.vcxproj"},
+                                 {"solution", "Recovery.slnx"},
+                                 {"projectId", "0123456789abcdef0123456789abcdef"}};
+                FileContents::Write(directory / "WP1.project.json", descriptor.dump());
+                FileContents::Write(directory / "Recovery.vcxproj", "<Project />");
+                Child(L"--seed-api", directory, L"", executable).Wait();
+                FileContents::Write(directory / "Assets/Project.json",
+                                    Engine::Json{{"title", "Recovery"},
+                                                 {"startupScene", "Assets/Scenes/scene.json"},
+                                                 {"width", 1280},
+                                                 {"height", 720}}
+                                        .dump());
+                Require(Engine::FileSaveLock::Root(nested / "scene.txt") == directory,
+                        "descriptor owns nested Assets and Shaders");
+                Require(Engine::AssetDatabase::Root(nested / "scene.txt") == directory,
+                        "asset references share the save domain");
+                Child(mode, directory).Wait(77);
+                if (legacy)
+                {
+                    const auto oldRoot = directory / "Assets/Models/Package/.wp1-transactions";
+                    std::filesystem::create_directories(oldRoot);
+                    for (const auto& entry : std::filesystem::directory_iterator(directory / ".wp1-transactions"))
+                    {
+                        const auto manifest = entry.path() / "manifest.json";
+                        auto json = Engine::Json::parse(*FileContents::Read(manifest));
+                        json["version"] = 2;
+                        FileContents::Write(manifest, json.dump());
+                        std::filesystem::rename(entry.path(), oldRoot / entry.path().filename());
+                    }
+                }
+                Child(legacy ? L"--scan-project" : L"--open-project", directory, L"", executable).Wait();
+                Require(FileContents::Read(nested / "scene.txt") == "old-scene" &&
+                            FileContents::Read(nested / "material.txt") == "old-material",
+                        "project open/scan recovers current and legacy nested journals");
+                FileJournal::Recover(directory);
+            }
+        const auto bare = root / "bare/Assets/Models/Package/Assets/file.txt";
+        std::filesystem::create_directories(bare.parent_path());
+        Require(Engine::FileSaveLock::Root(bare) == root / "bare", "marker-free asset roots remain one domain");
+        const auto packaged = root / "packaged";
+        std::filesystem::create_directories(packaged / "Assets/Models/Assets");
+        FileContents::Write(packaged / "WP1.runtime.json", "{}");
+        Require(Engine::FileSaveLock::Root(packaged / "Assets/Models/Assets/file.txt") == packaged,
+                "runtime descriptor also owns nested folders");
+        std::cout << "PASS: nested Assets/Shaders, project Open/Scan and legacy journal discovery\n";
     }
     void Completion(const std::filesystem::path& root)
     {
@@ -658,6 +723,7 @@ int wmain(int argc, wchar_t** argv)
                           (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         PublicSaveApis(root / "public-apis");
         Completion(root / "completion");
+        NestedDomains(root / "nested-domains");
         Crashes(root / "crashes");
         Conflicts(root / "conflicts");
         Metadata(root / "metadata");

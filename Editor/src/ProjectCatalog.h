@@ -44,7 +44,7 @@ namespace Editor
             {
                 Engine::FileSaveLock saveLock(root);
                 if (saveLock.Outermost())
-                    Engine::FileJournal::RecoverLocked(root);
+                    Engine::FileJournal::RecoverLocked(root, true);
                 auto schemas = SceneRuntime::ScriptSchema::Builtins();
                 for (auto& [name, schema] : SceneRuntime::ScriptSchema::LoadProject(root))
                     if (!schemas.emplace(name, std::move(schema)).second)
@@ -177,6 +177,8 @@ namespace Editor
             folders.insert(folder);
             for (const auto& entry : std::filesystem::recursive_directory_iterator(root / folder))
             {
+                if (Engine::FileSaveLock::IsJournalPath(entry.path().lexically_relative(root)))
+                    continue;
                 if (entry.is_directory())
                 {
                     folders.insert(entry.path().lexically_relative(root));

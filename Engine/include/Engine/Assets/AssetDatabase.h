@@ -176,13 +176,16 @@ public:
             }
             return metadata;
         }
-    static std::filesystem::path Root(std::filesystem::path path) {
-        path=std::filesystem::absolute(path).parent_path();
-        while (!path.empty() && path!=path.root_path()) {
-            if (path.filename()=="Assets" || path.filename()=="Shaders") return path.parent_path();
-            path=path.parent_path();
-        } return {};
-    }
+        /// <summary>参照解決にも保存の排他と同じプロジェクト境界を使います。通常の領域外ファイルは空を返します。</summary>
+        static std::filesystem::path Root(const std::filesystem::path& path)
+        {
+            const auto parent = std::filesystem::weakly_canonical(std::filesystem::absolute(path)).parent_path();
+            const auto root = FileSaveLock::Root(path);
+            if (root != parent || std::filesystem::is_regular_file(root / "WP1.project.json") ||
+                std::filesystem::is_regular_file(root / "WP1.runtime.json"))
+                return root;
+            return {};
+        }
     /// <summary>snapshot はプレイ中の参照解決用にメタデータを保持します。編集時は既定の最新読み込みを使います。</summary>
     explicit AssetDatabase(std::filesystem::path root,bool snapshot=false) : AssetDatabase(ContentContext::Capture(root),snapshot) {}
     /// <summary>所有者が固定した素材層で索引を作成し、descriptorを再解決しません。</summary>
@@ -192,6 +195,8 @@ public:
         for (const auto* folder : {"Assets","Shaders"}) {
             if (!std::filesystem::is_directory(layer/folder)) continue;
             for (const auto& entry : std::filesystem::recursive_directory_iterator(layer/folder)) {
+                if (FileSaveLock::IsJournalPath(entry.path().lexically_relative(layer)))
+                    continue;
                 if (!entry.is_regular_file() || entry.path().extension()!=".meta") continue;
                 auto source=entry.path(); source.replace_extension(); if (!std::filesystem::is_regular_file(source)) continue;
                 const auto rawMetadata = FileContents::Read(Sidecar(source));

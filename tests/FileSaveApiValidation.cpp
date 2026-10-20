@@ -1,6 +1,8 @@
 #include <SceneRuntime/SceneLayout.h>
 #include <SceneRuntime/MaterialAsset.h>
 #include <iostream>
+#include "../Editor/src/GameProject.h"
+#include "../Editor/src/ProjectCatalog.h"
 
 int wmain(int argc, wchar_t** argv)
 {
@@ -10,6 +12,21 @@ int wmain(int argc, wchar_t** argv)
             throw std::runtime_error("API test arguments");
         const std::wstring mode = argv[1];
         const auto root = std::filesystem::absolute(argv[2]);
+        if (mode == L"--open-project")
+        {
+            Editor::GameProject::Open(root);
+            return 0;
+        }
+        if (mode == L"--scan-project")
+        {
+            Editor::ProjectCatalog catalog;
+            if (!catalog.Scan(root))
+                throw std::runtime_error("project scan failed");
+            for (const auto& asset : catalog.Assets())
+                if (Engine::FileSaveLock::IsJournalPath(asset.path))
+                    throw std::runtime_error("journal appeared in the asset catalog");
+            return 0;
+        }
         SceneRuntime::SceneLayout scene;
         SceneRuntime::MaterialAsset material;
         if (mode != L"--seed-api")

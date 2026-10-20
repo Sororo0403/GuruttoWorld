@@ -3,6 +3,8 @@
 #include <Engine/Core/Json.h>
 #include <Engine/Core/Log.h>
 #include <memory>
+#include <map>
+#include <mutex>
 
 namespace Engine
 {
@@ -108,25 +110,30 @@ namespace Engine
             FileSaveLock lock(root);
             if (!lock.Outermost())
                 return {};
-            return RecoverLocked(root);
+            return RecoverLocked(root, true);
         }
-        /// <summary>呼出元が保存領域の排他を取得した状態で、未完了保存を回復します。</summary>
-        static std::vector<std::filesystem::path> RecoverLocked(const std::filesystem::path& root)
+        /// <summary>呼出元が保存領域の排他を取得し、必要なら旧保存領域も再探索して回復します。</summary>
+        static std::vector<std::filesystem::path> RecoverLocked(const std::filesystem::path& root,
+                                                                bool rediscover = false)
         {
-            const auto directory = root / ".wp1-transactions";
-            std::vector<std::filesystem::path> recovered;
-            if (!std::filesystem::is_directory(directory))
-                return recovered;
-            RejectReparse(directory);
-            std::vector<std::filesystem::path> pending;
-            for (const auto& entry : std::filesystem::directory_iterator(directory))
+            std::vector<std::filesystem::path> recovered, pending;
+            for (const auto& saveRoot : SaveRoots(root, rediscover))
             {
-                if (entry.is_directory() && entry.path().extension() == ".pending")
-                    pending.push_back(entry.path());
-                else if (entry.is_directory() && entry.path().extension() == ".completed")
+                const auto directory = saveRoot / ".wp1-transactions";
+                if (!std::filesystem::is_directory(directory))
+                    continue;
+                if (!Inside(root, directory))
+                    throw std::runtime_error("復旧記録が保存領域外です：" + FileContents::Text(directory));
+                RejectReparse(directory);
+                for (const auto& entry : std::filesystem::directory_iterator(directory))
                 {
-                    RejectReparse(entry.path());
-                    std::filesystem::remove_all(entry.path());
+                    if (entry.is_directory() && entry.path().extension() == ".pending")
+                        pending.push_back(entry.path());
+                    else if (entry.is_directory() && entry.path().extension() == ".completed")
+                    {
+                        RejectReparse(entry.path());
+                        std::filesystem::remove_all(entry.path());
+                    }
                 }
             }
             std::sort(pending.begin(), pending.end());
@@ -142,6 +149,52 @@ namespace Engine
         }
 
     private:
+        /// <summary>起動時に旧実装の保存領域を探索し、素材ごとの登録では同じ探索結果を共有します。</summary>
+        static std::vector<std::filesystem::path> SaveRoots(const std::filesystem::path& root, bool rediscover)
+        {
+            const auto canonical = std::filesystem::weakly_canonical(std::filesystem::absolute(root));
+            {
+                std::lock_guard guard(discoveryMutex_);
+                const auto found = saveRoots_.find(canonical);
+                if (!rediscover && found != saveRoots_.end())
+                    return found->second;
+            }
+            std::vector<std::filesystem::path> roots{canonical};
+            for (const auto* name : {"Assets", "Shaders"})
+            {
+                const auto folder = canonical / name;
+                if (!std::filesystem::is_directory(folder))
+                    continue;
+                const auto folderAttributes = GetFileAttributesW(folder.c_str());
+                if (folderAttributes == INVALID_FILE_ATTRIBUTES || (folderAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+                    continue;
+                for (auto it = std::filesystem::recursive_directory_iterator(folder);
+                     it != std::filesystem::recursive_directory_iterator(); ++it)
+                {
+                    if (!it->is_directory())
+                        continue;
+                    const auto path = it->path();
+                    const auto attributes = GetFileAttributesW(path.c_str());
+                    if (attributes == INVALID_FILE_ATTRIBUTES)
+                        throw std::runtime_error("旧保存領域を確認できません：" + FileContents::Text(path));
+                    if (attributes & FILE_ATTRIBUTE_REPARSE_POINT)
+                        it.disable_recursion_pending();
+                    else if (FileSaveLock::IsJournalPath(path.filename()))
+                    {
+                        roots.push_back(path.parent_path());
+                        it.disable_recursion_pending();
+                    }
+                    else if (std::filesystem::is_regular_file(path / "WP1.project.json") ||
+                             std::filesystem::is_regular_file(path / "WP1.runtime.json"))
+                        it.disable_recursion_pending();
+                }
+            }
+            std::lock_guard guard(discoveryMutex_);
+            saveRoots_[canonical] = roots;
+            return roots;
+        }
+        inline static std::mutex discoveryMutex_;
+        inline static std::map<std::filesystem::path, std::vector<std::filesystem::path>> saveRoots_;
         /// <summary>復旧の完了名を非上書きで公開し、一時的な共有違反だけを短く再試行します。</summary>
         static void RenameDirectory(const std::filesystem::path& from, const std::filesystem::path& to)
         {
