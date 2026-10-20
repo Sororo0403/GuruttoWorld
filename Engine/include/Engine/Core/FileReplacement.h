@@ -193,6 +193,17 @@ namespace Engine
                     throw std::runtime_error("ドキュメントを適用できません。");
                 for (auto& replacement : replacements)
                     replacement->Commit();
+                if (journal)
+                    try
+                    {
+                        journal->Accept();
+                    }
+                    catch (const std::exception& failure)
+                    {
+                        error = "保存は完了しましたが、受理結果を記録できないため両世代を保管します：" +
+                                std::string(failure.what());
+                        Log::Warning(error);
+                    }
             }
             catch (const std::exception& failure)
             {
@@ -224,7 +235,7 @@ namespace Engine
                     const auto conflicts = journal->Finish();
                     if (!conflicts.empty())
                         error +=
-                            " / 外部内容を保管して復旧しました：" + FileContents::Text(conflicts.front().parent_path());
+                            " / 保存内容を保管して復旧しました：" + FileContents::Text(conflicts.front().parent_path());
                 }
                 catch (const std::exception& failure)
                 {

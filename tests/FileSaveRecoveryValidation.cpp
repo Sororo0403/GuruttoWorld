@@ -10,7 +10,7 @@
 namespace
 {
     std::function<void(const std::string&, const std::filesystem::path&)> checkpoint;
-    bool denyCompletion = false, denyManifest = false;
+    bool denyCompletion = false, denyManifest = false, denyAbort = false, denyAcceptance = false;
 
     HANDLE WINAPI ObserveCreate(LPCWSTR name, DWORD access, DWORD sharing, LPSECURITY_ATTRIBUTES security,
                                 DWORD creation, DWORD flags, HANDLE templateFile)
@@ -42,7 +42,9 @@ namespace
     }
     BOOL WINAPI ObserveMove(LPCWSTR from, LPCWSTR to, DWORD flags)
     {
-        if (denyCompletion && std::filesystem::path(to).filename() == "completed")
+        const auto name = std::filesystem::path(to).filename();
+        if ((denyCompletion && name == "completed") || (denyAbort && name == "aborted") ||
+            (denyAcceptance && name == "accepted"))
         {
             SetLastError(ERROR_ACCESS_DENIED);
             return FALSE;
@@ -229,6 +231,8 @@ namespace
                                                       Engine::AssetDatabase::SerializeMetadata(metadata))};
         }
         int renames = 0;
+        if (mode == L"--abort-denied")
+            denyAbort = true;
         checkpoint = [&](const std::string& operation, const std::filesystem::path& to)
         {
             if (operation == "rename")
@@ -246,14 +250,16 @@ namespace
                 ((mode == L"--committed" || mode == L"--api-committed" || mode == L"--create-delete-commit") &&
                  operation == "publish" && to.filename() == "committed") ||
                 (mode == L"--completed" && operation == "publish" && to.filename() == "completed") ||
-                (mode == L"--cleanup" && operation == "delete"))
+                (mode == L"--abort-record" && operation == "publish" && to.filename() == "aborted") ||
+                (mode == L"--abort-denied" && operation == "delete") || (mode == L"--cleanup" && operation == "delete"))
                 TerminateProcess(GetCurrentProcess(), 77);
         };
         std::string error;
         Editor::FileTransaction::Apply(plans, true, error,
                                        [&]
                                        {
-                                           return mode != L"--rollback-gap";
+                                           return mode != L"--rollback-gap" && mode != L"--abort-record" &&
+                                                  mode != L"--abort-denied";
                                        });
         throw std::runtime_error("save checkpoint not reached: " + error);
     }
@@ -319,6 +325,78 @@ namespace
                 "runtime descriptor also owns nested folders");
         std::cout << "PASS: nested Assets/Shaders, project Open/Scan and legacy journal discovery\n";
     }
+    void Cancellation(const std::filesystem::path& root)
+    {
+        for (const auto* name : {L"completed", L"committed"})
+            for (const bool throws : {false, true})
+            {
+                const auto directory = root / (std::wstring(name) + (throws ? L"-throw" : L"-reject"));
+                Seed(directory);
+                HANDLE marker = INVALID_HANDLE_VALUE;
+                std::string error;
+                const bool saved = Editor::FileTransaction::Apply(
+                    Plans(directory), true, error,
+                    [&]() -> bool
+                    {
+                        for (const auto& entry : std::filesystem::directory_iterator(directory / ".wp1-transactions"))
+                            marker = CreateFileW((entry.path() / name).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                                                 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+                        Require(marker != INVALID_HANDLE_VALUE, "lock completion or commit marker");
+                        if (throws)
+                            throw std::runtime_error("document refused");
+                        return false;
+                    });
+                CloseHandle(marker);
+                Require(!saved && !error.empty(), "rejected document is reported");
+                FileJournal::Recover(directory);
+                FileJournal::Recover(directory);
+                CheckGeneration(directory, false);
+            }
+        for (const bool accepted : {false, true})
+        {
+            const auto directory = root / (accepted ? "acceptance-unrecorded" : "abort-unrecorded");
+            Seed(directory);
+            std::string error;
+            const bool saved = Editor::FileTransaction::Apply(Plans(directory), true, error,
+                                                              [&]
+                                                              {
+                                                                  denyAbort = !accepted;
+                                                                  denyAcceptance = accepted;
+                                                                  return accepted;
+                                                              });
+            denyAbort = denyAcceptance = false;
+            Require(saved == accepted && !error.empty(), "unrecorded outcome is diagnosed");
+            FileContents::Write(directory / "scene.txt", "later-edit");
+            FileContents::Remove(directory / "material.txt");
+            FileJournal::Recover(directory);
+            FileJournal::Recover(directory);
+            Require(FileContents::Read(directory / "scene.txt") == "later-edit" &&
+                        !FileContents::Read(directory / "material.txt"),
+                    "uncertain cleanup preserves later edits");
+            Require(Archived(directory, "old-scene") && Archived(directory, "new-scene") &&
+                        Archived(directory, "old-material") && Archived(directory, "new-material"),
+                    "all generations survive unrecorded outcomes");
+        }
+        for (const auto* mode : {L"--abort-record", L"--abort-denied"})
+            for (int index = 1; index <= 12; ++index)
+            {
+                const auto directory = root / (std::wstring(mode) + L"-" + std::to_wstring(index));
+                Seed(directory);
+                Child(mode, directory).Wait(77);
+                Child(L"--recover-index", directory, std::to_wstring(index)).Wait(0, 77);
+                Child(L"--recover", directory).Wait();
+                Child(L"--recover", directory).Wait();
+                if (std::wstring(mode) == L"--abort-record")
+                    CheckGeneration(directory, false);
+                else
+                {
+                    CheckGeneration(directory, true);
+                    Require(Archived(directory, "old-scene") && Archived(directory, "new-scene"),
+                            "uncertain cancellation survives recovery crashes");
+                }
+            }
+        std::cout << "PASS: durable cancellation, locked markers, uncertain outcomes and 24 recovery restart cases\n";
+    }
     void Completion(const std::filesystem::path& root)
     {
         const auto refused = root / "completion-failure";
@@ -366,6 +444,27 @@ namespace
                     !FileContents::Read(completed / "material.txt"),
                 "completed crash does not replay older files");
 
+        for (const int version : {2, 3})
+            for (const auto* mode : {L"--committed", L"--completed"})
+            {
+                if (version == 2 && std::wstring(mode) == L"--completed")
+                    continue;
+                const auto directory = root / (L"legacy-" + std::to_wstring(version) + mode);
+                Seed(directory);
+                Child(mode, directory).Wait(77);
+                for (const auto& entry : std::filesystem::directory_iterator(directory / ".wp1-transactions"))
+                {
+                    const auto path = entry.path() / "manifest.json";
+                    auto json = Engine::Json::parse(*FileContents::Read(path));
+                    json["version"] = version;
+                    FileContents::Write(path, json.dump());
+                }
+                FileJournal::Recover(directory);
+                FileJournal::Recover(directory);
+                CheckGeneration(directory, true);
+                Require(Archived(directory, "old-scene") && Archived(directory, "new-scene"),
+                        "legacy journals without receipts preserve both generations");
+            }
         const auto legacy = root / "version-two";
         Seed(legacy);
         Child(L"--mixed", legacy).Wait(77);
@@ -723,6 +822,7 @@ int wmain(int argc, wchar_t** argv)
                           (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         PublicSaveApis(root / "public-apis");
         Completion(root / "completion");
+        Cancellation(root / "cancellation");
         NestedDomains(root / "nested-domains");
         Crashes(root / "crashes");
         Conflicts(root / "conflicts");

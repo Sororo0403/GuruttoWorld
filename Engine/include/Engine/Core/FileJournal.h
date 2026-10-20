@@ -72,7 +72,7 @@ namespace Engine
                                    {"before", entry.before.has_value()},
                                    {"after", entry.after.has_value()}});
             }
-            FileContents::Write(directory_ / "manifest.json", Json{{"version", 3}, {"entries", records}}.dump(), false);
+            FileContents::Write(directory_ / "manifest.json", Json{{"version", 4}, {"entries", records}}.dump(), false);
         }
         /// <summary>復旧記録の所有者は複製しません。</summary>
         FileJournal(const FileJournal&) = delete;
@@ -91,12 +91,12 @@ namespace Engine
         /// <summary>ドキュメント拒否時は、ファイルを戻す前に旧版への回復方針を確定します。</summary>
         void RollbackIntent()
         {
-            for (const auto* name : {"completed", "committed"})
-            {
-                const auto marker = directory_ / name;
-                if (std::filesystem::exists(marker) && !DeleteFileW(marker.c_str()))
-                    throw std::runtime_error("保存の取消記録を更新できません：" + FileContents::Text(directory_));
-            }
+            FileContents::Write(directory_ / "aborted", "aborted\n", false);
+        }
+        /// <summary>メモリーの受理後に掃除を許可し、記録できない場合は両世代のコピーを残します。</summary>
+        void Accept()
+        {
+            FileContents::Write(directory_ / "accepted", "accepted\n", false);
         }
         /// <summary>保持ハンドルの解放後に、残った作業ファイルを回収します。</summary>
         std::vector<std::filesystem::path> Finish()
@@ -350,8 +350,8 @@ namespace Engine
                 return {};
             }
             const auto json = Json::parse(*manifest);
-            if ((json.at("version") != 2 && json.at("version") != 3) || !json.at("entries").is_array() ||
-                json.at("entries").size() > 1024)
+            if ((json.at("version") != 2 && json.at("version") != 3 && json.at("version") != 4) ||
+                !json.at("entries").is_array() || json.at("entries").size() > 1024)
                 throw std::runtime_error("復旧記録が不正です：" + FileContents::Text(directory));
             std::vector<Entry> entries;
             size_t index = 0;
@@ -392,8 +392,14 @@ namespace Engine
             if (marker && *marker != "committed\n")
                 throw std::runtime_error("保存の確定記録が不正です");
             const auto completion = FileContents::Read(directory / "completed");
-            if (completion && (!marker || json.at("version") != 3 || *completion != "completed\n"))
+            if (completion && (!marker || json.at("version") == 2 || *completion != "completed\n"))
                 throw std::runtime_error("保存の完了記録が不正です");
+            const auto aborted = FileContents::Read(directory / "aborted");
+            const auto accepted = FileContents::Read(directory / "accepted");
+            if ((aborted && (json.at("version") != 4 || *aborted != "aborted\n")) ||
+                (accepted && (json.at("version") != 4 || !completion || aborted || *accepted != "accepted\n")))
+                throw std::runtime_error("保存の受理・取消記録が不正です");
+            const bool preserve = !aborted && !accepted && (json.at("version") == 4 || marker.has_value());
             const auto close = [](void* handle)
             {
                 CloseHandle(handle);
@@ -402,12 +408,13 @@ namespace Engine
             for (const auto& entry : entries)
             {
                 // 完了後の外部編集や削除は、以前の保存内容を再適用せずそのまま保持します。
-                if (!completion)
+                if (aborted || !completion)
                 {
-                    const auto& desired = marker ? entry.after : entry.before;
-                    const auto& other = marker ? entry.before : entry.after;
-                    const auto& desiredId = marker ? entry.afterId : entry.beforeId;
-                    const auto& otherId = marker ? entry.beforeId : entry.afterId;
+                    const bool forward = marker.has_value() && !aborted;
+                    const auto& desired = forward ? entry.after : entry.before;
+                    const auto& other = forward ? entry.before : entry.after;
+                    const auto& desiredId = forward ? entry.afterId : entry.beforeId;
+                    const auto& otherId = forward ? entry.beforeId : entry.afterId;
                     const bool retained = Retire(entry.path, directory, desired, other, desiredId, otherId, true);
                     if (desired && !retained)
                     {
@@ -430,6 +437,9 @@ namespace Engine
             for (const auto& entry : std::filesystem::directory_iterator(directory))
                 if (entry.path().extension() == ".conflict")
                     conflicts.push_back(entry.path().filename());
+            // 受理結果を確定できない記録は、両世代のコピーを保管して掃除から除外します。
+            if (preserve)
+                conflicts.push_back("manifest.json");
             if (!conflicts.empty())
             {
                 auto archived = directory;
