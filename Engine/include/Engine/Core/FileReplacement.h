@@ -184,7 +184,10 @@ namespace Engine
                         replacements[i]->Apply();
                 // 受理後のメモリー更新と同期失敗が食い違わないよう、確定方針を先に同期します。
                 if (journal)
+                {
                     journal->CommitIntent();
+                    journal->Complete();
+                }
                 accepted = commitDocument();
                 if (!accepted)
                     throw std::runtime_error("ドキュメントを適用できません。");
@@ -225,7 +228,14 @@ namespace Engine
                 }
                 catch (const std::exception& failure)
                 {
-                    error += " / 復旧が必要です。次の保存前に再試行します：" + std::string(failure.what());
+                    if (accepted)
+                    {
+                        error +=
+                            " / 保存は完了しましたが、作業記録の掃除を再試行します：" + std::string(failure.what());
+                        Log::Warning(error);
+                    }
+                    else
+                        error += " / 復旧が必要です。次の保存前に再試行します：" + std::string(failure.what());
                 }
             return accepted;
         }

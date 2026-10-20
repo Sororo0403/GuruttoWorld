@@ -70,7 +70,7 @@ namespace Engine
                                    {"before", entry.before.has_value()},
                                    {"after", entry.after.has_value()}});
             }
-            FileContents::Write(directory_ / "manifest.json", Json{{"version", 2}, {"entries", records}}.dump(), false);
+            FileContents::Write(directory_ / "manifest.json", Json{{"version", 3}, {"entries", records}}.dump(), false);
         }
         /// <summary>復旧記録の所有者は複製しません。</summary>
         FileJournal(const FileJournal&) = delete;
@@ -81,12 +81,20 @@ namespace Engine
         {
             FileContents::Write(directory_ / "committed", "committed\n", false);
         }
+        /// <summary>全対象を保持中に、以後は対象へ再適用しない保存完了境界を同期します。</summary>
+        void Complete()
+        {
+            FileContents::Write(directory_ / "completed", "completed\n", false);
+        }
         /// <summary>ドキュメント拒否時は、ファイルを戻す前に旧版への回復方針を確定します。</summary>
         void RollbackIntent()
         {
-            const auto committed = directory_ / "committed";
-            if (std::filesystem::exists(committed) && !DeleteFileW(committed.c_str()))
-                throw std::runtime_error("保存の取消記録を更新できません：" + FileContents::Text(directory_));
+            for (const auto* name : {"completed", "committed"})
+            {
+                const auto marker = directory_ / name;
+                if (std::filesystem::exists(marker) && !DeleteFileW(marker.c_str()))
+                    throw std::runtime_error("保存の取消記録を更新できません：" + FileContents::Text(directory_));
+            }
         }
         /// <summary>保持ハンドルの解放後に、残った作業ファイルを回収します。</summary>
         std::vector<std::filesystem::path> Finish()
@@ -134,6 +142,20 @@ namespace Engine
         }
 
     private:
+        /// <summary>復旧の完了名を非上書きで公開し、一時的な共有違反だけを短く再試行します。</summary>
+        static void RenameDirectory(const std::filesystem::path& from, const std::filesystem::path& to)
+        {
+            for (unsigned int attempt = 0; attempt < 9; ++attempt)
+            {
+                if (MoveFileExW(from.c_str(), to.c_str(), MOVEFILE_WRITE_THROUGH))
+                    return;
+                const auto error = GetLastError();
+                if (attempt == 8 || (error != ERROR_ACCESS_DENIED && error != ERROR_SHARING_VIOLATION))
+                    throw std::runtime_error("復旧記録の完了名を公開できません（" + std::to_string(error) + "）：" +
+                                             FileContents::Text(from));
+                Sleep((std::min)(1u << attempt, 16u));
+            }
+        }
         /// <summary>同じプロセスでも保存ごとに異なる記録名を作ります。</summary>
         static std::string Token()
         {
@@ -275,7 +297,8 @@ namespace Engine
                 return {};
             }
             const auto json = Json::parse(*manifest);
-            if (json.at("version") != 2 || !json.at("entries").is_array() || json.at("entries").size() > 1024)
+            if ((json.at("version") != 2 && json.at("version") != 3) || !json.at("entries").is_array() ||
+                json.at("entries").size() > 1024)
                 throw std::runtime_error("復旧記録が不正です：" + FileContents::Text(directory));
             std::vector<Entry> entries;
             size_t index = 0;
@@ -315,6 +338,9 @@ namespace Engine
             const auto marker = FileContents::Read(directory / "committed");
             if (marker && *marker != "committed\n")
                 throw std::runtime_error("保存の確定記録が不正です");
+            const auto completion = FileContents::Read(directory / "completed");
+            if (completion && (!marker || json.at("version") != 3 || *completion != "completed\n"))
+                throw std::runtime_error("保存の完了記録が不正です");
             const auto close = [](void* handle)
             {
                 CloseHandle(handle);
@@ -322,23 +348,27 @@ namespace Engine
             std::vector<std::unique_ptr<void, decltype(close)>> held;
             for (const auto& entry : entries)
             {
-                const auto& desired = marker ? entry.after : entry.before;
-                const auto& other = marker ? entry.before : entry.after;
-                const auto& desiredId = marker ? entry.afterId : entry.beforeId;
-                const auto& otherId = marker ? entry.beforeId : entry.afterId;
-                const bool retained = Retire(entry.path, directory, desired, other, desiredId, otherId, true);
-                if (desired && !retained)
+                // 完了後の外部編集や削除は、以前の保存内容を再適用せずそのまま保持します。
+                if (!completion)
                 {
-                    std::filesystem::create_directories(entry.path.parent_path());
-                    FileContents::Write(entry.path, *desired, false);
-                }
-                if (desired)
-                {
-                    auto handle = Open(entry.path);
-                    std::unique_ptr<void, decltype(close)> guard(handle, close);
-                    if (Read(handle) != *desired)
-                        throw std::runtime_error("復旧中に対象が変更されました。再試行してください。");
-                    held.push_back(std::move(guard));
+                    const auto& desired = marker ? entry.after : entry.before;
+                    const auto& other = marker ? entry.before : entry.after;
+                    const auto& desiredId = marker ? entry.afterId : entry.beforeId;
+                    const auto& otherId = marker ? entry.beforeId : entry.afterId;
+                    const bool retained = Retire(entry.path, directory, desired, other, desiredId, otherId, true);
+                    if (desired && !retained)
+                    {
+                        std::filesystem::create_directories(entry.path.parent_path());
+                        FileContents::Write(entry.path, *desired, false);
+                    }
+                    if (desired)
+                    {
+                        auto handle = Open(entry.path);
+                        std::unique_ptr<void, decltype(close)> guard(handle, close);
+                        if (Read(handle) != *desired)
+                            throw std::runtime_error("復旧中に対象が変更されました。再試行してください。");
+                        held.push_back(std::move(guard));
+                    }
                 }
                 Retire(entry.stage, directory, entry.after, {}, entry.afterId, {});
                 Retire(entry.backup, directory, entry.before, {}, entry.beforeId, {});
@@ -351,7 +381,7 @@ namespace Engine
             {
                 auto archived = directory;
                 archived.replace_extension(".recovered");
-                std::filesystem::rename(directory, archived);
+                RenameDirectory(directory, archived);
                 for (auto& conflict : conflicts)
                     conflict = archived / conflict;
             }
@@ -360,7 +390,7 @@ namespace Engine
                 // 掃除途中の再起動ではコピー不足を復旧失敗としないよう、先に完了名へ移します。
                 auto completed = directory;
                 completed.replace_extension(".completed");
-                std::filesystem::rename(directory, completed);
+                RenameDirectory(directory, completed);
                 std::filesystem::remove_all(completed);
             }
             return conflicts;

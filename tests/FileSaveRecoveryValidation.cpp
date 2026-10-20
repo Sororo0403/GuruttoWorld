@@ -10,6 +10,18 @@
 namespace
 {
     std::function<void(const std::string&, const std::filesystem::path&)> checkpoint;
+    bool denyCompletion = false, denyManifest = false;
+
+    HANDLE WINAPI ObserveCreate(LPCWSTR name, DWORD access, DWORD sharing, LPSECURITY_ATTRIBUTES security,
+                                DWORD creation, DWORD flags, HANDLE templateFile)
+    {
+        if (denyManifest && creation == OPEN_EXISTING && std::filesystem::path(name).filename() == "manifest.json")
+        {
+            SetLastError(ERROR_ACCESS_DENIED);
+            return INVALID_HANDLE_VALUE;
+        }
+        return ::CreateFileW(name, access, sharing, security, creation, flags, templateFile);
+    }
 
     BOOL WINAPI ObserveInformation(HANDLE file, FILE_INFO_BY_HANDLE_CLASS kind, LPVOID data, DWORD size)
     {
@@ -30,6 +42,11 @@ namespace
     }
     BOOL WINAPI ObserveMove(LPCWSTR from, LPCWSTR to, DWORD flags)
     {
+        if (denyCompletion && std::filesystem::path(to).filename() == "completed")
+        {
+            SetLastError(ERROR_ACCESS_DENIED);
+            return FALSE;
+        }
         const auto result = ::MoveFileExW(from, to, flags);
         const auto error = GetLastError();
         if (result && checkpoint)
@@ -40,11 +57,13 @@ namespace
 }
 
 // 実APIの成功後だけで停止し、管理対象の保存実装をそのまま検証します。
+#define CreateFileW ObserveCreate
 #define SetFileInformationByHandle ObserveInformation
 #define MoveFileExW ObserveMove
 #include "../Editor/src/FileTransaction.h"
 #include <Engine/Assets/AssetDatabase.h>
 #include <SceneRuntime/ProjectSettings.h>
+#undef CreateFileW
 #undef MoveFileExW
 #undef SetFileInformationByHandle
 
@@ -90,12 +109,12 @@ namespace
             CloseHandle(process_.hProcess);
             CloseHandle(process_.hThread);
         }
-        void Wait(DWORD expected = 0)
+        void Wait(DWORD expected = 0, std::optional<DWORD> alternative = {})
         {
             Require(WaitForSingleObject(process_.hProcess, 30000) == WAIT_OBJECT_0, "child timeout");
             DWORD code = 0;
             const bool exited = GetExitCodeProcess(process_.hProcess, &code) != FALSE;
-            Require(exited && code == expected,
+            Require(exited && (code == expected || (alternative && code == *alternative)),
                     "child exit " + std::to_string(code) + ", expected " + std::to_string(expected));
         }
 
@@ -139,6 +158,19 @@ namespace
         if (mode == L"--foreign")
         {
             CreateForeign(root / "scene.txt");
+            return 0;
+        }
+        if (mode == L"--recover-index")
+        {
+            Require(argc == 4, "recovery index argument");
+            int count = 0;
+            const int target = std::stoi(argv[3]);
+            checkpoint = [&](const std::string& operation, const std::filesystem::path&)
+            {
+                if ((operation == "rename" || operation == "publish") && ++count == target)
+                    TerminateProcess(GetCurrentProcess(), 77);
+            };
+            FileJournal::Recover(root);
             return 0;
         }
         if (mode == L"--recover")
@@ -210,6 +242,7 @@ namespace
             if ((mode == L"--manifest" && operation == "publish" && to.filename() == "manifest.json") ||
                 ((mode == L"--committed" || mode == L"--api-committed" || mode == L"--create-delete-commit") &&
                  operation == "publish" && to.filename() == "committed") ||
+                (mode == L"--completed" && operation == "publish" && to.filename() == "completed") ||
                 (mode == L"--cleanup" && operation == "delete"))
                 TerminateProcess(GetCurrentProcess(), 77);
         };
@@ -220,6 +253,83 @@ namespace
                                            return mode != L"--rollback-gap";
                                        });
         throw std::runtime_error("save checkpoint not reached: " + error);
+    }
+    void Completion(const std::filesystem::path& root)
+    {
+        const auto refused = root / "completion-failure";
+        Seed(refused);
+        const auto changes = Plans(refused);
+        std::string error;
+        bool callback = false;
+        denyCompletion = true;
+        const bool accepted = Editor::FileTransaction::Apply(changes, true, error,
+                                                             [&]
+                                                             {
+                                                                 callback = true;
+                                                                 return true;
+                                                             });
+        denyCompletion = false;
+        Require(!accepted && !callback && !error.empty(), "completion failure precedes document acceptance");
+        FileJournal::Recover(refused);
+        CheckGeneration(refused, false);
+
+        const auto cleanup = root / "cleanup-failure";
+        Seed(cleanup);
+        Require(Editor::FileTransaction::Apply(Plans(cleanup), true, error,
+                                               [&]
+                                               {
+                                                   denyManifest = true;
+                                                   return true;
+                                               }),
+                "cleanup failure follows a completed save");
+        denyManifest = false;
+        Require(error.find("掃除") != std::string::npos, "cleanup failure is diagnosed");
+        FileContents::Write(cleanup / "scene.txt", "saved-after-success");
+        FileContents::Remove(cleanup / "material.txt");
+        FileJournal::Recover(cleanup);
+        Require(FileContents::Read(cleanup / "scene.txt") == "saved-after-success" &&
+                    !FileContents::Read(cleanup / "material.txt"),
+                "later edits and deletion survive cleanup retry");
+
+        const auto completed = root / "completed-crash";
+        Seed(completed);
+        Child(L"--completed", completed).Wait(77);
+        FileContents::Write(completed / "scene.txt", "external-after-completion");
+        FileContents::Remove(completed / "material.txt");
+        FileJournal::Recover(completed);
+        Require(FileContents::Read(completed / "scene.txt") == "external-after-completion" &&
+                    !FileContents::Read(completed / "material.txt"),
+                "completed crash does not replay older files");
+
+        const auto legacy = root / "version-two";
+        Seed(legacy);
+        Child(L"--mixed", legacy).Wait(77);
+        for (const auto& entry : std::filesystem::directory_iterator(legacy / ".wp1-transactions"))
+        {
+            const auto path = entry.path() / "manifest.json";
+            auto json = Engine::Json::parse(*FileContents::Read(path));
+            json["version"] = 2;
+            FileContents::Write(path, json.dump());
+        }
+        FileJournal::Recover(legacy);
+        CheckGeneration(legacy, false);
+        for (const auto* mode : {L"--mixed", L"--committed", L"--create-delete-commit", L"--completed"})
+            for (int index = 1; index <= 12; ++index)
+            {
+                const auto directory = root / (std::wstring(mode) + L"-" + std::to_wstring(index));
+                Seed(directory);
+                Child(mode, directory).Wait(77);
+                Child(L"--recover-index", directory, std::to_wstring(index)).Wait(77, 0);
+                FileJournal::Recover(directory);
+                FileJournal::Recover(directory);
+                if (std::wstring(mode) == L"--create-delete-commit")
+                    Require(FileContents::Read(directory / "created.bin") == std::string("\xff\0new", 5) &&
+                                !FileContents::Read(directory / "scene.txt"),
+                            "restarted creation/deletion recovery");
+                else
+                    CheckGeneration(directory, std::wstring(mode) != L"--mixed");
+            }
+        std::cout << "PASS: durable completion, cleanup retry, version 2 and 48 recovery restart cases\n";
     }
     void PublicSaveApis(const std::filesystem::path& root)
     {
@@ -547,6 +657,7 @@ int wmain(int argc, wchar_t** argv)
         const auto root = std::filesystem::absolute("generated/tests/file-save-recovery") /
                           (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         PublicSaveApis(root / "public-apis");
+        Completion(root / "completion");
         Crashes(root / "crashes");
         Conflicts(root / "conflicts");
         Metadata(root / "metadata");
@@ -556,6 +667,12 @@ int wmain(int argc, wchar_t** argv)
     }
     catch (const std::exception& failure)
     {
+        if (argc >= 3)
+        {
+            // 非表示の子プロセスでも、失敗したOS操作を検証結果へ残します。
+            std::ofstream diagnostic(std::filesystem::path(argv[2]) / "child-error.log");
+            diagnostic << failure.what() << '\n';
+        }
         std::cerr << failure.what() << '\n';
         return 1;
     }
