@@ -6,6 +6,8 @@
 #include <functional>
 #include <iostream>
 #include <string>
+#include <thread>
+#include <map>
 
 namespace
 {
@@ -140,6 +142,29 @@ namespace
         return {Editor::FileTransaction::Prepare(root / "scene.txt", "new-scene"),
                 Editor::FileTransaction::Prepare(root / "material.txt", "new-material")};
     }
+    void MoveLegacyJournal(const std::filesystem::path& source, const std::filesystem::path& destination,
+                           DWORD timeout = 1000)
+    {
+        // 旧形式の配置だけを再試行し、保存・復旧本体の失敗を隠さないようにします。
+        const auto deadline = GetTickCount64() + timeout;
+        while (true)
+        {
+            DWORD error = ERROR_ALREADY_EXISTS;
+            if (!std::filesystem::exists(destination))
+            {
+                if (MoveFileExW(source.c_str(), destination.c_str(), MOVEFILE_WRITE_THROUGH))
+                    return;
+                error = GetLastError();
+            }
+            if ((error == ERROR_ACCESS_DENIED || error == ERROR_SHARING_VIOLATION) && GetTickCount64() < deadline)
+            {
+                Sleep(5);
+                continue;
+            }
+            throw std::runtime_error("legacy journal relocation failed (error " + std::to_string(error) +
+                                     "): " + FileContents::Text(source) + " -> " + FileContents::Text(destination));
+        }
+    }
     void Seed(const std::filesystem::path& root)
     {
         std::filesystem::create_directories(root);
@@ -169,6 +194,23 @@ namespace
     {
         const std::wstring mode = argv[1];
         const auto root = std::filesystem::absolute(argv[2]);
+        if (mode == L"--hold-journal")
+        {
+            Require(argc == 5, "journal holder events");
+            auto directory =
+                CreateFileW((root / "manifest.json").c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+            Require(directory != INVALID_HANDLE_VALUE, "hold journal without delete sharing");
+            auto ready = OpenEventW(EVENT_MODIFY_STATE, FALSE, argv[3]);
+            auto release = OpenEventW(SYNCHRONIZE, FALSE, argv[4]);
+            Require(ready && release, "open journal holder events");
+            SetEvent(ready);
+            Require(WaitForSingleObject(release, 10000) == WAIT_OBJECT_0, "journal holder release");
+            CloseHandle(directory);
+            CloseHandle(ready);
+            CloseHandle(release);
+            return 0;
+        }
         if (mode == L"--foreign")
         {
             CreateForeign(root / "scene.txt");
@@ -276,6 +318,107 @@ namespace
                                        });
         throw std::runtime_error("save checkpoint not reached: " + error);
     }
+    void FixtureMoves(const std::filesystem::path& root)
+    {
+        for (const bool exhaust : {false, true})
+        {
+            const auto directory = root / (exhaust ? "deadline" : "temporary-lock");
+            Seed(directory);
+            Child(L"--gap", directory).Wait(77);
+            const auto source = std::filesystem::directory_iterator(directory / ".wp1-transactions")->path();
+            const auto manifestPath = source / "manifest.json";
+            auto manifest = Engine::Json::parse(*FileContents::Read(manifestPath));
+            manifest["version"] = 2;
+            FileContents::Write(manifestPath, manifest.dump());
+            const auto parent = directory / "Assets/Models/Package/.wp1-transactions";
+            std::filesystem::create_directories(parent);
+            const auto destination = parent / source.filename();
+            const auto snapshot = [](const std::filesystem::path& folder)
+            {
+                std::map<std::filesystem::path, std::string> contents;
+                for (const auto& entry : std::filesystem::directory_iterator(folder))
+                    contents.emplace(entry.path().filename(), *FileContents::Read(entry.path()));
+                return contents;
+            };
+            const auto original = snapshot(source);
+            const auto event =
+                L"Local\\WP1.JournalMove." + std::to_wstring(GetCurrentProcessId()) + std::to_wstring(GetTickCount64());
+            auto ready = CreateEventW(nullptr, TRUE, FALSE, (event + L".ready").c_str());
+            auto release = CreateEventW(nullptr, TRUE, FALSE, (event + L".release").c_str());
+            Require(ready && release, "create journal move events");
+            {
+                Child holder(L"--hold-journal", source, event + L".ready " + event + L".release");
+                Require(WaitForSingleObject(ready, 10000) == WAIT_OBJECT_0, "journal lock ready");
+                bool blocked = false;
+                try
+                {
+                    std::filesystem::rename(source, destination);
+                }
+                catch (const std::filesystem::filesystem_error& error)
+                {
+                    blocked =
+                        error.code().value() == ERROR_ACCESS_DENIED || error.code().value() == ERROR_SHARING_VIOLATION;
+                }
+                Require(blocked && snapshot(source) == original && !std::filesystem::exists(destination),
+                        "single-shot legacy relocation reproduces access denial without changing snapshots");
+                if (exhaust)
+                {
+                    std::string error;
+                    try
+                    {
+                        MoveLegacyJournal(source, destination, 60);
+                    }
+                    catch (const std::exception& failure)
+                    {
+                        error = failure.what();
+                    }
+                    Require(error.find("error ") != std::string::npos &&
+                                error.find(FileContents::Text(source)) != std::string::npos &&
+                                snapshot(source) == original && !std::filesystem::exists(destination),
+                            "exhausted relocation reports the OS error and retains all data");
+                    SetEvent(release);
+                }
+                else
+                {
+                    std::jthread unlock(
+                        [release]
+                        {
+                            Sleep(50);
+                            SetEvent(release);
+                        });
+                    MoveLegacyJournal(source, destination);
+                }
+                holder.Wait();
+            }
+            CloseHandle(ready);
+            CloseHandle(release);
+            if (exhaust)
+            {
+                std::filesystem::create_directory(destination);
+                FileContents::Write(destination / "guard", "existing-destination");
+                bool refused = false;
+                try
+                {
+                    MoveLegacyJournal(source, destination);
+                }
+                catch (const std::exception&)
+                {
+                    refused = true;
+                }
+                Require(refused && snapshot(source) == original &&
+                            FileContents::Read(destination / "guard") == "existing-destination",
+                        "existing destination is never overwritten");
+                FileContents::Remove(destination / "guard");
+                std::filesystem::remove(destination);
+                MoveLegacyJournal(source, destination);
+            }
+            Require(!std::filesystem::exists(source) && snapshot(destination) == original,
+                    "relocation retains every journal file");
+            FileJournal::Recover(directory);
+            CheckGeneration(directory, false);
+        }
+        std::cout << "PASS: legacy fixture relocation retries temporary locks and preserves data on failure\n";
+    }
     void Diagnostics(const std::filesystem::path& root)
     {
         const auto executable =
@@ -345,7 +488,7 @@ namespace
                         auto json = Engine::Json::parse(*FileContents::Read(manifest));
                         json["version"] = 2;
                         FileContents::Write(manifest, json.dump());
-                        std::filesystem::rename(entry.path(), oldRoot / entry.path().filename());
+                        MoveLegacyJournal(entry.path(), oldRoot / entry.path().filename());
                     }
                 }
                 Child(legacy ? L"--scan-project" : L"--open-project", directory, L"", executable).Wait();
@@ -762,7 +905,7 @@ namespace
                     auto manifest = Engine::Json::parse(*FileContents::Read(path));
                     manifest["version"] = 2;
                     FileContents::Write(path, manifest.dump());
-                    std::filesystem::rename(entry.path(), legacy / entry.path().filename());
+                    MoveLegacyJournal(entry.path(), legacy / entry.path().filename());
                 }
                 Require(!FileContents::Read(Engine::AssetDatabase::Sidecar(asset)), "late journal has missing sidecar");
                 const auto check = [&]
@@ -951,6 +1094,7 @@ int wmain(int argc, wchar_t** argv)
         if (suite && std::wstring(argv[1]) == L"--suite-diagnostic")
             throw std::runtime_error("injected suite diagnostic");
         Diagnostics(root / "diagnostics");
+        FixtureMoves(root / "fixture-moves");
         PublicSaveApis(root / "public-apis");
         Completion(root / "completion");
         Cancellation(root / "cancellation");
