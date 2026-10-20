@@ -115,6 +115,20 @@ namespace Engine
         {
             committed_ = true;
         }
+        /// <summary>保存領域を復旧してから内容を構築し、保存直前の外部変更も照合します。</summary>
+        static void Save(const std::filesystem::path& path, const std::function<std::string()>& prepare,
+                         bool overwrite = true)
+        {
+            const auto absolute = std::filesystem::absolute(path);
+            const auto root = FileSaveLock::Root(absolute);
+            FileSaveLock lock(root);
+            if (lock.Outermost())
+                FileJournal::RecoverLocked(root);
+            const auto before = FileContents::Read(absolute);
+            if (before && !overwrite)
+                throw std::runtime_error("保存先は既に存在します：" + FileContents::Text(absolute));
+            Write(absolute, before, prepare());
+        }
         /// <summary>単一ファイルにも比較・排他・復元を共通適用します。</summary>
         static void Write(const std::filesystem::path& path, const std::optional<std::string>& before,
                           std::string after)

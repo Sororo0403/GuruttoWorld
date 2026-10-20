@@ -35,6 +35,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="FileSaveRecoveryValidation.cpp" />
+    <ProjectReference Include="FileSaveApiValidation.vcxproj">
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
 
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
     <ProjectReference Include="..\Engine\Engine.vcxproj" />

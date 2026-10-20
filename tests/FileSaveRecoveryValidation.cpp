@@ -69,9 +69,11 @@ namespace
     class Child final
     {
     public:
-        Child(const std::wstring& mode, const std::filesystem::path& root, const std::wstring& extra = L"")
+        Child(const std::wstring& mode, const std::filesystem::path& root, const std::wstring& extra = L"",
+              const std::filesystem::path& executable = {})
         {
-            auto command = L"\"" + Executable().native() + L"\" " + mode + L" \"" + root.native() + L"\" " + extra;
+            auto command = L"\"" + (executable.empty() ? Executable() : executable).native() + L"\" " + mode + L" \"" +
+                           root.native() + L"\" " + extra;
             STARTUPINFOW startup{};
             startup.cb = sizeof(startup);
             Require(CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
@@ -92,7 +94,8 @@ namespace
         {
             Require(WaitForSingleObject(process_.hProcess, 30000) == WAIT_OBJECT_0, "child timeout");
             DWORD code = 0;
-            Require(GetExitCodeProcess(process_.hProcess, &code) && code == expected,
+            const bool exited = GetExitCodeProcess(process_.hProcess, &code) != FALSE;
+            Require(exited && code == expected,
                     "child exit " + std::to_string(code) + ", expected " + std::to_string(expected));
         }
 
@@ -169,6 +172,9 @@ namespace
             throw std::runtime_error("recovery checkpoint not reached");
         }
         auto plans = Plans(root);
+        if (mode == L"--api-gap" || mode == L"--api-committed")
+            plans = {Editor::FileTransaction::Prepare(root / "Assets/Scenes/scene.json", "candidate-scene"),
+                     Editor::FileTransaction::Prepare(root / "Assets/Materials/value.mat", "candidate-material")};
         if (mode == L"--create-delete" || mode == L"--create-delete-commit")
         {
             plans = {Editor::FileTransaction::Prepare(root / "created.bin", std::string("\xff\0new", 5)),
@@ -194,7 +200,7 @@ namespace
             if (operation == "rename")
             {
                 ++renames;
-                if (mode == L"--gap" || mode == L"--project-gap" || mode == L"--meta-gap" ||
+                if (mode == L"--gap" || mode == L"--api-gap" || mode == L"--project-gap" || mode == L"--meta-gap" ||
                     mode == L"--create-delete" || (mode == L"--mixed" && renames == 2) ||
                     (mode == L"--second-gap" && renames == 3) || (mode == L"--all-installed" && renames == 4))
                     TerminateProcess(GetCurrentProcess(), 77);
@@ -202,8 +208,8 @@ namespace
                     TerminateProcess(GetCurrentProcess(), 77);
             }
             if ((mode == L"--manifest" && operation == "publish" && to.filename() == "manifest.json") ||
-                ((mode == L"--committed" || mode == L"--create-delete-commit") && operation == "publish" &&
-                 to.filename() == "committed") ||
+                ((mode == L"--committed" || mode == L"--api-committed" || mode == L"--create-delete-commit") &&
+                 operation == "publish" && to.filename() == "committed") ||
                 (mode == L"--cleanup" && operation == "delete"))
                 TerminateProcess(GetCurrentProcess(), 77);
         };
@@ -214,6 +220,38 @@ namespace
                                            return mode != L"--rollback-gap";
                                        });
         throw std::runtime_error("save checkpoint not reached: " + error);
+    }
+    void PublicSaveApis(const std::filesystem::path& root)
+    {
+        const auto executable =
+            Executable().parent_path().parent_path() / "FileSaveApiValidation/FileSaveApiValidation.exe";
+        for (const auto* mode : {L"--api-gap", L"--api-committed"})
+        {
+            const auto directory = root / mode;
+            Seed(directory);
+            Child(L"--seed-api", directory, L"", executable).Wait();
+            Child(mode, directory).Wait(77);
+            Child(L"--save-api", directory, L"", executable).Wait();
+            const auto scene = FileContents::Read(directory / "Assets/Scenes/scene.json");
+            const auto material = FileContents::Read(directory / "Assets/Materials/value.mat");
+            Require(scene && scene->find("saved-object") != std::string::npos && material &&
+                        Engine::Json::parse(*material).at("roughness").get<float>() == .23f,
+                    "public APIs saved the requested generation");
+            FileJournal::Recover(directory);
+            FileJournal::Recover(directory);
+            Require(FileContents::Read(directory / "Assets/Scenes/scene.json") == scene &&
+                        FileContents::Read(directory / "Assets/Materials/value.mat") == material,
+                    "public API saves survive later recovery");
+        }
+        const auto directory = root / "no-overwrite";
+        Seed(directory);
+        Child(L"--seed-api", directory, L"", executable).Wait();
+        const auto before = FileContents::Read(directory / "Assets/Scenes/scene.json");
+        Child(L"--api-gap", directory).Wait(77);
+        Child(L"--no-overwrite-api", directory, L"", executable).Wait();
+        Require(FileContents::Read(directory / "Assets/Scenes/scene.json") == before,
+                "no-overwrite recovers before refusing an existing scene");
+        std::cout << "PASS: public Scene/Material saves recover first and survive reopening\n";
     }
     void Crashes(const std::filesystem::path& root)
     {
@@ -508,6 +546,7 @@ int wmain(int argc, wchar_t** argv)
             return RunChild(argc, argv);
         const auto root = std::filesystem::absolute("generated/tests/file-save-recovery") /
                           (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
+        PublicSaveApis(root / "public-apis");
         Crashes(root / "crashes");
         Conflicts(root / "conflicts");
         Metadata(root / "metadata");

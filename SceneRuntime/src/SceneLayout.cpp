@@ -6,6 +6,7 @@
 #include <SceneRuntime/Prefab.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Core/FileContents.h>
+#include <Engine/Core/FileReplacement.h>
 #include <Engine/Core/Json.h>
 #include <cmath>
 #include <algorithm>
@@ -474,7 +475,13 @@ namespace SceneRuntime
     }
     void SceneLayout::Save(const std::filesystem::path& path, bool overwrite) const
     {
-        Engine::FileContents::Write(path, SerializeForSave(path), overwrite);
+        Engine::FileReplacement::Save(
+            path,
+            [&]
+            {
+                return SerializeForSave(path);
+            },
+            overwrite);
     }
 
     void SceneLayout::ResolveAssets(const std::filesystem::path& root)

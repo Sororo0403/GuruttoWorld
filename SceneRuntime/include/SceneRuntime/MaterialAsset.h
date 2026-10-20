@@ -199,9 +199,11 @@ namespace SceneRuntime
         /// <summary>保存内容を検証してから、共通の原子的な書き込みで確定します。</summary>
         void Save(const std::filesystem::path& root, const std::filesystem::path& path) const
         {
-            const auto source = SerializeForSave(root, path);
-            std::filesystem::create_directories((root / path).parent_path());
-            Engine::FileContents::Write(root / path, source);
+            Engine::FileReplacement::Save(root / path,
+                                          [&]
+                                          {
+                                              return SerializeForSave(root, path);
+                                          });
         }
         std::shared_ptr<const Engine::Material> Prepare(
             ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& root,
