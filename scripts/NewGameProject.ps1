@@ -5,9 +5,10 @@ param(
 )
 $ErrorActionPreference='Stop'
 $engineRoot=[IO.Path]::GetFullPath((Split-Path $PSScriptRoot -Parent))
+. (Join-Path $PSScriptRoot 'ProjectContext.ps1')
 $destinationRoot=[IO.Path]::GetFullPath($Destination)
 if (Test-Path -LiteralPath $destinationRoot) { throw 'Choose a new folder; existing projects are never overwritten.' }
-if (!$TemplateContent) { $TemplateContent=Join-Path $engineRoot 'Games/GuruttoWorld' }
+if (!$TemplateContent) { $TemplateContent=Join-Path $engineRoot 'Content/Templates/MinimalGame' }
 $TemplateContent=[IO.Path]::GetFullPath($TemplateContent)
 foreach ($required in @('Assets/Project.json')) {
     if (!(Test-Path -LiteralPath (Join-Path $TemplateContent $required))) { throw "Template is missing $required" }
@@ -31,37 +32,9 @@ $metadata = if (Test-Path -LiteralPath $metadataPath) {
 }
 $metadata.id = [Guid]::NewGuid().ToString('N')
 Write-ProjectFile $metadataPath ($metadata | ConvertTo-Json -Depth 100)
-$guid=[Guid]::NewGuid().ToString().ToUpperInvariant()
-$escapedRoot=[Security.SecurityElement]::Escape($engineRoot+'\')
-$project=@'
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <GameProjectRoot>$(MSBuildThisFileDirectory)</GameProjectRoot>
-    <GameContentRoot>$(MSBuildThisFileDirectory)</GameContentRoot>
-    <GameName>__NAME__</GameName>
-    <ProjectGuid>{__GUID__}</ProjectGuid>
-    <WP1Root>__ROOT__</WP1Root>
-  </PropertyGroup>
-  <Import Project="$(WP1Root)App\App.vcxproj" />
-</Project>
-'@
-Write-ProjectFile (Join-Path $destinationRoot "$Name.vcxproj") ($project.Replace('__NAME__',$Name).Replace('__GUID__',$guid).Replace('__ROOT__',$escapedRoot))
-$solution=@'
-<Solution>
-  <Configurations>
-    <BuildType Name="Debug" />
-    <BuildType Name="Development" />
-    <BuildType Name="Release" />
-    <Platform Name="x64" />
-  </Configurations>
-  <Project Path="__NAME__.vcxproj" />
-  <Project Path="__ROOT__Engine/Engine.vcxproj" />
-  <Project Path="__ROOT__SceneRuntime/SceneRuntime.vcxproj" />
-</Solution>
-'@
-Write-ProjectFile (Join-Path $destinationRoot "$Name.slnx") ($solution.Replace('__NAME__',$Name).Replace('__ROOT__',$escapedRoot.Replace('\','/')))
-$descriptor=[ordered]@{version=1;name=$Name;engineRoot=$engineRoot;project="$Name.vcxproj";solution="$Name.slnx"}
+$descriptor=[ordered]@{version=1;engineContract=1;name=$Name;projectId=$metadata.id;engineRoot=$engineRoot;project="$Name.vcxproj";solution="$Name.slnx";generatedProjects=$true}
 Write-ProjectFile (Join-Path $destinationRoot 'WP1.project.json') ($descriptor | ConvertTo-Json)
+Sync-GeneratedGameProject -Context (Get-ProjectContext -Project $destinationRoot -RequireEngineRoot $engineRoot)
 Write-ProjectFile (Join-Path $destinationRoot '.gitignore') "generated/`nAssets/Scripts/Bin/`n*.vcxproj.user`n.vs/"
 Write-Output "Created game project: $destinationRoot"
 Write-Output "Build $Name.slnx (Debug / Development / Release, x64)."

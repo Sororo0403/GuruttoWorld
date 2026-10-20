@@ -15,9 +15,11 @@ namespace
         if (path.empty() || cache.contains(path))
             return true;
         auto renderer = std::make_shared<typename Cache::mapped_type::element_type>();
+        error.clear();
         if (!initialize(*renderer))
         {
-            error = message;
+            if (error.empty())
+                error = message;
             return false;
         }
         cache.emplace(path, std::move(renderer));
@@ -28,23 +30,17 @@ namespace
 namespace SceneRuntime
 {
     bool ScenePresentation::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
-                                       std::string& error)
+                                       std::string& error, std::shared_ptr<const Engine::ContentContext> context)
     {
-        auto texture = std::make_shared<Engine::Texture2D>();
-        if (!texture->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), {}) ||
-            !sky_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture, root / "Shaders/Sky.hlsl") ||
-            !particles_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture,
-                                   root / "Shaders/GlowParticle.hlsl"))
-        {
-            error = "Scene sky or particle renderer could not be initialized";
+        context_ = context ? std::move(context) : Engine::ContentContext::Capture(root);
+        context_->RequireRoot(root);
+        if (!context_->CheckConfiguration(error))
             return false;
-        }
-        root_ = root;
+        root_ = context_->Root();
         device_ = renderer.GetDevice();
-        postShader_ = root / "Shaders/PostEffects.hlsl";
+        postShader_ = context_->Resolve(root_ / "Shaders/PostEffects.hlsl");
         queue_ = renderer.GetCommandQueue();
-        environmentTexture_ = texture;
-        oceanShader_ = root / "Shaders/OceanSunset.hlsl";
+        oceanShader_ = context_->Resolve(root_ / "Shaders/OceanSunset.hlsl");
         error.clear();
         return true;
     }
@@ -61,7 +57,7 @@ namespace SceneRuntime
         const auto& sky = *found->sky;
         Engine::SpriteDrawParameters parameters;
         parameters.size = {static_cast<float>(width), static_cast<float>(height)};
-        if (sky.ocean && camera && oceanReady_)
+        if (sky.ocean && camera && (oceanReady_ || customOcean_.contains(layout.settings.oceanShader)))
         {
             using namespace DirectX;
             const auto& ocean = *sky.ocean;
@@ -201,6 +197,50 @@ namespace SceneRuntime
     }
     bool ScenePresentation::PrepareEffects(const SceneLayout& layout, std::string& error) const
     {
+        const bool sky = std::any_of(layout.objects.begin(), layout.objects.end(),
+                                     [](const auto& object)
+                                     {
+                                         return object.sky && object.sky->enabled;
+                                     });
+        const bool particles = std::any_of(layout.objects.begin(), layout.objects.end(),
+                                           [](const auto& object)
+                                           {
+                                               return object.particleEmitter && object.particleEmitter->enabled;
+                                           });
+        if ((sky || particles) && !environmentTexture_)
+        {
+            auto texture = std::make_shared<Engine::Texture2D>();
+            if (!texture->Initialize(device_.Get(), queue_.Get(), {}))
+            {
+                error = "Cannot prepare effect texture";
+                return false;
+            }
+            environmentTexture_ = std::move(texture);
+        }
+        if (sky && layout.settings.skyShader.empty() && !skyReady_)
+        {
+            if (!context_->CheckConfiguration(error))
+                return false;
+            if (!sky_.Initialize(device_.Get(), queue_.Get(), environmentTexture_,
+                                 context_->Resolve(root_ / "Shaders/Sky.hlsl")))
+            {
+                error = "Sky pipeline could not be initialized";
+                return false;
+            }
+            skyReady_ = true;
+        }
+        if (particles && layout.settings.particleShader.empty() && !particlesReady_)
+        {
+            if (!context_->CheckConfiguration(error))
+                return false;
+            if (!particles_.Initialize(device_.Get(), queue_.Get(), environmentTexture_,
+                                       context_->Resolve(root_ / "Shaders/GlowParticle.hlsl")))
+            {
+                error = "Particle pipeline could not be initialized";
+                return false;
+            }
+            particlesReady_ = true;
+        }
         const bool ocean = std::any_of(layout.objects.begin(), layout.objects.end(),
                                        [](const auto& object)
                                        {
@@ -212,34 +252,42 @@ namespace SceneRuntime
                 path, cache,
                 [&](auto& renderer)
                 {
-                    return renderer.Initialize(device_.Get(), queue_.Get(), environmentTexture_, root_ / path, depth,
-                                               depth);
+                    if (!context_->CheckConfiguration(error))
+                        return false;
+                    return renderer.Initialize(device_.Get(), queue_.Get(), environmentTexture_,
+                                               context_->Resolve(root_ / path), depth, depth);
                 },
                 error, "Scene sprite shader could not be initialized");
         };
-        if (!sprite(layout.settings.skyShader, customSky_, false) ||
+        if ((sky && !sprite(layout.settings.skyShader, customSky_, false)) ||
             (ocean && !sprite(layout.settings.oceanShader, customOcean_, true)))
             return false;
-        if (!PrepareRenderer(
-                layout.settings.particleShader, customParticles_,
-                [&](auto& renderer)
-                {
-                    return renderer.Initialize(device_.Get(), queue_.Get(), environmentTexture_,
-                                               root_ / layout.settings.particleShader);
-                },
-                error, "Scene particle shader could not be initialized"))
+        if (particles && !PrepareRenderer(
+                             layout.settings.particleShader, customParticles_,
+                             [&](auto& renderer)
+                             {
+                                 if (!context_->CheckConfiguration(error))
+                                     return false;
+                                 return renderer.Initialize(device_.Get(), queue_.Get(), environmentTexture_,
+                                                            context_->Resolve(root_ / layout.settings.particleShader));
+                             },
+                             error, "Scene particle shader could not be initialized"))
             return false;
         if (layout.settings.postEffects.enabled &&
             !PrepareRenderer(
                 layout.settings.postShader, customPost_,
                 [&](auto& renderer)
                 {
-                    return renderer.Initialize(device_.Get(), root_ / layout.settings.postShader);
+                    if (!context_->CheckConfiguration(error))
+                        return false;
+                    return renderer.Initialize(device_.Get(), context_->Resolve(root_ / layout.settings.postShader));
                 },
                 error, "Scene post effect shader could not be initialized"))
             return false;
-        if (ocean && !oceanReady_)
+        if (ocean && layout.settings.oceanShader.empty() && !oceanReady_)
         {
+            if (!context_->CheckConfiguration(error))
+                return false;
             if (!ocean_.Initialize(device_.Get(), queue_.Get(), environmentTexture_, oceanShader_, true, true))
             {
                 error = "Ocean sunset pipeline could not be initialized";
@@ -247,8 +295,10 @@ namespace SceneRuntime
             }
             oceanReady_ = true;
         }
-        if (!layout.settings.postEffects.enabled || postEffects_.Ready())
+        if (!layout.settings.postEffects.enabled || !layout.settings.postShader.empty() || postEffects_.Ready())
             return true;
+        if (!context_->CheckConfiguration(error))
+            return false;
         if (!postEffects_.Initialize(device_.Get(), postShader_))
         {
             error = "Post effect pipeline could not be initialized";
@@ -275,7 +325,7 @@ namespace SceneRuntime
             for (size_t channel = 0; channel < 3; ++channel)
                 clear[channel] = clear[channel] <= .04045f ? clear[channel] / 12.92f
                                                            : std::pow((clear[channel] + .055f) / 1.055f, 2.4f);
-            processing = PrepareEffects(layout, error) && post->Begin(commands, width, height, clear);
+            processing = post->Ready() && post->Begin(commands, width, height, clear);
             if (!processing)
                 Engine::Log::Warning(error.empty() ? "Post effect target could not be prepared" : error);
         }
@@ -284,7 +334,7 @@ namespace SceneRuntime
     void ScenePresentation::Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width,
                                  unsigned int height, const SceneDrawOptions& options) const
     {
-        const auto& [sceneCamera, seconds, motionEnabled, uiState, showSceneUi] = options;
+        const auto& [sceneCamera, seconds, motionEnabled, uiState, showSceneUi, showGameUi] = options;
         if (!width || !height)
             return;
         Engine::PostEffectRenderer* post = nullptr;
@@ -322,7 +372,7 @@ namespace SceneRuntime
             if (showSceneUi)
                 ui_.DrawScene(commands, world, *sceneCamera, uiState ? *uiState : UiState{});
         }
-        else
+        else if (showGameUi)
         {
             Engine::GpuScope gpu(commands, "Game UI");
             Engine::CpuScope cpu("Game UI");

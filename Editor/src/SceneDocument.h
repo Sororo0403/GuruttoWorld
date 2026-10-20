@@ -13,7 +13,50 @@ namespace Editor
     class SceneDocument final
     {
     public:
-        explicit SceneDocument(std::filesystem::path path) : path_(std::move(path)), savedSource_(ReadSource(path_)) {}
+        explicit SceneDocument(std::filesystem::path path, std::shared_ptr<const Engine::ContentContext> context = {})
+            : data_(std::make_shared<SceneRuntime::SceneDocumentData>(SceneRuntime::SceneLayout{}, std::move(context))),
+              path_(std::move(path)), savedSource_(ReadSource(path_))
+        {
+        }
+        /// <summary>履歴用の複製では編集データを共有せず保持します。</summary>
+        SceneDocument(const SceneDocument& other)
+            : data_(std::make_shared<SceneRuntime::SceneDocumentData>(*other.data_)), path_(other.path_),
+              savedSource_(other.savedSource_), request_(other.request_), ready_(other.ready_),
+              unsavedNew_(other.unsavedNew_)
+        {
+        }
+        /// <summary>既存の投影先の所有権を保って、保存基準とデータを復元します。</summary>
+        SceneDocument& operator=(const SceneDocument& other)
+        {
+            if (this == &other)
+                return *this;
+            *data_ = *other.data_;
+            path_ = other.path_;
+            savedSource_ = other.savedSource_;
+            request_ = other.request_;
+            ready_ = other.ready_;
+            unsavedNew_ = other.unsavedNew_;
+            return *this;
+        }
+        /// <summary>保存・履歴・Playの複製元となる、描画から独立したデータを所有します。</summary>
+        const std::shared_ptr<SceneRuntime::SceneDocumentData>& Data() const
+        {
+            return data_;
+        }
+        /// <summary>編集用投影と同じ正本を取得します。</summary>
+        const SceneRuntime::SceneLayout& Layout() const
+        {
+            return data_->Layout();
+        }
+        /// <summary>読み込んだ正本を維持して、開いたファイルの保存基準を更新します。</summary>
+        void OpenPath(std::filesystem::path path)
+        {
+            const auto source = ReadSource(path);
+            path_ = std::move(path);
+            savedSource_ = source;
+            unsavedNew_ = false;
+            Cancel();
+        }
         const std::filesystem::path& Path() const
         {
             return path_;
@@ -116,7 +159,7 @@ namespace Editor
                     throw std::runtime_error("新規シーンの保存先が既に存在します。別の名前を指定してください。");
                 SceneRuntime::SceneLayout empty;
                 const bool success = request.create ? world.ReplaceLayout(std::move(empty), root, error)
-                                                    : world.Reload(root, request.path, error);
+                                                    : world.Reload(root, request.path, error, true);
                 if (!success)
                     return false;
                 path_ = std::move(request.path);
@@ -149,6 +192,7 @@ namespace Editor
             std::filesystem::path path;
             bool create = false;
         };
+        std::shared_ptr<SceneRuntime::SceneDocumentData> data_ = std::make_shared<SceneRuntime::SceneDocumentData>();
         std::filesystem::path path_;
         std::optional<std::string> savedSource_;
         std::optional<RequestData> request_;

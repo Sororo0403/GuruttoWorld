@@ -204,6 +204,8 @@ namespace EnvironmentValidation
                 "environment color fixture initializes");
         const auto capture = [&]()
         {
+            Require(presentation.Prepare(renderer, content, world.Layout(), error),
+                    "environment resources prepare before draw");
             return Pixel(renderer,
                          [&](auto* commands)
                          {

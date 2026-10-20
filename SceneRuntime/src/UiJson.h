@@ -4,5 +4,4 @@
 namespace SceneRuntime
 {
     bool ReadUiComponent(const Engine::Json&, ScenePlacement&, const std::string&);
-    void WriteUiComponents(Engine::Json&, const ScenePlacement&);
 }

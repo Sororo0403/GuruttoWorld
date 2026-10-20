@@ -11,6 +11,26 @@ namespace SceneRuntime
 {
     struct TitleBindings
     {
+        static float AnalogValue(const Engine::InputBinding& binding,const Engine::InputSnapshot* snapshot)
+        {
+            float analog=0;const int axis=std::abs(binding.axis);
+            if(axis==1 || axis==2) analog=snapshot->stick[axis-1];
+            if(axis==3 || axis==4) analog=snapshot->rightStick[axis-3];
+            if(axis==5 || axis==6) analog=snapshot->triggers[axis-5];
+            if(binding.axis<0) analog=-analog;
+            return analog;
+        }
+
+        static void ApplyDeviceBinding(TitleMenuInput& input,const Engine::InputBinding& binding,const Engine::InputSnapshot* snapshot,unsigned int button)
+        {
+            const bool keyboard=std::any_of(binding.keys.begin(),binding.keys.end(),[&](unsigned int key){return snapshot->down[key];}) ||
+                (binding.mouseButtons && (snapshot->mouseButtons&binding.mouseButtons)==binding.mouseButtons);
+            if(keyboard) input.keyboardButtons|=button;
+            const float analog=AnalogValue(binding,snapshot);
+            if(snapshot->gamepadConnected && ((binding.buttons && (snapshot->buttons&binding.buttons)==binding.buttons) ||
+                (binding.axis && std::isfinite(analog) && analog>=binding.threshold))) input.gamepadButtons|=button;
+        }
+
         static TitleMenuInput Input(const SceneRuntime::MenuConfiguration& config,const Engine::InputActions& actions,bool active,const Engine::InputSnapshot* snapshot=nullptr) {
             TitleMenuInput input; input.active=active;
             constexpr unsigned int buttons[]{MenuUp,MenuDown,MenuLeft,MenuRight,MenuConfirm,MenuBack};
@@ -22,17 +42,7 @@ namespace SceneRuntime
                 for(size_t i=0;i<config.inputs.size();++i) {
                     if(!actions.Down(config.inputs[i])) continue;
                     const auto found=actions.GetBindings().find(config.inputs[i]);if(found==actions.GetBindings().end()) continue;
-                    const auto& binding=found->second;
-                    const bool keyboard=std::any_of(binding.keys.begin(),binding.keys.end(),[&](unsigned int key){return snapshot->down[key];}) ||
-                        (binding.mouseButtons && (snapshot->mouseButtons&binding.mouseButtons)==binding.mouseButtons);
-                    if(keyboard) input.keyboardButtons|=buttons[i];
-                    float analog=0;const int axis=std::abs(binding.axis);
-                    if(axis==1 || axis==2) analog=snapshot->stick[axis-1];
-                    if(axis==3 || axis==4) analog=snapshot->rightStick[axis-3];
-                    if(axis==5 || axis==6) analog=snapshot->triggers[axis-5];
-                    if(binding.axis<0) analog=-analog;
-                    if(snapshot->gamepadConnected && ((binding.buttons && (snapshot->buttons&binding.buttons)==binding.buttons) ||
-                        (binding.axis && std::isfinite(analog) && analog>=binding.threshold))) input.gamepadButtons|=buttons[i];
+                    ApplyDeviceBinding(input,found->second,snapshot,buttons[i]);
                 }
             }
             return input;
@@ -59,12 +69,6 @@ namespace SceneRuntime
             const auto* object=MenuCanvas(layout);
             return object?&*object->canvas->menu:nullptr;
         }
-        static SceneRuntime::MenuConfiguration EffectiveConfiguration(const SceneRuntime::SceneLayout& layout) {
-            if(const auto* config=Configuration(layout)) return *config;
-            auto config=SceneRuntime::DefaultMenuConfiguration();
-            config.entries[0].target=StartScene(layout);
-            return config;
-        }
         static std::vector<TitleMenuItem> Items(const SceneRuntime::SceneLayout& layout)
         {
             std::vector<TitleMenuItem> result;
@@ -82,17 +86,6 @@ namespace SceneRuntime
             if(const auto* object=MenuCanvas(layout)) return {static_cast<unsigned int>(object->canvas->referenceSize[0]),static_cast<unsigned int>(object->canvas->referenceSize[1])};
             return {1280,720};
         }
-        static std::string StartScene(const SceneRuntime::SceneLayout& layout)
-        {
-            auto state=SceneRuntime::SceneUi::Defaults(layout);
-            state.values["screen"]=0; state.values["intro"]=1;
-            for(const auto& object:layout.objects)
-                if(Item(object)==TitleMenuItem::Start && SceneRuntime::SceneUi::Resolve(layout,object,ReferenceSize(layout)[0],ReferenceSize(layout)[1],state).visible) {
-                    const auto& target=object.button->target;
-                    if(target.starts_with("Assets/Scenes/") && target.ends_with(".json") &&
-                        target.find("..") == std::string::npos && target.find('\\')==std::string::npos) return target;
-                }
-            return {};
-        }
+
     };
 }

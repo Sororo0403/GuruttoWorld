@@ -1,4 +1,6 @@
 #include "SceneComponentJson.h"
+#include <SceneRuntime/ComponentFieldSchema.h>
+#include <SceneRuntime/ScriptValueJson.h>
 #include <Engine/Core/Validation.h>
 #include "RagdollJson.h"
 #include "EnvironmentJson.h"
@@ -7,7 +9,6 @@
 #include "AnimatorJson.h"
 #include <SceneRuntime/MaterialAsset.h>
 #include <SceneRuntime/SceneUi.h>
-#include <SceneRuntime/ScriptRuntime.h>
 #include <algorithm>
 #include <iterator>
 #include <cmath>
@@ -21,85 +22,8 @@ namespace
     using Engine::JsonArray;
     using Engine::JsonObject;
     using Engine::JsonNumber;
-    SceneRuntime::ScriptValue ReadScriptValue(const Json& source, size_t depth, size_t& remaining)
-    {
-        if (depth > 8 || remaining == 0)
-            throw std::runtime_error("Script data exceeds nesting or element limit");
-        --remaining;
-        const auto& object = JsonObject(source);
-        if (object.size() != 2)
-            throw std::runtime_error("Invalid script data encoding");
-        const auto kind = object.at("kind").get<std::string>();
-        const auto& value = object.at("value");
-        using Value = SceneRuntime::ScriptValue;
-        if (kind == "number")
-        {
-            const auto number = JsonNumber(value);
-            if (!Engine::InRange(number, -1000000, 1000000))
-                throw std::runtime_error("Invalid script data number");
-            return {static_cast<float>(number)};
-        }
-        if (kind == "bool")
-            return {value.get<bool>()};
-        if (kind == "string")
-            return {value.get<std::string>()};
-        if (kind == "reference")
-            return {SceneRuntime::ScriptObjectReference{value.get<std::string>()}};
-        if (kind == "array")
-        {
-            Value::Array result;
-            const auto& children = JsonArray(value);
-            std::transform(children.begin(), children.end(), std::back_inserter(result),
-                           [&](const auto& child)
-                           {
-                               return ReadScriptValue(child, depth + 1, remaining);
-                           });
-            return {std::move(result)};
-        }
-        if (kind == "object")
-        {
-            Value::Object result;
-            for (const auto& [key, child] : JsonObject(value).items())
-                result.emplace(key, ReadScriptValue(child, depth + 1, remaining));
-            return {std::move(result)};
-        }
-        throw std::runtime_error("Unknown script data kind");
-    }
-    Json WriteScriptValue(const SceneRuntime::ScriptValue& source)
-    {
-        return std::visit(
-            [](const auto& value) -> Json
-            {
-                using T = std::decay_t<decltype(value)>;
-                using Value = SceneRuntime::ScriptValue;
-                if constexpr (std::is_same_v<T, float>)
-                    return {{"kind", "number"}, {"value", value}};
-                else if constexpr (std::is_same_v<T, bool>)
-                    return {{"kind", "bool"}, {"value", value}};
-                else if constexpr (std::is_same_v<T, std::string>)
-                    return {{"kind", "string"}, {"value", value}};
-                else if constexpr (std::is_same_v<T, SceneRuntime::ScriptObjectReference>)
-                    return {{"kind", "reference"}, {"value", value.id}};
-                else if constexpr (std::is_same_v<T, Value::Array>)
-                {
-                    Json array = Json::array();
-                    std::transform(value.begin(), value.end(), std::back_inserter(array),
-                                   [](const auto& child)
-                                   {
-                                       return WriteScriptValue(child);
-                                   });
-                    return {{"kind", "array"}, {"value", std::move(array)}};
-                }
-                else
-                {
-                    Json object = Json::object();
-                    for (const auto& [key, child] : value)
-                        object[key] = WriteScriptValue(child);
-                    return {{"kind", "object"}, {"value", std::move(object)}};
-                }
-            },
-            source.value);
-    }
+    using SceneRuntime::ReadScriptValue;
+    using SceneRuntime::WriteScriptValue;
     std::filesystem::path ReadModel(const Json& object)
     {
         const auto text = object.at("model").get<std::string>();
@@ -321,25 +245,21 @@ namespace
         const auto& enabled = source.enabled;
         if (placement.playerController)
             throw std::runtime_error("Only one PlayerController is allowed");
-        const double speed = JsonNumber(component.at("moveSpeed"));
-        if (!Engine::InRange(speed, 0, 1000))
-            throw std::runtime_error("Invalid PlayerController speed");
-        placement.playerController = SceneRuntime::PlayerControllerComponent{id, enabled, static_cast<float>(speed)};
-        auto& player = *placement.playerController;
-        if (component.contains("useGravity"))
-            player.useGravity = component.at("useGravity").get<bool>();
-        if (component.contains("gravity"))
-            player.gravity = static_cast<float>(JsonNumber(component.at("gravity")));
-        if (component.contains("jumpSpeed"))
-            player.jumpSpeed = static_cast<float>(JsonNumber(component.at("jumpSpeed")));
+        SceneRuntime::PlayerControllerComponent player{id, enabled};
+        player.useGravity = component.value("useGravity", false);
         player.usePhysics = component.value("usePhysics", false);
-        if (component.contains("maxSlopeDegrees"))
-            player.maxSlopeDegrees = static_cast<float>(JsonNumber(component.at("maxSlopeDegrees")));
-        if (component.contains("stepHeight"))
-            player.stepHeight = static_cast<float>(JsonNumber(component.at("stepHeight")));
-        if (!Engine::InRange(player.gravity, 0, 1000) || !Engine::InRange(player.jumpSpeed, 0, 1000) ||
-            !Engine::InRange(player.maxSlopeDegrees, 0, 89) || !Engine::InRange(player.stepHeight, 0, 10))
-            throw std::runtime_error("Invalid player gravity, jump or slope settings");
+        for (const auto& field : SceneRuntime::PlayerControllerScalarFields)
+        {
+            const auto key = std::string(field.name);
+            if (component.contains(key) || field.member == &SceneRuntime::PlayerControllerComponent::moveSpeed)
+            {
+                const auto value = JsonNumber(component.at(key));
+                if (!field.Accepts(value))
+                    throw std::runtime_error("Invalid PlayerController field: " + key);
+                player.*field.member = static_cast<float>(value);
+            }
+        }
+        placement.playerController = std::move(player);
     }
 
     void ReadColliderBounds(const Json& component, SceneRuntime::BoxColliderComponent& collider)
@@ -576,199 +496,6 @@ namespace
         found->second(source, placement);
         return true;
     }
-    void AppendJoint(Json& components, const SceneRuntime::ScenePlacement& placement)
-    {
-        if (placement.joint)
-        {
-            const auto& joint = *placement.joint;
-            joint.Validate();
-            auto object = Component(joint.id, "Joint", joint.enabled);
-            object["kind"] = joint.type;
-            object["target"] = joint.target;
-            object["collideConnected"] = joint.collideConnected;
-            object["anchor"] = joint.anchor;
-            object["connectedAnchor"] = joint.connectedAnchor;
-            object["axis"] = joint.axis;
-            object["minimum"] = joint.minimum;
-            object["maximum"] = joint.maximum;
-            object["swing"] = joint.swing;
-            object["minDistance"] = joint.minDistance;
-            object["maxDistance"] = joint.maxDistance;
-            components.push_back(std::move(object));
-        }
-    }
-
-    void AppendMeshRenderer(Json& components, const SceneRuntime::ScenePlacement& placement)
-    {
-        if (placement.meshRenderer)
-        {
-            const auto& mesh = *placement.meshRenderer;
-            auto object = Component(mesh.id, "MeshRenderer", mesh.enabled);
-            object["model"] = mesh.model;
-            object["visibleWhen"] = mesh.visibleWhen;
-            object["instancing"] = mesh.instancing;
-            object["occlusionCulling"] = mesh.occlusionCulling;
-            object["lods"] = Json::array();
-            for (const auto& lod : mesh.lods)
-                object["lods"].push_back({{"distance", lod.distance}, {"model", lod.model}});
-            components.push_back(object);
-        }
-    }
-
-    void AppendMaterial(Json& components, const SceneRuntime::ScenePlacement& placement)
-    {
-        if (placement.material)
-        {
-            const auto& material = *placement.material;
-            auto object = Component(material.id, "Material", material.enabled);
-            object["asset"] = material.asset;
-            object["surfaceOverride"] = material.surfaceOverride;
-            object["color"] = material.color;
-            object["roughness"] = material.roughness;
-            object["metallic"] = material.metallic;
-            object["shaderParameters"] = material.shaderParameters;
-            if (!material.slots.empty())
-                object["slots"] = material.slots;
-            components.push_back(std::move(object));
-        }
-    }
-
-    void AppendRotator(Json& components, const SceneRuntime::ScenePlacement& placement)
-    {
-        if (placement.rotator)
-        {
-            const auto& rotator = *placement.rotator;
-            auto object = Component(rotator.id, "Rotator", rotator.enabled);
-            Json velocity = Json::array();
-            for (const auto value : rotator.angularVelocity)
-            {
-                if (!Engine::InRange(value, -100000.0f, 100000.0f))
-                    throw std::runtime_error("Invalid Rotator speed");
-                velocity.push_back(value);
-            }
-            object["angularVelocity"] = velocity;
-            components.push_back(object);
-        }
-    }
-
-    void AppendPlayerController(Json& components, const SceneRuntime::ScenePlacement& placement)
-    {
-        if (placement.playerController)
-        {
-            const auto& player = *placement.playerController;
-            if (!Engine::InRange(player.moveSpeed, 0, 1000))
-                throw std::runtime_error("Invalid PlayerController speed");
-            auto object = Component(player.id, "PlayerController", player.enabled);
-            if (!Engine::InRange(player.gravity, 0, 1000) || !Engine::InRange(player.jumpSpeed, 0, 1000))
-                throw std::runtime_error("Invalid player gravity or jump speed");
-            object["moveSpeed"] = player.moveSpeed;
-            object["useGravity"] = player.useGravity;
-            object["gravity"] = player.gravity;
-            object["jumpSpeed"] = player.jumpSpeed;
-            object["usePhysics"] = player.usePhysics;
-            object["maxSlopeDegrees"] = player.maxSlopeDegrees;
-            object["stepHeight"] = player.stepHeight;
-            components.push_back(object);
-        }
-    }
-
-    void AppendBoxCollider(Json& components, const SceneRuntime::ScenePlacement& placement)
-    {
-        if (placement.boxCollider)
-        {
-            const auto& collider = *placement.boxCollider;
-            for (size_t axis = 0; axis < 3; ++axis)
-                if (!Engine::InRange(collider.center[axis], -100000, 100000) ||
-                    !Engine::InRange(collider.size[axis], 0.001f, 100000))
-                    throw std::runtime_error("Invalid BoxCollider bounds");
-            auto object = Component(collider.id, "BoxCollider", collider.enabled);
-            object["center"] = collider.center;
-            object["size"] = collider.size;
-            object["shape"] = collider.shape;
-            object["radius"] = collider.radius;
-            object["halfHeight"] = collider.halfHeight;
-            object["isTrigger"] = collider.isTrigger;
-            object["layer"] = collider.layer;
-            object["mask"] = collider.mask;
-            object["model"] = collider.model;
-            object["convex"] = collider.convex;
-            components.push_back(object);
-        }
-    }
-
-    void AppendRigidBody(Json& components, const SceneRuntime::ScenePlacement& placement)
-    {
-        if (placement.rigidBody)
-        {
-            const auto& body = *placement.rigidBody;
-            auto object = Component(body.id, "RigidBody", body.enabled);
-            object["motion"] = body.motion;
-            object["continuous"] = body.continuous;
-            object["planar"] = body.planar;
-            object["mass"] = body.mass;
-            object["friction"] = body.friction;
-            object["restitution"] = body.restitution;
-            object["gravityScale"] = body.gravityScale;
-            object["linearDamping"] = body.linearDamping;
-            object["angularDamping"] = body.angularDamping;
-            object["velocity"] = body.velocity;
-            object["angularVelocity"] = body.angularVelocity;
-            components.push_back(object);
-        }
-    }
-
-    SceneRuntime::ScriptValue::Object ScriptDataForSave(const SceneRuntime::ScriptComponent& script)
-    {
-        auto data = script.data;
-        const auto& definitions = SceneRuntime::ScriptRegistry::Definitions();
-        const auto definition = definitions.find(script.behaviour);
-        if (definition != definitions.end())
-            for (const auto& [key, purpose] : definition->second.dataPurposes)
-                if (purpose == SceneRuntime::ScriptDataPurpose::SceneAsset)
-                    data.try_emplace(key, definition->second.dataFields.at(key));
-        return data;
-    }
-    std::set<std::string> ScriptSceneAssets(const SceneRuntime::ScriptComponent& script,
-                                            const SceneRuntime::ScriptValue::Object& data)
-    {
-        const auto& definitions = SceneRuntime::ScriptRegistry::Definitions();
-        const auto definition = definitions.find(script.behaviour);
-        auto fields = script.sceneAssets;
-        if (definition != definitions.end())
-        {
-            fields.clear();
-            for (const auto& [key, purpose] : definition->second.dataPurposes)
-                if (purpose == SceneRuntime::ScriptDataPurpose::SceneAsset)
-                    fields.insert(key);
-        }
-        std::erase_if(fields,
-                      [&](const auto& key)
-                      {
-                          return !data.contains(key) || !std::holds_alternative<std::string>(data.at(key).value);
-                      });
-        return fields;
-    }
-    void AppendScripts(Json& components, const SceneRuntime::ScenePlacement& placement)
-    {
-        for (const auto& script : placement.scripts)
-        {
-            auto object = Component(script.id, "Script", script.enabled);
-            object["behaviour"] = script.behaviour;
-            object["parameters"] = script.parameters;
-            const auto savedData = ScriptDataForSave(script);
-            if (!savedData.empty())
-            {
-                SceneRuntime::ScriptValue data{savedData};
-                size_t remaining = 4096;
-                data.Validate(0, remaining);
-                object["data"] = WriteScriptValue(data);
-            }
-            const auto assets = ScriptSceneAssets(script, savedData);
-            if (!assets.empty())
-                object["sceneAssets"] = assets;
-            components.push_back(object);
-        }
-    }
 
 }
 
@@ -812,31 +539,161 @@ namespace SceneRuntime
         }
     }
 
+    Json WriteSceneComponent(const AnimatorComponent& component)
+    {
+        return WriteAnimator(component);
+    }
+    Json WriteSceneComponent(const AnimationComponent& component)
+    {
+        return WriteAnimation(component);
+    }
+    Json WriteSceneComponent(const RagdollComponent& component)
+    {
+        component.Validate();
+        Json object = component;
+        object["type"] = "Ragdoll";
+        return object;
+    }
+    Json WriteSceneComponent(const JointComponent& joint)
+    {
+        joint.Validate();
+        auto object = Component(joint.id, "Joint", joint.enabled);
+        object["kind"] = joint.type;
+        object["target"] = joint.target;
+        object["collideConnected"] = joint.collideConnected;
+        object["anchor"] = joint.anchor;
+        object["connectedAnchor"] = joint.connectedAnchor;
+        object["axis"] = joint.axis;
+        object["minimum"] = joint.minimum;
+        object["maximum"] = joint.maximum;
+        object["swing"] = joint.swing;
+        object["minDistance"] = joint.minDistance;
+        object["maxDistance"] = joint.maxDistance;
+        return object;
+    }
+    Json WriteSceneComponent(const MeshRendererComponent& mesh)
+    {
+        auto object = Component(mesh.id, "MeshRenderer", mesh.enabled);
+        object["model"] = mesh.model;
+        object["visibleWhen"] = mesh.visibleWhen;
+        object["instancing"] = mesh.instancing;
+        object["occlusionCulling"] = mesh.occlusionCulling;
+        object["lods"] = Json::array();
+        for (const auto& lod : mesh.lods)
+            object["lods"].push_back({{"distance", lod.distance}, {"model", lod.model}});
+        return object;
+    }
+    Json WriteSceneComponent(const MaterialComponent& material)
+    {
+        auto object = Component(material.id, "Material", material.enabled);
+        object["asset"] = material.asset;
+        object["surfaceOverride"] = material.surfaceOverride;
+        object["color"] = material.color;
+        object["roughness"] = material.roughness;
+        object["metallic"] = material.metallic;
+        object["shaderParameters"] = material.shaderParameters;
+        if (!material.slots.empty())
+            object["slots"] = material.slots;
+        return object;
+    }
+    Json WriteSceneComponent(const RotatorComponent& rotator)
+    {
+        auto object = Component(rotator.id, "Rotator", rotator.enabled);
+        Json velocity = Json::array();
+        for (const auto value : rotator.angularVelocity)
+        {
+            if (!Engine::InRange(value, -100000.0f, 100000.0f))
+                throw std::runtime_error("Invalid Rotator speed");
+            velocity.push_back(value);
+        }
+        object["angularVelocity"] = velocity;
+        return object;
+    }
+    Json WriteSceneComponent(const PlayerControllerComponent& player)
+    {
+        auto object = Component(player.id, "PlayerController", player.enabled);
+        for (const auto& field : SceneRuntime::PlayerControllerScalarFields)
+        {
+            const auto value = player.*field.member;
+            if (!field.Accepts(value))
+                throw std::runtime_error("Invalid PlayerController field: " + std::string(field.name));
+            object[std::string(field.name)] = value;
+        }
+        object["useGravity"] = player.useGravity;
+        object["usePhysics"] = player.usePhysics;
+        return object;
+    }
+    Json WriteSceneComponent(const BoxColliderComponent& collider)
+    {
+        for (size_t axis = 0; axis < 3; ++axis)
+            if (!Engine::InRange(collider.center[axis], -100000, 100000) ||
+                !Engine::InRange(collider.size[axis], 0.001f, 100000))
+                throw std::runtime_error("Invalid BoxCollider bounds");
+        auto object = Component(collider.id, "BoxCollider", collider.enabled);
+        object["center"] = collider.center;
+        object["size"] = collider.size;
+        object["shape"] = collider.shape;
+        object["radius"] = collider.radius;
+        object["halfHeight"] = collider.halfHeight;
+        object["isTrigger"] = collider.isTrigger;
+        object["layer"] = collider.layer;
+        object["mask"] = collider.mask;
+        object["model"] = collider.model;
+        object["convex"] = collider.convex;
+        return object;
+    }
+    Json WriteSceneComponent(const RigidBodyComponent& body)
+    {
+        auto object = Component(body.id, "RigidBody", body.enabled);
+        object["motion"] = body.motion;
+        object["continuous"] = body.continuous;
+        object["planar"] = body.planar;
+        object["mass"] = body.mass;
+        object["friction"] = body.friction;
+        object["restitution"] = body.restitution;
+        object["gravityScale"] = body.gravityScale;
+        object["linearDamping"] = body.linearDamping;
+        object["angularDamping"] = body.angularDamping;
+        object["velocity"] = body.velocity;
+        object["angularVelocity"] = body.angularVelocity;
+        return object;
+    }
+    Json WriteSceneComponent(const ScriptComponent& script)
+    {
+        auto object = Component(script.id, "Script", script.enabled);
+        object["behaviour"] = script.behaviour;
+        object["parameters"] = script.parameters;
+        if (!script.data.empty())
+        {
+            SceneRuntime::ScriptValue data{script.data};
+            size_t remaining = 4096;
+            data.Validate(0, remaining);
+            object["data"] = WriteScriptValue(data);
+        }
+        if (!script.sceneAssets.empty())
+            object["sceneAssets"] = script.sceneAssets;
+        return object;
+    }
     Json WriteSceneComponents(const ScenePlacement& placement)
     {
+        std::vector<std::pair<unsigned int, Json>> ordered;
+        placement.VisitComponents(
+            [&](const auto& component)
+            {
+                using Component = std::decay_t<decltype(component)>;
+                ordered.emplace_back(ComponentDefinition<Component>::SaveOrder, WriteSceneComponent(component));
+            });
+        std::stable_sort(ordered.begin(), ordered.end(),
+                         [](const auto& left, const auto& right)
+                         {
+                             return left.first < right.first;
+                         });
         Json components = Json::array();
-        AppendJoint(components, placement);
-        AppendMeshRenderer(components, placement);
-        AppendMaterial(components, placement);
-        AppendRotator(components, placement);
-        AppendPlayerController(components, placement);
-        AppendBoxCollider(components, placement);
-        AppendRigidBody(components, placement);
-        AppendScripts(components, placement);
-        if (placement.animator)
-            components.push_back(WriteAnimator(*placement.animator));
-        if (placement.ragdoll)
+        for (auto& [order, component] : ordered)
         {
-            placement.ragdoll->Validate();
-            Json object = *placement.ragdoll;
-            object["type"] = "Ragdoll";
-            components.push_back(std::move(object));
+            static_cast<void>(order);
+            components.push_back(std::move(component));
         }
-        WriteEnvironmentComponents(components, placement);
-        WriteUiComponents(components, placement);
-        WriteGenreComponents(components, placement);
-        if (placement.animation)
-            components.push_back(WriteAnimation(*placement.animation));
         return components;
     }
 }

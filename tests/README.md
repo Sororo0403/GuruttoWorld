@@ -1,5 +1,29 @@
 # カメラ・パーティクルの検証
 
+通常回帰の前に、同じ構成の`ReviewRegressionValidation`をビルドし、`./scripts/BuildScripts.ps1 -Configuration Release -Content Games/GuruttoWorld`でソース側のゲームDLLも更新してください。Debugでは両方の構成名をDebugへ変更します。通常回帰の共通再生検証はソース側のDLLを読み込むため、ビルド出力側のDLL更新だけでは古いABIが残ります。
+
+通常回帰は `powershell -NoProfile -ExecutionPolicy Bypass -File tests/RunRegression.ps1 -Configuration Release` で実行します。Debugも同様です。実行フェーズと経過秒数、プロセス別のログを記録し、既定の上限は1800秒です。固定120秒で打ち切らず、タイトルのApp／Editor比較と実際の開始先シーンまで完走させます。`-TimeoutSeconds`で上限を変更できます。
+`tests/TestRegressionRunner.ps1`は実プロセスで成功・終了コード7・検証モードの隔離と復元・期限超過時の子プロセス終了を確認します。1秒の上限に対して1.5秒で終了するケースも、確実に期限超過として拒否します。
+
+`tests/TestSharedContent.ps1 -Configuration Release` は新しい出力先へ素材をコピーし、現行ゲームのシーン・音声・Script・Shaderの内容一致を確認します。`SunriseStreetValidation`の`WP1_SOUND_LIFECYCLE_ONLY=1`は、独自音声の開始失敗、Pause、Step、再開、フォーカス喪失と復帰、停止時の解放を実際の出力音量で検証します。Scriptの候補破棄と描画準備失敗は通常のScript回帰に含みます。
+
+通しプレイのCPU検証は、実行時と同じ候補更新・差分検証を使います。最初に全体を検証し、その後も物理更新とテスト側の直接編集を含む全変更を、直前の確定状態と比較します。Script API自体の失敗時の復元は、通常のScript回帰で別に検証します。
+
+## 全体設計監査の再発防止検証
+
+`ArchitectureAuditFixValidation`は通常回帰にも含めています。単独実行は次のコマンドです。`Development`・`Release`も同じ構成名で実行できます。
+
+```powershell
+MSBuild tests/ArchitectureAuditFixValidation.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:PreferredToolArchitecture=x64 /m:1 /nr:false
+generated/tests/outputs/x64/Debug/ArchitectureAuditFixValidation/ArchitectureAuditFixValidation.exe
+```
+
+未知Script・Start例外・開始後の描画／UI準備失敗による単独／追加ロードの拒否、PersistentなScriptの継続と終了回数を確認します。フレーム更新はFixedUpdate後のUpdate・LateUpdate・UI準備失敗を注入し、配置・物理・Script内部状態・入力蓄積・時計・UI・音声・終了処理と再試行を照合します。保存は設定の外部変更・削除、一括保存の後段競合、ファイルロックによる途中失敗、別名保存のパスと保存基準の復元を検証します。手続きメッシュは利用中の共有、内容変更、32個の異なるIDの解放とGPUフェンス後の退役を確認します。素材・保存先・一時ファイルは`generated/tests/architecture-audit-fixes`へ分離します。
+
+再監査の4件は`ReauditFixValidation.h`から同じ専用実行ファイルと通常回帰で検証します。終了準備の有効な書き戻し後のUI失敗・例外、未知Script・不正パラメーターの拒否、資源を保持した再試行と終了回数、同じScript IDの振る舞い交換順序を確認します。保存は元の64MiB候補による同時編集の再現に加え、保持中の書込・置換・削除の拒否と、ドキュメント確定失敗の復元を確認します。
+
+Script SDK ABI 14では、配置の復元などは`prepareStop(ScriptContext&)`へ移します。この処理は候補データだけを変更し、音声停止などの外部副作用を起こしません。`stop(const ScriptStopContext&)`は確定後の資源解放、または失敗したStartの後始末に使用します。旧DLLはABI照合で拒否するため、ホストと同じ構成で再ビルドしてください。
+
 ## エディター／プレイヤーの共通再生検証
 
 `GamePlaybackFocusedValidation` は実際の `App::AuthoredScene::Update` と `Editor::GameSession` に同じ診断入力を渡し、毎フレームのシーン・UI値・Transform・Materialを比較します。CONFIGの設定シーンへの切り替え、取消・保存による帰還、START、クリック、一時停止・コマ送り・再開、ゲームパッドの入力元、編集した接近先・時間、スクリプトによるシーン差し替えと旧操作の破棄、QUIT、Material強度だけの変更の保存・Undoを検証します。
@@ -30,6 +54,7 @@ AuthoringSettingsValidationは全既存シーンの保存復元、物理・影�
 
 ScriptModuleValidationはモジュール単位の登録、名前競合と不正設定時の既存登録保持、ソース作成と上書き拒否をScriptValidationに含めます。
 実DLLの確認は `WP1_SCRIPT_MODULE_SETUP=1` で検証用ソースを作成し、`scripts/BuildScripts.ps1 -Configuration Debug -Content generated/tests/native-script-project/Content` でコンパイルした後、`WP1_SCRIPT_MODULE_ONLY=1` で実行します。
+この検証には同じ構成でビルドした`Games/GuruttoWorld`のDLLも使用します。作業フォルダーを別プロジェクトへ変更し、一時コピーしたDLLが登録元ゲームの音声を再生できることを確認します。SDK ABI 8では、すべてのDLLコールバックへ`ScriptContext::contentRoot`で登録元の絶対素材ルートを渡します。`WP1_SOUND_LIFECYCLE_ONLY=1`は実行中の`clip`変更後の再生も検証します。
 Releaseも同じ構成のDLLを用意します。ホストContextでの移動、再読み込み後の古いコールバックの寿命、ABI不一致・パス逸脱・読み込み失敗時の登録保持を検証します。
 `tests/TestScriptBuild.ps1` は意図したC++エラーを検出し、診断の公開と前のDLL manifestの保持を確認してソースを戻します。
 
@@ -305,3 +330,74 @@ ProfilerValidationはCPU描画時間・フレーム数と、完了フェンス�
 
 `powershell -NoProfile -ExecutionPolicy Bypass -File tests/TestGameProjects.ps1` は、空白を含むパスでプロジェクトを作成し、参照先・既存フォルダーの保護・テンプレート検証・元Contentの保持を確認します。
 `-Build` を追加すると、ゲーム専用ソリューションのDebug／Development／Releaseビルド、ゲーム側素材と設定・DLLの配置、起動シーン検証まで実行します。
+
+## 根本設計の移行契約
+
+`tests/TestArchitectureContracts.ps1 -Configuration Debug -Baseline` は段階0の基準を記録します。
+未達の契約は `KNOWN GAP` と表示され、移行完了とは扱いません。`-Require serialization-independent` などで
+段階ごとの必須契約を指定でき、`-Baseline` を省略するとすべて必須になります。
+Debug／Development／Releaseに対応し、CPUだけで検証します。元の制作データとユーザー設定は変更しません。
+契約・移行順序は [ArchitectureMigration](../docs/ArchitectureMigration.md) を参照してください。
+
+
+段階2の設計契約は、全36コンポーネントのコピー・比較・保存往復、個体参照の種類と複製経路、アセット改名とPrefab基準データ、Project／Materialの改名追跡、DLLなしのスキーマ読込と更新失敗時の保持を含みます。`ComponentContractValidation.h`、`AssetReferenceContractValidation.h`、`SchemaContractValidation.h` が検証の正本です。スキーマと実行コールバックを分離したSDKのABIは10で、実DLLの一致・不一致は `TestNativeBuildIdentity.ps1` で確認します。
+
+
+段階2の利用側の確認は、共通ライブラリ・Editor・検証実行ファイル・対象プレイヤーをビルドした後に実行します。
+
+```powershell
+./tests/TestArchitectureIntegration.ps1 -Project <生成した最小ゲームのフォルダー> -AdditionalProjects Games/GuruttoWorld
+# パッケージだけを確認する場合は -SkipRegression、既存回帰だけなら -Configurations @() を指定します。
+```
+
+ログは `generated/design-migration/integration-<ID>` に出力します。最小ゲーム・既存ゲームは3構成、Editorは対応する2構成を確認し、Debugの既存回帰5群を実行します。通し回帰全体の代わりにはしません。
+
+### 純粋な保存と明示的移行
+
+`MigrationContractValidation.h` は、DLL登録・解除前後のファイルとスナップショットの一致、未知の値の保持、構造の不足補完、配列の保持、移行の冪等性、複数オブジェクトの競合時の原状維持、上限超過、参照指定の変更、Undo／Redo、旧形式の正規化を検証します。
+
+```powershell
+./tests/TestArchitectureContracts.ps1 -Configuration Debug -Baseline -Require serialization-independent,migration-idempotent,migration-atomic-conflict
+```
+
+`serialization-independent` は既知の不足として許容しません。Prefabに関する後続段階の未達は引き続き基準モードで区別します。
+既存のFollowupState／DeepStateの参照回帰は、保存に既定値の追加を頼らず、明示的な移行後の保存・改名追従を検証します。
+
+統合ランナーの `-IncludeStateRegression` はAuthoring／FollowupState／SettingsCauseを追加します。`-SkipGpu` 時はGPUを必要としないAuthoringだけを追加します。一時ファイルは検証ごとにgenerated/tests/tempへ分離し、呼出元のTEMP／TMPを復元します。
+
+### Prefabの接続範囲と配列の統合
+
+`PrefabDesignContractValidation.h` は、未接続での配置・明示接続・保存と再読込・再抽出・旧形式の移行・Nested／Variant・識別子の領域の衝突・適用範囲・配列と格子の変更・競合時の原状維持を検証します。ユーザーデータのid／kind／typeと保存形式の型タグも区別します。
+
+```powershell
+./tests/TestArchitectureContracts.ps1 -Configuration Debug -Baseline -Require prefab-independent-elements,prefab-external-binding,prefab-slot-and-object-namespaces
+```
+
+`PrefabGpuContractValidation.h` は `WP1_PREFAB_RUNTIME_ONLY` で実行できます。統合ランナーはGPUを省略しない場合にこの群を含めます。旧形式を修復するための編集読込、通常実行での拒否、修復後の適用、欠損Prefabの失敗保持、既存PrefabPlaygroundを実際のGPUで確認します。
+旧回帰で外部のメニューカメラを維持するケースも、接続先の個体を用意して明示的に接続します。Hierarchy／Scriptによる同一ドキュメント内の複製は従来の参照維持を検証します。
+
+### 複数ファイルの編集と副作用予約
+
+`EditTransactionContractValidation.h`は、準備段階の無書き込み、PrefabとメタデータのUndo／Redo、外部編集の拒否、部分書き込み・候補適用の失敗時の復元、復元中の外部変更保護、ID継承、履歴の分岐と上限、スクリプト音声予約の失敗破棄を確認します。既知の未達として許容する契約はなく、既定の厳格実行で確認します。
+`WP1_PREFAB_RUNTIME_ONLY`はGPU資源準備の失敗を注入し、素材とWorldの保持、音声予約の破棄・一度だけの確定・Pauseと無効時刻での破棄も確認します。SDK ABIは12です。
+
+### ドキュメントと実行セッション
+
+`SessionDesignContractValidation.h`はGPUなしの編集・修復・Undo、投影の単一所有、固定した素材層と設定ID、参照宣言変更の診断、欠損個体参照の追加ロード・生成、Scriptのライフサイクルと開始候補を確認します。
+`WP1_PREFAB_RUNTIME_ONLY`は編集の欠損資源、Playの設定・開始・モデル・UI失敗、失敗したStepの時計保持、Stop時のデータ維持と資源解放、参照宣言変更時の混在防止も確認します。ABIは13です。
+
+### ゲーム拡張と旧経路の撤去
+
+`ExtensibilityContractValidation.h`は宣言の継承・削除・往復、別ファイルの基底、循環・欠損・深さ・用途の競合、実行Registryからの独立性、新規ソースの正本と既存ファイルの保持を確認します。通常の設計契約に含まれます。
+
+```powershell
+./tests/TestScriptSchemaGeneration.ps1 -Configuration Debug -BuildNative
+```
+
+この生成検証は日本語のパス、大きなUTF-8既定値、決定的生成、不正宣言を拒否したときの生成物保持、生成C++の実DLL化と宣言の照合を確認します。Scriptという動作名でも、元のScriptSchema型が利用できることをコンパイルで確認します。`ScriptSchemaModuleValidation`は`--export DLL snapshot.json`、`--compare DLL snapshot.json [project]`、`--validate DLL project`でDLLのメタデータを実行コールバックなしで照合します。
+
+統合ランナーはGPU有効時に`WP1_OPTIONAL_FEATURES_ONLY`と`WP1_DOCUMENT_SESSION_ONLY`を含めます。前者は空・粒子・UIのシェーダーがないゲーム、機能を追加したときの準備、準備失敗時のシーン保持と環境描画を確認します。後者はPlay／Stopで編集データ・選択・履歴の分岐・未保存の新規シーンが変わらないことと、Prefabの準備失敗時のファイル保持を確認します。
+
+`WP1_MIRRORED_MESH_ONLY=1`は通し回帰の最後と同じ反転メッシュの描画を単独で確認します。通常・X鏡映・XY鏡映の面が見え、裏向きの面が除去されることをGPUの遮蔽サンプルで検査します。独自のコマンドリストにもRenderFrameContextを記録し、定数バッファーをGPUフェンス完了まで保持します。
+
+`WP1_ALL_SCENES_ONLY=1`は公園用の静的登録を使用せず、実Appと同じGuruttoWorldのゲームDLLを読み込みます。実行する構成の`BuildScripts.ps1 -Content Games/GuruttoWorld -Configuration Debug`などを先に通してください。全シーンの保存往復・スクリプト開始・各フレームの更新・音声・描画と診断を確認します。`RunAuthoringIsolation.ps1`もTEMP／TMPを結果フォルダー内へ隔離し、呼出元の値を復元します。

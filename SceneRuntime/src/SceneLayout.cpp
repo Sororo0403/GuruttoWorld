@@ -1,11 +1,12 @@
+#include <SceneRuntime/SceneAssetReferences.h>
 #include <SceneRuntime/SceneLayout.h>
 #include <iterator>
 #include "SceneComponentJson.h"
 #include "SceneSettingsJson.h"
 #include <SceneRuntime/Prefab.h>
 #include <Engine/Assets/AssetDatabase.h>
+#include <Engine/Core/FileContents.h>
 #include <Engine/Core/Json.h>
-#include <Windows.h>
 #include <cmath>
 #include <algorithm>
 #include <fstream>
@@ -15,7 +16,6 @@
 #include <unordered_map>
 #include <optional>
 #include <utility>
-#include <atomic>
 
 namespace
 {
@@ -98,7 +98,15 @@ namespace SceneRuntime
     static bool ValidPrefabLink(const PrefabLink& link)
     {
         return Prefab::ValidPath(link.asset) && !link.sourceId.empty() && !link.rootId.empty() &&
-               !link.baseline.empty() && link.baseline.size() <= 1048576;
+               !link.baseline.empty() && link.baseline.size() <= 1048576 && link.referenceVersion <= 1 &&
+               link.externalBindings.size() <= 256 && (link.referenceVersion != 0 || link.externalBindings.empty()) &&
+               std::all_of(link.externalBindings.begin(), link.externalBindings.end(),
+                           [](const auto& entry)
+                           {
+                               return !entry.first.empty() && entry.first.size() <= 128 &&
+                                      entry.first.find('\0') == std::string::npos && entry.second.id.size() <= 128 &&
+                                      entry.second.id.find('\0') == std::string::npos;
+                           });
     }
     static void ReadPrefabLink(const Json& object, ScenePlacement& placement)
     {
@@ -111,6 +119,14 @@ namespace SceneRuntime
             link.sourceId = prefabValue.at("source").get<std::string>();
             link.rootId = prefabValue.at("root").get<std::string>();
             link.baseline = prefabValue.at("baseline").get<std::string>();
+            if (prefabValue.contains("referenceVersion") &&
+                (!prefabValue.at("referenceVersion").is_number_integer() ||
+                 (prefabValue.at("referenceVersion") != 0 && prefabValue.at("referenceVersion") != 1)))
+                throw std::runtime_error("Unsupported prefab reference version");
+            link.referenceVersion = prefabValue.value("referenceVersion", 0u);
+            if (prefabValue.contains("externalBindings"))
+                for (const auto& [slot, target] : JsonObject(prefabValue.at("externalBindings")).items())
+                    link.externalBindings[slot] = {target.get<std::string>()};
             if (!ValidPrefabLink(link))
                 throw std::runtime_error("Invalid prefab link");
             placement.prefab = std::move(link);
@@ -205,7 +221,7 @@ namespace SceneRuntime
         {
             JsonObject(document);
             const double version = JsonNumber(document.at("version"));
-            if (version != 2.0 && version != 3.0 && version != 4.0)
+            if (version != 2.0 && version != 3.0 && version != 4.0 && version != 5.0)
                 throw std::runtime_error("Unsupported layout version");
             SceneLayout layout;
             if (document.contains("sceneObjects"))
@@ -216,7 +232,9 @@ namespace SceneRuntime
             for (const auto& [path, id] : layout.assetReferences)
                 if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
                     throw std::runtime_error("Invalid asset reference metadata");
-            if (version == 4.0)
+            if (document.contains("prefabSlots"))
+                layout.prefabSlots = document.at("prefabSlots").get<std::map<std::string, std::string>>();
+            if (version >= 4.0)
                 layout.settings = ReadSceneSettings(JsonObject(document.at("settings")));
             if (document.contains("transformSpace"))
                 throw std::runtime_error("Scenes always use local transforms");
@@ -224,8 +242,16 @@ namespace SceneRuntime
             for (const auto& value : JsonArray(document.at("objects")))
             {
                 auto placement = ReadPlacement(value, version, ids);
+                if (version < 5.0 && placement.prefab && placement.prefab->referenceVersion != 0)
+                    throw std::runtime_error("Prefab reference scope requires layout version 5");
                 layout.objects.push_back(std::move(placement));
             }
+            if ((version < 5.0 && !layout.prefabSlots.empty()) || layout.prefabSlots.size() > 256)
+                throw std::runtime_error("Too many prefab external slots");
+            for (const auto& [slot, label] : layout.prefabSlots)
+                if (slot.empty() || slot.size() > 128 || ids.contains(slot) || label.size() > 4096 ||
+                    slot.find('\0') != std::string::npos || label.find('\0') != std::string::npos)
+                    throw std::runtime_error("Invalid or ambiguous prefab external slot");
             ValidateLayoutContents(layout);
             return layout;
         }
@@ -247,13 +273,39 @@ namespace SceneRuntime
         }
     }
 
+    static unsigned int LayoutVersion(const SceneLayout& layout)
+    {
+        return !layout.prefabSlots.empty() ||
+                       std::any_of(layout.objects.begin(), layout.objects.end(),
+                                   [](const auto& object)
+                                   {
+                                       return object.prefab && object.prefab->referenceVersion != 0;
+                                   })
+                   ? 5
+                   : 4;
+    }
+    static Json WritePrefabLink(const PrefabLink& link)
+    {
+        Json value{
+            {"asset", link.asset}, {"source", link.sourceId}, {"root", link.rootId}, {"baseline", link.baseline}};
+        if (link.referenceVersion != 0)
+        {
+            value["referenceVersion"] = link.referenceVersion;
+            value["externalBindings"] = Json::object();
+            for (const auto& [slot, target] : link.externalBindings)
+                value["externalBindings"][slot] = target.id;
+        }
+        return value;
+    }
     static Json LayoutDocument(const SceneLayout& layout)
     {
-        Json document = {{"version", 4},
+        Json document = {{"version", LayoutVersion(layout)},
                          {"settings", WriteSceneSettings(layout.settings)},
                          {"objects", Json::array()},
                          {"assetReferences", layout.assetReferences},
                          {"sceneObjects", layout.sceneObjects}};
+        if (!layout.prefabSlots.empty())
+            document["prefabSlots"] = layout.prefabSlots;
         for (const auto& p : layout.objects)
         {
             Json object = {{"id", p.id},
@@ -266,10 +318,7 @@ namespace SceneRuntime
             if (p.persistent)
                 object["persistent"] = true;
             if (p.prefab)
-                object["prefab"] = {{"asset", p.prefab->asset},
-                                    {"source", p.prefab->sourceId},
-                                    {"root", p.prefab->rootId},
-                                    {"baseline", p.prefab->baseline}};
+                object["prefab"] = WritePrefabLink(*p.prefab);
             for (const auto& vector : {p.position, p.rotation, p.scale})
                 if (std::any_of(vector.begin(), vector.end(),
                                 [](float value)
@@ -332,7 +381,7 @@ namespace SceneRuntime
     }
     void SceneLayout::ValidateChanges(const SceneLayout& validatedBefore) const
     {
-        if (objects.size() != validatedBefore.objects.size())
+        if (prefabSlots != validatedBefore.prefabSlots || objects.size() != validatedBefore.objects.size())
         {
             Validate();
             return;
@@ -378,7 +427,8 @@ namespace SceneRuntime
     std::string SceneLayout::Serialize() const
     {
         const auto settingsObject = WriteSceneSettings(settings);
-        std::string json = "{\n  \"version\": 4,\n  \"settings\": " + settingsObject.dump() + ",\n  \"objects\": [\n";
+        std::string json = "{\n  \"version\": " + std::to_string(LayoutVersion(*this)) +
+                           ",\n  \"settings\": " + settingsObject.dump() + ",\n  \"objects\": [\n";
         for (size_t i = 0; i < objects.size(); ++i)
         {
             const auto& p = objects[i];
@@ -392,10 +442,7 @@ namespace SceneRuntime
             if (p.persistent)
                 object["persistent"] = true;
             if (p.prefab)
-                object["prefab"] = {{"asset", p.prefab->asset},
-                                    {"source", p.prefab->sourceId},
-                                    {"root", p.prefab->rootId},
-                                    {"baseline", p.prefab->baseline}};
+                object["prefab"] = WritePrefabLink(*p.prefab);
             for (const auto& vector : {p.position, p.rotation, p.scale})
                 if (std::any_of(vector.begin(), vector.end(),
                                 [](float value)
@@ -407,51 +454,27 @@ namespace SceneRuntime
         }
         json += "  ],\n  \"assetReferences\": " + Json(assetReferences).dump() +
                 ",\n  \"sceneObjects\": " + Json(sceneObjects).dump() + "\n}\n";
+        if (!prefabSlots.empty())
+        {
+            auto document = Json::parse(json);
+            document["prefabSlots"] = prefabSlots;
+            json = document.dump(2) + "\n";
+        }
         static_cast<void>(Parse(json));
         return json;
     }
 
-    void SceneLayout::Save(const std::filesystem::path& path, bool overwrite) const
+    std::string SceneLayout::SerializeForSave(const std::filesystem::path& path) const
     {
-        auto document = Json::parse(Serialize());
+        auto saved = Parse(Serialize());
         const auto root = Engine::AssetDatabase::Root(path);
         if (!root.empty())
-            Engine::AssetDatabase(root).References(document, true, false);
-        const auto json = document.dump(2) + "\n";
-        static std::atomic<unsigned long long> sequence{0};
-        auto temporary = path;
-        temporary += L"." + std::to_wstring(GetCurrentProcessId()) + L"." + std::to_wstring(GetTickCount64()) + L"." +
-                     std::to_wstring(sequence++) + L".tmp";
-        HANDLE file =
-            CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (file == INVALID_HANDLE_VALUE)
-            throw std::runtime_error("Cannot create save file (error " + std::to_string(GetLastError()) + ")");
-        try
-        {
-            size_t offset = 0;
-            while (offset < json.size())
-            {
-                const auto count = static_cast<DWORD>((std::min)(json.size() - offset, size_t(1024 * 1024)));
-                DWORD written = 0;
-                if (!WriteFile(file, json.data() + offset, count, &written, nullptr) || !written)
-                    throw std::runtime_error("Cannot write save file");
-                offset += written;
-            }
-            if (!FlushFileBuffers(file))
-                throw std::runtime_error("Cannot flush save file");
-            CloseHandle(file);
-            file = INVALID_HANDLE_VALUE;
-            if (!MoveFileExW(temporary.c_str(), path.c_str(),
-                             (overwrite ? MOVEFILE_REPLACE_EXISTING : 0) | MOVEFILE_WRITE_THROUGH))
-                throw std::runtime_error("Cannot replace layout file (error " + std::to_string(GetLastError()) + ")");
-        }
-        catch (...)
-        {
-            if (file != INVALID_HANDLE_VALUE)
-                CloseHandle(file);
-            DeleteFileW(temporary.c_str());
-            throw;
-        }
+            ResolveSceneAssetReferences(saved, Engine::AssetDatabase(root), true, false);
+        return Json::parse(saved.Serialize()).dump(2) + "\n";
+    }
+    void SceneLayout::Save(const std::filesystem::path& path, bool overwrite) const
+    {
+        Engine::FileContents::Write(path, SerializeForSave(path), overwrite);
     }
 
     void SceneLayout::ResolveAssets(const std::filesystem::path& root)
@@ -460,9 +483,9 @@ namespace SceneRuntime
     }
     void SceneLayout::ResolveAssets(const Engine::AssetDatabase& index)
     {
-        auto document = Json::parse(Serialize());
-        index.References(document);
-        *this = Parse(document.dump());
+        auto candidate = Parse(Serialize());
+        ResolveSceneAssetReferences(candidate, index);
+        *this = Parse(candidate.Serialize());
     }
     SceneLayout SceneLayout::Load(const std::filesystem::path& path, const std::filesystem::path& assetsRoot)
     {

@@ -7,6 +7,7 @@
 namespace
 {
     using namespace SceneRuntime;
+    using namespace SceneRuntime::GeneratedSchemas;
     std::string Text(const ScriptContext& context, const std::string& key)
     {
         const auto* value = context.Data(key);

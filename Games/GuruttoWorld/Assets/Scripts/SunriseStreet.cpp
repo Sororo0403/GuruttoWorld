@@ -3,6 +3,7 @@
 #include <Engine/Audio/AudioSystem.h>
 #include <iterator>
 #include "ParkScriptSchema.generated.h"
+#include "SunriseScriptSchema.generated.h"
 #include <algorithm>
 #include <cmath>
 
@@ -10,14 +11,15 @@ bool Register_SunriseStreet(void*,SceneRuntime::RegisterModuleScript);
 namespace
 {
     using namespace SceneRuntime;
+    using namespace SceneRuntime::GeneratedSchemas;
     struct SoundBank
     {
         Engine::AudioSystem audio;
         std::map<std::string,Engine::SoundHandle> handles;
         unsigned int users=0;
         float gain=1;
-        bool ready=false;
-        std::filesystem::path Root()
+        bool ready=false,paused=false;
+        static std::filesystem::path Root()
         {
             HMODULE module=nullptr;
             GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -33,14 +35,27 @@ namespace
             }
             return std::filesystem::current_path()/"Games/GuruttoWorld";
         }
-        void Acquire(const std::string& clip)
+        Engine::SoundHandle Load(const std::string& clip,const std::filesystem::path& contentRoot)
         {
-            if(users++==0) {ready=audio.Initialize();gain=GameSettings::Load(GameSettings::UserPath(Root())).Gain();}
-            if(ready && !handles.contains(clip)) handles[clip]=audio.Load(Root()/"Assets/Audio/Sunrise"/(clip+".wav"));
+            if(!ready) return {};
+            if(!handles.contains(clip)) handles[clip]=audio.Load((contentRoot.empty()?Root():contentRoot)/"Assets/Audio/Sunrise"/(clip+".wav"));
+            return handles.at(clip);
+        }
+        void Acquire(const std::string& clip,const std::filesystem::path& contentRoot)
+        {
+            if(users++==0) {ready=audio.Initialize();gain=GameSettings::Load(GameSettings::UserPath(contentRoot.empty()?Root():contentRoot)).Gain();}
+            Load(clip,contentRoot);
         }
         void Release()
         {
-            if(users && --users==0) {audio.Shutdown();handles.clear();ready=false;}
+            if(users && --users==0) {audio.Shutdown();handles.clear();ready=false;paused=false;}
+        }
+        void Pause(bool value)
+        {
+            if(paused==value) return;
+            paused=value;
+            audio.PauseOutput(value);
+            for(const auto& [clip,handle]:handles) {static_cast<void>(clip);audio.Pause(handle,value);}
         }
     };
     SoundBank bank;
@@ -222,7 +237,7 @@ namespace
     }
     ScriptDefinition Player()
     {
-        auto result=ParkPlayerSchema();
+        auto result=SunrisePlayerSchema();
         result.start=StartPlayer;
         result.fixedUpdate=FixedPlayer;
         result.update=UpdatePlayer;
@@ -231,6 +246,7 @@ namespace
     ScriptDefinition StreetPlayer()
     {
         auto result=Player();
+        static_cast<ScriptSchema&>(result)=StreetPlayerSchema();
         result.update=[](ScriptContext& c) {
             if(!c.scene)return;
             if(c.Pressed(Text(c,"restartAction"))) {c.scene->LoadScene(Text(c,"scene"));return;}
@@ -247,7 +263,7 @@ namespace
     }
     ScriptDefinition Camera()
     {
-        auto result=ParkCameraSchema();
+        auto result=SunriseCameraSchema();
         result.lateUpdate=[](ScriptContext& context) {
             const auto* target=context.Reference("target");
             if (!target || !context.scene || !target->parentId.empty() || !context.object.parentId.empty()) return;
@@ -269,7 +285,7 @@ namespace
     }
     ScriptDefinition Patrol()
     {
-        auto result=ParkPatrolSchema();
+        auto result=SunriseEnemySchema();
         result.start=[](ScriptContext& context) { context.state["originX"]=context.object.position[0]; context.state["originZ"]=context.object.position[2]; };
         result.update=[](ScriptContext& context) {
             const float dt=static_cast<float>(context.seconds);
@@ -298,15 +314,7 @@ namespace
     }
     ScriptDefinition BlockCamera()
     {
-        auto result=ParkCameraSchema();
-        result.fields["height"]={4.2f,2,12};
-        result.fields["distance"]={7.8f,3,15};
-        result.fields["plazaExitX"]={8,-20,25};
-        result.fields["plazaFollowSlack"]={.85f,0,1.5f};
-        result.fields["plazaCameraLeft"]={-3,-5,0};
-        result.fields["plazaFocusWeight"]={.22f,0,.3f};
-        result.fields["plazaBlendStart"]={18,10,26};
-        result.fields["plazaBlendEnd"]={34,28,42};
+        auto result=SunriseBlockCameraSchema();
         result.lateUpdate=[](ScriptContext& c) {
             const auto* player=c.Reference("target");
             if(!player || !c.scene) return;
@@ -370,6 +378,7 @@ namespace
     ScriptDefinition BlockPlayer()
     {
         auto result=Player();
+        static_cast<ScriptSchema&>(result)=SunriseBlockPlayerSchema();
         result.update=[](ScriptContext& c) {
             UpdatePlayer(c);
             if(!c.scene || c.state["clear"]>0 || c.Pressed(Text(c,"restartAction")) || c.Pressed(Text(c,"cancelAction")))return;
@@ -380,8 +389,7 @@ namespace
     }
     ScriptDefinition Shutter()
     {
-        ScriptDefinition result;
-        result.dataFields={{"switch",{ScriptObjectReference{}}}};
+        auto result=SunriseShutterSchema();
         result.start=[](ScriptContext& c){c.state["x"]=c.object.position[0];};
         result.update=[](ScriptContext& c){
             if(c.Reference("switch"))return;
@@ -392,8 +400,7 @@ namespace
     }
     ScriptDefinition Mechanism()
     {
-        ScriptDefinition result;
-        result.dataFields={{"switch",{ScriptObjectReference{}}}};
+        auto result=SunriseMechanismSchema();
         result.update=[](ScriptContext& c) {
             if(c.Reference("switch")) return;
             c.state["time"]+=static_cast<float>(c.seconds);
@@ -404,8 +411,7 @@ namespace
     }
     ScriptDefinition Bridge()
     {
-        ScriptDefinition result;
-        result.dataFields={{"switch",{ScriptObjectReference{}}}};
+        auto result=SunriseBridgeSchema();
         result.start=[](ScriptContext& c) {c.state["x"]=c.object.position[0];};
         result.update=[](ScriptContext& c) {
             if(c.Reference("switch")) return;
@@ -416,7 +422,7 @@ namespace
     }
     ScriptDefinition Hero()
     {
-        ScriptDefinition result;
+        auto result=SunriseHeroSchema();
         result.update=[](ScriptContext& c) {
             c.state["t"]+=static_cast<float>(c.seconds);
             const bool moving=c.Input("MoveForward")+c.Input("MoveBack")+c.Input("MoveLeft")+c.Input("MoveRight")>.1f;
@@ -428,10 +434,8 @@ namespace
     }
     ScriptDefinition Lifetime()
     {
-        ScriptDefinition result;
-        result.fields={{"volume",{.35f,0,1}}};
-        result.dataFields={{"clip",{std::string("Attack")}}};
-        result.start=[](ScriptContext& c) {bank.Acquire(Text(c,"clip"));};
+        auto result=SunriseSoundSchema();
+        result.start=[](const ScriptContext& c) {bank.Acquire(Text(c,"clip"),c.contentRoot);};
         result.stop=[](ScriptContext&) {bank.Release();};
         result.onEvent=[](ScriptContext& c) {
             if(c.event && c.event->name=="sunrise:play" && bank.ready) {

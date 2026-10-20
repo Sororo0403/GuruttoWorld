@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Assets/AssetReferenceResolver.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Input/InputActions.h>
@@ -129,23 +130,18 @@ namespace SceneRuntime
         /// <summary>起動先と別名の参照を既存のアセット ID 管理へ渡し、改名後も同じシーンを追跡します。</summary>
         static void References(const std::filesystem::path& root, Engine::Json& json)
         {
-            Engine::Json references = {{"objects", Engine::Json::array({{{"startupScene", json.at("startupScene")}}})}};
-            if (json.contains("assetReferences"))
-                references["assetReferences"] = json.at("assetReferences");
+            const auto saved = json.value("assetReferences", Engine::AssetReferenceResolver::References{});
+            const Engine::AssetDatabase index(root);
+            Engine::AssetReferenceResolver references(index, saved);
+            references.Visit(json.at("startupScene").get_ref<std::string&>());
             if (json.contains("sceneAliases"))
             {
                 if (!json.at("sceneAliases").is_object())
                     throw std::runtime_error("Scene aliases must be an object");
-                for (const auto& value : json.at("sceneAliases"))
-                    references["objects"].push_back({{"startupScene", value}});
-            }
-            Engine::AssetDatabase(root).References(references);
-            json["startupScene"] = references.at("objects").at(0).at("startupScene");
-            size_t index = 1;
-            if (json.contains("sceneAliases"))
                 for (auto& value : json.at("sceneAliases"))
-                    value = references.at("objects").at(index++).at("startupScene");
-            json["assetReferences"] = references.at("assetReferences");
+                    references.Visit(value.get_ref<std::string&>());
+            }
+            json["assetReferences"] = references.Captured();
         }
     };
 }

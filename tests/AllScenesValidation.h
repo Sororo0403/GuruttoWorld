@@ -61,13 +61,15 @@ namespace AllScenesValidation
             Check(restored.Serialize() == original, label + ": saved scene changed authored data");
             SceneRuntime::SceneEnvironment scene;
             std::string error;
-            if (!scene.Initialize(renderer, root, std::move(restored), error) || !scene.StartAudio(root, error))
+            if (!scene.Initialize(renderer, root, std::move(restored), error) || !scene.StartAudio(root, error) ||
+                !scene.StartScripts(error))
                 throw std::runtime_error(label + ": " + error);
             for (int frame = 0; frame < 6; ++frame)
             {
                 Check(scene.MovePlayers(scene.World().PhysicsStepSeconds(), 0, 0, false),
                       label + ": physics update failed");
-                scene.Update(scene.World().PhysicsStepSeconds(), true, true);
+                Check(scene.Update(scene.World().PhysicsStepSeconds(), true, true),
+                      label + ": component update failed");
                 scene.UpdateAudio(true);
                 Check(renderer.Render(layout.settings.background,
                                       [&](auto* commands, float)

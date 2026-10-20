@@ -5,6 +5,7 @@
 #include "AllScenesValidation.h"
 #include <SceneRuntime/SceneEnvironment.h>
 #include <SceneRuntime/ScriptModuleApi.h>
+#include <SceneRuntime/ScriptModule.h>
 #include <SceneRuntime/Prefab.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Graphics/Resources/RenderTexture.h>
@@ -603,6 +604,14 @@ int main()
     try
     {
         Require(Engine::Log::Initialize("generated/park/validation.log"), "Validation log opens");
+        if (GetEnvironmentVariableA("WP1_ALL_SCENES_ONLY", nullptr, 0))
+        {
+            std::string error;
+            if (!SceneRuntime::ScriptModule::Reload(std::filesystem::absolute("Games/GuruttoWorld"), error))
+                throw std::runtime_error("All scenes game module loads: " + error);
+            AllScenesValidation::Run();
+            return 0;
+        }
         Require(Register_ParkAdventure(nullptr, Register), "Game scripts register");
         std::ifstream schemaFile("Games/GuruttoWorld/Assets/Scripts/ParkScriptSchema.schema.json");
         const auto schema = Engine::Json::parse(schemaFile);
@@ -640,11 +649,6 @@ int main()
                 Require(purpose == "sceneAsset" && definition.dataPurposes.at(key) == ScriptDataPurpose::SceneAsset,
                         "Native data purpose differs from schema");
             }
-        }
-        if (GetEnvironmentVariableA("WP1_ALL_SCENES_ONLY", nullptr, 0))
-        {
-            AllScenesValidation::Run();
-            return 0;
         }
         for (const char* name : {"Entrance", "Terraces", "Canal", "SwitchGarden", "Vista"})
         {

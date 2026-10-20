@@ -84,7 +84,7 @@ try { Copy-BuildContentSnapshot -Content $game -Destination (Join-Path $fixture 
 if (!$rejected) { throw 'Snapshot accepted an incompatible shared asset ID.' }
 
 $project = Join-Path $fixture 'NewGame'
-& (Join-Path $repoRoot 'scripts/NewGameProject.ps1') -Destination $project -Name SharedTest
+& (Join-Path $repoRoot 'scripts/NewGameProject.ps1') -Destination $project -Name SharedTest -TemplateContent (Join-Path $repoRoot 'Games/GuruttoWorld')
 if (Test-Path -LiteralPath (Join-Path $project 'Shaders/Mesh.hlsl')) { throw 'New project duplicated a shared shader.' }
 if (Test-Path -LiteralPath (Join-Path $project 'Assets/Fonts/FiraMono/FiraMono-Regular.ttf')) { throw 'New project duplicated a shared font.' }
 if ((Get-SharedContentRoot -Content $project) -ne (Join-Path $repoRoot 'Content')) { throw 'New project lost its engine reference.' }

@@ -10,11 +10,19 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'FileHash.ps1')
 if ($RunId -notmatch '^[a-zA-Z0-9_-]{1,64}$') { throw 'Invalid script build run ID.' }
 $repoRoot=Split-Path $PSScriptRoot -Parent
+. (Join-Path $PSScriptRoot 'ProjectContext.ps1')
 if (!$WorkRoot) { $WorkRoot=$repoRoot }
 $WorkRoot=[IO.Path]::GetFullPath($WorkRoot)
-if (!$Content) { $Content=Join-Path $repoRoot 'Games/GuruttoWorld' }
+if (!$Content) {
+    $taskCurrentProject = (Get-Location).ProviderPath
+    if (!(Test-Path -LiteralPath (Join-Path $taskCurrentProject 'WP1.project.json'))) { throw 'Pass -Content <game project folder>.' }
+    $Content = $taskCurrentProject
+}
 if (!$OutputContent) { $OutputContent=$Content }
 $Content=[IO.Path]::GetFullPath($Content)
+if (Test-Path -LiteralPath (Join-Path $Content 'WP1.project.json')) {
+    $null = Get-ProjectContext -Project $Content -RequireEngineRoot $repoRoot
+}
 $OutputContent=[IO.Path]::GetFullPath($OutputContent)
 $buildRoot=Join-Path $WorkRoot 'generated/script-builds'
 $workspace=Join-Path $buildRoot $RunId
@@ -39,7 +47,7 @@ function Set-ScriptProgress([int]$Step,[string]$Phase) {
     Move-Item -LiteralPath "$progressPath.tmp" -Destination $progressPath -Force
 }
 try {
-    & (Join-Path $PSScriptRoot 'GenerateScriptSchemas.ps1') -Content $Content
+    & (Join-Path $PSScriptRoot 'GenerateScriptSchemas.ps1') -Content $Content -Configuration $Configuration
     Set-ScriptProgress 0 'ゲーム処理ソースを確認中'
     $sourceRoot=Join-Path $Content 'Assets/Scripts'
     $tracked=@(Get-TrackedFiles $sourceRoot)
@@ -100,7 +108,7 @@ try {
         $projectPath=Join-Path $workspace 'GameScripts.vcxproj'
         [IO.File]::WriteAllText($projectPath,$project,[Text.UTF8Encoding]::new($false))
         Set-ScriptProgress 1 'C++ゲーム処理をコンパイル中'
-        & $msbuild $projectPath "/p:Configuration=$Configuration" '/p:Platform=x64' '/m:1' '/nr:false' '/v:minimal' '/nologo'
+        & $msbuild $projectPath "/p:Configuration=$Configuration" '/p:Platform=x64' '/p:PreferredToolArchitecture=x64' '/m:1' '/nr:false' '/v:minimal' '/nologo'
         if ($LASTEXITCODE -ne 0) { throw "Script compilation failed ($LASTEXITCODE); see $logPath" }
         $current=@(Get-TrackedFiles $sourceRoot)
         $after=Get-SourceHashes $current

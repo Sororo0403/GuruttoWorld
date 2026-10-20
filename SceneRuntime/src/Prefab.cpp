@@ -1,14 +1,28 @@
 #include <SceneRuntime/Prefab.h>
+#include <SceneRuntime/SceneAssetReferences.h>
 #include <algorithm>
 #include <map>
 #include <set>
 #include <stdexcept>
 #include "SceneComponentJson.h"
+#include "PrefabMerge.h"
+#include <Engine/Assets/AssetDatabase.h>
 
 namespace
 {
     using namespace SceneRuntime;
     ScenePlacement& Find(SceneLayout& layout, const std::string& id)
+    {
+        const auto found = std::find_if(layout.objects.begin(), layout.objects.end(),
+                                        [&](const auto& object)
+                                        {
+                                            return object.id == id;
+                                        });
+        if (found == layout.objects.end())
+            throw std::runtime_error("Prefab object missing: " + id);
+        return *found;
+    }
+    const ScenePlacement& Find(const SceneLayout& layout, const std::string& id)
     {
         const auto found = std::find_if(layout.objects.begin(), layout.objects.end(),
                                         [&](const auto& object)
@@ -54,29 +68,38 @@ namespace
                 id = found->second;
         };
         replace(object.parentId);
-        if (object.canvas && object.canvas->menu)
-            object.canvas->menu->RemapCameras(ids);
-        if (object.joint)
-            replace(object.joint->target);
-        for (auto& script : object.scripts)
-            script.Remap(ids);
-        if (object.navAgent)
-            object.navAgent->Remap(ids);
-        if (object.ragdoll)
-            object.ragdoll->Remap(ids);
-        if (object.button)
+        object.RemapComponentReferences(ids);
+    }
+    std::map<std::string, std::string> ReferenceMap(std::map<std::string, std::string> ids,
+                                                    const PrefabBindings& bindings)
+    {
+        for (const auto& [slot, target] : bindings)
+            if (!ids.emplace(slot, target.id).second)
+                throw std::runtime_error("Prefab slot conflicts with an internal object: " + slot);
+        return ids;
+    }
+    void ValidateBindings(const SceneLayout& scene, const PrefabBindings& bindings)
+    {
+        for (const auto& [slot, target] : bindings)
         {
-            if (object.button->action != "loadScene" && object.button->action != "loadSceneAdditive" &&
-                object.button->action != "unloadScene" && object.button->action != "setState")
-                replace(object.button->target);
-            replace(object.button->sound);
+            static_cast<void>(slot);
+            if (!target.id.empty() && !scene.prefabSlots.contains(target.id) &&
+                std::none_of(scene.objects.begin(), scene.objects.end(),
+                             [&](const auto& object)
+                             {
+                                 return object.id == target.id;
+                             }))
+                throw std::runtime_error("Prefab binding target is missing: " + target.id);
         }
     }
-    std::string Baseline(ScenePlacement object)
+    std::string Baseline(ScenePlacement object, const std::map<std::string, std::string>& slots = {},
+                         const std::map<std::string, std::string>& references = {})
     {
         object.parentId.clear();
         SceneLayout layout;
         layout.objects.push_back(std::move(object));
+        layout.prefabSlots = slots;
+        InheritSceneAssetReferences(layout, references);
         return layout.Serialize();
     }
     bool Modified(const ScenePlacement& object, const ScenePlacement& baseline, bool root)
@@ -86,40 +109,6 @@ namespace
                           object.scale != baseline.scale));
     }
     using Engine::Json;
-    bool IncompatibleComponentTypes(const Json& old, const Json& current, const Json& source)
-    {
-        return (old.contains("type") && current.contains("type") && source.contains("type") &&
-                (old.at("type") != current.at("type") || old.at("type") != source.at("type")));
-    }
-    Json MergeProperty(const Json& old, const Json& current, const Json& source)
-    {
-        if (current == old)
-            return source;
-        if (!old.is_object() || !current.is_object() || !source.is_object())
-            return current;
-        if (IncompatibleComponentTypes(old, current, source))
-            return current;
-        Json result = source;
-        for (const auto& [key, value] : current.items())
-        {
-            if (!old.contains(key))
-                result[key] = value;
-            else if (!source.contains(key))
-            {
-                if (value != old.at(key))
-                    result[key] = value;
-            }
-            else
-                result[key] = MergeProperty(old.at(key), value, source.at(key));
-        }
-        for (const auto& [key, value] : old.items())
-        {
-            static_cast<void>(value);
-            if (!current.contains(key))
-                result.erase(key);
-        }
-        return result;
-    }
     Json ComponentMap(const ScenePlacement& object)
     {
         Json result = Json::object();
@@ -129,7 +118,7 @@ namespace
     }
     void MergeComponents(ScenePlacement& current, const ScenePlacement& old, const ScenePlacement& source)
     {
-        const auto merged = MergeProperty(ComponentMap(old), ComponentMap(current), ComponentMap(source));
+        const auto merged = PrefabMerge::Merge(ComponentMap(old), ComponentMap(current), ComponentMap(source));
         Json array = Json::array();
         for (const auto& [id, component] : merged.items())
         {
@@ -161,6 +150,9 @@ namespace
         for (const auto& item : scene.objects)
             if (item.prefab && item.prefab->rootId == object.prefab->rootId)
                 ids[item.prefab->sourceId] = item.id;
+        const auto& root = Find(scene, object.prefab->rootId);
+        if (root.prefab && root.prefab->referenceVersion != 0)
+            ids = ReferenceMap(std::move(ids), root.prefab->externalBindings);
         Remap(baseline, ids);
         return baseline;
     }
@@ -245,15 +237,8 @@ namespace SceneRuntime
 {
     bool Prefab::ValidPath(const std::filesystem::path& path)
     {
-        const auto utf8 = path.generic_u8string();
-        const std::string value(utf8.begin(), utf8.end());
-        return !path.is_absolute() && !path.has_root_name() && value.starts_with("Assets/Prefabs/") &&
-               path.extension() == ".prefab" &&
-               std::none_of(path.begin(), path.end(),
-                            [](const auto& part)
-                            {
-                                return part == "..";
-                            });
+        return Engine::AssetDatabase::Valid(path) && Engine::AssetDatabase::Text(path).starts_with("Assets/Prefabs/") &&
+               path.extension() == ".prefab";
     }
     static std::set<std::string> Descendants(const SceneLayout& scene, const std::string& rootId)
     {
@@ -268,48 +253,247 @@ namespace SceneRuntime
         }
         return selected;
     }
-    SceneLayout Prefab::Extract(const SceneLayout& scene, const std::string& rootId)
+    static std::pair<SceneLayout, PrefabBindings> ExtractScoped(const SceneLayout& scene, const std::string& rootId)
     {
-        auto copy = scene;
-        const auto& root = Find(copy, rootId);
-        const auto selected = Descendants(scene, root.id);
+        const auto& root = Find(scene, rootId);
+        const auto selected = Descendants(scene, rootId);
         SceneLayout asset;
-        std::map<std::string, std::string> remap;
+        asset.assetReferences = scene.assetReferences;
+        PrefabBindings bindings;
+        const auto inheritedLabels =
+            root.prefab ? SceneLayout::Parse(root.prefab->baseline).prefabSlots : std::map<std::string, std::string>{};
+        const auto inheritedBindings =
+            root.prefab && root.prefab->rootId == rootId && root.prefab->referenceVersion != 0
+                ? root.prefab->externalBindings
+                : PrefabBindings{};
+        std::map<std::string, std::string> remap, sourceToScene;
+        std::set<std::string> reserved;
         for (const auto& object : scene.objects)
+        {
+            reserved.insert(object.id);
+            if (object.prefab)
+                reserved.insert(object.prefab->sourceId);
             if (selected.contains(object.id))
-                remap[object.id] =
-                    object.prefab && object.prefab->rootId == rootId ? object.prefab->sourceId : object.id;
+            {
+                const bool owned = object.prefab && object.prefab->rootId == rootId;
+                remap[object.id] = owned ? object.prefab->sourceId : object.id;
+                if (owned)
+                    sourceToScene[object.prefab->sourceId] = object.id;
+            }
+        }
+        for (const auto& [slot, target] : inheritedBindings)
+        {
+            static_cast<void>(target);
+            reserved.insert(slot);
+        }
+        for (auto object : scene.objects)
+            object.VisitObjectReferences(
+                [&](std::string& id)
+                {
+                    reserved.insert(id);
+                });
+        PrefabBindings symbolicBindings;
+        std::map<std::string, std::string> symbolicSlots;
+        for (const auto& [slot, target] : inheritedBindings)
+        {
+            static_cast<void>(target);
+            std::string symbol;
+            for (size_t i = 1;; ++i)
+            {
+                symbol = "prefab-scope-marker-" + std::to_string(i);
+                if (!reserved.contains(symbol))
+                    break;
+            }
+            reserved.insert(symbol);
+            symbolicBindings[slot] = {symbol};
+            symbolicSlots[symbol] = slot;
+        }
+        // 抽出中だけ識別子の領域を分け、実在するScene IDを口IDと誤認しないようにします。
+        const auto symbolicIds = ReferenceMap(sourceToScene, symbolicBindings);
         for (auto object : scene.objects)
             if (selected.contains(object.id))
             {
-                const bool isRoot = object.id == rootId;
-                std::optional<PrefabLink> nested;
                 if (object.prefab && object.prefab->rootId == rootId)
-                    nested = SceneLayout::Parse(object.prefab->baseline).objects.at(0).prefab;
-                else if (object.prefab)
-                    nested = object.prefab;
-                Remap(object, remap);
-                object.id = remap.at(object.id);
-                object.prefab = std::move(nested);
-                if (object.prefab && remap.contains(object.prefab->rootId))
-                    object.prefab->rootId = remap.at(object.prefab->rootId);
-                if (isRoot)
                 {
-                    object.parentId.clear();
-                    object.position = {0, 0, 0};
+                    const auto originalLayout = SceneLayout::Parse(object.prefab->baseline);
+                    const auto original = originalLayout.objects.at(0);
+                    if (original.prefab)
+                    {
+                        const auto key = Engine::AssetDatabase::Text(original.prefab->asset);
+                        if (originalLayout.assetReferences.contains(key))
+                        {
+                            const auto& id = originalLayout.assetReferences.at(key);
+                            if (asset.assetReferences.contains(key) && asset.assetReferences.at(key) != id)
+                                throw std::runtime_error("Resolve asset identities before extracting prefab: " + key);
+                            asset.assetReferences[key] = id;
+                        }
+                    }
+                    auto bound = original, symbolic = original;
+                    Remap(bound, ReferenceMap(sourceToScene, inheritedBindings));
+                    Remap(symbolic, symbolicIds);
+                    // 接続先が同じ二つの口も、継承値は基準の口IDへ戻して区別を保ちます。
+                    MergeComponents(object, bound, symbolic);
+                    object.prefab = original.prefab;
+                    if (object.prefab)
+                    {
+                        if (sourceToScene.contains(object.prefab->rootId))
+                            object.prefab->rootId = sourceToScene.at(object.prefab->rootId);
+                        for (auto& [slot, target] : object.prefab->externalBindings)
+                        {
+                            static_cast<void>(slot);
+                            if (symbolicIds.contains(target.id))
+                                target.id = symbolicIds.at(target.id);
+                        }
+                    }
                 }
                 asset.objects.push_back(std::move(object));
             }
-        static_cast<void>(asset.Serialize());
-        return asset;
+        std::map<std::string, std::string> outside;
+        for (auto& object : asset.objects)
+            object.VisitObjectReferences(
+                [&](std::string& id)
+                {
+                    if (id.empty() || selected.contains(id))
+                        return;
+                    if (symbolicSlots.contains(id))
+                    {
+                        const auto& slot = symbolicSlots.at(id);
+                        outside[id] = slot;
+                        bindings[slot] = inheritedBindings.at(slot);
+                        asset.prefabSlots[slot] = inheritedLabels.contains(slot) ? inheritedLabels.at(slot) : slot;
+                    }
+                    else if (!outside.contains(id))
+                    {
+                        std::string slot;
+                        for (size_t i = 1;; ++i)
+                        {
+                            slot = "prefab-external-" + std::to_string(i);
+                            if (!reserved.contains(slot))
+                                break;
+                        }
+                        reserved.insert(slot);
+                        outside[id] = slot;
+                        bindings[slot] = {id};
+                        asset.prefabSlots[slot] = scene.prefabSlots.contains(id) ? scene.prefabSlots.at(id) : id;
+                    }
+                });
+        for (auto& object : asset.objects)
+        {
+            const bool isRoot = object.id == rootId;
+            object.VisitObjectReferences(
+                [&](std::string& id)
+                {
+                    if (outside.contains(id))
+                        id = outside.at(id);
+                });
+            Remap(object, remap);
+            object.id = remap.at(object.id);
+            if (object.prefab && remap.contains(object.prefab->rootId))
+                object.prefab->rootId = remap.at(object.prefab->rootId);
+            if (isRoot)
+            {
+                object.parentId.clear();
+                object.position = {0, 0, 0};
+            }
+        }
+        InheritSceneAssetReferences(asset, {});
+        asset.Validate();
+        return {std::move(asset), std::move(bindings)};
+    }
+    SceneLayout Prefab::Extract(const SceneLayout& scene, const std::string& rootId)
+    {
+        return ExtractScoped(scene, rootId).first;
+    }
+    std::map<std::string, std::string> Prefab::ExternalSlots(const SceneLayout& asset)
+    {
+        auto slots = asset.prefabSlots;
+        std::set<std::string> internal;
+        for (const auto& object : asset.objects)
+            internal.insert(object.id);
+        for (auto object : asset.objects)
+            object.VisitObjectReferences(
+                [&](std::string& id)
+                {
+                    if (!id.empty() && !internal.contains(id))
+                        slots.try_emplace(id, id);
+                });
+        return slots;
+    }
+    PrefabBindings Prefab::ExternalBindings(const SceneLayout& scene, const std::string& rootId)
+    {
+        const auto& root = Find(scene, rootId);
+        if (!root.prefab || root.prefab->rootId != rootId)
+            throw std::runtime_error("Prefab root missing");
+        if (root.prefab->referenceVersion != 0)
+            return root.prefab->externalBindings;
+        SceneLayout original;
+        for (const auto& object : scene.objects)
+            if (object.prefab && object.prefab->rootId == rootId)
+            {
+                auto source = SceneLayout::Parse(object.prefab->baseline).objects.at(0);
+                source.parentId.clear();
+                original.objects.push_back(std::move(source));
+            }
+        auto bindings = root.prefab->referenceVersion == 0 ? PrefabBindings{} : root.prefab->externalBindings;
+        for (const auto& [slot, label] : ExternalSlots(original))
+        {
+            static_cast<void>(label);
+            bindings.try_emplace(slot, ScriptObjectReference{});
+        }
+        return bindings;
+    }
+    void Prefab::BindReferences(SceneLayout& scene, const std::string& rootId, const PrefabBindings& bindings)
+    {
+        auto candidate = scene;
+        auto expected = ExternalBindings(candidate, rootId);
+        for (const auto& [slot, target] : bindings)
+        {
+            if (!expected.contains(slot))
+                throw std::runtime_error("Unknown prefab external slot: " + slot);
+            expected[slot] = target;
+        }
+        ValidateBindings(candidate, bindings);
+        const auto& root = Find(candidate, rootId);
+        const auto oldBindings = root.prefab->referenceVersion == 0 ? PrefabBindings{} : root.prefab->externalBindings;
+        std::map<std::string, std::string> ids;
+        for (const auto& object : candidate.objects)
+            if (object.prefab && object.prefab->rootId == rootId)
+                ids[object.prefab->sourceId] = object.id;
+        for (auto& object : candidate.objects)
+            if (object.prefab && object.prefab->rootId == rootId)
+            {
+                auto old = SceneLayout::Parse(object.prefab->baseline).objects.at(0);
+                auto updated = old;
+                Remap(old, ReferenceMap(ids, oldBindings));
+                Remap(updated, ReferenceMap(ids, expected));
+                MergeComponents(object, old, updated);
+                object.prefab->referenceVersion = 1;
+            }
+        Find(candidate, rootId).prefab->externalBindings = std::move(expected);
+        candidate.Validate();
+        scene = std::move(candidate);
     }
     std::string Prefab::Instantiate(SceneLayout& scene, const SceneLayout& asset, const std::filesystem::path& path,
-                                    const std::array<float, 3>& position)
+                                    const std::array<float, 3>& position, const PrefabBindings& supplied)
     {
         if (!ValidPath(path))
             throw std::runtime_error("Invalid prefab path");
         static_cast<void>(asset.Serialize());
         const auto sourceRoot = Root(asset);
+        PrefabBindings bindings;
+        const auto slots = ExternalSlots(asset);
+        for (const auto& [slot, label] : slots)
+        {
+            static_cast<void>(label);
+            bindings.emplace(slot, ScriptObjectReference{});
+        }
+        for (const auto& [slot, target] : supplied)
+        {
+            if (!bindings.contains(slot))
+                throw std::runtime_error("Unknown prefab external slot: " + slot);
+            bindings[slot] = target;
+        }
+        ValidateBindings(scene, bindings);
         auto candidate = scene;
         std::map<std::string, std::string> ids;
         const auto root = Unique(candidate, "prefab");
@@ -334,12 +518,15 @@ namespace SceneRuntime
         for (auto object : asset.objects)
         {
             const auto source = object.id;
-            const auto baseline = Baseline(object);
-            Remap(object, ids);
+            const auto baseline = Baseline(object, slots, asset.assetReferences);
+            Remap(object, ReferenceMap(ids, bindings));
             object.id = ids.at(source);
             object.prefab = PrefabLink{path, source, root, baseline};
             if (source == sourceRoot)
+            {
                 object.position = position;
+                object.prefab->externalBindings = bindings;
+            }
             candidate.objects.push_back(std::move(object));
         }
         static_cast<void>(candidate.Serialize());
@@ -348,15 +535,15 @@ namespace SceneRuntime
     }
     static std::set<std::string> MergeInstance(SceneLayout& candidate, const SceneLayout& source,
                                                const std::map<std::string, std::string>& ids, const std::string& rootId,
-                                               const std::filesystem::path& path)
+                                               const std::filesystem::path& path, const PrefabBindings& bindings)
     {
         std::set<std::string> live;
         for (auto object : source.objects)
         {
             const auto sourceId = object.id;
             live.insert(sourceId);
-            const auto baseline = Baseline(object);
-            Remap(object, ids);
+            const auto baseline = Baseline(object, Prefab::ExternalSlots(source), source.assetReferences);
+            Remap(object, ReferenceMap(ids, bindings));
             object.id = ids.at(sourceId);
             const auto found = std::find_if(candidate.objects.begin(), candidate.objects.end(),
                                             [&](const auto& value)
@@ -372,19 +559,22 @@ namespace SceneRuntime
             if (!found->prefab)
                 throw std::runtime_error("Prefab update conflicts with an existing object ID");
             auto old = SceneLayout::Parse(found->prefab->baseline).objects.at(0);
-            Remap(old, ids);
+            Remap(old, ReferenceMap(ids, bindings));
             const bool isRoot = found->id == rootId;
             if (found->name == old.name)
                 found->name = object.name;
             MergeComponents(*found, old, object);
             if (!isRoot)
             {
-                if (found->position == old.position)
-                    found->position = object.position;
-                if (found->rotation == old.rotation)
-                    found->rotation = object.rotation;
-                if (found->scale == old.scale)
-                    found->scale = object.scale;
+                for (size_t channel = 0; channel < found->position.size(); ++channel)
+                {
+                    if (found->position[channel] == old.position[channel])
+                        found->position[channel] = object.position[channel];
+                    if (found->rotation[channel] == old.rotation[channel])
+                        found->rotation[channel] = object.rotation[channel];
+                    if (found->scale[channel] == old.scale[channel])
+                        found->scale[channel] = object.scale[channel];
+                }
                 // 親への参照は構造の一部です。元データの変更時は元の階層を復元します。
                 found->parentId = object.parentId;
             }
@@ -418,6 +608,15 @@ namespace SceneRuntime
     }
     void Prefab::Refresh(SceneLayout& scene, const std::filesystem::path& assetsRoot)
     {
+        Refresh(scene, assetsRoot, {});
+    }
+    void Prefab::Refresh(SceneLayout& scene, const std::filesystem::path& assetsRoot,
+                         const std::map<std::filesystem::path, SceneLayout>& preparedAssets,
+                         std::shared_ptr<const Engine::ContentContext> context)
+    {
+        if (!context)
+            context = Engine::ContentContext::Capture(assetsRoot);
+        context->RequireRoot(assetsRoot);
         auto candidate = scene;
         std::map<std::string, std::filesystem::path> roots;
         for (const auto& object : candidate.objects)
@@ -438,8 +637,10 @@ namespace SceneRuntime
             if (!ValidPath(path))
                 throw std::runtime_error("Invalid prefab path");
             RefreshScope scope(assetsRoot / path);
-            auto source = SceneLayout::Load(assetsRoot / path, assetsRoot);
-            Refresh(source, assetsRoot);
+            auto source = preparedAssets.contains(path) ? preparedAssets.at(path)
+                                                        : SceneLayout::Load(assetsRoot / path);
+            source.ResolveAssets(Engine::AssetDatabase(context, true));
+            Refresh(source, assetsRoot, preparedAssets, context);
             const auto sourceRoot = Root(source);
             std::map<std::string, std::string> ids;
             for (const auto& object : candidate.objects)
@@ -452,8 +653,24 @@ namespace SceneRuntime
             for (const auto& object : source.objects)
                 if (!ids.contains(object.id))
                     ids[object.id] = Unique(candidate, rootId + "-" + object.id);
-            const auto live = MergeInstance(candidate, source, ids, rootId, path);
-            RemoveDeletedSources(candidate, live, ids, rootId);
+            const auto slots = ExternalSlots(source);
+            if (root->prefab->referenceVersion == 0 && !slots.empty())
+                throw PrefabReferenceMigrationRequired("Legacy prefab external references require explicit binding: " +
+                                                       rootId);
+            auto bindings = root->prefab->externalBindings;
+            for (const auto& [slot, label] : slots)
+            {
+                static_cast<void>(label);
+                bindings.try_emplace(slot, ScriptObjectReference{});
+            }
+            const auto live = MergeInstance(candidate, source, ids, rootId, path, bindings);
+            RemoveDeletedSources(candidate, live, ReferenceMap(ids, bindings), rootId);
+            std::erase_if(bindings,
+                          [&](const auto& entry)
+                          {
+                              return !slots.contains(entry.first);
+                          });
+            Find(candidate, rootId).prefab->externalBindings = std::move(bindings);
         }
         static_cast<void>(candidate.Serialize());
         scene = std::move(candidate);
@@ -462,7 +679,7 @@ namespace SceneRuntime
     {
         if (!ValidPath(path))
             throw std::runtime_error("Invalid prefab path");
-        const auto asset = Extract(scene, rootId);
+        const auto [asset, bindings] = ExtractScoped(scene, rootId);
         const auto selected = Descendants(scene, rootId);
         for (const auto& source : asset.objects)
         {
@@ -476,8 +693,10 @@ namespace SceneRuntime
                              });
             if (found == scene.objects.end())
                 throw std::runtime_error("Prefab bind object missing");
-            found->prefab = PrefabLink{path, source.id, rootId, Baseline(source)};
+            found->prefab =
+                PrefabLink{path, source.id, rootId, Baseline(source, asset.prefabSlots, asset.assetReferences)};
         }
+        Find(scene, rootId).prefab->externalBindings = bindings;
     }
     void Prefab::Unpack(SceneLayout& scene, const std::string& rootId)
     {
@@ -542,8 +761,8 @@ namespace SceneRuntime
         static_cast<void>(candidate.Serialize());
         scene = std::move(candidate);
     }
-    void Prefab::ApplyOverride(const SceneLayout& scene, const std::string& objectId, const std::string& property,
-                               const std::filesystem::path& assetsRoot)
+    void Prefab::EditOverride(SceneLayout& asset, const SceneLayout& scene, const std::string& objectId,
+                              const std::string& property)
     {
         auto copy = scene;
         auto object = Find(copy, objectId);
@@ -554,15 +773,41 @@ namespace SceneRuntime
                              return item.path == property;
                          }))
             throw std::runtime_error("Prefab property is not overridden");
-        const auto path = object.prefab->asset;
         const auto sourceId = object.prefab->sourceId;
-        auto asset = SceneLayout::Load(assetsRoot / path, assetsRoot);
-        Refresh(asset, assetsRoot);
         auto& source = Find(asset, sourceId);
         std::map<std::string, std::string> ids;
         for (const auto& item : scene.objects)
             if (item.prefab && item.prefab->rootId == object.prefab->rootId)
                 ids[item.id] = item.prefab->sourceId;
+        std::set<std::string> reserved;
+        for (const auto& item : asset.objects)
+            reserved.insert(item.id);
+        for (const auto& [slot, label] : asset.prefabSlots)
+        {
+            static_cast<void>(label);
+            reserved.insert(slot);
+        }
+        std::map<std::string, std::string> outside, pendingSlots;
+        object.VisitObjectReferences(
+            [&](std::string& target)
+            {
+                if (target.empty() || ids.contains(target))
+                    return;
+                if (!outside.contains(target))
+                {
+                    std::string slot;
+                    for (size_t i = 1;; ++i)
+                    {
+                        slot = "prefab-external-" + std::to_string(i);
+                        if (!reserved.contains(slot))
+                            break;
+                    }
+                    reserved.insert(slot);
+                    outside[target] = slot;
+                    pendingSlots[slot] = target;
+                }
+                target = outside.at(target);
+            });
         Remap(object, ids);
         const bool root = objectId == object.prefab->rootId;
         const auto current = Properties(object, root);
@@ -573,6 +818,24 @@ namespace SceneRuntime
         else
             properties = properties.patch(Json::array({Json{{"op", "remove"}, {"path", property}}}));
         SetProperties(source, properties);
+        source.VisitObjectReferences(
+            [&](std::string& target)
+            {
+                if (pendingSlots.contains(target))
+                    asset.prefabSlots[target] = pendingSlots.at(target);
+            });
+        asset.Validate();
+    }
+    void Prefab::ApplyOverride(const SceneLayout& scene, const std::string& objectId, const std::string& property,
+                               const std::filesystem::path& assetsRoot)
+    {
+        const auto& object = Find(scene, objectId);
+        if (!object.prefab)
+            throw std::runtime_error("Object is not a prefab instance");
+        const auto path = object.prefab->asset;
+        auto asset = SceneLayout::Load(assetsRoot / path, assetsRoot);
+        Refresh(asset, assetsRoot);
+        EditOverride(asset, scene, objectId, property);
         asset.Save(assetsRoot / path);
     }
     SceneLayout Prefab::Variant(const SceneLayout& scene, const std::string& rootId)
@@ -581,7 +844,14 @@ namespace SceneRuntime
         const auto& root = Find(copy, rootId);
         if (!root.prefab || root.prefab->rootId != rootId)
             throw std::runtime_error("Variant requires a prefab root");
-        auto variant = Extract(scene, rootId);
+        auto [variant, connections] = ExtractScoped(scene, rootId);
+        std::map<std::string, std::string> coordinates;
+        for (const auto& object : scene.objects)
+            if (object.prefab && object.prefab->rootId == rootId)
+                coordinates[object.id] = object.prefab->sourceId;
+        for (const auto& [slot, target] : connections)
+            if (!target.id.empty())
+                coordinates.try_emplace(target.id, slot);
         for (auto& source : variant.objects)
         {
             const auto found = std::find_if(scene.objects.begin(), scene.objects.end(),
@@ -594,6 +864,12 @@ namespace SceneRuntime
             {
                 source.prefab = found->prefab;
                 source.prefab->rootId = root.prefab->sourceId;
+                for (auto& [slot, target] : source.prefab->externalBindings)
+                {
+                    static_cast<void>(slot);
+                    if (coordinates.contains(target.id))
+                        target.id = coordinates.at(target.id);
+                }
             }
         }
         static_cast<void>(variant.Serialize());

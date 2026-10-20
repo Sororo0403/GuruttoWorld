@@ -73,10 +73,13 @@ namespace SceneRuntime
         std::array<float, 3> velocity{}, angularVelocity{};
         bool operator==(const RigidBodyComponent&) const = default;
     };
+    using PrefabBindings = std::map<std::string, ScriptObjectReference>;
     struct PrefabLink
     {
         std::filesystem::path asset;
         std::string sourceId, rootId, baseline;
+        unsigned int referenceVersion = 1;
+        PrefabBindings externalBindings{};
         bool operator==(const PrefabLink&) const = default;
     };
     struct ScriptComponent
@@ -88,14 +91,24 @@ namespace SceneRuntime
         ScriptValue::Object data;
         std::set<std::string> sceneAssets{};
         bool operator==(const ScriptComponent&) const = default;
-        /// <summary>保存データ内のオブジェクト参照を複製先へ置き換えます。</summary>
-        template <class IdMap> void Remap(const IdMap& ids)
+        /// <summary>保存データ内の型付き個体参照を走査します。</summary>
+        template <class Visitor> void VisitObjectReferences(Visitor&& visitor)
         {
             for (auto& [name, value] : data)
             {
                 static_cast<void>(name);
-                value.Remap(ids);
+                value.VisitObjectReferences(visitor);
             }
+        }
+        /// <summary>保存データ内のオブジェクト参照を複製先へ置き換えます。</summary>
+        template <class IdMap> void Remap(const IdMap& ids)
+        {
+            VisitObjectReferences(
+                [&](std::string& id)
+                {
+                    if (const auto found = ids.find(id); found != ids.end())
+                        id = found->second;
+                });
         }
     };
     struct RotatorComponent

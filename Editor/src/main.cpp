@@ -19,7 +19,7 @@
 #include "SceneDocument.h"
 #include "SceneSnapshotCache.h"
 #include "SceneRecovery.h"
-#include "AssetFileTransaction.h"
+#include "PrefabEditPlan.h"
 #include "ComponentEditResources.h"
 #include "SaveAsPanel.h"
 #include "GameSession.h"
@@ -29,7 +29,6 @@
 #include "UiEditorPanel.h"
 #include "AudioPreview.h"
 #include "EditorFonts.h"
-#include "PlaySnapshot.h"
 #include "ProjectSettingsPanel.h"
 #include "GameProject.h"
 #include <Engine/Graphics/Resources/RenderTexture.h>
@@ -66,22 +65,23 @@ namespace
 
     std::filesystem::path DefaultGameRoot()
     {
-        const auto project=ContentRoot().parent_path()/"Games/GuruttoWorld";
-        if(std::filesystem::is_regular_file(project/"WP1.project.json")) return Editor::GameProject::Open(project);
-        throw std::runtime_error("Open a game project with --project <folder>.");
+        const auto current = std::filesystem::current_path();
+        if (std::filesystem::is_regular_file(current / "WP1.project.json")) return Editor::GameProject::Open(current);
+        const auto selected = Editor::GameProject::Choose();
+        return selected.value_or(std::filesystem::path{});
     }
 
-    class StreetEditor final
+    class EditorApplication final
     {
     public:
-        explicit StreetEditor(const std::filesystem::path& content, std::filesystem::path scene={}) : root(content)
+        explicit EditorApplication(const std::filesystem::path& content, std::filesystem::path scene={}) : root(content)
         {
             if(scene.empty()) scene=Engine::AssetDatabase::Path(SceneRuntime::ProjectSettings::Load(root).startupScene);
             if (scene.is_absolute() || scene.has_root_name() || scene.extension()!=".json" ||
                 !Editor::ProjectCatalog::Text(scene).starts_with("Assets/Scenes/") ||
                 std::any_of(scene.begin(),scene.end(),[](const auto& part){return part=="..";}))
                 throw std::runtime_error("Invalid initial scene path");
-            document=Editor::SceneDocument(root/scene);
+            document.OpenPath(root / scene);
         }
         int Run()
         {
@@ -114,25 +114,31 @@ namespace
         }
 
     private:
-        Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
+        void RefreshPlayerBindings()
         {
-            const auto updateStart=std::chrono::steady_clock::now();
-            if(!PrepareFrameResources(renderer)) return Engine::RenderResult::Failed;
-            audioPreview.Process(root);
             if (projectSettingsPanel.TakeSaved())
             {
                 try { playerInputs.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions); }
                 catch (const std::exception& exception) { Engine::Log::Warning(exception.what()); }
             }
+        }
+
+        Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
+        {
+            const auto updateStart=std::chrono::steady_clock::now();
+            if(!PrepareFrameResources(renderer)) return Engine::RenderResult::Failed;
+            audioPreview.Process(root);
+            RefreshPlayerBindings();
             UpdateInput();
-            if (presentation && !presentation->PrepareUi(renderer,root,world.Layout(),fileStatus)) LogResult(false);
-            if(gameSession.Runtime() && !gameSession.Runtime()->PrepareUi(renderer,root,fileStatus)) LogResult(false);
+            editingUiReady = presentation && presentation->Prepare(renderer,root,document.Layout(),fileStatus);
+            if (presentation && !editingUiReady) LogResult(false);
+            if(gameSession.Runtime() && !gameSession.Runtime()->Prepare(renderer,root,fileStatus)) LogResult(false);
             UpdatePlayInput();
             UpdateGamePointer();
             gameSession.Update(seconds,keyboard && keyboard->IsActive() && !closeRequested);
             if(auto command=gameSession.TakeCommand()) pendingUiEvent=std::move(command);
             ApplyUiEvent(renderer);
-            if(gameSession.Runtime() && !gameSession.Runtime()->PrepareUi(renderer,root,fileStatus)) LogResult(false);
+            if(gameSession.Runtime() && !gameSession.Runtime()->Prepare(renderer,root,fileStatus)) LogResult(false);
             if(gameSession.State().IsEditing()) recovery.Poll(RecoveryDirectory(),document.Path(),SceneJson(),sceneLoaded && editState.HasChanges(),seconds);
             profilerPanel.Update(renderer,DisplayedWorld(),seconds,std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-updateStart).count());
             bool rendered = true;
@@ -187,16 +193,9 @@ namespace
                 else if (request.action == Editor::ObjectAction::RefreshPrefabs) SceneRuntime::Prefab::Refresh(candidate, root);
                 else if (request.action == Editor::ObjectAction::RevertPrefab) SceneRuntime::Prefab::RevertInstance(candidate, request.id, root);
                 else if (request.action == Editor::ObjectAction::RevertPrefabProperty) SceneRuntime::Prefab::RevertOverride(candidate, request.id, request.property);
+                else if (request.action == Editor::ObjectAction::BindPrefabReferences) SceneRuntime::Prefab::BindReferences(candidate, request.id, request.prefabBindings);
                 else if (request.action == Editor::ObjectAction::ApplyPrefabProperty)
-                {
-                    const auto object = std::find_if(candidate.objects.begin(), candidate.objects.end(), [&](const auto &item){ return item.id == request.id; });
-                    if (object == candidate.objects.end() || !object->prefab) throw std::runtime_error("Prefabの対象が見つかりません。");
-                    return Editor::AssetFileTransaction::Run(root / object->prefab->asset, fileStatus, [&]() {
-                            SceneRuntime::Prefab::ApplyOverride(candidate,request.id,request.property,root);
-                            SceneRuntime::Prefab::Refresh(candidate,root);
-                            return world.ReplaceLayout(std::move(candidate),root,fileStatus);
-                        });
-                }
+                    return CommitPrefabPlan(Editor::PrefabEdits::Override(world.Layout(), request.id, request.property, root));
                 else SceneRuntime::Prefab::Unpack(candidate, request.id);
                 return world.ReplaceLayout(std::move(candidate), root, fileStatus);
             }
@@ -204,25 +203,28 @@ namespace
 
         }
 
+        bool CommitPrefabPlan(Editor::PrefabEditPlan plan)
+        {
+            const auto before = Snapshot(SceneJson());
+            if (!Editor::FileTransaction::Apply(plan.files, true, fileStatus,
+                                                [&]()
+                                                {
+                                                    return world.ReplaceLayout(std::move(plan.scene), root, fileStatus);
+                                                }))
+                return false;
+            history.RecordTransaction(before, Snapshot(SceneJson()), std::move(plan.files));
+            return true;
+        }
         bool SavePrefabChanges(const Editor::ObjectRequest &request)
         {
             try
             {
-                if (!SceneRuntime::Prefab::ValidPath(request.model)) throw std::runtime_error("Prefabの保存先が不正です");
-                std::filesystem::create_directories((root / request.model).parent_path());
-                const auto asset = request.action == Editor::ObjectAction::SavePrefabVariant ? SceneRuntime::Prefab::Variant(world.Layout(), request.id) : SceneRuntime::Prefab::Extract(world.Layout(), request.id);
-                const bool success = Editor::AssetFileTransaction::Run(root / request.model, fileStatus, [&]() {
-                        asset.Save(root/request.model,request.action==Editor::ObjectAction::ApplyPrefab);
-                        auto candidate=world.Layout();
-                        SceneRuntime::Prefab::Bind(candidate,request.id,request.model);
-                        if (request.action==Editor::ObjectAction::ApplyPrefab || request.action==Editor::ObjectAction::SavePrefabVariant) SceneRuntime::Prefab::Refresh(candidate,root);
-                        return world.ReplaceLayout(std::move(candidate),root,fileStatus);
-                    });
-                if (!success) return false;
+                auto plan = Editor::PrefabEdits::Save(world.Layout(), request.id, request.model, root,
+                    request.action == Editor::ObjectAction::ApplyPrefab, request.action == Editor::ObjectAction::SavePrefabVariant);
+                if (!CommitPrefabPlan(std::move(plan))) return false;
                 projectPanel.Scan(root); fileStatus = "Prefabを保存しました。"; return true;
             }
             catch (const std::exception &exception) { fileStatus = exception.what(); return false; }
-
         }
 
         static bool IsPrefabLayoutAction(Editor::ObjectAction action) {
@@ -233,6 +235,7 @@ namespace
             case Editor::ObjectAction::RevertPrefab:
             case Editor::ObjectAction::RevertPrefabProperty:
             case Editor::ObjectAction::ApplyPrefabProperty:
+            case Editor::ObjectAction::BindPrefabReferences:
                 return true;
             default:return false;
             }
@@ -251,7 +254,8 @@ namespace
         void SetObjectResultStatus(Editor::ObjectAction action)
         {
             if (action != Editor::ObjectAction::SavePrefab && action != Editor::ObjectAction::ApplyPrefab && action != Editor::ObjectAction::SavePrefabVariant)
-                fileStatus = action == Editor::ObjectAction::RevertPrefab || action == Editor::ObjectAction::RevertPrefabProperty || action == Editor::ObjectAction::ApplyPrefabProperty ? "Prefabを更新しました。" :
+                fileStatus = action == Editor::ObjectAction::BindPrefabReferences ? "Prefabの接続を更新しました。" :
+                    action == Editor::ObjectAction::RevertPrefab || action == Editor::ObjectAction::RevertPrefabProperty || action == Editor::ObjectAction::ApplyPrefabProperty ? "Prefabを更新しました。" :
                       action == Editor::ObjectAction::Delete   ? "削除しました。" :
                     action == Editor::ObjectAction::Duplicate  ? "複製しました。" :
                     action == Editor::ObjectAction::Components ? "コンポーネントを更新しました。" :
@@ -266,7 +270,9 @@ namespace
         {
             if (preview)
             {
-                if (presentation) presentation->Draw(commands,world,renderer.GetWidth(),renderer.GetHeight());
+                if (presentation)
+                    presentation->Draw(commands, world, renderer.GetWidth(), renderer.GetHeight(),
+                                       {nullptr, 0, true, nullptr, editingUiReady});
                 return true;
             }
             bool success=projectPanel.RenderPreview(commands);
@@ -275,7 +281,7 @@ namespace
             viewSignature=signature;
             if (RefreshViewport(sceneViewport.Valid(),refresh,DisplayedWorld().Layout().settings.sceneRealtime,scenePanel.Focused())) success=DrawSceneTexture(commands) && success;
             if (RefreshViewport(gamePanel.Viewport().Valid(),refresh,DisplayedWorld().Layout().settings.gameRealtime,gamePanel.Focused())) success=DrawGameTexture(commands) && success;
-            if (uiEditorPanel.Visible() && presentation) {
+            if (uiEditorPanel.Visible() && presentation && editingUiReady) {
                 if (!uiTexture.Begin(commands,{.12f,.12f,.14f,1})) return false;
                 presentation->DrawUi(commands,world.Layout(),uiTexture.GetWidth(),uiTexture.GetHeight(),uiEditorPanel.PreviewState());
                 success=uiTexture.End(commands) && success;
@@ -337,7 +343,7 @@ namespace
         {
             if (!gameTexture.Begin(commands,world.Layout().settings.background)) return false;
             if (gameSession.Runtime()) gameSession.Draw(commands,gameTexture.GetWidth(),gameTexture.GetHeight());
-            else if (presentation) presentation->Draw(commands,world,gameTexture.GetWidth(),gameTexture.GetHeight());
+            else if (presentation) presentation->Draw(commands,world,gameTexture.GetWidth(),gameTexture.GetHeight(),{nullptr,0,true,nullptr,editingUiReady,editingUiReady});
             return gameTexture.End(commands);
         }
 
@@ -352,7 +358,7 @@ namespace
             if (!sceneTexture.Begin(commands, world.Layout().settings.background)) return false;
             const auto* runtime=gameSession.Runtime();
             if (runtime) runtime->Draw(commands,sceneTexture.GetWidth(),sceneTexture.GetHeight(),&camera.GetCamera(),showSceneUi);
-            else if (presentation) presentation->Draw(commands,world,sceneTexture.GetWidth(),sceneTexture.GetHeight(),{&camera.GetCamera(),0,true,nullptr,showSceneUi});
+            else if (presentation) presentation->Draw(commands,world,sceneTexture.GetWidth(),sceneTexture.GetHeight(),{&camera.GetCamera(),0,true,nullptr,showSceneUi && editingUiReady});
             return sceneTexture.End(commands);
         }
 
@@ -362,9 +368,9 @@ namespace
             {
                 reloadRequested = false;
                 if (!renderer.WaitForIdle()) return false;
-                if (world.Reload(root, document.Path(), fileStatus))
+                if (world.Reload(root, document.Path(), fileStatus, true))
                 {
-                    document=Editor::SceneDocument(document.Path());
+                    document.OpenPath(document.Path());
                     sceneLoaded = true;
                     editState.Reloaded();
                     history.Reset(Snapshot(SceneJson()));
@@ -398,7 +404,7 @@ namespace
         {
             return {json,editState.SelectedId(),editState.SelectedIds()};
         }
-        const std::string& SceneJson() { return sceneSnapshots.Get(world.Layout()); }
+        const std::string& SceneJson() { return sceneSnapshots.Get(document.Layout()); }
         std::filesystem::path RecoveryDirectory() const {
             const auto diagnostics=Engine::GetDiagnosticsRoot();
             return (diagnostics.empty()?root.parent_path()/"generated":diagnostics)/"Editor/Recovery";
@@ -427,9 +433,12 @@ namespace
                 const bool redo=*pendingHistory;
                 pendingHistory.reset();
                 const auto target=history.Target(redo);
-                if (world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), root, fileStatus))
+                if (Editor::FileTransaction::Apply(history.TargetFiles(redo), redo, fileStatus, [&]() {
+                    return world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), root, fileStatus);
+                }))
                 {
                     history.Applied(redo);
+                    projectPanel.Scan(root);
                     editState.RestoreSelection(target.selections,target.selection);
                     editState.SetChanged(document.UnsavedNew() || history.Dirty(target.json));
                     fileStatus=redo ? "やり直しました。" : "元に戻しました。";
@@ -493,9 +502,9 @@ namespace
                 const auto settingsRoot = Engine::GetDiagnosticsRoot();
                 Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{} : settingsRoot / "Editor/layout.ini");
                 sceneLoaded = world.Initialize(renderer, root, document.Path(),
-                    root / "Shaders/Mesh.hlsl", &fileStatus);
+                    root / "Shaders/Mesh.hlsl", &fileStatus, true);
                 presentation=std::make_unique<SceneRuntime::ScenePresentation>();
-                if (!presentation->Initialize(renderer,root,fileStatus)) { presentation.reset(); sceneLoaded=false; }
+                if (!presentation->Initialize(renderer,root,fileStatus,context)) { presentation.reset(); LogResult(false); }
                 initialized = true;
                 if (sceneLoaded) history.Reset(Snapshot(SceneJson()));
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
@@ -521,7 +530,7 @@ namespace
                 auto layout=unload ? collection.Unload(world.Layout(),name) :
                     collection.Add(world.Layout(),SceneRuntime::SceneLayout::Load(root/name,root),name);
                 const auto previousUi=presentation?std::optional<SceneRuntime::SceneUi>{presentation->CaptureUi()}:std::nullopt;
-                if(presentation && !presentation->PrepareUi(renderer,root,layout,fileStatus)) {LogResult(false);return true;}
+                if(presentation && !presentation->Prepare(renderer,root,layout,fileStatus)) {editingUiReady=false;LogResult(false);}
                 if(!world.ReplaceLayout(std::move(layout),root,fileStatus)) {if(presentation && previousUi) presentation->RestoreUi(*previousUi); LogResult(false);return true;}
                 history.Observe(Snapshot(SceneJson()),{}); editState.SetChanged(true);
                 fileStatus="シーン構成を更新しました。保存すると合成シーンと所属を保存します。"; LogResult(true);
@@ -549,9 +558,9 @@ namespace
             if (!renderer.WaitForIdle()) return false;
             auto candidate=std::make_unique<SceneRuntime::ScenePresentation>();
             auto resolved=world.Layout();
-            try { resolved.ResolveAssets(root); } catch (const std::exception& exception) { fileStatus=exception.what(); LogResult(false); return true; }
-            const bool success=Editor::ValidateProjectShaders(root,fileStatus) && candidate->Initialize(renderer,root,fileStatus) &&
-                candidate->PrepareUi(renderer,root,resolved,fileStatus) && world.ReloadAssets(renderer,root,root/"Shaders/Mesh.hlsl",fileStatus);
+            try { resolved.ResolveAssets(Engine::AssetDatabase(context,true)); } catch (const std::exception& exception) { fileStatus=exception.what(); LogResult(false); return true; }
+            const bool success=Editor::ValidateProjectShaders(root,fileStatus) && candidate->Initialize(renderer,root,fileStatus,context) &&
+                candidate->Prepare(renderer,root,resolved,fileStatus) && world.ReloadAssets(renderer,root,root/"Shaders/Mesh.hlsl",fileStatus);
             if (success)
             {
                 presentation=std::move(candidate);
@@ -588,7 +597,7 @@ namespace
 
         void StartGame(const Engine::DirectX12Renderer& renderer)
         {
-            std::optional<Editor::PlaySnapshot> captured;
+            const bool starting = gameSession.State().IsEditing();
             Editor::AudioPreview::StopRequest();
             audioPreview.Process(root);
             if (projectSettingsPanel.TakeSaved())
@@ -598,14 +607,9 @@ namespace
             }
             gamepad.Update(keyboard && keyboard->IsActive() && gameSession.State().CanPause());
             if (keyboard) playerInputs.Update(Engine::InputActions::Capture(*keyboard,&gamepad));
-            if (gameSession.State().IsEditing())
-            {
+            if (!gameSession.Play(renderer,root,document.Layout(),fileStatus,{},context)) { LogResult(false); return; }
+            if (starting) {
                 history.Commit();
-                captured.emplace(world,editState,history,document);
-            }
-            if (!gameSession.Play(renderer,root,world.Layout(),fileStatus)) { LogResult(false); return; }
-            if (captured) {
-                playSnapshot=std::move(captured);
                 runtimeEditState.Reloaded();
                 runtimeEditState.RestoreSelection(editState.SelectedIds(),editState.SelectedId());
             }
@@ -617,16 +621,9 @@ namespace
         void StopGame()
         {
             if (!gameSession.State().CanStop()) return;
-            if (playSnapshot && !playSnapshot->Restore(world,root,editState,history,document,fileStatus))
-            {
-                gameSession.Pause();
-                LogResult(false);
-                return;
-            }
             if (gameSession.Stop())
             {
                 runtimeEditState.Reloaded();
-                playSnapshot.reset();
                 ReportStatus("編集へ戻りました。",true);
             }
         }
@@ -636,7 +633,7 @@ namespace
             if (!sceneLoaded) { fileStatus = "保存するシーンが読み込まれていません。"; LogResult(false); return false; }
             try
             {
-                document.Save(world.Layout());
+                document.Save(document.Layout());
                 projectPanel.SaveMaterials();
                 SavedSuccessfully("保存しました。");
                 return true;
@@ -664,7 +661,7 @@ namespace
             if (!sceneLoaded) return false;
             try
             {
-                document.SaveAs(world.Layout(),target,overwrite);
+                document.SaveAs(document.Layout(), target, overwrite);
                 projectPanel.SaveMaterials();
                 SavedSuccessfully("別名で保存しました："+Editor::ProjectCatalog::Text(document.Path().filename()));
                 return true;
@@ -728,6 +725,24 @@ namespace
             if(event.action=="loadScene") runtimeEditState.Reloaded();
         }
 
+        void ApplyGamePointer(SceneRuntime::SceneEnvironment& runtime,const std::vector<char32_t>& characters,const Engine::DiagnosticPointer* diagnostic,float wheel)
+        {
+            const auto& v=gamePanel.Viewport();
+            POINT cursor{};
+            if(diagnostic) {cursor.x=diagnostic->x;cursor.y=diagnostic->y;}
+            else {GetCursorPos(&cursor);ScreenToClient(keyboard->WindowHandle(),&cursor);}
+            const ImVec2 mouse{static_cast<float>(cursor.x),static_cast<float>(cursor.y)};
+            UpdateGameShortcut(runtime);
+            const bool inside=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered();
+            const auto event=gameSession.Playback().Pointer(runtime,gameTexture.GetWidth(),gameTexture.GetHeight(),
+                {inside?(mouse.x-v.x)*gameTexture.GetWidth()/v.width:-100000,inside?(mouse.y-v.y)*gameTexture.GetHeight()/v.height:-100000,
+                 (playerSnapshot.mouseButtons&1)!=0,false,false,inside?wheel:0},true);
+            if(!event.object.empty()) pendingUiEvent=event;
+            if(GameUiAcceptsInput()) {
+                for(const auto character:characters) runtime.UiTextInput(character);
+            }
+        }
+
         void UpdateGamePointer()
         {
             const auto characters=keyboard?Engine::Window::ConsumeTextInput(keyboard->WindowHandle()):std::vector<char32_t>{};
@@ -736,19 +751,7 @@ namespace
             auto* runtime=gameSession.Runtime(); if(!runtime) return;
             if(!gameSession.State().CanPause() || !keyboard || !keyboard->IsActive()) {gameSession.Playback().Pointer(*runtime,gameTexture.GetWidth(),gameTexture.GetHeight(),{},false);return;}
             const auto& v=gamePanel.Viewport(); if(!v.Valid()) return;
-            POINT cursor{};
-            if(diagnostic) {cursor.x=diagnostic->x;cursor.y=diagnostic->y;}
-            else {GetCursorPos(&cursor);ScreenToClient(keyboard->WindowHandle(),&cursor);}
-            const ImVec2 mouse{static_cast<float>(cursor.x),static_cast<float>(cursor.y)};
-            UpdateGameShortcut(*runtime);
-            const bool inside=v.Contains(mouse.x,mouse.y) && gamePanel.Hovered();
-            const auto event=gameSession.Playback().Pointer(*runtime,gameTexture.GetWidth(),gameTexture.GetHeight(),
-                {inside?(mouse.x-v.x)*gameTexture.GetWidth()/v.width:-100000,inside?(mouse.y-v.y)*gameTexture.GetHeight()/v.height:-100000,
-                 (playerSnapshot.mouseButtons&1)!=0,false,false,inside?wheel:0},true);
-            if(!event.object.empty()) pendingUiEvent=event;
-            if(GameUiAcceptsInput()) {
-                for(const auto character:characters) runtime->UiTextInput(character);
-            }
+            ApplyGamePointer(*runtime,characters,diagnostic,wheel);
         }
 
         void AcceptModelDrop()
@@ -830,6 +833,7 @@ namespace
                     ImGui::CloseCurrentPopup();
                 }
                 if (!audioPreview.error.empty()) ImGui::TextWrapped("音声：%s",audioPreview.error.c_str());
+                for (const auto& diagnostic : world.ResourceDiagnostics()) ImGui::TextWrapped("素材：%s", diagnostic.c_str());
                 if (!fileStatus.empty()) ImGui::TextWrapped("%s", fileStatus.c_str());
                 ImGui::EndPopup();
             }
@@ -1384,7 +1388,10 @@ namespace
         }
 
         const std::filesystem::path root;
-        SceneRuntime::SceneWorld world;
+        const std::shared_ptr<const Engine::ContentContext> context = Engine::ContentContext::Capture(root);
+        Editor::SceneDocument document{std::filesystem::path{}, context};
+        SceneRuntime::SceneWorld world{document.Data()};
+        bool editingUiReady = false;
         Engine::DebugCamera camera;
         Editor::CameraPanel cameraPanel;
         Engine::RenderTexture gameTexture;
@@ -1409,7 +1416,6 @@ namespace
         Editor::GameSession gameSession;
         Editor::GamePointerCapture pointerCapture;
         bool captureGamePointer=false;
-        std::optional<Editor::PlaySnapshot> playSnapshot;
         std::optional<Editor::GameSession::Command> pendingPlay;
         Editor::ObjectPanel objectPanel;
         Editor::ObjectPanel runtimeObjectPanel;
@@ -1445,7 +1451,6 @@ namespace
         bool closeRequested = false;
         bool closeConfirmed = false;
         std::string fileStatus;
-        Editor::SceneDocument document{root / "Assets/Scenes/TitleStreet.json"};
         Editor::SceneSnapshotCache sceneSnapshots;
         bool newScenePopupRequested=false;
         std::array<char,256> newSceneName{"NewScene.json"};
@@ -1454,6 +1459,19 @@ namespace
         std::array<char,256> additiveScenePath{"Assets/Scenes/Game.json"};
         std::optional<std::pair<std::string,bool>> pendingSceneCollection;
     };
+}
+
+static void ReadEditorArguments(int count,wchar_t** arguments,std::filesystem::path& project,std::filesystem::path& scene,bool& validateProject)
+{
+    for(int i=1;i<count;++i) {
+        const std::wstring_view argument(arguments[i]);
+        if(argument==L"--project" && i+1<count) project=arguments[++i];
+        else if(argument.starts_with(L"--project=")) project=argument.substr(10);
+        else if(argument==L"--scene" && i+1<count) scene=arguments[++i];
+        else if(argument.starts_with(L"--scene=")) scene=argument.substr(8);
+        else if(argument==L"--validate-project") validateProject=true;
+        else throw std::runtime_error("Usage: Editor.exe [--project folder] [--scene Assets/Scenes/name.json]");
+    }
 }
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
@@ -1465,25 +1483,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         auto arguments=CommandLineToArgvW(GetCommandLineW(),&count);
         if(!arguments) throw std::runtime_error("Cannot parse editor arguments.");
         try {
-            for(int i=1;i<count;++i) {
-                const std::wstring_view argument(arguments[i]);
-                if(argument==L"--project" && i+1<count) project=arguments[++i];
-                else if(argument.starts_with(L"--project=")) project=argument.substr(10);
-                else if(argument==L"--scene" && i+1<count) scene=arguments[++i];
-                else if(argument.starts_with(L"--scene=")) scene=argument.substr(8);
-                else if(argument==L"--validate-project") validateProject=true;
-                else throw std::runtime_error("Usage: Editor.exe [--project folder] [--scene Assets/Scenes/name.json]");
-            }
+            ReadEditorArguments(count,arguments,project,scene,validateProject);
         } catch(...) {LocalFree(arguments);throw;}
         LocalFree(arguments);
+        if (validateProject && project.empty()) throw std::runtime_error("Project validation requires --project.");
         const auto content=project.empty()?DefaultGameRoot():Editor::GameProject::Open(project);
+        if (content.empty()) return 0;
         if(validateProject) {
             if(project.empty()) throw std::runtime_error("Project validation requires --project.");
             const auto settings=SceneRuntime::ProjectSettings::Load(content);
             SceneRuntime::SceneLayout::Load(content/Engine::AssetDatabase::Path(settings.startupScene),content);
             return 0;
         }
-        StreetEditor editor(content,scene);
+        EditorApplication editor(content,scene);
         return editor.Run();
     } catch(const std::exception& error) {
         if(validateProject) {Engine::Log::Error(error.what());return 1;}

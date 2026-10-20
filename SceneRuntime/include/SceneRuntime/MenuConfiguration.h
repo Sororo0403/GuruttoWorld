@@ -54,11 +54,14 @@ struct MenuConfiguration {
     float transitionClockScale=1;
     std::map<std::string,float> transitionDefaults;
     bool operator==(const MenuConfiguration&) const = default;
+    /// <summary>メニュー遷移で使用する個体参照を走査します。</summary>
+    template<class Visitor> void VisitObjectReferences(Visitor&& visitor) {
+        visitor(configTransition.cameraTarget); visitor(configTransition.returnCameraTarget);
+        for(auto& entry:entries) visitor(entry.transitionCameraTarget);
+    }
     /// <summary>複製やPrefab配置に合わせて、メニューの内部カメラ参照を変換します。</summary>
     template<class IdMap> void RemapCameras(const IdMap& ids) {
-        const auto remap=[&](std::string& id) {if(const auto found=ids.find(id);found!=ids.end()) id=found->second;};
-        remap(configTransition.cameraTarget); remap(configTransition.returnCameraTarget);
-        for(auto& entry:entries) remap(entry.transitionCameraTarget);
+        VisitObjectReferences([&](std::string& id) {if(const auto found=ids.find(id);found!=ids.end()) id=found->second;});
     }
 };
 inline MenuConfiguration DefaultMenuConfiguration() {
@@ -106,7 +109,22 @@ inline void Binding(const MenuStateBinding &binding, std::set<std::string> &keys
     Require(binding.minimum <= binding.maximum);
 }
 }
-inline void ValidateMenu(const MenuConfiguration& configuration) {
+inline void ValidateMenuTransition(const MenuConfiguration& configuration)
+{
+    using namespace MenuValidation;
+    const auto& transition=configuration.configTransition;
+    Require(Engine::ValidString(transition.clock,128) && Engine::ValidString(transition.enabledState,128));
+    Require(Engine::ValidString(configuration.transitionClock,128) && Engine::ValidString(configuration.transitionFallbackClock,128) && Number(configuration.transitionClockScale));
+    Values(transition.idleValues); Values(transition.heldValues); Values(transition.transitionValues); Values(configuration.transitionDefaults);
+    Require(Engine::ValidString(transition.cameraTarget,128) && Engine::ValidString(transition.returnCameraTarget,128));
+    Require(!configuration.settingsScreen || (!configuration.returnScene.empty() && configuration.returnScene.starts_with("Assets/Scenes/") && configuration.returnScene.ends_with(".json") && configuration.returnScene.find("..") == std::string::npos && configuration.returnScene.find_first_of("\\:")==std::string::npos));
+    Require(!transition.enabled || !transition.cameraTarget.empty());
+    Require(Engine::InRange(transition.enterDuration,.1f,10) && Engine::InRange(transition.returnDuration,.1f,10) &&
+        Engine::InRange(transition.zoomDelay,0,transition.enterDuration));
+}
+
+inline void ValidateMenu(const MenuConfiguration& configuration)
+{
     using namespace MenuValidation;
     Require(configuration.entries.size()<=128 && configuration.settings.size()<=128 && configuration.bindings.size()<=256);
     std::set<int> indices;
@@ -118,14 +136,6 @@ inline void ValidateMenu(const MenuConfiguration& configuration) {
     for(const auto& input:configuration.inputs) Require(Engine::ValidString(input,128));
     for(const auto& cue:configuration.cues) Require(Engine::ValidString(cue,128));
     Require(Key(configuration.focusState));
-    const auto& transition=configuration.configTransition;
-    Require(Engine::ValidString(transition.clock,128) && Engine::ValidString(transition.enabledState,128));
-    Require(Engine::ValidString(configuration.transitionClock,128) && Engine::ValidString(configuration.transitionFallbackClock,128) && Number(configuration.transitionClockScale));
-    Values(transition.idleValues); Values(transition.heldValues); Values(transition.transitionValues); Values(configuration.transitionDefaults);
-    Require(Engine::ValidString(transition.cameraTarget,128) && Engine::ValidString(transition.returnCameraTarget,128));
-    Require(!configuration.settingsScreen || (!configuration.returnScene.empty() && configuration.returnScene.starts_with("Assets/Scenes/") && configuration.returnScene.ends_with(".json") && configuration.returnScene.find("..") == std::string::npos && configuration.returnScene.find_first_of("\\:")==std::string::npos));
-    Require(!transition.enabled || !transition.cameraTarget.empty());
-    Require(Engine::InRange(transition.enterDuration,.1f,10) && Engine::InRange(transition.returnDuration,.1f,10) &&
-        Engine::InRange(transition.zoomDelay,0,transition.enterDuration));
+    ValidateMenuTransition(configuration);
 }
 }

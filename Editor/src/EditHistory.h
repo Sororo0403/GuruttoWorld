@@ -4,6 +4,8 @@
 #include <optional>
 #include <string_view>
 #include <utility>
+#include <algorithm>
+#include "FileTransaction.h"
 
 namespace Editor
 {
@@ -20,6 +22,9 @@ namespace Editor
         void Reset(State state)
         {
             states_ = {std::move(state)};
+            files_ = {std::vector<FileChange>{}};
+            states_.reserve(102);
+            files_.reserve(102);
             cursor_ = 0;
             pending_.reset();
             interaction_.clear();
@@ -72,9 +77,15 @@ namespace Editor
             if (pending_->json != states_[cursor_].json)
             {
                 states_.resize(cursor_ + 1);
+                files_.resize(cursor_ + 1);
                 states_.push_back(std::move(*pending_));
+                files_.emplace_back();
                 if (states_.size() > 101)
+                {
                     states_.erase(states_.begin());
+                    files_.erase(files_.begin());
+                    files_.front().clear();
+                }
                 cursor_ = states_.size() - 1;
             }
             else
@@ -87,6 +98,38 @@ namespace Editor
         bool CanUndo() const
         {
             return cursor_ > 0;
+        }
+        /// <summary>シーンと素材の一つの編集を、通常の連続操作とは分けて履歴へ確定します。</summary>
+        void RecordTransaction(State before, State after, std::vector<FileChange> files)
+        {
+            Observe(std::move(before), "");
+            Commit();
+            const bool changed = std::any_of(files.begin(), files.end(),
+                                             [](const auto& file)
+                                             {
+                                                 return file.before != file.after;
+                                             });
+            if (!changed && after.json == states_[cursor_].json)
+            {
+                Observe(std::move(after), "");
+                return;
+            }
+            states_.resize(cursor_ + 1);
+            files_.resize(cursor_ + 1);
+            states_.push_back(std::move(after));
+            files_.push_back(std::move(files));
+            if (states_.size() > 101)
+            {
+                states_.erase(states_.begin());
+                files_.erase(files_.begin());
+                files_.front().clear();
+            }
+            cursor_ = states_.size() - 1;
+        }
+        /// <summary>UndoまたはRedoでシーンと一緒に適用する素材の変更を返します。</summary>
+        const std::vector<FileChange>& TargetFiles(bool redo) const
+        {
+            return files_.at(redo ? cursor_ + 1 : cursor_);
         }
         bool CanRedo() const
         {
@@ -117,6 +160,7 @@ namespace Editor
 
     private:
         std::vector<State> states_;
+        std::vector<std::vector<FileChange>> files_;
         size_t cursor_ = 0;
         std::optional<State> pending_;
         std::string saved_;

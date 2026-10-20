@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/ScriptSchema.h>
 #include <algorithm>
 #include <Engine/Assets/AssetDatabase.h>
 #include <cctype>
@@ -41,6 +42,10 @@ namespace Editor
         {
             try
             {
+                auto schemas = SceneRuntime::ScriptSchema::Builtins();
+                for (auto& [name, schema] : SceneRuntime::ScriptSchema::LoadProject(root))
+                    if (!schemas.emplace(name, std::move(schema)).second)
+                        throw std::runtime_error("Project cannot replace a builtin script schema: " + name);
                 std::vector<ProjectAsset> assets;
                 std::set<std::filesystem::path> folders{"Assets"};
                 ScanFolder(root, "Assets", assets, folders);
@@ -64,6 +69,7 @@ namespace Editor
                               return a.path < b.path;
                           });
                 static_cast<void>(Engine::AssetDatabase(root));
+                schemas_ = std::move(schemas);
                 root_ = root;
                 assets_ = std::move(assets);
                 folders_ = {folders.begin(), folders.end()};
@@ -129,6 +135,11 @@ namespace Editor
                 return asset.path.parent_path() == folder;
             return Lower(Text(asset.path)).find(Lower(search)) != std::string::npos;
         }
+        /// <summary>DLLのロード状態に依存しない宣言済みスクリプトのスキーマを取得します。</summary>
+        const std::map<std::string, SceneRuntime::ScriptSchema>& ScriptSchemas() const
+        {
+            return schemas_;
+        }
         const std::filesystem::path& Root() const
         {
             return root_;
@@ -189,6 +200,7 @@ namespace Editor
                            });
             return value;
         }
+        std::map<std::string, SceneRuntime::ScriptSchema> schemas_;
         std::filesystem::path root_;
         std::vector<ProjectAsset> assets_;
         std::vector<std::filesystem::path> folders_;

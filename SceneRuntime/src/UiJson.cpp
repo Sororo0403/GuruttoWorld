@@ -1,3 +1,4 @@
+#include "SceneComponentJson.h"
 #include "UiJson.h"
 #include "AudioJson.h"
 #include "UiControlJson.h"
@@ -185,25 +186,7 @@ namespace
         ReadCanvasMenu(o, c);
         p.canvas = std::move(c);
     }
-    void WriteCanvas(Json& a, const SceneRuntime::CanvasComponent& c)
-    {
-        Json o;
-        Put(o, "id", c.id);
-        Put(o, "type", std::string("Canvas"));
-        Put(o, "enabled", c.enabled);
-        Put(o, "referenceSize", c.referenceSize);
-        Put(o, "scaleWithScreen", c.scaleWithScreen);
-        Json defaults = Json::object();
-        for (const auto& [key, value] : c.stateDefaults)
-            Put(defaults, key.c_str(), value);
-        o["stateDefaults"] = defaults;
-        if (c.menu)
-        {
-            SceneRuntime::ValidateMenu(*c.menu);
-            o["menu"] = *c.menu;
-        }
-        a.push_back(o);
-    }
+
     void ReadRectTransform(const Json& o, SceneRuntime::ScenePlacement& p)
     {
         if (p.rectTransform)
@@ -232,26 +215,7 @@ namespace
             throw std::runtime_error("Invalid visibility expression");
         p.rectTransform = std::move(c);
     }
-    void WriteRectTransform(Json& a, const SceneRuntime::RectTransformComponent& c)
-    {
-        Json o;
-        Put(o, "id", c.id);
-        Put(o, "type", std::string("RectTransform"));
-        Put(o, "enabled", c.enabled);
-        Put(o, "anchorMin", c.anchorMin);
-        Put(o, "anchorMax", c.anchorMax);
-        Put(o, "pivot", c.pivot);
-        Put(o, "position", c.position);
-        Put(o, "size", c.size);
-        Put(o, "rotation", c.rotation);
-        Put(o, "introDelay", c.introDelay);
-        Put(o, "introOffset", c.introOffset);
-        Put(o, "visibleWhen", c.visibleWhen);
-        Put(o, "offsetBinding", c.offsetBinding);
-        Put(o, "opacityBinding", c.opacityBinding);
-        Put(o, "widthBinding", c.widthBinding);
-        a.push_back(o);
-    }
+
     void ReadImage(const Json& o, SceneRuntime::ScenePlacement& p)
     {
         if (p.image)
@@ -266,17 +230,7 @@ namespace
             throw std::runtime_error("Reversed UV");
         p.image = std::move(c);
     }
-    void WriteImage(Json& a, const SceneRuntime::ImageComponent& c)
-    {
-        Json o;
-        Put(o, "id", c.id);
-        Put(o, "type", std::string("Image"));
-        Put(o, "enabled", c.enabled);
-        Put(o, "texture", c.texture);
-        Put(o, "uv", c.uv);
-        Put(o, "color", c.color);
-        a.push_back(o);
-    }
+
     void ReadText(const Json& o, SceneRuntime::ScenePlacement& p)
     {
         if (p.text)
@@ -290,18 +244,7 @@ namespace
         c.color = Vector<4>(o, "color", 0.0f, 1.0f);
         p.text = std::move(c);
     }
-    void WriteText(Json& a, const SceneRuntime::TextComponent& c)
-    {
-        Json o;
-        Put(o, "id", c.id);
-        Put(o, "type", std::string("Text"));
-        Put(o, "enabled", c.enabled);
-        Put(o, "text", c.text);
-        Put(o, "font", c.font);
-        Put(o, "fontSize", c.fontSize);
-        Put(o, "color", c.color);
-        a.push_back(o);
-    }
+
     void SetLegacyButtonInput(SceneRuntime::ButtonComponent& c)
     {
         if (c.inputAction.empty())
@@ -358,22 +301,6 @@ namespace
         ValidateButtonTarget(c);
         p.button = std::move(c);
     }
-    void WriteButton(Json& a, const SceneRuntime::ButtonComponent& c)
-    {
-        Json o;
-        Put(o, "id", c.id);
-        Put(o, "type", std::string("Button"));
-        Put(o, "enabled", c.enabled);
-        Put(o, "action", c.action);
-        Put(o, "target", c.target);
-        Put(o, "event", c.event);
-        Put(o, "shortcut", c.shortcut);
-        Put(o, "inputAction", c.inputAction);
-        Put(o, "sound", c.sound);
-        Put(o, "hoverColor", c.hoverColor);
-        Put(o, "pressedColor", c.pressedColor);
-        a.push_back(o);
-    }
 
 }
 namespace SceneRuntime
@@ -399,19 +326,119 @@ namespace SceneRuntime
             return false;
         return true;
     }
-    void WriteUiComponents(Json& a, const ScenePlacement& p)
+    Json WriteSceneComponent(const CanvasComponent& c)
     {
-        WriteUiControls(a, p);
-        if (p.canvas)
-            WriteCanvas(a, *p.canvas);
-        if (p.rectTransform)
-            WriteRectTransform(a, *p.rectTransform);
-        if (p.image)
-            WriteImage(a, *p.image);
-        if (p.text)
-            WriteText(a, *p.text);
-        if (p.button)
-            WriteButton(a, *p.button);
-        WriteAudioComponents(a, p);
+        Json o;
+        Put(o, "id", c.id);
+        Put(o, "type", std::string("Canvas"));
+        Put(o, "enabled", c.enabled);
+        Put(o, "referenceSize", c.referenceSize);
+        Put(o, "scaleWithScreen", c.scaleWithScreen);
+        Json defaults = Json::object();
+        for (const auto& [key, value] : c.stateDefaults)
+            Put(defaults, key.c_str(), value);
+        o["stateDefaults"] = defaults;
+        if (c.menu)
+        {
+            SceneRuntime::ValidateMenu(*c.menu);
+            o["menu"] = *c.menu;
+        }
+        return o;
     }
+    Json WriteSceneComponent(const RectTransformComponent& c)
+    {
+        Json o;
+        Put(o, "id", c.id);
+        Put(o, "type", std::string("RectTransform"));
+        Put(o, "enabled", c.enabled);
+        Put(o, "anchorMin", c.anchorMin);
+        Put(o, "anchorMax", c.anchorMax);
+        Put(o, "pivot", c.pivot);
+        Put(o, "position", c.position);
+        Put(o, "size", c.size);
+        Put(o, "rotation", c.rotation);
+        Put(o, "introDelay", c.introDelay);
+        Put(o, "introOffset", c.introOffset);
+        Put(o, "visibleWhen", c.visibleWhen);
+        Put(o, "offsetBinding", c.offsetBinding);
+        Put(o, "opacityBinding", c.opacityBinding);
+        Put(o, "widthBinding", c.widthBinding);
+        return o;
+    }
+    Json WriteSceneComponent(const ImageComponent& c)
+    {
+        Json o;
+        Put(o, "id", c.id);
+        Put(o, "type", std::string("Image"));
+        Put(o, "enabled", c.enabled);
+        Put(o, "texture", c.texture);
+        Put(o, "uv", c.uv);
+        Put(o, "color", c.color);
+        return o;
+    }
+    Json WriteSceneComponent(const TextComponent& c)
+    {
+        Json o;
+        Put(o, "id", c.id);
+        Put(o, "type", std::string("Text"));
+        Put(o, "enabled", c.enabled);
+        Put(o, "text", c.text);
+        Put(o, "font", c.font);
+        Put(o, "fontSize", c.fontSize);
+        Put(o, "color", c.color);
+        return o;
+    }
+    Json WriteSceneComponent(const ButtonComponent& c)
+    {
+        Json o;
+        Put(o, "id", c.id);
+        Put(o, "type", std::string("Button"));
+        Put(o, "enabled", c.enabled);
+        Put(o, "action", c.action);
+        Put(o, "target", c.target);
+        Put(o, "event", c.event);
+        Put(o, "shortcut", c.shortcut);
+        Put(o, "inputAction", c.inputAction);
+        Put(o, "sound", c.sound);
+        Put(o, "hoverColor", c.hoverColor);
+        Put(o, "pressedColor", c.pressedColor);
+        return o;
+    }
+    Json WriteSceneComponent(const InputFieldComponent& component)
+    {
+        Json object = component;
+        object["type"] = "InputField";
+        return object;
+    }
+    Json WriteSceneComponent(const SliderComponent& component)
+    {
+        Json object = component;
+        object["type"] = "Slider";
+        return object;
+    }
+    Json WriteSceneComponent(const ToggleComponent& component)
+    {
+        Json object = component;
+        object["type"] = "Toggle";
+        return object;
+    }
+    Json WriteSceneComponent(const ScrollViewComponent& component)
+    {
+        Json object = component;
+        object["type"] = "ScrollView";
+        return object;
+    }
+    Json WriteSceneComponent(const MaskComponent& component)
+    {
+        Json object = component;
+        object["type"] = "Mask";
+        return object;
+    }
+    Json WriteSceneComponent(const LayoutGroupComponent& component)
+    {
+        Json object = component;
+        object["type"] = "LayoutGroup";
+        return object;
+    }
+
 }

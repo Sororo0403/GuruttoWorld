@@ -131,8 +131,12 @@ namespace EngineEditorReviewValidation
 
         auto asset = MenuPrefab();
         SceneRuntime::SceneLayout instance;
-        const auto id = SceneRuntime::Prefab::Instantiate(instance, asset, "Assets/Prefabs/Menu.prefab", {});
-        CameraLinks(instance, 0, 1);
+        SceneRuntime::ScenePlacement externalCamera;
+        externalCamera.id = "external-camera";
+        instance.objects.push_back(externalCamera);
+        const auto id = SceneRuntime::Prefab::Instantiate(instance, asset, "Assets/Prefabs/Menu.prefab", {},
+                                                          {{externalCamera.id, {externalCamera.id}}});
+        CameraLinks(instance, 1, 2);
         CameraLinks(SceneRuntime::Prefab::Extract(instance, id), 0, 1);
         asset.objects.front().canvas->enabled = false;
         size_t next = 1;

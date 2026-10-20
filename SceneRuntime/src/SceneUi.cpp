@@ -244,6 +244,7 @@ namespace SceneRuntime
         const auto key = p.id + (text ? "/text" : "/image"), signature = Signature(p, text);
         if (ReusePart(key, signature, p, text, generation, pending))
             return;
+        content_->RequireConfiguration();
         Engine::CpuScope rebuildScope("UI resource rebuild");
         auto texture = text ? TextTexture(renderer, *p.text,
                                           p.rectTransform ? p.rectTransform->size : std::array<float, 2>{200, 60})
@@ -255,12 +256,12 @@ namespace SceneRuntime
         auto sprite = std::make_shared<Engine::SpriteRenderer>();
         if (!(prototype ? sprite->InitializeShared(*prototype, texture)
                         : sprite->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture,
-                                             root / "Shaders/Ui.hlsl")))
+                                             content_->Resolve(root / "Shaders/Ui.hlsl"))))
             throw std::runtime_error("Cannot create UI renderer");
         auto sceneSprite = std::make_shared<Engine::SpriteRenderer>();
         if (!(scenePrototype ? sceneSprite->InitializeShared(*scenePrototype, texture)
                              : sceneSprite->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture,
-                                                       root / "Shaders/SceneUi.hlsl", true)))
+                                                       content_->Resolve(root / "Shaders/SceneUi.hlsl"), true)))
             throw std::runtime_error("Cannot create Scene Canvas renderer");
         pending.emplace(
             key, Resource{generation, signature, std::move(sprite), std::move(sceneSprite), text ? TextBytes(p) : 0});
@@ -281,8 +282,9 @@ namespace SceneRuntime
         generation = contextGeneration_;
         if (inspected)
         {
-            if (!Engine::GetShaderRevision(root / "Shaders/Ui.hlsl", uiRevision) ||
-                !Engine::GetShaderRevision(root / "Shaders/SceneUi.hlsl", sceneRevision))
+            content_->RequireConfiguration();
+            if (!Engine::GetShaderRevision(content_->Resolve(root / "Shaders/Ui.hlsl"), uiRevision) ||
+                !Engine::GetShaderRevision(content_->Resolve(root / "Shaders/SceneUi.hlsl"), sceneRevision))
                 throw std::runtime_error("Cannot inspect UI shaders");
             if (contextChanged || generation == 0 || uiRevision != uiRevision_ || sceneRevision != sceneRevision_)
                 ++generation;
@@ -399,10 +401,17 @@ namespace SceneRuntime
         }
     }
     bool SceneUi::Prepare(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
-                          const SceneLayout& layout, std::string& error, const UiState& state, bool inspectShaders)
+                          const SceneLayout& layout, std::string& error, const UiState& state, bool inspectShaders,
+                          std::shared_ptr<const Engine::ContentContext> context)
     {
         try
         {
+            if (context)
+                content_ = std::move(context);
+            else if (!content_ ||
+                     content_->Root() != std::filesystem::weakly_canonical(std::filesystem::absolute(root)))
+                content_ = Engine::ContentContext::Capture(root);
+            content_->RequireRoot(root);
             if (resources_.empty() && std::none_of(layout.objects.begin(), layout.objects.end(),
                                                    [](const auto& p)
                                                    {
@@ -413,7 +422,7 @@ namespace SceneRuntime
                 return true;
             }
             Preparation candidate;
-            InspectContext(renderer, root, inspectShaders, candidate);
+            InspectContext(renderer, content_->Root(), inspectShaders, candidate);
             PrepareResources(renderer, layout, state, candidate);
             // キャッシュも候補として作り、資源準備・GPU退役が失敗した場合は旧表示と履歴を保持します。
             PrepareTextCache(candidate);

@@ -231,7 +231,8 @@ namespace UiValidation
     {
         SpriteResourceValidation::Run(renderer.GetDevice(), renderer.GetCommandQueue(), root);
         {
-            const auto staged = std::filesystem::path("generated/park/ui-warm-validation");
+            const auto staged = std::filesystem::path("generated/park/ui-warm-validation") /
+                                (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
             std::filesystem::create_directories(staged);
             std::filesystem::copy(root / "Shaders", staged / "Shaders",
                                   std::filesystem::copy_options::recursive |
@@ -241,7 +242,10 @@ namespace UiValidation
             warmLayout.objects[1].text->text = "initial";
             SceneUi warm;
             std::string warmError;
-            Require(warm.Prepare(renderer, staged, warmLayout, warmError), "warm UI initializes shader context");
+            if (!warm.Prepare(renderer, staged, warmLayout, warmError))
+                throw std::runtime_error("warm UI initializes shader context: " + warmError);
+            Require(warm.Prepare(renderer, std::filesystem::absolute(staged), warmLayout, warmError, {}, false),
+                    "relative and absolute roots share the same UI context");
             std::ofstream broken(staged / "Shaders/Ui.hlsl", std::ios::binary);
             broken << "invalid shader";
             broken.close();

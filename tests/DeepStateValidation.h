@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/SceneMigration.h>
 #include "../Editor/src/SceneSnapshotCache.h"
 #include <SceneRuntime/SceneCollection.h>
 #include <SceneRuntime/ScriptRuntime.h>
@@ -80,6 +81,8 @@ namespace DeepStateValidation
         actor.button->target = original;
         actor.scripts = {{"rules", true, "TypedReferenceAudit", {}, definition.dataFields}};
         scene.objects = {actor};
+        Require(MigrateSceneScripts(scene, {{"TypedReferenceAudit", definition}}).conflicts.empty(),
+                "Reference purposes migrate explicitly before saving");
         scene.Save(root / "Assets/Scenes/Test.json");
         AssetDatabase(root).Move(original, moved);
         const auto loaded = SceneLayout::Load(root / "Assets/Scenes/Test.json", root);

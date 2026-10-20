@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "scripts": {
+    "StreetCamera": {
+      "parameters": {
+        "height": {
+          "initial": 4.5,
+          "minimum": 3,
+          "maximum": 6
+        },
+        "distance": {
+          "initial": 7.6,
+          "minimum": 6,
+          "maximum": 10
+        },
+        "lead": {
+          "initial": 3,
+          "minimum": 2,
+          "maximum": 7
+        },
+        "fixedView": {
+          "initial": 0,
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "data": {
+        "target": {
+          "kind": "reference",
+          "value": ""
+        }
+      },
+      "purposes": {}
+    },
+    "StreetJourney": {
+      "parameters": {},
+      "data": {},
+      "purposes": {}
+    },
+    "StreetGear": {
+      "parameters": {},
+      "data": {},
+      "purposes": {}
+    }
+  }
+}

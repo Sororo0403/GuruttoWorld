@@ -3,7 +3,7 @@
 #include "../App/src/Scenes/TitleUi.h"
 #include "../App/src/Scenes/SceneFactory.h"
 #include "../App/src/Scenes/AuthoredScene.h"
-#include "../App/src/Scenes/TitleScene.h"
+#include "../App/src/Scenes/AuthoredScene.h"
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/TitlePreview.h"
 #include <SceneRuntime/ProjectSettings.h>
@@ -208,7 +208,7 @@ namespace MenuAuthoringValidation
         layout.Save(root / "Assets/Scenes/RenamedTitle.json");
         App::SceneFactory factory(root);
         auto scene = factory.Create("Assets/Scenes/RenamedTitle.json");
-        check(dynamic_cast<App::TitleScene*>(scene.get()), "renamed title selects menu runtime by saved configuration");
+        check(dynamic_cast<App::AuthoredScene*>(scene.get()), "renamed menu uses the shared authored runtime");
         const auto normal = SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/Game.json");
         normal.Save(root / "Assets/Scenes/CustomGameplay.json");
         SceneRuntime::ProjectSettings project;

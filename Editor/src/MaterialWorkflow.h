@@ -1,5 +1,5 @@
 #pragma once
-#include "AssetFileTransaction.h"
+#include "AssetFileChanges.h"
 #include "ProjectCatalog.h"
 #include <SceneRuntime/MaterialAsset.h>
 #include <SceneRuntime/SceneLayout.h>
@@ -27,14 +27,14 @@ namespace Editor
             metadata += ".meta";
             if (std::filesystem::exists(root / destination) || std::filesystem::exists(metadata))
                 throw std::runtime_error("同じ名前のMaterialまたはメタデータが存在します");
+            auto plan =
+                AssetFileChanges::Prepare(root / destination, std::nullopt, asset.SerializeForSave(root, destination));
             std::string error;
-            if (!AssetFileTransaction::Run(root / destination, error,
-                                           [&]()
-                                           {
-                                               asset.Save(root, destination);
-                                               Engine::AssetDatabase::Ensure(root / destination);
-                                               return true;
-                                           }))
+            if (!FileTransaction::Apply(plan.files, true, error,
+                                        []()
+                                        {
+                                            return true;
+                                        }))
                 throw std::runtime_error(error);
         }
         static std::vector<SceneRuntime::ScenePlacement> Assign(const SceneRuntime::SceneLayout& layout,

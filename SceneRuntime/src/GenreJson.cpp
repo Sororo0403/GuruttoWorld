@@ -1,3 +1,4 @@
+#include "SceneComponentJson.h"
 #include <Engine/Core/Validation.h>
 #include "GenreJson.h"
 #include <cmath>
@@ -170,59 +171,53 @@ namespace SceneRuntime
             return false;
         return true;
     }
-    void WriteGenreComponents(Json& array, const ScenePlacement& p)
+    Json WriteSceneComponent(const TerrainComponent& c)
     {
-        if (p.terrain)
-        {
-            const auto& c = *p.terrain;
-            auto o = Base(c.id, c.enabled, "Terrain");
-            o["columns"] = c.columns;
-            o["rows"] = c.rows;
-            o["cellSize"] = c.cellSize;
-            o["heights"] = c.heights;
-            o["texture"] = c.texture.generic_string();
-            o["color"] = c.color;
-            o["textureScale"] = c.textureScale;
-            array.push_back(std::move(o));
-        }
-        if (p.tilemap)
-        {
-            const auto& c = *p.tilemap;
-            auto o = Base(c.id, c.enabled, "Tilemap");
-            o["columns"] = c.columns;
-            o["rows"] = c.rows;
-            o["cellSize"] = c.cellSize;
-            o["tiles"] = c.tiles;
-            o["atlasColumns"] = c.atlasColumns;
-            o["atlasRows"] = c.atlasRows;
-            o["texture"] = c.texture.generic_string();
-            o["color"] = c.color;
-            array.push_back(std::move(o));
-        }
-        if (p.navMesh)
-        {
-            const auto& c = *p.navMesh;
-            auto o = Base(c.id, c.enabled, "NavMesh");
-            o["columns"] = c.columns;
-            o["rows"] = c.rows;
-            o["cellSize"] = c.cellSize;
-            o["heights"] = c.heights;
-            o["walkable"] = c.walkable;
-            o["maxSlope"] = c.maxSlope;
-            o["agentRadius"] = c.agentRadius;
-            o["baked"] = c.baked;
-            array.push_back(std::move(o));
-        }
-        if (p.navAgent)
-        {
-            const auto& c = *p.navAgent;
-            auto o = Base(c.id, c.enabled, "NavAgent");
-            o["mesh"] = c.mesh;
-            o["destination"] = c.destination;
-            o["speed"] = c.speed;
-            o["stoppingDistance"] = c.stoppingDistance;
-            o["moving"] = c.moving;
-            array.push_back(std::move(o));
-        }
+        auto o = Base(c.id, c.enabled, "Terrain");
+        o["columns"] = c.columns;
+        o["rows"] = c.rows;
+        o["cellSize"] = c.cellSize;
+        o["heights"] = c.heights;
+        o["texture"] = c.texture.generic_string();
+        o["color"] = c.color;
+        o["textureScale"] = c.textureScale;
+        return o;
     }
+    Json WriteSceneComponent(const TilemapComponent& c)
+    {
+        auto o = Base(c.id, c.enabled, "Tilemap");
+        o["columns"] = c.columns;
+        o["rows"] = c.rows;
+        o["cellSize"] = c.cellSize;
+        o["tiles"] = c.tiles;
+        o["atlasColumns"] = c.atlasColumns;
+        o["atlasRows"] = c.atlasRows;
+        o["texture"] = c.texture.generic_string();
+        o["color"] = c.color;
+        return o;
+    }
+    Json WriteSceneComponent(const NavMeshComponent& c)
+    {
+        auto o = Base(c.id, c.enabled, "NavMesh");
+        o["columns"] = c.columns;
+        o["rows"] = c.rows;
+        o["cellSize"] = c.cellSize;
+        o["heights"] = c.heights;
+        o["walkable"] = c.walkable;
+        o["maxSlope"] = c.maxSlope;
+        o["agentRadius"] = c.agentRadius;
+        o["baked"] = c.baked;
+        return o;
+    }
+    Json WriteSceneComponent(const NavAgentComponent& c)
+    {
+        auto o = Base(c.id, c.enabled, "NavAgent");
+        o["mesh"] = c.mesh;
+        o["destination"] = c.destination;
+        o["speed"] = c.speed;
+        o["stoppingDistance"] = c.stoppingDistance;
+        o["moving"] = c.moving;
+        return o;
+    }
+
 }

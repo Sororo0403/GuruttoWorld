@@ -90,6 +90,24 @@ class SceneConversionTests(unittest.TestCase):
         self.assertEqual(scene["version"], 4)
         self.assertEqual(conversion.convert(scene), scene)
 
+    def test_version5_preserves_prefab_scope(self):
+        # 変換済みのローカル姿勢と、明示的な参照範囲をそのまま保持します。
+        scene = {
+            "version": 5,
+            "settings": {},
+            "prefabSlots": {"slot": "Outside"},
+            "objects": [placement("root")],
+        }
+        scene["objects"][0]["prefab"] = {
+            "asset": "Assets/Prefabs/Base.prefab",
+            "source": "source",
+            "root": "root",
+            "baseline": "{}",
+            "referenceVersion": 1,
+            "externalBindings": {"slot": "outside"},
+        }
+        self.assertEqual(conversion.convert(scene), scene)
+
     def test_empty_and_deep_scenes(self):
         self.assertEqual(conversion.convert({"version": 1, "objects": []}), {"version": 2, "objects": []})
         objects = [placement(str(i), str(i-1) if i else "") for i in range(2000)]

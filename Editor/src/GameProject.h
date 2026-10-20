@@ -3,6 +3,7 @@
 #include <SceneRuntime/ProjectSettings.h>
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <commdlg.h>
 #include <shellapi.h>
 #pragma comment(lib,"Comdlg32.lib")
@@ -12,22 +13,17 @@ namespace Editor
 {
     struct GameProject final
     {
+        static bool ValidName(const std::string& name)
+        {return Engine::ProjectContext::ValidName(name);}
         /// <summary>外部ゲームプロジェクトを検証し、コンテンツのルートを取得します。</summary>
         static std::filesystem::path Open(std::filesystem::path path)
         {
-            path=std::filesystem::absolute(path).lexically_normal();
-            if(path.filename()=="WP1.project.json") path=path.parent_path();
-            std::ifstream input(path/"WP1.project.json");
-            if(!input) throw std::runtime_error("WP1.project.json is missing.");
-            const auto descriptor=Engine::Json::parse(input);
-            if(!descriptor.at("version").is_number_integer() || descriptor.at("version").get<int>()!=1) throw std::runtime_error("Unsupported game project version.");
-            const auto name=descriptor.at("name").get<std::string>();
-            if(name.empty() || name.size()>64 || !((name[0]>='A' && name[0]<='Z') || (name[0]>='a' && name[0]<='z')) || !std::all_of(name.begin(),name.end(),[](char c){return (c>='A' && c<='Z') || (c>='a' && c<='z') || (c>='0' && c<='9') || c=='_';}) ||
-                descriptor.at("project").get<std::string>()!=name+".vcxproj" || !std::filesystem::is_regular_file(path/(name+".vcxproj")))
+            const auto context = Engine::ProjectContext::Load(path);
+            context.RequireEngine(Engine::ProjectContext::SourceEngineRoot());
+            path = context.root;
+            if(!std::filesystem::is_regular_file(path/(context.name+".vcxproj")))
                 throw std::runtime_error("Invalid game project descriptor.");
-            auto engine=Engine::AssetDatabase::Path(descriptor.at("engineRoot").get<std::string>());
-            if(engine.is_relative()) engine=(path/engine).lexically_normal();
-            if(!std::filesystem::is_regular_file(engine/"scripts/BuildPlayer.ps1"))
+            if(!std::filesystem::is_regular_file(context.engineRoot/"scripts/BuildPlayer.ps1"))
                 throw std::runtime_error("Game project engine checkout is missing.");
             if(!std::filesystem::is_regular_file(path/"Assets/Project.json") || !std::filesystem::is_directory(Engine::ContentFiles::Resolve(path/"Shaders/Mesh.hlsl").parent_path()))
                 throw std::runtime_error("Game project content is missing.");
@@ -35,8 +31,8 @@ namespace Editor
             return path;
         }
 
-        /// <summary>指定したプロジェクトを別のエディターウィンドウで開きます。</summary>
-        static void BrowseAndOpen()
+        /// <summary>プロジェクトの宣言ファイルを選択し、キャンセル時は未設定を返します。</summary>
+        static std::optional<std::filesystem::path> Choose()
         {
             std::array<wchar_t,32768> file{};
             OPENFILENAMEW dialog{}; dialog.lStructSize=sizeof(dialog);
@@ -45,9 +41,16 @@ namespace Editor
             dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_NOCHANGEDIR;
             if(!GetOpenFileNameW(&dialog)) {
                 if(CommDlgExtendedError()) throw std::runtime_error("Cannot open project file dialog.");
-                return;
+                return std::nullopt;
             }
-            const auto root=Open(file.data());
+            return Open(file.data());
+        }
+        /// <summary>選択したプロジェクトを別のエディターウィンドウで開きます。</summary>
+        static void BrowseAndOpen()
+        {
+            const auto selected = Choose();
+            if (!selected) return;
+            const auto& root = *selected;
             std::array<wchar_t,32768> executable{};
             const auto length=GetModuleFileNameW(nullptr,executable.data(),static_cast<DWORD>(executable.size()));
             if(!length || length>=executable.size()) throw std::runtime_error("Cannot locate Editor.exe.");

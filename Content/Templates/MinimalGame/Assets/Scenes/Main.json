@@ -1,0 +1,8 @@
+{
+  "version": 4,
+  "settings": {
+    "background": [0.1, 0.1, 0.1, 1],
+    "mainCamera": ""
+  },
+  "objects": []
+}

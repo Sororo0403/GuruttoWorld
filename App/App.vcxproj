@@ -15,8 +15,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <GameProjectRequired Condition="'$(GameContentRoot)' == ''">true</GameProjectRequired>
     <FallbackContentRoot>$(MSBuildThisFileDirectory)</FallbackContentRoot>
-    <GameContentRoot Condition="'$(GameContentRoot)' == ''">$(MSBuildThisFileDirectory)..\Games\GuruttoWorld\</GameContentRoot>
     <WP1Root Condition="'$(WP1Root)' == ''">$(MSBuildThisFileDirectory)..\</WP1Root>
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -153,33 +153,7 @@
     <None Include="$(WP1Root)Content\Shaders\Mesh.hlsl" />
     <None Include="$(WP1Root)Content\Shaders\Sky.hlsl" />
     <None Include="$(WP1Root)Content\Shaders\GlowParticle.hlsl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-c.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-c.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\Textures\colormap.png" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\License.txt" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-e.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-e.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-h.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-h.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-k.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-k.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-straight.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-straight.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-bridge.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-bridge.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\tile-low.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\tile-low.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\Textures\colormap.png" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\License.txt" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-sign-street.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-sign-street.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-sign-empty.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Roads\road-sign-empty.mtl" />
     <None Include="Assets\Models\Cube.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-a.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-a.mtl" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-e.obj" />
-    <None Include="$(GameContentRoot)Assets\Models\Title\Commercial\building-skyscraper-e.mtl" />
     <None Include="Assets\Models\Pyramid.obj" />
     <None Include="Assets\Models\Cube.mtl" />
     <None Include="$(WP1Root)Content\Shaders\Common\UvTransform.hlsli" />
@@ -192,6 +166,14 @@
   <ItemGroup Condition="'$(GameProjectRoot)' != ''">
     <None Include="$(GameContentRoot)Assets\**\*" Exclude="$(GameContentRoot)Assets\Scripts\Bin\**\*" />
   </ItemGroup>
+  <Target Name="RequireGameProject" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(GameProjectRequired)' == 'true'" Text="Build a game project or pass /p:GameContentRoot=&lt;game folder&gt;." />
+  </Target>
+  <ItemDefinitionGroup>
+    <Manifest>
+      <AdditionalManifestFiles>$(WP1Root)Content\Application.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyTitleFontLicense" AfterTargets="Build">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)Assets\Fonts\MPlus1p\OFL.txt" DestinationFolder="$(OutDir)Licenses\MPlus1p" SkipUnchangedFiles="true" />
@@ -212,8 +194,6 @@
     <ClInclude Include="$(WP1Root)App\src\Game.h" />
     <ClInclude Include="$(WP1Root)App\src\PackageValidation.h" />
     <ClCompile Include="$(WP1Root)App\src\Game.cpp" />
-    <ClInclude Include="$(WP1Root)App\src\Scenes\TitleScene.h" />
-    <ClCompile Include="$(WP1Root)App\src\Scenes\TitleScene.cpp" />
     <ClCompile Include="$(WP1Root)App\src\Scenes\AuthoredScene.cpp" />
     <ClInclude Include="$(WP1Root)App\src\Scenes\AuthoredScene.h" />
     <ClInclude Include="$(WP1Root)App\src\Scenes\TitleMenu.h" />

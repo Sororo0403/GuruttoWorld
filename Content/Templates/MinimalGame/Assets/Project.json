@@ -1,0 +1,7 @@
+{
+  "title": "Minimal game",
+  "startupScene": "Assets/Scenes/Main.json",
+  "importLegacySettings": false,
+  "width": 640,
+  "height": 480
+}

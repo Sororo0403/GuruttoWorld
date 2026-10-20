@@ -1,3 +1,4 @@
+#include "SceneComponentJson.h"
 #include <Engine/Core/Validation.h>
 #include "EnvironmentJson.h"
 #include <cmath>
@@ -220,7 +221,31 @@ namespace
         sway.period = Vector<3>(object, "period", 0.01f, 100000);
         placement.cameraSway = std::move(sway);
     }
-    void WriteSky(Json& array, const SceneRuntime::SkyComponent& sky)
+
+}
+namespace SceneRuntime
+{
+    bool ReadEnvironmentComponent(const Json& object, ScenePlacement& placement, const std::string& type)
+    {
+        if (type == "Camera")
+            ReadCamera(object, placement);
+        else if (type == "DirectionalLight")
+            ReadLight(object, placement);
+        else if (type == "PointLight")
+            ReadPointLight(object, placement);
+        else if (type == "SpotLight")
+            ReadSpotLight(object, placement);
+        else if (type == "Sky")
+            ReadSky(object, placement);
+        else if (type == "ParticleEmitter")
+            ReadEmitter(object, placement);
+        else if (type == "CameraSway")
+            ReadSway(object, placement);
+        else
+            return false;
+        return true;
+    }
+    Json WriteSceneComponent(const SkyComponent& sky)
     {
         auto object = WriteBase(sky, "Sky");
         Put(object, "horizon", sky.horizon);
@@ -285,9 +310,9 @@ namespace
             object["ocean"]["cloudNoiseFrequencies"] = ocean.cloudNoiseFrequencies;
             object["ocean"]["cloudNoiseOffsets"] = ocean.cloudNoiseOffsets;
         }
-        array.push_back(object);
+        return object;
     }
-    void WriteEmitter(Json& array, const SceneRuntime::ParticleEmitterComponent& emitter)
+    Json WriteSceneComponent(const ParticleEmitterComponent& emitter)
     {
         auto object = WriteBase(emitter, "ParticleEmitter");
         Put(object, "count", static_cast<float>(emitter.count));
@@ -297,16 +322,16 @@ namespace
         Put(object, "travel", emitter.travel);
         Put(object, "cycle", emitter.cycle);
         Put(object, "drift", emitter.drift);
-        array.push_back(object);
+        return object;
     }
-    void WriteSway(Json& array, const SceneRuntime::CameraSwayComponent& sway)
+    Json WriteSceneComponent(const CameraSwayComponent& sway)
     {
         auto object = WriteBase(sway, "CameraSway");
         Put(object, "amplitude", sway.amplitude);
         Put(object, "period", sway.period);
-        array.push_back(object);
+        return object;
     }
-    void WriteCamera(Json& array, const SceneRuntime::CameraComponent& camera)
+    Json WriteSceneComponent(const CameraComponent& camera)
     {
         auto object = WriteBase(camera, "Camera");
         Put(object, "verticalFov", camera.verticalFov);
@@ -314,9 +339,9 @@ namespace
         Put(object, "farClip", camera.farClip);
         Put(object, "referenceAspect", camera.referenceAspect);
         object["preserveHorizontal"] = camera.preserveHorizontal;
-        array.push_back(object);
+        return object;
     }
-    void WriteLight(Json& array, const SceneRuntime::DirectionalLightComponent& light)
+    Json WriteSceneComponent(const DirectionalLightComponent& light)
     {
         auto object = WriteBase(light, "DirectionalLight");
         Put(object, "direction", light.direction);
@@ -328,64 +353,27 @@ namespace
         object["shadowsEnabled"] = light.shadowsEnabled;
         Put(object, "shadowDistance", light.shadowDistance);
         Put(object, "shadowBias", light.shadowBias);
-        array.push_back(object);
+        return object;
     }
-}
-namespace SceneRuntime
-{
-    bool ReadEnvironmentComponent(const Json& object, ScenePlacement& placement, const std::string& type)
+    Json WriteSceneComponent(const PointLightComponent& light)
     {
-        if (type == "Camera")
-            ReadCamera(object, placement);
-        else if (type == "DirectionalLight")
-            ReadLight(object, placement);
-        else if (type == "PointLight")
-            ReadPointLight(object, placement);
-        else if (type == "SpotLight")
-            ReadSpotLight(object, placement);
-        else if (type == "Sky")
-            ReadSky(object, placement);
-        else if (type == "ParticleEmitter")
-            ReadEmitter(object, placement);
-        else if (type == "CameraSway")
-            ReadSway(object, placement);
-        else
-            return false;
-        return true;
+        auto object = WriteBase(light, "PointLight");
+        object["shadowsEnabled"] = light.shadowsEnabled;
+        Put(object, "color", light.color);
+        Put(object, "intensity", light.intensity);
+        Put(object, "range", light.range);
+        return object;
     }
-    void WriteEnvironmentComponents(Json& array, const ScenePlacement& placement)
+    Json WriteSceneComponent(const SpotLightComponent& light)
     {
-        if (placement.camera)
-            WriteCamera(array, *placement.camera);
-        if (placement.directionalLight)
-            WriteLight(array, *placement.directionalLight);
-        if (placement.pointLight)
-        {
-            const auto& light = *placement.pointLight;
-            auto object = WriteBase(light, "PointLight");
-            object["shadowsEnabled"] = light.shadowsEnabled;
-            Put(object, "color", light.color);
-            Put(object, "intensity", light.intensity);
-            Put(object, "range", light.range);
-            array.push_back(object);
-        }
-        if (placement.spotLight)
-        {
-            const auto& light = *placement.spotLight;
-            auto object = WriteBase(light, "SpotLight");
-            object["shadowsEnabled"] = light.shadowsEnabled;
-            Put(object, "color", light.color);
-            Put(object, "intensity", light.intensity);
-            Put(object, "range", light.range);
-            Put(object, "innerAngle", light.innerAngle);
-            Put(object, "outerAngle", light.outerAngle);
-            array.push_back(object);
-        }
-        if (placement.sky)
-            WriteSky(array, *placement.sky);
-        if (placement.particleEmitter)
-            WriteEmitter(array, *placement.particleEmitter);
-        if (placement.cameraSway)
-            WriteSway(array, *placement.cameraSway);
+        auto object = WriteBase(light, "SpotLight");
+        object["shadowsEnabled"] = light.shadowsEnabled;
+        Put(object, "color", light.color);
+        Put(object, "intensity", light.intensity);
+        Put(object, "range", light.range);
+        Put(object, "innerAngle", light.innerAngle);
+        Put(object, "outerAngle", light.outerAngle);
+        return object;
     }
+
 }

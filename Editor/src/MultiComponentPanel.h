@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/ComponentFieldSchema.h>
 #include "EditState.h"
 #include "ProjectCatalog.h"
 #include <imgui.h>
@@ -52,6 +53,12 @@ namespace Editor
             };
             const auto scalar = [&](auto component, auto field, const char* label, float low = 0, float high = 100000)
             {
+                if constexpr (std::is_same_v<decltype(field), float SceneRuntime::PlayerControllerComponent::*>)
+                {
+                    const auto& schema = SceneRuntime::PlayerControllerField(field);
+                    low = schema.minimum;
+                    high = schema.maximum;
+                }
                 changed |= Field(state, objects, component, field, label,
                                  [&](auto& value)
                                  {

@@ -11,6 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <!-- この回帰群のゲーム素材は、共通ビルドの既定値ではなく明示的な検証用入力です。 -->
+    <GameContentRoot Condition="'$(GameContentRoot)' == ''">$(MSBuildThisFileDirectory)..\Games\GuruttoWorld\</GameContentRoot>
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{D38A4CA9-D313-4A03-9FFB-A4D3500A2333}</ProjectGuid>
@@ -45,6 +47,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <OutDir>$(MSBuildThisFileDirectory)..\generated\tests\outputs\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <OutDir Condition="'$(ValidationOutputRoot)' != ''">$(ValidationOutputRoot)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(MSBuildThisFileDirectory)..\generated\tests\intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -123,7 +126,6 @@
     <ClCompile Include="..\Editor\src\ObjectPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\App\src\Scenes\TitleScene.cpp" />
     <ClCompile Include="..\Editor\src\UiCanvasPanel.cpp" />
     <ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp" />
     <ClCompile Include="..\App\src\Scenes\SceneFactory.cpp" />
@@ -133,6 +135,11 @@
       <Project>{689A4162-50DF-480E-93D1-6E6453148017}  </Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemDefinitionGroup>
+    <Manifest>
+      <AdditionalManifestFiles>$(MSBuildThisFileDirectory)..\Content\Application.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
@@ -154,5 +161,7 @@
   </Target>
   <ItemGroup>
     <ClInclude Include="GamePlaybackParityValidation.h" />
+    <ClInclude Include="PrefabGpuContractValidation.h" />
+    <ClInclude Include="OptionalFeaturesValidation.h" />
   </ItemGroup>
 </Project>

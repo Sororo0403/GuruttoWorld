@@ -3,6 +3,7 @@
 #include <Engine/Graphics/DirectX12/GpuRetirement.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <Engine/Graphics/Resources/TextureManager.h>
+#include <Engine/Assets/ContentContext.h>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
@@ -41,14 +42,31 @@ namespace SpriteResourceValidation
         require(other.Initialize(device, otherQueue.Get(), texture, root / "Shaders/Ui.hlsl"), "other queue sprite");
         require(!first.SharesPipelineWith(other), "queues isolate mesh uploads");
 
-        const auto folder = std::filesystem::path("generated/park/resource-validation");
+        const auto folder = std::filesystem::path("generated/park/resource-validation") /
+                            (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         std::filesystem::create_directories(folder);
         const auto shader = folder / "ChangedUi.hlsl";
-        std::filesystem::copy(root / "Shaders", folder,
-                              std::filesystem::copy_options::recursive |
-                                  std::filesystem::copy_options::overwrite_existing);
-        std::ifstream input(root / "Shaders/Ui.hlsl", std::ios::binary);
+        const auto content = Engine::ContentContext::Capture(root);
+        // 実体のない共有シェーダーも、製品と同じ優先順位で検証用の配置へ集約します。
+        for (const auto& layer : content->Layers())
+        {
+            const auto shaders = layer / "Shaders";
+            if (!std::filesystem::is_directory(shaders))
+                continue;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(shaders))
+            {
+                const auto relative = entry.path().lexically_relative(shaders);
+                if (!entry.is_regular_file() || relative.generic_string().starts_with("Compiled/"))
+                    continue;
+                const auto target = folder / relative;
+                std::filesystem::create_directories(target.parent_path());
+                std::filesystem::copy_file(entry.path(), target, std::filesystem::copy_options::overwrite_existing);
+            }
+        }
+        std::ifstream input(folder / "Ui.hlsl", std::ios::binary);
+        require(bool(input), "layered sprite shader opens");
         const std::string source((std::istreambuf_iterator<char>(input)), {});
+        require(!source.empty(), "layered sprite shader is not empty");
         const auto write = [&](const std::string& text)
         {
             std::ofstream output(shader, std::ios::binary);

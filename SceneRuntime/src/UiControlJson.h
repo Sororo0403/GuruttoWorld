@@ -144,25 +144,4 @@ namespace SceneRuntime
             return false;
         return true;
     }
-    /// <summary>指定した型名を付けてUIをComponent配列へ書き込みます。</summary>
-    template <class T>
-    inline void WriteUiControlAs(Engine::Json& array, const std::optional<T>& component, const char* type)
-    {
-        if (component)
-        {
-            Engine::Json object = *component;
-            object["type"] = type;
-            array.push_back(std::move(object));
-        }
-    }
-    /// <summary>汎用UIをシーンのComponent配列へ保存します。</summary>
-    inline void WriteUiControls(Engine::Json& array, const ScenePlacement& p)
-    {
-        WriteUiControlAs(array, p.inputField, "InputField");
-        WriteUiControlAs(array, p.slider, "Slider");
-        WriteUiControlAs(array, p.toggle, "Toggle");
-        WriteUiControlAs(array, p.scrollView, "ScrollView");
-        WriteUiControlAs(array, p.mask, "Mask");
-        WriteUiControlAs(array, p.layoutGroup, "LayoutGroup");
-    }
 }

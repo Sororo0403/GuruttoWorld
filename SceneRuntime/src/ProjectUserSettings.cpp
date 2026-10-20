@@ -58,16 +58,25 @@ namespace SceneRuntime
     std::filesystem::path GameSettings::UserPath(const std::filesystem::path& content,
                                                  const std::filesystem::path& userRoot)
     {
+        return UserPath(*Engine::ContentContext::Capture(content), userRoot);
+    }
+    std::filesystem::path GameSettings::UserPath(const Engine::ContentContext& content)
+    {
+        return UserPath(content, Engine::GetDiagnosticsRoot());
+    }
+    std::filesystem::path GameSettings::UserPath(const Engine::ContentContext& content,
+                                                 const std::filesystem::path& userRoot)
+    {
         if (userRoot.empty())
             return {};
-        const auto project = content / "Assets/Project.json";
+        const auto project = content.Root() / "Assets/Project.json";
         std::ifstream input(project);
         if (!input)
             throw std::runtime_error("Cannot read project settings for the user settings location");
         const auto configuration = Engine::Json::parse(input);
-        const auto identity = Engine::AssetDatabase::Read(project).id;
-        if (!Engine::AssetDatabase::ValidId(identity))
-            throw std::runtime_error("Project.json needs a stable asset ID for its user settings location");
+        const auto& identity = content.ProjectId();
+        if (!Engine::ProjectContext::ValidIdentity(identity))
+            throw std::runtime_error("Project needs a stable settings identity");
         const auto destination = userRoot / "games" / identity / "settings.json";
         if (configuration.value("importLegacySettings", false))
             ImportLegacySettings(userRoot, destination);

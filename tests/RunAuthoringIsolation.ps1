@@ -9,6 +9,12 @@ if (-not (Test-Path -LiteralPath $taskExecutable)) { throw "Build ReviewRegressi
 $taskLogDirectory = Join-Path $taskRoot "generated/tests/authoring-isolation/$Configuration-$PID-$([Guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Path $taskLogDirectory -Force | Out-Null
 $taskPreviousModes = @(Get-ChildItem Env:WP1_*_ONLY)
+$taskPreviousTemp = $env:TEMP
+$taskPreviousTmp = $env:TMP
+$taskTemporary = Join-Path $taskLogDirectory 'temp'
+New-Item -ItemType Directory -Path $taskTemporary -Force | Out-Null
+$env:TEMP = $taskTemporary
+$env:TMP = $taskTemporary
 foreach ($taskMode in $taskPreviousModes) { Remove-Item "Env:$($taskMode.Name)" }
 $env:WP1_AUTHORING_ONLY = '1'
 try {
@@ -44,6 +50,8 @@ try {
         }
     }
 } finally {
+    $env:TEMP = $taskPreviousTemp
+    $env:TMP = $taskPreviousTmp
     Remove-Item Env:WP1_AUTHORING_ONLY -ErrorAction SilentlyContinue
     foreach ($taskMode in $taskPreviousModes) { Set-Item "Env:$($taskMode.Name)" $taskMode.Value }
 }

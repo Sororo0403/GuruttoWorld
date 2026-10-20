@@ -24,6 +24,7 @@ namespace Editor
         RevertPrefab,
         RevertPrefabProperty,
         ApplyPrefabProperty,
+        BindPrefabReferences,
         SavePrefabVariant,
         GenerateRagdoll
     };
@@ -39,6 +40,7 @@ namespace Editor
         std::optional<SceneRuntime::SceneSettings> settings{};
         std::string property{};
         std::vector<SceneRuntime::ScenePlacement> componentBatch{};
+        SceneRuntime::PrefabBindings prefabBindings{};
     };
 
     // パネルや ImGui に依存しない、共通の編集状態と操作です。

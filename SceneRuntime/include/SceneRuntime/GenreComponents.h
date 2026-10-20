@@ -48,11 +48,19 @@ namespace SceneRuntime
         float speed = 3, stoppingDistance = .1f;
         bool moving = true;
         /// <summary>複製・Prefab・追加シーンのNavMesh参照を置き換えます。</summary>
-        template <class Map> void Remap(const Map& ids)
+        template <class IdMap> void Remap(const IdMap& ids)
         {
-            const auto found = ids.find(mesh);
-            if (found != ids.end())
-                mesh = found->second;
+            VisitObjectReferences(
+                [&](std::string& id)
+                {
+                    if (const auto found = ids.find(id); found != ids.end())
+                        id = found->second;
+                });
+        }
+        /// <summary>NavMesh個体への参照を走査します。</summary>
+        template <class Visitor> void VisitObjectReferences(Visitor&& visitor)
+        {
+            visitor(mesh);
         }
         bool operator==(const NavAgentComponent&) const = default;
     };

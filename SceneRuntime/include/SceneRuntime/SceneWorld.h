@@ -2,6 +2,7 @@
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Graphics/DirectX12/GpuRetirement.h>
 #include <SceneRuntime/SceneLayout.h>
+#include <SceneRuntime/SceneDocumentData.h>
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
 #include <optional>
@@ -20,13 +21,61 @@ namespace SceneRuntime
     class SceneWorld final
     {
     public:
-        ~SceneWorld() { scripts_.Stop(layout_); }
+        /// <summary>独立した実行データと実行状態を所有するWorldを作成します。</summary>
+        SceneWorld()
+            : scripts_(std::make_unique<ScriptRuntime>()), document_(std::make_shared<SceneDocumentData>()),
+              layout_(document_->layout_)
+        {
+        }
+        /// <summary>外部ドキュメントの描画投影を作成します。実行状態は所有しません。</summary>
+        explicit SceneWorld(std::shared_ptr<SceneDocumentData> document)
+            : document_(document ? std::move(document) : throw std::invalid_argument("Document is null")),
+              context_(document_->Content()), layout_(document_->layout_)
+        {
+            if (document_->view_)
+                throw std::runtime_error("Document already has an editing projection");
+            document_->view_ = this;
+        }
+        /// <summary>初期化前に所有者の固定した参照情報を受け取ります。</summary>
+        void SetContentContext(std::shared_ptr<const Engine::ContentContext> context)
+        {
+            if (!context || (context_ && context_ != context))
+                throw std::runtime_error("Content context is already owned");
+            context_ = std::move(context);
+            document_->context_ = context_;
+        }
+        /// <summary>このWorldが使用する固定した参照情報を取得します。</summary>
+        const std::shared_ptr<const Engine::ContentContext>& Content() const
+        {
+            return context_;
+        }
+        ~SceneWorld()
+        {
+            if (scripts_)
+                scripts_->Stop(layout_);
+            else if (document_->view_ == this)
+                document_->view_ = nullptr;
+        }
+        /// <summary>修復可能な編集用の投影かを返します。</summary>
+        bool IsDocumentView() const
+        {
+            return !scripts_;
+        }
+        /// <summary>最後の投影で取得できなかった資源の診断を返します。</summary>
+        const std::vector<std::string>& ResourceDiagnostics() const
+        {
+            return resourceDiagnostics_;
+        }
+        /// <summary>描画を準備してシーンを読みます。編集用の場合だけ旧外部参照の修復を待ちます。</summary>
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
-            const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath, std::string* error = nullptr);
+                        const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath,
+                        std::string* error = nullptr, bool allowReferenceMigration = false);
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
             SceneLayout layout, const std::filesystem::path& shaderPath, std::string* error = nullptr);
         // 描画の外でGPU完了を待ってから呼びます。失敗時は元の街を維持します。
-        bool Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath, std::string& error);
+        /// <summary>旧外部参照の移行待ちを許可する場合は、元データと診断を保持して読み込みます。</summary>
+        bool Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath,
+                    std::string& error, bool allowReferenceMigration = false);
         // Rebuild resources from the current unsaved layout; failure preserves every live resource.
         bool ReloadAssets(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
             const std::filesystem::path& shaderPath, std::string& error);
@@ -35,6 +84,12 @@ namespace SceneRuntime
             const Engine::DirectionalLight& light, const UiState* state=nullptr) const;
         const MeshTelemetry& Telemetry() const { return meshTelemetry_; }
         const SceneLayout& Layout() const { return layout_; }
+        /// <summary>Scriptが所有する音声などの外部資源を一時停止・再開します。</summary>
+        void PauseScripts(bool paused)
+        {
+            if (scripts_)
+                scripts_->Pause(layout_, paused);
+        }
         // 配置と描画用の変換を同時に更新します。失敗した場合は直前の状態を維持します。
         // Local values are always relative to the parent.
         bool SetLocalTransform(std::string_view id, const std::array<float, 3>& position,
@@ -61,14 +116,33 @@ namespace SceneRuntime
         bool SetComponents(std::string_view id, const ScenePlacement& settings,
             const std::filesystem::path& assetsRoot, std::string& error);
         // Runtime-only update; elapsed seconds rotates enabled Rotators in local coordinates.
+        /// <summary>未公開の実行Worldで開始処理と派生資源を準備し、成功時だけ反映します。</summary>
+        bool StartScripts(std::string& error);
         bool UpdateComponents(double seconds);
         bool QueueScriptEvent(ScriptEvent event,std::string& error);
         /// <summary>成功した更新で予約されたシーン操作を取り出します。</summary>
-        std::vector<SceneCommand> TakeSceneCommands() { return scripts_.TakeSceneCommands(); }
+        std::vector<SceneCommand> TakeSceneCommands()
+        {
+            return scripts_ ? scripts_->TakeSceneCommands() : std::vector<SceneCommand>{};
+        }
         /// <summary>成功したフレームのScript UI変更を取得します。</summary>
-        ScriptUiCommands TakeUiCommands() {return scripts_.TakeUiCommands();}
+        ScriptUiCommands TakeUiCommands()
+        {
+            return scripts_ ? scripts_->TakeUiCommands() : ScriptUiCommands{};
+        }
+        /// <summary>描画を含む更新が確定した後の音声指示を取り出します。</summary>
+        std::vector<AudioCommand> TakeAudioCommands()
+        {
+            return scripts_ ? scripts_->TakeAudioCommands() : std::vector<AudioCommand>{};
+        }
+        /// <summary>失敗または中断したフレームの音声指示を破棄します。</summary>
+        void DiscardAudioCommands()
+        {
+            if (scripts_)
+                scripts_->DiscardAudioCommands();
+        }
         /// <summary>失敗フレームの未適用Script UI変更を破棄します。</summary>
-        void DiscardUiCommands() {scripts_.DiscardUiCommands();}
+        void DiscardUiCommands() {if (scripts_) scripts_->DiscardUiCommands();}
         void SetRuntimePreparation(std::function<bool(const SceneLayout&,std::string&)> prepare) { prepareRuntime_=std::move(prepare); }
         /// <summary>Scriptと姿勢の確定前にUI変更の描画資源を候補へ準備します。</summary>
         void SetUiPreparation(std::function<bool(const SceneLayout&,const ScriptUiCommands&,std::string&)> prepare) {prepareUi_=std::move(prepare);}
@@ -83,7 +157,17 @@ namespace SceneRuntime
         bool ClearAnimatorParameter(const std::string& id,const std::string& name);
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { inputValues_=std::move(values); inputPressed_=std::move(pressed); }
         /// <summary>フォーカス喪失や一時停止で未処理の固定更新入力を破棄します。</summary>
-        void DiscardPendingInput() { fixedPressed_.clear(); fixedJump_=false; inputValues_.clear(); inputPressed_.clear(); scripts_.DiscardUiCommands(); }
+        void DiscardPendingInput()
+        {
+            fixedPressed_.clear();
+            fixedJump_ = false;
+            inputValues_.clear();
+            inputPressed_.clear();
+            if (scripts_)
+                scripts_->DiscardUiCommands();
+            if (scripts_)
+                scripts_->DiscardAudioCommands();
+        }
         // Normalized input moves controllers on their parent-local XZ plane.
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false);
         bool AddImpulse(const std::string& id,const std::array<float,3>& impulse);
@@ -124,6 +208,7 @@ namespace SceneRuntime
         struct PreparedLayout
         {
             SceneLayout layout;
+            std::vector<std::string> diagnostics;
             std::shared_ptr<Engine::AssetDatabase> assets;
             std::map<std::filesystem::path,std::shared_ptr<const Engine::Material>> materials;
             std::filesystem::path assetsRoot;
@@ -218,7 +303,7 @@ namespace SceneRuntime
         std::map<std::string,bool> inputPressed_;
         std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animatedModels_;
         std::map<std::string,AnimatorState> animatorStates_;
-        ScriptRuntime scripts_;
+        std::unique_ptr<ScriptRuntime> scripts_;
         struct PhysicalPose { std::array<float,3> position{},rotation{},scale{1,1,1}; std::string parent; };
         /// <summary>移動体の確定したローカル姿勢だけを保存します。</summary>
         static std::map<std::string,PhysicalPose> PhysicalPoses(const SceneLayout& layout);
@@ -243,7 +328,10 @@ namespace SceneRuntime
         bool PrepareShadows(const SceneSettings& settings,std::shared_ptr<Engine::ShadowMap>& directional,std::shared_ptr<Engine::ShadowMap>& local,std::string& error) const;
         double FixedStep() const {return layout_.settings.fixedStep==1.0f/60.0f ? 1.0/60.0 : static_cast<double>(layout_.settings.fixedStep);}
         mutable Engine::OcclusionRenderer occlusion_;
-        SceneLayout layout_;
+        std::shared_ptr<SceneDocumentData> document_;
+        std::shared_ptr<const Engine::ContentContext> context_;
+        SceneLayout& layout_;
+        std::vector<std::string> resourceDiagnostics_;
         Engine::ModelManager models_;
         std::vector<Engine::Object3D> objects_;
         std::map<std::string,std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lodModels_;

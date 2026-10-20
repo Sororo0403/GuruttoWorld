@@ -1,17 +1,16 @@
 #pragma once
 #include <SceneRuntime/SceneLayout.h>
-#include <SceneRuntime/ScriptRuntime.h>
 
 namespace Editor
 {
     class SceneSnapshotCache final
     {
     public:
+        /// <summary>編集ドキュメントだけを基準に保存結果を再利用します。</summary>
         const std::string& Get(const SceneRuntime::SceneLayout& layout)
         {
-            const auto revision = SceneRuntime::ScriptRegistry::Revision();
-            if (!valid_ || revision_ != revision || saved_.settings != layout.settings ||
-                saved_.assetReferences != layout.assetReferences || saved_.sceneObjects != layout.sceneObjects ||
+            if (!valid_ || saved_.settings != layout.settings || saved_.assetReferences != layout.assetReferences ||
+                saved_.sceneObjects != layout.sceneObjects || saved_.prefabSlots != layout.prefabSlots ||
                 saved_.objects.size() != layout.objects.size() ||
                 !std::equal(saved_.objects.begin(), saved_.objects.end(), layout.objects.begin(),
                             [](const auto& a, const auto& b)
@@ -24,12 +23,12 @@ namespace Editor
                 auto json = layout.Serialize();
                 saved_ = layout;
                 json_ = std::move(json);
-                revision_ = revision;
                 valid_ = true;
                 ++serializations_;
             }
             return json_;
         }
+        /// <summary>実際に直列化した回数を返します。</summary>
         size_t Serializations() const
         {
             return serializations_;
@@ -40,6 +39,5 @@ namespace Editor
         std::string json_;
         bool valid_ = false;
         size_t serializations_ = 0;
-        std::uint64_t revision_ = 0;
     };
 }

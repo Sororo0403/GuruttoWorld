@@ -1,4 +1,5 @@
 #include <SceneRuntime/SceneEnvironment.h>
+#include <SceneRuntime/Prefab.h>
 #include <SceneRuntime/TitleBindings.h>
 #include <iterator>
 #include <SceneRuntime/Navigation.h>
@@ -45,7 +46,7 @@ namespace SceneRuntime
     {
         try
         {
-            if (!Initialize(renderer, root, SceneLayout::Load(scenePath, root), error))
+            if (!Initialize(renderer, root, SceneLayout::Load(scenePath), error))
                 return false;
             activeSceneName_ = scenePath.is_absolute() ? scenePath.lexically_relative(root).generic_string()
                                                        : scenePath.generic_string();
@@ -61,33 +62,50 @@ namespace SceneRuntime
     bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
                                       SceneLayout layout, std::string& error)
     {
-        if (!presentation_.Initialize(renderer, root, error) ||
-            !world_.Initialize(renderer, root, std::move(layout), root / "Shaders/Mesh.hlsl", &error) ||
-            !presentation_.PrepareUi(renderer, root, world_.Layout(), error))
+        try
+        {
+            if (!world_.Content())
+                world_.SetContentContext(Engine::ContentContext::Capture(root));
+            world_.Content()->RequireRoot(root);
+            const auto& contentRoot = world_.Content()->Root();
+            if (!presentation_.Initialize(renderer, contentRoot, error, world_.Content()) ||
+                !world_.Initialize(renderer, contentRoot, std::move(layout), contentRoot / "Shaders/Mesh.hlsl",
+                                   &error) ||
+                !ScriptRuntime::ValidateForPlay(world_.Layout(), error) ||
+                !presentation_.Prepare(renderer, contentRoot, world_.Layout(), error))
+                return false;
+            seconds_ = 0;
+            motionEnabled_ = true;
+            uiState_ = SceneUi::Defaults(world_.Layout());
+            renderer_ = &renderer;
+            root_ = contentRoot;
+            scenes_.Reset(world_.Layout());
+            activeSceneName_ = "Main";
+            ++sceneRevision_;
+            uiSceneCommands_.clear();
+            pendingAudio_.clear();
+            committedAudio_.clear();
+            audioReady_ = false;
+            pendingUiResources_.reset();
+            world_.SetRuntimePreparation(
+                [this](const SceneLayout& candidate, std::string& diagnostic)
+                {
+                    return PrepareRuntimeUi(candidate, {}, diagnostic);
+                });
+            world_.SetUiPreparation(
+                [this](const SceneLayout& candidate, const ScriptUiCommands& commands, std::string& diagnostic)
+                {
+                    return PrepareRuntimeUi(candidate, commands, diagnostic);
+                });
+            SeekAnimation(0, 0);
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& failure)
+        {
+            error = failure.what();
             return false;
-        seconds_ = 0;
-        motionEnabled_ = true;
-        uiState_ = SceneUi::Defaults(world_.Layout());
-        renderer_ = &renderer;
-        root_ = root;
-        scenes_.Reset(world_.Layout());
-        activeSceneName_ = "Main";
-        ++sceneRevision_;
-        uiSceneCommands_.clear();
-        pendingUiResources_.reset();
-        world_.SetRuntimePreparation(
-            [this](const SceneLayout& candidate, std::string& diagnostic)
-            {
-                return PrepareRuntimeUi(candidate, {}, diagnostic);
-            });
-        world_.SetUiPreparation(
-            [this](const SceneLayout& candidate, const ScriptUiCommands& commands, std::string& diagnostic)
-            {
-                return PrepareRuntimeUi(candidate, commands, diagnostic);
-            });
-        SeekAnimation(0, 0);
-        error.clear();
-        return true;
+        }
     }
     bool SceneEnvironment::PrepareRuntimeUi(const SceneLayout& layout, const ScriptUiCommands& commands,
                                             std::string& error)
@@ -103,7 +121,7 @@ namespace SceneRuntime
         for (const auto& [key, text] : commands.texts)
             candidate.strings[key] = text;
         auto resources = pendingUiResources_ ? *pendingUiResources_ : presentation_.CaptureUi();
-        if (!presentation_.PrepareUiCandidate(*renderer_, root_, layout, error, candidate, resources))
+        if (!presentation_.PrepareCandidate(*renderer_, root_, layout, error, candidate, resources))
             return false;
         pendingUiResources_ = std::move(resources);
         return true;
@@ -121,15 +139,24 @@ namespace SceneRuntime
     void SceneEnvironment::DiscardPreparedUi()
     {
         world_.DiscardUiCommands();
+        world_.DiscardAudioCommands();
+        pendingAudio_.clear();
+        committedAudio_.clear();
+        audioReady_ = false;
+        uiSceneCommands_.clear();
         pendingUiResources_.reset();
     }
-    void SceneEnvironment::Update(double deltaSeconds, bool enabled, bool active)
+    bool SceneEnvironment::Update(double deltaSeconds, bool enabled, bool active)
     {
         motionEnabled_ = enabled;
-        if (!active)
-            DiscardPendingInput();
+        committedAudio_.clear();
+        audioReady_ = false;
         if (!active || !std::isfinite(deltaSeconds) || deltaSeconds <= 0)
-            return;
+        {
+            DiscardPendingInput();
+            return false;
+        }
+        world_.PauseScripts(false);
         const bool physicsReady = physicsAttempted_
                                       ? physicsSucceeded_
                                       : !RequiresFixedUpdate(world_.Layout()) || world_.MovePlayers(deltaSeconds, 0, 0);
@@ -138,14 +165,16 @@ namespace SceneRuntime
         {
             DiscardPreparedUi();
             Engine::Log::Warning("FixedUpdate failed; frame update was skipped.");
-            return;
+            return false;
         }
         if (!world_.UpdateComponents(deltaSeconds))
         {
             DiscardPreparedUi();
             Engine::Log::Warning("Component update failed; runtime clocks were preserved.");
-            return;
+            return false;
         }
+        auto scriptAudio = world_.TakeAudioCommands();
+        pendingAudio_.insert(pendingAudio_.end(), scriptAudio.begin(), scriptAudio.end());
         ApplyUiCommands(world_.TakeUiCommands());
         ProcessSceneCommands();
         if (enabled)
@@ -166,6 +195,10 @@ namespace SceneRuntime
             SetTransitionState(progress);
         }
         AnimateCameraFocus(elapsed);
+        audioReady_ = true;
+        committedAudio_ = std::move(pendingAudio_);
+        pendingAudio_.clear();
+        return true;
     }
     void SceneEnvironment::SetTransitionState(float progress)
     {
@@ -259,13 +292,52 @@ namespace SceneRuntime
         return found == objects.end() ? std::array<float, 4>{}
                                       : ScenePresentation::Particle(world_, *found, index, seconds_);
     }
+    void SceneEnvironment::QueueAudio(AudioCommand command)
+    {
+        try
+        {
+            command.Validate();
+            if (pendingAudio_.size() >= 64)
+                throw std::runtime_error("Too many UI audio commands");
+            pendingAudio_.push_back(std::move(command));
+        }
+        catch (const std::exception& failure)
+        {
+            Engine::Log::Warning(failure.what());
+        }
+    }
+    void SceneEnvironment::CommitAudioCommands()
+    {
+        if (!audioReady_)
+            return;
+        auto commands = std::move(committedAudio_);
+        committedAudio_.clear();
+        audioReady_ = false;
+        UpdateAudio(true);
+        for (const auto& command : commands)
+        {
+            try
+            {
+                if (audioCommandHandler_)
+                    audioCommandHandler_(command);
+                else if (command.kind == AudioCommandKind::Play)
+                    audio_.Play(command.target);
+                else
+                    audio_.Cue(command.target);
+            }
+            catch (const std::exception& failure)
+            {
+                Engine::Log::Warning(failure.what());
+            }
+        }
+    }
     UiEvent SceneEnvironment::Click(const std::string& object)
     {
         const auto event = SceneUi::Activate(world_.Layout(), object, uiState_);
         if (!event.sound.empty())
-            audio_.Play(event.sound);
+            QueueAudio({AudioCommandKind::Play, event.sound});
         if (event.action == "playAudio")
-            audio_.Play(event.target);
+            QueueAudio({AudioCommandKind::Play, event.target});
         if (uiSceneCommands_.size() < 64)
         {
             if (event.action == "loadSceneAdditive")
@@ -334,7 +406,7 @@ namespace SceneRuntime
             (previousMenu && nextMenu &&
              (previousMenu->id != nextMenu->id || previousMenu->canvas->menu != nextMenu->canvas->menu));
         auto previousResources = presentation_.CaptureUi();
-        if (!presentation_.PrepareUi(*renderer_, root_, layout, error, candidateUi))
+        if (!presentation_.Prepare(*renderer_, root_, layout, error, candidateUi))
             return false;
         if (!world_.ReplaceLayout(std::move(layout), root_, error, true))
         {
@@ -343,6 +415,10 @@ namespace SceneRuntime
             return false;
         }
         uiPreparationOverride_ = previousOverride;
+        pendingAudio_.clear();
+        committedAudio_.clear();
+        audioReady_ = false;
+        world_.DiscardAudioCommands();
         scenes_ = std::move(scenes);
         uiState_ = std::move(candidateUi);
         if (resetUi || menuChanged)
@@ -376,7 +452,9 @@ namespace SceneRuntime
                                 return part == "..";
                             }))
                 throw std::runtime_error("Invalid scene path");
-            auto incoming = SceneLayout::Load(root_ / relative, root_);
+            auto incoming = SceneLayout::Load(root_ / relative);
+            incoming.ResolveAssets(Engine::AssetDatabase(world_.Content(), true));
+            Prefab::Refresh(incoming, root_, {}, world_.Content());
             auto collection = scenes_;
             auto layout = world_.Layout();
             std::set<std::string> reserved;

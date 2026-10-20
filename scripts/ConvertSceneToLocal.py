@@ -114,7 +114,7 @@ def resolve(objects):
 
 def convert(document):
     version = document.get("version")
-    if version not in (1, 2, 3, 4) or isinstance(version, bool):
+    if version not in (1, 2, 3, 4, 5) or isinstance(version, bool):
         raise ValueError("Unsupported scene version")
     space = document.get("transformSpace", "world" if version == 1 else "local")
     if space not in ("world", "local") or (version >= 2 and "transformSpace" in document):

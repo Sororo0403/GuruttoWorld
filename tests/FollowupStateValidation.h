@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/SceneMigration.h>
 #include "../Editor/src/SceneSnapshotCache.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include <SceneRuntime/SceneCollection.h>
@@ -105,12 +106,14 @@ namespace FollowupStateValidation
         actor.scripts.emplace_back();
         actor.scripts[0].behaviour = "DefaultReferenceRegression";
         scene.objects = {actor};
+        Require(MigrateSceneScripts(scene, {{"DefaultReferenceRegression", definition}}).conflicts.empty(),
+                "Defaults migrate explicitly before saving");
+        const auto migrated = scene.Serialize();
         scene.Save(root / "Assets/Scenes/Scripted.json");
-        Require(scene.objects[0].scripts[0].data.empty(),
-                "Serializing reference defaults does not mutate the edit layout");
+        Require(scene.Serialize() == migrated, "Saving does not change migrated data");
         AssetDatabase(root).Move(old, moved);
         auto loaded = SceneLayout::Load(root / "Assets/Scenes/Scripted.json", root);
-        Require(!loaded.objects[0].scripts[0].data.contains("label"), "Ordinary defaults remain implicit");
+        Require(loaded.objects[0].scripts[0].data.contains("label"), "Explicit migration materializes all defaults");
         ScriptRuntime runtime;
         Require(runtime.UpdateCandidate(loaded, .016, error), "Default reference script runs");
         const auto commands = runtime.TakeSceneCommands();
@@ -143,8 +146,8 @@ namespace FollowupStateValidation
         definition.dataPurposes = {{"destination", ScriptDataPurpose::SceneAsset}};
         Require(ScriptRegistry::InstallModule("followup-cache", {{"SnapshotSchemaRegression", definition}}, error),
                 "Changed reference purpose installs");
-        Require(cache.Get(scene) != before && cache.Get(scene) == scene.Serialize(),
-                "Module purpose changes invalidate Undo and recovery snapshots");
+        Require(cache.Get(scene) == before && cache.Serializations() == 1,
+                "Module purpose changes preserve Undo and recovery snapshots");
         const auto revision = ScriptRegistry::Revision(), count = cache.Serializations();
         auto invalid = definition;
         invalid.fields["invalid"] = {2, 0, 1};
@@ -156,12 +159,16 @@ namespace FollowupStateValidation
         definition.dataFields["destination"] = {std::string("Assets/Scenes/New.json")};
         Require(ScriptRegistry::InstallModule("followup-cache", {{"SnapshotSchemaRegression", definition}}, error),
                 "Changed reference default installs");
-        const auto serialized = SceneLayout::Parse(cache.Get(scene));
-        Require(std::get<std::string>(serialized.objects[0].scripts[0].data.at("destination").value) ==
-                    "Assets/Scenes/New.json",
-                "Changed defaults invalidate snapshots too");
+        Require(cache.Get(scene) == before && cache.Serializations() == count,
+                "Changed defaults leave document snapshots unchanged");
+        Require(MigrateSceneScripts(scene, {{"SnapshotSchemaRegression", definition}}).conflicts.empty(),
+                "Snapshot schema migrates explicitly");
+        const auto migrated = cache.Get(scene);
+        Require(migrated != before && cache.Serializations() == count + 1,
+                "Explicit migration invalidates the document snapshot");
         Require(ScriptRegistry::InstallModule("followup-cache", {}, error), "Snapshot module can be removed");
-        Require(cache.Get(scene) == scene.Serialize(), "Module removal also invalidates the snapshot");
+        Require(cache.Get(scene) == migrated && cache.Serializations() == count + 1,
+                "Module removal preserves migrated snapshots");
     }
     inline void PersistentPrefabs()
     {

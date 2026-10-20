@@ -1,3 +1,4 @@
+#include "SceneComponentJson.h"
 #include "AudioJson.h"
 #include <iterator>
 #include <cmath>
@@ -120,50 +121,45 @@ namespace SceneRuntime
             return false;
         return true;
     }
-    void WriteAudioComponents(Json& array, const ScenePlacement& p)
+    Json WriteSceneComponent(const AudioSourceComponent& c)
     {
-        if (p.audioSource)
-        {
-            const auto& c = *p.audioSource;
-            auto o = Base(c.id, c.enabled, "AudioSource");
-            const auto text = c.clip.generic_u8string();
-            o["clip"] = std::string(text.begin(), text.end());
-            o["volume"] = c.volume;
-            o["loop"] = c.loop;
-            o["playOnAwake"] = c.playOnAwake;
-            o["cue"] = c.cue;
-            o["volumeBinding"] = c.volumeBinding;
-            o["bus"] = c.bus;
-            o["spatial"] = c.spatial;
-            o["streaming"] = c.streaming;
-            o["minimumDistance"] = c.minimumDistance;
-            o["maximumDistance"] = c.maximumDistance;
-            o["spatialBlend"] = c.spatialBlend;
-            o["pitch"] = c.pitch;
-            o["lowPass"] = c.lowPass;
-            array.push_back(std::move(o));
-        }
-        if (p.audioListener)
-        {
-            const auto& c = *p.audioListener;
-            auto o = Base(c.id, c.enabled, "AudioListener");
-            o["volume"] = c.volume;
-            array.push_back(std::move(o));
-        }
-        if (p.audioMixer)
-        {
-            const auto& c = *p.audioMixer;
-            auto o = Base(c.id, c.enabled, "AudioMixer");
-            auto groups = Json::array();
-            std::transform(c.groups.begin(), c.groups.end(), std::back_inserter(groups),
-                           [](const auto& g)
-                           {
-                               return Json{{"name", g.name},     {"volumeBinding", g.volumeBinding},
-                                           {"volume", g.volume}, {"lowPass", g.lowPass},
-                                           {"reverb", g.reverb}, {"mute", g.mute}};
-                           });
-            o["groups"] = std::move(groups);
-            array.push_back(std::move(o));
-        }
+        auto o = Base(c.id, c.enabled, "AudioSource");
+        const auto text = c.clip.generic_u8string();
+        o["clip"] = std::string(text.begin(), text.end());
+        o["volume"] = c.volume;
+        o["loop"] = c.loop;
+        o["playOnAwake"] = c.playOnAwake;
+        o["cue"] = c.cue;
+        o["volumeBinding"] = c.volumeBinding;
+        o["bus"] = c.bus;
+        o["spatial"] = c.spatial;
+        o["streaming"] = c.streaming;
+        o["minimumDistance"] = c.minimumDistance;
+        o["maximumDistance"] = c.maximumDistance;
+        o["spatialBlend"] = c.spatialBlend;
+        o["pitch"] = c.pitch;
+        o["lowPass"] = c.lowPass;
+        return o;
     }
+    Json WriteSceneComponent(const AudioListenerComponent& c)
+    {
+        auto o = Base(c.id, c.enabled, "AudioListener");
+        o["volume"] = c.volume;
+        return o;
+    }
+    Json WriteSceneComponent(const AudioMixerComponent& c)
+    {
+        auto o = Base(c.id, c.enabled, "AudioMixer");
+        auto groups = Json::array();
+        std::transform(c.groups.begin(), c.groups.end(), std::back_inserter(groups),
+                       [](const auto& g)
+                       {
+                           return Json{{"name", g.name},     {"volumeBinding", g.volumeBinding},
+                                       {"volume", g.volume}, {"lowPass", g.lowPass},
+                                       {"reverb", g.reverb}, {"mute", g.mute}};
+                       });
+        o["groups"] = std::move(groups);
+        return o;
+    }
+
 }

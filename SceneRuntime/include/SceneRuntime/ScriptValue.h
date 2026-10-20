@@ -36,8 +36,8 @@ namespace SceneRuntime
                 value);
         }
 
-        /// <summary>複製された階層内のオブジェクト参照を新しいIDへ置き換えます。</summary>
-        template <class IdMap> void Remap(const IdMap& ids)
+        /// <summary>配列・構造を再帰的に辿り、型付き個体参照だけを走査します。</summary>
+        template <class Visitor> void VisitObjectReferences(Visitor&& visitor)
         {
             std::visit(
                 [&](auto& item)
@@ -45,24 +45,33 @@ namespace SceneRuntime
                     using T = std::decay_t<decltype(item)>;
                     if constexpr (std::is_same_v<T, ScriptObjectReference>)
                     {
-                        if (const auto found = ids.find(item.id); found != ids.end())
-                            item.id = found->second;
+                        visitor(item.id);
                     }
                     else if constexpr (std::is_same_v<T, Array>)
                     {
                         for (auto& child : item)
-                            child.Remap(ids);
+                            child.VisitObjectReferences(visitor);
                     }
                     else if constexpr (std::is_same_v<T, Object>)
                     {
                         for (auto& [name, child] : item)
                         {
                             static_cast<void>(name);
-                            child.Remap(ids);
+                            child.VisitObjectReferences(visitor);
                         }
                     }
                 },
                 value);
+        }
+        /// <summary>複製された階層内のオブジェクト参照を新しいIDへ置き換えます。</summary>
+        template <class IdMap> void Remap(const IdMap& ids)
+        {
+            VisitObjectReferences(
+                [&](std::string& id)
+                {
+                    if (const auto found = ids.find(id); found != ids.end())
+                        id = found->second;
+                });
         }
 
     private:

@@ -1,12 +1,14 @@
 #pragma once
 #include <SceneRuntime/ScriptRuntime.h>
 #include <cstdint>
+#include <Engine/Core/BuildIdentity.h>
 
 namespace SceneRuntime
 {
     struct ScriptModuleAbi
     {
-        uint32_t version=6;
+        uint32_t version=13;
+        uint64_t engineBuild=Engine::BuildIdentity();
         uint32_t compiler=_MSC_VER;
         uint32_t iteratorDebug=_ITERATOR_DEBUG_LEVEL;
         uint32_t contextBytes=sizeof(ScriptContext);

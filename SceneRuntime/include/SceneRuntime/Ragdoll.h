@@ -24,9 +24,18 @@ namespace SceneRuntime
         /// <summary>PrefabとHierarchy複製で骨の剛体参照を新しいIDへ置換します。</summary>
         template <class IdMap> void Remap(const IdMap& ids)
         {
+            VisitObjectReferences(
+                [&](std::string& id)
+                {
+                    if (const auto found = ids.find(id); found != ids.end())
+                        id = found->second;
+                });
+        }
+        /// <summary>骨に対応する剛体個体の参照を走査します。</summary>
+        template <class Visitor> void VisitObjectReferences(Visitor&& visitor)
+        {
             for (auto& binding : bones)
-                if (const auto found = ids.find(binding.body); found != ids.end())
-                    binding.body = found->second;
+                visitor(binding.body);
         }
     };
     class Ragdoll final

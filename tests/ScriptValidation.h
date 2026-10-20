@@ -9,6 +9,7 @@
 #include "../Editor/src/EditHistory.h"
 #include "ScriptPhaseValidation.h"
 #include "ScriptModuleValidation.h"
+#include "ScriptStartValidation.h"
 
 namespace ScriptValidation
 {
@@ -143,6 +144,7 @@ namespace ScriptValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
+        ScriptStartValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
         ScriptDefinition definition;
         definition.dataFields={{"label",{std::string("runtime")}}};
         definition.update=[](ScriptContext& c) {
@@ -197,6 +199,7 @@ namespace ScriptValidation
     inline void Run()
     {
         using namespace SceneRuntime;
+        ScriptStartValidation::Run();
         static int started=0,updated=0,stopped=0;
         started=updated=stopped=0;
         ScriptDefinition definition; definition.fields={{"speed",{2,0,10}}};

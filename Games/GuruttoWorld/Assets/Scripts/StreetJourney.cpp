@@ -2,17 +2,17 @@
 #define NOMINMAX
 #endif
 #include <SceneRuntime/ScriptModuleApi.h>
+#include "StreetScriptSchema.generated.h"
 #include <algorithm>
 #include <cmath>
 namespace {
 using namespace SceneRuntime;
+using namespace SceneRuntime::GeneratedSchemas;
 float Smooth(float a,float b,float value) {
  const float t=std::clamp((value-a)/(b-a),0.0f,1.0f);return t*t*(3-2*t);
 }
 ScriptDefinition Camera() {
- ScriptDefinition s;
- s.dataFields={{"target",{ScriptObjectReference{}}}};
- s.fields={{"height",{4.3f,3,6}},{"distance",{7.4f,6,10}},{"lead",{4.7f,2,7}},{"fixedView",{0,0,1}}};
+ auto s=StreetCameraSchema();
  s.lateUpdate=[](ScriptContext& c) {
   const auto* p=c.Reference("target");if(!p || !c.scene)return;
   const float dt=static_cast<float>(c.seconds),blend=1-std::exp(-5*dt);
@@ -98,7 +98,7 @@ ScriptDefinition Camera() {
  return s;
 }
 ScriptDefinition JourneyController() {
- ScriptDefinition s;
+ auto s=StreetJourneySchema();
  s.update=[](ScriptContext& c) {
   if(!c.scene)return;
   const auto* player=c.scene->Find("park-player");if(!player)return;
@@ -122,7 +122,7 @@ ScriptDefinition JourneyController() {
  return s;
 }
 ScriptDefinition Gear() {
- ScriptDefinition s;
+ auto s=StreetGearSchema();
  s.onEvent=[](ScriptContext& c) {if(c.event && c.event->name=="street:gear")c.state["lit"]=1;};
  s.update=[](ScriptContext& c) {
   if(!c.state["lit"])return;

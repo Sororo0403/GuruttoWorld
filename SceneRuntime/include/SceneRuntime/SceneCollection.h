@@ -1,5 +1,6 @@
 #pragma once
 #include <SceneRuntime/SceneTransforms.h>
+#include <SceneRuntime/ObjectReferenceDomain.h>
 #include <set>
 #include <stdexcept>
 
@@ -28,15 +29,33 @@ namespace SceneRuntime
         {
             if(name.empty() || std::any_of(entries_.begin(),entries_.end(),[&](const auto& e){return e.name==name;}))
                 throw std::runtime_error("Scene is already loaded or unnamed: "+name);
-            Synchronize(current);
+            incoming.Validate();
+            if(!incoming.prefabSlots.empty() || !current.prefabSlots.empty()) throw std::runtime_error("Instantiate prefab external slots before adding a scene");
             auto candidate=current; Entry entry{name,{}}; std::map<std::string,std::string> ids;
-            std::set<std::string> used=reserved; for(const auto& object:current.objects) used.insert(object.id);
+            auto used = ObjectReferenceDomain(current);
+            used.insert(reserved.begin(), reserved.end());
+            auto missing = ObjectReferenceDomain(incoming);
+            for (const auto& object : incoming.objects)
+                missing.erase(object.id);
+            used.insert(missing.begin(), missing.end());
             for(const auto& object:incoming.objects)
             {
                 auto id=object.id; size_t suffix=1;
-                while(used.contains(id)) id=object.id+"-scene-"+std::to_string(suffix++);
+                while(used.contains(id)) id=(object.id.size() <= 100 ? object.id : "scene-object")+"-scene-"+std::to_string(suffix++);
                 used.insert(id); ids[object.id]=id; entry.objects.insert(id);
             }
+            for (const auto& reference : missing)
+            {
+                std::string id;
+                for (size_t i = 1;; ++i)
+                {
+                    id = "unresolved-scene-" + std::to_string(i);
+                    if (used.insert(id).second)
+                        break;
+                }
+                ids[reference] = id;
+            }
+            Synchronize(current);
             for(auto& object:incoming.objects)
             {
                 Remap(object,ids);
@@ -88,18 +107,39 @@ namespace SceneRuntime
         static void Remap(ScenePlacement& object,const std::map<std::string,std::string>& ids)
         {
             const auto remap=[&](std::string& id){if(const auto found=ids.find(id);found!=ids.end()) id=found->second;};
-            if(object.canvas && object.canvas->menu) object.canvas->menu->RemapCameras(ids);
-            remap(object.id);remap(object.parentId);if(object.joint) remap(object.joint->target);
-            if(object.prefab) remap(object.prefab->rootId);for(auto& script:object.scripts) script.Remap(ids);
-        if(object.navAgent) object.navAgent->Remap(ids);
-            if(object.ragdoll) object.ragdoll->Remap(ids);
-            if(object.button)
+            remap(object.id);remap(object.parentId);
+            if(object.prefab) remap(object.prefab->rootId);
+            object.RemapComponentReferences(ids);
+        }
+        void RestoreSavedOwners(const SceneLayout& layout,std::map<std::string,size_t>& owners)
+        {
+            for(const auto& object:layout.objects)
             {
-                const auto& action=object.button->action;
-                if(action!="loadScene" && action!="loadSceneAdditive" && action!="unloadScene" && action!="setState") remap(object.button->target);
-                remap(object.button->sound);
+                if(object.persistent || owners.contains(object.id)) continue;
+                auto owner=std::find_if(entries_.begin(),entries_.end(),[&](const auto& e){
+                    const auto saved=layout.sceneObjects.find(e.name);
+                    return saved!=layout.sceneObjects.end() && std::find(saved->second.begin(),saved->second.end(),object.id)!=saved->second.end();});
+                if(owner!=entries_.end()) {owner->objects.insert(object.id);owners.emplace(object.id,static_cast<size_t>(owner-entries_.begin()));}
             }
         }
+
+        void AssignAncestorOwner(const ScenePlacement& object,const std::map<std::string,const ScenePlacement*>& objects,std::map<std::string,size_t>& owners)
+        {
+            std::vector<const ScenePlacement*> chain;
+            std::set<std::string> visited;
+            auto ancestor=&object;
+            size_t owner=entries_.size()-1;
+            while(ancestor && visited.insert(ancestor->id).second)
+            {
+                if(const auto found=owners.find(ancestor->id);found!=owners.end()) {owner=found->second;break;}
+                chain.push_back(ancestor);
+                const auto parent=objects.find(ancestor->parentId);
+                ancestor=parent==objects.end()?nullptr:parent->second;
+            }
+            for(const auto* member:chain) if(!member->persistent)
+            {entries_[owner].objects.insert(member->id);owners.emplace(member->id,owner);}
+        }
+
         /// <summary>保存済み所属を先に復元し、新しい個体を並び順によらず祖先またはアクティブシーンへ所属させます。</summary>
         void Synchronize(const SceneLayout& layout)
         {
@@ -110,30 +150,11 @@ namespace SceneRuntime
             std::map<std::string,size_t> owners;
             for(size_t index=0;index<entries_.size();++index)
                 for(const auto& id:entries_[index].objects) owners.emplace(id,index);
-            for(const auto& object:layout.objects)
-            {
-                if(object.persistent || owners.contains(object.id)) continue;
-                auto owner=std::find_if(entries_.begin(),entries_.end(),[&](const auto& e){
-                    const auto saved=layout.sceneObjects.find(e.name);
-                    return saved!=layout.sceneObjects.end() && std::find(saved->second.begin(),saved->second.end(),object.id)!=saved->second.end();});
-                if(owner!=entries_.end()) {owner->objects.insert(object.id);owners.emplace(object.id,static_cast<size_t>(owner-entries_.begin()));}
-            }
+            RestoreSavedOwners(layout,owners);
             for(const auto& object:layout.objects)
             {
                 if(object.persistent || owners.contains(object.id) || entries_.empty()) continue;
-                std::vector<const ScenePlacement*> chain;
-                std::set<std::string> visited;
-                auto ancestor=&object;
-                size_t owner=entries_.size()-1;
-                while(ancestor && visited.insert(ancestor->id).second)
-                {
-                    if(const auto found=owners.find(ancestor->id);found!=owners.end()) {owner=found->second;break;}
-                    chain.push_back(ancestor);
-                    const auto parent=objects.find(ancestor->parentId);
-                    ancestor=parent==objects.end()?nullptr:parent->second;
-                }
-                for(const auto* member:chain) if(!member->persistent)
-                {entries_[owner].objects.insert(member->id);owners.emplace(member->id,owner);}
+                AssignAncestorOwner(object,objects,owners);
             }
         }
         /// <summary>所属をシーン保存とUndoの対象へ含めます。</summary>

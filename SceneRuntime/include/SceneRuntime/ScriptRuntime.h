@@ -1,15 +1,19 @@
 #pragma once
 #include <SceneRuntime/SceneLayout.h>
+#include <SceneRuntime/ObjectReferenceDomain.h>
+#include <SceneRuntime/ScriptSchema.h>
+#include <SceneRuntime/AudioCommand.h>
+#include <Engine/Assets/ContentContext.h>
 #include <SceneRuntime/PhysicsWorld.h>
 #include <functional>
 #include <map>
 #include <set>
 #include <cstdint>
+#include <memory>
 
 namespace SceneRuntime
 {
     enum class ScriptPhase { Update,FixedUpdate,LateUpdate };
-    enum class ScriptDataPurpose { Text,SceneAsset };
     struct SceneCommand { std::string scene; bool additive=false,unload=false; };
     struct ScriptUiCommands {std::map<std::string,float> values; std::map<std::string,std::string> texts;};
     struct ScriptEvent
@@ -23,7 +27,11 @@ namespace SceneRuntime
     class ScriptScene final
     {
     public:
-        explicit ScriptScene(SceneLayout& layout,size_t& nextId,const PhysicsWorld* physics=nullptr,const SceneLayout* validatedBefore=nullptr) : layout_(layout),nextId_(nextId),physics_(physics),validatedBefore_(validatedBefore) {}
+        explicit ScriptScene(SceneLayout& layout, size_t& nextId, const PhysicsWorld* physics = nullptr,
+                             const SceneLayout* validatedBefore = nullptr)
+            : layout_(layout), nextId_(nextId), physics_(physics), validatedBefore_(validatedBefore)
+        {
+        }
         /// <summary>IDから現在のオブジェクトを参照します。参照はコールバック中だけ有効です。</summary>
         const ScenePlacement* Find(const std::string& id) const;
         /// <summary>指定したメンバーに対応する型付きComponentを取得します。</summary>
@@ -68,9 +76,14 @@ namespace SceneRuntime
         { return physics_ ? physics_->Raycast(origin,direction,distance,mask,triggers,ignore) : std::nullopt; }
         /// <summary>予約した構造変更を検証し、候補シーンへ反映します。</summary>
         void Commit();
+        /// <summary>音源の再生を予約します。コールバックと外側の更新が成功するまで再生しません。</summary>
+        void PlayAudio(const std::string& object);
+        /// <summary>名前付き音声キューの再生を、成功した更新の後へ予約します。</summary>
+        void AudioCue(const std::string& cue);
         std::vector<ScriptEvent> events;
         std::vector<SceneCommand> sceneCommands;
         ScriptUiCommands uiCommands;
+        std::vector<AudioCommand> audioCommands;
         std::string currentOwner;
         std::map<std::string,std::array<float,3>> impulses;
         std::map<std::string,std::map<std::string,float>> animatorParameters;
@@ -83,11 +96,11 @@ namespace SceneRuntime
         size_t& nextId_;
         const PhysicsWorld* physics_;
         const SceneLayout* validatedBefore_;
+        std::set<std::string> reservedIds_;
         std::vector<ScenePlacement> spawned_;
         std::set<std::string> destroyed_;
         std::map<std::string,ScenePlacement> components_;
     };
-    struct ScriptField { float initial=0,minimum=-1000000,maximum=1000000; };
     struct ScriptContext
     {
         /// <summary>必須の参照と、その更新で有効な入力・シーン・イベントを初期化します。</summary>
@@ -106,6 +119,9 @@ namespace SceneRuntime
         const ScriptValue::Object* data=nullptr;
         ScriptValue::Object* dataState=nullptr;
         ScriptPhase phase=ScriptPhase::Update;
+        /// <summary>DLLの配置・一時コピー先によらない、登録元ゲームの素材ルートです。</summary>
+        std::filesystem::path contentRoot;
+        std::shared_ptr<const Engine::ContentContext> content;
         /// <summary>保存された型付きパラメーターを参照します。存在しない名前はnullです。</summary>
         const ScriptValue* Data(const std::string& name) const;
         /// <summary>オブジェクト参照の現在の対象を取得します。未設定・削除済みはnullです。</summary>
@@ -114,14 +130,13 @@ namespace SceneRuntime
         bool Pressed(const std::string& name) const;
         float Value(const std::string& name,float fallback=0) const;
     };
-    struct ScriptDefinition
+    struct ScriptDefinition : ScriptSchema
     {
-        std::map<std::string,ScriptField> fields;
         std::function<void(ScriptContext&)> start,update,stop;
         std::function<void(ScriptContext&)> onEvent;
-        ScriptValue::Object dataFields;
         std::function<void(ScriptContext&)> fixedUpdate,lateUpdate;
-        std::map<std::string,ScriptDataPurpose> dataPurposes;
+        /// <summary>ホストの一時停止・フォーカス変更を外部資源へ反映します。</summary>
+        std::function<void(ScriptContext&,bool)> pause;
     };
     class ScriptRegistry final
     {
@@ -137,6 +152,15 @@ namespace SceneRuntime
     class ScriptRuntime final
     {
     public:
+        /// <summary>全ライフサイクルのコールバックへ所有者の参照情報を渡します。</summary>
+        void SetContentContext(std::shared_ptr<const Engine::ContentContext> content)
+        {
+            content_ = std::move(content);
+        }
+        /// <summary>有効なスクリプトの登録と保存値を、開始処理を呼ばずに検証します。</summary>
+        static bool ValidateForPlay(const SceneLayout& layout, std::string& error);
+        /// <summary>外側の候補上で開始処理だけを実行し、通常更新と時計を進めません。</summary>
+        bool StartCandidate(SceneLayout& layout, std::string& error);
         // Transactional update. Use context.scene for structural changes; never resize arrays in a callback.
         bool Update(SceneLayout& layout,double seconds,std::string& error,
             const std::map<std::string,float>& input={},const std::map<std::string,bool>& pressed={},const PhysicsWorld* physics=nullptr,
@@ -147,6 +171,10 @@ namespace SceneRuntime
             ScriptPhase phase=ScriptPhase::Update,const SceneLayout* validatedBefore=nullptr);
         /// <summary>指定した更新段階を持つ有効な処理があるか調べます。</summary>
         static bool HasPhase(const SceneLayout& layout,ScriptPhase phase);
+        /// <summary>描画資源を含む外側の更新が成功した後、開始処理を確定します。</summary>
+        void CommitStarts() noexcept;
+        /// <summary>実行中のScriptへ一時停止と再開を通知します。</summary>
+        void Pause(SceneLayout& layout,bool paused) noexcept;
         void Stop(SceneLayout& layout) noexcept;
         /// <summary>取り除かれた個体の終了処理を旧配置で実行し、残る個体の実行状態を維持します。</summary>
         void StopRemoved(SceneLayout& previous,const SceneLayout& next) noexcept;
@@ -154,6 +182,18 @@ namespace SceneRuntime
         std::vector<SceneCommand> TakeSceneCommands() { auto commands=std::move(sceneCommands_); sceneCommands_.clear(); return commands; }
         /// <summary>成功したFixed・Update・LateUpdateが予約したUI変更を一度だけ取得します。</summary>
         ScriptUiCommands TakeUiCommands() {auto commands=std::move(uiCommands_); uiCommands_={}; return commands;}
+        /// <summary>成功した更新の音声指示を一度だけ取り出します。</summary>
+        std::vector<AudioCommand> TakeAudioCommands()
+        {
+            auto commands = std::move(audioCommands_);
+            audioCommands_.clear();
+            return commands;
+        }
+        /// <summary>失敗または中断した更新の音声指示を破棄します。</summary>
+        void DiscardAudioCommands()
+        {
+            audioCommands_.clear();
+        }
         /// <summary>失敗フレームの未適用UI変更を破棄します。</summary>
         void DiscardUiCommands() {uiCommands_={};}
         /// <summary>未確定フレームのUI変更をGPU候補準備へ参照します。</summary>
@@ -165,10 +205,18 @@ namespace SceneRuntime
         const std::map<std::string,std::map<std::string,std::optional<AnimatorIkTarget>>>& IkTargets() const { return ikTargets_; }
         const std::map<std::string,std::optional<bool>>& RootMotions() const { return rootMotions_; }
     private:
+        std::shared_ptr<const Engine::ContentContext> content_;
         bool Advance(SceneLayout& layout,double seconds,std::string& error,
-            const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore);
+            const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore, bool startOnly = false);
         bool pendingFixedCommands_=false;
-        struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; ScriptValue::Object data,dataState; };
+        struct PendingStart {
+            std::function<void()> rollback;
+            bool committed=false;
+            /// <summary>未確定の開始処理が確保した資源を候補破棄時に解放します。</summary>
+            ~PendingStart();
+        };
+        struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; ScriptValue::Object data,dataState; std::shared_ptr<PendingStart> pending; };
+        bool paused_=false;
         struct TickContext {
             TickContext(const std::map<std::string, float> &values, const std::map<std::string, bool> &edges, ScriptScene &candidate, ScriptPhase callbackPhase, double elapsed)
                 : input(values), pressed(edges), scene(candidate), phase(callbackPhase), seconds(elapsed) {}
@@ -189,6 +237,7 @@ namespace SceneRuntime
         std::vector<ScriptEvent> events_;
         std::vector<SceneCommand> sceneCommands_;
         ScriptUiCommands uiCommands_;
+        std::vector<AudioCommand> audioCommands_;
         std::map<std::string,std::array<float,3>> impulses_;
         std::map<std::string,std::map<std::string,float>> animatorParameters_;
         std::map<std::string,std::map<std::string,std::optional<AnimatorIkTarget>>> ikTargets_;

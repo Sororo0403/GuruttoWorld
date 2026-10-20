@@ -119,4 +119,5 @@ foreach ($file in $outputFiles) {
         Remove-Item -LiteralPath $file.FullName
     }
 }
+Write-RuntimeProjectContext -Content $Content -Destination $destinationRoot
 Write-Output "Synchronized $($inventory.Count) content files."

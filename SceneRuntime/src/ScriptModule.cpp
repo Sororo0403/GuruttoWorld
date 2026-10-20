@@ -40,13 +40,32 @@ namespace
         // The callback must be destroyed before releasing its DLL.
         // cppcheck-suppress unusedStructMember
         std::shared_ptr<ModuleLifetime> lifetime;
+        std::filesystem::path contentRoot;
         std::function<void(SceneRuntime::ScriptContext&)> callback;
-        void operator()(SceneRuntime::ScriptContext& context) const { callback(context); }
+        void operator()(SceneRuntime::ScriptContext& context) const
+        {
+            if (context.content)
+                context.content->RequireRoot(contentRoot);
+            context.contentRoot = contentRoot;
+            callback(context);
+        }
     };
-    void RetainModule(SceneRuntime::ScriptDefinition& definition,const std::shared_ptr<ModuleLifetime>& lifetime)
+    void RetainModule(SceneRuntime::ScriptDefinition& definition,const std::shared_ptr<ModuleLifetime>& lifetime,const std::filesystem::path& contentRoot)
     {
         for (auto* callback:{&definition.start,&definition.update,&definition.stop,&definition.onEvent,&definition.fixedUpdate,&definition.lateUpdate})
-            if (*callback) *callback=ModuleCallback{lifetime,std::move(*callback)};
+            if (*callback) *callback=ModuleCallback{lifetime,contentRoot,std::move(*callback)};
+        if(definition.pause) {
+            // Destroy the function before its captured DLL lifetime.
+            struct PauseCallback {
+                // Ownership keeps the callback's DLL loaded until callback destruction.
+                // cppcheck-suppress unusedStructMember
+                std::shared_ptr<ModuleLifetime> lifetime;
+                std::filesystem::path contentRoot;
+                std::function<void(SceneRuntime::ScriptContext&,bool)> callback;
+                void operator()(SceneRuntime::ScriptContext& context,bool paused) const {if(context.content) context.content->RequireRoot(contentRoot);context.contentRoot=contentRoot;callback(context,paused);}
+            };
+            definition.pause=PauseCallback{lifetime,contentRoot,std::move(definition.pause)};
+        }
     }
     bool SourceName(const std::string& name)
     {
@@ -97,7 +116,15 @@ namespace SceneRuntime
             if (!entry) throw std::runtime_error("Script module export is missing");
             const ScriptModuleAbi abi;
             if (!entry(&abi,&pending,CollectScript)) throw std::runtime_error(pending.error.empty() ? "Script module ABI or registration mismatch" : pending.error);
-            for (auto& [name,definition]:pending.definitions) { static_cast<void>(name); RetainModule(definition,pending.lifetime); }
+            const auto schemas = ScriptSchema::LoadProject(content);
+            for (const auto& [name, definition] : pending.definitions)
+            {
+                const auto declared = schemas.find(name);
+                if (declared == schemas.end()) throw std::runtime_error("Script schema declaration is missing: " + name);
+                if (declared->second != static_cast<const ScriptSchema&>(definition)) throw std::runtime_error("Script schema differs from the compiled module; rebuild scripts: " + name);
+            }
+            const auto contentRoot=std::filesystem::weakly_canonical(content);
+            for (auto& [name,definition]:pending.definitions) { static_cast<void>(name); RetainModule(definition,pending.lifetime,contentRoot); }
             return ScriptRegistry::InstallModule(owner,std::move(pending.definitions),error);
         } catch (const std::exception& exception) { error=exception.what(); return false; }
         catch (...) { error="Script module failed to register"; return false; }
@@ -108,21 +135,30 @@ namespace SceneRuntime
             if (!SourceName(name)) throw std::runtime_error("Use a C++ identifier of up to 64 ASCII characters");
             const auto path=content/"Assets/Scripts"/(name+".cpp");
             std::filesystem::create_directories(path.parent_path());
-            const std::string source="#include <SceneRuntime/ScriptModuleApi.h>\r\n\r\n"
+            const auto schemaPath = path.parent_path() / (name + ".schema.json");
+            const auto generatedPath = path.parent_path() / (name + ".generated.h");
+            if (std::filesystem::exists(path) || std::filesystem::exists(schemaPath) || std::filesystem::exists(generatedPath))
+                throw std::runtime_error("Script source or declaration already exists");
+            const std::string source="#include <SceneRuntime/ScriptModuleApi.h>\r\n#include \""+name+".generated.h\"\r\n\r\n"
                 "bool Register_"+name+"(void* context,SceneRuntime::RegisterModuleScript add)\r\n{\r\n"
-                "    SceneRuntime::ScriptDefinition script;\r\n"
-                "    script.fields={{\"speed\",{2,0,100}}};\r\n"
-                "    script.dataFields={{\"active\",{true}},{\"label\",{std::string(\""+name+"\")}}};\r\n"
-                "    script.update=[](SceneRuntime::ScriptContext& c) {\r\n"
+                "    auto script=SceneRuntime::GeneratedSchemas::"+name+"Schema();\r\n"
+                "    script.update=[](SceneRuntime::ScriptContext& c)\r\n    {\r\n"
                 "        if (std::get<bool>(c.Data(\"active\")->value))\r\n"
                 "            c.object.position[0]+=c.Value(\"speed\",2)*static_cast<float>(c.seconds);\r\n"
                 "    };\r\n"
                 "    return add(context,\""+name+"\",&script);\r\n}\r\n";
-            HANDLE file=CreateFileW(path.c_str(),GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
-            if (file==INVALID_HANDLE_VALUE) throw std::runtime_error("Script file already exists or cannot be created");
-            DWORD written=0; const bool saved=WriteFile(file,source.data(),static_cast<DWORD>(source.size()),&written,nullptr) && written==source.size() && FlushFileBuffers(file);
-            CloseHandle(file);
-            if (!saved) { DeleteFileW(path.c_str()); throw std::runtime_error("Cannot save script source"); }
+            const Engine::Json schema{{"version",1},{"scripts",{{name,{
+                {"parameters",{{"speed",{{"initial",2},{"minimum",0},{"maximum",100}}}}},
+                {"data",{{"active",{{"kind","bool"},{"value",true}}},{"label",{{"kind","string"},{"value",name}}}}},
+                {"purposes",Engine::Json::object()}}}}}};
+            const auto schemaText = schema.dump(2) + "\n";
+            Engine::FileContents::Write(schemaPath, schemaText, false);
+            try { Engine::FileContents::Write(path, source, false); }
+            catch (...)
+            {
+                if (Engine::FileContents::Read(schemaPath) == schemaText) Engine::FileContents::Remove(schemaPath);
+                throw;
+            }
             created=path; error.clear(); return true;
         } catch (const std::exception& exception) { error=exception.what(); return false; }
     }

@@ -1,5 +1,6 @@
 #pragma once
 #include <Engine/Core/Json.h>
+#include <Engine/Projects/ProjectContext.h>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -25,15 +26,7 @@ namespace Engine
         /// <summary>ゲームのエンジン参照から共有素材の正本を求めます。配布物は同梱ファイルだけを使います。</summary>
         static std::filesystem::path SharedRoot(const std::filesystem::path& root)
         {
-            std::ifstream input(root / "WP1.project.json");
-            if (!input)
-                return {};
-            const auto descriptor = Json::parse(input);
-            const auto value = descriptor.at("engineRoot").get<std::string>();
-            const auto engine = std::filesystem::path(std::u8string(value.begin(), value.end()));
-            if (engine.empty())
-                throw std::runtime_error("Empty engine content reference");
-            return std::filesystem::weakly_canonical((engine.is_absolute() ? engine : root / engine) / "Content");
+            return ProjectContext::SharedRoot(root);
         }
         /// <summary>共有素材を先、ゲーム素材を後に列挙し、ゲーム側の上書きを優先します。</summary>
         static std::vector<std::filesystem::path> Layers(const std::filesystem::path& root)

@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Assets/AssetReferenceResolver.h>
 #include <Engine/Core/Validation.h>
 #include <array>
 #include <iterator>
@@ -107,11 +108,11 @@ namespace SceneRuntime
                 throw std::runtime_error("Cannot open material");
             auto json = Engine::Json::parse(stream);
             if (assetIndex)
-                assetIndex->References(json);
+                References(json, *assetIndex);
             else
             {
                 Engine::CpuScope scope("Material asset database scan");
-                Engine::AssetDatabase(root).References(json);
+                References(json, Engine::AssetDatabase(root));
             }
             MaterialAsset asset;
             const auto shader = json.value("shader", std::string{});
@@ -154,7 +155,8 @@ namespace SceneRuntime
             asset.Validate();
             return asset;
         }
-        void Save(const std::filesystem::path& root, const std::filesystem::path& path) const
+        /// <summary>素材の保存内容を、副作用なしに構築して検証します。</summary>
+        std::string SerializeForSave(const std::filesystem::path& root, const std::filesystem::path& path) const
         {
             Validate();
             if (!shader.empty() && !std::filesystem::is_regular_file(Engine::ContentFiles::Resolve(root / shader)))
@@ -168,7 +170,6 @@ namespace SceneRuntime
                 throw std::runtime_error("Material texture does not exist");
             if (!ValidPath(path))
                 throw std::runtime_error("Invalid material path");
-            std::filesystem::create_directories((root / path).parent_path());
             const auto text = texture.generic_u8string();
             const auto normal = normalTexture.generic_u8string();
             Engine::Json json = {{"color", values.color},
@@ -192,29 +193,33 @@ namespace SceneRuntime
                 const auto bytes = shader.generic_u8string();
                 json["shader"] = std::string(bytes.begin(), bytes.end());
             }
-            Engine::AssetDatabase(root).References(json);
-            auto temporary = root / path;
-            temporary += ".tmp";
-            std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-            output << json.dump(2) << '\n';
-            output.close();
-            if (!output || !MoveFileExW(temporary.c_str(), (root / path).c_str(),
-                                        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-            {
-                std::error_code error;
-                std::filesystem::remove(temporary, error);
-                throw std::runtime_error("Cannot save material");
-            }
+            References(json, Engine::AssetDatabase(root));
+            return json.dump(2) + "\n";
         }
-        std::shared_ptr<const Engine::Material> Prepare(ID3D12Device* device, ID3D12CommandQueue* queue,
-                                                        const std::filesystem::path& root) const
+        /// <summary>保存内容を検証してから、共通の原子的な書き込みで確定します。</summary>
+        void Save(const std::filesystem::path& root, const std::filesystem::path& path) const
+        {
+            const auto source = SerializeForSave(root, path);
+            std::filesystem::create_directories((root / path).parent_path());
+            Engine::FileContents::Write(root / path, source);
+        }
+        std::shared_ptr<const Engine::Material> Prepare(
+            ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& root,
+            std::shared_ptr<const Engine::ContentContext> context = {}) const
         {
             Validate();
+            if (context)
+            {
+                context->RequireRoot(root);
+                context->RequireConfiguration();
+            }
             auto result = std::make_shared<Engine::Material>(values);
             if (!shader.empty())
             {
                 auto resources = std::make_shared<Engine::MeshResources>();
-                if (!resources->Initialize(device, root / shader, queue))
+                if (!resources->Initialize(
+                        device, context ? context->Resolve(shader) : Engine::ContentFiles::Resolve(root / shader),
+                        queue))
                     throw std::runtime_error("Cannot initialize material shader (Mesh shader interface required)");
                 result->shaderResources = std::move(resources);
             }
@@ -242,6 +247,20 @@ namespace SceneRuntime
                     *entry.second = std::move(image);
                 }
             return result;
+        }
+
+    private:
+        /// <summary>マテリアルが所有するシェーダー・テクスチャ素材だけを解決します。</summary>
+        static void References(Engine::Json& json, const Engine::AssetDatabase& index)
+        {
+            const auto saved = json.value("assetReferences", Engine::AssetReferenceResolver::References{});
+            Engine::AssetReferenceResolver references(index, saved);
+            for (const auto* key : {"shader", "texture", "normalTexture", "environmentTexture", "lightmap"})
+            {
+                if (json.contains(key))
+                    references.Visit(json.at(key).get_ref<std::string&>());
+            }
+            json["assetReferences"] = references.Captured();
         }
     };
 }

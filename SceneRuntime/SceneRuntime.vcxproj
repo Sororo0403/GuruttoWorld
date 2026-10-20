@@ -190,6 +190,10 @@
     <ClInclude Include="src\SceneSettingsJson.h" />
     <ClCompile Include="src\SceneSettingsJson.cpp" />
     <ClCompile Include="src\SceneLayout.cpp" />
+    <ClCompile Include="src\SceneAssetReferences.cpp" />
+    <ClCompile Include="src\SceneMigration.cpp" />
+    <ClCompile Include="src\ScriptSchema.cpp" />
+    <ClCompile Include="src\ScriptValueJson.cpp" />
     <ClCompile Include="src\SceneComponentJson.cpp" />
     <ClInclude Include="src\SceneComponentJson.h" />
     <ClInclude Include="include\SceneRuntime\SceneComponents.h" />
@@ -201,6 +205,7 @@
     <ClCompile Include="src\PhysicsWorld.cpp" />
     <ClInclude Include="include\SceneRuntime\PhysicsWorld.h" />
     <ClCompile Include="src\ScriptRuntime.cpp" />
+    <ClInclude Include="src\PrefabMerge.h" />
     <ClCompile Include="src\Prefab.cpp" />
     <ClInclude Include="include\SceneRuntime\Prefab.h" />
     <ClInclude Include="include\SceneRuntime\ScriptRuntime.h" />
@@ -212,6 +217,17 @@
     <ClCompile Include="src\SceneTransforms.cpp" />
     <ClInclude Include="include\SceneRuntime\SceneTransforms.h" />
     <ClInclude Include="include\SceneRuntime\SceneLayout.h" />
+    <ClInclude Include="include\SceneRuntime\SceneDocumentData.h" />
+    <ClInclude Include="include\SceneRuntime\ObjectReferenceDomain.h" />
+    <ClInclude Include="include\SceneRuntime\ComponentAssetReferences.h" />
+    <ClInclude Include="include\SceneRuntime\SceneAssetReferences.h" />
+    <ClInclude Include="include\SceneRuntime\SceneMigration.h" />
+    <ClInclude Include="include\SceneRuntime\ScriptSchema.h" />
+    <ClInclude Include="include\SceneRuntime\AudioCommand.h" />
+    <ClInclude Include="include\SceneRuntime\ScriptValueJson.h" />
+    <ClInclude Include="include\SceneRuntime\ComponentDefinitions.h" />
+    <ClInclude Include="include\SceneRuntime\ComponentFieldSchema.h" />
+    <ClInclude Include="include\SceneRuntime\ComponentObjectReferences.h" />
     <ClInclude Include="include\SceneRuntime\SceneCollection.h" />
     <ClInclude Include="include\SceneRuntime\JointComponent.h" />
     <ClInclude Include="src\PhysicsJoints.h" />

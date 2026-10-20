@@ -9,7 +9,16 @@ param(
 )
 $ErrorActionPreference='Stop'
 $repoRoot=Split-Path $PSScriptRoot -Parent
-if (!$Content) { $Content=Join-Path $repoRoot 'Games/GuruttoWorld' }
+. (Join-Path $PSScriptRoot 'ProjectContext.ps1')
+if (!$Content) {
+    if ($Project) { $Content = $Project }
+    else {
+        $taskCurrentProject = (Get-Location).ProviderPath
+        if (!(Test-Path -LiteralPath (Join-Path $taskCurrentProject 'WP1.project.json'))) { throw 'Pass -Project <game project folder> or -Content <content folder>.' }
+        $Content = $taskCurrentProject
+        $Project = $taskCurrentProject
+    }
+}
 if (!$WorkRoot) { $WorkRoot=$repoRoot }
 $Content=[IO.Path]::GetFullPath($Content)
 $WorkRoot=[IO.Path]::GetFullPath($WorkRoot)
@@ -18,11 +27,9 @@ $playerProject=Join-Path $repoRoot 'App/App.vcxproj'
 $playerRoot=$repoRoot
 if ($Project) {
     $Project=[IO.Path]::GetFullPath($Project)
-    $descriptor=Get-Content -LiteralPath (Join-Path $Project 'WP1.project.json') -Raw | ConvertFrom-Json
-    if ($descriptor.version -ne 1 -or $descriptor.name -notmatch '^[A-Za-z][A-Za-z0-9_]{0,63}$' -or $descriptor.project -ne "$($descriptor.name).vcxproj") { throw 'Invalid game project descriptor.' }
-    $projectEngineRoot=$descriptor.engineRoot
-    if (![IO.Path]::IsPathRooted($projectEngineRoot)) { $projectEngineRoot=Join-Path $Project $projectEngineRoot }
-    if ([IO.Path]::GetFullPath($projectEngineRoot).TrimEnd('\') -ne [IO.Path]::GetFullPath($repoRoot).TrimEnd('\')) { throw 'Game project uses a different engine checkout.' }
+    $projectContext = Get-ProjectContext -Project $Project -RequireEngineRoot $repoRoot
+    if ($projectContext.generatedProjects) { Sync-GeneratedGameProject -Context $projectContext }
+    $descriptor = $projectContext.descriptor
     $gameName=$descriptor.name
     $playerProject=Join-Path $Project $descriptor.project
     $playerRoot=$Project
@@ -62,7 +69,7 @@ try {
     if (!$installation) { throw 'Visual Studio with MSBuild is required.' }
     $msbuild=Join-Path $installation 'MSBuild/Current/Bin/MSBuild.exe'
     if (!$SkipBuild) {
-        & $msbuild $playerProject "/p:Configuration=$Configuration" '/p:Platform=x64' '/m:1' '/nr:false' '/v:minimal' '/nologo'
+        & $msbuild $playerProject "/p:GameContentRoot=$Content/" "/p:Configuration=$Configuration" '/p:Platform=x64' '/p:PreferredToolArchitecture=x64' '/m:1' '/nr:false' '/v:minimal' '/nologo'
         if ($LASTEXITCODE -ne 0) { throw "MSBuild failed ($LASTEXITCODE)." }
     }
     $executable=Join-Path $playerRoot "generated/outputs/x64/$Configuration/App/$gameName.exe"

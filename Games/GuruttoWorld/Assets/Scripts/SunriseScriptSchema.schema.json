@@ -1,0 +1,102 @@
+{
+  "version": 2,
+  "scripts": {
+    "SunrisePlayer": {
+      "extends": "ParkPlayer"
+    },
+    "StreetPlayer": {
+      "extends": "SunrisePlayer"
+    },
+    "SunriseBlockPlayer": {
+      "extends": "SunrisePlayer"
+    },
+    "SunriseCamera": {
+      "extends": "ParkCamera"
+    },
+    "SunriseEnemy": {
+      "extends": "ParkPatrol"
+    },
+    "SunriseBlockCamera": {
+      "extends": "ParkCamera",
+      "parameters": {
+        "height": {
+          "initial": 4.2,
+          "minimum": 2,
+          "maximum": 12
+        },
+        "distance": {
+          "initial": 7.8,
+          "minimum": 3,
+          "maximum": 15
+        },
+        "plazaExitX": {
+          "initial": 8,
+          "minimum": -20,
+          "maximum": 25
+        },
+        "plazaFollowSlack": {
+          "initial": 0.85,
+          "minimum": 0,
+          "maximum": 1.5
+        },
+        "plazaCameraLeft": {
+          "initial": -3,
+          "minimum": -5,
+          "maximum": 0
+        },
+        "plazaFocusWeight": {
+          "initial": 0.22,
+          "minimum": 0,
+          "maximum": 0.3
+        },
+        "plazaBlendStart": {
+          "initial": 18,
+          "minimum": 10,
+          "maximum": 26
+        },
+        "plazaBlendEnd": {
+          "initial": 34,
+          "minimum": 28,
+          "maximum": 42
+        }
+      }
+    },
+    "SunriseMechanism": {
+      "parameters": {},
+      "data": {
+        "switch": {
+          "kind": "reference",
+          "value": ""
+        }
+      },
+      "purposes": {}
+    },
+    "SunriseBridge": {
+      "extends": "SunriseMechanism"
+    },
+    "SunriseShutter": {
+      "extends": "SunriseMechanism"
+    },
+    "SunriseHero": {
+      "parameters": {},
+      "data": {},
+      "purposes": {}
+    },
+    "SunriseSound": {
+      "parameters": {
+        "volume": {
+          "initial": 0.35,
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "data": {
+        "clip": {
+          "kind": "string",
+          "value": "Attack"
+        }
+      },
+      "purposes": {}
+    }
+  }
+}

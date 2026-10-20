@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Assets/ContentContext.h>
 #include <SceneRuntime/SceneLayout.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <map>
@@ -50,7 +51,8 @@ namespace SceneRuntime
         /// <summary>変更した UI 資源を準備します。実行中はシェーダー検査を省き、明示再読込時に更新を反映できます。</summary>
         /// <param name="inspectShaders">true の場合は依存シェーダーの変更を検査します。初回やデバイス・ルート変更時は必ず検査します。</param>
         bool Prepare(const Engine::DirectX12Renderer&, const std::filesystem::path&, const SceneLayout&,
-                     std::string& error, const UiState& state = {}, bool inspectShaders = true);
+                     std::string& error, const UiState& state = {}, bool inspectShaders = true,
+                     std::shared_ptr<const Engine::ContentContext> context = {});
         void Draw(ID3D12GraphicsCommandList*, const SceneLayout&, unsigned int width, unsigned int height,
                   const UiState& state = {}) const;
         void DrawScene(ID3D12GraphicsCommandList*, const SceneWorld&, const Engine::Camera&,
@@ -75,6 +77,7 @@ namespace SceneRuntime
                                     const UiState& state);
 
     private:
+        std::shared_ptr<const Engine::ContentContext> content_;
         struct Resource
         {
             std::size_t generation = 0;

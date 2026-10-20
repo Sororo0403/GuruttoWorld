@@ -12,6 +12,29 @@ namespace SceneRuntime
             const std::filesystem::path& scenePath, std::string& error);
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             SceneLayout layout, std::string& error);
+        /// <summary>開始時に固定した参照情報を実行Worldと共有して初期化します。</summary>
+        bool Initialize(const Engine::DirectX12Renderer& renderer,
+                        std::shared_ptr<const Engine::ContentContext> context, SceneLayout layout, std::string& error)
+        {
+            world_.SetContentContext(context);
+            return Initialize(renderer, context->Root(), std::move(layout), error);
+        }
+        /// <summary>実行セッションが所有する固定した参照情報を取得します。</summary>
+        const std::shared_ptr<const Engine::ContentContext>& Content() const
+        {
+            return world_.Content();
+        }
+        /// <summary>公開前の開始処理を確定し、失敗時のUIと音声予約を破棄します。</summary>
+        bool StartScripts(std::string& error)
+        {
+            if (!world_.StartScripts(error))
+            {
+                DiscardPreparedUi();
+                return false;
+            }
+            ApplyUiCommands(world_.TakeUiCommands());
+            return true;
+        }
         const SceneWorld& World() const { return world_; }
         /// <summary>ロード済みシーン数によらず実行環境の初期化状態を返します。</summary>
         uint64_t SceneRevision() const {return sceneRevision_;}
@@ -25,12 +48,20 @@ namespace SceneRuntime
         std::array<float,4> Particle(unsigned int index) const;
         UiState& Ui() { return uiState_; }
         bool StartAudio(const std::filesystem::path& root,std::string& error) { return audio_.Initialize(root,world_.Layout(),error); }
-        void UpdateAudio(bool active) { audio_.Update(world_.Layout(),uiState_,active,&world_); }
-        void AudioCue(const std::string& cue) { audio_.Cue(cue); }
-        void PauseAudio(bool paused) { audio_.Pause(paused); }
+        void UpdateAudio(bool active) { world_.PauseScripts(!active); audio_.Update(world_.Layout(),uiState_,active,&world_); }
+        /// <summary>フレーム成功後に鳴らす音を予約します。</summary>
+        void AudioCue(const std::string& cue)
+        {
+            QueueAudio({AudioCommandKind::Cue, cue});
+        }
+        /// <summary>成功した更新の音声予約を一度だけ実行します。</summary>
+        void CommitAudioCommands();
+        /// <summary>音声予約の実行先をホストへ委譲します。空なら標準音声を使用します。</summary>
+        void SetAudioCommandHandler(std::function<void(const AudioCommand&)> handler) { audioCommandHandler_=std::move(handler); }
+        void PauseAudio(bool paused) { world_.PauseScripts(paused); audio_.Pause(paused); }
         UiEvent Click(const std::string& object);
         /// <summary>実行状態が変化したUI文字列のGPUリソースを描画前に準備します。</summary>
-        bool PrepareUi(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,std::string& error) { return presentation_.PrepareUi(renderer,root,world_.Layout(),error,uiState_,false); }
+        bool Prepare(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,std::string& error) { return presentation_.Prepare(renderer,root,world_.Layout(),error,uiState_,false); }
         /// <summary>画面のポインター入力をUI操作とScriptイベントへ反映します。</summary>
         UiEvent UiPointer(unsigned int width,unsigned int height,float x,float y,bool down,bool pressed,bool released,float wheel=0);
         /// <summary>確定した文字を入力欄とScriptイベントへ反映します。</summary>
@@ -43,7 +74,8 @@ namespace SceneRuntime
         const SceneCollection& Scenes() const { return scenes_; }
         /// <summary>UIが予約したシーン操作を描画命令の記録前に適用します。</summary>
         void FlushSceneChanges() { ProcessSceneCommands(); }
-        void Update(double deltaSeconds, bool enabled, bool active);
+        /// <summary>実行更新の成功を返し、成功した場合だけ音声予約を確定可能にします。</summary>
+        bool Update(double deltaSeconds, bool enabled, bool active);
         bool QueueScriptEvent(ScriptEvent event,std::string& error) { return world_.QueueScriptEvent(std::move(event),error); }
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { world_.SetInputActions(std::move(values),std::move(pressed)); }
         /// <summary>未処理の入力を破棄し、Pause・フォーカス復帰で再実行されないようにします。</summary>
@@ -91,6 +123,11 @@ namespace SceneRuntime
         const UiState* uiPreparationOverride_=nullptr;
         std::optional<SceneUi> pendingUiResources_;
         SceneAudio audio_;
+        /// <summary>UI・演出の音声予約を上限付きで保持します。</summary>
+        void QueueAudio(AudioCommand command);
+        std::vector<AudioCommand> pendingAudio_, committedAudio_;
+        bool audioReady_ = false;
+        std::function<void(const AudioCommand&)> audioCommandHandler_;
         /// <summary>ポインターとActionによるUI操作を同じスクリプトイベントへ通知します。</summary>
         void NotifyUiEvent(const UiEvent& event);
         SceneWorld world_;

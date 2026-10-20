@@ -1,11 +1,10 @@
+. (Join-Path $PSScriptRoot 'ProjectContext.ps1')
+
 function Get-SharedContentRoot {
     param([string]$Content)
     $descriptorPath = Join-Path $Content 'WP1.project.json'
     if (!(Test-Path -LiteralPath $descriptorPath -PathType Leaf)) { return $null }
-    $descriptor = Get-Content -LiteralPath $descriptorPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if (!$descriptor.engineRoot) { throw 'Game project has no engine content reference.' }
-    $engine = $descriptor.engineRoot
-    if (![IO.Path]::IsPathRooted($engine)) { $engine = Join-Path $Content $engine }
+    $engine = Get-ProjectEngineRoot -Content $Content
     $shared = [IO.Path]::GetFullPath((Join-Path $engine 'Content'))
     if (!(Test-Path -LiteralPath (Join-Path $shared 'Assets') -PathType Container) -or
         !(Test-Path -LiteralPath (Join-Path $shared 'Shaders') -PathType Container)) {

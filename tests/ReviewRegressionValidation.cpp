@@ -1,11 +1,11 @@
 #include <SceneRuntime/SceneView.h>
+#include <Engine/Graphics/Resources/RenderFrameContext.h>
 #include "../Editor/src/GizmoTransform.h"
 #include "../Editor/src/EditHistory.h"
 #include "../Editor/src/EditState.h"
 #include "../Editor/src/PlayState.h"
 #include "../Editor/src/GameSession.h"
 #include "../Editor/src/GamePointerCapture.h"
-#include "../Editor/src/PlaySnapshot.h"
 #include "../Editor/src/SceneViewport.h"
 #include "../Editor/src/ModelDrop.h"
 #include "../Editor/src/ConsoleFilter.h"
@@ -16,7 +16,7 @@
 #include "../Editor/src/UiCanvasPanel.h"
 #include "../Editor/src/SceneSnapshotCache.h"
 #include "../Editor/src/SceneRecovery.h"
-#include "../Editor/src/AssetFileTransaction.h"
+#include "../Editor/src/PrefabEditPlan.h"
 #include "../Editor/src/BlendTreePanel.h"
 #include "../Editor/src/UiCanvasTransform.h"
 #include "../Editor/src/UiLayoutTools.h"
@@ -61,6 +61,8 @@
 #include "ProfilerValidation.h"
 #include "TextureImportValidation.h"
 #include "PrefabValidation.h"
+#include "PrefabGpuContractValidation.h"
+#include "OptionalFeaturesValidation.h"
 #include "InputActionValidation.h"
 #include "MaterialValidation.h"
 #include "LocalLightValidation.h"
@@ -82,7 +84,7 @@
 #include <Engine/Graphics/Renderers/MeshRenderer.h>
 #include <Engine/Graphics/Resources/DepthBuffer.h>
 #include <Engine/Graphics/Resources/RenderTexture.h>
-#include "../App/src/Scenes/TitleScene.h"
+#include "../App/src/Scenes/AuthoredScene.h"
 #include "../App/src/Scenes/TitleMenu.h"
 #include "../App/src/Scenes/TitleBindings.h"
 #include <ShlObj.h>
@@ -240,8 +242,9 @@ namespace
         TitleIsolationValidation::Run();
         using namespace App;
         auto layout=SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
-        for(auto& object:layout.objects) if(TitleBindings::Item(object)==TitleMenuItem::Start) object.button->target="Assets/Scenes/StartFixture.json";
-        Check(TitleBindings::StartScene(layout)=="Assets/Scenes/StartFixture.json","legacy START binding follows authored button target");
+        for(auto& object:layout.objects) if(object.canvas && object.canvas->menu)
+            for(auto& entry:object.canvas->menu->entries) if(entry.action=="loadScene") entry.target="Assets/Scenes/StartFixture.json";
+        Check(TitleBindings::Configuration(layout)->entries.front().target=="Assets/Scenes/StartFixture.json","authored menu declaration owns the destination");
         auto items=TitleBindings::Items(layout);
         Check(items.size()==3,"authored menu exposes three roles");
         for(auto& object:layout.objects) if(TitleBindings::Item(object)==TitleMenuItem::Settings) {
@@ -1583,47 +1586,40 @@ namespace
         Check(renderer.WaitForIdle(), "scene document destruction GPU completion");
     }
 
-    void ValidatePlaySnapshot(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
+    void ValidateDocumentSessionIsolation(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
-        SceneRuntime::SceneWorld world;
         std::string error;
-        Check(world.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",root/"Shaders/Mesh.hlsl"), "snapshot edit world");
+        Editor::SceneDocument document(root/"Assets/Scenes/TitleStreet.json",Engine::ContentContext::Capture(root));
+        SceneRuntime::SceneWorld world(document.Data());
+        Check(world.Initialize(renderer,root,document.Path(),root/"Shaders/Mesh.hlsl",&error,true),"document edit view");
         Editor::EditState state;
-        const auto first=world.Layout().objects.front().id, last=world.Layout().objects.back().id;
+        const auto first=world.Layout().objects.front().id,last=world.Layout().objects.back().id;
         state.RestoreSelection({first,last},last);
-        Editor::EditHistory history; const auto saved=world.Layout().Serialize();
-        history.Reset({saved,last,state.SelectedIds()});
-        Check(state.Rename(world,last,"First edit"), "snapshot first edit");
-        const auto edited=world.Layout().Serialize(); history.Observe({edited,last,state.SelectedIds()},{});
-        Check(state.Rename(world,last,"Redo edit"), "snapshot redo branch edit");
-        history.Observe({world.Layout().Serialize(),last,state.SelectedIds()},{});
-        const auto undo=history.Target(false);
-        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(undo.json),root,error), "snapshot establish redo branch");
-        history.Applied(false); state.SetChanged(history.Dirty(edited));
-        Editor::SceneDocument document(root/"Assets/Scenes/TitleStreet.json");
-        const auto originalPath=document.Path();
-        Editor::PlaySnapshot snapshot(world,state,history,document);
-        const auto redoJson=history.Target(true).json;
-        Check(state.Rename(world,last,"Temporary runtime mutation"), "simulate edit world mutation during play");
-        const auto changed=world.Layout().Serialize();
-        state.Select(first); state.MarkSaved(); history.Reset({changed,first});
-        document=Editor::SceneDocument(root/"Assets/Scenes/Temporary.json");
-        Check(!snapshot.Restore(world,root/"missing-assets",state,history,document,error) && !error.empty() &&
-            world.Layout().Serialize()==changed && state.SingleSelection() && state.SelectedId()==first && !state.HasChanges() &&
-            !history.CanUndo() && !history.CanRedo() && document.Path()!=originalPath, "failed Stop restoration leaves all current editor data intact");
-        Check(snapshot.Restore(world,root,state,history,document,error) && error.empty() && world.Layout().Serialize()==edited &&
+        Editor::EditHistory history;
+        history.Reset({world.Layout().Serialize(),last,state.SelectedIds()});
+        Check(state.Rename(world,last,"First edit"),"document first edit");
+        const auto edited=document.Layout().Serialize();
+        history.Observe({edited,last,state.SelectedIds()},{});
+        Check(state.Rename(world,last,"Redo edit"),"document redo branch edit");
+        history.Observe({document.Layout().Serialize(),last,state.SelectedIds()},{});
+        const auto redoJson=document.Layout().Serialize();
+        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json),root,error),"document establishes redo branch");
+        history.Applied(false);state.SetChanged(history.Dirty(edited));
+        Editor::GameSession session;
+        const auto settings=std::filesystem::absolute("generated/tests/document-session-settings.json");
+        Check(session.Play(renderer,root,document.Layout(),error,settings,document.Data()->Content()),"document starts independent runtime");
+        Check(session.Runtime()->World().RenameObject(last,"Runtime mutation"),"runtime mutates its own copy");
+        Check(renderer.WaitForIdle() && session.Stop() && document.Layout().Serialize()==edited &&
             state.SelectedIds()==std::vector<std::string>{first,last} && state.SelectedId()==last && state.HasChanges() &&
-            document.Path()==originalPath && history.CanUndo() && history.CanRedo() && history.Target(true).json==redoJson && history.Dirty(edited),
-            "Stop restores layout document selection dirty baseline and complete Undo Redo branch");
-        Check(snapshot.Restore(world,root/"missing-assets",state,history,document,error), "unchanged world restores metadata without asset reload");
-        Editor::SceneDocument fresh(root/"Assets/Scenes/PlaySnapshotNew.json");
+            history.CanUndo() && history.CanRedo() && history.Target(true).json==redoJson && history.Dirty(edited),
+            "Stop preserves document selection dirty baseline and complete Undo Redo branch without restoration");
+        Editor::SceneDocument fresh(root/"Assets/Scenes/DocumentSessionNew.json",document.Data()->Content());
+        SceneRuntime::SceneWorld freshView(fresh.Data());
+        Check(freshView.Initialize(renderer,root,SceneRuntime::SceneLayout{},root/"Shaders/Mesh.hlsl",&error),"new document projection");
         fresh.Request(fresh.Path(),true,false);
-        Check(fresh.Apply(world,root,error) && fresh.UnsavedNew(), "unsaved new document snapshot fixture");
-        state.Reloaded(); state.SetChanged(true); history.Reset({world.Layout().Serialize(),{}});
-        Editor::PlaySnapshot newSnapshot(world,state,history,fresh);
-        fresh=Editor::SceneDocument(originalPath); state.MarkSaved();
-        Check(newSnapshot.Restore(world,root,state,history,fresh,error) && fresh.UnsavedNew() && state.HasChanges() &&
-            fresh.Path().filename()=="PlaySnapshotNew.json" && !std::filesystem::exists(fresh.Path()), "Stop restores unsaved new scene identity without writing a file");
+        Check(fresh.Apply(freshView,root,error) && fresh.UnsavedNew(),"unsaved new document fixture");
+        Check(session.Play(renderer,root,fresh.Layout(),error,settings,fresh.Data()->Content()) && session.Stop() &&
+            fresh.UnsavedNew() && !std::filesystem::exists(fresh.Path()),"Stop preserves unsaved new document identity without filesystem work");
     }
 
     void ValidateGameSession(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
@@ -1842,7 +1838,6 @@ namespace
         Check(world.ReplaceLayout(layout,root,error), "runtime component fixture restored");
         Check(!world.UpdateComponents(NAN) && !world.UpdateComponents(0) && world.Layout().Serialize()==json,
             "invalid runtime ticks leave Transform and Component state intact");
-        Editor::PlaySnapshot snapshot(world,state,history,Editor::SceneDocument(root/"Assets/Scenes/ComponentDemo.json"));
         Editor::GameSession session;
         Check(session.Play(renderer,root,layout,error) && session.Update(1,true), "runtime starts and updates Rotator");
         const auto* running=session.Runtime();
@@ -1864,9 +1859,8 @@ namespace
         Check(session.Play(renderer,root,layout,error) && session.Update(0.1,true), "Resume continues component runtime");
         Check(renderer.WaitForIdle() && session.Stop() && world.Layout().Serialize()==json,
             "Stop releases runtime without writing simulated transforms into the authoring scene");
-        Editor::SceneDocument document(root/"Assets/Scenes/ComponentDemo.json");
-        Check(snapshot.Restore(world,root,state,history,document,error) && world.Layout().Serialize()==json && state.SelectedId()=="Spinner",
-            "Component scene Stop snapshot preserves settings and selection");
+        Check(world.Layout().Serialize()==json && state.SelectedId()=="Spinner",
+            "Component scene Stop preserves settings and selection without restoration");
         std::vector<std::string> copies;
         Check(world.DuplicateObjects({"Spinner","OrbitingChild"},{4,0,0},copies,error) &&
             world.Layout().objects[layout.objects.size()].rotator==layout.objects[1].rotator &&
@@ -1966,31 +1960,57 @@ namespace
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
                 EditorFontValidation::Run(renderer,TestContentRoot());
 #endif
+                std::cerr<<"Title validation: ValidateAssetReload"<<std::endl;
                 ValidateAssetReload(renderer);
+                std::cerr<<"Title validation: ValidateEmptyObjects"<<std::endl;
                 ValidateEmptyObjects(renderer);
+                std::cerr<<"Title validation: EnvironmentValidation::Run"<<std::endl;
                 EnvironmentValidation::Run(renderer);
+                std::cerr<<"Title validation: ShadowValidation::Run"<<std::endl;
                 ShadowValidation::Run(renderer);
+                std::cerr<<"Title validation: ValidateEnvironmentMotion"<<std::endl;
                 ValidateEnvironmentMotion(renderer);
+                std::cerr<<"Title validation: UiValidation::Rendering"<<std::endl;
                 UiValidation::Rendering(renderer,TestContentRoot());
+                std::cerr<<"Title validation: AnimationValidation::Runtime"<<std::endl;
                 AnimationValidation::Runtime(renderer,TestContentRoot());
+                std::cerr<<"Title validation: PhysicsValidation::Runtime"<<std::endl;
                 PhysicsValidation::Runtime(renderer,TestContentRoot());
+                std::cerr<<"Title validation: RigidBodyValidation::Runtime"<<std::endl;
                 RigidBodyValidation::Runtime(renderer);
+                std::cerr<<"Title validation: ScriptValidation::Runtime"<<std::endl;
                 ScriptValidation::Runtime(renderer);
+                std::cerr<<"Title validation: SceneCollectionValidation::Runtime"<<std::endl;
                 SceneCollectionValidation::Runtime(renderer);
+                std::cerr<<"Title validation: PrefabValidation::Runtime"<<std::endl;
                 PrefabValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr<<"Title validation: MaterialValidation::Rendering"<<std::endl;
                 MaterialValidation::Rendering(renderer);
+                std::cerr<<"Title validation: LocalLightValidation::Rendering"<<std::endl;
                 LocalLightValidation::Rendering(renderer); LocalLightValidation::Runtime(renderer);
+                std::cerr<<"Title validation: PostEffectValidation::Rendering"<<std::endl;
                 PostEffectValidation::Rendering(renderer); PostEffectValidation::Runtime(renderer);
+                std::cerr<<"Title validation: AnimatorValidation::Runtime"<<std::endl;
                 AnimatorValidation::Runtime(renderer);
+                std::cerr<<"Title validation: TextureImportValidation::Run"<<std::endl;
                 TextureImportValidation::Run(renderer); ProfilerValidation::Run(renderer);
+                std::cerr<<"Title validation: TitlePresentationValidation::Run"<<std::endl;
                 TitlePresentationValidation::Run(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr<<"Title validation: GamePlaybackParityValidation::Run"<<std::endl;
                 GamePlaybackParityValidation::Run(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr<<"Title validation: MenuAuthoringValidation::Presentation"<<std::endl;
                 MenuAuthoringValidation::Presentation(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr<<"Title validation: ValidateSceneView"<<std::endl;
                 ValidateSceneView(renderer);
+                std::cerr<<"Title validation: ValidateComponents"<<std::endl;
                 ValidateComponents(renderer);
-                ValidatePlaySnapshot(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr<<"Title validation: ValidateDocumentSessionIsolation"<<std::endl;
+                ValidateDocumentSessionIsolation(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr<<"Title validation: ValidateGameSession"<<std::endl;
                 ValidateGameSession(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr<<"Title validation: ValidateSceneDocument"<<std::endl;
                 ValidateSceneDocument(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr<<"Title validation: ValidateInheritedRendering"<<std::endl;
                 ValidateInheritedRendering(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
             }
             {
@@ -2251,7 +2271,7 @@ namespace
                 Check(editorWorld.Reload(content,editedPath,operationError) && editorWorld.Layout().Serialize()==resetJson,
                     "Inspector name and reset survive save and reload");
 
-                App::TitleScene title(TestContentRoot());
+                App::AuthoredScene title(TestContentRoot(),Engine::AssetDatabase::Path(SceneRuntime::ProjectSettings::Load(TestContentRoot()).startupScene));
                 Check(title.Initialize(renderer), "title assets and sprite pipeline");
                 Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
                 Check(renderer.WaitForIdle(), "title GPU completion");
@@ -2390,6 +2410,8 @@ namespace
         Hr(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator)));
         Hr(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr, IID_PPV_ARGS(&commands)));
         Hr(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+        // 独自のコマンドリストでも、定数バッファーをGPU完了まで保持するフレーム枠を明示します。
+        Engine::RenderFrameContext{0, 1}.Record(commands.Get());
         const D3D12_VIEWPORT viewport{0, 0, 128, 128, 0, 1};
         const D3D12_RECT scissor{0, 0, 128, 128};
         commands->RSSetViewports(1, &viewport);
@@ -3404,15 +3426,19 @@ void ValidateEditorIntegrity()
     SceneRuntime::Prefab::Instantiate(scene,asset,b,{});
     for(auto& item:scene.objects) if(item.id==id) item.name="applied name";
     std::filesystem::remove(root/b); std::string error;
-    const bool success=Editor::AssetFileTransaction::Run(root/a,error,[&]() {
-        SceneRuntime::Prefab::ApplyOverride(scene,id,"/name",root);
-        SceneRuntime::Prefab::Refresh(scene,root); return true;
-    });
+    bool success=false;
+    try
+    {
+        auto plan=Editor::PrefabEdits::Override(scene,id,"/name",root);
+        success=Editor::FileTransaction::Apply(plan.files,true,error,[&]() {scene=std::move(plan.scene);return true;});
+    }
+    catch(const std::exception& failure) {error=failure.what();}
     Check(!success && !error.empty() && SceneRuntime::SceneLayout::Load(root/a).objects[0].name=="original source",
-        "failed prefab refresh rolls back earlier asset write");
-    const auto fresh=root/"Assets/Prefabs/New.prefab"; auto meta=fresh; meta+=".meta";
-    std::filesystem::remove(fresh); std::filesystem::remove(meta);
-    Check(!Editor::AssetFileTransaction::Run(fresh,error,[&]() {asset.Save(fresh); Engine::AssetDatabase::Ensure(fresh); return false;}) &&
+        "failed prefab preparation leaves the source untouched");
+    const auto fresh=root/"Assets/Prefabs/New.prefab";auto meta=fresh;meta+=".meta";
+    std::filesystem::remove(fresh);std::filesystem::remove(meta);
+    const auto plan=Editor::AssetFileChanges::Prepare(fresh,std::nullopt,asset.SerializeForSave(fresh));
+    Check(!Editor::FileTransaction::Apply(plan.files,true,error,[](){return false;}) &&
         !std::filesystem::exists(fresh) && !std::filesystem::exists(meta),"failed new prefab operation removes created asset and metadata");
 }
 
@@ -3699,9 +3725,17 @@ void ValidateDeferredClose()
 }
 int main()
 {
-    std::string phase="focused validation";
+    std::cout.setf(std::ios::unitbuf);
+    std::cerr.setf(std::ios::unitbuf);
+    std::string phase="focused validation"; std::cerr<<"Validation phase: "<<phase<<std::endl;
     try
     {
+        if (GetEnvironmentVariableW(L"WP1_MIRRORED_MESH_ONLY", nullptr, 0))
+        {
+            ValidateMirroredMesh();
+            std::cout << "PASS: mirrored mesh fronts remain visible and backfaces are culled\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_ENGINE_EDITOR_REVIEW_ONLY",nullptr,0)) {
             EngineEditorReviewValidation::Data();Engine::Window window;Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Engine/editor review regression",64,64),"review window");
@@ -3729,7 +3763,7 @@ int main()
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_FOLLOWUP_STATE_ONLY",nullptr,0)) {
-            phase="FollowupStateValidation";FollowupStateValidation::Run();
+            phase="FollowupStateValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl;FollowupStateValidation::Run();
             Engine::Window window;Engine::DirectX12Renderer renderer;
             Check(window.Create(L"Hidden followup state validation",64,32) && renderer.Initialize(window.GetHandle()),"followup state renderer");
             FollowupStateValidation::EditorOwnership(renderer);FollowupStateValidation::ProceduralEdits(renderer);
@@ -3738,9 +3772,9 @@ int main()
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_EDITOR_DATA_ONLY",nullptr,0)) {
-            phase="ValidateSaveAs"; ValidateSaveAs();
-            phase="ValidateMaterialDocuments"; ValidateMaterialDocuments();
-            phase="ValidateProjectCatalog"; ValidateProjectCatalog();
+            phase="ValidateSaveAs"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateSaveAs();
+            phase="ValidateMaterialDocuments"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateMaterialDocuments();
+            phase="ValidateProjectCatalog"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateProjectCatalog();
             std::cout<<"PASS: editor scene conflicts/moves, material drafts/conflicts, GLB and asset folders\n";
             return 0;
         }
@@ -3913,6 +3947,37 @@ int main()
             std::cout<<"PASS: input action bindings, keyboard/gamepad/analog, rebind, activation and Button actions\n";
             return 0;
         }
+        if(GetEnvironmentVariableW(L"WP1_OPTIONAL_FEATURES_ONLY",nullptr,0)) {
+            Engine::Window window;Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Optional engine features",64,32) && renderer.Initialize(window.GetHandle()),"optional features renderer");
+            OptionalFeaturesValidation::Run(renderer);
+            EnvironmentValidation::Run(renderer);
+            Check(renderer.WaitForIdle(),"optional features GPU completion");CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: empty games, optional pipelines, environment pixels and isolated menu state\n";return 0;
+        }
+        if (GetEnvironmentVariableW(L"WP1_DOCUMENT_SESSION_ONLY", nullptr, 0))
+        {
+            ValidateEditorIntegrity();
+            Engine::Window window;
+            Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Document session isolation", 64, 64) && renderer.Initialize(window.GetHandle()),
+                  "document session renderer");
+            const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+            ValidateDocumentSessionIsolation(renderer, root);
+            ValidateComponents(renderer);
+            Check(renderer.WaitForIdle(), "document session GPU completion");
+            CheckGpuMessages(renderer.GetDevice());
+            std::cout << "PASS: document isolation, history branches, unsaved identity and prefab transaction rollback\n";
+            return 0;
+        }
+        if(GetEnvironmentVariableW(L"WP1_PREFAB_RUNTIME_ONLY",nullptr,0)) {
+            Engine::Window window; Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Prefab reference migration validation",64,32) && renderer.Initialize(window.GetHandle()),"prefab migration renderer");
+            PrefabGpuContractValidation::Run(renderer);
+            PrefabValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+            Check(renderer.WaitForIdle(),"prefab migration GPU completion");CheckGpuMessages(renderer.GetDevice());
+            std::cout<<"PASS: prefab editing migration, strict execution, source failures and existing playground playback\n";return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_PREFAB_ONLY",nullptr,0)) {
             PrefabValidation::Run();
             std::cout<<"PASS: prefab hierarchy, links, source updates, overrides, unpack and failed refresh preservation\n";
@@ -3986,15 +4051,15 @@ int main()
             return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_SETTINGS_CAUSE_ONLY",nullptr,0)) {
-            phase="Settings cause prefix";EngineEditorReviewValidation::Data();
+            phase="Settings cause prefix"; std::cerr<<"Validation phase: "<<phase<<std::endl;EngineEditorReviewValidation::Data();
             {
                 Engine::Window window;Engine::DirectX12Renderer renderer;
                 Check(window.Create(L"Settings cause prefix",64,64) && renderer.Initialize(window.GetHandle()),"settings prefix renderer");
                 EngineEditorReviewValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
                 Check(renderer.WaitForIdle(),"settings prefix GPU completion");CheckGpuMessages(renderer.GetDevice());
             }
-            phase="AuthoringSettingsValidation";AuthoringSettingsValidation::Run();
-            phase="ValidateSettingsPersistence";ValidateSettingsPersistence();ValidateSettings();
+            phase="AuthoringSettingsValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl;AuthoringSettingsValidation::Run();
+            phase="ValidateSettingsPersistence"; std::cerr<<"Validation phase: "<<phase<<std::endl;ValidateSettingsPersistence();ValidateSettings();
             std::cout<<"PASS: original prefix, 1000 settings cycles, concurrent readers, transient/persistent locks and readonly recovery\n";return 0;
         }
         if(GetEnvironmentVariableW(L"WP1_AUTHORING_ONLY",nullptr,0)) {
@@ -4026,7 +4091,7 @@ int main()
             std::cout << "PASS: START/CONFIG/QUIT menu, camera overshoot/reversal and three-aspect title presentation\n";
             return 0;
         }
-        phase="EngineEditorReviewValidation";
+        phase="EngineEditorReviewValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl;
         EngineEditorReviewValidation::Data();
         {
             Engine::Window window;Engine::DirectX12Renderer renderer;
@@ -4035,24 +4100,24 @@ int main()
             EngineEditorReviewValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
             Check(renderer.WaitForIdle(),"review GPU completion");CheckGpuMessages(renderer.GetDevice());
         }
-        phase="AuthoringSettingsValidation"; AuthoringSettingsValidation::Run();
-        phase="MenuAuthoringValidation"; MenuAuthoringValidation::Run();
-        phase="ValidateTransformDecomposition"; ValidateTransformDecomposition();
-        phase="ValidateSceneViewport"; ValidateSceneViewport();
-        phase="ValidateProjectCatalog"; ValidateProjectCatalog();
-        phase="ValidateModelDrop"; ValidateModelDrop();
-        phase="ValidateConsoleLog"; ValidateConsoleLog();
-        phase="ValidateSaveAs"; ValidateSaveAs();
-        phase="ValidateMaterialDocuments"; ValidateMaterialDocuments();
-        phase="ValidateEditorTitlePreview"; ValidateEditorTitlePreview();
-        phase="ValidateUiCanvasInteraction"; ValidateUiCanvasInteraction();
-        phase="ValidateEditorIntegrity"; ValidateEditorIntegrity();
-        phase="ValidateMultiSelection"; ValidateMultiSelection();
-        phase="ValidateEditHistory"; ValidateEditHistory();
-        phase="ValidateFocusSelection"; ValidateFocusSelection();
-        phase="ValidatePlayState"; ValidatePlayState();
-        phase="ValidateDeferredClose"; ValidateDeferredClose();
-        phase="ValidateEditorCamera"; ValidateEditorCamera();
+        phase="AuthoringSettingsValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl; AuthoringSettingsValidation::Run();
+        phase="MenuAuthoringValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl; MenuAuthoringValidation::Run();
+        phase="ValidateTransformDecomposition"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateTransformDecomposition();
+        phase="ValidateSceneViewport"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateSceneViewport();
+        phase="ValidateProjectCatalog"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateProjectCatalog();
+        phase="ValidateModelDrop"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateModelDrop();
+        phase="ValidateConsoleLog"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateConsoleLog();
+        phase="ValidateSaveAs"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateSaveAs();
+        phase="ValidateMaterialDocuments"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateMaterialDocuments();
+        phase="ValidateEditorTitlePreview"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateEditorTitlePreview();
+        phase="ValidateUiCanvasInteraction"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateUiCanvasInteraction();
+        phase="ValidateEditorIntegrity"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateEditorIntegrity();
+        phase="ValidateMultiSelection"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateMultiSelection();
+        phase="ValidateEditHistory"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateEditHistory();
+        phase="ValidateFocusSelection"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateFocusSelection();
+        phase="ValidatePlayState"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidatePlayState();
+        phase="ValidateDeferredClose"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateDeferredClose();
+        phase="ValidateEditorCamera"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateEditorCamera();
         UiValidation::SchemaAndLayout();
         AnimationValidation::Schema();
         PhysicsValidation::Run();
@@ -4066,26 +4131,26 @@ int main()
         PostEffectValidation::Schema();
         AnimatorValidation::Run();
         AssetDatabaseValidation::Run();
-        phase="ValidateSceneLayout"; ValidateSceneLayout();
-        phase="ValidateEditorAcceptanceScene"; ValidateEditorAcceptanceScene();
-        phase="ValidateAssetChangeBatching"; ValidateAssetChangeBatching();
-        phase="ValidateComponentSchema"; ValidateComponentSchema();
-        phase="ValidateParentData"; ValidateParentData();
-        phase="ValidateHierarchyRows"; ValidateHierarchyRows();
-        phase="ValidateSceneTransforms"; ValidateSceneTransforms();
-        phase="ValidateSceneFiles"; ValidateSceneFiles();
-        phase="ValidateDiagnostics"; ValidateDiagnostics();
-        phase="ValidateTitleMenu"; ValidateTitleMenu();
-        phase="ValidateTitleAuthoring"; ValidateTitleAuthoring();
+        phase="ValidateSceneLayout"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateSceneLayout();
+        phase="ValidateEditorAcceptanceScene"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateEditorAcceptanceScene();
+        phase="ValidateAssetChangeBatching"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateAssetChangeBatching();
+        phase="ValidateComponentSchema"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateComponentSchema();
+        phase="ValidateParentData"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateParentData();
+        phase="ValidateHierarchyRows"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateHierarchyRows();
+        phase="ValidateSceneTransforms"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateSceneTransforms();
+        phase="ValidateSceneFiles"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateSceneFiles();
+        phase="ValidateDiagnostics"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateDiagnostics();
+        phase="ValidateTitleMenu"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateTitleMenu();
+        phase="ValidateTitleAuthoring"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateTitleAuthoring();
         ProjectSettingsValidation::Run();
-        phase="ValidateTitleAnimation"; ValidateTitleAnimation();
-        phase="ValidateSettings"; ValidateSettings();
-        phase="ValidateSettingsPersistence"; ValidateSettingsPersistence();
-        phase="ValidatePressAnyTitle"; ValidatePressAnyTitle();
-        phase="ValidateTitleAudio"; ValidateTitleAudio();
-        phase="ValidateRenderTexture"; ValidateRenderTexture();
-        phase="ValidateTitle"; ValidateTitle();
-        phase="ValidateMirroredMesh"; ValidateMirroredMesh();
+        phase="ValidateTitleAnimation"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateTitleAnimation();
+        phase="ValidateSettings"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateSettings();
+        phase="ValidateSettingsPersistence"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateSettingsPersistence();
+        phase="ValidatePressAnyTitle"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidatePressAnyTitle();
+        phase="ValidateTitleAudio"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateTitleAudio();
+        phase="ValidateRenderTexture"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateRenderTexture();
+        phase="ValidateTitle"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateTitle();
+        phase="ValidateMirroredMesh"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateMirroredMesh();
         std::cout << "PASS: diagnostics location/overrides, title menu/settings/rendering, mirrored mesh visibility and backface culling\n";
         return 0;
     }

@@ -1,4 +1,5 @@
 #include "ComponentWidgets.h"
+#include <SceneRuntime/ComponentFieldSchema.h>
 #include "ComponentPanel.h"
 #include "EnvironmentPanel.h"
 #include "UiComponentPanel.h"
@@ -8,13 +9,26 @@
 #include "PhysicsPanel.h"
 #include "GenreComponentPanel.h"
 #include "ScriptDataPanel.h"
-#include <SceneRuntime/ScriptRuntime.h>
 #include <SceneRuntime/MaterialAsset.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 
 namespace
 {
+    const SceneRuntime::ScriptSchema* FindScriptSchema(const Editor::ProjectCatalog* catalog, const std::string& name)
+    {
+        if (catalog)
+        {
+            const auto found = catalog->ScriptSchemas().find(name);
+            if (found != catalog->ScriptSchemas().end())
+            {
+                return &found->second;
+            }
+        }
+        const auto& schemas = SceneRuntime::ScriptSchema::Builtins();
+        const auto found = schemas.find(name);
+        return found == schemas.end() ? nullptr : &found->second;
+    }
     std::string NewComponentId(const SceneRuntime::ScenePlacement& placement, const std::string& base)
     {
         std::string id = base;
@@ -152,24 +166,33 @@ namespace Editor
             auto& player = *candidate.playerController;
             ImGui::PushID(player.id.c_str());
             edited |= ImGui::Checkbox("有効###Enabled", &player.enabled);
-            edited |= ImGui::DragFloat("移動速度###Move speed", &player.moveSpeed, 0.1f, 0, 1000, "%.2f",
-                                       ImGuiSliderFlags_AlwaysClamp);
+            const auto& speed =
+                SceneRuntime::PlayerControllerField(&SceneRuntime::PlayerControllerComponent::moveSpeed);
+            edited |= ImGui::DragFloat("移動速度###Move speed", &player.moveSpeed, 0.1f, speed.minimum, speed.maximum,
+                                       "%.2f", ImGuiSliderFlags_AlwaysClamp);
             Editor::TrackComponentInteraction(state);
             edited |= ImGui::Checkbox("重力を使用###Use gravity", &player.useGravity);
             edited |= ImGui::Checkbox("斜面・移動床対応の物理を使用###Use advanced physics", &player.usePhysics);
             if (player.usePhysics)
             {
-                edited |= ImGui::SliderFloat("歩ける斜面角度###Max slope", &player.maxSlopeDegrees, 0, 89);
+                const auto& slope =
+                    SceneRuntime::PlayerControllerField(&SceneRuntime::PlayerControllerComponent::maxSlopeDegrees);
+                const auto& step =
+                    SceneRuntime::PlayerControllerField(&SceneRuntime::PlayerControllerComponent::stepHeight);
+                edited |= ImGui::SliderFloat("歩ける斜面角度###Max slope", &player.maxSlopeDegrees, slope.minimum,
+                                             slope.maximum);
                 Editor::TrackComponentInteraction(state);
-                edited |= ImGui::DragFloat("登れる段差###Step height", &player.stepHeight, 0.01f, 0, 10, "%.3f",
-                                           ImGuiSliderFlags_AlwaysClamp);
+                edited |= ImGui::DragFloat("登れる段差###Step height", &player.stepHeight, 0.01f, step.minimum,
+                                           step.maximum, "%.3f", ImGuiSliderFlags_AlwaysClamp);
                 Editor::TrackComponentInteraction(state);
             }
-            for (const auto& field : {std::pair{"重力加速度###Gravity", &player.gravity},
-                                      std::pair{"ジャンプ速度###Jump speed", &player.jumpSpeed}})
+            for (const auto& [label, member] :
+                 {std::pair{"重力加速度###Gravity", &SceneRuntime::PlayerControllerComponent::gravity},
+                  std::pair{"ジャンプ速度###Jump speed", &SceneRuntime::PlayerControllerComponent::jumpSpeed}})
             {
-                edited |=
-                    ImGui::DragFloat(field.first, field.second, 0.1f, 0, 1000, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+                const auto& field = SceneRuntime::PlayerControllerField(member);
+                edited |= ImGui::DragFloat(label, &(player.*member), 0.1f, field.minimum, field.maximum, "%.2f",
+                                           ImGuiSliderFlags_AlwaysClamp);
                 Editor::TrackComponentInteraction(state);
             }
             ImGui::TextUnformatted("WASD / 矢印キー：移動、Space：接地中にジャンプ");
@@ -194,7 +217,7 @@ namespace Editor
     }
 
     bool ComponentPanel::DrawScriptData(EditState& state, SceneRuntime::ScriptComponent& script,
-                                        const SceneRuntime::ScriptDefinition& definition, const ProjectCatalog* catalog)
+                                        const SceneRuntime::ScriptSchema& definition, const ProjectCatalog* catalog)
     {
         bool edited = false;
         for (const auto& [name, initial] : definition.dataFields)
@@ -203,9 +226,15 @@ namespace Editor
             const auto purpose = definition.dataPurposes.find(name);
             const auto usage =
                 purpose == definition.dataPurposes.end() ? SceneRuntime::ScriptDataPurpose::Text : purpose->second;
-            if (ScriptDataPanel::Draw(state, name.c_str(), value, catalog, false, usage))
+            const bool incompatible = value.value.index() != initial.value.index();
+            if (ScriptDataPanel::Draw(state, name.c_str(), value, catalog, incompatible, usage))
             {
                 script.data[name] = std::move(value);
+                if (usage == SceneRuntime::ScriptDataPurpose::SceneAsset &&
+                    std::holds_alternative<std::string>(script.data.at(name).value))
+                    script.sceneAssets.insert(name);
+                else
+                    script.sceneAssets.erase(name);
                 edited = true;
             }
         }
@@ -226,6 +255,13 @@ namespace Editor
             for (auto& [name, value] : std::get<SceneRuntime::ScriptValue::Object>(extraValue.value))
                 if (!definition.dataFields.contains(name))
                     script.data[name] = std::move(value);
+            // 追加データの削除・型変更と同じ編集で参照指定を更新します。
+            std::erase_if(script.sceneAssets,
+                          [&](const auto& key)
+                          {
+                              return !script.data.contains(key) ||
+                                     !std::holds_alternative<std::string>(script.data.at(key).value);
+                          });
             edited = true;
         }
         return edited;
@@ -242,12 +278,31 @@ namespace Editor
             if (ImGui::CollapsingHeader(("ゲーム処理：" + script.behaviour).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
             {
                 edited |= ImGui::Checkbox("有効###Enabled", &script.enabled);
-                const auto definition = SceneRuntime::ScriptRegistry::Definitions().find(script.behaviour);
-                if (definition == SceneRuntime::ScriptRegistry::Definitions().end())
+                const auto* definition = FindScriptSchema(catalog, script.behaviour);
+                if (!definition)
                     ImGui::TextUnformatted("このゲーム処理は登録されていません。設定は保持されます。");
                 else
                 {
-                    for (const auto& [key, field] : definition->second.fields)
+                    auto migrated = script;
+                    const auto migration = definition->MigrateValues(migrated);
+                    if (!migration.conflicts.empty())
+                    {
+                        ImGui::TextUnformatted("定義への移行に競合があります。値を確認してください。");
+                        for (const auto& conflict : migration.conflicts)
+                            ImGui::TextWrapped("%s", conflict.c_str());
+                    }
+                    else if (!migration.changes.empty())
+                    {
+                        ImGui::Text("定義への移行：%zu件の補完・参照指定", migration.changes.size());
+                        for (const auto& change : migration.changes)
+                            ImGui::TextWrapped("%s", change.c_str());
+                        if (ImGui::Button("定義の変更を適用###Migrate Script"))
+                        {
+                            script = std::move(migrated);
+                            edited = true;
+                        }
+                    }
+                    for (const auto& [key, field] : definition->fields)
                     {
                         const auto found = script.parameters.find(key);
                         float value = found == script.parameters.end() ? field.initial : found->second;
@@ -261,23 +316,26 @@ namespace Editor
                     }
                     if (ImGui::Button("リセット###Reset Script"))
                     {
-                        script.enabled = true;
-                        script.parameters.clear();
-                        for (const auto& [key, field] : definition->second.fields)
-                            script.parameters[key] = field.initial;
-                        script.data = definition->second.dataFields;
+                        definition->ResetValues(script);
                         edited = true;
                     }
                     ImGui::SameLine();
                 }
-                if (definition != SceneRuntime::ScriptRegistry::Definitions().end())
+                if (definition != nullptr)
                 {
-                    edited |= DrawScriptData(state, script, definition->second, catalog);
+                    edited |= DrawScriptData(state, script, *definition, catalog);
                 }
                 else
                 {
                     for (auto& [name, value] : script.data)
-                        edited |= ScriptDataPanel::Draw(state, name.c_str(), value, catalog);
+                    {
+                        if (ScriptDataPanel::Draw(state, name.c_str(), value, catalog))
+                        {
+                            if (!std::holds_alternative<std::string>(value.value))
+                                script.sceneAssets.erase(name);
+                            edited = true;
+                        }
+                    }
                 }
                 remove = ImGui::Button("削除###Remove Script");
             }
@@ -361,23 +419,37 @@ namespace Editor
         return edited;
     }
 
-    bool ComponentPanel::AddScripts(SceneRuntime::ScenePlacement& candidate)
+    bool ComponentPanel::AddScripts(SceneRuntime::ScenePlacement& candidate, const ProjectCatalog* catalog)
     {
         bool edited = false;
         if (ImGui::BeginMenu("ゲーム処理###Script"))
         {
-            for (const auto& [name, definition] : SceneRuntime::ScriptRegistry::Definitions())
+            std::set<std::string> names;
+            if (catalog)
+            {
+                for (const auto& [name, schema] : catalog->ScriptSchemas())
+                {
+                    static_cast<void>(schema);
+                    names.insert(name);
+                }
+            }
+            for (const auto& [name, definition] : SceneRuntime::ScriptSchema::Builtins())
+            {
+                static_cast<void>(definition);
+                names.insert(name);
+            }
+            for (const auto& name : names)
+            {
                 if (ImGui::MenuItem(name.c_str(), nullptr, false, candidate.scripts.size() < 32))
                 {
                     SceneRuntime::ScriptComponent script;
                     script.id = NewComponentId(candidate, "script");
                     script.behaviour = name;
-                    for (const auto& [key, field] : definition.fields)
-                        script.parameters[key] = field.initial;
-                    script.data = definition.dataFields;
+                    FindScriptSchema(catalog, name)->ResetValues(script);
                     candidate.scripts.push_back(std::move(script));
                     edited = true;
                 }
+            }
             ImGui::EndMenu();
         }
         return edited;
@@ -511,7 +583,7 @@ namespace Editor
         bool edited = false;
         edited |= AddVisualComponents(candidate, catalog);
         edited |= AddPhysicsComponents(candidate);
-        edited |= AddScripts(candidate);
+        edited |= AddScripts(candidate, catalog);
         if (ImGui::MenuItem("骨格アニメーション###Animator", nullptr, false,
                             !candidate.animator && candidate.meshRenderer &&
                                 (candidate.Model().extension() == ".gltf" || candidate.Model().extension() == ".glb")))

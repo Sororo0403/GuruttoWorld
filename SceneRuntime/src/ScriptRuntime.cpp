@@ -64,9 +64,9 @@ namespace
         };
         return follow;
     }
-    std::map<std::string,ScriptDefinition>& Registry()
+    const std::map<std::string,ScriptDefinition>& BuiltinDefinitions()
     {
-        static auto definitions=[] {
+        static const auto definitions=[] {
             std::map<std::string,ScriptDefinition> result;
             ScriptDefinition bob; bob.fields={{"amplitude",{0.5f,0,1000}},{"frequency",{1,0,1000}}};
             bob.start=[](ScriptContext& context) { context.state["origin"]=context.object.position[1]; context.state["time"]=0; };
@@ -115,6 +115,11 @@ namespace
         }();
         return definitions;
     }
+    std::map<std::string,ScriptDefinition>& Registry()
+    {
+        static auto definitions = BuiltinDefinitions();
+        return definitions;
+    }
     void Validate(const ScriptComponent& script,const ScriptDefinition& definition)
     {
         size_t remaining=4096; ScriptValue{script.data}.Validate(0,remaining);
@@ -133,6 +138,16 @@ namespace
 }
 namespace SceneRuntime
 {
+    const std::map<std::string, ScriptSchema>& ScriptSchema::Builtins()
+    {
+        static const auto schemas = []
+        {
+            std::map<std::string, ScriptSchema> result;
+            for (const auto& [name, definition] : BuiltinDefinitions()) result.emplace(name, static_cast<const ScriptSchema&>(definition));
+            return result;
+        }();
+        return schemas;
+    }
     const ScenePlacement* ScriptScene::Find(const std::string& id) const
     {
         const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==id; });
@@ -147,8 +162,10 @@ namespace SceneRuntime
     std::string ScriptScene::Spawn(ScenePlacement object)
     {
         if (spawned_.size()>=4096) throw std::runtime_error("Script spawn limit exceeded");
+        if (reservedIds_.empty()) reservedIds_ = ObjectReferenceDomain(layout_);
+        object.VisitObjectReferences([&](const std::string& id) { if (!id.empty()) reservedIds_.insert(id); });
         do { object.id="runtime-"+std::to_string(nextId_++); }
-        while (Find(object.id) || std::any_of(spawned_.begin(),spawned_.end(),[&](const auto& item) { return item.id==object.id; }));
+        while (!reservedIds_.insert(object.id).second);
         object.prefab.reset();
         for(auto& [name,ids]:layout_.sceneObjects)
         {
@@ -175,16 +192,7 @@ namespace SceneRuntime
             auto& item=spawned_[i];
             const auto remap=[&](std::string& value) { const auto found=ids.find(value); if (found!=ids.end()) value=found->second; };
             remap(item.parentId);
-            if(item.canvas && item.canvas->menu) item.canvas->menu->RemapCameras(ids);
-            if(item.joint) remap(item.joint->target);
-            for (auto& script:item.scripts) script.Remap(ids);
-        if(item.navAgent) item.navAgent->Remap(ids);
-            if(item.ragdoll) item.ragdoll->Remap(ids);
-            if (item.button)
-            {
-                if (!Engine::OneOf(item.button->action,{"loadScene","loadSceneAdditive","unloadScene","setState"})) remap(item.button->target);
-                remap(item.button->sound);
-            }
+            item.RemapComponentReferences(ids);
         }
         return ids.at(id);
     }
@@ -243,9 +251,39 @@ namespace SceneRuntime
         std::erase_if(ikTargets,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         std::erase_if(rootMotions,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
         if (destroyed_.contains(layout_.settings.mainCamera)) layout_.settings.mainCamera.clear();
+        if (audioCommands.size() > 64) throw std::runtime_error("Too many audio commands");
+        for (const auto& command : audioCommands)
+        {
+            command.Validate();
+            if (command.kind == AudioCommandKind::Play)
+            {
+                const auto* owner = Find(command.target);
+                if (!owner || !owner->audioSource)
+                    throw std::runtime_error("Audio source missing: " + command.target);
+            }
+        }
         Engine::CpuScope validationScope("Script layout validation");
         if (validatedBefore_) layout_.ValidateChanges(*validatedBefore_);
         else layout_.Validate();
+    }
+    void ScriptScene::PlayAudio(const std::string& object)
+    {
+        AudioCommand command{AudioCommandKind::Play, object};
+        command.Validate();
+        if (audioCommands.size() >= 64)
+            throw std::runtime_error("Too many audio commands");
+        const auto* owner = Find(object);
+        if (!owner || !owner->audioSource)
+            throw std::runtime_error("Audio source missing: " + object);
+        audioCommands.push_back(std::move(command));
+    }
+    void ScriptScene::AudioCue(const std::string& cue)
+    {
+        AudioCommand command{AudioCommandKind::Cue, cue};
+        command.Validate();
+        if (audioCommands.size() >= 64)
+            throw std::runtime_error("Too many audio commands");
+        audioCommands.push_back(std::move(command));
     }
     void ScriptScene::SetUiValue(const std::string& key,float value)
     {
@@ -302,29 +340,11 @@ namespace SceneRuntime
         const auto reference=field ? std::get_if<ScriptObjectReference>(&field->value) : nullptr;
         return reference && scene ? scene->Find(reference->id) : nullptr;
     }
-    bool ValidScriptField(const std::string& key,const ScriptField& field)
-    {
-        return !key.empty() && key.size()<=128 && key.find('\0')==std::string::npos &&
-            std::isfinite(field.initial) && std::isfinite(field.minimum) && std::isfinite(field.maximum) &&
-            field.initial>=field.minimum && field.initial<=field.maximum && field.minimum>=-1000000 && field.maximum<=1000000;
-    }
-    bool ValidDataPurposes(const ScriptDefinition& definition)
-    {
-        for(const auto& [key,purpose]:definition.dataPurposes) {
-            const auto field=definition.dataFields.find(key);
-            if(field==definition.dataFields.end() || !std::holds_alternative<std::string>(field->second.value) ||
-                (purpose!=ScriptDataPurpose::Text && purpose!=ScriptDataPurpose::SceneAsset)) return false;
-        }
-        return true;
-    }
     bool ValidDefinition(const std::string& name,const ScriptDefinition& definition)
     {
-        if (name.empty() || name.size()>128 || name.find('\0')!=std::string::npos || definition.fields.size()>64 ||
-            (!definition.update && !definition.fixedUpdate && !definition.lateUpdate) || !ValidDataPurposes(definition)) return false;
-        try { size_t remaining=4096; ScriptValue{definition.dataFields}.Validate(0,remaining); }
+        if (!definition.update && !definition.fixedUpdate && !definition.lateUpdate) return false;
+        try { definition.Validate(name); }
         catch (const std::exception&) { return false; }
-        for (const auto& [key,field] : definition.fields)
-            if (!ValidScriptField(key,field)) return false;
         return true;
     }
     bool ScriptRegistry::Register(std::string name,ScriptDefinition definition)
@@ -368,6 +388,36 @@ namespace SceneRuntime
         }
         return false;
     }
+    bool ScriptRuntime::ValidateForPlay(const SceneLayout& layout, std::string& error)
+    {
+        try
+        {
+            for (const auto& object : layout.objects)
+                for (const auto& script : object.scripts)
+                {
+                    if (!script.enabled)
+                        continue;
+                    const auto definition = Registry().find(script.behaviour);
+                    if (definition == Registry().end())
+                        throw std::runtime_error(object.id + "/" + script.id +
+                                                 ": Script behaviour is not registered: " + script.behaviour);
+                    Validate(script, definition->second);
+                }
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& failure)
+        {
+            error = failure.what();
+            return false;
+        }
+    }
+    bool ScriptRuntime::StartCandidate(SceneLayout& layout, std::string& error)
+    {
+        if (!ValidateForPlay(layout, error))
+            return false;
+        return Advance(layout, 1.0 / 60, error, {}, {}, nullptr, ScriptPhase::Update, nullptr, true);
+    }
     bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase)
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
@@ -376,6 +426,7 @@ namespace SceneRuntime
         auto candidate=layout;
         auto runtime=*this;
         if (!runtime.UpdateCandidate(candidate,seconds,error,input,pressed,physics,phase)) return false;
+        runtime.CommitStarts();
         layout=std::move(candidate); *this=std::move(runtime); return true;
     }
     bool ScriptRuntime::UpdateCandidate(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore)
@@ -390,6 +441,34 @@ namespace SceneRuntime
     {
         for(const auto& [name,field]:definition.fields) parameters.try_emplace(name,field.initial);
     }
+    ScriptRuntime::PendingStart::~PendingStart()
+    {
+        if(committed || !rollback) return;
+        try {rollback();} catch(...) {Engine::Log::Warning("Script start rollback failed");}
+    }
+    void ScriptRuntime::CommitStarts() noexcept
+    {
+        for(auto& [key,instance]:instances_) {
+            static_cast<void>(key);
+            if(instance.pending) {instance.pending->committed=true;instance.pending.reset();}
+        }
+    }
+    void ScriptRuntime::Pause(SceneLayout& layout,bool paused) noexcept
+    {
+        if(paused_==paused) return;
+        paused_=paused;
+        for(auto& [key,instance]:instances_) {
+            static_cast<void>(key);
+            try {
+                const auto definition=Registry().find(instance.behaviour);
+                if(definition==Registry().end() || !definition->second.pause) continue;
+                const auto owner=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object){return object.id==instance.owner;});
+                if(owner==layout.objects.end()) continue;
+                ScriptContext context{*owner,instance.parameters,instance.state};context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data=&instance.data;context.dataState=&instance.dataState;
+                definition->second.pause(context,paused);
+            } catch(...) {Engine::Log::Warning("Script pause callback failed");}
+        }
+    }
     ScriptRuntime::Instance &ScriptRuntime::GetInstance(ScenePlacement &object, const ScriptComponent &script, const ScriptDefinition &definition, const TickContext &tick)
     {
         const auto key = std::pair{object.id, script.id};
@@ -398,22 +477,36 @@ namespace SceneRuntime
         {
             auto &old = found->second;
             ScriptContext context{object, old.parameters, old.state, 0};
-            context.data = &old.data; context.dataState = &old.dataState;
+            context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data = &old.data; context.dataState = &old.dataState;
             const auto &previous = Registry().at(old.behaviour);
+            if(old.pending) old.pending->committed=true;
             if (previous.stop) previous.stop(context);
             instances_.erase(found); found = instances_.end();
         }
         if (found == instances_.end())
         {
-            Instance instance{object.id, script.id, script.behaviour, {}, script.parameters, definition.dataFields, {}};
+            Instance instance{object.id, script.id, script.behaviour, {}, script.parameters, definition.dataFields, {}, {}};
             ApplyParameterDefaults(instance.parameters,definition);
             for (const auto &[name, value] : script.data) instance.data[name] = value;
             auto &created = instances_.emplace(key, std::move(instance)).first->second;
             ScriptContext context{object, created.parameters, created.state, 0, &tick.input, &tick.pressed, &tick.scene};
-            context.data = &created.data; context.dataState = &created.dataState;
+            context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data = &created.data; context.dataState = &created.dataState;
             context.phase = tick.phase;
-            if (definition.start) definition.start(context);
-            found = instances_.find(key);
+            try {
+                if (definition.start) definition.start(context);
+                if (definition.start && definition.stop) {
+                    auto pending=std::make_shared<PendingStart>();
+                    pending->rollback=[content=content_,stop=definition.stop,owner=object,parameters=created.parameters,state=created.state,data=created.data,dataState=created.dataState]() mutable {
+                        ScriptContext cleanup{owner,parameters,state};cleanup.content=content;cleanup.contentRoot=content ? content->Root() : std::filesystem::path{};cleanup.data=&data;cleanup.dataState=&dataState;stop(cleanup);
+                    };
+                    created.pending=std::move(pending);
+                }
+            } catch(...) {
+                if(definition.stop) {try {definition.stop(context);} catch(...) {Engine::Log::Warning("Script failed start cleanup failed");}}
+                throw;
+            }
+            if(paused_ && definition.pause) definition.pause(context,true);
+            return created;
         }
         return found->second;
     }
@@ -426,7 +519,7 @@ namespace SceneRuntime
         ScriptContext context{object, instance.parameters, instance.state, std::min(tick.seconds, 0.1), &tick.input, &tick.pressed, &tick.scene};
         instance.data = definition.dataFields;
         for (const auto &[name, value] : script.data) instance.data[name] = value;
-        context.data = &instance.data; context.dataState = &instance.dataState;
+        context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data = &instance.data; context.dataState = &instance.dataState;
         context.phase = tick.phase;
         if (tick.phase == ScriptPhase::Update && definition.onEvent)
             for (const auto &event : events_) if (event.target.empty() || event.target == object.id)
@@ -448,8 +541,9 @@ namespace SceneRuntime
             if (owner != layout.objects.end())
             {
                 ScriptContext context{*owner, instance.parameters, instance.state, 0};
-                context.data = &instance.data; context.dataState = &instance.dataState;
+                context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data = &instance.data; context.dataState = &instance.dataState;
                 const auto &definition = Registry().at(instance.behaviour);
+                if(instance.pending) instance.pending->committed=true;
                 if (definition.stop) definition.stop(context);
             }
             iterator = instances_.erase(iterator);
@@ -477,12 +571,23 @@ namespace SceneRuntime
                 auto &instance = iterator->second;
                 const auto owner = std::find_if(previousOwners.begin(), previousOwners.end(), [&](const auto &item) { return item.id == instance.owner; });
                 const auto &definition = Registry().at(instance.behaviour);
+                if(instance.pending) instance.pending->committed=true;
                 if (owner != previousOwners.end() && definition.stop)
-                { ScriptContext context{*owner, instance.parameters, instance.state, 0}; context.data = &instance.data; context.dataState = &instance.dataState; definition.stop(context); }
+                {
+                    ScriptContext context{*owner, instance.parameters, instance.state, 0};
+                    context.content = content_;
+                    context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
+                    context.data = &instance.data;
+                    context.dataState = &instance.dataState;
+                    definition.stop(context);
+                }
                 iterator = instances_.erase(iterator);
             }
     }
-    bool ScriptRuntime::Advance(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore)
+    bool ScriptRuntime::Advance(SceneLayout& layout, double seconds, std::string& error,
+                                const std::map<std::string, float>& input, const std::map<std::string, bool>& pressed,
+                                const PhysicsWorld* physics, ScriptPhase phase, const SceneLayout* validatedBefore,
+                                bool startOnly)
     {
         if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
         try
@@ -490,7 +595,8 @@ namespace SceneRuntime
             ScriptScene scene(layout,nextId_,physics,validatedBefore);
             scene.sceneCommands=sceneCommands_;
             scene.uiCommands=uiCommands_;
-            if (phase!=ScriptPhase::Update) scene.events=events_;
+            scene.audioCommands=audioCommands_;
+            if (startOnly || phase!=ScriptPhase::Update) scene.events=events_;
             if (pendingFixedCommands_ && phase!=ScriptPhase::LateUpdate) {
                 scene.animatorParameters=animatorParameters_; scene.ikTargets=ikTargets_; scene.rootMotions=rootMotions_;
             }
@@ -507,7 +613,8 @@ namespace SceneRuntime
                     if (definition==Registry().end()) throw std::runtime_error("Script behaviour is not registered: "+script.behaviour);
                     Validate(script,definition->second);
                     const auto key=std::pair{object.id,script.id}; live.insert(key);
-                    TickScript(object,script,definition->second,tick);
+                    if (startOnly) static_cast<void>(GetInstance(object,script,definition->second,tick));
+                    else TickScript(object,script,definition->second,tick);
                 }
             }
             StopInactive(live,layout);
@@ -519,6 +626,7 @@ namespace SceneRuntime
             if(scene.sceneCommands.size()>64) throw std::runtime_error("Too many scene commands");
             sceneCommands_=std::move(scene.sceneCommands);
             uiCommands_=std::move(scene.uiCommands);
+            audioCommands_=std::move(scene.audioCommands);
             impulses_=std::move(scene.impulses);
             animatorParameters_=std::move(scene.animatorParameters);
             ikTargets_=std::move(scene.ikTargets);
@@ -539,15 +647,18 @@ namespace SceneRuntime
                 const auto owner=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object) { return object.id==instance.owner; });
                 if (owner==layout.objects.end()) continue;
                 ScriptContext context{*owner,instance.parameters,instance.state,0};
-                context.data=&instance.data; context.dataState=&instance.dataState;
+                context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data=&instance.data; context.dataState=&instance.dataState;
                 const auto& definition=Registry().at(instance.behaviour);
+                if(instance.pending) instance.pending->committed=true;
                 if (definition.stop) definition.stop(context);
             }
             catch (...) { Engine::Log::Warning("Script stop callback failed"); }
         }
         instances_.clear();
+        paused_=false;
         sceneCommands_.clear();
         uiCommands_={};
+        audioCommands_.clear();
         pendingFixedCommands_=false;
         events_.clear(); impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); nextId_=1;
     }
@@ -566,7 +677,8 @@ namespace SceneRuntime
                 if(owner!=previous.objects.end() && definition!=Registry().end() && definition->second.stop)
                 {
                     auto& state=iterator->second; ScriptContext context{*owner,state.parameters,state.state,0};
-                    context.data=&state.data;context.dataState=&state.dataState;definition->second.stop(context);
+                    if(state.pending) state.pending->committed=true;
+                    context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data=&state.data;context.dataState=&state.dataState;definition->second.stop(context);
                 }
             }
             catch(...) {Engine::Log::Warning("Script stop callback failed while unloading a scene");}

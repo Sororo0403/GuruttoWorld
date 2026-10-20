@@ -8,6 +8,11 @@ namespace SceneRuntime
     class GamePlayback final
     {
     public:
+        /// <summary>準備時に解決した設定保存先を取得します。</summary>
+        const std::filesystem::path& SettingsPath() const
+        {
+            return settingsPath_;
+        }
         TitleController& Title()
         {
             return title_;
@@ -16,7 +21,7 @@ namespace SceneRuntime
                         const std::filesystem::path& settingsPath = {}, bool playIntro = true)
         {
             root_ = root;
-            settingsPath_ = settingsPath.empty() ? GameSettings::UserPath(root) : settingsPath;
+            settingsPath_ = settingsPath.empty() ? GameSettings::UserPath(*environment.Content()) : settingsPath;
             playIntro_ = playIntro;
             pending_.reset();
             Refresh(environment);
@@ -45,8 +50,14 @@ namespace SceneRuntime
                 pending_ = command;
             return std::nullopt;
         }
+        /// <summary>最後の更新でWorldと副作用予約が確定したかを返します。</summary>
+        bool LastUpdateSucceeded() const
+        {
+            return lastUpdateSucceeded_;
+        }
         std::optional<UiEvent> Update(SceneEnvironment& environment, double seconds, bool active)
         {
+            lastUpdateSucceeded_ = false;
             if (!active)
             {
                 Suspend(environment);
@@ -56,9 +67,15 @@ namespace SceneRuntime
                 Refresh(environment);
             title_.ApplyAnimation(environment);
             title_.UpdateAudio(environment, seconds, active);
-            environment.UpdateAudio(active);
             title_.PreparePresentation(environment, seconds, active);
-            environment.Update(seconds, title_.BackgroundMotion(), active);
+            if (!environment.Update(seconds, title_.BackgroundMotion(), active))
+            {
+                pending_.reset();
+                static_cast<void>(title_.TakeCommand());
+                return std::nullopt;
+            }
+            lastUpdateSucceeded_ = true;
+            environment.CommitAudioCommands();
             if (revision_ != environment.SceneRevision())
                 Refresh(environment);
             else
@@ -157,6 +174,7 @@ namespace SceneRuntime
             environment.Ui().values["volumeGain"] = GameSettings::Load(settingsPath_).Gain();
             title_.ApplyAnimation(environment);
         }
+        bool lastUpdateSucceeded_ = false;
         std::filesystem::path root_, settingsPath_;
         uint64_t revision_ = 0;
         bool playIntro_ = true;

@@ -132,6 +132,9 @@
     <ClCompile Include="src\Graphics\Materials\UvTransform.cpp">
       <Filter>src\Graphics\Materials</Filter>
     </ClCompile>
+    <ClInclude Include="include\Engine\Assets\AssetReferenceResolver.h">
+      <Filter>include\Engine\Assets</Filter>
+    </ClInclude>
     <ClInclude Include="include\Engine\Assets\ContentFiles.h">
       <Filter>include\Engine\Assets</Filter>
     </ClInclude>
@@ -392,5 +395,24 @@
   <ItemGroup>
     <ClInclude Include="include\Engine\Audio\AudioStream.h"><Filter>include\Engine\Audio</Filter></ClInclude>
     <ClCompile Include="src\Audio\AudioSpatial.cpp"><Filter>src\Audio</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Projects\ProjectContext.h">
+      <Filter>include\Engine\Projects</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Core\BuildIdentity.h"><Filter>include\Engine\Core</Filter></ClInclude>
+    <ClInclude Include="include\Engine\Assets\ContentContext.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Core\FileReplacement.h"><Filter>include\Engine\Core</Filter></ClInclude>
+    <ClInclude Include="include\Engine\Core\FileContents.h">
+      <Filter>include\Engine\Core</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Core\BuildIdentity.cpp"><Filter>src\Core</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="include\Engine\Projects" />
   </ItemGroup>
 </Project>

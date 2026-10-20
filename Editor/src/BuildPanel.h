@@ -19,10 +19,9 @@ class BuildPanel final {
     const char* Folder() const { return scripts_ ? "generated/script-builds" : "generated/builds"; }
     static std::filesystem::path RepositoryRoot(const std::filesystem::path& content) {
         if(std::filesystem::is_regular_file(content/"WP1.project.json")) {
-            std::ifstream input(content/"WP1.project.json");
-            const auto project=Engine::Json::parse(input);
-            const auto engine=Engine::AssetDatabase::Path(project.at("engineRoot").get<std::string>());
-            return engine.is_absolute()?engine:std::filesystem::absolute(content/engine).lexically_normal();
+            const auto context = Engine::ProjectContext::Load(content);
+            context.RequireEngine(Engine::ProjectContext::SourceEngineRoot());
+            return context.engineRoot;
         }
         auto path=std::filesystem::absolute(content).parent_path();
         while(!path.empty() && path!=path.root_path()) {
@@ -76,6 +75,23 @@ public:
             if(bytes>0) {input.seekg(bytes>65536?bytes-std::streamoff(65536):std::streampos(0));tail_.assign(std::istreambuf_iterator<char>(input),{});}
         }
     }
+    void LaunchBuildProcess(const std::filesystem::path& executable,std::wstring command,const std::filesystem::path& repo)
+    {
+        STARTUPINFOW startup{}; startup.cb=sizeof(startup); startup.dwFlags=STARTF_USESHOWWINDOW; startup.wShowWindow=SW_HIDE;
+        PROCESS_INFORMATION information{};
+        auto job=CreateJobObjectW(nullptr,nullptr);
+        if(!job) throw std::runtime_error("Cannot create build job");
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{}; limits.BasicLimitInformation.LimitFlags=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if(!SetInformationJobObject(job,JobObjectExtendedLimitInformation,&limits,sizeof(limits))) {CloseHandle(job);throw std::runtime_error("Cannot configure build job");}
+        if (!CreateProcessW(executable.c_str(),command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW|CREATE_SUSPENDED,nullptr,repo.c_str(),&startup,&information)) {CloseHandle(job);throw std::runtime_error("Cannot start build process");}
+        if(!AssignProcessToJobObject(job,information.hProcess) || ResumeThread(information.hThread)==static_cast<DWORD>(-1)) {
+            TerminateProcess(information.hProcess,ERROR_CANCELLED);CloseHandle(information.hThread);CloseHandle(information.hProcess);CloseHandle(job);
+            throw std::runtime_error("Cannot manage build process");
+        }
+        CloseHandle(information.hThread); process_=information.hProcess;job_=job;started_=GetTickCount64();nextLog_=0;tail_.clear();phase_.clear();step_=0;
+        status_="ビルド中です。エディターを終了するとビルドも停止します。";
+    }
+
     void Start(const std::filesystem::path& content) {
         if (process_) return;
         const auto repo=RepositoryRoot(content),script=repo/(scripts_ ? "scripts/BuildScripts.ps1" : "scripts/BuildPlayer.ps1");
@@ -91,19 +107,7 @@ public:
         std::wstring command=L"\""+executable.wstring()+L"\" -NoProfile -ExecutionPolicy Bypass -File \""+script.wstring()+L"\" -Configuration "+configuration+L" -RunId "+std::wstring(runId_.begin(),runId_.end());
         command+=L" -Content \""+content.wstring()+L"\" -WorkRoot \""+repository_.wstring()+L"\"";
         if(external && !scripts_) command+=L" -Project \""+content.wstring()+L"\"";
-        STARTUPINFOW startup{}; startup.cb=sizeof(startup); startup.dwFlags=STARTF_USESHOWWINDOW; startup.wShowWindow=SW_HIDE;
-        PROCESS_INFORMATION information{};
-        auto job=CreateJobObjectW(nullptr,nullptr);
-        if(!job) throw std::runtime_error("Cannot create build job");
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{}; limits.BasicLimitInformation.LimitFlags=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        if(!SetInformationJobObject(job,JobObjectExtendedLimitInformation,&limits,sizeof(limits))) {CloseHandle(job);throw std::runtime_error("Cannot configure build job");}
-        if (!CreateProcessW(executable.c_str(),command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW|CREATE_SUSPENDED,nullptr,repo.c_str(),&startup,&information)) {CloseHandle(job);throw std::runtime_error("Cannot start build process");}
-        if(!AssignProcessToJobObject(job,information.hProcess) || ResumeThread(information.hThread)==static_cast<DWORD>(-1)) {
-            TerminateProcess(information.hProcess,ERROR_CANCELLED);CloseHandle(information.hThread);CloseHandle(information.hProcess);CloseHandle(job);
-            throw std::runtime_error("Cannot manage build process");
-        }
-        CloseHandle(information.hThread); process_=information.hProcess;job_=job;started_=GetTickCount64();nextLog_=0;tail_.clear();phase_.clear();step_=0;
-        status_="ビルド中です。エディターを終了するとビルドも停止します。";
+        LaunchBuildProcess(executable,std::move(command),repo);
     }
     void DrawProgressAndLogs() {
         if (Running()) {

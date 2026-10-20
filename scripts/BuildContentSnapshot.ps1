@@ -27,17 +27,32 @@ function Get-BuildContentInventory {
             }
         }
     }
+    foreach ($contextFile in @('WP1.project.json', 'WP1.runtime.json')) {
+        $contextPath = Join-Path $Content $contextFile
+        if (Test-Path -LiteralPath $contextPath -PathType Leaf) {
+            $contextItem = Get-Item -LiteralPath $contextPath
+            $entries['@context/' + $contextFile] = [pscustomobject]@{
+                path = '@context/' + $contextFile
+                source = $contextPath
+                bytes = $contextItem.Length
+                hash = (Get-Wp1FileHash -LiteralPath $contextPath)
+                inputOnly = $true
+            }
+        }
+    }
     return @($entries.Values | Sort-Object path)
 }
 function Copy-BuildContentSnapshot {
     param([string]$Content,[string]$Destination, [bool]$IncludeShared = $true)
     $before=@(Get-BuildContentInventory -Content $Content -IncludeShared $IncludeShared)
     foreach($entry in $before) {
+        if ($entry.inputOnly) { continue }
         $target=Join-Path $Destination $entry.path
         New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
         Copy-Item -LiteralPath $entry.source -Destination $target
         if((Get-Wp1FileHash -LiteralPath $target) -ne $entry.hash) {throw "Content changed while copying: $($entry.path)"}
     }
+    if ($IncludeShared) { Write-RuntimeProjectContext -Content $Content -Destination $Destination }
     $after=@(Get-BuildContentInventory -Content $Content -IncludeShared $IncludeShared)
     $beforeText=($before | ForEach-Object {"$($_.path)|$($_.bytes)|$($_.hash)"}) -join "`n"
     $afterText=($after | ForEach-Object {"$($_.path)|$($_.bytes)|$($_.hash)"}) -join "`n"
