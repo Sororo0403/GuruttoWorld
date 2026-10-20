@@ -222,9 +222,10 @@ namespace
             json["width"] = 1920;
             plans = {Editor::FileTransaction::Prepare(root / "Assets/Project.json", json.dump())};
         }
-        if (mode == L"--meta-gap")
+        if (mode == L"--meta-gap" || mode == L"--late-meta-gap")
         {
-            const auto asset = root / "Assets/Textures/0.png";
+            const auto asset = root / (mode == L"--late-meta-gap" ? std::filesystem::path(argv[3])
+                                                                  : std::filesystem::path("Assets/Textures/0.png"));
             auto metadata = Engine::AssetDatabase::Read(asset);
             metadata.scale = 5;
             plans = {Editor::FileTransaction::Prepare(Engine::AssetDatabase::Sidecar(asset),
@@ -239,9 +240,9 @@ namespace
             {
                 ++renames;
                 if (mode == L"--gap" || mode == L"--api-gap" || mode == L"--project-gap" || mode == L"--meta-gap" ||
-                    mode == L"--nested-assets" || mode == L"--nested-shaders" || mode == L"--create-delete" ||
-                    (mode == L"--mixed" && renames == 2) || (mode == L"--second-gap" && renames == 3) ||
-                    (mode == L"--all-installed" && renames == 4))
+                    mode == L"--nested-assets" || mode == L"--nested-shaders" || mode == L"--late-meta-gap" ||
+                    mode == L"--create-delete" || (mode == L"--mixed" && renames == 2) ||
+                    (mode == L"--second-gap" && renames == 3) || (mode == L"--all-installed" && renames == 4))
                     TerminateProcess(GetCurrentProcess(), 77);
                 if (mode == L"--rollback-gap" && renames >= 5)
                     TerminateProcess(GetCurrentProcess(), 77);
@@ -683,6 +684,90 @@ namespace
         std::cout
             << "PASS: second-process creation during Apply/Restore, durable conflict archive, blocked recovery and retry\n";
     }
+    void LateLegacy(const std::filesystem::path& root)
+    {
+        for (const auto* folder : {"Assets", "Shaders"})
+            for (const auto* operation : {"ensure", "save", "apply", "settings-load", "settings-save"})
+            {
+                const auto directory = root / folder / operation;
+                Seed(directory);
+                const auto relative = std::filesystem::path(folder) / "Package/Assets/0.png";
+                const auto asset = directory / relative;
+                std::filesystem::create_directories(asset.parent_path());
+                std::filesystem::create_directories(directory / "Assets/Scenes");
+                FileContents::Write(asset, "image");
+                FileContents::Write(directory / "Assets/Scenes/Empty.json", "{}");
+                FileContents::Write(
+                    directory / "WP1.project.json",
+                    Engine::Json{{"version", 1},
+                                 {"name", "Legacy"},
+                                 {"engineRoot", FileContents::Text(Engine::ProjectContext::SourceEngineRoot())},
+                                 {"project", "Legacy.vcxproj"},
+                                 {"solution", "Legacy.slnx"}}
+                        .dump());
+                FileContents::Write(directory / "Assets/Project.json",
+                                    Engine::Json{{"title", "Legacy"},
+                                                 {"startupScene", "Assets/Scenes/Empty.json"},
+                                                 {"width", 1280},
+                                                 {"height", 720}}
+                                        .dump());
+                const auto original = Engine::AssetDatabase::Ensure(asset).id;
+                auto settings = SceneRuntime::ProjectSettings::Load(directory);
+                const auto plans = Plans(directory);
+                FileJournal::Recover(directory);
+                Child(L"--late-meta-gap", directory, L"\"" + relative.native() + L"\"").Wait(77);
+                const auto legacy = asset.parent_path().parent_path() / ".wp1-transactions";
+                std::filesystem::create_directories(legacy);
+                for (const auto& entry : std::filesystem::directory_iterator(directory / ".wp1-transactions"))
+                {
+                    const auto path = entry.path() / "manifest.json";
+                    auto manifest = Engine::Json::parse(*FileContents::Read(path));
+                    manifest["version"] = 2;
+                    FileContents::Write(path, manifest.dump());
+                    std::filesystem::rename(entry.path(), legacy / entry.path().filename());
+                }
+                Require(!FileContents::Read(Engine::AssetDatabase::Sidecar(asset)), "late journal has missing sidecar");
+                const auto check = [&]
+                {
+                    Require(Engine::AssetDatabase::Read(asset).id == original,
+                            "late legacy journal recovered before use");
+                };
+                const std::string action = operation;
+                if (action == "ensure")
+                    Require(Engine::AssetDatabase::Ensure(asset).id == original, "late journal never mints a new ID");
+                else if (action == "save")
+                    Engine::FileReplacement::Save(directory / "scene.txt",
+                                                  [&]
+                                                  {
+                                                      check();
+                                                      return std::string("saved-scene");
+                                                  });
+                else if (action == "apply")
+                {
+                    std::string error;
+                    Require(Editor::FileTransaction::Apply(plans, true, error,
+                                                           [&]
+                                                           {
+                                                               check();
+                                                               return true;
+                                                           }),
+                            "late journal recovered before multi-file acceptance");
+                }
+                else if (action == "settings-load")
+                    static_cast<void>(SceneRuntime::ProjectSettings::Load(directory));
+                else
+                {
+                    settings.width = 1920;
+                    settings.Save(directory);
+                }
+                check();
+                FileJournal::Recover(directory);
+                check();
+                Engine::AssetDatabase index(directory);
+                Require(index.Resolve(relative, original) == relative, "returned ID resolves after reopening");
+            }
+        std::cout << "PASS: late version 2 journals in Assets/Shaders recovered by all five entry points\n";
+    }
     void Metadata(const std::filesystem::path& root)
     {
         std::filesystem::create_directories(root / "Assets/Textures");
@@ -823,6 +908,7 @@ int wmain(int argc, wchar_t** argv)
         PublicSaveApis(root / "public-apis");
         Completion(root / "completion");
         Cancellation(root / "cancellation");
+        LateLegacy(root / "late-legacy");
         NestedDomains(root / "nested-domains");
         Crashes(root / "crashes");
         Conflicts(root / "conflicts");

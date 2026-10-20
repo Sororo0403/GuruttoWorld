@@ -21,7 +21,8 @@ namespace FileSaveRecoveryValidation
         if (!CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
                             &startup, &process))
             throw std::runtime_error("保存復旧テストを起動できません");
-        const auto wait = WaitForSingleObject(process.hProcess, 60000);
+        // 取消・旧形式の追加試験と、多数の子プロセスの起動時間を負荷時も確保します。
+        const auto wait = WaitForSingleObject(process.hProcess, 180000);
         DWORD code = 1;
         if (wait != WAIT_OBJECT_0)
         {

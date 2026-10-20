@@ -3,8 +3,6 @@
 #include <Engine/Core/Json.h>
 #include <Engine/Core/Log.h>
 #include <memory>
-#include <map>
-#include <mutex>
 
 namespace Engine
 {
@@ -110,14 +108,13 @@ namespace Engine
             FileSaveLock lock(root);
             if (!lock.Outermost())
                 return {};
-            return RecoverLocked(root, true);
+            return RecoverLocked(root);
         }
-        /// <summary>呼出元が保存領域の排他を取得し、必要なら旧保存領域も再探索して回復します。</summary>
-        static std::vector<std::filesystem::path> RecoverLocked(const std::filesystem::path& root,
-                                                                bool rediscover = false)
+        /// <summary>保存領域の排他中に旧保存領域も毎回探索し、遅れて現れた記録も使用前に回復します。</summary>
+        static std::vector<std::filesystem::path> RecoverLocked(const std::filesystem::path& root)
         {
             std::vector<std::filesystem::path> recovered, pending;
-            for (const auto& saveRoot : SaveRoots(root, rediscover))
+            for (const auto& saveRoot : SaveRoots(root))
             {
                 const auto directory = saveRoot / ".wp1-transactions";
                 if (!std::filesystem::is_directory(directory))
@@ -149,16 +146,10 @@ namespace Engine
         }
 
     private:
-        /// <summary>起動時に旧実装の保存領域を探索し、素材ごとの登録では同じ探索結果を共有します。</summary>
-        static std::vector<std::filesystem::path> SaveRoots(const std::filesystem::path& root, bool rediscover)
+        /// <summary>旧実装の保存領域を再探索し、探索後に追加された記録を見落とさないようにします。</summary>
+        static std::vector<std::filesystem::path> SaveRoots(const std::filesystem::path& root)
         {
             const auto canonical = std::filesystem::weakly_canonical(std::filesystem::absolute(root));
-            {
-                std::lock_guard guard(discoveryMutex_);
-                const auto found = saveRoots_.find(canonical);
-                if (!rediscover && found != saveRoots_.end())
-                    return found->second;
-            }
             std::vector<std::filesystem::path> roots{canonical};
             for (const auto* name : {"Assets", "Shaders"})
             {
@@ -189,12 +180,8 @@ namespace Engine
                         it.disable_recursion_pending();
                 }
             }
-            std::lock_guard guard(discoveryMutex_);
-            saveRoots_[canonical] = roots;
             return roots;
         }
-        inline static std::mutex discoveryMutex_;
-        inline static std::map<std::filesystem::path, std::vector<std::filesystem::path>> saveRoots_;
         /// <summary>復旧の完了名を非上書きで公開し、一時的な共有違反だけを短く再試行します。</summary>
         static void RenameDirectory(const std::filesystem::path& from, const std::filesystem::path& to)
         {
