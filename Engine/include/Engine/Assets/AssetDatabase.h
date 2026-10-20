@@ -1,6 +1,7 @@
 #pragma once
 #include <Engine/Core/Validation.h>
 #include <Engine/Core/FileContents.h>
+#include <Engine/Core/FileReplacement.h>
 #include <Engine/Assets/ContentContext.h>
 #include <iterator>
 #include <Engine/Core/Json.h>
@@ -136,21 +137,43 @@ public:
         /// <summary>検証済みのメタデータを一時ファイルから置き換えます。</summary>
         static void Write(const std::filesystem::path& path, const AssetMetadata& metadata)
         {
+            Write(path, metadata, FileContents::Read(Sidecar(path)));
+        }
+        /// <summary>読み込み時の内容と照合し、別エディターのインポート設定を上書きしません。</summary>
+        static void Write(const std::filesystem::path& path, const AssetMetadata& metadata,
+                          const std::optional<std::string>& expected)
+        {
             if (ContentFiles::IsShared(path))
                 throw std::runtime_error("Shared content is read-only; create a game override first");
             const auto source = SerializeMetadata(metadata);
-            FileContents::Write(Sidecar(path), source);
+            FileReplacement::Write(Sidecar(path), expected, source);
         }
         /// <summary>既存のIDを保持し、存在する未登録アセットだけに新しいメタデータを保存します。</summary>
         static AssetMetadata Ensure(const std::filesystem::path& path)
         {
+            const auto root = FileSaveLock::Root(path);
+            FileSaveLock lock(root);
+            if (lock.Outermost())
+                FileJournal::RecoverLocked(root);
             auto metadata = Read(path);
             if (!metadata.id.empty())
                 return metadata;
             if (!std::filesystem::is_regular_file(path))
                 throw std::runtime_error("Asset is missing");
             metadata = CreateMetadata();
-            Write(path, metadata);
+            if (ContentFiles::IsShared(path))
+                throw std::runtime_error("Shared content is read-only; create a game override first");
+            try
+            {
+                FileContents::Write(Sidecar(path), SerializeMetadata(metadata), false);
+            }
+            catch (const std::exception&)
+            {
+                const auto winner = Read(path);
+                if (winner.id.empty())
+                    throw;
+                return winner;
+            }
             return metadata;
         }
     static std::filesystem::path Root(std::filesystem::path path) {

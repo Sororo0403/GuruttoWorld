@@ -424,3 +424,6 @@ FodyWeavers.xsd
 /.slide-build/
 /.chart-data-*/
 /output/
+
+# 保存復旧の記録と競合した内容はローカルで保持します。
+**/.wp1-transactions/

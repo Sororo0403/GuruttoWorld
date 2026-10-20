@@ -406,6 +406,8 @@
     <ClInclude Include="include\Engine\Assets\ContentContext.h">
       <Filter>Assets</Filter>
     </ClInclude>
+    <ClInclude Include="include\Engine\Core\FileJournal.h"><Filter>include\Engine\Core</Filter></ClInclude>
+    <ClInclude Include="include\Engine\Core\FileSaveLock.h"><Filter>include\Engine\Core</Filter></ClInclude>
     <ClInclude Include="include\Engine\Core\FileReplacement.h"><Filter>include\Engine\Core</Filter></ClInclude>
     <ClInclude Include="include\Engine\Core\FileContents.h">
       <Filter>include\Engine\Core</Filter>

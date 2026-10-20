@@ -22,6 +22,8 @@ generated/tests/outputs/x64/Debug/ArchitectureAuditFixValidation/ArchitectureAud
 
 再監査の4件は`ReauditFixValidation.h`から同じ専用実行ファイルと通常回帰で検証します。終了準備の有効な書き戻し後のUI失敗・例外、未知Script・不正パラメーターの拒否、資源を保持した再試行と終了回数、同じScript IDの振る舞い交換順序を確認します。保存は元の64MiB候補による同時編集の再現に加え、保持中の書込・置換・削除の拒否と、ドキュメント確定失敗の復元を確認します。
 
+保存の追加監査3件は`FileSaveRecoveryValidation.vcxproj`で検証します。実装をコピーせず、成功したWindows APIの直後に子プロセスを強制終了します。一覧公開・両ファイルの退避／設置・確定・掃除・巻き戻し・復旧中断の各境界、新規作成／削除とバイナリー内容、設定読込前の自動復旧、別プロセスの空白区間への作成、外部版と候補の保管、復旧先のロック、領域外を指す不正記録を確認します。メタデータは2プロセスで100件を同時登録し、返却IDの一致・再索引後の参照解決・既存設定保持と古い編集の拒否を検証します。結果は`generated/tests/file-save-recovery`へ分離します。`ReviewRegressionValidation`のプロジェクト参照でビルドし、通常回帰の`FileSaveRecoveryValidation`段階で毎回実行します。
+
 Script SDK ABI 14では、配置の復元などは`prepareStop(ScriptContext&)`へ移します。この処理は候補データだけを変更し、音声停止などの外部副作用を起こしません。`stop(const ScriptStopContext&)`は確定後の資源解放、または失敗したStartの後始末に使用します。旧DLLはABI照合で拒否するため、ホストと同じ構成で再ビルドしてください。
 
 ## エディター／プレイヤーの共通再生検証

@@ -17,6 +17,7 @@ namespace Editor
         static FileChange Prepare(const std::filesystem::path& path, std::optional<std::string> after)
         {
             const auto absolute = std::filesystem::weakly_canonical(std::filesystem::absolute(path));
+            Engine::FileJournal::Recover(Engine::FileSaveLock::Root(absolute));
             return {absolute, Engine::FileContents::Read(absolute), std::move(after)};
         }
         /// <summary>全対象の内容を照合し、ドキュメントの確定に失敗した場合は書き戻します。</summary>
@@ -24,47 +25,18 @@ namespace Editor
                           const std::function<bool()>& commitDocument)
         {
             error.clear();
-            std::vector<std::unique_ptr<Engine::FileReplacement>> replacements;
-            replacements.reserve(changes.size());
-            std::vector<size_t> written;
-            written.reserve(changes.size());
             try
             {
                 Validate(changes);
+                std::vector<Engine::FileReplacement::Change> replacements;
                 for (const auto& change : changes)
-                    replacements.push_back(std::make_unique<Engine::FileReplacement>(
-                        change.path, forward ? change.before : change.after, forward ? change.after : change.before));
-                for (size_t i = 0; i < changes.size(); ++i)
-                {
-                    const auto& change = changes[i];
-                    if (change.before == change.after)
-                        continue;
-                    written.push_back(i);
-                    replacements[i]->Apply();
-                }
-                if (commitDocument())
-                {
-                    for (auto& replacement : replacements)
-                        replacement->Commit();
-                    return true;
-                }
-                if (error.empty())
-                    error = "ドキュメントを適用できません。";
+                    replacements.push_back(
+                        {change.path, forward ? change.before : change.after, forward ? change.after : change.before});
+                return Engine::FileReplacement::ApplyAll(replacements, error, commitDocument);
             }
             catch (const std::exception& failure)
             {
                 error = failure.what();
-            }
-            for (auto entry = written.rbegin(); entry != written.rend(); ++entry)
-            {
-                try
-                {
-                    replacements[*entry]->Restore();
-                }
-                catch (const std::exception& failure)
-                {
-                    error += " / 復元に失敗しました：" + std::string(failure.what());
-                }
             }
             return false;
         }

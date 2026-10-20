@@ -1,5 +1,6 @@
 #pragma once
 #include <Engine/Assets/AssetDatabase.h>
+#include <Engine/Core/Log.h>
 #include <SceneRuntime/ProjectSettings.h>
 #include <algorithm>
 #include <array>
@@ -18,6 +19,11 @@ namespace Editor
         /// <summary>外部ゲームプロジェクトを検証し、コンテンツのルートを取得します。</summary>
         static std::filesystem::path Open(std::filesystem::path path)
         {
+            const auto recoveryRoot = path.filename() == "WP1.project.json" ? path.parent_path() : path;
+            const auto conflicts = Engine::FileJournal::Recover(recoveryRoot);
+            if (!conflicts.empty())
+                Engine::Log::Warning("保存を復旧し、外部内容を保管しました：" +
+                                     Engine::FileContents::Text(conflicts.front().parent_path()));
             const auto context = Engine::ProjectContext::Load(path);
             context.RequireEngine(Engine::ProjectContext::SourceEngineRoot());
             path = context.root;

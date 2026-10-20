@@ -63,6 +63,7 @@
 #include "PrefabValidation.h"
 #include "PrefabGpuContractValidation.h"
 #include "OptionalFeaturesValidation.h"
+#include "FileSaveRecoveryValidation.h"
 #include "InputActionValidation.h"
 #include "MaterialValidation.h"
 #include "LocalLightValidation.h"
@@ -4104,6 +4105,9 @@ int main()
         phase = "ArchitectureAuditFixValidation";
         std::cerr << "Validation phase: " << phase << std::endl;
         ArchitectureAuditFixValidation::Run();
+        phase = "FileSaveRecoveryValidation";
+        std::cerr << "Validation phase: " << phase << std::endl;
+        FileSaveRecoveryValidation::Run();
         phase="AuthoringSettingsValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl; AuthoringSettingsValidation::Run();
         phase="MenuAuthoringValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl; MenuAuthoringValidation::Run();
         phase="ValidateTransformDecomposition"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateTransformDecomposition();

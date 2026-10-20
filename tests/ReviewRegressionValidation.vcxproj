@@ -148,6 +148,9 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
+        <ProjectReference Include="FileSaveRecoveryValidation.vcxproj">
+            <LinkLibraryDependencies>false</LinkLibraryDependencies>
+        </ProjectReference>
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj">
       <Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}  </Project>
     </ProjectReference>

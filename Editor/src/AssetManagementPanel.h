@@ -10,6 +10,7 @@ namespace Editor
     {
         std::filesystem::path selected_;
         Engine::AssetMetadata settings_;
+        std::optional<std::string> settingsSource_;
         std::array<char, 1024> destination_{};
         std::string error_;
         AssetDependencies dependencies_;
@@ -33,7 +34,10 @@ namespace Editor
                 if (settings_.texture.compression == "bc3")
                     ImGui::TextWrapped("縦横が4の倍数の画像を圧縮します。それ以外は元の寸法で読み込みます。");
                 if (ImGui::Button("設定を保存・再インポート###Save texture import"))
-                    Engine::AssetDatabase::Write(root / selected_, settings_);
+                {
+                    Engine::AssetDatabase::Write(root / selected_, settings_, settingsSource_);
+                    settingsSource_ = Engine::AssetDatabase::SerializeMetadata(settings_);
+                }
             }
         }
 
@@ -49,8 +53,11 @@ namespace Editor
             {
                 if (selected_ != asset.path)
                 {
-                    auto settings = Engine::AssetDatabase::Ensure(root / asset.path);
-                    settings_ = std::move(settings);
+                    Engine::AssetDatabase::Ensure(root / asset.path);
+                    const auto source = Engine::FileContents::Read(Engine::AssetDatabase::Sidecar(root / asset.path));
+                    settings_ = source ? Engine::AssetDatabase::ParseMetadata(*source)
+                                       : Engine::AssetDatabase::Read(root / asset.path);
+                    settingsSource_ = source;
                     selected_ = asset.path;
                     destination_.fill(0);
                     const auto text = ProjectCatalog::Text(selected_);
@@ -80,7 +87,10 @@ namespace Editor
                                      ImGuiSliderFlags_AlwaysClamp);
                     ImGui::Checkbox("V座標を反転###Flip V", &settings_.flipV);
                     if (ImGui::Button("設定を保存・再インポート###Save import"))
-                        Engine::AssetDatabase::Write(root / selected_, settings_);
+                    {
+                        Engine::AssetDatabase::Write(root / selected_, settings_, settingsSource_);
+                        settingsSource_ = Engine::AssetDatabase::SerializeMetadata(settings_);
+                    }
                 }
                 DrawTextureImport(root, asset);
                 if (ImGui::CollapsingHeader("移動・改名###Move asset"))

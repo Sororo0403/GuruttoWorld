@@ -42,6 +42,9 @@ namespace Editor
         {
             try
             {
+                Engine::FileSaveLock saveLock(root);
+                if (saveLock.Outermost())
+                    Engine::FileJournal::RecoverLocked(root);
                 auto schemas = SceneRuntime::ScriptSchema::Builtins();
                 for (auto& [name, schema] : SceneRuntime::ScriptSchema::LoadProject(root))
                     if (!schemas.emplace(name, std::move(schema)).second)

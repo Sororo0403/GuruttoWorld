@@ -61,6 +61,9 @@ namespace SceneRuntime
         /// <summary>設定値と読み込み時の生データを保持し、後の保存で外部変更を検出します。</summary>
         static ProjectSettings Load(const std::filesystem::path& root)
         {
+            Engine::FileSaveLock saveLock(root);
+            if (saveLock.Outermost())
+                Engine::FileJournal::RecoverLocked(root);
             const auto path = root / "Assets/Project.json";
             const auto source = Engine::FileContents::Read(path);
             if (!source)
@@ -91,6 +94,9 @@ namespace SceneRuntime
         /// <summary>検証済み設定を保存し、読み込み元が外部で変更・削除された場合は保存を拒否します。</summary>
         void Save(const std::filesystem::path& root) const
         {
+            Engine::FileSaveLock saveLock(root);
+            if (saveLock.Outermost())
+                Engine::FileJournal::RecoverLocked(root);
             Validate();
             const auto scene = root / std::filesystem::path(std::u8string(startupScene.begin(), startupScene.end()));
             if (!std::filesystem::is_regular_file(scene))

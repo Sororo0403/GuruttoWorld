@@ -141,6 +141,8 @@
     <ClInclude Include="include\Engine\Core\BuildIdentity.h" />
     <ClInclude Include="include\Engine\Core\FileContents.h" />
     <ClInclude Include="include\Engine\Core\FileReplacement.h" />
+    <ClInclude Include="include\Engine\Core\FileJournal.h" />
+    <ClInclude Include="include\Engine\Core\FileSaveLock.h" />
     <ClCompile Include="src\Core\BuildIdentity.cpp" />
     <ClInclude Include="include\Engine\Projects\ProjectContext.h" />
     <ClInclude Include="include\Engine\Platform\Window.h" />

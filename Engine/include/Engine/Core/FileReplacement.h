@@ -1,5 +1,7 @@
 #pragma once
 #include <Engine/Core/FileContents.h>
+#include <Engine/Core/FileJournal.h>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -9,6 +11,11 @@ namespace Engine
     class FileReplacement final
     {
     public:
+        struct Change
+        {
+            std::filesystem::path path;
+            std::optional<std::string> before, after;
+        };
         /// <summary>同期済みの候補を用意してから保存元を保持し、外部変更を照合します。</summary>
         FileReplacement(const std::filesystem::path& path, const std::optional<std::string>& before,
                         const std::optional<std::string>& after)
@@ -112,25 +119,101 @@ namespace Engine
         static void Write(const std::filesystem::path& path, const std::optional<std::string>& before,
                           std::string after)
         {
-            FileReplacement replacement(path, before, std::move(after));
+            std::string error;
+            if (!ApplyAll({{std::filesystem::absolute(path), before, std::move(after)}}, error,
+                          []
+                          {
+                              return true;
+                          }))
+                throw std::runtime_error(error);
+        }
+        /// <summary>全対象の復旧記録を公開してから変更し、失敗時は外部内容も保管して旧版へ戻します。</summary>
+        static bool ApplyAll(const std::vector<Change>& changes, std::string& error,
+                             const std::function<bool()>& commitDocument)
+        {
+            error.clear();
+            std::unique_ptr<FileSaveLock> lock;
+            std::vector<std::unique_ptr<FileReplacement>> replacements;
+            std::unique_ptr<FileJournal> journal;
+            bool accepted = false;
             try
             {
-                replacement.Apply();
-                replacement.Commit();
+                if (changes.empty())
+                    return commitDocument();
+                std::vector<FileJournal::Entry> entries;
+                for (const auto& change : changes)
+                    entries.push_back({change.path, {}, {}, change.before, change.after});
+                const auto root = FileJournal::Root(entries);
+                lock = std::make_unique<FileSaveLock>(root);
+                if (lock->Outermost())
+                    FileJournal::RecoverLocked(root);
+                for (size_t i = 0; i < changes.size(); ++i)
+                {
+                    const auto& change = changes[i];
+                    auto replacement = std::make_unique<FileReplacement>(change.path, change.before, change.after);
+                    entries[i].stage = replacement->stagedPath_;
+                    entries[i].backup = replacement->backupPath_;
+                    if (replacement->original_ != INVALID_HANDLE_VALUE)
+                        entries[i].beforeId = FileJournal::Identity(replacement->original_);
+                    if (replacement->staged_ != INVALID_HANDLE_VALUE)
+                        entries[i].afterId = FileJournal::Identity(replacement->staged_);
+                    replacements.push_back(std::move(replacement));
+                }
+                std::vector<FileJournal::Entry> modified;
+                for (auto& entry : entries)
+                    if (entry.before != entry.after)
+                        modified.push_back(std::move(entry));
+                if (!modified.empty())
+                    journal = std::make_unique<FileJournal>(root, modified);
+                for (size_t i = 0; i < changes.size(); ++i)
+                    if (changes[i].before != changes[i].after)
+                        replacements[i]->Apply();
+                // 受理後のメモリー更新と同期失敗が食い違わないよう、確定方針を先に同期します。
+                if (journal)
+                    journal->CommitIntent();
+                accepted = commitDocument();
+                if (!accepted)
+                    throw std::runtime_error("ドキュメントを適用できません。");
+                for (auto& replacement : replacements)
+                    replacement->Commit();
             }
             catch (const std::exception& failure)
             {
-                std::string error = failure.what();
+                error = failure.what();
+            }
+            catch (...)
+            {
+                error = "保存中に不明な例外が発生しました。";
+            }
+            if (!accepted && journal)
+            {
                 try
                 {
-                    replacement.Restore();
+                    journal->RollbackIntent();
                 }
-                catch (const std::exception& restore)
+                catch (const std::exception& failure)
                 {
-                    error += " / " + std::string(restore.what());
+                    // 取消方針を記録できない場合は、確定済み世代を壊さず次回の復旧へ渡します。
+                    for (auto& replacement : replacements)
+                        replacement->Commit();
+                    error += " / " + std::string(failure.what());
+                    return false;
                 }
-                throw std::runtime_error(error);
             }
+            replacements.clear();
+            if (journal)
+                try
+                {
+                    const auto conflicts = journal->Finish();
+                    if (!conflicts.empty())
+                        error +=
+                            " / 外部内容を保管して復旧しました：" + FileContents::Text(conflicts.front().parent_path());
+                }
+                catch (const std::exception& failure)
+                {
+                    error += " / 復旧が必要です。次の保存前に再試行します：" + std::string(failure.what());
+                }
+            return accepted;
         }
 
     private:
