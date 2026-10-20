@@ -92,14 +92,16 @@ namespace
     public:
         Child(const std::wstring& mode, const std::filesystem::path& root, const std::wstring& extra = L"",
               const std::filesystem::path& executable = {})
+            : root_(root), mode_(mode)
         {
             auto command = L"\"" + (executable.empty() ? Executable() : executable).native() + L"\" " + mode + L" \"" +
                            root.native() + L"\" " + extra;
             STARTUPINFOW startup{};
             startup.cb = sizeof(startup);
-            Require(CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
-                                   &startup, &process_) != FALSE,
-                    "start child");
+            const auto started = CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW,
+                                                nullptr, nullptr, &startup, &process_);
+            const auto error = GetLastError();
+            Require(started != FALSE, "start child: " + FileContents::Text(root_) + ", error " + std::to_string(error));
         }
         ~Child()
         {
@@ -113,15 +115,25 @@ namespace
         }
         void Wait(DWORD expected = 0, std::optional<DWORD> alternative = {})
         {
-            Require(WaitForSingleObject(process_.hProcess, 30000) == WAIT_OBJECT_0, "child timeout");
+            Require(WaitForSingleObject(process_.hProcess, 30000) == WAIT_OBJECT_0,
+                    "child timeout: " + FileContents::Text(mode_) + " " + FileContents::Text(root_));
             DWORD code = 0;
             const bool exited = GetExitCodeProcess(process_.hProcess, &code) != FALSE;
-            Require(exited && (code == expected || (alternative && code == *alternative)),
-                    "child exit " + std::to_string(code) + ", expected " + std::to_string(expected));
+            if (!exited || (code != expected && (!alternative || code != *alternative)))
+            {
+                auto diagnostic =
+                    FileContents::Read(root_ / ("child-error-" + std::to_string(process_.dwProcessId) + ".log"));
+                if (!diagnostic)
+                    diagnostic = FileContents::Read(root_ / "validation-error.log");
+                throw std::runtime_error("child exit " + std::to_string(code) + ", expected " +
+                                         std::to_string(expected) + ": " + FileContents::Text(mode_) + " " +
+                                         FileContents::Text(root_) + "\n" + diagnostic.value_or("No child diagnostic"));
+            }
         }
 
     private:
         PROCESS_INFORMATION process_{};
+        std::filesystem::path root_, mode_;
     };
     std::vector<Editor::FileChange> Plans(const std::filesystem::path& root)
     {
@@ -263,6 +275,32 @@ namespace
                                                   mode != L"--abort-denied";
                                        });
         throw std::runtime_error("save checkpoint not reached: " + error);
+    }
+    void Diagnostics(const std::filesystem::path& root)
+    {
+        const auto executable =
+            Executable().parent_path().parent_path() / "FileSaveApiValidation/FileSaveApiValidation.exe";
+        for (const bool suite : {false, true})
+        {
+            const auto directory = root / (suite ? "suite" : "api");
+            std::filesystem::create_directories(directory);
+            std::string error;
+            try
+            {
+                Child(suite ? L"--suite-diagnostic" : L"--scan-project", directory, L"",
+                      suite ? std::filesystem::path{} : executable)
+                    .Wait();
+            }
+            catch (const std::exception& failure)
+            {
+                error = failure.what();
+            }
+            Require(error.find("child exit 1") != std::string::npos &&
+                        error.find(FileContents::Text(directory)) != std::string::npos &&
+                        error.find(suite ? "injected suite diagnostic" : "project scan failed:") != std::string::npos,
+                    "child cause, mode and case survive API and suite boundaries");
+        }
+        std::cout << "PASS: child API and suite failures retain detailed diagnostics\n";
     }
     void NestedDomains(const std::filesystem::path& root)
     {
@@ -899,12 +937,20 @@ namespace
 
 int wmain(int argc, wchar_t** argv)
 {
+    std::filesystem::path root;
+    const bool suite =
+        argc >= 3 && (std::wstring(argv[1]) == L"--suite" || std::wstring(argv[1]) == L"--suite-diagnostic");
     try
     {
-        if (argc >= 3)
+        if (argc >= 3 && !suite)
             return RunChild(argc, argv);
-        const auto root = std::filesystem::absolute("generated/tests/file-save-recovery") /
-                          (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
+        root = suite ? std::filesystem::absolute(argv[2])
+                     : std::filesystem::absolute("generated/tests/file-save-recovery") /
+                           (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
+        std::filesystem::create_directories(root);
+        if (suite && std::wstring(argv[1]) == L"--suite-diagnostic")
+            throw std::runtime_error("injected suite diagnostic");
+        Diagnostics(root / "diagnostics");
         PublicSaveApis(root / "public-apis");
         Completion(root / "completion");
         Cancellation(root / "cancellation");
@@ -919,10 +965,14 @@ int wmain(int argc, wchar_t** argv)
     }
     catch (const std::exception& failure)
     {
-        if (argc >= 3)
+        if (!root.empty() || argc >= 3)
         {
             // 非表示の子プロセスでも、失敗したOS操作を検証結果へ残します。
-            std::ofstream diagnostic(std::filesystem::path(argv[2]) / "child-error.log");
+            const auto diagnosticPath =
+                root.empty()
+                    ? std::filesystem::path(argv[2]) / ("child-error-" + std::to_string(GetCurrentProcessId()) + ".log")
+                    : root / "validation-error.log";
+            std::ofstream diagnostic(diagnosticPath);
             diagnostic << failure.what() << '\n';
         }
         std::cerr << failure.what() << '\n';

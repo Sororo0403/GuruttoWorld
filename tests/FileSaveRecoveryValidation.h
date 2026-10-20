@@ -14,7 +14,10 @@ namespace FileSaveRecoveryValidation
         executable.resize(length);
         const auto path = std::filesystem::path(executable).parent_path().parent_path() /
                           "FileSaveRecoveryValidation/FileSaveRecoveryValidation.exe";
-        auto command = L"\"" + path.native() + L"\"";
+        const auto root = std::filesystem::absolute("generated/tests/file-save-recovery") /
+                          (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
+        std::filesystem::create_directories(root);
+        auto command = L"\"" + path.native() + L"\" --suite \"" + root.native() + L"\"";
         STARTUPINFOW startup{};
         startup.cb = sizeof(startup);
         PROCESS_INFORMATION process{};
@@ -33,7 +36,10 @@ namespace FileSaveRecoveryValidation
         CloseHandle(process.hProcess);
         CloseHandle(process.hThread);
         if (wait != WAIT_OBJECT_0 || code != 0)
-            throw std::runtime_error("保存復旧・同時編集の回帰テストが失敗しました");
+            throw std::runtime_error(
+                "保存復旧・同時編集の回帰テストが失敗しました（exit " + std::to_string(code) + "）：" +
+                Engine::FileContents::Text(root) + "\n" +
+                Engine::FileContents::Read(root / "validation-error.log").value_or("詳細記録なし"));
         std::cout << "PASS: crash recovery, conflict preservation and concurrent metadata processes\n";
     }
 }

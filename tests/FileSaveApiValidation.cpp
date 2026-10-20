@@ -1,6 +1,7 @@
 #include <SceneRuntime/SceneLayout.h>
 #include <SceneRuntime/MaterialAsset.h>
 #include <iostream>
+#include <fstream>
 #include "../Editor/src/GameProject.h"
 #include "../Editor/src/ProjectCatalog.h"
 
@@ -21,7 +22,7 @@ int wmain(int argc, wchar_t** argv)
         {
             Editor::ProjectCatalog catalog;
             if (!catalog.Scan(root))
-                throw std::runtime_error("project scan failed");
+                throw std::runtime_error("project scan failed: " + catalog.Error());
             for (const auto& asset : catalog.Assets())
                 if (Engine::FileSaveLock::IsJournalPath(asset.path))
                     throw std::runtime_error("journal appeared in the asset catalog");
@@ -56,6 +57,12 @@ int wmain(int argc, wchar_t** argv)
     }
     catch (const std::exception& failure)
     {
+        if (argc >= 3)
+        {
+            std::ofstream diagnostic(std::filesystem::path(argv[2]) /
+                                     ("child-error-" + std::to_string(GetCurrentProcessId()) + ".log"));
+            diagnostic << Engine::FileContents::Text(argv[1]) << ": " << failure.what() << '\n';
+        }
         std::cerr << failure.what() << '\n';
         return 1;
     }
