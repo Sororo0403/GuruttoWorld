@@ -36,6 +36,7 @@ namespace ProjectSettingsValidation
         settings.height = 900;
         settings.Save(root);
         const auto loaded = ProjectSettings::Load(root);
+        const auto savedSource = Engine::FileContents::Read(root / "Assets/Project.json");
         require(loaded.title == settings.title && loaded.startupScene == settings.startupScene &&
                     loaded.width == 1600 && loaded.height == 900 && loaded.inputActions == settings.inputActions &&
                     loaded.sceneAliases == settings.sceneAliases,
@@ -99,6 +100,8 @@ namespace ProjectSettingsValidation
             rejected = true;
         }
         require(rejected, "overflowing project dimensions cannot wrap into a valid size");
+        // 型検証用の外部変更を戻し、改名の検証を独立した保存基準から続けます。
+        Engine::FileContents::Write(root / "Assets/Project.json", *savedSource);
         settings.startupScene = loaded.startupScene;
         Engine::AssetDatabase database(root);
         static_cast<void>(database.Ensure(root / settings.startupScene));

@@ -80,6 +80,10 @@ namespace SceneRuntime
         bool ReloadAssets(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
             const std::filesystem::path& shaderPath, std::string& error);
         bool ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,bool preserveExecution=false);
+        /// <summary>遷移先のScript開始と描画準備を候補で完了し、成功時だけ旧実行状態を置き換えます。</summary>
+        bool ReplaceRuntimeLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error);
+        /// <summary>固定・通常・LateUpdateをまとめ、失敗時は物理・入力蓄積・実行状態を復元します。</summary>
+        bool UpdateFrame(double seconds, float horizontal, float vertical, bool jump, bool advancePhysics);
         void Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
             const Engine::DirectionalLight& light, const UiState* state=nullptr) const;
         const MeshTelemetry& Telemetry() const { return meshTelemetry_; }
@@ -189,6 +193,7 @@ namespace SceneRuntime
         bool DuplicateObjects(const std::vector<std::string>& ids, const std::array<float, 3>& offset,
             std::vector<std::string>& createdIds, std::string& error);
         // Remove exactly these IDs atomically. Surviving children of removed objects become roots.
+        /// <summary>削除した描画資源は、送信済みGPUコマンドの完了まで退役管理で保持します。</summary>
         bool RemoveObjects(const std::vector<std::string>& ids, std::string& error);
         std::optional<std::string> PickRay(const std::array<float, 3>& origin,
             const std::array<float, 3>& direction, float maxDistance = 220.0f) const;
@@ -249,6 +254,8 @@ namespace SceneRuntime
         bool PrepareScriptLayout(SceneLayout layout,const PreparedLayout* previous,PreparedLayout& result,std::string& error);
         /// <summary>現在の実行リソースと状態を更新候補へ参照共有します。</summary>
         PreparedLayout RuntimeLayout() const;
+        /// <summary>終了処理の書き戻しも候補へ再投影し、配置と描画の整合性を保ちます。</summary>
+        bool FinalizeLifecycle(ScriptRuntime& runtime, PreparedLayout& prepared, std::string& error);
         /// <summary>固定コールバック・物理・衝突イベントを候補へ進めます。</summary>
         bool FixedTick(SceneLayout& layout,ScenePhysics::States& states,ScriptRuntime& scripts,float horizontal,float vertical,bool jump,
             const std::map<std::string,bool>& pressed,std::string& error);
@@ -304,6 +311,7 @@ namespace SceneRuntime
         std::map<std::string,std::shared_ptr<Engine::ModelRenderer>> animatedModels_;
         std::map<std::string,AnimatorState> animatorStates_;
         std::unique_ptr<ScriptRuntime> scripts_;
+        bool frameUpdating_ = false;
         struct PhysicalPose { std::array<float,3> position{},rotation{},scale{1,1,1}; std::string parent; };
         /// <summary>移動体の確定したローカル姿勢だけを保存します。</summary>
         static std::map<std::string,PhysicalPose> PhysicalPoses(const SceneLayout& layout);

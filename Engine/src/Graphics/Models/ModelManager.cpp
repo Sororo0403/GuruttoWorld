@@ -53,9 +53,15 @@ namespace Engine
     {
         if (!device_ || key.empty() || !generate)
             return {};
+        std::erase_if(procedural_,
+                      [](const auto& entry)
+                      {
+                          return entry.second.model.expired();
+                      });
         const auto found = procedural_.find(key);
         if (found != procedural_.end() && found->second.signature == signature)
-            return found->second.model;
+            if (auto model = found->second.model.lock())
+                return model;
         const auto data = generate();
         if (data.empty() || data.front().indices.empty())
         {

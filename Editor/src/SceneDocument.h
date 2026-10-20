@@ -7,6 +7,7 @@
 #include <string_view>
 #include <utility>
 #include <fstream>
+#include "DocumentSave.h"
 
 namespace Editor
 {
@@ -72,25 +73,39 @@ namespace Editor
         {
             return unsavedNew_;
         }
+        /// <summary>通常保存をファイル取引で確定し、成功した場合だけ保存基準を更新します。</summary>
         void Save(const SceneRuntime::SceneLayout& layout)
         {
-            if (ReadSource(path_) != savedSource_)
+            DocumentSave::Apply({PrepareSave(layout)});
+        }
+        /// <summary>通常保存の競合を検査し、書き込みと保存基準の候補を準備します。</summary>
+        DocumentSavePlan PrepareSave(const SceneRuntime::SceneLayout& layout)
+        {
+            auto plan = PrepareSaveAs(layout, path_, !unsavedNew_);
+            if (plan.file.before != savedSource_)
                 throw std::runtime_error(
                     "シーンが外部で変更・削除されています。再読み込みするか、別名で保存してください。");
-            if (unsavedNew_ && std::filesystem::exists(path_))
-                throw std::runtime_error("新規シーンの保存先にファイルが作成されたため、保存を中止しました。");
-            layout.Save(path_, !unsavedNew_);
-            unsavedNew_ = false;
-            savedSource_ = ReadSource(path_);
+            return plan;
         }
+        /// <summary>別名保存とドキュメントのパスを同時に確定します。</summary>
         void SaveAs(const SceneRuntime::SceneLayout& layout, std::filesystem::path target, bool overwrite)
         {
-            if (!overwrite && std::filesystem::exists(target))
+            DocumentSave::Apply({PrepareSaveAs(layout, std::move(target), overwrite)});
+        }
+        /// <summary>別名保存の成功時だけ、パスと保存基準を切り替える候補を作ります。</summary>
+        DocumentSavePlan PrepareSaveAs(const SceneRuntime::SceneLayout& layout, std::filesystem::path target,
+                                       bool overwrite)
+        {
+            auto file = FileTransaction::Prepare(target, layout.SerializeForSave(target));
+            if (!overwrite && file.before)
                 throw std::runtime_error("保存先が既に存在します。上書きを確認してください。");
-            layout.Save(target, overwrite);
-            path_ = std::move(target);
-            unsavedNew_ = false;
-            savedSource_ = ReadSource(path_);
+            auto accept = [this, target = std::move(target), source = file.after]() mutable noexcept
+            {
+                path_.swap(target);
+                savedSource_.swap(source);
+                unsavedNew_ = false;
+            };
+            return {std::move(file), std::move(accept)};
         }
         bool Pending() const
         {

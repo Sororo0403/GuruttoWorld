@@ -633,8 +633,10 @@ namespace
             if (!sceneLoaded) { fileStatus = "保存するシーンが読み込まれていません。"; LogResult(false); return false; }
             try
             {
-                document.Save(document.Layout());
-                projectPanel.SaveMaterials();
+                std::vector<Editor::DocumentSavePlan> plans;
+                plans.push_back(document.PrepareSave(document.Layout()));
+                projectPanel.PrepareMaterialSaves(plans);
+                Editor::DocumentSave::Apply(std::move(plans));
                 SavedSuccessfully("保存しました。");
                 return true;
             }
@@ -661,8 +663,10 @@ namespace
             if (!sceneLoaded) return false;
             try
             {
-                document.SaveAs(document.Layout(), target, overwrite);
-                projectPanel.SaveMaterials();
+                std::vector<Editor::DocumentSavePlan> plans;
+                plans.push_back(document.PrepareSaveAs(document.Layout(), target, overwrite));
+                projectPanel.PrepareMaterialSaves(plans);
+                Editor::DocumentSave::Apply(std::move(plans));
                 SavedSuccessfully("別名で保存しました："+Editor::ProjectCatalog::Text(document.Path().filename()));
                 return true;
             }

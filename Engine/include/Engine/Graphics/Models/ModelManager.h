@@ -42,7 +42,7 @@ namespace Engine
         /// Windows の通常のパスとして大文字・小文字を区別せず扱います。
         /// </summary>
         std::shared_ptr<const ModelRenderer> Load(const std::filesystem::path& path);
-        /// <summary>内容が変わった手続きメッシュだけ再生成し、IDごとの最新モデルを共有します。</summary>
+        /// <summary>利用中の同じID・内容の手続きメッシュを共有し、キャッシュ自体はGPU資源を所有しません。</summary>
         std::shared_ptr<const ModelRenderer> Procedural(const std::string& key, const std::string& signature,
                                                         const std::function<std::vector<MeshData>()>& generate);
 
@@ -63,7 +63,7 @@ namespace Engine
         struct ProceduralModel
         {
             std::string signature;
-            std::shared_ptr<const ModelRenderer> model;
+            std::weak_ptr<const ModelRenderer> model;
         };
         std::map<std::string, ProceduralModel> procedural_;
         Microsoft::WRL::ComPtr<ID3D12Device> device_;

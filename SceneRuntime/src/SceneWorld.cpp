@@ -1115,7 +1115,9 @@ namespace SceneRuntime
             PreparedLayout prepared;
             if (!PrepareScriptLayout(std::move(candidate),nullptr,prepared,error) ||
                 (prepareRuntime_ && !prepareRuntime_(prepared.layout,error))) { Engine::Log::Warning(error); return false; }
-            runtime.CommitStarts();
+            if (!frameUpdating_)
+                if (!FinalizeLifecycle(runtime, prepared, error))
+                    return false;
             CommitLayout(std::move(prepared),true); physics_=std::move(states); *scripts_=std::move(runtime);
             previousPhysical_=std::move(previousPoses); currentPhysical_=std::move(currentPoses);
             fixedSeconds_=pending; ++renderVersion_; fixedJump_=pendingJump; fixedPressed_=std::move(pressed); transaction.Commit(); return true;
@@ -1231,7 +1233,8 @@ namespace SceneRuntime
             return false;
         if (prepareUi_ && !prepareUi_(prepared.layout, runtime.UiCommands(), error))
             return false;
-        runtime.CommitStarts();
+        if (!FinalizeLifecycle(runtime, prepared, error))
+            return false;
         CommitLayout(std::move(prepared), true);
         *scripts_ = std::move(runtime);
         return true;
@@ -1258,7 +1261,8 @@ namespace SceneRuntime
         if(!UpdateLateComponents(seconds,prepared,runtime,frames,impulses,error)) return false;
         if (prepareRuntime_ && !prepareRuntime_(prepared.layout,error)) { Engine::Log::Warning(error); return false; }
         if(prepareUi_ && !prepareUi_(prepared.layout,runtime.UiCommands(),error)) {Engine::Log::Warning(error); return false;}
-        runtime.CommitStarts();
+        if (!FinalizeLifecycle(runtime, prepared, error))
+            return false;
         CommitLayout(std::move(prepared),true);
         CommitAnimatorFrames(frames);
         for (const auto& [id,impulse] : impulses) physicsWorld_.AddImpulse(id,impulse);
@@ -1597,6 +1601,11 @@ namespace SceneRuntime
             objects.push_back(objects_[index]);
         }
         if (!PrepareTransforms(candidate,objects,error)) return false;
+        if (retirement_ && !retirement_->Retire(std::make_shared<std::vector<Engine::Object3D>>(objects_)))
+        {
+            error = "Cannot retire removed scene resources";
+            return false;
+        }
         layout_=std::move(candidate); objects_=std::move(objects); ++renderVersion_;
         for (const auto& id : removed) { animatedModels_.erase(id); animatorStates_.erase(id); physics_.erase(id); lodModels_.erase(id); previousPhysical_.erase(id); currentPhysical_.erase(id); }
         error.clear();

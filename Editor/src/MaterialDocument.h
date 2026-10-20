@@ -4,6 +4,7 @@
 #include <chrono>
 #include <vector>
 #include <string_view>
+#include "DocumentSave.h"
 
 namespace Editor
 {
@@ -116,21 +117,31 @@ namespace Editor
             pending_.reset();
             interaction_.clear();
         }
+        /// <summary>競合を検査してMaterialを保存し、成功後に保存基準を更新します。</summary>
         void Save(const std::filesystem::path& root, const std::filesystem::path& path)
+        {
+            DocumentSave::Apply({PrepareSave(root, path)});
+        }
+        /// <summary>履歴を確定して競合を検査し、保存基準は一括保存の成功まで保持します。</summary>
+        DocumentSavePlan PrepareSave(const std::filesystem::path& root, const std::filesystem::path& path)
         {
             if (!loaded_)
                 throw std::runtime_error("読み込みに成功していないMaterialは保存できません。");
             pending_ = asset_;
             Commit();
-            if (Read(root / path) != savedSource_)
+            auto file = FileTransaction::Prepare(root / path, asset_.SerializeForSave(root, path));
+            if (file.before != savedSource_)
             {
                 conflict_ = true;
                 throw std::runtime_error("Materialが外部で変更されています。編集を保持したまま保存を中止しました。");
             }
-            asset_.Save(root, path);
-            savedSource_ = Read(root / path);
-            savedValues_ = Values(asset_);
-            conflict_ = false;
+            auto accept = [this, source = file.after, values = Values(asset_)]() mutable noexcept
+            {
+                savedSource_.swap(source);
+                savedValues_.swap(values);
+                conflict_ = false;
+            };
+            return {std::move(file), std::move(accept)};
         }
 
     private:

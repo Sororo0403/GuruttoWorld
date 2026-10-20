@@ -48,6 +48,11 @@ namespace Editor
         {
             materialPanel_.SaveAll(root_);
         }
+        /// <summary>シーンと同じ保存取引へ未保存のMaterialを追加します。</summary>
+        void PrepareMaterialSaves(std::vector<DocumentSavePlan>& plans)
+        {
+            materialPanel_.PrepareSaves(root_, plans);
+        }
         bool CanUndoAsset(const std::filesystem::path& path, bool redo) const
         {
             return materialPanel_.CanUndo(path, redo);

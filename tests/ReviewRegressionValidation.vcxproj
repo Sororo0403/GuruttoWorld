@@ -96,6 +96,10 @@
     <ClInclude Include="EngineEditorReviewValidation.h" />
     <ClInclude Include="SpriteResourceValidation.h" />
     <ClCompile Include="ReviewRegressionValidation.cpp" />
+    <ClCompile Include="ArchitectureAuditFixValidation.cpp">
+      <PreprocessorDefinitions>WP1_AUDIT_EMBEDDED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClInclude Include="ArchitectureAuditFixValidation.h" />
     <ClCompile Include="..\Engine\externals\imgui\imgui.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Release'">true</ExcludedFromBuild>
     </ClCompile>

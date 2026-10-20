@@ -71,7 +71,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -96,7 +96,7 @@
       <PreprocessorDefinitions>NDEBUG;ENGINE_DEVELOPMENT;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -118,7 +118,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -201,6 +201,7 @@
     <ClInclude Include="include\SceneRuntime\LightmapBaker.h" />
     <ClInclude Include="src\SceneRenderPlan.h" />
     <ClCompile Include="src\SceneWorld.cpp" />
+    <ClCompile Include="src\SceneTransactions.cpp" />
     <ClCompile Include="src\ScenePhysics.cpp" />
     <ClCompile Include="src\PhysicsWorld.cpp" />
     <ClInclude Include="include\SceneRuntime\PhysicsWorld.h" />

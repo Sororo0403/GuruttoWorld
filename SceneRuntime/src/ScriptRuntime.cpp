@@ -426,7 +426,7 @@ namespace SceneRuntime
         auto candidate=layout;
         auto runtime=*this;
         if (!runtime.UpdateCandidate(candidate,seconds,error,input,pressed,physics,phase)) return false;
-        runtime.CommitStarts();
+        runtime.CommitStarts(&candidate);
         layout=std::move(candidate); *this=std::move(runtime); return true;
     }
     bool ScriptRuntime::UpdateCandidate(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore)
@@ -446,8 +446,37 @@ namespace SceneRuntime
         if(committed || !rollback) return;
         try {rollback();} catch(...) {Engine::Log::Warning("Script start rollback failed");}
     }
-    void ScriptRuntime::CommitStarts() noexcept
+    void ScriptRuntime::CommitStarts(SceneLayout* layout) noexcept
     {
+        auto stops = std::move(pendingStops_);
+        pendingStops_.clear();
+        for (auto& stop : stops)
+        {
+            if (stop.start)
+                stop.start->committed = true;
+            try
+            {
+                if (stop.callback)
+                {
+                    auto* owner = &stop.owner;
+                    if (layout)
+                    {
+                        const auto found = std::find_if(layout->objects.begin(), layout->objects.end(),
+                                                        [&](const auto& object)
+                                                        {
+                                                            return object.id == stop.owner.id;
+                                                        });
+                        if (found != layout->objects.end())
+                            owner = &*found;
+                    }
+                    stop.callback(*owner);
+                }
+            }
+            catch (...)
+            {
+                Engine::Log::Warning("Script committed stop callback failed");
+            }
+        }
         for(auto& [key,instance]:instances_) {
             static_cast<void>(key);
             if(instance.pending) {instance.pending->committed=true;instance.pending.reset();}
@@ -475,12 +504,7 @@ namespace SceneRuntime
         auto found = instances_.find(key);
         if (found != instances_.end() && found->second.behaviour != script.behaviour)
         {
-            auto &old = found->second;
-            ScriptContext context{object, old.parameters, old.state, 0};
-            context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data = &old.data; context.dataState = &old.dataState;
-            const auto &previous = Registry().at(old.behaviour);
-            if(old.pending) old.pending->committed=true;
-            if (previous.stop) previous.stop(context);
+            QueueStop(object, found->second);
             instances_.erase(found); found = instances_.end();
         }
         if (found == instances_.end())
@@ -540,11 +564,7 @@ namespace SceneRuntime
             const auto owner = std::find_if(layout.objects.begin(), layout.objects.end(), [&](const auto &object) { return object.id == instance.owner; });
             if (owner != layout.objects.end())
             {
-                ScriptContext context{*owner, instance.parameters, instance.state, 0};
-                context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data = &instance.data; context.dataState = &instance.dataState;
-                const auto &definition = Registry().at(instance.behaviour);
-                if(instance.pending) instance.pending->committed=true;
-                if (definition.stop) definition.stop(context);
+                QueueStop(*owner, instance);
             }
             iterator = instances_.erase(iterator);
         }
@@ -570,17 +590,8 @@ namespace SceneRuntime
             {
                 auto &instance = iterator->second;
                 const auto owner = std::find_if(previousOwners.begin(), previousOwners.end(), [&](const auto &item) { return item.id == instance.owner; });
-                const auto &definition = Registry().at(instance.behaviour);
-                if(instance.pending) instance.pending->committed=true;
-                if (owner != previousOwners.end() && definition.stop)
-                {
-                    ScriptContext context{*owner, instance.parameters, instance.state, 0};
-                    context.content = content_;
-                    context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
-                    context.data = &instance.data;
-                    context.dataState = &instance.dataState;
-                    definition.stop(context);
-                }
+                if (owner != previousOwners.end())
+                    QueueStop(*owner, instance);
                 iterator = instances_.erase(iterator);
             }
     }
@@ -639,6 +650,7 @@ namespace SceneRuntime
     }
     void ScriptRuntime::Stop(SceneLayout& layout) noexcept
     {
+        CommitStarts(&layout);
         for (auto& [key,instance] : instances_)
         {
             static_cast<void>(key);
@@ -661,6 +673,54 @@ namespace SceneRuntime
         audioCommands_.clear();
         pendingFixedCommands_=false;
         events_.clear(); impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); nextId_=1;
+    }
+    void ScriptRuntime::QueueStop(const ScenePlacement& owner, const Instance& instance)
+    {
+        const auto stop = Registry().at(instance.behaviour).stop;
+        auto callback = [content = content_, stop, parameters = instance.parameters, state = instance.state,
+                         data = instance.data, dataState = instance.dataState](ScenePlacement& current) mutable
+        {
+            ScriptContext context{current, parameters, state};
+            context.content = content;
+            context.contentRoot = content ? content->Root() : std::filesystem::path{};
+            context.data = &data;
+            context.dataState = &dataState;
+            if (stop)
+                stop(context);
+        };
+        pendingStops_.push_back({instance.pending, owner, std::move(callback)});
+    }
+    void ScriptRuntime::PrepareTransition(const SceneLayout& previous, const SceneLayout& next)
+    {
+        for (auto entry = instances_.begin(); entry != instances_.end();)
+        {
+            const auto& instance = entry->second;
+            const auto survives = std::any_of(next.objects.begin(), next.objects.end(),
+                                              [&](const auto& object)
+                                              {
+                                                  return object.id == instance.owner &&
+                                                         std::any_of(object.scripts.begin(), object.scripts.end(),
+                                                                     [&](const auto& script)
+                                                                     {
+                                                                         return script.enabled &&
+                                                                                script.id == instance.id &&
+                                                                                script.behaviour == instance.behaviour;
+                                                                     });
+                                              });
+            if (survives)
+            {
+                ++entry;
+                continue;
+            }
+            const auto owner = std::find_if(previous.objects.begin(), previous.objects.end(),
+                                            [&](const auto& object)
+                                            {
+                                                return object.id == instance.owner;
+                                            });
+            if (owner != previous.objects.end())
+                QueueStop(*owner, instance);
+            entry = instances_.erase(entry);
+        }
     }
     void ScriptRuntime::StopRemoved(SceneLayout& previous,const SceneLayout& next) noexcept
     {

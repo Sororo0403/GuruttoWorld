@@ -76,6 +76,7 @@
 #include "MenuAuthoringValidation.h"
 #include "AuthoringSettingsValidation.h"
 #include "EngineEditorReviewValidation.h"
+#include "ArchitectureAuditFixValidation.h"
 #include <Engine/Core/DiagnosticPaths.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/CrashHandler.h>
@@ -4100,6 +4101,9 @@ int main()
             EngineEditorReviewValidation::Runtime(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
             Check(renderer.WaitForIdle(),"review GPU completion");CheckGpuMessages(renderer.GetDevice());
         }
+        phase = "ArchitectureAuditFixValidation";
+        std::cerr << "Validation phase: " << phase << std::endl;
+        ArchitectureAuditFixValidation::Run();
         phase="AuthoringSettingsValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl; AuthoringSettingsValidation::Run();
         phase="MenuAuthoringValidation"; std::cerr<<"Validation phase: "<<phase<<std::endl; MenuAuthoringValidation::Run();
         phase="ValidateTransformDecomposition"; std::cerr<<"Validation phase: "<<phase<<std::endl; ValidateTransformDecomposition();

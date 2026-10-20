@@ -37,7 +37,8 @@ namespace Editor
                     if (change.before == change.after)
                         continue;
                     Check(change, forward);
-                    Replace(change.path, forward ? change.after : change.before);
+                    Replace(change.path, forward ? change.after : change.before,
+                            (forward ? change.before : change.after).has_value());
                     written.push_back(i);
                 }
                 if (commitDocument())
@@ -56,7 +57,8 @@ namespace Editor
                 {
                     // 復元中も外部変更を上書きせず、競合した対象を診断します。
                     Check(change, !forward);
-                    Replace(change.path, forward ? change.before : change.after);
+                    Replace(change.path, forward ? change.before : change.after,
+                            (forward ? change.after : change.before).has_value());
                 }
                 catch (const std::exception& failure)
                 {
@@ -101,12 +103,13 @@ namespace Editor
                                          Engine::FileContents::Text(change.path));
         }
         /// <summary>ファイルの作成・置換・削除を共通の書き込み処理へ渡します。</summary>
-        static void Replace(const std::filesystem::path& path, const std::optional<std::string>& contents)
+        static void Replace(const std::filesystem::path& path, const std::optional<std::string>& contents,
+                            bool overwrite)
         {
             if (contents)
             {
                 std::filesystem::create_directories(path.parent_path());
-                Engine::FileContents::Write(path, *contents);
+                Engine::FileContents::Write(path, *contents, overwrite);
             }
             else
                 Engine::FileContents::Remove(path);

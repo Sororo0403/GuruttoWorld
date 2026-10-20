@@ -31,6 +31,7 @@ namespace SceneRuntime
             environment.Ui().values["volumeGain"] = GameSettings::Load(settingsPath_).Gain();
             title_.ApplyAnimation(environment);
         }
+        /// <summary>入力と移動予約を準備し、物理更新は成功判定を共有するUpdateまで遅らせます。</summary>
         std::optional<UiEvent> PrepareInput(SceneEnvironment& environment, const Engine::InputActions& actions,
                                             bool acceptsInput, double seconds,
                                             const Engine::InputSnapshot* snapshot = nullptr)
@@ -43,9 +44,9 @@ namespace SceneRuntime
             environment.SetInputActions(gameplay ? actions.Values() : std::map<std::string, float>{},
                                         gameplay ? actions.PressedValues() : std::map<std::string, bool>{});
             const auto& mapping = environment.World().Layout().settings.playerInputs;
-            environment.MovePlayers(seconds, gameplay ? actions.Value(mapping[0]) - actions.Value(mapping[1]) : 0,
-                                    gameplay ? actions.Value(mapping[2]) - actions.Value(mapping[3]) : 0,
-                                    gameplay && actions.Pressed(mapping[4]));
+            environment.PrepareMovement(gameplay ? actions.Value(mapping[0]) - actions.Value(mapping[1]) : 0,
+                                        gameplay ? actions.Value(mapping[2]) - actions.Value(mapping[3]) : 0,
+                                        gameplay && actions.Pressed(mapping[4]));
             if (command)
                 pending_ = command;
             return std::nullopt;

@@ -57,13 +57,14 @@ namespace SceneRuntime
             const auto found = sceneAliases.find(std::string(name));
             return found == sceneAliases.end() ? std::string{} : found->second;
         }
+        /// <summary>設定値と読み込み時の生データを保持し、後の保存で外部変更を検出します。</summary>
         static ProjectSettings Load(const std::filesystem::path& root)
         {
             const auto path = root / "Assets/Project.json";
-            std::ifstream input(path);
-            if (!input)
+            const auto source = Engine::FileContents::Read(path);
+            if (!source)
                 throw std::runtime_error("Cannot read project settings");
-            auto json = Engine::Json::parse(input);
+            auto json = Engine::Json::parse(*source);
             References(root, json);
             ProjectSettings result;
             result.title = json.at("title").get<std::string>();
@@ -82,8 +83,11 @@ namespace SceneRuntime
             if (json.contains("inputActions"))
                 result.inputActions = Engine::InputActions::Parse(json.at("inputActions"));
             result.Validate();
+            result.savedPath_ = std::filesystem::weakly_canonical(std::filesystem::absolute(path));
+            result.savedSource_ = source;
             return result;
         }
+        /// <summary>検証済み設定を保存し、読み込み元が外部で変更・削除された場合は保存を拒否します。</summary>
         void Save(const std::filesystem::path& root) const
         {
             Validate();
@@ -97,36 +101,36 @@ namespace SceneRuntime
                     throw std::runtime_error("Aliased scene does not exist");
             }
             const auto path = root / "Assets/Project.json";
-            auto temporary = path;
-            temporary += ".tmp." + std::to_string(GetCurrentProcessId()) + "." + std::to_string(GetTickCount64());
-            try
+            const auto absolute = std::filesystem::weakly_canonical(std::filesystem::absolute(path));
+            const auto checkSource = [&]()
             {
-                std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-                Engine::Json json = {{"title", title},
-                                     {"importLegacySettings", importLegacySettings},
-                                     {"startupScene", startupScene},
-                                     {"width", width},
-                                     {"height", height},
-                                     {"inputActions", Engine::InputActions::Serialize(inputActions)}};
-                if (!sceneAliases.empty())
-                    json["sceneAliases"] = sceneAliases;
-                References(root, json);
-                output << json.dump(2) << '\n';
-                output.close();
-                if (!output ||
-                    !MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-                    throw std::runtime_error("Cannot save project settings");
-                static_cast<void>(Engine::AssetDatabase::Ensure(path));
-            }
-            catch (...)
-            {
-                std::error_code error;
-                std::filesystem::remove(temporary, error);
-                throw;
-            }
+                if (!savedPath_.empty() &&
+                    CompareStringOrdinal(savedPath_.c_str(), -1, absolute.c_str(), -1, TRUE) == CSTR_EQUAL &&
+                    Engine::FileContents::Read(absolute) != savedSource_)
+                    throw std::runtime_error(
+                        "プロジェクト設定が外部で変更・削除されています。再読み込みしてください。");
+            };
+            checkSource();
+            Engine::Json json = {{"title", title},
+                                 {"importLegacySettings", importLegacySettings},
+                                 {"startupScene", startupScene},
+                                 {"width", width},
+                                 {"height", height},
+                                 {"inputActions", Engine::InputActions::Serialize(inputActions)}};
+            if (!sceneAliases.empty())
+                json["sceneAliases"] = sceneAliases;
+            References(root, json);
+            auto source = std::optional<std::string>{json.dump(2) + '\n'};
+            checkSource();
+            Engine::FileContents::Write(absolute, *source);
+            static_cast<void>(Engine::AssetDatabase::Ensure(path));
+            savedPath_ = absolute;
+            savedSource_.swap(source);
         }
 
     private:
+        mutable std::filesystem::path savedPath_;
+        mutable std::optional<std::string> savedSource_;
         /// <summary>起動先と別名の参照を既存のアセット ID 管理へ渡し、改名後も同じシーンを追跡します。</summary>
         static void References(const std::filesystem::path& root, Engine::Json& json)
         {

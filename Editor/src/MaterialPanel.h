@@ -37,11 +37,19 @@ namespace Editor
                 throw std::runtime_error("Materialを読み込めません");
             return document.Asset();
         }
+        /// <summary>未保存Materialを一つの取引で保存し、途中失敗時は先行する書き込みも戻します。</summary>
         void SaveAll(const std::filesystem::path& root)
+        {
+            std::vector<DocumentSavePlan> plans;
+            PrepareSaves(root, plans);
+            DocumentSave::Apply(std::move(plans));
+        }
+        /// <summary>未保存Materialをすべて検査し、ファイルへ書かずに一括保存へ追加します。</summary>
+        void PrepareSaves(const std::filesystem::path& root, std::vector<DocumentSavePlan>& plans)
         {
             for (auto& [path, document] : documents_)
                 if (document.Dirty())
-                    document.Save(root, path);
+                    plans.push_back(document.PrepareSave(root, path));
         }
         /// <summary>移動先に未保存のMaterial編集がある場合はファイル移動前に中止します。</summary>
         void ValidateMove(const std::filesystem::path& source, const std::filesystem::path& destination) const

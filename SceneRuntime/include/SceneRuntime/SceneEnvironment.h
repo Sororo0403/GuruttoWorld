@@ -79,13 +79,24 @@ namespace SceneRuntime
         bool QueueScriptEvent(ScriptEvent event,std::string& error) { return world_.QueueScriptEvent(std::move(event),error); }
         void SetInputActions(std::map<std::string,float> values,std::map<std::string,bool> pressed) { world_.SetInputActions(std::move(values),std::move(pressed)); }
         /// <summary>未処理の入力を破棄し、Pause・フォーカス復帰で再実行されないようにします。</summary>
-        void DiscardPendingInput() { world_.DiscardPendingInput(); DiscardPreparedUi(); physicsAttempted_=false; }
+        void DiscardPendingInput()
+        {
+            world_.DiscardPendingInput();
+            DiscardPreparedUi();
+            physicsAttempted_ = false;
+            movement_.reset();
+        }
         /// <summary>実行中の個体のAnimatorパラメーターを上書きします。</summary>
         bool SetAnimatorParameter(const std::string& id,const std::string& name,float value) { return world_.SetAnimatorParameter(id,name,value); }
         /// <summary>個体のAnimatorパラメーター上書きを解除します。</summary>
         bool ClearAnimatorParameter(const std::string& id,const std::string& name) { return world_.ClearAnimatorParameter(id,name); }
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false)
         { physicsAttempted_=true; return physicsSucceeded_=world_.MovePlayers(seconds,horizontal,vertical,jump); }
+        /// <summary>入力の固定更新を次のフレーム取引へ予約し、入力準備中はWorldを変更しません。</summary>
+        void PrepareMovement(float horizontal, float vertical, bool jump)
+        {
+            movement_ = Movement{horizontal, vertical, jump};
+        }
         bool AddImpulse(const std::string& id,const std::array<float,3>& impulse) { return world_.AddImpulse(id,impulse); }
         /// <summary>時計を指定して演出をプレビューします。未開始の開始演出には負値を指定します。</summary>
         void SeekAnimation(float sceneSeconds, float motionSeconds, float startSeconds = -1);
@@ -135,6 +146,12 @@ namespace SceneRuntime
         double seconds_=0;
         bool motionEnabled_=true;
         bool physicsAttempted_=false,physicsSucceeded_=true;
+        struct Movement
+        {
+            float horizontal = 0, vertical = 0;
+            bool jump = false;
+        };
+        std::optional<Movement> movement_;
         float sceneSeconds_=0, startSeconds_=-1;
     };
 }

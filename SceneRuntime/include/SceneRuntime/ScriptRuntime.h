@@ -171,13 +171,20 @@ namespace SceneRuntime
             ScriptPhase phase=ScriptPhase::Update,const SceneLayout* validatedBefore=nullptr);
         /// <summary>指定した更新段階を持つ有効な処理があるか調べます。</summary>
         static bool HasPhase(const SceneLayout& layout,ScriptPhase phase);
-        /// <summary>描画資源を含む外側の更新が成功した後、開始処理を確定します。</summary>
-        void CommitStarts() noexcept;
+        /// <summary>外側の更新成功後に開始処理を確定し、予約した終了処理を一度だけ呼びます。</summary>
+        void CommitStarts(SceneLayout* layout = nullptr) noexcept;
+        /// <summary>成功時に終了コールバックの書き戻しを反映する必要があるかを返します。</summary>
+        bool HasPendingStops() const
+        {
+            return !pendingStops_.empty();
+        }
         /// <summary>実行中のScriptへ一時停止と再開を通知します。</summary>
         void Pause(SceneLayout& layout,bool paused) noexcept;
         void Stop(SceneLayout& layout) noexcept;
         /// <summary>取り除かれた個体の終了処理を旧配置で実行し、残る個体の実行状態を維持します。</summary>
         void StopRemoved(SceneLayout& previous,const SceneLayout& next) noexcept;
+        /// <summary>遷移で消える処理を候補から外し、終了処理は外側の確定まで予約します。</summary>
+        void PrepareTransition(const SceneLayout& previous, const SceneLayout& next);
         /// <summary>成功したフレームで予約されたシーン操作を取得します。</summary>
         std::vector<SceneCommand> TakeSceneCommands() { auto commands=std::move(sceneCommands_); sceneCommands_.clear(); return commands; }
         /// <summary>成功したFixed・Update・LateUpdateが予約したUI変更を一度だけ取得します。</summary>
@@ -216,6 +223,15 @@ namespace SceneRuntime
             ~PendingStart();
         };
         struct Instance { std::string owner,id,behaviour; std::map<std::string,float> state,parameters; ScriptValue::Object data,dataState; std::shared_ptr<PendingStart> pending; };
+        struct PendingStop
+        {
+            std::shared_ptr<PendingStart> start;
+            ScenePlacement owner;
+            std::function<void(ScenePlacement&)> callback;
+        };
+        std::vector<PendingStop> pendingStops_;
+        /// <summary>終了時に必要な値を候補が所有し、失敗した候補からは呼び出しません。</summary>
+        void QueueStop(const ScenePlacement& owner, const Instance& instance);
         bool paused_=false;
         struct TickContext {
             TickContext(const std::map<std::string, float> &values, const std::map<std::string, bool> &edges, ScriptScene &candidate, ScriptPhase callbackPhase, double elapsed)

@@ -140,6 +140,7 @@
     <ClInclude Include="include\Engine\Core\CrashHandler.h" />
     <ClInclude Include="include\Engine\Core\BuildIdentity.h" />
     <ClInclude Include="include\Engine\Core\FileContents.h" />
+    <ClInclude Include="include\Engine\Core\FileReplacement.h" />
     <ClCompile Include="src\Core\BuildIdentity.cpp" />
     <ClInclude Include="include\Engine\Projects\ProjectContext.h" />
     <ClInclude Include="include\Engine\Platform\Window.h" />

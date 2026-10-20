@@ -157,9 +157,11 @@ namespace SceneRuntime
             return false;
         }
         world_.PauseScripts(false);
-        const bool physicsReady = physicsAttempted_
-                                      ? physicsSucceeded_
-                                      : !RequiresFixedUpdate(world_.Layout()) || world_.MovePlayers(deltaSeconds, 0, 0);
+        const bool physicsReady = !physicsAttempted_ || physicsSucceeded_;
+        const bool advancePhysics =
+            movement_.has_value() || (!physicsAttempted_ && RequiresFixedUpdate(world_.Layout()));
+        const auto movement = movement_.value_or(Movement{});
+        movement_.reset();
         physicsAttempted_ = false;
         if (!physicsReady)
         {
@@ -167,7 +169,7 @@ namespace SceneRuntime
             Engine::Log::Warning("FixedUpdate failed; frame update was skipped.");
             return false;
         }
-        if (!world_.UpdateComponents(deltaSeconds))
+        if (!world_.UpdateFrame(deltaSeconds, movement.horizontal, movement.vertical, movement.jump, advancePhysics))
         {
             DiscardPreparedUi();
             Engine::Log::Warning("Component update failed; runtime clocks were preserved.");
@@ -408,7 +410,7 @@ namespace SceneRuntime
         auto previousResources = presentation_.CaptureUi();
         if (!presentation_.Prepare(*renderer_, root_, layout, error, candidateUi))
             return false;
-        if (!world_.ReplaceLayout(std::move(layout), root_, error, true))
+        if (!world_.ReplaceRuntimeLayout(std::move(layout), root_, error))
         {
             pendingUiResources_.reset();
             presentation_.RestoreUi(std::move(previousResources));
@@ -418,12 +420,12 @@ namespace SceneRuntime
         pendingAudio_.clear();
         committedAudio_.clear();
         audioReady_ = false;
-        world_.DiscardAudioCommands();
+        pendingAudio_ = world_.TakeAudioCommands();
         scenes_ = std::move(scenes);
         uiState_ = std::move(candidateUi);
         if (resetUi || menuChanged)
             ++sceneRevision_;
-        ApplyUiCommands({});
+        ApplyUiCommands(world_.TakeUiCommands());
         if (resetUi)
         {
             world_.DiscardUiCommands();
