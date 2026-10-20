@@ -90,7 +90,11 @@ namespace
                 context.state["remaining"]=std::max(0.0f,context.state["remaining"]-static_cast<float>(context.seconds));
                 if (context.object.pointLight) context.object.pointLight->intensity=std::clamp(context.state["origin"]+context.Value("peak",15)*context.state["scale"]*context.state["remaining"]/duration,0.0f,10000.0f);
             };
-            pulse.stop=[](ScriptContext& context) { if (context.object.pointLight) context.object.pointLight->intensity=context.state["origin"]; };
+            pulse.prepareStop = [](ScriptContext& context)
+            {
+                if (context.object.pointLight)
+                    context.object.pointLight->intensity = context.state["origin"];
+            };
             result.emplace("AnimationEventPulse",std::move(pulse));
             ScriptDefinition orbit; orbit.fields={{"radius",{.25f,0,1000}},{"frequency",{.3f,0,1000}},{"weight",{1,0,1}}};
             orbit.update=[](ScriptContext& context) {
@@ -426,7 +430,7 @@ namespace SceneRuntime
         auto candidate=layout;
         auto runtime=*this;
         if (!runtime.UpdateCandidate(candidate,seconds,error,input,pressed,physics,phase)) return false;
-        runtime.CommitStarts(&candidate);
+        runtime.CommitStarts();
         layout=std::move(candidate); *this=std::move(runtime); return true;
     }
     bool ScriptRuntime::UpdateCandidate(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore)
@@ -446,7 +450,7 @@ namespace SceneRuntime
         if(committed || !rollback) return;
         try {rollback();} catch(...) {Engine::Log::Warning("Script start rollback failed");}
     }
-    void ScriptRuntime::CommitStarts(SceneLayout* layout) noexcept
+    void ScriptRuntime::CommitStarts() noexcept
     {
         auto stops = std::move(pendingStops_);
         pendingStops_.clear();
@@ -457,29 +461,21 @@ namespace SceneRuntime
             try
             {
                 if (stop.callback)
-                {
-                    auto* owner = &stop.owner;
-                    if (layout)
-                    {
-                        const auto found = std::find_if(layout->objects.begin(), layout->objects.end(),
-                                                        [&](const auto& object)
-                                                        {
-                                                            return object.id == stop.owner.id;
-                                                        });
-                        if (found != layout->objects.end())
-                            owner = &*found;
-                    }
-                    stop.callback(*owner);
-                }
+                    stop.callback();
             }
             catch (...)
             {
                 Engine::Log::Warning("Script committed stop callback failed");
             }
         }
-        for(auto& [key,instance]:instances_) {
+        for (auto& [key, instance] : instances_)
+        {
             static_cast<void>(key);
-            if(instance.pending) {instance.pending->committed=true;instance.pending.reset();}
+            if (instance.pending)
+            {
+                instance.pending->committed = true;
+                instance.pending.reset();
+            }
         }
     }
     void ScriptRuntime::Pause(SceneLayout& layout,bool paused) noexcept
@@ -520,13 +516,31 @@ namespace SceneRuntime
                 if (definition.start) definition.start(context);
                 if (definition.start && definition.stop) {
                     auto pending=std::make_shared<PendingStart>();
-                    pending->rollback=[content=content_,stop=definition.stop,owner=object,parameters=created.parameters,state=created.state,data=created.data,dataState=created.dataState]() mutable {
-                        ScriptContext cleanup{owner,parameters,state};cleanup.content=content;cleanup.contentRoot=content ? content->Root() : std::filesystem::path{};cleanup.data=&data;cleanup.dataState=&dataState;stop(cleanup);
+                    pending->rollback = [content = content_, stop = definition.stop, owner = object,
+                                         parameters = created.parameters, state = created.state, data = created.data,
+                                         dataState = created.dataState]() mutable
+                    {
+                        ScriptContext cleanup{owner, parameters, state};
+                        cleanup.content = content;
+                        cleanup.contentRoot = content ? content->Root() : std::filesystem::path{};
+                        cleanup.data = &data;
+                        cleanup.dataState = &dataState;
+                        stop(ScriptStopContext{cleanup});
                     };
                     created.pending=std::move(pending);
                 }
             } catch(...) {
-                if(definition.stop) {try {definition.stop(context);} catch(...) {Engine::Log::Warning("Script failed start cleanup failed");}}
+                if (definition.stop)
+                {
+                    try
+                    {
+                        definition.stop(ScriptStopContext{context});
+                    }
+                    catch (...)
+                    {
+                        Engine::Log::Warning("Script failed start cleanup failed");
+                    }
+                }
                 throw;
             }
             if(paused_ && definition.pause) definition.pause(context,true);
@@ -575,7 +589,8 @@ namespace SceneRuntime
         std::vector<ScenePlacement> previousOwners;
         for (const auto &[key, instance] : instances_) {
             static_cast<void>(key);
-            if (!Registry().at(instance.behaviour).stop) continue;
+            if (!Registry().at(instance.behaviour).stop && !Registry().at(instance.behaviour).prepareStop)
+                continue;
             const auto *owner = scene.Find(instance.owner);
             if (owner) previousOwners.push_back(*owner);
         }
@@ -633,6 +648,8 @@ namespace SceneRuntime
             auto previousOwners=CaptureStopOwners(scene);
             scene.Commit();
             StopDestroyed(scene,previousOwners);
+            if (!ValidateForPlay(layout, error))
+                throw std::runtime_error(error);
             events_=std::move(scene.events);
             if(scene.sceneCommands.size()>64) throw std::runtime_error("Too many scene commands");
             sceneCommands_=std::move(scene.sceneCommands);
@@ -650,7 +667,7 @@ namespace SceneRuntime
     }
     void ScriptRuntime::Stop(SceneLayout& layout) noexcept
     {
-        CommitStarts(&layout);
+        CommitStarts();
         for (auto& [key,instance] : instances_)
         {
             static_cast<void>(key);
@@ -662,7 +679,17 @@ namespace SceneRuntime
                 context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data=&instance.data; context.dataState=&instance.dataState;
                 const auto& definition=Registry().at(instance.behaviour);
                 if(instance.pending) instance.pending->committed=true;
-                if (definition.stop) definition.stop(context);
+                try
+                {
+                    if (definition.prepareStop)
+                        definition.prepareStop(context);
+                }
+                catch (...)
+                {
+                    Engine::Log::Warning("Script shutdown preparation failed");
+                }
+                if (definition.stop)
+                    definition.stop(ScriptStopContext{context});
             }
             catch (...) { Engine::Log::Warning("Script stop callback failed"); }
         }
@@ -674,23 +701,34 @@ namespace SceneRuntime
         pendingFixedCommands_=false;
         events_.clear(); impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); nextId_=1;
     }
-    void ScriptRuntime::QueueStop(const ScenePlacement& owner, const Instance& instance)
+    void ScriptRuntime::QueueStop(ScenePlacement& owner, const Instance& instance)
     {
-        const auto stop = Registry().at(instance.behaviour).stop;
-        auto callback = [content = content_, stop, parameters = instance.parameters, state = instance.state,
-                         data = instance.data, dataState = instance.dataState](ScenePlacement& current) mutable
+        const auto& definition = Registry().at(instance.behaviour);
+        auto parameters = instance.parameters;
+        auto state = instance.state;
+        auto data = instance.data;
+        auto dataState = instance.dataState;
+        ScriptContext context{owner, parameters, state};
+        context.content = content_;
+        context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
+        context.data = &data;
+        context.dataState = &dataState;
+        if (definition.prepareStop)
+            definition.prepareStop(context);
+        auto callback = [content = content_, stop = definition.stop, owner, parameters = std::move(parameters),
+                         state = std::move(state), data = std::move(data), dataState = std::move(dataState)]() mutable
         {
-            ScriptContext context{current, parameters, state};
-            context.content = content;
-            context.contentRoot = content ? content->Root() : std::filesystem::path{};
-            context.data = &data;
-            context.dataState = &dataState;
+            ScriptContext cleanup{owner, parameters, state};
+            cleanup.content = content;
+            cleanup.contentRoot = content ? content->Root() : std::filesystem::path{};
+            cleanup.data = &data;
+            cleanup.dataState = &dataState;
             if (stop)
-                stop(context);
+                stop(ScriptStopContext{cleanup});
         };
-        pendingStops_.push_back({instance.pending, owner, std::move(callback)});
+        pendingStops_.push_back({instance.pending, std::move(callback)});
     }
-    void ScriptRuntime::PrepareTransition(const SceneLayout& previous, const SceneLayout& next)
+    void ScriptRuntime::PrepareTransition(const SceneLayout& previous, SceneLayout& next)
     {
         for (auto entry = instances_.begin(); entry != instances_.end();)
         {
@@ -718,7 +756,15 @@ namespace SceneRuntime
                                                 return object.id == instance.owner;
                                             });
             if (owner != previous.objects.end())
-                QueueStop(*owner, instance);
+            {
+                const auto current = std::find_if(next.objects.begin(), next.objects.end(),
+                                                  [&](const auto& object)
+                                                  {
+                                                      return object.id == instance.owner;
+                                                  });
+                auto removed = *owner;
+                QueueStop(current != next.objects.end() ? *current : removed, instance);
+            }
             entry = instances_.erase(entry);
         }
     }
@@ -734,11 +780,26 @@ namespace SceneRuntime
             {
                 const auto owner=std::find_if(previous.objects.begin(),previous.objects.end(),[&](const auto& object){return object.id==instance.owner;});
                 const auto definition=Registry().find(instance.behaviour);
-                if(owner!=previous.objects.end() && definition!=Registry().end() && definition->second.stop)
+                if (owner != previous.objects.end() && definition != Registry().end() &&
+                    (definition->second.stop || definition->second.prepareStop))
                 {
                     auto& state=iterator->second; ScriptContext context{*owner,state.parameters,state.state,0};
                     if(state.pending) state.pending->committed=true;
-                    context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data=&state.data;context.dataState=&state.dataState;definition->second.stop(context);
+                    context.content = content_;
+                    context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
+                    context.data = &state.data;
+                    context.dataState = &state.dataState;
+                    try
+                    {
+                        if (definition->second.prepareStop)
+                            definition->second.prepareStop(context);
+                    }
+                    catch (...)
+                    {
+                        Engine::Log::Warning("Script unload preparation failed");
+                    }
+                    if (definition->second.stop)
+                        definition->second.stop(ScriptStopContext{context});
                 }
             }
             catch(...) {Engine::Log::Warning("Script stop callback failed while unloading a scene");}

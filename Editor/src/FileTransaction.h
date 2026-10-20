@@ -1,5 +1,5 @@
 #pragma once
-#include <Engine/Core/FileContents.h>
+#include <Engine/Core/FileReplacement.h>
 #include <functional>
 #include <vector>
 
@@ -24,25 +24,30 @@ namespace Editor
                           const std::function<bool()>& commitDocument)
         {
             error.clear();
+            std::vector<std::unique_ptr<Engine::FileReplacement>> replacements;
+            replacements.reserve(changes.size());
             std::vector<size_t> written;
             written.reserve(changes.size());
             try
             {
                 Validate(changes);
                 for (const auto& change : changes)
-                    Check(change, forward);
+                    replacements.push_back(std::make_unique<Engine::FileReplacement>(
+                        change.path, forward ? change.before : change.after, forward ? change.after : change.before));
                 for (size_t i = 0; i < changes.size(); ++i)
                 {
                     const auto& change = changes[i];
                     if (change.before == change.after)
                         continue;
-                    Check(change, forward);
-                    Replace(change.path, forward ? change.after : change.before,
-                            (forward ? change.before : change.after).has_value());
                     written.push_back(i);
+                    replacements[i]->Apply();
                 }
                 if (commitDocument())
+                {
+                    for (auto& replacement : replacements)
+                        replacement->Commit();
                     return true;
+                }
                 if (error.empty())
                     error = "ドキュメントを適用できません。";
             }
@@ -52,13 +57,9 @@ namespace Editor
             }
             for (auto entry = written.rbegin(); entry != written.rend(); ++entry)
             {
-                const auto& change = changes[*entry];
                 try
                 {
-                    // 復元中も外部変更を上書きせず、競合した対象を診断します。
-                    Check(change, !forward);
-                    Replace(change.path, forward ? change.before : change.after,
-                            (forward ? change.after : change.before).has_value());
+                    replacements[*entry]->Restore();
                 }
                 catch (const std::exception& failure)
                 {
@@ -89,30 +90,6 @@ namespace Editor
                         throw std::runtime_error("Duplicate file transaction target");
                 targets.push_back(target);
             }
-        }
-        /// <summary>予定した変更前の内容と一致することを確認します。</summary>
-        static void Check(const FileChange& change, bool forward)
-        {
-            const auto canonical = std::filesystem::weakly_canonical(change.path);
-            if (CompareStringOrdinal(change.path.lexically_normal().c_str(), -1, canonical.c_str(), -1, TRUE) !=
-                CSTR_EQUAL)
-                throw std::runtime_error("ファイルの参照先が変更されています：" +
-                                         Engine::FileContents::Text(change.path));
-            if (Engine::FileContents::Read(change.path) != (forward ? change.before : change.after))
-                throw std::runtime_error("ファイルは外部で変更されています：" +
-                                         Engine::FileContents::Text(change.path));
-        }
-        /// <summary>ファイルの作成・置換・削除を共通の書き込み処理へ渡します。</summary>
-        static void Replace(const std::filesystem::path& path, const std::optional<std::string>& contents,
-                            bool overwrite)
-        {
-            if (contents)
-            {
-                std::filesystem::create_directories(path.parent_path());
-                Engine::FileContents::Write(path, *contents, overwrite);
-            }
-            else
-                Engine::FileContents::Remove(path);
         }
     };
 }

@@ -5,6 +5,7 @@
 #include <fstream>
 #include <atomic>
 #include <cctype>
+#include <type_traits>
 
 namespace
 {
@@ -34,15 +35,20 @@ namespace
         } catch (const std::exception& error) { pending.error=error.what(); return false; }
         catch (...) { pending.error="Script module registration failed"; return false; }
     }
-    struct ModuleCallback
+    template <class Context> struct ModuleCallback
     {
         // Ownership is the use: keeping this member alive prevents unloading callback code.
         // The callback must be destroyed before releasing its DLL.
         // cppcheck-suppress unusedStructMember
         std::shared_ptr<ModuleLifetime> lifetime;
         std::filesystem::path contentRoot;
-        std::function<void(SceneRuntime::ScriptContext&)> callback;
-        void operator()(SceneRuntime::ScriptContext& context) const
+        std::function<void(Context&)> callback;
+        void operator()(Context& original) const
+        {
+            auto context = original;
+            Invoke(context);
+        }
+        void Invoke(std::remove_const_t<Context>& context) const
         {
             if (context.content)
                 context.content->RequireRoot(contentRoot);
@@ -52,8 +58,13 @@ namespace
     };
     void RetainModule(SceneRuntime::ScriptDefinition& definition,const std::shared_ptr<ModuleLifetime>& lifetime,const std::filesystem::path& contentRoot)
     {
-        for (auto* callback:{&definition.start,&definition.update,&definition.stop,&definition.onEvent,&definition.fixedUpdate,&definition.lateUpdate})
-            if (*callback) *callback=ModuleCallback{lifetime,contentRoot,std::move(*callback)};
+        for (auto* callback : {&definition.start, &definition.update, &definition.prepareStop, &definition.onEvent,
+                               &definition.fixedUpdate, &definition.lateUpdate})
+            if (*callback)
+                *callback = ModuleCallback<SceneRuntime::ScriptContext>{lifetime, contentRoot, std::move(*callback)};
+        if (definition.stop)
+            definition.stop = ModuleCallback<const SceneRuntime::ScriptStopContext>{lifetime, contentRoot,
+                                                                                    std::move(definition.stop)};
         if(definition.pause) {
             // Destroy the function before its captured DLL lifetime.
             struct PauseCallback {

@@ -89,7 +89,10 @@ namespace ScriptValidation
             definition.start=[phase,remove](ScriptContext& context){if(phase==0) remove(context);};
             definition.onEvent=[phase,remove](ScriptContext& context){if(phase==1) remove(context);};
             definition.update=[phase,remove](ScriptContext& context){context.object.position[0]+=context.Value("speed",0);if(phase==2) remove(context);};
-            definition.stop=[](ScriptContext& context){context.object.position[1]+=1;};
+            definition.prepareStop = [](ScriptContext& context)
+            {
+                context.object.position[1] += 1;
+            };
             Require(ScriptRegistry::Register(name,definition),"self-removing script registers");
             ScenePlacement owner;owner.id="owner";owner.scripts.push_back({"script",true,name,{}});
             SceneLayout layout;layout.objects={owner};ScriptRuntime runtime;std::string error;
@@ -205,7 +208,10 @@ namespace ScriptValidation
         ScriptDefinition definition; definition.fields={{"speed",{2,0,10}}};
         definition.start=[](ScriptContext& context) { ++started; context.state["frames"]=0; };
         definition.update=[](ScriptContext& context) { ++updated; context.state["frames"]+=1; context.object.position[0]+=context.Value("speed",2)*static_cast<float>(context.seconds); };
-        definition.stop=[](ScriptContext&) { ++stopped; };
+        definition.stop = [](const ScriptStopContext&)
+        {
+            ++stopped;
+        };
         Require(ScriptRegistry::Register("ValidationMover",definition),"custom script registration");
         Require(!ScriptRegistry::Register("ValidationMover",definition),"duplicate script registration rejected");
         auto invalid=definition; invalid.fields["speed"].initial=20;

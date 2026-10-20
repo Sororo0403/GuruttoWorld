@@ -103,10 +103,10 @@ namespace SceneRuntime
         {
             if (!ValidPath(path))
                 throw std::runtime_error("Invalid material path");
-            std::ifstream stream(root / path);
-            if (!stream)
+            const auto source = Engine::FileContents::Read(root / path);
+            if (!source)
                 throw std::runtime_error("Cannot open material");
-            auto json = Engine::Json::parse(stream);
+            auto json = Engine::Json::parse(*source);
             if (assetIndex)
                 References(json, *assetIndex);
             else

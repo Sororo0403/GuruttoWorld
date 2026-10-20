@@ -25,13 +25,31 @@ namespace Engine
                 return std::nullopt;
             if (!std::filesystem::is_regular_file(path))
                 throw std::runtime_error("Not a regular file: " + Text(path));
-            std::ifstream input(path, std::ios::binary);
-            if (!input)
-                throw std::runtime_error("Cannot open file: " + Text(path));
-            std::string contents{std::istreambuf_iterator<char>(input), {}};
-            if (input.bad())
-                throw std::runtime_error("Cannot read file: " + Text(path));
-            return contents;
+            auto file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                    nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
+            if (file == INVALID_HANDLE_VALUE)
+                Failure("open", path, GetLastError());
+            try
+            {
+                std::string contents;
+                char buffer[65536];
+                DWORD count = 0;
+                while (true)
+                {
+                    if (!ReadFile(file, buffer, sizeof(buffer), &count, nullptr))
+                        Failure("read", path, GetLastError());
+                    if (!count)
+                        break;
+                    contents.append(buffer, count);
+                }
+                CloseHandle(file);
+                return contents;
+            }
+            catch (...)
+            {
+                CloseHandle(file);
+                throw;
+            }
         }
         /// <summary>内容を同期した一時ファイルから置き換えます。出力先の親フォルダーは作成しません。</summary>
         static void Write(const std::filesystem::path& path, std::string_view contents, bool overwrite = true)

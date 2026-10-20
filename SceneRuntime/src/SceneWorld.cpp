@@ -1118,7 +1118,11 @@ namespace SceneRuntime
             if (!frameUpdating_)
                 if (!FinalizeLifecycle(runtime, prepared, error))
                     return false;
-            CommitLayout(std::move(prepared),true); physics_=std::move(states); *scripts_=std::move(runtime);
+            CommitLayout(std::move(prepared), true);
+            physics_ = std::move(states);
+            if (!frameUpdating_)
+                runtime.CommitStarts();
+            *scripts_ = std::move(runtime);
             previousPhysical_=std::move(previousPoses); currentPhysical_=std::move(currentPoses);
             fixedSeconds_=pending; ++renderVersion_; fixedJump_=pendingJump; fixedPressed_=std::move(pressed); transaction.Commit(); return true;
         } catch (const std::exception& error) { Engine::Log::Warning(error.what()); return false; }
@@ -1236,6 +1240,7 @@ namespace SceneRuntime
         if (!FinalizeLifecycle(runtime, prepared, error))
             return false;
         CommitLayout(std::move(prepared), true);
+        runtime.CommitStarts();
         *scripts_ = std::move(runtime);
         return true;
     }
@@ -1266,6 +1271,8 @@ namespace SceneRuntime
         CommitLayout(std::move(prepared),true);
         CommitAnimatorFrames(frames);
         for (const auto& [id,impulse] : impulses) physicsWorld_.AddImpulse(id,impulse);
+        if (!frameUpdating_)
+            runtime.CommitStarts();
         *scripts_=std::move(runtime);
         return true;
     }

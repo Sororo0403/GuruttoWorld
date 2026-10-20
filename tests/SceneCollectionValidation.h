@@ -145,7 +145,7 @@ namespace SceneCollectionValidation
         {
             c.object.position[2] = ++c.state["ticks"];
         };
-        definition.stop = [stopped](ScriptContext&)
+        definition.stop = [stopped](const ScriptStopContext&)
         {
             ++*stopped;
         };

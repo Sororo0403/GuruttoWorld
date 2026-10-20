@@ -237,7 +237,7 @@ namespace PrefabGpuContractValidation
                 current.object.image.emplace().texture = "Assets/Textures/Missing.png";
             }
         };
-        starter.stop = [&](ScriptContext&)
+        starter.stop = [&](const ScriptStopContext&)
         {
             ++stops;
             --startResources;

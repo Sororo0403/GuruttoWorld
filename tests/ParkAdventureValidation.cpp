@@ -158,7 +158,7 @@ namespace
             if (context.Pressed("Remove") && context.object.id == "root")
                 context.scene->Destroy("root");
         };
-        definition.stop = [](ScriptContext& context)
+        definition.stop = [](const ScriptStopContext& context)
         {
             ++stopped;
             sum += context.object.position[0];

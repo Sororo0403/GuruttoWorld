@@ -14,7 +14,11 @@ namespace ScriptStartValidation
         const auto require=[](bool value) {if(!value) throw std::runtime_error("Script start rollback regression");};
         auto counts=std::make_shared<Counts>();ScriptDefinition definition;
         definition.start=[counts](ScriptContext& c) {++counts->resources;++counts->starts;if(c.Pressed("Throw")) throw std::runtime_error("start failure");};
-        definition.stop=[counts](ScriptContext&) {--counts->resources;++counts->stops;};
+        definition.stop = [counts](const ScriptStopContext&)
+        {
+            --counts->resources;
+            ++counts->stops;
+        };
         definition.update=[](ScriptContext& c) {if(c.Pressed("Fail")) throw std::runtime_error("update failure");};
         definition.fixedUpdate=definition.update;
         definition.pause=[counts](ScriptContext&,bool paused) {if(paused) ++counts->pauses;else ++counts->resumes;};
@@ -42,7 +46,10 @@ namespace ScriptStartValidation
         using namespace SceneRuntime;
         auto counts=std::make_shared<Counts>();ScriptDefinition definition;
         definition.start=[counts](ScriptContext&) {++counts->resources;};
-        definition.stop=[counts](ScriptContext&) {--counts->resources;};
+        definition.stop = [counts](const ScriptStopContext&)
+        {
+            --counts->resources;
+        };
         definition.update=[](ScriptContext&) {};definition.fixedUpdate=definition.update;
         if(!ScriptRegistry::Register("ValidationOuterStartResources",definition)) throw std::runtime_error("outer start registration");
         ScenePlacement owner;owner.id="outer-resource";owner.scripts.push_back({"script",true,"ValidationOuterStartResources",{}});

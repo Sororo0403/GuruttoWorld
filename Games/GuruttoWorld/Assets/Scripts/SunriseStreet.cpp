@@ -436,7 +436,10 @@ namespace
     {
         auto result=SunriseSoundSchema();
         result.start=[](const ScriptContext& c) {bank.Acquire(Text(c,"clip"),c.contentRoot);};
-        result.stop=[](ScriptContext&) {bank.Release();};
+        result.stop = [](const ScriptStopContext&)
+        {
+            bank.Release();
+        };
         result.onEvent=[](ScriptContext& c) {
             if(c.event && c.event->name=="sunrise:play" && bank.ready) {
                 const auto handle=bank.handles.at(Text(c,"clip"));

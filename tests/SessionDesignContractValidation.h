@@ -122,7 +122,7 @@ namespace SessionDesignContractValidation
         unsigned int callbacks = 0;
         bool correctContext = true;
         ScriptDefinition definition;
-        const auto observe = [&](ScriptContext& current)
+        const auto observe = [&](const auto& current)
         {
             ++callbacks;
             correctContext = correctContext && current.content == context && current.contentRoot == context->Root();
@@ -159,7 +159,7 @@ namespace SessionDesignContractValidation
             ++startCalls;
             current.object.position[0] = 42;
         };
-        starter.stop = [&](ScriptContext&)
+        starter.stop = [&](const ScriptStopContext&)
         {
             --startResources;
         };

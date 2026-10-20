@@ -33,6 +33,7 @@ namespace SceneRuntime
             if (!FinalizeLifecycle(runtime, candidate, error))
                 return false;
             CommitLayout(std::move(candidate), true);
+            runtime.CommitStarts();
             *scripts_ = std::move(runtime);
             error.clear();
             return true;
@@ -83,6 +84,7 @@ namespace SceneRuntime
         if (success)
         {
             transaction.Commit();
+            scripts_->CommitStarts();
             return true;
         }
         CommitLayout(std::move(baseline), true);
@@ -97,31 +99,8 @@ namespace SceneRuntime
         preparedRenderVersion_ = static_cast<size_t>(-1);
         return false;
     }
-    bool SceneWorld::FinalizeLifecycle(ScriptRuntime& runtime, PreparedLayout& prepared, std::string& error)
+    bool SceneWorld::FinalizeLifecycle(ScriptRuntime&, PreparedLayout& prepared, std::string& error)
     {
-        try
-        {
-            const bool stopped = runtime.HasPendingStops();
-            auto layout = stopped ? prepared.layout : SceneLayout{};
-            runtime.CommitStarts(stopped ? &layout : nullptr);
-            if (!stopped || layout.Serialize() == prepared.layout.Serialize())
-                return true;
-            PreparedLayout candidate;
-            if (!PrepareScriptLayout(std::move(layout), &prepared, candidate, error) ||
-                (prepareRuntime_ && !prepareRuntime_(candidate.layout, error)) ||
-                (prepareUi_ && !prepareUi_(candidate.layout, runtime.UiCommands(), error)))
-                return false;
-            if (!candidate.shadow)
-                candidate.shadow = prepared.shadow;
-            if (!candidate.localShadow)
-                candidate.localShadow = prepared.localShadow;
-            prepared = std::move(candidate);
-            return true;
-        }
-        catch (const std::exception& failure)
-        {
-            error = failure.what();
-            return false;
-        }
+        return ScriptRuntime::ValidateForPlay(prepared.layout, error);
     }
 }

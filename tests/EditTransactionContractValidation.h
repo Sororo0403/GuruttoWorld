@@ -124,15 +124,24 @@ namespace EditTransactionContractValidation
         SetFileAttributesW(b.c_str(), FILE_ATTRIBUTE_NORMAL);
         contract("edit-partial-write-rollback",
                  rejectedWrite && !called && FileContents::Read(a) == "A" && FileContents::Read(b) == "B");
+        bool externalRejected = false;
         const bool externalRollback = !FileTransaction::Apply(files, true, error,
                                                               [&]
                                                               {
-                                                                  FileContents::Write(a, "external");
+                                                                  try
+                                                                  {
+                                                                      FileContents::Write(a, "external");
+                                                                  }
+                                                                  catch (const std::exception&)
+                                                                  {
+                                                                      externalRejected = true;
+                                                                  }
                                                                   return false;
                                                               });
-        contract("edit-rollback-protects-external-change", externalRollback && FileContents::Read(a) == "external" &&
-                                                               FileContents::Read(b) == "B" &&
-                                                               error.find(" / ") != std::string::npos);
+        // 取引中の外部編集は拒否し、保存候補をすべて元に戻します。
+        contract("edit-rollback-protects-external-change", externalRollback && externalRejected &&
+                                                               FileContents::Read(a) == "A" &&
+                                                               FileContents::Read(b) == "B" && !error.empty());
         FileContents::Write(a, "A");
         auto duplicate = files;
         duplicate.push_back(files.front());

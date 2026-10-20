@@ -174,15 +174,7 @@ namespace Editor
         }
         static std::optional<std::string> Read(const std::filesystem::path& path)
         {
-            if (!std::filesystem::exists(path))
-                return std::nullopt;
-            std::ifstream stream(path, std::ios::binary);
-            if (!stream)
-                throw std::runtime_error("Materialを読み取れません。");
-            std::string source{std::istreambuf_iterator<char>(stream), {}};
-            if (stream.bad())
-                throw std::runtime_error("Materialを読み取れません。");
-            return source;
+            return Engine::FileContents::Read(path);
         }
         static Engine::Json Values(const SceneRuntime::MaterialAsset& asset)
         {

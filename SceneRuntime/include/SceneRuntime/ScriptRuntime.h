@@ -130,9 +130,29 @@ namespace SceneRuntime
         bool Pressed(const std::string& name) const;
         float Value(const std::string& name,float fallback=0) const;
     };
+    struct ScriptStopContext
+    {
+        /// <summary>終了確定では読み取り専用の所有者と実行状態だけを渡します。</summary>
+        explicit ScriptStopContext(const ScriptContext& context)
+            : object(context.object), parameters(context.parameters), state(context.state), data(context.data),
+              dataState(context.dataState), contentRoot(context.contentRoot), content(context.content)
+        {
+        }
+        const ScenePlacement& object;
+        const std::map<std::string, float>& parameters;
+        const std::map<std::string, float>& state;
+        const ScriptValue::Object* data;
+        const ScriptValue::Object* dataState;
+        std::filesystem::path contentRoot;
+        std::shared_ptr<const Engine::ContentContext> content;
+    };
     struct ScriptDefinition : ScriptSchema
     {
-        std::function<void(ScriptContext&)> start,update,stop;
+        std::function<void(ScriptContext&)> start, update;
+        /// <summary>副作用を起こさず候補所有者だけを変更します。失敗時は候補ごと破棄します。</summary>
+        std::function<void(ScriptContext&)> prepareStop;
+        /// <summary>成功確定後、または開始失敗の後始末で外部資源を解放します。配置は変更できません。</summary>
+        std::function<void(const ScriptStopContext&)> stop;
         std::function<void(ScriptContext&)> onEvent;
         std::function<void(ScriptContext&)> fixedUpdate,lateUpdate;
         /// <summary>ホストの一時停止・フォーカス変更を外部資源へ反映します。</summary>
@@ -172,19 +192,14 @@ namespace SceneRuntime
         /// <summary>指定した更新段階を持つ有効な処理があるか調べます。</summary>
         static bool HasPhase(const SceneLayout& layout,ScriptPhase phase);
         /// <summary>外側の更新成功後に開始処理を確定し、予約した終了処理を一度だけ呼びます。</summary>
-        void CommitStarts(SceneLayout* layout = nullptr) noexcept;
-        /// <summary>成功時に終了コールバックの書き戻しを反映する必要があるかを返します。</summary>
-        bool HasPendingStops() const
-        {
-            return !pendingStops_.empty();
-        }
+        void CommitStarts() noexcept;
         /// <summary>実行中のScriptへ一時停止と再開を通知します。</summary>
         void Pause(SceneLayout& layout,bool paused) noexcept;
         void Stop(SceneLayout& layout) noexcept;
         /// <summary>取り除かれた個体の終了処理を旧配置で実行し、残る個体の実行状態を維持します。</summary>
         void StopRemoved(SceneLayout& previous,const SceneLayout& next) noexcept;
         /// <summary>遷移で消える処理を候補から外し、終了処理は外側の確定まで予約します。</summary>
-        void PrepareTransition(const SceneLayout& previous, const SceneLayout& next);
+        void PrepareTransition(const SceneLayout& previous, SceneLayout& next);
         /// <summary>成功したフレームで予約されたシーン操作を取得します。</summary>
         std::vector<SceneCommand> TakeSceneCommands() { auto commands=std::move(sceneCommands_); sceneCommands_.clear(); return commands; }
         /// <summary>成功したFixed・Update・LateUpdateが予約したUI変更を一度だけ取得します。</summary>
@@ -226,12 +241,11 @@ namespace SceneRuntime
         struct PendingStop
         {
             std::shared_ptr<PendingStart> start;
-            ScenePlacement owner;
-            std::function<void(ScenePlacement&)> callback;
+            std::function<void()> callback;
         };
         std::vector<PendingStop> pendingStops_;
         /// <summary>終了時に必要な値を候補が所有し、失敗した候補からは呼び出しません。</summary>
-        void QueueStop(const ScenePlacement& owner, const Instance& instance);
+        void QueueStop(ScenePlacement& owner, const Instance& instance);
         bool paused_=false;
         struct TickContext {
             TickContext(const std::map<std::string, float> &values, const std::map<std::string, bool> &edges, ScriptScene &candidate, ScriptPhase callbackPhase, double elapsed)

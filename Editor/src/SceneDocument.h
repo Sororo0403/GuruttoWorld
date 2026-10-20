@@ -192,15 +192,7 @@ namespace Editor
     private:
         static std::optional<std::string> ReadSource(const std::filesystem::path& path)
         {
-            if (!std::filesystem::exists(path))
-                return std::nullopt;
-            std::ifstream input(path, std::ios::binary);
-            if (!input)
-                throw std::runtime_error("シーンの保存状態を読み取れません。");
-            std::string source{std::istreambuf_iterator<char>(input), {}};
-            if (input.bad())
-                throw std::runtime_error("シーンの保存状態を読み取れません。");
-            return source;
+            return Engine::FileContents::Read(path);
         }
         struct RequestData
         {

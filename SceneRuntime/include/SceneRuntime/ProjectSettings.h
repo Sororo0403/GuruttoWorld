@@ -1,6 +1,7 @@
 #pragma once
 #include <Engine/Assets/AssetReferenceResolver.h>
 #include <Engine/Core/Json.h>
+#include <Engine/Core/FileReplacement.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Input/InputActions.h>
 #include <filesystem>
@@ -122,7 +123,11 @@ namespace SceneRuntime
             References(root, json);
             auto source = std::optional<std::string>{json.dump(2) + '\n'};
             checkSource();
-            Engine::FileContents::Write(absolute, *source);
+            const bool sameSource =
+                !savedPath_.empty() &&
+                CompareStringOrdinal(savedPath_.c_str(), -1, absolute.c_str(), -1, TRUE) == CSTR_EQUAL;
+            Engine::FileReplacement::Write(absolute, sameSource ? savedSource_ : Engine::FileContents::Read(absolute),
+                                           *source);
             static_cast<void>(Engine::AssetDatabase::Ensure(path));
             savedPath_ = absolute;
             savedSource_.swap(source);

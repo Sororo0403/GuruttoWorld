@@ -7,7 +7,7 @@ namespace SceneRuntime
 {
     struct ScriptModuleAbi
     {
-        uint32_t version=13;
+        uint32_t version = 14;
         uint64_t engineBuild=Engine::BuildIdentity();
         uint32_t compiler=_MSC_VER;
         uint32_t iteratorDebug=_ITERATOR_DEBUG_LEVEL;

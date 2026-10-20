@@ -1,4 +1,5 @@
 #include "ArchitectureAuditFixValidation.h"
+#include "ReauditFixValidation.h"
 #include "../Editor/src/GameSession.h"
 #include "../Editor/src/SceneDocument.h"
 #include "../Editor/src/MaterialDocument.h"
@@ -160,7 +161,7 @@ namespace
             ++counts->active;
             ++counts->starts;
         };
-        definition.stop = [counts](ScriptContext&)
+        definition.stop = [counts](const ScriptStopContext&)
         {
             --counts->active;
             ++counts->stops;
@@ -264,10 +265,13 @@ namespace
             context.object.position[0] = 1;
             context.object.scripts.clear();
         };
-        definition.stop = [stops](ScriptContext& context)
+        definition.prepareStop = [](ScriptContext& context)
+        {
+            context.object.position[1] += 1;
+        };
+        definition.stop = [stops](const ScriptStopContext&)
         {
             ++*stops;
-            context.object.position[1] += 1;
         };
         Require(ScriptRegistry::Register("AuditStopWriteback", definition), "stop writeback definition");
         SceneLayout scene;
@@ -459,6 +463,8 @@ namespace ArchitectureAuditFixValidation
         ValidateSceneTransition(renderer, root);
         ValidateFrame(renderer, root);
         ValidateProceduralCache(renderer, root);
+        ReauditFixValidation::Lifecycle(renderer, root);
+        ReauditFixValidation::Save(root);
         Require(renderer.WaitForIdle(), "audit GPU completion");
         Microsoft::WRL::ComPtr<ID3D12InfoQueue> messages;
         if (SUCCEEDED(renderer.GetDevice()->QueryInterface(IID_PPV_ARGS(&messages))))

@@ -489,12 +489,10 @@ namespace SceneRuntime
     }
     SceneLayout SceneLayout::Load(const std::filesystem::path& path, const std::filesystem::path& assetsRoot)
     {
-        std::ifstream stream(path, std::ios::binary);
-        if (!stream)
+        const auto source = Engine::FileContents::Read(path);
+        if (!source)
             throw std::runtime_error("Cannot open layout: " + path.string());
-        std::string json{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
-        if (stream.bad())
-            throw std::runtime_error("Cannot read layout: " + path.string());
+        auto json = *source;
         // 一般的なテキストエディターが付けるUTF-8 BOMを許可します。
         if (json.starts_with("\xEF\xBB\xBF"))
             json.erase(0, 3);
