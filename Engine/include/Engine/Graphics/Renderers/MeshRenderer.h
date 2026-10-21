@@ -107,10 +107,17 @@ namespace Engine
         bool PrepareLocalLighting(ID3D12GraphicsCommandList* commands,const DirectionalLight& light,const Material* material,std::array<float,26>& constants,LocalLightView& lights) const;
         bool PrepareDeformation(ID3D12GraphicsCommandList* commands,const MeshDeformation& deformation,const DirectX::XMFLOAT4X4& viewProjection,bool mirrored,SkinPaletteView& view) const;
         /// <summary>不変ディスクリプターを共有し、フェンス完了済みのフレーム枠から古い参照を解放します。</summary>
-        ID3D12DescriptorHeap* Bindings(ID3D12GraphicsCommandList* commands,const ShadowMap* shadow,const std::shared_ptr<const Texture2D>& texture,
-            const std::shared_ptr<const Texture2D>& normal,const LocalLightView& lights,const SkinPaletteView& palette,
-            const SkinPaletteView& instances={},const ShadowMap* localShadow=nullptr,
-            const std::array<std::shared_ptr<const Texture2D>,2>& surfaceImages={}) const;
+        struct BindingRequest {
+            const ShadowMap* shadow=nullptr;
+            std::shared_ptr<const Texture2D> texture,normal;
+            LocalLightView lights;
+            SkinPaletteView palette,instances;
+            const ShadowMap* localShadow=nullptr;
+            std::array<std::shared_ptr<const Texture2D>,2> surfaceImages{};
+        };
+        struct Binding;
+        ID3D12DescriptorHeap* Bindings(ID3D12GraphicsCommandList* commands,const BindingRequest& request) const;
+        std::shared_ptr<Binding> CreateBinding(const BindingRequest& request) const;
         using BindingKey=std::tuple<ID3D12Resource*,const Texture2D*,const Texture2D*,ID3D12Resource*,ID3D12Resource*,ID3D12Resource*,ID3D12Resource*,const Texture2D*,const Texture2D*>;
         struct Binding {
             Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap;

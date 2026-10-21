@@ -48,6 +48,15 @@ namespace
             if (side != axis && (moving.high[side] <= fixed.low[side] + 0.00001f || moving.low[side] >= fixed.high[side] - 0.00001f)) overlap = false;
         return overlap;
     }
+    bool SweepCollider(const SceneLayout& layout,size_t index,size_t other)
+    {
+        const auto& collider=layout.objects[other].boxCollider;
+        if (!collider || !collider->enabled || collider->isTrigger || Related(layout,index,other)) return false;
+        const auto& own=*layout.objects[index].boxCollider;
+        if (!(own.mask&(1u<<collider->layer)) || !(collider->mask&(1u<<own.layer))) return false;
+        return true;
+    }
+
     float Sweep(const SceneLayout& layout,const std::vector<Matrix>& matrices,size_t index,size_t axis,float distance)
     {
         const auto& object=layout.objects[index];
@@ -55,10 +64,8 @@ namespace
         const auto moving=Box(*object.boxCollider,matrices[index]);
         for (size_t other=0;other<layout.objects.size();++other)
         {
+            if(!SweepCollider(layout,index,other)) continue;
             const auto& collider=layout.objects[other].boxCollider;
-            if (!collider || !collider->enabled || collider->isTrigger || Related(layout,index,other)) continue;
-            const auto& own=*object.boxCollider;
-            if (!(own.mask&(1u<<collider->layer)) || !(collider->mask&(1u<<own.layer))) continue;
             const auto fixed=Box(*collider,matrices[other]);
             const bool overlap=OverlapSides(moving,fixed,axis);
             if (!overlap) continue;

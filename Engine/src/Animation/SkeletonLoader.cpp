@@ -100,6 +100,18 @@ namespace
         }
     }
 
+    BoneTrack ReadTrack(const aiNodeAnim& sourceTrack,double frequency)
+    {
+        BoneTrack track;
+        for (unsigned int key = 0; key < sourceTrack.mNumPositionKeys; ++key)
+        { const auto &value = sourceTrack.mPositionKeys[key]; track.positions.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z}}); }
+        for (unsigned int key = 0; key < sourceTrack.mNumScalingKeys; ++key)
+        { const auto &value = sourceTrack.mScalingKeys[key]; track.scales.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z}}); }
+        for (unsigned int key = 0; key < sourceTrack.mNumRotationKeys; ++key)
+        { const auto &value = sourceTrack.mRotationKeys[key]; track.rotations.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z, value.mValue.w}}); }
+        return track;
+    }
+
     void ReadClips(const aiScene &scene, SkeletonData &rig, const std::map<std::string, size_t> &names)
     {
         std::set<std::string> authoredNames,usedNames;
@@ -119,13 +131,7 @@ namespace
             {
                 const auto &sourceTrack = *source.mChannels[channel]; const auto node = names.find(sourceTrack.mNodeName.C_Str());
                 if (node == names.end()) throw std::runtime_error("Animation node missing");
-                BoneTrack track;
-                for (unsigned int key = 0; key < sourceTrack.mNumPositionKeys; ++key)
-                { const auto &value = sourceTrack.mPositionKeys[key]; track.positions.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z}}); }
-                for (unsigned int key = 0; key < sourceTrack.mNumScalingKeys; ++key)
-                { const auto &value = sourceTrack.mScalingKeys[key]; track.scales.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z}}); }
-                for (unsigned int key = 0; key < sourceTrack.mNumRotationKeys; ++key)
-                { const auto &value = sourceTrack.mRotationKeys[key]; track.rotations.push_back({Time(value.mTime, frequency), {value.mValue.x, value.mValue.y, value.mValue.z, value.mValue.w}}); }
+                auto track=ReadTrack(sourceTrack,frequency);
                 clip.tracks[node->second] = std::move(track);
             }
             rig.clips.push_back(std::move(clip));

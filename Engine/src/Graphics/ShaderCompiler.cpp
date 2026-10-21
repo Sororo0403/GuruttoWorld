@@ -206,6 +206,17 @@ namespace
 
 namespace Engine
 {
+    static bool DependenciesUnchanged(const std::map<std::filesystem::path,std::string>& dependencies)
+    {
+        bool unchanged = true;
+        for (const auto& [dependency, previous] : dependencies)
+        {
+            std::string current;
+            if (!Read(dependency, current) || current != previous) { unchanged = false; break; }
+        }
+        return unchanged;
+    }
+
     bool GetShaderRevision(const std::filesystem::path& path, std::string& revision) try
     {
         revision.clear();
@@ -230,12 +241,7 @@ namespace Engine
         std::lock_guard lock(mutex);
         if (const auto found = cache.find(sourcePath); found != cache.end())
         {
-            bool unchanged = true;
-            for (const auto& [dependency, previous] : found->second.dependencies)
-            {
-                std::string current;
-                if (!Read(dependency, current) || current != previous) { unchanged = false; break; }
-            }
+            const bool unchanged=DependenciesUnchanged(found->second.dependencies);
             if (unchanged) { revision = found->second.revision; return true; }
             cache.erase(found);
         }

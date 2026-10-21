@@ -31,6 +31,16 @@ std::optional<std::string> ReadSettings(const std::filesystem::path& path) {
     }
     return content;
 }
+bool RestoreReplacementBackup(DWORD error,const std::filesystem::path& backup,const std::filesystem::path& target)
+{
+    if(error!=ERROR_UNABLE_TO_MOVE_REPLACEMENT_2) return false;
+    if(!MoveFileExW(backup.c_str(),target.c_str(),MOVEFILE_WRITE_THROUGH)) {
+        const auto bytes=backup.generic_u8string();
+        Engine::Log::Error("Settings recovery file retained: "+std::string(bytes.begin(),bytes.end()));
+    }
+    return true;
+}
+
 bool ReplaceSettings(const std::filesystem::path& temporary,const std::filesystem::path& target,DWORD& error) {
     static std::atomic<unsigned long long> sequence=0;
     auto backup=temporary;
@@ -38,13 +48,7 @@ bool ReplaceSettings(const std::filesystem::path& temporary,const std::filesyste
     for(unsigned int attempt=0;attempt<9;++attempt) {
         if(ReplaceFileW(target.c_str(),temporary.c_str(),backup.c_str(),0,nullptr,nullptr)) {DeleteFileW(backup.c_str());return true;}
         error=GetLastError();
-        if(error==ERROR_UNABLE_TO_MOVE_REPLACEMENT_2) {
-            if(!MoveFileExW(backup.c_str(),target.c_str(),MOVEFILE_WRITE_THROUGH)) {
-                const auto bytes=backup.generic_u8string();
-                Engine::Log::Error("Settings recovery file retained: "+std::string(bytes.begin(),bytes.end()));
-            }
-            return false;
-        }
+        if(RestoreReplacementBackup(error,backup,target)) return false;
         if(error==ERROR_FILE_NOT_FOUND) {
             if(MoveFileExW(temporary.c_str(),target.c_str(),MOVEFILE_WRITE_THROUGH)) return true;
             error=GetLastError();

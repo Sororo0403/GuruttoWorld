@@ -20,7 +20,8 @@ namespace SceneRuntime
             if (items.empty() && !configuration->pressAnyButton && !configuration->settingsScreen) return;
             menu_.emplace(playIntro && !configuration->settingsScreen); menu_->Configure(*configuration);
             if(configuration->settingsScreen) {
-                std::vector<TitleMenuItem> settingsItems;for(const auto& entry:configuration->entries) settingsItems.push_back(static_cast<TitleMenuItem>(entry.index));
+                std::vector<TitleMenuItem> settingsItems;
+                std::transform(configuration->entries.begin(),configuration->entries.end(),std::back_inserter(settingsItems),[](const auto& entry) {return static_cast<TitleMenuItem>(entry.index);});
                 menu_->SetItems(settingsItems);
             } else menu_->SetItems(items);
             configTransition_.Configure(layout,configuration->configTransition,state,configuration->settingsScreen);
@@ -28,7 +29,8 @@ namespace SceneRuntime
             menu_->SetTransitionDuration(state.Value("startDuration",0.32f));
             menu_->SetPresentationDurations(state.Value("introDuration",0.65f),state.Value("selectionDuration",0.16f));
             if(configuration->settingsScreen) {
-                for(const auto& entry:configuration->entries) if(entry.action=="settings") {menu_->ActivateUi("menu:"+std::to_string(entry.index));break;}
+                const auto entry=std::find_if(configuration->entries.begin(),configuration->entries.end(),[](const auto& item) {return item.action=="settings";});
+                if(entry!=configuration->entries.end()) menu_->ActivateUi("menu:"+std::to_string(entry->index));
             }
             seekIntro_=menu_->IntroProgress()==1;
             Sync(state);
@@ -41,9 +43,9 @@ namespace SceneRuntime
             ScenePlacement pose;DirectX::XMFLOAT4X4 matrix;
             if(camera && environment.World().WorldMatrix(camera->id,matrix) && SceneTransforms::ReadTransform(matrix,{},pose)) departureFrom_=pose;
         }
-        void ApplyPresentation(SceneEnvironment& environment) {
-            configTransition_.Apply(environment);
-            if(!menu_) return;
+    private:
+        void ApplyDeparture(SceneEnvironment& environment)
+        {
             if(Departing() && departureFrom_) {
                 const auto* camera=SceneView::CameraObject(environment.World().Layout());
                 ScenePlacement target;DirectX::XMFLOAT4X4 matrix;
@@ -58,6 +60,13 @@ namespace SceneRuntime
                     if(!environment.World().SetWorldTransform(camera->id,target.position,target.rotation,target.scale)) Engine::Log::Warning("Departure camera transform was rejected");
                 } else Engine::Log::Warning("Departure camera target is missing or invalid");
             }
+        }
+
+    public:
+        void ApplyPresentation(SceneEnvironment& environment) {
+            configTransition_.Apply(environment);
+            if(!menu_) return;
+            ApplyDeparture(environment);
             SyncDeparture(environment.Ui());
             if(configTransition_.TakeEntered()) {
                 const auto* entry=menu_->SelectedEntry();
@@ -72,10 +81,9 @@ namespace SceneRuntime
         void SelectHovered(const SceneLayout& layout,const std::string& id,UiState& state)
         {
             if(!menu_ || BlocksPointer()) return;
-            for(const auto& object:layout.objects) if(object.id==id) {
-                if(const auto item=TitleBindings::Item(object)) {menu_->SelectUi(*item); Sync(state);}
-                break;
-            }
+            const auto object=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& item) {return item.id==id;});
+            if(object!=layout.objects.end())
+                if(const auto item=TitleBindings::Item(*object)) {menu_->SelectUi(*item); Sync(state);}
         }
         bool Active() const { return menu_.has_value(); }
         void Suspend() { if(menu_) menu_->Update({}); }
@@ -132,12 +140,17 @@ namespace SceneRuntime
             if (action==SceneRuntime::TitleMenuAction::Exit)
             { SceneRuntime::UiEvent event; event.action="quit"; pending_=std::move(event); }
         }
-        void Sync(SceneRuntime::UiState& state)
+        void SyncStartRequest(SceneRuntime::UiState& state)
         {
-            if(menu_->GetCue()!=SceneRuntime::TitleMenuCue::None) pendingCue_=static_cast<size_t>(menu_->GetCue());
             if(menu_->GetCue()==SceneRuntime::TitleMenuCue::Confirm && !menu_->IsSettingsOpen() && menu_->SelectedEntry() && menu_->SelectedEntry()->action=="loadScene") {
                 state.values["startRequested"]=1;
             }
+        }
+
+        void Sync(SceneRuntime::UiState& state)
+        {
+            if(menu_->GetCue()!=SceneRuntime::TitleMenuCue::None) pendingCue_=static_cast<size_t>(menu_->GetCue());
+            SyncStartRequest(state);
             std::string assignments; if(menu_->TakeAssignments(assignments)) state.Assign(assignments);
             for (const auto& [name,value] : SceneRuntime::TitleUi::State(*menu_,state).values) state.values[name]=value;
             configTransition_.Observe(menu_->IsSettingsOpen(),state);

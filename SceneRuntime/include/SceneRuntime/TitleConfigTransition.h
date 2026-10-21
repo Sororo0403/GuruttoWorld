@@ -36,8 +36,8 @@ namespace SceneRuntime
             if(!settingsOpen && settingsOpen_) {phase_=Phase::Returning;elapsed_=0;capture_=true;inputReady_=false;}
             settingsOpen_=settingsOpen;Sync(state);
         }
-        bool TakeEntered() {return std::exchange(entered_,false);}
-        bool TakeReturned() {return std::exchange(returned_,false);}
+        bool TakeEntered() {const bool entered=entered_;entered_=false;return entered;}
+        bool TakeReturned() {const bool returned=returned_;returned_=false;return returned;}
         bool Enabled() const {return configuration_.enabled;}
         bool Returning() const {return phase_==Phase::Returning;}
         void Prepare(SceneEnvironment& environment,double seconds,bool active)
