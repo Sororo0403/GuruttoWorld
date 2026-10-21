@@ -1,0 +1,16 @@
+{
+  "color": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "metallic": 0,
+  "normalFlipY": false,
+  "normalTexture": "Assets/Textures/Sunrise/Cafe/T_Ornaments_Normal.png",
+  "physicallyBased": true,
+  "roughness": 0.82,
+  "texture": "Assets/Textures/Sunrise/Cafe/T_Ornaments_BaseColor.png",
+  "transparent": false,
+  "shader": "Shaders/StreetGraphicEffect.hlsl"
+}

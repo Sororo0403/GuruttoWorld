@@ -11,5 +11,6 @@
   "physicallyBased": true,
   "roughness": 0.82,
   "texture": "Assets/Textures/Sunrise/Cafe/T_Dirt_BaseColor.png",
-  "transparent": false
+  "transparent": false,
+  "shader": "Shaders/TitleCityEffect.hlsl"
 }

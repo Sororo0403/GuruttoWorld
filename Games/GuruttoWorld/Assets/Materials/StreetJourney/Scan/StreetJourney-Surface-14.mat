@@ -1,0 +1,16 @@
+{
+  "color": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "metallic": 0.12,
+  "normalFlipY": false,
+  "normalTexture": "",
+  "physicallyBased": true,
+  "roughness": 0.28,
+  "texture": "Assets/Textures/StreetJourney/Palette.png",
+  "transparent": false,
+  "shader": "Shaders/StreetGraphicEffect.hlsl"
+}

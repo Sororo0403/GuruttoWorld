@@ -11,5 +11,6 @@
   "physicallyBased": true,
   "roughness": 0.82,
   "texture": "Assets/Textures/StreetJourney/Palette.png",
-  "transparent": false
+  "transparent": false,
+  "shader": "Shaders/TitleCityEffect.hlsl"
 }

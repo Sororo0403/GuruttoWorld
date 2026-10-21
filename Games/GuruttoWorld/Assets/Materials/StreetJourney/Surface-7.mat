@@ -11,5 +11,6 @@
   "physicallyBased": true,
   "roughness": 0.88,
   "texture": "Assets/Textures/StreetJourney/PolyHaven/pavement_05_diff_1k.png",
-  "transparent": false
+  "transparent": false,
+  "shader": "Shaders/TitleCityEffect.hlsl"
 }

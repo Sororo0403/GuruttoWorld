@@ -1,0 +1,15 @@
+{
+  "color": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "roughness": 0.5,
+  "metallic": 0,
+  "transparent": false,
+  "texture": "",
+  "shader": "Shaders/StreetScanPalette.hlsl",
+  "physicallyBased": false,
+  "normalTexture": ""
+}

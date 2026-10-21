@@ -34,7 +34,7 @@
             0.949999988079071,
             0.9800000190734863
           ],
-          "cloudOpacity": 0.800000011920929,
+          "cloudOpacity": 0,
           "cloudVelocity": [
             0.001500000013038516,
             0.0
@@ -64,9 +64,9 @@
           ],
           "enabled": true,
           "horizon": [
-            0.8299999833106995,
-            0.8999999761581421,
-            0.9100000262260437
+            0,
+            0,
+            0
           ],
           "horizonHeight": 0.699999988079071,
           "id": "sky",
@@ -76,9 +76,9 @@
             0.14000000059604645
           ],
           "sunColor": [
-            1.0,
-            0.8899999856948853,
-            0.6200000047683716
+            0,
+            0,
+            0
           ],
           "sunRadius": [
             0.25,
@@ -87,9 +87,9 @@
           "sunStrength": 0.4000000059604645,
           "type": "Sky",
           "zenith": [
-            0.2199999988079071,
-            0.6200000047683716,
-            0.8299999833106995
+            0,
+            0,
+            0
           ]
         },
         {
@@ -99,7 +99,7 @@
           "tracks": [
             {
               "property": "sky.horizon",
-              "clock": "titleEffectTime",
+              "clock": "sceneTime",
               "easing": "smooth",
               "delay": 0,
               "loop": false,
@@ -107,18 +107,27 @@
                 {
                   "time": 0,
                   "value": [
-                    0.8299999833106995,
-                    0.8999999761581421,
-                    0.9100000262260437,
+                    0,
+                    0,
+                    0,
                     0
                   ]
                 },
                 {
-                  "time": 0.75,
+                  "time": 0.68,
                   "value": [
                     0,
                     0,
                     0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    0.8299999833106995,
+                    0.8999999761581421,
+                    0.9100000262260437,
                     0
                   ]
                 }
@@ -126,7 +135,7 @@
             },
             {
               "property": "sky.zenith",
-              "clock": "titleEffectTime",
+              "clock": "sceneTime",
               "easing": "smooth",
               "delay": 0,
               "loop": false,
@@ -134,18 +143,27 @@
                 {
                   "time": 0,
                   "value": [
-                    0.2199999988079071,
-                    0.6200000047683716,
-                    0.8299999833106995,
+                    0,
+                    0,
+                    0,
                     0
                   ]
                 },
                 {
-                  "time": 0.75,
+                  "time": 0.68,
                   "value": [
                     0,
                     0,
                     0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    0.2199999988079071,
+                    0.6200000047683716,
+                    0.8299999833106995,
                     0
                   ]
                 }
@@ -153,7 +171,7 @@
             },
             {
               "property": "sky.sunColor",
-              "clock": "titleEffectTime",
+              "clock": "sceneTime",
               "easing": "smooth",
               "delay": 0,
               "loop": false,
@@ -161,18 +179,27 @@
                 {
                   "time": 0,
                   "value": [
-                    1.0,
-                    0.8899999856948853,
-                    0.6200000047683716,
+                    0,
+                    0,
+                    0,
                     0
                   ]
                 },
                 {
-                  "time": 0.75,
+                  "time": 0.68,
                   "value": [
                     0,
                     0,
                     0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    1.0,
+                    0.8899999856948853,
+                    0.6200000047683716,
                     0
                   ]
                 }
@@ -180,7 +207,7 @@
             },
             {
               "property": "sky.cloudOpacity",
-              "clock": "titleEffectTime",
+              "clock": "sceneTime",
               "easing": "smooth",
               "delay": 0,
               "loop": false,
@@ -188,16 +215,25 @@
                 {
                   "time": 0,
                   "value": [
-                    0.800000011920929,
+                    0,
                     0,
                     0,
                     0
                   ]
                 },
                 {
-                  "time": 0.75,
+                  "time": 0.68,
                   "value": [
                     0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    0.800000011920929,
                     0,
                     0,
                     0
@@ -209,7 +245,7 @@
         }
       ],
       "id": "block-sky",
-      "name": "空 / 朝の青空",
+      "name": "空 / ペーパーと墨の街",
       "parent": "",
       "position": [
         0.0,
@@ -548,7 +584,7 @@
     {
       "id": "hero-rig",
       "name": "hero-rig",
-      "parent": "park-player",
+      "parent": "scan-hero-presentation",
       "position": [
         0,
         0,
@@ -610,7 +646,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Player.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Player.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.42,
+            0.78,
+            0.92,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -645,7 +784,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Sunrise/Attack.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Sunrise-Attack.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.85,
+            0.45,
+            0.32
+          ],
+          "roughness": 0.78,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1029,7 +1271,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-0.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-0.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.75,
+            0.85,
+            0.78,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1064,7 +1409,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-1.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-1.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.8,
+            0.91,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1099,7 +1547,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-2.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-2.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.73,
+            0.55,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1134,7 +1685,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-3.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-3.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.28,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1169,7 +1823,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-4.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-4.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.75,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1204,7 +1961,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-5.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-5.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1239,7 +2099,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-6.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-6.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1274,7 +2237,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-7.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-7.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.88,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1309,7 +2375,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-8.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-8.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1344,7 +2513,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-9.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-9.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1379,7 +2651,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-10.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-10.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1414,7 +2789,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-11.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-11.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1449,7 +2927,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-12.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-12.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.88,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1484,7 +3065,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-13.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-13.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1519,7 +3203,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-14.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-14.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.28,
+          "metallic": 0.12,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1554,7 +3341,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-4.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-4.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.75,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1589,7 +3479,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-5.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-5.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1624,7 +3617,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-6.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-6.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1659,7 +3755,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-7.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-7.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.88,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1694,7 +3893,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-8.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-8.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1729,7 +4031,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-9.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-9.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1764,7 +4169,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-10.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-10.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1799,7 +4307,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-11.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-11.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1834,7 +4445,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-12.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-12.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.88,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1869,7 +4583,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-13.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-13.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1904,7 +4721,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-14.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-14.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.28,
+          "metallic": 0.12,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1939,7 +4859,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-4.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-4.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.75,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1974,7 +4997,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-5.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-5.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2009,7 +5135,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-6.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-6.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2044,7 +5273,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-9.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-9.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2079,7 +5411,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/StreetJourney/Surface-10.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/StreetJourney-Surface-10.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.82,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "start-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2116,6 +5551,115 @@
           "enabled": true,
           "behaviour": "StreetGear",
           "parameters": {}
+        },
+        {
+          "type": "Material",
+          "id": "scan-material",
+          "enabled": true,
+          "asset": "Assets/Materials/StreetJourney/Scan/Gear.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "roughness": 0.5,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2151,7 +5695,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Gate.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Gate.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.18,
+            0.4,
+            0.47,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "BoxCollider",
@@ -2166,6 +5725,94 @@
             1,
             1,
             1
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -2202,7 +5849,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Petal.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.68,
+            0.3,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "Rotator",
@@ -2212,6 +5874,94 @@
             0,
             95,
             0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -2248,7 +5998,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Petal.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.68,
+            0.3,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "Rotator",
@@ -2258,6 +6023,94 @@
             0,
             95,
             0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -2294,7 +6147,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Petal.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.68,
+            0.3,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "Rotator",
@@ -2304,6 +6172,94 @@
             0,
             95,
             0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -2340,7 +6296,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Petal.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.68,
+            0.3,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "Rotator",
@@ -2350,6 +6321,94 @@
             0,
             95,
             0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -2386,7 +6445,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Petal.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.68,
+            0.3,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "Rotator",
@@ -2396,6 +6470,94 @@
             0,
             95,
             0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -2432,7 +6594,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Petal.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.68,
+            0.3,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "Rotator",
@@ -2442,6 +6619,94 @@
             0,
             95,
             0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -2478,7 +6743,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Petal.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.68,
+            0.3,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "Rotator",
@@ -2488,6 +6768,94 @@
             0,
             95,
             0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -2524,7 +6892,22 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Petal.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Petal.mat",
+          "surfaceOverride": true,
+          "color": [
+            1,
+            0.68,
+            0.3,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
         },
         {
           "type": "Rotator",
@@ -2534,6 +6917,94 @@
             0,
             95,
             0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
           ]
         }
       ]
@@ -7784,7 +12255,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -7820,7 +12394,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -7856,7 +12533,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -7892,7 +12672,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Enemy.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Enemy.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.91,
+            0.37,
+            0.24,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -7928,7 +12811,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -7964,7 +12950,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8000,7 +13089,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8036,7 +13228,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8072,7 +13367,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8108,7 +13506,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8144,7 +13645,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Enemy.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Enemy.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.91,
+            0.37,
+            0.24,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8180,7 +13784,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8216,7 +13923,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8252,7 +14062,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8288,7 +14201,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8324,7 +14340,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8360,7 +14479,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8396,7 +14618,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Enemy.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Enemy.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.91,
+            0.37,
+            0.24,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8432,7 +14757,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8468,7 +14896,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8504,7 +15035,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8540,7 +15174,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8576,7 +15313,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8612,7 +15452,110 @@
           "type": "Material",
           "id": "material",
           "enabled": true,
-          "asset": "Assets/Materials/Park/Eye.mat"
+          "asset": "Assets/Materials/StreetJourney/Scan/Park-Eye.mat",
+          "surfaceOverride": true,
+          "color": [
+            0.025,
+            0.06,
+            0.1,
+            1
+          ],
+          "roughness": 0.8,
+          "metallic": 0,
+          "shaderParameters": [
+            -2,
+            -14,
+            1.05,
+            0
+          ]
+        },
+        {
+          "type": "Animation",
+          "id": "scan-animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "material.shaderParameterX",
+              "clock": "sceneTime",
+              "easing": "linear",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    -2,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.38,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.48,
+                  "value": [
+                    5,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.57,
+                  "value": [
+                    14,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.68,
+                  "value": [
+                    38,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.82,
+                  "value": [
+                    90,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.95,
+                  "value": [
+                    180,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -8715,6 +15658,166 @@
           "enabled": true,
           "behaviour": "StreetJourney",
           "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": "scan-hero-presentation",
+      "name": "スキャン / 主人公の見た目",
+      "parent": "park-player",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "Animation",
+          "id": "animation",
+          "enabled": true,
+          "tracks": [
+            {
+              "property": "scale",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    1,
+                    1,
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    1.12,
+                    0.78,
+                    1.12,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.41,
+                  "value": [
+                    0.92,
+                    1.14,
+                    0.92,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.6,
+                  "value": [
+                    1.02,
+                    0.98,
+                    1.02,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.78,
+                  "value": [
+                    1,
+                    1,
+                    1,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "property": "rotation",
+              "clock": "sceneTime",
+              "easing": "smooth",
+              "delay": 0,
+              "loop": false,
+              "keys": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.32,
+                  "value": [
+                    0,
+                    0,
+                    -0.04,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.45,
+                  "value": [
+                    0,
+                    0,
+                    0.02,
+                    0
+                  ]
+                },
+                {
+                  "time": 0.78,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scan-arrival-audio",
+      "name": "スキャン / ためと放出",
+      "parent": "",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        {
+          "type": "AudioSource",
+          "id": "audio",
+          "enabled": true,
+          "clip": "Assets/Audio/Scan/Arrival.wav",
+          "volume": 0.55,
+          "loop": false,
+          "playOnAwake": true,
+          "volumeBinding": "volumeGain"
         }
       ]
     }
