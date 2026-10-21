@@ -14,9 +14,26 @@
 #include <stdexcept>
 bool Register_SunriseStreet(void*,SceneRuntime::RegisterModuleScript);
 bool Register_StreetJourney(void*,SceneRuntime::RegisterModuleScript);
+void ValidateSunriseSound();
 namespace {
 using namespace SceneRuntime;
 void Require(bool condition,const std::string& message) {if(!condition)throw std::runtime_error(message);}
+void CameraControls() {
+ const auto& definition=ScriptRegistry::Definitions().at("StreetCamera");
+ const auto sample=[&](const std::string& field,float value) {
+  ScenePlacement player;player.id="target";player.position={0,1,0};
+  ScenePlacement camera;camera.id="camera";camera.camera.emplace();SceneLayout layout;layout.objects={player,camera};
+  size_t next=1;ScriptScene scene(layout,next);auto data=definition.dataFields;data["target"]={ScriptObjectReference{"target"}};
+  std::map<std::string,float> parameters,state;for(const auto& [name,setting]:definition.fields)parameters[name]=setting.initial;
+  parameters[field]=value;ScriptContext context{layout.objects[1],parameters,state,1.0/60,nullptr,nullptr,&scene};context.data=&data;
+  definition.lateUpdate(context);return layout.objects[1];
+ };
+ const auto base=sample("height",4.5f);
+ Require(std::abs(base.position[0]-.5f)<.00001f && std::abs(base.position[1]-4.4f)<.00001f && std::abs(base.position[2]+7.6f)<.00001f,"Existing authored camera framing remains unchanged: "+std::to_string(base.position[0])+","+std::to_string(base.position[1])+","+std::to_string(base.position[2]));
+ Require(sample("height",3).position[1]<sample("height",6).position[1],"Public camera height changes framing");
+ Require(sample("distance",6).position[2]>sample("distance",10).position[2],"Public camera distance changes framing");
+ Require(sample("lead",2).rotation!=sample("lead",7).rotation,"Public camera lead changes aim");
+}
 bool Register(void*,const char* name,const ScriptDefinition* definition) {return ScriptRegistry::Register(name,*definition);}
 ScenePlacement& Find(SceneLayout& layout,const std::string& id) {
  auto it=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& o){return o.id==id;});
@@ -28,7 +45,7 @@ const ScenePlacement& Find(const SceneLayout& layout,const std::string& id) {
  Require(it!=layout.objects.end(),"Missing "+id);return *it;
 }
 struct Simulation {
- SceneLayout layout=SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json");
+ SceneLayout layout,validated;
  PhysicsWorld physics;ScenePhysics::States states;ScriptRuntime scripts;UiState ui;int frames=0;
  bool inspectStreet=false;float lastYaw=0;std::array<float,3> lastPlayer{};float minYaw=10,maxYaw=-10,minFov=180,maxFov=0;
  explicit Simulation(const std::string& path="Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json") {
@@ -37,16 +54,24 @@ struct Simulation {
   if(inspectStreet && GetEnvironmentVariableA("WP1_JOURNEY_FIXED_VIEW",nullptr,0))
    for(auto& script:Find(layout,"park-camera").scripts)if(script.behaviour=="StreetCamera")script.parameters["fixedView"]=1;
   for(auto& o:layout.objects)for(auto& script:o.scripts)if(script.behaviour=="SunriseSound")script.parameters["volume"]=0;
+  layout.Validate();validated=layout;
  }
  ~Simulation() {scripts.Stop(layout);}
  void Tick(float x=0,float z=0,bool jump=false,bool held=false,bool attack=false) {
   constexpr double dt=1.0/60;
   const std::map<std::string,float> input{{"MoveRight",std::max(0.0f,x)},{"MoveLeft",std::max(0.0f,-x)},{"MoveForward",std::max(0.0f,z)},{"MoveBack",std::max(0.0f,-z)},{"Jump",held?1.0f:0.0f}};
   const std::map<std::string,bool> pressed{{"Jump",jump},{"Attack",attack}};std::string error;
-  Require(scripts.Update(layout,dt,error,input,pressed,&physics,ScriptPhase::FixedUpdate),error);
+  // Use the production candidate path with a known-valid baseline. Physics edits are
+  // checked against the last committed phase, including edits made directly by tests.
+  const auto tickScripts=[&](ScriptPhase phase) {
+   auto candidate=layout;auto runtime=scripts;
+   Require(runtime.UpdateCandidate(candidate,dt,error,input,pressed,&physics,phase,&validated),error);
+   runtime.CommitStarts();layout=std::move(candidate);scripts=std::move(runtime);validated=layout;
+  };
+  tickScripts(ScriptPhase::FixedUpdate);
   Require(physics.Advance(layout,states,dt,x,z,jump,"Games/GuruttoWorld",error),error);
-  Require(scripts.Update(layout,dt,error,input,pressed,&physics),error);
-  Require(scripts.Update(layout,dt,error,input,pressed,&physics,ScriptPhase::LateUpdate),error);
+  tickScripts(ScriptPhase::Update);
+  tickScripts(ScriptPhase::LateUpdate);
   if(inspectStreet) {
    const auto& player=Find(layout,"park-player");const auto& camera=Find(layout,"park-camera");
    auto delta=camera.position;float length=0;
@@ -308,7 +333,7 @@ void Render() {
  }
  Require(started,"Departure emits START");
  std::cout<<"Title after click: "<<title.ActiveSceneName()<<"\n";
- Require(title.ActiveSceneName().find("Course-4A")!=std::string::npos,"START enters rebuilt district through departure");
+ Require(title.ActiveSceneName()=="Assets/Scenes/StreetJourney.json","START enters the configured street journey through departure");
  Capture(renderer,title,"from-title");Require(renderer.WaitForIdle(),"GPU complete");
 }
 void RenderBlock() {
@@ -461,6 +486,8 @@ int main() {
   std::filesystem::create_directories("generated/sunrise");Engine::Log::Initialize("generated/sunrise/validation.log");
   Require(Register_SunriseStreet(nullptr,Register),"Scripts register");
   Require(Register_StreetJourney(nullptr,Register),"Street scripts register");
+  CameraControls();
+  if(GetEnvironmentVariableA("WP1_SOUND_LIFECYCLE_ONLY",nullptr,0)) {ValidateSunriseSound();std::cout<<"PASS sound lifecycle, live clip edit, failed start, pause, step, resume and focus\n";return 0;}
   if(GetEnvironmentVariableA("WP1_JOURNEY_ONLY",nullptr,0)) {
    if(!GetEnvironmentVariableA("WP1_SUNRISE_RENDER_ONLY",nullptr,0))JourneyPlaythrough();
    if(!GetEnvironmentVariableA("WP1_SUNRISE_CPU_ONLY",nullptr,0))RenderJourney();

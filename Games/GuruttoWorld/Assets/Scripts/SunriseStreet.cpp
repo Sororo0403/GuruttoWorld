@@ -185,6 +185,47 @@ namespace
 
     }
 
+    void DiscoverRoof(ScriptContext& context,const std::array<float,3>& p,bool shortBlock)
+    {
+        if(!shortBlock && p[0]<-4 && p[0]>-13 && p[1]>3 && p[2]>26 && p[2]<40 && context.state["roofFound"]==0) {
+            context.state["roofFound"]=1;Sound(context,"Collect");
+        }
+    }
+
+    void UpdateDiscoveries(ScriptContext& context)
+    {
+        // Discoveries depend on entering the playable spaces, not merely seeing them.
+        const auto& p=context.object.position;
+        const bool shortBlock=Text(context,"scene")=="Assets/Scenes/SunriseBlock.json";
+        DiscoverRoof(context,p,shortBlock);
+        if(!shortBlock && p[0]>11.5f && p[0]<17.5f && p[2]>28.5f && p[2]<37.5f && context.state["roomFound"]==0) {
+            context.state["roomFound"]=1;Sound(context,"Collect");
+        }
+        context.state["discoveries"]=context.state["roofFound"]+context.state["roomFound"];
+    }
+
+    std::string InteriorHint(const std::array<float,3>& p,float progress,std::string message)
+    {
+        if(progress>16 && progress<42 && p[0]>5) message="商店の裏にふさがれた入口。J / X で箱をこわしてみよう";
+        if(progress>26 && progress<40 && p[1]>3) message="カフェの屋上を発見！ 看板の裏も探して、中庭へ降りよう";
+        if(p[0]>11.5f && progress>28 && progress<38) message="隠し部屋を発見！ 花を集めたら入口から商店通りへ戻ろう";
+        return message;
+    }
+
+    void UpdatePlayerHint(ScriptContext& context,bool shortBlock)
+    {
+        const auto& p=context.object.position;
+        const float progress = context.object.position[2];
+        const auto hint = progress < context.Value("hintBoundary1", 14) ? "hint1" :
+                progress < context.Value("hintBoundary2", 31) ? "hint2" :
+                progress < context.Value("hintBoundary3", 49)   ? "hint3" : "hint4";
+        std::string message=Text(context,hint);
+        message=InteriorHint(p,progress,std::move(message));
+        if(progress>44 && progress<62 && !context.scene->Find("switch-canal")) message="橋がつながった！ 右の水路にも足場があるよ";
+        if(progress>76 && context.state["switches"]>=2) message="展望広場への道が開いた！ オレンジの目印へ";
+        if(!shortBlock)SetText(context, Id(context, "hint"), message);
+    }
+
     void UpdatePlayer(ScriptContext &context)
     {
         if (!context.scene) return;
@@ -201,31 +242,13 @@ namespace
         const float z = context.Input(Text(context, "forwardAction")) - context.Input(Text(context, "backAction"));
         if (std::hypot(x, z) > 0.1f) context.object.rotation[1] = std::atan2(x, z);
         Combat(context); Collect(context);
-        // Discoveries depend on entering the playable spaces, not merely seeing them.
-        const auto& p=context.object.position;
+        UpdateDiscoveries(context);
         const bool shortBlock=Text(context,"scene")=="Assets/Scenes/SunriseBlock.json";
-        if(!shortBlock && p[0]<-4 && p[0]>-13 && p[1]>3 && p[2]>26 && p[2]<40 && context.state["roofFound"]==0) {
-            context.state["roofFound"]=1;Sound(context,"Collect");
-        }
-        if(!shortBlock && p[0]>11.5f && p[0]<17.5f && p[2]>28.5f && p[2]<37.5f && context.state["roomFound"]==0) {
-            context.state["roomFound"]=1;Sound(context,"Collect");
-        }
-        context.state["discoveries"]=context.state["roofFound"]+context.state["roomFound"];
         const bool jumping=context.Pressed(Text(context,"jumpAction"));
         if(jumping) Sound(context,"Jump");
         context.scene->SetUiValue("sunriseHurt",context.state["invulnerable"]>0 ? 1.0f : 0.0f);
         SetText(context, Id(context, "stats"), Format(context, Text(context, "statsTemplate")));
-        const float progress = context.object.position[2];
-        const auto hint = progress < context.Value("hintBoundary1", 14) ? "hint1" :
-                progress < context.Value("hintBoundary2", 31) ? "hint2" :
-                progress < context.Value("hintBoundary3", 49)   ? "hint3" : "hint4";
-        std::string message=Text(context,hint);
-        if(progress>16 && progress<42 && p[0]>5) message="商店の裏にふさがれた入口。J / X で箱をこわしてみよう";
-        if(progress>26 && progress<40 && p[1]>3) message="カフェの屋上を発見！ 看板の裏も探して、中庭へ降りよう";
-        if(p[0]>11.5f && progress>28 && progress<38) message="隠し部屋を発見！ 花を集めたら入口から商店通りへ戻ろう";
-        if(progress>44 && progress<62 && !context.scene->Find("switch-canal")) message="橋がつながった！ 右の水路にも足場があるよ";
-        if(progress>76 && context.state["switches"]>=2) message="展望広場への道が開いた！ オレンジの目印へ";
-        if(!shortBlock)SetText(context, Id(context, "hint"), message);
+        UpdatePlayerHint(context,shortBlock);
         const auto *goal = context.Reference("goal");
         if (goal && context.state["switches"] >= context.Value("requiredSwitches", 2) && Distance(context.object, *goal) < context.Value("goalDistance", 2)) {
             context.state["clear"] = 1; context.scene->SetUiValue(Text(context, "clearState"), 1);
@@ -312,6 +335,35 @@ namespace
         };
         return result;
     }
+    void ResolveBlockCamera(ScriptContext& c,const ScenePlacement* player,std::array<float,3> wanted,float blend)
+    {
+        std::array<float,3> delta{};
+        for(size_t i=0;i<3;++i) delta[i]=wanted[i]-player->position[i];
+        const float length=std::sqrt(delta[0]*delta[0]+delta[1]*delta[1]+delta[2]*delta[2]);
+        auto direction=delta;std::transform(direction.begin(),direction.end(),direction.begin(),[length](float value) {return value/length;});
+        const auto obstacle=c.scene->Raycast(player->position,direction,length,0xffffffffu,false,player->id);
+        if(obstacle) {
+            const float fraction=std::clamp((obstacle->distance-.35f)/length,.02f,1.0f);
+            for(size_t i=0;i<3;++i)wanted[i]=player->position[i]+delta[i]*fraction;
+        }
+        for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
+        // Smoothing may cross the inside of a corner even when its target is
+        // clear. Resolve the actual camera position after smoothing as well.
+        for(size_t i=0;i<3;++i)delta[i]=c.object.position[i]-player->position[i];
+        const float actualLength=std::sqrt(delta[0]*delta[0]+delta[1]*delta[1]+delta[2]*delta[2]);
+        if(actualLength>.01f) {
+            direction=delta;std::transform(direction.begin(),direction.end(),direction.begin(),[actualLength](float value) {return value/actualLength;});
+            float safeLength=actualLength;
+            for(float offset:{-.22f,0.0f,.22f}) {
+                auto origin=player->position;origin[0]+=offset;
+                const auto hit=c.scene->Raycast(origin,direction,actualLength,0xffffffffu,false,player->id);
+                if(hit)safeLength=std::min(safeLength,std::max(.12f,hit->distance-.35f));
+            }
+            if(safeLength<actualLength)
+                for(size_t i=0;i<3;++i)c.object.position[i]=player->position[i]+direction[i]*safeLength;
+        }
+    }
+
     ScriptDefinition BlockCamera()
     {
         auto result=SunriseBlockCameraSchema();
@@ -339,32 +391,8 @@ namespace
             // Reserve the camera's own aisle outside the cafe awning. Following
             // the player under its overhang would hide them behind the fabric.
             wanted[0]=std::max(wanted[0],c.Value("plazaCameraLeft",-3)*plaza+player->position[0]*(1-plaza));
-            std::array<float,3> delta{};
-            for(size_t i=0;i<3;++i) delta[i]=wanted[i]-player->position[i];
-            const float length=std::sqrt(delta[0]*delta[0]+delta[1]*delta[1]+delta[2]*delta[2]);
-            auto direction=delta;for(auto& value:direction)value/=length;
-            const auto obstacle=c.scene->Raycast(player->position,direction,length,0xffffffffu,false,player->id);
-            if(obstacle) {
-                const float fraction=std::clamp((obstacle->distance-.35f)/length,.02f,1.0f);
-                for(size_t i=0;i<3;++i)wanted[i]=player->position[i]+delta[i]*fraction;
-            }
             const float blend=1-std::exp(-c.Value("response",7)*dt);
-            for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
-            // Smoothing may cross the inside of a corner even when its target is
-            // clear. Resolve the actual camera position after smoothing as well.
-            for(size_t i=0;i<3;++i)delta[i]=c.object.position[i]-player->position[i];
-            const float actualLength=std::sqrt(delta[0]*delta[0]+delta[1]*delta[1]+delta[2]*delta[2]);
-            if(actualLength>.01f) {
-                direction=delta;for(auto& value:direction)value/=actualLength;
-                float safeLength=actualLength;
-                for(float offset:{-.22f,0.0f,.22f}) {
-                    auto origin=player->position;origin[0]+=offset;
-                    const auto hit=c.scene->Raycast(origin,direction,actualLength,0xffffffffu,false,player->id);
-                    if(hit)safeLength=std::min(safeLength,std::max(.12f,hit->distance-.35f));
-                }
-                if(safeLength<actualLength)
-                    for(size_t i=0;i<3;++i)c.object.position[i]=player->position[i]+direction[i]*safeLength;
-            }
+            ResolveBlockCamera(c,player,wanted,blend);
             // Smooth composition separately from collision-safe position. A
             // wall may pull the camera in immediately without rotating its aim.
             if(!c.state["aimReady"]) {c.state["aimX"]=aimX;c.state["aimReady"]=1;}
@@ -442,17 +470,16 @@ namespace
         };
         result.onEvent=[](ScriptContext& c) {
             if(c.event && c.event->name=="sunrise:play" && bank.ready) {
-                const auto handle=bank.handles.at(Text(c,"clip"));
+                const auto handle=bank.Load(Text(c,"clip"),c.contentRoot);
                 bank.audio.SetVolume(handle,c.Value("volume",.35f)*bank.gain);
-                if(bank.audio.Play(handle,false)) {c.state["plays"]+=1;c.scene->SetUiValue(c.object.id,c.state["plays"]);}
+                if(bank.audio.Play(handle,false)) {
+                    if(bank.paused) bank.audio.Pause(handle,true);
+                    c.state["plays"]+=1;c.scene->SetUiValue(c.object.id,c.state["plays"]);
+                }
             }
         };
-        result.update=[](ScriptContext& c) {
-            if(c.object.id=="audio-Attack" && bank.ready) {
-                DWORD foreground=0;GetWindowThreadProcessId(GetForegroundWindow(),&foreground);
-                bank.audio.PauseOutput(foreground!=GetCurrentProcessId());bank.audio.Update();
-            }
-        };
+        result.update=[](ScriptContext&) {if(bank.ready) bank.audio.Update();};
+        result.pause=[](ScriptContext&,bool paused) {bank.Pause(paused);};
         return result;
     }
 }

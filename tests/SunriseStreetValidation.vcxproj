@@ -95,7 +95,7 @@
     <ClInclude Include="ShaderCacheValidation.h" />
     <ClInclude Include="SpriteResourceValidation.h" />
     <ClCompile Include="SunriseStreetValidation.cpp" />
-    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\SunriseStreet.cpp" />
+    <ClCompile Include="SunriseSoundValidation.cpp" />
     <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\StreetJourney.cpp" />
   </ItemGroup>
   <ItemGroup>

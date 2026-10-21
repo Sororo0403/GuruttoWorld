@@ -11,19 +11,61 @@ using namespace SceneRuntime::GeneratedSchemas;
 float Smooth(float a,float b,float value) {
  const float t=std::clamp((value-a)/(b-a),0.0f,1.0f);return t*t*(3-2*t);
 }
+std::array<float,3> SafeJourneyCamera(ScriptContext& c,const ScenePlacement* p,const std::array<float,3>& candidate)
+{
+    std::array<float,3> delta{};float length=0;
+    for(size_t i=0;i<3;++i){delta[i]=candidate[i]-p->position[i];length+=delta[i]*delta[i];}
+    length=std::sqrt(length);if(length<.01f)return candidate;
+    std::transform(delta.begin(),delta.end(),delta.begin(),[length](float value) {return value/length;});
+    float available=length;
+    for(float x:{-.25f,0.0f,.25f}) {
+     auto origin=p->position;origin[0]+=x;
+     if(const auto hit=c.scene->Raycast(origin,delta,length,0xffffffffu,false,p->id))
+      available=std::min(available,std::max(.3f,hit->distance-.4f));
+    }
+    std::array<float,3> result{};
+    for(size_t i=0;i<3;++i)result[i]=p->position[i]+delta[i]*available;
+    return result;
+}
+
+void AimJourneyCamera(ScriptContext& c,std::array<float,3> aim,bool reset,float blend,float dt,bool fixedView)
+{
+    for(size_t i=0;i<3;++i) {
+     const auto key="aim"+std::to_string(i);
+     if(reset)c.state[key]=aim[i];else c.state[key]+=(aim[i]-c.state[key])*blend;
+     aim[i]=c.state[key];
+    }
+    const float dx=aim[0]-c.object.position[0],dz=std::max(1.0f,aim[2]-c.object.position[2]);
+    const float yaw=std::atan2(dx,dz),pitch=std::atan2(c.object.position[1]-aim[1],std::hypot(dx,dz));
+    const auto turn=[&](float from,float to) {
+     const float delta=std::atan2(std::sin(to-from),std::cos(to-from));
+     return from+std::clamp(delta*(1-std::exp(-5*dt)),-.45f*dt,.45f*dt);
+    };
+    // A fixed view follows translation only; wall clearance remains a shared safeguard.
+    if(fixedView)c.object.rotation={std::atan2(2.7f,std::hypot(.3f,10.8f)),std::atan2(-.3f,10.8f),0};
+    else c.object.rotation={reset?pitch:turn(c.object.rotation[0],pitch),reset?yaw:turn(c.object.rotation[1],yaw),0};
+    if(c.object.camera)c.object.camera->verticalFov=58;
+}
+
+bool UpdateJourneyFloor(ScriptContext& c,const ScenePlacement* p,float dt)
+{
+    const auto ground=c.scene->Raycast(p->position,{0,-1,0},1.8f,0xffffffffu,false,p->id);
+    const bool reset=!c.state["ready"] || std::hypot(p->position[0]-c.state["px"],p->position[2]-c.state["pz"])>6;
+    if(ground && ground->normal[1]>.7f) {
+     if(reset)c.state["floor"]=ground->position[1];
+     else c.state["floor"]+=(ground->position[1]-c.state["floor"])*(1-std::exp(-8*dt));
+    }
+    c.state["px"]=p->position[0];c.state["pz"]=p->position[2];
+    return reset;
+}
+
 ScriptDefinition Camera() {
  auto s=StreetCameraSchema();
  s.lateUpdate=[](ScriptContext& c) {
   const auto* p=c.Reference("target");if(!p || !c.scene)return;
   const float dt=static_cast<float>(c.seconds),blend=1-std::exp(-5*dt);
   const bool fixedView=c.Value("fixedView",0)>.5f;
-  const auto ground=c.scene->Raycast(p->position,{0,-1,0},1.8f,0xffffffffu,false,p->id);
-  const bool reset=!c.state["ready"] || std::hypot(p->position[0]-c.state["px"],p->position[2]-c.state["pz"])>6;
-  if(ground && ground->normal[1]>.7f) {
-   if(reset)c.state["floor"]=ground->position[1];
-   else c.state["floor"]+=(ground->position[1]-c.state["floor"])*(1-std::exp(-8*dt));
-  }
-  c.state["px"]=p->position[0];c.state["pz"]=p->position[2];
+  const bool reset=UpdateJourneyFloor(c,p,dt);
   const auto anchor=[&](const char* key,float value,float margin) {
    if(reset)c.state[key]=value;
    else c.state[key]=std::clamp(c.state[key],value-margin,value+margin);
@@ -32,7 +74,7 @@ ScriptDefinition Camera() {
   const float x=anchor("anchorX",p->position[0],.35f),z=anchor("anchorZ",p->position[2],.45f);
   struct Shot {float side,height,back,aimX,aimZ,aimY;};
   Shot shot{.5f,4.4f,7.6f,.2f,3.2f,1.7f};
-  const auto mix=[&](Shot next,float t) {
+  const auto mix=[&](const Shot& next,float t) {
    shot.side+=(next.side-shot.side)*t;shot.height+=(next.height-shot.height)*t;
    shot.back+=(next.back-shot.back)*t;shot.aimX+=(next.aimX-shot.aimX)*t;
    shot.aimZ+=(next.aimZ-shot.aimZ)*t;shot.aimY+=(next.aimY-shot.aimY)*t;
@@ -45,54 +87,28 @@ ScriptDefinition Camera() {
    // Keep the west landing in view before the roof jump without orbiting.
    mix({2,5.4f,8,-.8f,2,1.6f},Smooth(60,70,z));
   }
+  // Keep each area's authored offsets while applying the public camera controls.
+  shot.height+=c.Value("height",4.5f)-4.5f;
+  shot.back+=c.Value("distance",7.6f)-7.6f;
+  shot.aimZ+=c.Value("lead",3)-3;
   std::array<float,3> wanted{x+shot.side,c.state["floor"]+shot.height,z-shot.back};
-  const auto safe=[&](const std::array<float,3>& candidate) {
-   std::array<float,3> delta{};float length=0;
-   for(size_t i=0;i<3;++i){delta[i]=candidate[i]-p->position[i];length+=delta[i]*delta[i];}
-   length=std::sqrt(length);if(length<.01f)return candidate;
-   for(auto& v:delta)v/=length;
-   float available=length;
-   for(float x:{-.25f,0.0f,.25f}) {
-    auto origin=p->position;origin[0]+=x;
-    if(const auto hit=c.scene->Raycast(origin,delta,length,0xffffffffu,false,p->id))
-     available=std::min(available,std::max(.3f,hit->distance-.4f));
-   }
-   std::array<float,3> result{};
-   for(size_t i=0;i<3;++i)result[i]=p->position[i]+delta[i]*available;
-   return result;
-  };
-  wanted=safe(wanted);
+  wanted=SafeJourneyCamera(c,p,wanted);
   const auto length=[&](const std::array<float,3>& v){return std::hypot(std::hypot(v[0]-p->position[0],v[2]-p->position[2]),v[1]-p->position[1]);};
   if(!fixedView && length(wanted)<4.5f) {
    // Preserve the approach side while finding clearance at a corner.
-   const auto candidate=safe({x+shot.side*.65f,c.state["floor"]+shot.height+.6f,z-shot.back*.75f});
+   const auto candidate=SafeJourneyCamera(c,p,{x+shot.side*.65f,c.state["floor"]+shot.height+.6f,z-shot.back*.75f});
    if(length(candidate)>length(wanted)+.4f)wanted=candidate;
   }
   if(reset) {c.object.position=wanted;c.state["ready"]=1;}
   else for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
-  c.object.position=safe(c.object.position);
+  c.object.position=SafeJourneyCamera(c,p,c.object.position);
   if(!fixedView) {
    // Following lag must not turn a close view into a distant one on a diagonal.
    const float distance=length(c.object.position);
    if(distance>10.6f)for(size_t i=0;i<3;++i)
     c.object.position[i]=p->position[i]+(c.object.position[i]-p->position[i])*10.6f/distance;
   }
-  std::array<float,3> aim{x+shot.aimX,c.state["floor"]+shot.aimY,z+shot.aimZ};
-  for(size_t i=0;i<3;++i) {
-   const auto key="aim"+std::to_string(i);
-   if(reset)c.state[key]=aim[i];else c.state[key]+=(aim[i]-c.state[key])*blend;
-   aim[i]=c.state[key];
-  }
-  const float dx=aim[0]-c.object.position[0],dz=std::max(1.0f,aim[2]-c.object.position[2]);
-  const float yaw=std::atan2(dx,dz),pitch=std::atan2(c.object.position[1]-aim[1],std::hypot(dx,dz));
-  const auto turn=[&](float from,float to) {
-   const float delta=std::atan2(std::sin(to-from),std::cos(to-from));
-   return from+std::clamp(delta*(1-std::exp(-5*dt)),-.45f*dt,.45f*dt);
-  };
-  // A fixed view follows translation only; wall clearance remains a shared safeguard.
-  if(fixedView)c.object.rotation={std::atan2(2.7f,std::hypot(.3f,10.8f)),std::atan2(-.3f,10.8f),0};
-  else c.object.rotation={reset?pitch:turn(c.object.rotation[0],pitch),reset?yaw:turn(c.object.rotation[1],yaw),0};
-  if(c.object.camera)c.object.camera->verticalFov=58;
+  AimJourneyCamera(c,{x+shot.aimX,c.state["floor"]+shot.aimY,z+shot.aimZ},reset,blend,dt,fixedView);
 
  };
  return s;
