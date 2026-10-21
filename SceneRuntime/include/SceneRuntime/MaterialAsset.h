@@ -6,6 +6,7 @@
 #include <Engine/Core/Profiler.h>
 #include <Engine/Graphics/Materials/Material.h>
 #include <Engine/Graphics/Renderers/MeshResources.h>
+#include <SceneRuntime/MaterialTextureCache.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <fstream>
@@ -227,26 +228,17 @@ namespace SceneRuntime
             }
             if (!texture.empty())
             {
-                auto image = std::make_shared<Engine::Texture2D>();
-                if (!image->Initialize(device, queue, root / texture))
-                    throw std::runtime_error("Cannot load material texture");
-                result->texture = std::move(image);
+                result->texture = MaterialTextureCache::Load(device, queue, root / texture);
             }
             if (!normalTexture.empty())
             {
-                auto image = std::make_shared<Engine::Texture2D>();
-                if (!image->Initialize(device, queue, root / normalTexture))
-                    throw std::runtime_error("Cannot load material normal texture");
-                result->normalTexture = std::move(image);
+                result->normalTexture = MaterialTextureCache::Load(device, queue, root / normalTexture);
             }
             for (const auto& entry :
                  {std::pair{environmentTexture, &result->environmentTexture}, std::pair{lightmap, &result->lightmap}})
                 if (!entry.first.empty())
                 {
-                    auto image = std::make_shared<Engine::Texture2D>();
-                    if (!image->Initialize(device, queue, root / entry.first))
-                        throw std::runtime_error("Cannot load material lighting texture");
-                    *entry.second = std::move(image);
+                    *entry.second = MaterialTextureCache::Load(device, queue, root / entry.first);
                 }
             return result;
         }

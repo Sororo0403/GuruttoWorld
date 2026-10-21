@@ -4,6 +4,7 @@
 #include "EnvironmentValidation.h"
 #include "../Editor/src/ProjectCatalog.h"
 #include "../Editor/src/GameSession.h"
+#include <chrono>
 #include <limits>
 
 namespace MaterialValidation
@@ -256,6 +257,31 @@ namespace MaterialValidation
         material = *prepared;
         Require(sample() == std::array<unsigned char, 4>{0, 255, 0, 255},
                 "material texture overrides model texture on GPU");
+        const auto shared = asset.Prepare(renderer.GetDevice(), renderer.GetCommandQueue(), root);
+        Require(shared->texture == prepared->texture, "scene transitions reuse an unchanged material texture");
+        const auto imagePath = root / asset.texture;
+        const auto previousWrite = std::filesystem::last_write_time(imagePath);
+        bmp[55] = 0;
+        bmp[54] = 255;
+        {
+            std::ofstream image(imagePath, std::ios::binary);
+            image.write(reinterpret_cast<const char*>(bmp.data()), bmp.size());
+        }
+        std::filesystem::last_write_time(imagePath, previousWrite + std::chrono::seconds(2));
+        const auto edited = asset.Prepare(renderer.GetDevice(), renderer.GetCommandQueue(), root);
+        Require(edited->texture != prepared->texture, "image edits invalidate the shared material texture");
+        material = *edited;
+        Require(sample() == std::array<unsigned char, 4>{0, 0, 255, 255},
+                "edited material texture reaches the GPU without replacing earlier owners");
+        Engine::AssetDatabase::Ensure(imagePath);
+        const auto metadataPath = std::filesystem::path(imagePath.wstring() + L".meta");
+        std::filesystem::last_write_time(metadataPath,
+                                         std::filesystem::last_write_time(metadataPath) + std::chrono::seconds(2));
+        const auto metadataEdited = asset.Prepare(renderer.GetDevice(), renderer.GetCommandQueue(), root);
+        Require(metadataEdited->texture != edited->texture, "import metadata changes invalidate material textures");
+        material = *prepared;
+        Require(sample() == std::array<unsigned char, 4>{0, 255, 0, 255},
+                "earlier scene resources stay valid until their GPU draws finish");
         material = Engine::Material{};
         material.physicallyBased = true;
         material.color = {.8f, .2f, .05f, 1};

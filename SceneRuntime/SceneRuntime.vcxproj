@@ -198,6 +198,7 @@
     <ClInclude Include="src\SceneComponentJson.h" />
     <ClInclude Include="include\SceneRuntime\SceneComponents.h" />
     <ClInclude Include="include\SceneRuntime\MaterialAsset.h" />
+    <ClInclude Include="include\SceneRuntime\MaterialTextureCache.h" />
     <ClInclude Include="include\SceneRuntime\LightmapBaker.h" />
     <ClInclude Include="src\SceneRenderPlan.h" />
     <ClCompile Include="src\SceneWorld.cpp" />
