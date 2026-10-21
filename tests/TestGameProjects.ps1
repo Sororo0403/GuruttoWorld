@@ -43,7 +43,7 @@ if ($Build) {
     $msbuild=Join-Path $installation 'MSBuild/Current/Bin/MSBuild.exe'
     Set-Content -LiteralPath (Join-Path $gameRoot 'Assets/IndependentMarker.txt') -Value 'Separate game assets'
     foreach ($configuration in @('Debug','Development','Release')) {
-        & $msbuild (Join-Path $gameRoot $descriptor.solution) "/p:Configuration=$configuration" '/p:Platform=x64' '/m:1' '/nr:false' '/v:minimal' '/nologo' *> (Join-Path $testRoot "$configuration.log")
+        & $msbuild (Join-Path $gameRoot $descriptor.solution) "/p:Configuration=$configuration" '/p:Platform=x64' '/p:PreferredToolArchitecture=x64' '/m:1' '/nr:false' '/v:minimal' '/nologo' *> (Join-Path $testRoot "$configuration.log")
         if ($LASTEXITCODE -ne 0) { throw "Game build failed: $configuration; see $testRoot" }
         $output=Join-Path $gameRoot "generated/outputs/x64/$configuration/App"
         foreach ($required in @('SeparateGame.exe','Assets/IndependentMarker.txt',"Assets/Scripts/Bin/$configuration/module.json")) {
