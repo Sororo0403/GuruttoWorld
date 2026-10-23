@@ -68,11 +68,11 @@ namespace Engine
         ModelRenderer& operator=(const ModelRenderer&) = delete;
 
         /// <summary>
-        /// OBJ の各メッシュ・テクスチャ・パイプラインを生成し、GPU 転送の完了を待機します。
+        /// モデルのメッシュ・テクスチャ・パイプラインを生成し、GPU 転送の完了を待機します。glTF/GLB は骨格とクリップも読み込みます。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
         /// <param name="queue">初期転送に使用する DIRECT 型キュー。</param>
-        /// <param name="modelPath">読み込む OBJ ファイル。</param>
+        /// <param name="modelPath">読み込むモデルファイル。glTF/GLB は骨格ローダー、それ以外は静的モデルローダーで読み込みます。</param>
         /// <param name="shaderPath">モデル用 HLSL ファイル。</param>
         /// <returns>生成に成功した場合は true。初期化済みの場合は false。</returns>
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& modelPath,
@@ -137,7 +137,7 @@ namespace Engine
         void DrawShadow(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world, const ShadowMap& shadow,
                         const Material* material = nullptr,
                         std::span<const std::shared_ptr<const Material>> slots = {}) const;
-        // ローカル空間の単位レイを三角形へ当て、最も近い交点距離を返します。
+        /// <summary>ローカル空間の単位レイを現在の姿勢の三角形へ当て、最も近い交点距離を出力します。</summary>
         bool IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const;
 
     private:

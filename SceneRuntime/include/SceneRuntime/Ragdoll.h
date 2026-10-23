@@ -21,7 +21,7 @@ namespace SceneRuntime
         bool operator==(const RagdollComponent&) const = default;
         /// <summary>骨の対応と生成用物理設定の保存範囲を検証します。</summary>
         void Validate() const;
-        /// <summary>PrefabとHierarchy複製で骨の剛体参照を新しいIDへ置換します。</summary>
+        /// <summary>Prefabとヒエラルキー複製で骨の剛体参照を新しいIDへ置換します。</summary>
         template <class IdMap> void Remap(const IdMap& ids)
         {
             VisitObjectReferences(
@@ -46,7 +46,7 @@ namespace SceneRuntime
         /// <summary>現在の姿勢からCollider・剛体・Jointを一括生成します。失敗時は配置を保持します。</summary>
         static bool Generate(SceneLayout&, const std::string& owner, const Engine::SkeletonData&,
                              const std::vector<Engine::BonePose>&, std::string& error);
-        /// <summary>非activeの剛体を骨の姿勢へ追従させ、activeの剛体は物理制御へ切り替えます。</summary>
+        /// <summary>enabled と active がともに true の場合は剛体を物理制御へ切り替え、それ以外は骨の姿勢へ追従させます。</summary>
         static void Synchronize(SceneLayout&, const std::string& owner, const Engine::SkeletonData&,
                                 const std::vector<Engine::BonePose>&);
         /// <summary>物理剛体のワールド姿勢を骨のローカル姿勢へ変換し、指定重みで合成します。</summary>

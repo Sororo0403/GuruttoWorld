@@ -61,8 +61,8 @@ struct Simulation {
   constexpr double dt=1.0/60;
   const std::map<std::string,float> input{{"MoveRight",std::max(0.0f,x)},{"MoveLeft",std::max(0.0f,-x)},{"MoveForward",std::max(0.0f,z)},{"MoveBack",std::max(0.0f,-z)},{"Jump",held?1.0f:0.0f}};
   const std::map<std::string,bool> pressed{{"Jump",jump},{"Attack",attack}};std::string error;
-  // Use the production candidate path with a known-valid baseline. Physics edits are
-  // checked against the last committed phase, including edits made directly by tests.
+  // 検証済みの配置を基準に、製品と同じ候補準備を実行します。テストが直接加えた物理設定の変更も、
+  // 最後に確定した更新段階と比較して検証します。
   const auto tickScripts=[&](ScriptPhase phase) {
    auto candidate=layout;auto runtime=scripts;
    Require(runtime.UpdateCandidate(candidate,dt,error,input,pressed,&physics,phase,&validated),error);
@@ -139,7 +139,7 @@ void Playthrough() {
  Require(std::abs(Find(s.layout,"canal-bridge").position[0])<.01f,"Bridge arrives in path");
  Require(Has(s.layout,"park-gate"),"One gear keeps final gate closed");
  s.Walk(10,50.8f);s.Walk(10,52.8f);s.JumpTo(12,55.3f);s.JumpTo(10.5f,58);s.JumpTo(10,60.2f);s.Walk(8,63);s.Walk(0,63);
- // Verify the main bridge too, traversing it in both directions.
+ // 主経路の橋も往復し、どちらの向きでも通行できることを確認します。
  s.Walk(0,49);s.Walk(0,63);s.Walk(0,64);
  Find(s.layout,"park-player").position[1]=-5;s.Tick();
  Require(Find(s.layout,"park-player").position[2]>60,"Fall returns to canal checkpoint");
@@ -238,14 +238,14 @@ void PlazaExploration() {
   const auto hit=s.physics.Raycast(p,d,length,0xffffffffu,false,"park-player");
   Require(!hit || hit->distance>=length-.1f,"Plaza detour camera is not behind wall");
  };
- // Reach both edges, circle the planter in both directions, and return from
- // the exit. The player is moved by physics, never teleported for these checks.
+ // 両端への移動、花壇の左右両回り、出口からの帰路を確認します。
+ // これらの検証ではテレポートを使わず、物理処理でプレイヤーを移動します。
  for(const auto& p:std::vector<std::array<float,2>>{{-4,7},{-2.5f,9},{-2.5f,15},{-4,15},{0,17},{7,1},{7,7},{11.55f,7},{11.55f,1},{7,1},{11.55f,1},{11.55f,7},{7,7},{7,17},{11.5f,18}}) {
   s.Walk(p[0],p[1],false);composition(true);
  }
  for(const auto& p:std::vector<std::array<float,2>>{{8,24},{8,35},{8,24},{8,17},{0,17},{-2.5f,9},{-4,7}}) {s.Walk(p[0],p[1],false);composition(false);}
- // A small reversal stays inside the camera's slack rather than panning the
- // whole scene; crossing the blend boundary never snaps the yaw.
+ // 小さな切り返しではカメラの追従猶予内に収まり、画面全体が動かないことを確認します。
+ // 補間区間の境界を越えても、ヨー角が急に切り替わらないことも確認します。
  s.Walk(0,7,false);
  const float initialX=Find(s.layout,"park-camera").position[0];
  for(int i=0;i<5;++i)s.Tick(-1,0);
@@ -321,7 +321,7 @@ void Render() {
  SceneEnvironment title;Require(title.Initialize(renderer,root,root/"Assets/Scenes/TitleStreet.json",error),error);
  auto& canvas=*Find(title.World().Layout(),"title-canvas").canvas;
  Require(canvas.menu->entries.front().target=="Assets/Scenes/StreetJourney.json","START target");
- // The App owns the menu controller and performs its returned scene transition.
+ // App が所有するメニュー制御から返されたシーン遷移を、ホスト側で実行します。
  TitleMenu menu;menu.Configure(*canvas.menu);menu.SetTransitionDuration(3.2f);
  TitleMenuInput input;input.active=true;menu.Update(input,.1);
  const auto event=title.Click("world-start");menu.ActivateUi(event.event);
@@ -376,7 +376,7 @@ void JourneyPlaythrough() {
    (hit?"; blocked by "+hit->object+" from camera "+std::to_string(cam.position[0])+","+std::to_string(cam.position[1])+","+std::to_string(cam.position[2]):""));
   std::cout<<"PASS view: "<<name<<"\n";
  };
- // Test the square's alternate side before following the main neighbourhood.
+ // 主な街区へ進む前に、広場の別経路も通行できることを確認します。
  s.Walk(-18.5f,2);s.Walk(-3,2);s.Walk(-3,17);s.Walk(-18.5f,18);
  visible({-16,1,23},"quayside after circling the cafe");
  s.Walk(-15,23);s.Walk(-1,23);
@@ -390,7 +390,7 @@ void JourneyPlaythrough() {
   visible({14,1.3f,39},"public entrance from the decision area flank");
  }
  s.Walk(7,30);
- // Walk the service side all the way around the market hall and return.
+ // 市場棟の業務用通路を一周し、戻れることを確認します。
  s.Walk(1,33);s.Walk(1,43.5f);s.Walk(1,46);s.Walk(8,46);s.Walk(12,46);
  s.Walk(15,43.5f);s.Walk(15,33);s.Walk(17,37);s.Walk(15,43.5f);
  visible({14,4.6f,61},"roof stair from the market exit");
@@ -462,7 +462,7 @@ void RenderJourney() {
   Capture(renderer,scene,"journey-point-"+std::to_string(waypoint));
  }
  Require(scene.Ui().Value("journeyComplete")==1,"Rendered journey reaches finish");
- // Inspect the three actual rest areas from settled, unmodified stage cameras.
+ // ステージ本来のカメラが静止してから、三つの休憩場所の見え方を確認します。
  for(const auto& [name,pose]:std::vector<std::pair<std::string,std::array<float,3>>>{
      {"rest-cafe",{-12,.7f,4.5f}},{"rest-garden",{8,1.26f,52}},
      {"rest-roof",{14,4.62f,74}},

@@ -80,7 +80,7 @@ namespace ParkResourceValidation
         Require(movement > 0 && movement <= beforeCatchup.playerController->moveSpeed * 4.0f / 60.0f + 0.0001f,
                 "catch-up performs at most four fixed movement steps");
     }
-    /// <summary>物理親の回転補間と子カメラのScaleを除いた回転、直接変更時の反映を確認します。</summary>
+    /// <summary>物理親の回転補間と子カメラのスケールを除いた回転、直接変更時の反映を確認します。</summary>
     inline void RotationInterpolation(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;

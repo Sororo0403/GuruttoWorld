@@ -70,7 +70,7 @@ namespace SceneRuntime
             candidate.assetReferences.insert(incoming.assetReferences.begin(),incoming.assetReferences.end());
             entries_.push_back(std::move(entry)); Store(candidate); return candidate;
         }
-        /// <summary>保持対象と子孫を残してシーンを除去し、親変更はWorld姿勢を維持します。</summary>
+        /// <summary>保持対象と子孫を残してシーンを除去し、親変更はワールド姿勢を維持します。</summary>
         SceneLayout Unload(const SceneLayout& current,const std::string& name)
         {
             const auto found=std::find_if(entries_.begin(),entries_.end(),[&](const auto& entry){return entry.name==name;});

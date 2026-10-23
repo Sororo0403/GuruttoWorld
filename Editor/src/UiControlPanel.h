@@ -71,7 +71,7 @@ namespace Editor
             optional.reset();
         ImGui::PopID();
     }
-    /// <summary>汎用UIのプロパティーを通常のComponent編集とUndoへ接続します。</summary>
+    /// <summary>汎用UIのプロパティーを通常のコンポーネント編集とUndoへ接続します。</summary>
     inline void DrawUiControls(EditState& state, SceneRuntime::ScenePlacement& p)
     {
         const auto track = [&]()

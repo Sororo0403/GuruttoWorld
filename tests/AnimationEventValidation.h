@@ -287,7 +287,7 @@ namespace AnimationEventValidation
                     renderer.WaitForIdle(),
                 "event Inspector controls balance ImGui stack");
 #endif
-        // 多数の個体のイベントでキューを超過しても、先に評価した個体・Script・構造変更を反映しません。
+        // 多数の個体のイベントでキューを超過しても、先に評価した個体・スクリプト・構造変更を反映しません。
         ScriptDefinition spam;
         spam.fields = {{"spawn", {0, 0, 1}}};
         spam.update = [](ScriptContext& context)

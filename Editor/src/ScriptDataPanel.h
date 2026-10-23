@@ -107,7 +107,7 @@ namespace Editor
             }
             return edited;
         }
-        /// <summary>参照IDの入力とHierarchyからのドラッグを処理します。</summary>
+        /// <summary>参照IDの入力とヒエラルキーからのドラッグを処理します。</summary>
         static bool DrawValue(EditState&, const char* label, SceneRuntime::ScriptObjectReference& value,
                               const ProjectCatalog*)
         {

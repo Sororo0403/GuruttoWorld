@@ -62,12 +62,12 @@ namespace Editor
         {
             return path_;
         }
+        /// <summary>開いているアセットの移動先へパスを更新します。保存は行わず、外部変更の比較基準も保持します。</summary>
         void AssetMoved(const std::filesystem::path& source, const std::filesystem::path& destination)
         {
             if (path_.lexically_normal() != source.lexically_normal())
                 return;
             path_ = destination;
-            // 改名は保存ではないため、外部変更の比較基準を更新しません。
         }
         bool UnsavedNew() const
         {

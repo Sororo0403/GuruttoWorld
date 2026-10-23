@@ -31,7 +31,7 @@ public static class Wp1RegressionProcess {
     }
     $taskOut=Join-Path $taskFolder 'output.log';$taskErr=Join-Path $taskFolder 'error.log'
     $taskProcess=Start-Process -FilePath $Executable -WorkingDirectory $taskRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput $taskOut -RedirectStandardError $taskErr
-    # Retain the handle before polling: Windows PowerShell can otherwise lose ExitCode after a long run.
+    # 長時間の実行後も Windows PowerShell で ExitCode を取得できるよう、監視前にプロセスのハンドルを保持します。
     $taskHandle=$taskProcess.Handle
     $taskClock=[Diagnostics.Stopwatch]::StartNew();$taskLast='';$taskLastReport=0
     Write-Output "Regression logs: $taskFolder"

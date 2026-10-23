@@ -36,7 +36,7 @@ namespace Engine
         // Blinn-Phong 反射の強さと鋭さです。
         float specularStrength = 0.4f;
         float shininess = 32.0f;
-        // false の場合は照明計算を行わず、テクスチャの色をそのまま使用します。
+        // false の場合は照明計算を省き、テクスチャと頂点に渡された色の積を使います。霧の適用は継続します。
         bool enabled = true;
         // シーン全体の霧の設定を、照明パラメーターとともにメッシュシェーダーへ渡します。
         DistanceFog fog;

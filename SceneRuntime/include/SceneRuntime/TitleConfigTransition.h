@@ -68,7 +68,7 @@ namespace SceneRuntime
             auto pose=target;
             if(phase_!=Phase::Held) for(size_t axis=0;axis<3;++axis) {
                 pose.position[axis]=from_.position[axis]+(target.position[axis]-from_.position[axis])*blend;
-                // Interpolate the shortest angular distance to avoid a full turn on wrapped Euler values.
+                // オイラー角の折り返しで一周してしまわないよう、最短の角度差を補間します。
                 pose.rotation[axis]=from_.rotation[axis]+std::remainder(target.rotation[axis]-from_.rotation[axis],6.283185307f)*blend;
             }
             if(!environment.World().SetWorldTransform(cameraId_,pose.position,pose.rotation,pose.scale)) {Fail(environment,"Config transition camera pose was rejected");return;}

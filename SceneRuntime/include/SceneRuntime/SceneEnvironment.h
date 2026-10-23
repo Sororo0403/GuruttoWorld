@@ -12,7 +12,7 @@ namespace SceneRuntime
             const std::filesystem::path& scenePath, std::string& error);
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
             SceneLayout layout, std::string& error);
-        /// <summary>開始時に固定した参照情報を実行Worldと共有して初期化します。</summary>
+        /// <summary>開始時に固定した参照情報を実行ワールドと共有して初期化します。</summary>
         bool Initialize(const Engine::DirectX12Renderer& renderer,
                         std::shared_ptr<const Engine::ContentContext> context, SceneLayout layout, std::string& error)
         {
@@ -62,9 +62,9 @@ namespace SceneRuntime
         UiEvent Click(const std::string& object);
         /// <summary>実行状態が変化したUI文字列のGPUリソースを描画前に準備します。</summary>
         bool Prepare(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,std::string& error) { return presentation_.Prepare(renderer,root,world_.Layout(),error,uiState_,false); }
-        /// <summary>画面のポインター入力をUI操作とScriptイベントへ反映します。</summary>
+        /// <summary>画面のポインター入力をUI操作とスクリプトイベントへ反映します。</summary>
         UiEvent UiPointer(unsigned int width,unsigned int height,float x,float y,bool down,bool pressed,bool released,float wheel=0);
-        /// <summary>確定した文字を入力欄とScriptイベントへ反映します。</summary>
+        /// <summary>確定した文字を入力欄とスクリプトイベントへ反映します。</summary>
         UiEvent UiTextInput(char32_t character);
         /// <summary>保存シーンを追加または保持対象を残して置換します。GPU完了後に呼びます。</summary>
         bool LoadScene(const std::filesystem::path& scene,bool additive,std::string& error);
@@ -92,7 +92,7 @@ namespace SceneRuntime
         bool ClearAnimatorParameter(const std::string& id,const std::string& name) { return world_.ClearAnimatorParameter(id,name); }
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump=false)
         { physicsAttempted_=true; return physicsSucceeded_=world_.MovePlayers(seconds,horizontal,vertical,jump); }
-        /// <summary>入力の固定更新を次のフレーム取引へ予約し、入力準備中はWorldを変更しません。</summary>
+        /// <summary>入力の固定更新を次のフレーム取引へ予約し、入力準備中はワールドを変更しません。</summary>
         void PrepareMovement(float horizontal, float vertical, bool jump)
         {
             movement_ = Movement{horizontal, vertical, jump};
@@ -104,9 +104,9 @@ namespace SceneRuntime
     private:
         void ApplyCameraFocus(const MenuConfiguration* menu);
 
-        /// <summary>Script更新のUI候補を現在の描画資源から分離して準備します。</summary>
+        /// <summary>スクリプト更新のUI候補を現在の描画資源から分離して準備します。</summary>
         bool PrepareRuntimeUi(const SceneLayout&,const ScriptUiCommands&,std::string& error);
-        /// <summary>成功したフレームのbinding変更と準備したUI資源を確定します。</summary>
+        /// <summary>成功したフレームのバインディング変更と準備したUI資源を確定します。</summary>
         void ApplyUiCommands(const ScriptUiCommands& commands);
         /// <summary>失敗したフレームのUI予約と候補描画資源を破棄します。</summary>
         void DiscardPreparedUi();

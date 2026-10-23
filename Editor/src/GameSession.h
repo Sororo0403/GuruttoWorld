@@ -18,7 +18,7 @@ namespace Editor
         TitlePreview& Title() { return playback_.Title(); }
         SceneRuntime::GamePlayback& Playback() { return playback_; }
         std::optional<SceneRuntime::UiEvent> PrepareInput(const Engine::InputActions& actions,bool active,double seconds,const Engine::InputSnapshot* snapshot=nullptr) {return runtime_ ? playback_.PrepareInput(*runtime_,actions,active,seconds,snapshot) : std::nullopt;}
-        // Create and release resources outside Render after GPU idle.
+        /// <summary>編集中の配置から再生環境を作成し、一時停止中は再開します。GPU の完了後、Render の外で呼び出してください。</summary>
         bool Play(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
                   const SceneRuntime::SceneLayout& layout, std::string& error,
                   const std::filesystem::path& settingsPath = {},
@@ -66,6 +66,7 @@ namespace Editor
             if(runtime_) runtime_->PauseAudio(false);
             return state_.Play();
         }
+        /// <summary>取得済みの配置から再生環境を交換します。GPU の完了後、Render の外で呼び出してください。</summary>
         bool LoadScene(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root,const SceneRuntime::SceneLayout& layout,std::string& error)
         {
             if(state_.IsEditing()) {error="シーン切り替えには再生が必要です"; return false;}
@@ -94,6 +95,7 @@ namespace Editor
                 return false;
             }
         }
+        /// <summary>保存されたシーンを現在の実行環境へ読み込みます。GPU の完了後、Render の外で呼び出してください。</summary>
         bool LoadScene(const std::filesystem::path& root,const std::filesystem::path& scene,std::string& error)
         {
             if(!runtime_ || state_.IsEditing()) {error="シーン切り替えには再生が必要です";return false;}
@@ -112,6 +114,7 @@ namespace Editor
             }
         }
         bool Pause() { const bool result=state_.Pause(); if(result && runtime_) {runtime_->PauseAudio(true); runtime_->DiscardPendingInput(); runtime_->Ui().pressed.clear(); runtime_->Ui().hovered.clear();} return result; }
+        /// <summary>再生環境を破棄して編集へ戻ります。GPU の完了後、Render の外で呼び出してください。</summary>
         bool Stop()
         {
             if (!state_.CanStop()) return false;

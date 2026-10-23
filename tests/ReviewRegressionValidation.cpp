@@ -1629,7 +1629,7 @@ namespace
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json",root);
         const auto settingsPath=std::filesystem::absolute("generated/tests/game-session")/std::to_string(GetTickCount64())/"settings.json";
         Check(SceneRuntime::GameSettings{}.Save(settingsPath),"isolated game session settings save");
-        for (auto& object:layout.objects) object.animation.reset(); // Animation has a separate deterministic clock fixture.
+        for (auto& object:layout.objects) object.animation.reset(); // アニメーションの検証には、時計を固定できる別のテスト環境を使います。
         layout.objects.back().name="Unsaved runtime name";
         layout.objects.back().position[0]+=3;
         const auto unsaved=layout.Serialize();
@@ -1693,9 +1693,9 @@ namespace
     {
         const auto root=std::filesystem::absolute("Games/GuruttoWorld");
         auto layout=SceneRuntime::SceneLayout::Load(root/"Assets/Scenes/TitleStreet.json");
-        // 長時間の揺れ・粒子検証には、対象のComponentと時計の既定値を持つCanvasを使用します。
+        // 長時間の揺れ・粒子検証には、対象のコンポーネントと時計の既定値を持つCanvasを使用します。
         std::erase_if(layout.objects,[](const auto& object) {return !object.camera && !object.particleEmitter && !object.canvas;});
-        for (auto& object:layout.objects) object.animation.reset(); // Isolate CameraSway and ParticleEmitter invariants.
+        for (auto& object:layout.objects) object.animation.reset(); // CameraSway と ParticleEmitter の検証が他の機能の影響を受けないようにします。
         SceneRuntime::SceneEnvironment environment; std::string error;
         Check(environment.Initialize(renderer,root,layout,error),"authored environment initializes");
         const auto original=environment.World().Layout().Serialize();
@@ -2600,7 +2600,7 @@ void ValidateAssetChangeBatching()
         }
         Check(false, "background asset scan completes within deadline");
     };
-    // An invalid root proves worker failures are delivered without throwing from Poll.
+    // 不正なルートを指定し、ワーカーの失敗が Poll から例外を送出せず通知されることを確認します。
     background.Poll(root/"missing",0.5);
     pump([&] { return !background.Error().empty(); });
     pump([&] { return background.Error().empty(); });
@@ -3138,14 +3138,14 @@ void ValidateEditorTitlePreview()
     const auto start=std::find_if(configuration->entries.begin(),configuration->entries.end(),[](const auto& entry){return entry.index==0;});
     Check(start!=configuration->entries.end(),"editor title has authored START entry");
     const int transitionFrames=static_cast<int>(std::ceil(state.Value("startDuration",.32f)/.1f))+3;
-    state.values["configTransitionEnabled"]=0; // Menu-only checks; full transitions use TitleConfigTransitionValidation.
+    state.values["configTransitionEnabled"]=0; // ここではメニューだけを検証します。シーン遷移全体は TitleConfigTransitionValidation で検証します。
     title.Initialize(layout,state);
     Check(title.Active() && state.Value("screen",-1)==0,"editor title initializes shared menu state");
     SceneRuntime::UiEvent event; event.event="menu:1";
     Check(title.Activate(event,state) && state.Value("screen",-1)==1,"editor CONFIG click opens settings");
     event.event="back"; title.Activate(event,state);
     Check(state.Value("screen",-1)==0,"editor settings back returns to title");
-    title.TakeCommand(); // Menu-only fixture does not execute scene commands.
+    title.TakeCommand(); // このテスト環境はメニュー専用のため、シーン操作は実行しません。
     Engine::InputActions actions; Engine::InputSnapshot input; input.active=true;
     actions.Update(input); title.Update(actions,true,0,state);
     actions.Update(input); title.Update(actions,true,0,state);

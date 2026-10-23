@@ -124,7 +124,7 @@ namespace Editor::AudioPanel
             c.groups.push_back(std::move(group));
         }
     }
-    /// <summary>Inspectorの音響コンポーネントを描画します。</summary>
+    /// <summary>インスペクターの音響コンポーネントを描画します。</summary>
     inline void Draw(EditState& state, SceneRuntime::ScenePlacement& p, const ProjectCatalog* catalog)
     {
         Component(p.audioSource, "音源###AudioSource",

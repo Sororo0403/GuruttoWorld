@@ -131,7 +131,7 @@ namespace SceneRuntime
                         id = found->second;
                 });
         }
-        /// <summary>Transformを含むコンポーネントIDの存在を確認します。</summary>
+        /// <summary>コンポーネント ID の存在を確認します。必須の Transform は予約 ID "transform" で参照します。</summary>
         bool HasComponentId(const std::string& componentId) const
         {
             bool found = componentId == "transform";
@@ -208,15 +208,17 @@ namespace SceneRuntime
         std::map<std::string, std::string> assetReferences;
         std::map<std::string, std::string> prefabSlots;
         std::map<std::string, std::vector<std::string>> sceneObjects;
+        /// <summary>指定ルートの索引を取得し、保存されたアセット ID から参照パスを解決します。</summary>
         void ResolveAssets(const std::filesystem::path& root);
         /// <summary>ロード済み索引で参照を解決し、ディレクトリの再探索を避けます。</summary>
         void ResolveAssets(const Engine::AssetDatabase& index);
-        // 読み込み・検証に失敗した場合は例外。呼び出し元の配置は変更しません。
+        /// <summary>JSON を読み込んで新しい配置を返します。形式や値の検証に失敗した場合は例外を送出します。</summary>
         static SceneLayout Parse(std::string_view json);
         /// <summary>文字列への変換を行わず、保存時と同じ規則で配置を検証します。</summary>
         void Validate() const;
         /// <summary>検証済みの変更前配置との成分差分を検証します。未検証の配置を変更前に指定してはいけません。</summary>
         void ValidateChanges(const SceneLayout& validatedBefore) const;
+        /// <summary>配置を検証して JSON に変換します。不正な配置は例外で拒否します。</summary>
         std::string Serialize() const;
         /// <summary>保存先に対応するアセットIDを含む内容を準備します。ファイルと編集データは変更しません。</summary>
         std::string SerializeForSave(const std::filesystem::path& path) const;
@@ -224,6 +226,7 @@ namespace SceneRuntime
         /// overwrite=false の場合は、最後のアトミックな確定処理でも既存の出力先を拒否します。
         /// </summary>
         void Save(const std::filesystem::path& path, bool overwrite = true) const;
+        /// <summary>保存ファイルを読み込みます。assetsRoot を指定した場合だけアセット参照を解決します。</summary>
         static SceneLayout Load(const std::filesystem::path& path, const std::filesystem::path& assetsRoot = {});
     };
 }

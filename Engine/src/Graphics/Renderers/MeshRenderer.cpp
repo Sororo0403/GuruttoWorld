@@ -352,7 +352,7 @@ namespace Engine
                                                                   const Material* material)
     {
         using namespace DirectX;
-        // Normal cofactors are derived from the world rows in the vertex shader.
+        // 法線変換に使う余因子は、頂点シェーダーでワールド行列の各行から計算します。
         TransformConstants constants;
         XMStoreFloat4x4(&constants.worldViewProjection, worldMatrix * XMLoadFloat4x4(&viewProjection));
         const XMMATRIX transposedWorld = XMMatrixTranspose(worldMatrix);

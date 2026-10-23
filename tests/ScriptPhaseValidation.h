@@ -84,7 +84,7 @@ namespace ScriptPhaseValidation
         Require(runtime.Update(layout, 0.1, error, {}, {}, nullptr, ScriptPhase::LateUpdate) &&
                     layout.objects[0].position[0] == 2,
                 "failed late callback preserves internal state");
-        // 失敗時のスクリプト内部状態も含め、破棄可能なこれらのコピーは World が所有します。
+        // 失敗時のスクリプト内部状態も含め、破棄可能なこれらのコピーは ワールド が所有します。
         const auto validated = layout;
         auto candidate = validated;
         auto candidateRuntime = runtime;

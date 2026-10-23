@@ -64,7 +64,7 @@ namespace EngineEditorReviewValidation
                     menu.configTransition.returnCameraTarget == "external-camera",
                 "internal menu cameras remap while external references remain intact");
     }
-    /// <summary>保存競合・Shader改名・Prefab配置とScript複製の再発条件を検証します。</summary>
+    /// <summary>保存競合・シェーダー改名・Prefab配置とスクリプト複製の再発条件を検証します。</summary>
     inline void Data()
     {
         const auto& root = Fixtures();
@@ -314,7 +314,7 @@ namespace EngineEditorReviewValidation
                     renderer.WaitForIdle() && world.Telemetry().draws > 0,
                 "static glTF and GLB LOD scene renders");
     }
-    /// <summary>マウス・キーボード・ゲームパッドから同じScriptイベントが一度ずつ届くことを確認します。</summary>
+    /// <summary>マウス・キーボード・ゲームパッドから同じスクリプトイベントが一度ずつ届くことを確認します。</summary>
     inline void UiEvents(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
         SceneRuntime::ScriptDefinition definition;

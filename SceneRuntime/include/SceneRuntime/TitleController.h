@@ -50,7 +50,7 @@ namespace SceneRuntime
                 const auto* camera=SceneView::CameraObject(environment.World().Layout());
                 ScenePlacement target;DirectX::XMFLOAT4X4 matrix;
                 if(camera && environment.World().WorldMatrix(menu_->SelectedEntry()->transitionCameraTarget,matrix) && SceneTransforms::ReadTransform(matrix,{},target)) {
-                    // Ease into the road/exit direction from the actual current camera, including unfinished selection motion.
+                    // 選択移動の途中でも現在のカメラ姿勢から開始し、道路や出口へ向かう姿勢へ滑らかに移行します。
                     const float approach=menu_->SelectedEntry()->transitionApproach;
                     const float p=std::min(1.0f,menu_->TransitionProgress()/approach);const float blend=p*p*(3-2*p);
                     for(size_t axis=0;axis<3;++axis) {

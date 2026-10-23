@@ -109,6 +109,7 @@ namespace SceneRuntime
             assignments_.clear();
             return !result.empty();
         }
+        /// <summary>ホストから受け取った保存済み設定を、メニューの保存値と編集値へ反映します。</summary>
         void LoadSettings(const GameSettings& settings);
         /// <summary>
         /// 入力の立ち上がりで選択・決定します。初回・復帰・接続直後の押下は抑止します。
@@ -149,8 +150,7 @@ namespace SceneRuntime
         {
             return cue_;
         }
-        /// <summary>保存済み設定を読み込みます。</summary>
-        /// <summary>保存成功時だけ設定画面を閉じます。</summary>
+        /// <summary>保存結果を反映し、成功時だけ編集値を保存済みとして保持して設定画面を閉じます。</summary>
         void CompleteSave(bool success)
         {
             cue_ = success ? TitleMenuCue::Confirm : TitleMenuCue::Error;

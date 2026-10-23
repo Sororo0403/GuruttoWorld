@@ -949,7 +949,7 @@ namespace SceneRuntime
         std::set<std::pair<std::string, std::string>> live;
         for (auto& object : layout.objects)
         {
-            // Callbacks may remove or replace their owner's Script components.
+            // コールバックが所有者のスクリプト構成を変更しても走査を継続できるよう、一覧を複製します。
             const auto scripts = object.scripts;
             for (const auto& script : scripts)
             {
@@ -996,7 +996,7 @@ namespace SceneRuntime
             const TickContext tick{input, pressed, scene, phase, seconds};
             const auto live = TickLayout(layout, tick, startOnly);
             StopInactive(live, layout);
-            // Stop callbacks need the former owner only when its object is removed.
+            // 削除されるオブジェクトだけ、終了コールバックへ渡す変更前の所有者を退避します。
             auto previousOwners = CaptureStopOwners(scene);
             scene.Commit();
             StopDestroyed(scene, previousOwners);

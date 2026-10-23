@@ -35,7 +35,7 @@ namespace SceneRuntime
         static constexpr size_t Limit = 4096;
         /// <summary>クリップ・時刻・イベント名・引数・重み閾値を検証します。</summary>
         static void Validate(const std::vector<AnimatorEventKey>& keys, const Engine::SkeletonData* rig = nullptr);
-        /// <summary>Scriptへ渡すイベントのメタデータを検証します。</summary>
+        /// <summary>スクリプトへ渡すイベントのメタデータを検証します。</summary>
         static void ValidateOccurrence(const AnimatorEventOccurrence& event);
         /// <summary>進んだ区間のイベントを時刻順に取得します。同じクリップの重みは合算し、各キーを1ループに1度通知します。</summary>
         static std::vector<AnimatorEventOccurrence> Collect(const std::vector<AnimatorEventKey>& keys,

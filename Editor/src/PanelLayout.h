@@ -106,5 +106,6 @@ namespace Editor::PanelLayout
         if (ImGui::GetIO().WantSaveIniSettings)
             Save();
     }
-    inline void Place(Panel) {} // ウィンドウの配置はドックスペースと設定で管理します。
+    /// <summary>既存のパネル呼び出しとの互換用です。個別の配置は行わず、ドックスペースと保存設定に委ねます。</summary>
+    inline void Place(Panel) {}
 }

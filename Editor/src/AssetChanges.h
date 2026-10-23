@@ -112,7 +112,7 @@ namespace Editor
         }
 
     private:
-        /// <summary>Shader本体とincludeの内容を比較し、同時刻・同サイズの外部編集も検知します。</summary>
+        /// <summary>シェーダー本体とincludeの内容を比較し、同時刻・同サイズの外部編集も検知します。</summary>
         static std::uint64_t ShaderHash(const std::filesystem::path& path)
         {
             const auto kind = ProjectCatalog::Kind(path);

@@ -10,7 +10,7 @@ namespace SceneRuntime
         std::string_view name;
         float Component::* member = nullptr;
         float minimum = 0, maximum = 0;
-        /// <summary>読込・保存・Inspectorが共有する保存範囲を確認します。</summary>
+        /// <summary>読込・保存・インスペクターが共有する保存範囲を確認します。</summary>
         bool Accepts(double value) const
         {
             return Engine::InRange(value, minimum, maximum);

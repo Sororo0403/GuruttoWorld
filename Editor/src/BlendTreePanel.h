@@ -17,7 +17,7 @@ namespace Editor
             value = buffer.data();
             return true;
         }
-        /// <summary>別のTreeを選んだ時に参照元を更新します。</summary>
+        /// <summary>別のツリーを選んだ時に参照元を更新します。</summary>
         static void Rename(SceneRuntime::AnimatorComponent& animator, const std::string& previous,
                            const std::string& name)
         {
@@ -148,7 +148,7 @@ namespace Editor
             ImGui::PopID();
             return edited;
         }
-        /// <summary>クリップ・初期姿勢・入れ子のTreeを選択します。</summary>
+        /// <summary>クリップ・初期姿勢・入れ子のツリーを選択します。</summary>
         static bool Motion(const char* label, std::string& clip, std::string& tree,
                            const SceneRuntime::AnimatorComponent& animator, const Engine::SkeletonData* rig,
                            const std::string& exclude = {})
@@ -218,7 +218,7 @@ namespace Editor
             }
             return edited;
         }
-        /// <summary>Treeの方式・パラメーター・子・速度・参照を編集します。</summary>
+        /// <summary>ツリーの方式・パラメーター・子・速度・参照を編集します。</summary>
         static bool Draw(SceneRuntime::AnimatorComponent& animator, const Engine::SkeletonData* rig)
         {
             bool edited = false;

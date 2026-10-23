@@ -51,7 +51,7 @@ namespace SceneRuntime
                 pending_ = command;
             return std::nullopt;
         }
-        /// <summary>最後の更新でWorldと副作用予約が確定したかを返します。</summary>
+        /// <summary>最後の更新でワールドと副作用予約が確定したかを返します。</summary>
         bool LastUpdateSucceeded() const
         {
             return lastUpdateSucceeded_;

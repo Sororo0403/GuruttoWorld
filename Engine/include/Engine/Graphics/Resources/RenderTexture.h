@@ -27,9 +27,10 @@ namespace Engine
         /// <summary>未初期化の描画先を作成します。GPUが参照する既存領域は置換しません。</summary>
         bool Initialize(ID3D12Device* device, UINT width, UINT height, DXGI_FORMAT format = Format);
         /// <summary>
-        /// 同じ送信対象のコマンドリストで Begin と End を対にして呼びます。End 後のカラーはシェーダーから読み取り可能です。
+        /// 描画先を設定して色と深度をクリアします。同じコマンドリストで End と対にして呼び出してください。
         /// </summary>
         bool Begin(ID3D12GraphicsCommandList* commands, const std::array<float, 4>& clearColor);
+        /// <summary>Begin と同じコマンドリストで描画を終え、色をシェーダーから読み取り可能にします。次の描画先は呼び出し側で設定してください。</summary>
         bool End(ID3D12GraphicsCommandList* commands);
         UINT GetWidth() const noexcept;
         UINT GetHeight() const noexcept;

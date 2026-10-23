@@ -12,8 +12,8 @@ namespace Engine
     class TwoBoneIk final
     {
     public:
-        /// <summary>Skeletonのグローバル座標で二関節を解きます。位置・Scaleと先端回転を保持します。</summary>
-        /// <remarks>対象チェーンの祖先は正の一様Scaleが必要です。到達不能な目標は可動範囲へ制限します。
+        /// <summary>Skeletonのグローバル座標で二関節を解きます。位置・スケールと先端回転を保持します。</summary>
+        /// <remarks>対象チェーンの祖先は正の一様スケールが必要です。到達不能な目標は可動範囲へ制限します。
         /// 入力検証や計算に失敗した場合、呼び出し元の姿勢を変更しません。</remarks>
         static std::vector<BonePose> Solve(const SkeletonData& rig, const std::vector<BonePose>& pose,
                                            const TwoBoneIkConstraint& constraint);

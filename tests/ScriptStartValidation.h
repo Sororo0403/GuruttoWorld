@@ -40,7 +40,7 @@ namespace ScriptStartValidation
         }
         require(counts->resources==0 && counts->starts==counts->stops);
     }
-    /// <summary>Script成功後に描画準備が失敗する通常更新と固定更新の資源解放を検証します。</summary>
+    /// <summary>スクリプト成功後に描画準備が失敗する通常更新と固定更新の資源解放を検証します。</summary>
     inline void Runtime(const Engine::DirectX12Renderer& renderer,const std::filesystem::path& root)
     {
         using namespace SceneRuntime;

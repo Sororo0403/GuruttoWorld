@@ -51,8 +51,8 @@ namespace
     }
     template <class Context> struct ModuleCallback
     {
-        // Ownership is the use: keeping this member alive prevents unloading callback code.
-        // The callback must be destroyed before releasing its DLL.
+        // このメンバーの所有権を保持し、コールバックのコードがある DLL のアンロードを防ぎます。
+        // メンバーは宣言と逆順に破棄されるため、callback を lifetime より後に宣言します。
         // cppcheck-suppress unusedStructMember
         std::shared_ptr<ModuleLifetime> lifetime;
         std::filesystem::path contentRoot;
@@ -82,10 +82,10 @@ namespace
                                                                                     std::move(definition.stop)};
         if (definition.pause)
         {
-            // Destroy the function before its captured DLL lifetime.
+            // 関数オブジェクトの破棄が終わるまで、そのコードを持つ DLL を保持します。
             struct PauseCallback
             {
-                // Ownership keeps the callback's DLL loaded until callback destruction.
+                // callback を先に破棄できるよう、DLL の所有権を保持する lifetime を先に宣言します。
                 // cppcheck-suppress unusedStructMember
                 std::shared_ptr<ModuleLifetime> lifetime;
                 std::filesystem::path contentRoot;

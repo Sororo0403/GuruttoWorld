@@ -36,10 +36,11 @@ namespace SceneRuntime
         std::optional<AnimatorEventOccurrence> animation;
         std::string text;
     };
-    // Commands are applied after every callback; object pointers never survive a frame.
+    // 構造変更は各更新段階のコールバックを終えてから候補へ反映します。オブジェクトへの参照はコールバックの外へ持ち越さないでください。
     class ScriptScene final
     {
     public:
+        /// <summary>更新候補と ID 発行元を参照します。参照先はこの API の使用中保持してください。</summary>
         explicit ScriptScene(SceneLayout& layout, size_t& nextId, const PhysicsWorld* physics = nullptr,
                              const SceneLayout* validatedBefore = nullptr)
             : layout_(layout), nextId_(nextId), physics_(physics), validatedBefore_(validatedBefore)
@@ -47,7 +48,7 @@ namespace SceneRuntime
         }
         /// <summary>IDから現在のオブジェクトを参照します。参照はコールバック中だけ有効です。</summary>
         const ScenePlacement* Find(const std::string& id) const;
-        /// <summary>指定したメンバーに対応する型付きComponentを取得します。</summary>
+        /// <summary>指定したメンバーに対応する型付きコンポーネントを取得します。</summary>
         template <class T> const T* GetComponent(const std::string& id, std::optional<T> ScenePlacement::* member) const
         {
             const auto* found = Find(id);
@@ -55,19 +56,19 @@ namespace SceneRuntime
         }
         /// <summary>同じ表示名を持つすべてのオブジェクトIDを取得します。</summary>
         std::vector<std::string> FindByName(const std::string& name) const;
-        /// <summary>フレーム末尾で生成するオブジェクトを予約し、新しいIDを返します。</summary>
+        /// <summary>現在の更新段階の終了時に候補へ追加するオブジェクトを予約し、新しい ID を返します。</summary>
         std::string Spawn(ScenePlacement object);
-        /// <summary>対象と子孫を親子・UI参照を維持して複製します。</summary>
+        /// <summary>対象と子孫の複製を予約し、複製内の親子・コンポーネント参照を新しい ID へ付け替えます。</summary>
         std::string Instantiate(const std::string& id, const std::array<float, 3>& position);
-        /// <summary>対象と子孫の削除をフレーム末尾へ予約します。</summary>
+        /// <summary>対象と子孫の削除を、現在の更新段階の終了時へ予約します。</summary>
         void Destroy(const std::string& id);
-        /// <summary>Componentセットの置き換えをフレーム末尾へ予約します。</summary>
+        /// <summary>コンポーネント構成の置き換えを、現在の更新段階の終了時へ予約します。</summary>
         void SetComponents(const std::string& id, const ScenePlacement& components);
-        /// <summary>宛先付きイベントを次のScript更新へ予約します。</summary>
+        /// <summary>宛先付きイベントを次のスクリプト更新へ予約します。</summary>
         void Emit(ScriptEvent event);
-        /// <summary>成功したフレームでUIの数値bindingを設定します。</summary>
+        /// <summary>成功したフレームで UI の数値バインディングを設定します。</summary>
         void SetUiValue(const std::string& key, float value);
-        /// <summary>成功したフレームでUIの文字列bindingを設定します。</summary>
+        /// <summary>成功したフレームで UI の文字列バインディングを設定します。</summary>
         void SetUiText(const std::string& key, std::string text);
         /// <summary>成功した更新後に保存シーンのロードを予約します。</summary>
         void LoadScene(std::string scene, bool additive = false)
@@ -115,6 +116,7 @@ namespace SceneRuntime
     private:
         /// <summary>削除したAnimatorに対する更新要求を破棄します。</summary>
         void PruneAnimatorCommands();
+        /// <summary>削除予約に対象の子孫を含め、候補のオブジェクト配列からまとめて取り除きます。</summary>
         void DestroyQueuedObjects();
 
         SceneLayout& layout_;
@@ -158,8 +160,11 @@ namespace SceneRuntime
         const ScriptValue* Data(const std::string& name) const;
         /// <summary>オブジェクト参照の現在の対象を取得します。未設定・削除済みはnullです。</summary>
         const ScenePlacement* Reference(const std::string& name) const;
+        /// <summary>現在の入力値を取得します。入力や名前が未設定の場合は 0 です。</summary>
         float Input(const std::string& name) const;
+        /// <summary>今回の更新で入力が押されたかを取得します。未設定の場合は false です。</summary>
         bool Pressed(const std::string& name) const;
+        /// <summary>数値パラメーターを取得します。名前が存在しない場合は fallback を返します。</summary>
         float Value(const std::string& name, float fallback = 0) const;
     };
     struct ScriptStopContext
@@ -193,11 +198,12 @@ namespace SceneRuntime
     class ScriptRegistry final
     {
     public:
-        // Register before Play, on the main thread. Duplicate names and invalid metadata are refused.
+        /// <summary>再生前にメインスレッドで登録します。名前の重複や不正なメタデータは拒否します。</summary>
         static bool Register(std::string name, ScriptDefinition definition);
         /// <summary>再生前にモジュール所有の処理を一括置換します。失敗時は既存の登録を保持します。</summary>
         static bool InstallModule(const std::string& owner, std::map<std::string, ScriptDefinition> definitions,
                                   std::string& error);
+        /// <summary>現在の登録定義を参照します。登録やモジュール交換後は参照先の要素を再取得してください。</summary>
         static const std::map<std::string, ScriptDefinition>& Definitions();
         /// <summary>登録とモジュール交換の成功時に進む定義世代を取得します。</summary>
         static std::uint64_t Revision();
@@ -214,7 +220,8 @@ namespace SceneRuntime
         static bool ValidateForPlay(const SceneLayout& layout, std::string& error);
         /// <summary>外側の候補上で開始処理だけを実行し、通常更新と時計を進めません。</summary>
         bool StartCandidate(SceneLayout& layout, std::string& error);
-        // Transactional update. Use context.scene for structural changes; never resize arrays in a callback.
+        /// <summary>指定した更新段階を候補で実行し、成功時だけ配置と実行状態を反映します。</summary>
+        /// <remarks>構造変更は context.scene で予約し、コールバック中にオブジェクト配列の要素数を直接変更しないでください。</remarks>
         bool Update(SceneLayout& layout, double seconds, std::string& error,
                     const std::map<std::string, float>& input = {}, const std::map<std::string, bool>& pressed = {},
                     const PhysicsWorld* physics = nullptr, ScriptPhase phase = ScriptPhase::Update);
@@ -227,8 +234,9 @@ namespace SceneRuntime
         static bool HasPhase(const SceneLayout& layout, ScriptPhase phase);
         /// <summary>外側の更新成功後に開始処理を確定し、予約した終了処理を一度だけ呼びます。</summary>
         void CommitStarts() noexcept;
-        /// <summary>実行中のScriptへ一時停止と再開を通知します。</summary>
+        /// <summary>実行中のスクリプトへ一時停止と再開を通知します。</summary>
         void Pause(SceneLayout& layout, bool paused) noexcept;
+        /// <summary>開始済みの処理を終了し、実行状態と予約を破棄します。終了コールバックの例外はログへ記録します。</summary>
         void Stop(SceneLayout& layout) noexcept;
         /// <summary>取り除かれた個体の終了処理を旧配置で実行し、残る個体の実行状態を維持します。</summary>
         void StopRemoved(SceneLayout& previous, const SceneLayout& next) noexcept;
@@ -298,7 +306,7 @@ namespace SceneRuntime
             const SceneLayout* validatedBefore;
             bool startOnly;
         };
-        /// <summary>入力と更新段階を指定し、候補のScriptを進めます。</summary>
+        /// <summary>入力と更新段階を指定し、候補のスクリプトを進めます。</summary>
         bool Advance(SceneLayout& layout, double seconds, std::string& error, const std::map<std::string, float>& input,
                      const std::map<std::string, bool>& pressed, const AdvanceOptions& options);
         bool pendingFixedCommands_ = false;
@@ -338,7 +346,7 @@ namespace SceneRuntime
             ScriptPhase phase;
             double seconds;
         };
-        /// <summary>有効なScriptを実行し、継続するインスタンスの識別子を返します。</summary>
+        /// <summary>有効なスクリプトを実行し、継続するインスタンスの識別子を返します。</summary>
         std::set<std::pair<std::string, std::string>> TickLayout(SceneLayout& layout, const TickContext& tick,
                                                                  bool startOnly);
         Instance& GetInstance(ScenePlacement& object, const ScriptComponent& script, const ScriptDefinition& definition,

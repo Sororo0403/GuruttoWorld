@@ -129,7 +129,7 @@ namespace RigidBodyValidation
         const auto floor = world.Raycast({0, 5, 0}, {0, -1, 0}, 10, 0xffffffffu, false, "actor");
         Require(floor && floor->object == "floor", "controller updates preserve collider filter definitions");
     }
-    /// <summary>物理結果を局所変換に保存できない失敗でも、先行Actorの変更と全Componentを復元します。</summary>
+    /// <summary>物理結果を局所変換に保存できない失敗でも、先行アクターの変更と全コンポーネントを復元します。</summary>
     inline void PartialTransformRollback()
     {
         using namespace SceneRuntime;

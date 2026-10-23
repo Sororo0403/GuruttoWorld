@@ -9,7 +9,7 @@
 
 namespace SceneRuntime::PhysicsJoints
 {
-    /// <summary>検証済みの設定とWorldアンカーからJolt制約を生成します。</summary>
+    /// <summary>検証済みの設定とワールドアンカーからJolt制約を生成します。</summary>
     inline JPH::Constraint* Create(const JointComponent& joint, JPH::Body& first, JPH::Body& second,
                                    JPH::RVec3Arg point, JPH::RVec3Arg connected, JPH::Vec3Arg axis)
     {

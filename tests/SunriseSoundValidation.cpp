@@ -1,10 +1,10 @@
-// Compile the production implementation here so tests can inspect its actual audio output.
+// 製品の実装を直接コンパイルし、実際に生成する音声をテストで検査します。
 #include "../Games/GuruttoWorld/Assets/Scripts/SunriseStreet.cpp"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include "../Editor/src/GameSession.h"
 #include <stdexcept>
 
-/// <summary>実際の音声プールで開始失敗・停止・コマ送り・フォーカス変更を検証します。</summary>
+// 実際の音声プールで開始失敗・停止・コマ送り・フォーカス変更を検証します。
 void ValidateSunriseSound()
 {
     using namespace SceneRuntime;

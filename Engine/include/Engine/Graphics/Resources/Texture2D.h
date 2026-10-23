@@ -104,7 +104,8 @@ namespace Engine
         /// DEFAULT ヒープにコピー先状態のテクスチャを生成します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
-        /// <param name="image">画像のサイズ情報。</param>
+        /// <param name="levels">各ミップレベルの寸法と画素データ。先頭を最大解像度にします。</param>
+        /// <param name="compressed">true の場合は BC3、それ以外は RGBA8 のリソースを作成します。</param>
         /// <returns>生成に成功した場合は true。</returns>
         bool CreateResource(ID3D12Device* device, const std::vector<TextureLevel>& levels, bool compressed);
 
@@ -112,9 +113,9 @@ namespace Engine
         /// 行ピッチの配置規則に従い画素をアップロードバッファーへ書き込みます。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
-        /// <param name="image">転送する画素。</param>
+        /// <param name="levels">転送する全ミップレベルの寸法と画素データ。</param>
         /// <param name="upload">アップロードバッファーの出力先。</param>
-        /// <param name="footprint">テクスチャ転送時の配置情報の出力先。</param>
+        /// <param name="footprints">各ミップレベルの転送配置情報の出力先。</param>
         /// <returns>生成と書き込みに成功した場合は true。</returns>
         bool CreateUploadBuffer(ID3D12Device* device, const std::vector<TextureLevel>& levels,
                                 Microsoft::WRL::ComPtr<ID3D12Resource>& upload,
@@ -126,8 +127,9 @@ namespace Engine
         /// <param name="device">コマンドと同期オブジェクトを生成するデバイス。</param>
         /// <param name="queue">転送コマンドを送信する描画キュー。</param>
         /// <param name="upload">コピー元のアップロードバッファー。</param>
-        /// <param name="footprint">コピー元の配置情報。</param>
-        /// <returns>転送と待機に成功した場合は true。</returns>
+        /// <param name="footprints">各ミップレベルのコピー元配置情報。</param>
+        /// <param name="deferUpload">true の場合は転送資源を保持し、CPU での完了待機を省きます。</param>
+        /// <returns>転送の送信と、待機または転送資源の保持に成功した場合は true。</returns>
         bool UploadAndWait(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Resource* upload,
                            const std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>& footprints, bool deferUpload = false);
 

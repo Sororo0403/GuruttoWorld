@@ -108,7 +108,7 @@ namespace
             const float distance = axis == 0 ? movement.x : movement.z;
             if (!Move(layout, matrices, index, axis, Sweep(layout, matrices, index, axis, distance))) return false;
         }
-        // Parent rotation can also give the authored horizontal plane a vertical component.
+        // 親の回転によって、ローカルの水平面に沿う移動にもワールド座標の上下成分が生じます。
         if (!Move(layout, matrices, index, 1, Sweep(layout, matrices, index, 1, movement.y))) return false;
         return true;
     }

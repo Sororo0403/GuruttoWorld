@@ -68,7 +68,7 @@ public:
         try {
             std::ifstream progress(repository_/Folder()/(runId_+".progress.json"));
             if(progress) {const auto value=Engine::Json::parse(progress);phase_=value.value("phase",std::string{});step_=value.value("step",0);}
-        } catch(...) {} // A partially published status must not stop the build.
+        } catch(...) {} // 進捗ファイルの書き込み途中で読み取れなくても、ビルドの監視は継続します。
         std::ifstream input(log_,std::ios::binary|std::ios::ate);
         if(input) {
             const auto bytes=input.tellg();

@@ -19,7 +19,7 @@ namespace SceneRuntime::PrefabMerge
         ArrayMode mode = ArrayMode::Atomic;
         std::string identity;
     };
-    /// <summary>Script配列の要素が型付きの安定IDを持つか確認します。</summary>
+    /// <summary>スクリプト配列の要素が型付きの安定IDを持つか確認します。</summary>
     inline bool HasScriptIdentity(const Json& item)
     {
         if (!item.is_object() || item.value("kind", "") != "object" || !item.contains("value") ||

@@ -77,7 +77,7 @@ namespace AssetDatabaseValidation
                     AssetDatabase(root).Resolve(source, metadata.id) == target,
                 "known alias at limit remains movable without duplicate history");
     }
-    /// <summary>Shaderの改名・移動後もincludeを解決し、変更や旧名の再利用を検出します。</summary>
+    /// <summary>シェーダーの改名・移動後もincludeを解決し、変更や旧名の再利用を検出します。</summary>
     inline void ShaderMoves()
     {
         using Engine::AssetDatabase;

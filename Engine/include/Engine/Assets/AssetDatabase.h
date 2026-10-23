@@ -278,7 +278,7 @@ private:
       }
   }
 
-  /// <summary>Shader移動時に直接includeの相対位置を保持し、書き換えできない指定は移動前に拒否します。</summary>
+  /// <summary>シェーダー移動時に直接includeの相対位置を保持し、書き換えできない指定は移動前に拒否します。</summary>
   static void RelocateIncludeOperand(std::string& line,size_t directive,const std::filesystem::path& from,const std::filesystem::path& to)
   {
       const auto begin=line.find_first_not_of(" \t",directive+7);

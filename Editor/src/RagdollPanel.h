@@ -3,7 +3,7 @@
 #include <imgui.h>
 namespace Editor
 {
-    /// <summary>ラグドールの生成と物理・アニメーション合成をInspectorで編集します。</summary>
+    /// <summary>ラグドールの生成と物理・アニメーション合成をインスペクターで編集します。</summary>
     inline bool DrawRagdoll(EditState& state, SceneRuntime::ScenePlacement& object)
     {
         if (!object.ragdoll || !ImGui::CollapsingHeader("ラグドール###Ragdoll", ImGuiTreeNodeFlags_DefaultOpen))

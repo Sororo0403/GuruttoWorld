@@ -238,7 +238,7 @@ namespace Editor::GenrePanel
             p.navAgent.reset();
         ImGui::PopID();
     }
-    /// <summary>ジャンル支援コンポーネントをInspectorへ描画します。</summary>
+    /// <summary>ジャンル支援コンポーネントをインスペクターへ描画します。</summary>
     inline bool Draw(EditState& state, SceneRuntime::ScenePlacement& p, const ProjectCatalog* catalog,
                      const SceneRuntime::SceneLayout* scene)
     {

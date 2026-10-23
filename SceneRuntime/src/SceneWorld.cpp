@@ -1057,7 +1057,7 @@ namespace SceneRuntime
                 if (found->parentId != parentId && !ReparentPlacement(*found, parentId, error))
                     return false;
             }
-            // Validate the final graph and commit once so a failed member cannot move the rest.
+            // 変更後の階層を検証して一括反映し、一つの失敗で他の対象だけが移動しないようにします。
             static_cast<void>(candidate.Serialize());
             if (!CommitTransforms(std::move(candidate)))
                 throw std::runtime_error("Invalid inherited transform");
@@ -2546,7 +2546,7 @@ namespace SceneRuntime
             distance += (b.position[i] - a.position[i]) * (b.position[i] - a.position[i]);
         if (distance > 4)
             return false;
-        // Saving a simulated SRT can introduce a few ULPs of scale error; genuine resize edits still snap above.
+        // 物理姿勢を SRT に戻す際の微小なスケール誤差は許容します。保存された現在姿勢と異なる直接編集は上の判定で補間から除外します。
         for (size_t i = 0; i < 3; ++i)
             if (std::abs(a.scale[i] - b.scale[i]) >
                 1e-5f * std::max(1.0f, std::max(std::abs(a.scale[i]), std::abs(b.scale[i]))))

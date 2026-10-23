@@ -9,13 +9,13 @@
 
 namespace SceneRuntime
 {
-    // ID は所有元のオブジェクト内で安定して保持します。Transform は必須で、予約 ID "transform" を持ちます。
     struct MeshLod
     {
         float distance = 20;
         std::filesystem::path model;
         bool operator==(const MeshLod&) const = default;
     };
+    // 各コンポーネントの ID は、所有元のオブジェクト内で安定して保持します。
     struct MeshRendererComponent
     {
         std::string id = "mesh";

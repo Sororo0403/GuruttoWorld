@@ -41,7 +41,7 @@ void AimJourneyCamera(ScriptContext& c,std::array<float,3> aim,bool reset,float 
      const float delta=std::atan2(std::sin(to-from),std::cos(to-from));
      return from+std::clamp(delta*(1-std::exp(-5*dt)),-.45f*dt,.45f*dt);
     };
-    // A fixed view follows translation only; wall clearance remains a shared safeguard.
+    // 固定視点では平行移動だけを追従させ、壁との間隔は共通の衝突回避で確保します。
     if(fixedView)c.object.rotation={std::atan2(2.7f,std::hypot(.3f,10.8f)),std::atan2(-.3f,10.8f),0};
     else c.object.rotation={reset?pitch:turn(c.object.rotation[0],pitch),reset?yaw:turn(c.object.rotation[1],yaw),0};
     if(c.object.camera)c.object.camera->verticalFov=58;
@@ -81,13 +81,13 @@ ScriptDefinition Camera() {
   };
   if(!fixedView) {
    mix({2.6f,4.8f,7.8f,.4f,3.2f,1.6f},Smooth(14,24,z));
-   // Translate the whole frame at the courtyard reveal; do not rotate around the hero.
+   // 中庭が見える区間では、主人公を中心に回転せず、視点と注視点を一緒に移動します。
    const float courtyard=Smooth(42,49,z)*(1-Smooth(56,63,z))*(1-Smooth(4,12,x));
    shot.side+=1.8f*courtyard;shot.aimX+=1.8f*courtyard;
-   // Keep the west landing in view before the roof jump without orbiting.
+   // 屋上へ跳ぶ前に西側の踊り場が見えるよう、視点を旋回させずに移動します。
    mix({2,5.4f,8,-.8f,2,1.6f},Smooth(60,70,z));
   }
-  // Keep each area's authored offsets while applying the public camera controls.
+  // 公開されたカメラ設定を反映しつつ、各領域で設定した相対位置を保ちます。
   shot.height+=c.Value("height",4.5f)-4.5f;
   shot.back+=c.Value("distance",7.6f)-7.6f;
   shot.aimZ+=c.Value("lead",3)-3;
@@ -95,7 +95,7 @@ ScriptDefinition Camera() {
   wanted=SafeJourneyCamera(c,p,wanted);
   const auto length=[&](const std::array<float,3>& v){return std::hypot(std::hypot(v[0]-p->position[0],v[2]-p->position[2]),v[1]-p->position[1]);};
   if(!fixedView && length(wanted)<4.5f) {
-   // Preserve the approach side while finding clearance at a corner.
+   // 角で壁との間隔を確保する際も、進入時の視点の側を保ちます。
    const auto candidate=SafeJourneyCamera(c,p,{x+shot.side*.65f,c.state["floor"]+shot.height+.6f,z-shot.back*.75f});
    if(length(candidate)>length(wanted)+.4f)wanted=candidate;
   }
@@ -103,7 +103,7 @@ ScriptDefinition Camera() {
   else for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
   c.object.position=SafeJourneyCamera(c,p,c.object.position);
   if(!fixedView) {
-   // Following lag must not turn a close view into a distant one on a diagonal.
+   // 斜め移動時も、追従の遅れによって近接視点が遠ざかりすぎないようにします。
    const float distance=length(c.object.position);
    if(distance>10.6f)for(size_t i=0;i<3;++i)
     c.object.position[i]=p->position[i]+(c.object.position[i]-p->position[i])*10.6f/distance;

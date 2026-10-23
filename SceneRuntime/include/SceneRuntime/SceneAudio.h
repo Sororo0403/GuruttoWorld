@@ -11,7 +11,7 @@ namespace SceneRuntime
         /// <summary>シーンの音源とミキサーを初期化します。</summary>
         bool Initialize(const std::filesystem::path& root, const SceneLayout& layout, std::string& error);
         /// <summary>音源の追加・削除・クリップやストリーム方式の変更を反映します。</summary>
-        /// <param name="world">同じ配置を持つWorldの確定行列を再利用します。省略時は配置から解決します。</param>
+        /// <param name="world">同じ配置を持つワールドの確定行列を再利用します。省略時は配置から解決します。</param>
         bool Refresh(const SceneLayout& layout, std::string& error, const SceneWorld* world = nullptr);
         /// <summary>同じContentでは存続音源の再生位置を保持し、新規・削除音源だけ反映します。</summary>
         bool Reconcile(const std::filesystem::path& root, const SceneLayout& layout, std::string& error)
@@ -19,7 +19,7 @@ namespace SceneRuntime
             return root_ == root ? Refresh(layout, error) : Initialize(root, layout, error);
         }
         /// <summary>ワールド座標とリスナー、音量バインディング、ミキサー、ストリームを更新します。</summary>
-        /// <param name="world">同じ配置を持つWorldの確定行列を再利用します。省略時は配置から解決します。</param>
+        /// <param name="world">同じ配置を持つワールドの確定行列を再利用します。省略時は配置から解決します。</param>
         void Update(const SceneLayout& layout, const UiState& state, bool active = true,
                     const SceneWorld* world = nullptr);
         /// <summary>オブジェクトの音源を先頭から再生します。</summary>

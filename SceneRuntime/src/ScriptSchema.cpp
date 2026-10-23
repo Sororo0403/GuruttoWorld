@@ -152,7 +152,7 @@ namespace SceneRuntime
                 if (asset != wasAsset)
                     report.changes.push_back(FieldPath("/sceneAssets", key));
             }
-            // 保存用の同じcodecで総数・深さ・参照指定も検証し、移行だけが不正値を作らないようにします。
+            // 保存用の同じシリアライズ処理で総数・深さ・参照指定も検証し、移行だけが不正値を作らないようにします。
             ScenePlacement checked;
             ReadSceneComponents(Engine::Json{{"components", Engine::Json::array({WriteSceneComponent(candidate)})}},
                                 checked, false);

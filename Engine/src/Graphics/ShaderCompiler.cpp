@@ -60,7 +60,7 @@ namespace
     {
         static const std::string identity = []
         {
-            // D3DCompile is declared without dllimport; taking its address can identify the host import thunk.
+            // D3DCompile は dllimport なしで宣言されるため、関数のアドレスではホスト側のインポート用中継コードを指す場合があります。
             const auto module = GetModuleHandleW(D3DCOMPILER_DLL_W);
             if (!module || !GetProcAddress(module, "D3DCompile")) return std::string{};
             std::vector<wchar_t> path(32768);
@@ -150,7 +150,7 @@ namespace
                     if (separator != std::string::npos) line.replace(first + 1, last - first - 1, file.substr(separator + 1));
                 }
             }
-            // Only line metadata is normalized. Expanded __FILE__ or other macro values retain their semantics.
+            // #line のファイル名だけを正規化し、展開済みの __FILE__ などのマクロ値は変更しません。
             portable += line;
             begin = end;
         }
@@ -257,11 +257,11 @@ namespace Engine
             return false;
         }
         revision.assign(static_cast<const char*>(expanded->GetBufferPointer()), expanded->GetBufferSize());
-        // D3DPreprocess expands even a filename-only source name against the process working directory.
+        // D3DPreprocess はファイル名だけのソース名も作業ディレクトリ基準で展開するため、移動可能な表記へ正規化します。
         revision = PortableRevision(revision);
         includes.dependencies[sourcePath] = std::move(bytes);
         if (cache.size() >= 64) cache.clear();
-        // Recheck aliases on every preprocess so metadata changes and recreated old paths cannot leave a stale include.
+        // 別名で解決した include はキャッシュせず、メタデータの変更や旧パスの再作成を次回も検出します。
         if(!includes.usedAlias) cache.emplace(sourcePath, CachedSource{std::move(includes.dependencies), revision});
         return true;
     }
@@ -345,7 +345,7 @@ namespace Engine
             if (!SaveBytecode(packaged, persistentKey, shader.Get())) return false;
         }
         else SaveBytecode(local, persistentKey, shader.Get());
-        // Bytecode does not own a device. Bound the cache when Editor shader revisions accumulate.
+        // バイトコードはデバイスを所有しません。編集でシェーダーの版が増えても、キャッシュ件数を制限します。
         RememberShader(cache,std::move(key),shader);
         return true;
     }

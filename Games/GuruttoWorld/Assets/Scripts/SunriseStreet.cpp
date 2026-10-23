@@ -194,7 +194,7 @@ namespace
 
     void UpdateDiscoveries(ScriptContext& context)
     {
-        // Discoveries depend on entering the playable spaces, not merely seeing them.
+        // 発見は対象の空間へ実際に入ったときに記録します。視界に入るだけでは記録しません。
         const auto& p=context.object.position;
         const bool shortBlock=Text(context,"scene")=="Assets/Scenes/SunriseBlock.json";
         DiscoverRoof(context,p,shortBlock);
@@ -347,8 +347,8 @@ namespace
             for(size_t i=0;i<3;++i)wanted[i]=player->position[i]+delta[i]*fraction;
         }
         for(size_t i=0;i<3;++i)c.object.position[i]+=(wanted[i]-c.object.position[i])*blend;
-        // Smoothing may cross the inside of a corner even when its target is
-        // clear. Resolve the actual camera position after smoothing as well.
+        // 目標位置に障害物がなくても、補間中に角の内側を通る可能性があるため、
+        // 補間後の実際のカメラ位置にも衝突回避を適用します。
         for(size_t i=0;i<3;++i)delta[i]=c.object.position[i]-player->position[i];
         const float actualLength=std::sqrt(delta[0]*delta[0]+delta[1]*delta[1]+delta[2]*delta[2]);
         if(actualLength>.01f) {
@@ -376,9 +376,9 @@ namespace
             const float roof=std::clamp((player->position[2]-79)/9,0.0f,1.0f);
             const float distance=c.Value("distance",7.8f)+roof*1.2f;
             const float height=c.Value("height",4.2f)+roof*.8f;
-            // The plaza keeps its forward composition during small detours.
-            // The continuous blend also works when deliberately walking back;
-            // neither the player's facing nor a trigger can flip the camera.
+            // 広場では小さな寄り道でも前方を見る構図を保ちます。
+            // 引き返す場合も連続的に補間し、
+            // プレイヤーの向きや領域の切り替えで視点が反転しないようにします。
             const float t=std::clamp((player->position[2]-c.Value("plazaBlendStart",18))/
                 std::max(1.0f,c.Value("plazaBlendEnd",34)-c.Value("plazaBlendStart",18)),0.0f,1.0f);
             const float plaza=1-t*t*(3-2*t);
@@ -388,13 +388,13 @@ namespace
             const float anchor=c.state["anchorX"];
             const float aimX=anchor+(c.Value("plazaExitX",8)-anchor)*c.Value("plazaFocusWeight",.22f)*plaza;
             std::array<float,3> wanted{anchor-.5f*plaza,c.state["floor"]+.7f+height,player->position[2]-distance};
-            // Reserve the camera's own aisle outside the cafe awning. Following
-            // the player under its overhang would hide them behind the fabric.
+            // カメラはカフェのひさしの外側を通します。プレイヤーを追ってひさしの下へ
+            // 入ると、布がプレイヤーを隠してしまうためです。
             wanted[0]=std::max(wanted[0],c.Value("plazaCameraLeft",-3)*plaza+player->position[0]*(1-plaza));
             const float blend=1-std::exp(-c.Value("response",7)*dt);
             ResolveBlockCamera(c,player,wanted,blend);
-            // Smooth composition separately from collision-safe position. A
-            // wall may pull the camera in immediately without rotating its aim.
+            // 構図の補間は、衝突を避ける位置の調整から独立させます。
+            // 壁を避けて視点を即座に近づけても、注視方向は急に回転させません。
             if(!c.state["aimReady"]) {c.state["aimX"]=aimX;c.state["aimReady"]=1;}
             c.state["aimX"]+=(aimX-c.state["aimX"])*blend;
             const float dx=c.state["aimX"]-c.object.position[0];

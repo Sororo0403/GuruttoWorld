@@ -28,7 +28,7 @@ namespace SceneRuntime
         ScriptValue::Object dataFields;
         std::map<std::string, ScriptDataPurpose> dataPurposes;
         bool operator==(const ScriptSchema&) const = default;
-        /// <summary>保存・Inspector・実行が共有するスキーマの制約を検証します。</summary>
+        /// <summary>保存・インスペクター・実行が共有するスキーマの制約を検証します。</summary>
         void Validate(const std::string& name) const;
         /// <summary>明示的な追加・リセット操作で既定値と素材参照の指定を設定します。</summary>
         void ResetValues(ScriptComponent& component) const;

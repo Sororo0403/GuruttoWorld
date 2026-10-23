@@ -153,7 +153,7 @@ namespace PrefabDesignContractValidation
         vectorRemote["color"][1] = 0;
         const auto color = PrefabMerge::Merge(vector, vectorLocal, vectorRemote);
         report("prefab-array-fixed-channels", color["color"][0] == 0 && color["color"][1] == 0);
-        // 実際のScript保存形式でも、idを持つ構造の配列は並べ替え後の同じ要素へ統合します。
+        // 実際のスクリプト保存形式でも、idを持つ構造の配列は並べ替え後の同じ要素へ統合します。
         const auto identified = [](const std::string& id, float value)
         {
             return ScriptValue{ScriptValue::Object{{"id", {id}}, {"amount", {value}}}};

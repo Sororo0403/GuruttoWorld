@@ -21,7 +21,7 @@ namespace Engine
     {
         std::vector<MeshVertex> vertices;
         std::vector<std::uint32_t> indices;
-        // 空の場合は白テクスチャを使用し、頂点色だけを反映します。
+        // 空の場合は白テクスチャを使用し、照明を適用する前の基準色に頂点色を使います。
         std::filesystem::path texturePath;
     };
 }

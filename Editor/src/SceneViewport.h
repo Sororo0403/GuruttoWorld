@@ -5,7 +5,7 @@
 
 namespace Editor
 {
-    // 画面座標で表した内容領域です。今後 Scene パネルに追加するタイトルやタブのバーは含めません。
+    // Scene パネルの描画領域を画面座標で表します。タイトルバーやタブなどの操作領域は含めません。
     struct SceneViewport
     {
         float x = 0, y = 0, width = 0, height = 0;
@@ -19,10 +19,11 @@ namespace Editor
         {
             return Valid() && screenX >= x && screenY >= y && screenX < x + width && screenY < y + height;
         }
+        /// <summary>有効な矩形の幅と高さの比を返します。Valid が true の場合だけ呼び出してください。</summary>
         float Aspect() const
         {
             return width / height;
-        } // 有効な矩形に対してだけ呼び出してください。
+        }
         std::optional<std::array<float, 2>> ToNdc(float screenX, float screenY) const
         {
             if (!Contains(screenX, screenY))
