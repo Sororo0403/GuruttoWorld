@@ -216,6 +216,22 @@ namespace SceneRuntime
         ValidateCamera(layout);
         ValidateSceneCounts(layout);
     }
+    static void ValidatePrefabSlots(const SceneLayout& layout, const std::unordered_set<std::string>& ids,
+                                    double version)
+    {
+        if ((version < 5.0 && !layout.prefabSlots.empty()) || layout.prefabSlots.size() > 256)
+            throw std::runtime_error("Too many prefab external slots");
+        for (const auto& [slot, label] : layout.prefabSlots)
+            if (slot.empty() || slot.size() > 128 || ids.contains(slot) || label.size() > 4096 ||
+                slot.find('\0') != std::string::npos || label.find('\0') != std::string::npos)
+                throw std::runtime_error("Invalid or ambiguous prefab external slot");
+    }
+    static void ValidateAssetMetadata(const SceneLayout& layout)
+    {
+        for (const auto& [path, id] : layout.assetReferences)
+            if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
+                throw std::runtime_error("Invalid asset reference metadata");
+    }
     static SceneLayout ParseDocument(const Json& document)
     {
         try
@@ -230,9 +246,7 @@ namespace SceneRuntime
                     document.at("sceneObjects").get<std::map<std::string, std::vector<std::string>>>();
             if (document.contains("assetReferences"))
                 layout.assetReferences = document.at("assetReferences").get<std::map<std::string, std::string>>();
-            for (const auto& [path, id] : layout.assetReferences)
-                if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
-                    throw std::runtime_error("Invalid asset reference metadata");
+            ValidateAssetMetadata(layout);
             if (document.contains("prefabSlots"))
                 layout.prefabSlots = document.at("prefabSlots").get<std::map<std::string, std::string>>();
             if (version >= 4.0)
@@ -247,12 +261,7 @@ namespace SceneRuntime
                     throw std::runtime_error("Prefab reference scope requires layout version 5");
                 layout.objects.push_back(std::move(placement));
             }
-            if ((version < 5.0 && !layout.prefabSlots.empty()) || layout.prefabSlots.size() > 256)
-                throw std::runtime_error("Too many prefab external slots");
-            for (const auto& [slot, label] : layout.prefabSlots)
-                if (slot.empty() || slot.size() > 128 || ids.contains(slot) || label.size() > 4096 ||
-                    slot.find('\0') != std::string::npos || label.find('\0') != std::string::npos)
-                    throw std::runtime_error("Invalid or ambiguous prefab external slot");
+            ValidatePrefabSlots(layout, ids, version);
             ValidateLayoutContents(layout);
             return layout;
         }

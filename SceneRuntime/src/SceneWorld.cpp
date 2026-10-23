@@ -618,6 +618,84 @@ namespace SceneRuntime
         if (frame.applyPose && !frame.model->PreparePose(pose, frame.pose))
             throw std::runtime_error("Animator pose preparation failed");
     }
+    bool SceneWorld::PrepareLayoutAssets(SceneLayout& layout, PreparedLayout& prepared, const PreparedLayout* previous,
+                                         bool configurationCurrent, std::map<std::string, std::string>& unresolved)
+    {
+        bool indexAvailable = configurationCurrent;
+        try
+        {
+            prepared.assets = previous && previous->assets && previous->assetsRoot == prepared.assetsRoot
+                                  ? previous->assets
+                                  : std::make_shared<Engine::AssetDatabase>(context_, true);
+            if (IsDocumentView())
+                unresolved = ResolveSceneAssetReferencesForEditing(layout, *prepared.assets);
+            else
+                layout.ResolveAssets(*prepared.assets);
+        }
+        catch (const std::exception& failure)
+        {
+            if (!IsDocumentView())
+                throw;
+            indexAvailable = false;
+            prepared.diagnostics.push_back(failure.what());
+        }
+        for (const auto& [path, diagnostic] : unresolved)
+            prepared.diagnostics.push_back(path + ": " + diagnostic);
+        return indexAvailable;
+    }
+    void SceneWorld::ValidateEditingResources(const ScenePlacement& placement, bool indexAvailable,
+                                              const std::map<std::string, std::string>& unresolved) const
+    {
+        if (IsDocumentView())
+        {
+            if (!modelsReady_ || !indexAvailable)
+                throw std::runtime_error("Rendering resources are unavailable");
+            auto references = placement;
+            references.VisitAssetReferences(
+                [&](const auto& value)
+                {
+                    const auto key = [&]()
+                    {
+                        if constexpr (std::is_same_v<std::decay_t<decltype(value)>, std::string>)
+                            return value;
+                        else
+                            return Engine::AssetDatabase::Text(value);
+                    }();
+                    if (unresolved.contains(key))
+                        throw std::runtime_error(unresolved.at(key));
+                });
+        }
+    }
+    void SceneWorld::PrepareLayoutObjects(const SceneLayout& layout, const std::vector<DirectX::XMFLOAT4X4>& matrices,
+                                          PreparedLayout& prepared, const LayoutView& baseline, bool preserveExecution,
+                                          bool indexAvailable, const std::map<std::string, std::string>& unresolved)
+    {
+        prepared.objects.reserve(layout.objects.size());
+        for (const auto& placement : layout.objects)
+        {
+            const auto& matrix = matrices[prepared.objects.size()];
+            try
+            {
+                ValidateEditingResources(placement, indexAvailable, unresolved);
+                prepared.objects.push_back(
+                    BuildLayoutObject(placement, layout, matrix, prepared, baseline, preserveExecution));
+            }
+            catch (const std::exception& failure)
+            {
+                if (!IsDocumentView())
+                    throw;
+                prepared.diagnostics.push_back(placement.id + ": " + failure.what());
+                prepared.animated.erase(placement.id);
+                prepared.states.erase(placement.id);
+                prepared.lods.erase(placement.id);
+                Engine::Object3D placeholder;
+                if (!placeholder.SetTransform(placement.position, placement.rotation, placement.scale) ||
+                    !placeholder.SetWorldMatrix(matrix))
+                    throw std::runtime_error("Invalid document transform");
+                prepared.objects.push_back(std::move(placeholder));
+            }
+        }
+    }
     bool SceneWorld::PrepareLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,
                                    bool preserveExecution, PreparedLayout& result, const PreparedLayout* previous)
     {
@@ -643,74 +721,14 @@ namespace SceneRuntime
                 prepared.diagnostics.push_back("Scene renderer is unavailable; editing data was retained");
             prepared.assetsRoot = context_->Root();
             std::map<std::string, std::string> unresolved;
-            bool indexAvailable = configurationCurrent;
-            try
-            {
-                prepared.assets = previous && previous->assets && previous->assetsRoot == prepared.assetsRoot
-                                      ? previous->assets
-                                      : std::make_shared<Engine::AssetDatabase>(context_, true);
-                if (IsDocumentView())
-                    unresolved = ResolveSceneAssetReferencesForEditing(layout, *prepared.assets);
-                else
-                    layout.ResolveAssets(*prepared.assets);
-            }
-            catch (const std::exception& failure)
-            {
-                if (!IsDocumentView())
-                    throw;
-                indexAvailable = false;
-                prepared.diagnostics.push_back(failure.what());
-            }
-            for (const auto& [path, diagnostic] : unresolved)
-                prepared.diagnostics.push_back(path + ": " + diagnostic);
+            const bool indexAvailable =
+                PrepareLayoutAssets(layout, prepared, previous, configurationCurrent, unresolved);
             layout.Validate();
             std::vector<DirectX::XMFLOAT4X4> matrices;
             if (!SceneTransforms::Resolve(layout, matrices, error))
                 throw std::runtime_error(error);
             prepared.materials = previous ? previous->materials : decltype(prepared.materials){};
-            prepared.objects.reserve(layout.objects.size());
-            for (const auto& placement : layout.objects)
-            {
-                const auto& matrix = matrices[prepared.objects.size()];
-                try
-                {
-                    if (IsDocumentView())
-                    {
-                        if (!modelsReady_ || !indexAvailable)
-                            throw std::runtime_error("Rendering resources are unavailable");
-                        auto references = placement;
-                        references.VisitAssetReferences(
-                            [&](const auto& value)
-                            {
-                                const auto key = [&]()
-                                {
-                                    if constexpr (std::is_same_v<std::decay_t<decltype(value)>, std::string>)
-                                        return value;
-                                    else
-                                        return Engine::AssetDatabase::Text(value);
-                                }();
-                                if (unresolved.contains(key))
-                                    throw std::runtime_error(unresolved.at(key));
-                            });
-                    }
-                    prepared.objects.push_back(
-                        BuildLayoutObject(placement, layout, matrix, prepared, baseline, preserveExecution));
-                }
-                catch (const std::exception& failure)
-                {
-                    if (!IsDocumentView())
-                        throw;
-                    prepared.diagnostics.push_back(placement.id + ": " + failure.what());
-                    prepared.animated.erase(placement.id);
-                    prepared.states.erase(placement.id);
-                    prepared.lods.erase(placement.id);
-                    Engine::Object3D placeholder;
-                    if (!placeholder.SetTransform(placement.position, placement.rotation, placement.scale) ||
-                        !placeholder.SetWorldMatrix(matrix))
-                        throw std::runtime_error("Invalid document transform");
-                    prepared.objects.push_back(std::move(placeholder));
-                }
-            }
+            PrepareLayoutObjects(layout, matrices, prepared, baseline, preserveExecution, indexAvailable, unresolved);
             prepared.layout = std::move(layout);
             if (modelsReady_ && configurationCurrent &&
                 !PrepareShadows(prepared.layout.settings, prepared.shadow, prepared.localShadow, error))
@@ -1591,6 +1609,21 @@ namespace SceneRuntime
         return replaced;
     }
 
+    static void AccumulatePressed(const std::map<std::string, bool>& inputPressed, std::map<std::string, bool>& pressed)
+    {
+        for (const auto& [name, value] : inputPressed)
+            if (value)
+                pressed[name] = true;
+    }
+    static double DropFixedBacklog(double pending, double step)
+    {
+        if (pending + 1e-10 >= step)
+        {
+            pending = std::fmod(pending, step);
+            Engine::CpuProfiler::Add("Fixed backlog dropped", 0);
+        }
+        return pending;
+    }
     bool SceneWorld::MovePlayers(double seconds, float horizontal, float vertical, bool jump)
     {
         if (!scripts_)
@@ -1600,9 +1633,7 @@ namespace SceneRuntime
             return false;
         auto pending = std::min(seconds, 0.1) + fixedSeconds_;
         auto pressed = fixedPressed_;
-        for (const auto& [name, value] : inputPressed_)
-            if (value)
-                pressed[name] = true;
+        AccumulatePressed(inputPressed_, pressed);
         bool pendingJump = fixedJump_ || jump;
         if (pending + 1e-10 < FixedStep())
         {
@@ -1636,11 +1667,7 @@ namespace SceneRuntime
                 pendingJump = false;
                 pressed.clear();
             }
-            if (pending + 1e-10 >= FixedStep())
-            {
-                pending = std::fmod(pending, FixedStep());
-                Engine::CpuProfiler::Add("Fixed backlog dropped", 0);
-            }
+            pending = DropFixedBacklog(pending, FixedStep());
             PreparedLayout prepared;
             if (!PrepareScriptLayout(std::move(candidate), nullptr, prepared, error) ||
                 (prepareRuntime_ && !prepareRuntime_(prepared.layout, error)))
@@ -1649,7 +1676,7 @@ namespace SceneRuntime
                 return false;
             }
             if (!frameUpdating_)
-                if (!FinalizeLifecycle(runtime, prepared, error))
+                if (!ScriptRuntime::ValidateForPlay(prepared.layout, error))
                     return false;
             CommitLayout(std::move(prepared), true);
             physics_ = std::move(states);
@@ -1755,6 +1782,25 @@ namespace SceneRuntime
         result.localShadow = localShadow_;
         return result;
     }
+    bool SceneWorld::PrepareCachedLayout(SceneLayout layout, const LayoutView& baseline, PreparedLayout& result,
+                                         std::string& error)
+    {
+        PreparedLayout candidate;
+        candidate.assetsRoot = baseline.root;
+        candidate.assets = baseline.assets;
+        candidate.materials = baseline.materials;
+        candidate.objects = baseline.objects;
+        candidate.animated = baseline.animated;
+        candidate.states = baseline.states;
+        candidate.lods = baseline.lods;
+        candidate.layout = std::move(layout);
+        ValidateAnimatorModels(candidate);
+        if (!PrepareTransforms(candidate.layout, candidate.objects, error, &baseline.layout))
+            return false;
+        result = std::move(candidate);
+        error.clear();
+        return true;
+    }
     bool SceneWorld::PrepareScriptLayout(SceneLayout layout, const PreparedLayout* previous, PreparedLayout& result,
                                          std::string& error)
     {
@@ -1765,21 +1811,7 @@ namespace SceneRuntime
             const bool unchangedResources = SameRenderResources(layout, baseline.layout);
             if (unchangedResources)
             {
-                PreparedLayout candidate;
-                candidate.assetsRoot = baseline.root;
-                candidate.assets = baseline.assets;
-                candidate.materials = baseline.materials;
-                candidate.objects = baseline.objects;
-                candidate.animated = baseline.animated;
-                candidate.states = baseline.states;
-                candidate.lods = baseline.lods;
-                candidate.layout = std::move(layout);
-                ValidateAnimatorModels(candidate);
-                if (!PrepareTransforms(candidate.layout, candidate.objects, error, &baseline.layout))
-                    return false;
-                result = std::move(candidate);
-                error.clear();
-                return true;
+                return PrepareCachedLayout(std::move(layout), baseline, result, error);
             }
             std::unordered_map<std::string, size_t> old;
             for (size_t i = 0; i < baseline.layout.objects.size(); ++i)
@@ -1862,7 +1894,7 @@ namespace SceneRuntime
             return false;
         if (prepareUi_ && !prepareUi_(prepared.layout, runtime.UiCommands(), error))
             return false;
-        if (!FinalizeLifecycle(runtime, prepared, error))
+        if (!ScriptRuntime::ValidateForPlay(prepared.layout, error))
             return false;
         CommitLayout(std::move(prepared), true);
         runtime.CommitStarts();
@@ -1908,17 +1940,12 @@ namespace SceneRuntime
         auto impulses = runtime.Impulses();
         if (!UpdateLateComponents(seconds, prepared, runtime, frames, impulses, error))
             return false;
-        if (prepareRuntime_ && !prepareRuntime_(prepared.layout, error))
+        if (!PrepareRuntimeCallbacks(prepared.layout, runtime, error))
         {
             Engine::Log::Warning(error);
             return false;
         }
-        if (prepareUi_ && !prepareUi_(prepared.layout, runtime.UiCommands(), error))
-        {
-            Engine::Log::Warning(error);
-            return false;
-        }
-        if (!FinalizeLifecycle(runtime, prepared, error))
+        if (!ScriptRuntime::ValidateForPlay(prepared.layout, error))
             return false;
         CommitLayout(std::move(prepared), true);
         CommitAnimatorFrames(frames);
@@ -2272,6 +2299,18 @@ namespace SceneRuntime
         return true;
     }
 
+    void SceneWorld::DuplicateAnimator(size_t index, const std::string& id, Engine::Object3D& object,
+                                       std::map<std::string, std::shared_ptr<Engine::ModelRenderer>>& animated,
+                                       std::map<std::string, AnimatorState>& states)
+    {
+        auto model = objects_[index].GetModel()->AnimatedCopy(materialDevice_.Get(), materialQueue_.Get());
+        auto state = animatorStates_.at(layout_.objects[index].id);
+        if (!model || !model->ApplyPose(state.pose))
+            throw std::runtime_error("Animator duplication failed");
+        object.SetModel(model);
+        animated[id] = std::move(model);
+        states[id] = std::move(state);
+    }
     bool SceneWorld::DuplicateObjects(const std::vector<std::string>& ids, const std::array<float, 3>& offset,
                                       std::vector<std::string>& createdIds, std::string& error)
     {
@@ -2320,13 +2359,7 @@ namespace SceneRuntime
             {
                 try
                 {
-                    auto model = objects_[index].GetModel()->AnimatedCopy(materialDevice_.Get(), materialQueue_.Get());
-                    auto state = animatorStates_.at(layout_.objects[index].id);
-                    if (!model || !model->ApplyPose(state.pose))
-                        throw std::runtime_error("Animator duplication failed");
-                    object.SetModel(model);
-                    animated[placement.id] = std::move(model);
-                    states[placement.id] = std::move(state);
+                    DuplicateAnimator(index, placement.id, object, animated, states);
                 }
                 catch (const std::exception& exception)
                 {

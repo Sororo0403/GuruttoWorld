@@ -4,6 +4,12 @@
 
 namespace SceneRuntime
 {
+    bool SceneWorld::PrepareRuntimeCallbacks(const SceneLayout& layout, const ScriptRuntime& runtime,
+                                             std::string& error) const
+    {
+        return (!prepareRuntime_ || prepareRuntime_(layout, error)) &&
+               (!prepareUi_ || prepareUi_(layout, runtime.UiCommands(), error));
+    }
     bool SceneWorld::ReplaceRuntimeLayout(SceneLayout layout, const std::filesystem::path& assetsRoot,
                                           std::string& error)
     {
@@ -23,14 +29,13 @@ namespace SceneRuntime
                 return false;
             PreparedLayout candidate;
             if (!PrepareScriptLayout(std::move(started), &prepared, candidate, error) ||
-                (prepareRuntime_ && !prepareRuntime_(candidate.layout, error)) ||
-                (prepareUi_ && !prepareUi_(candidate.layout, runtime.UiCommands(), error)))
+                !PrepareRuntimeCallbacks(candidate.layout, runtime, error))
                 return false;
             if (!candidate.shadow)
                 candidate.shadow = prepared.shadow;
             if (!candidate.localShadow)
                 candidate.localShadow = prepared.localShadow;
-            if (!FinalizeLifecycle(runtime, candidate, error))
+            if (!ScriptRuntime::ValidateForPlay(candidate.layout, error))
                 return false;
             CommitLayout(std::move(candidate), true);
             runtime.CommitStarts();
@@ -98,9 +103,5 @@ namespace SceneRuntime
         renderVersion_ = version;
         preparedRenderVersion_ = static_cast<size_t>(-1);
         return false;
-    }
-    bool SceneWorld::FinalizeLifecycle(ScriptRuntime&, PreparedLayout& prepared, std::string& error)
-    {
-        return ScriptRuntime::ValidateForPlay(prepared.layout, error);
     }
 }

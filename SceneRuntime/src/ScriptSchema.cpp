@@ -165,12 +165,8 @@ namespace SceneRuntime
             component = std::move(candidate);
         return report;
     }
-    void ScriptSchema::Validate(const std::string& name) const
+    static void ValidateParameterFields(const std::map<std::string, ScriptField>& fields)
     {
-        if (name.empty() || name.size() > 128 || name.find('\0') != std::string::npos || fields.size() > 64)
-        {
-            throw std::runtime_error("Invalid script schema name or size");
-        }
         for (const auto& [key, field] : fields)
         {
             if (key.empty() || key.size() > 128 || key.find('\0') != std::string::npos ||
@@ -181,6 +177,14 @@ namespace SceneRuntime
                 throw std::runtime_error("Invalid script parameter schema");
             }
         }
+    }
+    void ScriptSchema::Validate(const std::string& name) const
+    {
+        if (name.empty() || name.size() > 128 || name.find('\0') != std::string::npos || fields.size() > 64)
+        {
+            throw std::runtime_error("Invalid script schema name or size");
+        }
+        ValidateParameterFields(fields);
         size_t remaining = 4096;
         ScriptValue{dataFields}.Validate(0, remaining);
         for (const auto& [key, purpose] : dataPurposes)
@@ -227,25 +231,29 @@ namespace SceneRuntime
             value["purposes"][name] = purpose == ScriptDataPurpose::SceneAsset ? "sceneAsset" : "text";
         return value;
     }
+    static void ValidateSchemaIdentifier(const std::string& name)
+    {
+        const auto identifier = [](unsigned char c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
+        };
+        if (name.empty() || name.size() > 64 || !identifier(static_cast<unsigned char>(name.front())) ||
+            !std::all_of(name.begin(), name.end(),
+                         [&](unsigned char c)
+                         {
+                             return identifier(c) || (c >= '0' && c <= '9');
+                         }))
+        {
+            throw std::runtime_error("Script schema name must be a C++ identifier");
+        }
+    }
     std::map<std::string, ScriptSchema> ScriptSchema::Parse(const Engine::Json& source)
     {
         const auto declarations = FlattenSchemas(source);
         std::map<std::string, ScriptSchema> result;
         for (const auto& [name, definition] : declarations.items())
         {
-            const auto identifier = [](unsigned char c)
-            {
-                return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
-            };
-            if (name.empty() || name.size() > 64 || !identifier(static_cast<unsigned char>(name.front())) ||
-                !std::all_of(name.begin(), name.end(),
-                             [&](unsigned char c)
-                             {
-                                 return identifier(c) || (c >= '0' && c <= '9');
-                             }))
-            {
-                throw std::runtime_error("Script schema name must be a C++ identifier");
-            }
+            ValidateSchemaIdentifier(name);
             ScriptSchema schema;
             const auto parameters = definition.value("parameters", Engine::Json::object());
             const auto data = definition.value("data", Engine::Json::object());

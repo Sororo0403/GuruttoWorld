@@ -8,8 +8,8 @@ namespace SceneRuntime
     template <class Component> struct ComponentScalarField
     {
         std::string_view name;
-        float Component::* member;
-        float minimum, maximum;
+        float Component::* member = nullptr;
+        float minimum = 0, maximum = 0;
         /// <summary>読込・保存・Inspectorが共有する保存範囲を確認します。</summary>
         bool Accepts(double value) const
         {
@@ -25,15 +25,15 @@ namespace SceneRuntime
         ComponentScalarField<PlayerControllerComponent>{"stepHeight", &PlayerControllerComponent::stepHeight, 0, 10}};
     /// <summary>PlayerControllerのフィールドに対応する共通の制約を取得します。</summary>
     inline const ComponentScalarField<PlayerControllerComponent>& PlayerControllerField(
-        float PlayerControllerComponent::* member)
+        float PlayerControllerComponent::* const member)
     {
-        for (const auto& field : PlayerControllerScalarFields)
-        {
-            if (field.member == member)
-            {
-                return field;
-            }
-        }
+        const auto found = std::find_if(PlayerControllerScalarFields.begin(), PlayerControllerScalarFields.end(),
+                                        [member](const auto& field)
+                                        {
+                                            return field.member == member;
+                                        });
+        if (found != PlayerControllerScalarFields.end())
+            return *found;
         throw std::runtime_error("PlayerController scalar field is not declared");
     }
 }

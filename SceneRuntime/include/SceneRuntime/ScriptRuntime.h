@@ -113,6 +113,8 @@ namespace SceneRuntime
         std::map<std::string, std::optional<bool>> rootMotions;
 
     private:
+        /// <summary>削除したAnimatorに対する更新要求を破棄します。</summary>
+        void PruneAnimatorCommands();
         void DestroyQueuedObjects();
 
         SceneLayout& layout_;
@@ -289,9 +291,16 @@ namespace SceneRuntime
 
     private:
         std::shared_ptr<const Engine::ContentContext> content_;
+        struct AdvanceOptions
+        {
+            const PhysicsWorld* physics;
+            ScriptPhase phase;
+            const SceneLayout* validatedBefore;
+            bool startOnly;
+        };
+        /// <summary>入力と更新段階を指定し、候補のScriptを進めます。</summary>
         bool Advance(SceneLayout& layout, double seconds, std::string& error, const std::map<std::string, float>& input,
-                     const std::map<std::string, bool>& pressed, const PhysicsWorld* physics, ScriptPhase phase,
-                     const SceneLayout* validatedBefore, bool startOnly = false);
+                     const std::map<std::string, bool>& pressed, const AdvanceOptions& options);
         bool pendingFixedCommands_ = false;
         struct PendingStart
         {
@@ -329,6 +338,9 @@ namespace SceneRuntime
             ScriptPhase phase;
             double seconds;
         };
+        /// <summary>有効なScriptを実行し、継続するインスタンスの識別子を返します。</summary>
+        std::set<std::pair<std::string, std::string>> TickLayout(SceneLayout& layout, const TickContext& tick,
+                                                                 bool startOnly);
         Instance& GetInstance(ScenePlacement& object, const ScriptComponent& script, const ScriptDefinition& definition,
                               const TickContext& tick);
         void TickScript(ScenePlacement& object, const ScriptComponent& script, const ScriptDefinition& definition,

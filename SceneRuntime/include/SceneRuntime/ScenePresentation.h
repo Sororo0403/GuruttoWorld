@@ -62,6 +62,17 @@ namespace SceneRuntime
                               unsigned int height, Engine::PostEffectRenderer*& post) const;
         /// <summary>有効化したシーンにだけポストエフェクトのパイプラインを準備します。</summary>
         bool PrepareEffects(const SceneLayout& layout, std::string& error) const;
+        /// <summary>標準の空と粒子の資源を必要時だけ準備します。</summary>
+        bool PrepareDefaultSprites(const SceneLayout& layout, bool sky, bool particles, std::string& error) const;
+        /// <summary>独自の空と海のシェーダーを準備します。</summary>
+        bool PrepareCustomSprites(const SceneLayout& layout, bool sky, bool ocean, std::string& error) const;
+        /// <summary>独自の粒子とポストエフェクトを準備します。</summary>
+        bool PrepareCustomEffects(const SceneLayout& layout, bool particles, std::string& error) const;
+        /// <summary>標準の海とポストエフェクトを準備します。</summary>
+        bool PrepareDefaultEffects(const SceneLayout& layout, bool ocean, std::string& error) const;
+        /// <summary>シーンとゲームのUI表示条件に従って重ね描きします。</summary>
+        void DrawOverlay(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width,
+                         unsigned int height, const SceneDrawOptions& options) const;
         std::shared_ptr<const Engine::ContentContext> context_;
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_;

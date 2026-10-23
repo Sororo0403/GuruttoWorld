@@ -82,9 +82,12 @@ namespace SceneRuntime
                                 return !Engine::InRange(channel, 0, 1);
                             }))
                 throw std::runtime_error("Invalid material color");
-            for (const float value : values.shaderParameters)
-                if (!Engine::InRange(value, -100000, 100000))
-                    throw std::runtime_error("Invalid material shader parameter");
+            if (std::any_of(std::begin(values.shaderParameters), std::end(values.shaderParameters),
+                            [](float value)
+                            {
+                                return !Engine::InRange(value, -100000, 100000);
+                            }))
+                throw std::runtime_error("Invalid material shader parameter");
             if (!Engine::InRange(values.roughness, 0.04f, 1) || !Engine::InRange(values.metallic, 0, 1))
                 throw std::runtime_error("Invalid material surface");
             if (!Engine::InRange(values.environmentIntensity, 0, 100))

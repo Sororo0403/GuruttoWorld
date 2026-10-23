@@ -289,6 +289,25 @@ namespace SceneRuntime
             const decltype(PreparedLayout::states)& states;
             const decltype(PreparedLayout::lods)& lods;
         };
+        /// <summary>候補の参照解決を行い、編集時は欠損理由を保持します。</summary>
+        bool PrepareLayoutAssets(SceneLayout& layout, PreparedLayout& prepared, const PreparedLayout* previous,
+                                 bool configurationCurrent, std::map<std::string, std::string>& unresolved);
+        /// <summary>配置ごとの描画資源を作り、編集時の欠損を代替表示へ変換します。</summary>
+        void PrepareLayoutObjects(const SceneLayout& layout, const std::vector<DirectX::XMFLOAT4X4>& matrices,
+                                  PreparedLayout& prepared, const LayoutView& baseline, bool preserveExecution,
+                                  bool indexAvailable, const std::map<std::string, std::string>& unresolved);
+        /// <summary>編集用の配置に欠損した参照がないか確認します。</summary>
+        void ValidateEditingResources(const ScenePlacement& placement, bool indexAvailable,
+                                      const std::map<std::string, std::string>& unresolved) const;
+        /// <summary>資源に変更がない候補を共有し、配置とAnimatorの整合性を確認します。</summary>
+        static bool PrepareCachedLayout(SceneLayout layout, const LayoutView& baseline, PreparedLayout& result,
+                                        std::string& error);
+        /// <summary>描画とUIの候補を順に準備します。</summary>
+        bool PrepareRuntimeCallbacks(const SceneLayout& layout, const ScriptRuntime& runtime, std::string& error) const;
+        /// <summary>複製先専用のAnimator資源と姿勢を作ります。</summary>
+        void DuplicateAnimator(size_t index, const std::string& id, Engine::Object3D& object,
+                               std::map<std::string, std::shared_ptr<Engine::ModelRenderer>>& animated,
+                               std::map<std::string, AnimatorState>& states);
         LayoutView BaselineView(const PreparedLayout* previous) const;
         struct AnimatorFrame
         {
@@ -319,8 +338,6 @@ namespace SceneRuntime
                                  std::string& error);
         /// <summary>現在の実行リソースと状態を更新候補へ参照共有します。</summary>
         PreparedLayout RuntimeLayout() const;
-        /// <summary>終了処理の書き戻しも候補へ再投影し、配置と描画の整合性を保ちます。</summary>
-        bool FinalizeLifecycle(ScriptRuntime& runtime, PreparedLayout& prepared, std::string& error);
         /// <summary>固定コールバック・物理・衝突イベントを候補へ進めます。</summary>
         bool FixedTick(SceneLayout& layout, ScenePhysics::States& states, ScriptRuntime& scripts, float horizontal,
                        float vertical, bool jump, const std::map<std::string, bool>& pressed, std::string& error);

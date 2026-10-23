@@ -30,12 +30,9 @@ namespace SceneRuntime
                    value.find('\\') == std::string::npos && value.find(':') == std::string::npos &&
                    value.find('\0') == std::string::npos;
         }
-        void Validate() const
+        /// <summary>別名の件数・名前・シーンパスを検証します。</summary>
+        void ValidateSceneAliases() const
         {
-            Engine::InputActions::Validate(inputActions);
-            if (title.empty() || title.size() > 1024 || title.find('\0') != std::string::npos ||
-                !ScenePath(startupScene) || width < 320 || width > 8192 || height < 240 || height > 8192)
-                throw std::runtime_error("Invalid project settings");
             if (sceneAliases.size() > 64)
                 throw std::runtime_error("Too many scene aliases");
             for (const auto& [name, scene] : sceneAliases)
@@ -49,6 +46,14 @@ namespace SceneRuntime
                                  }))
                     throw std::runtime_error("Invalid scene alias");
             }
+        }
+        void Validate() const
+        {
+            Engine::InputActions::Validate(inputActions);
+            if (title.empty() || title.size() > 1024 || title.find('\0') != std::string::npos ||
+                !ScenePath(startupScene) || width < 320 || width > 8192 || height < 240 || height > 8192)
+                throw std::runtime_error("Invalid project settings");
+            ValidateSceneAliases();
         }
         /// <summary>プロジェクトで定義した別名、または明示的なシーンパスを解決します。</summary>
         std::string ResolveScene(std::string_view name) const

@@ -35,6 +35,8 @@ namespace SceneRuntime
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuSetting, key, action, minimum, maximum, step, initial)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MenuStateBinding, key, source, operation, factor, compare, scale, offset,
                                        minimum, maximum, factorDefault)
+    // マクロが生成する既定値はfrom_jsonで参照されます。展開後の誤検出だけを除外します。
+    // cppcheck-suppress unreadVariable
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MenuConfigTransition, enabled, cameraTarget, returnCameraTarget,
                                                     enterDuration, returnDuration, zoomDelay, clock, enabledState,
                                                     idleValues, heldValues, transitionValues)

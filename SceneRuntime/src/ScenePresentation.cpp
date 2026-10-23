@@ -16,7 +16,7 @@ namespace
             return true;
         auto renderer = std::make_shared<typename Cache::mapped_type::element_type>();
         error.clear();
-        if (!initialize(*renderer))
+        if (!initialize(*renderer, error))
         {
             if (error.empty())
                 error = message;
@@ -195,28 +195,9 @@ namespace SceneRuntime
             }
         }
     }
-    bool ScenePresentation::PrepareEffects(const SceneLayout& layout, std::string& error) const
+    bool ScenePresentation::PrepareDefaultSprites(const SceneLayout& layout, bool sky, bool particles,
+                                                  std::string& error) const
     {
-        const bool sky = std::any_of(layout.objects.begin(), layout.objects.end(),
-                                     [](const auto& object)
-                                     {
-                                         return object.sky && object.sky->enabled;
-                                     });
-        const bool particles = std::any_of(layout.objects.begin(), layout.objects.end(),
-                                           [](const auto& object)
-                                           {
-                                               return object.particleEmitter && object.particleEmitter->enabled;
-                                           });
-        if ((sky || particles) && !environmentTexture_)
-        {
-            auto texture = std::make_shared<Engine::Texture2D>();
-            if (!texture->Initialize(device_.Get(), queue_.Get(), {}))
-            {
-                error = "Cannot prepare effect texture";
-                return false;
-            }
-            environmentTexture_ = std::move(texture);
-        }
         if (sky && layout.settings.skyShader.empty() && !skyReady_)
         {
             if (!context_->CheckConfiguration(error))
@@ -241,16 +222,16 @@ namespace SceneRuntime
             }
             particlesReady_ = true;
         }
-        const bool ocean = std::any_of(layout.objects.begin(), layout.objects.end(),
-                                       [](const auto& object)
-                                       {
-                                           return object.sky && object.sky->enabled && object.sky->ocean.has_value();
-                                       });
+        return true;
+    }
+    bool ScenePresentation::PrepareCustomSprites(const SceneLayout& layout, bool sky, bool ocean,
+                                                 std::string& error) const
+    {
         const auto sprite = [&](const auto& path, auto& cache, bool depth)
         {
             return PrepareRenderer(
                 path, cache,
-                [&](auto& renderer)
+                [&](auto& renderer, std::string& error)
                 {
                     if (!context_->CheckConfiguration(error))
                         return false;
@@ -262,9 +243,13 @@ namespace SceneRuntime
         if ((sky && !sprite(layout.settings.skyShader, customSky_, false)) ||
             (ocean && !sprite(layout.settings.oceanShader, customOcean_, true)))
             return false;
+        return true;
+    }
+    bool ScenePresentation::PrepareCustomEffects(const SceneLayout& layout, bool particles, std::string& error) const
+    {
         if (particles && !PrepareRenderer(
                              layout.settings.particleShader, customParticles_,
-                             [&](auto& renderer)
+                             [&](auto& renderer, std::string& error)
                              {
                                  if (!context_->CheckConfiguration(error))
                                      return false;
@@ -276,7 +261,7 @@ namespace SceneRuntime
         if (layout.settings.postEffects.enabled &&
             !PrepareRenderer(
                 layout.settings.postShader, customPost_,
-                [&](auto& renderer)
+                [&](auto& renderer, std::string& error)
                 {
                     if (!context_->CheckConfiguration(error))
                         return false;
@@ -284,6 +269,10 @@ namespace SceneRuntime
                 },
                 error, "Scene post effect shader could not be initialized"))
             return false;
+        return true;
+    }
+    bool ScenePresentation::PrepareDefaultEffects(const SceneLayout& layout, bool ocean, std::string& error) const
+    {
         if (ocean && layout.settings.oceanShader.empty() && !oceanReady_)
         {
             if (!context_->CheckConfiguration(error))
@@ -306,6 +295,41 @@ namespace SceneRuntime
         }
         return true;
     }
+    bool ScenePresentation::PrepareEffects(const SceneLayout& layout, std::string& error) const
+    {
+        const bool sky = std::any_of(layout.objects.begin(), layout.objects.end(),
+                                     [](const auto& object)
+                                     {
+                                         return object.sky && object.sky->enabled;
+                                     });
+        const bool particles = std::any_of(layout.objects.begin(), layout.objects.end(),
+                                           [](const auto& object)
+                                           {
+                                               return object.particleEmitter && object.particleEmitter->enabled;
+                                           });
+        if ((sky || particles) && !environmentTexture_)
+        {
+            auto texture = std::make_shared<Engine::Texture2D>();
+            if (!texture->Initialize(device_.Get(), queue_.Get(), {}))
+            {
+                error = "Cannot prepare effect texture";
+                return false;
+            }
+            environmentTexture_ = std::move(texture);
+        }
+        if (!PrepareDefaultSprites(layout, sky, particles, error))
+            return false;
+        const bool ocean = std::any_of(layout.objects.begin(), layout.objects.end(),
+                                       [](const auto& object)
+                                       {
+                                           return object.sky && object.sky->enabled && object.sky->ocean.has_value();
+                                       });
+        if (!PrepareCustomSprites(layout, sky, ocean, error))
+            return false;
+        if (!PrepareCustomEffects(layout, particles, error))
+            return false;
+        return PrepareDefaultEffects(layout, ocean, error);
+    }
     bool ScenePresentation::BeginPostEffects(ID3D12GraphicsCommandList* commands, const SceneLayout& layout,
                                              unsigned int width, unsigned int height,
                                              Engine::PostEffectRenderer*& post) const
@@ -320,16 +344,33 @@ namespace SceneRuntime
         bool processing = false;
         if (layout.settings.postEffects.enabled)
         {
-            std::string error;
             auto clear = layout.settings.background;
             for (size_t channel = 0; channel < 3; ++channel)
                 clear[channel] = clear[channel] <= .04045f ? clear[channel] / 12.92f
                                                            : std::pow((clear[channel] + .055f) / 1.055f, 2.4f);
             processing = post->Ready() && post->Begin(commands, width, height, clear);
             if (!processing)
-                Engine::Log::Warning(error.empty() ? "Post effect target could not be prepared" : error);
+                Engine::Log::Warning("Post effect target could not be prepared");
         }
         return processing;
+    }
+    void ScenePresentation::DrawOverlay(ID3D12GraphicsCommandList* commands, const SceneWorld& world,
+                                        unsigned int width, unsigned int height, const SceneDrawOptions& options) const
+    {
+        const auto& [sceneCamera, seconds, motionEnabled, uiState, showSceneUi, showGameUi] = options;
+        if (sceneCamera)
+        {
+            Engine::GpuScope gpu(commands, "Scene UI");
+            Engine::CpuScope cpu("Scene UI");
+            if (showSceneUi)
+                ui_.DrawScene(commands, world, *sceneCamera, uiState ? *uiState : UiState{});
+        }
+        else if (showGameUi)
+        {
+            Engine::GpuScope gpu(commands, "Game UI");
+            Engine::CpuScope cpu("Game UI");
+            DrawUi(commands, world.Layout(), width, height, uiState ? *uiState : UiState{});
+        }
     }
     void ScenePresentation::Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width,
                                  unsigned int height, const SceneDrawOptions& options) const
@@ -365,18 +406,6 @@ namespace SceneRuntime
             if (!post->End(commands, world.Layout().settings.postEffects))
                 Engine::Log::Warning("Post effect rendering failed");
         }
-        if (sceneCamera)
-        {
-            Engine::GpuScope gpu(commands, "Scene UI");
-            Engine::CpuScope cpu("Scene UI");
-            if (showSceneUi)
-                ui_.DrawScene(commands, world, *sceneCamera, uiState ? *uiState : UiState{});
-        }
-        else if (showGameUi)
-        {
-            Engine::GpuScope gpu(commands, "Game UI");
-            Engine::CpuScope cpu("Game UI");
-            DrawUi(commands, world.Layout(), width, height, uiState ? *uiState : UiState{});
-        }
+        DrawOverlay(commands, world, width, height, options);
     }
 }

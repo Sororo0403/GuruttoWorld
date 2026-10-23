@@ -130,6 +130,18 @@ namespace SceneRuntime
         return "Release";
 #endif
     }
+    static void ValidateModuleSchemas(const std::map<std::string, ScriptDefinition>& definitions,
+                                      const std::map<std::string, ScriptSchema>& schemas)
+    {
+        for (const auto& [name, definition] : definitions)
+        {
+            const auto declared = schemas.find(name);
+            if (declared == schemas.end())
+                throw std::runtime_error("Script schema declaration is missing: " + name);
+            if (declared->second != static_cast<const ScriptSchema&>(definition))
+                throw std::runtime_error("Script schema differs from the compiled module; rebuild scripts: " + name);
+        }
+    }
     bool ScriptModule::Reload(const std::filesystem::path& content, std::string& error)
     {
         try
@@ -171,15 +183,7 @@ namespace SceneRuntime
                 throw std::runtime_error(pending.error.empty() ? "Script module ABI or registration mismatch"
                                                                : pending.error);
             const auto schemas = ScriptSchema::LoadProject(content);
-            for (const auto& [name, definition] : pending.definitions)
-            {
-                const auto declared = schemas.find(name);
-                if (declared == schemas.end())
-                    throw std::runtime_error("Script schema declaration is missing: " + name);
-                if (declared->second != static_cast<const ScriptSchema&>(definition))
-                    throw std::runtime_error("Script schema differs from the compiled module; rebuild scripts: " +
-                                             name);
-            }
+            ValidateModuleSchemas(pending.definitions, schemas);
             const auto contentRoot = std::filesystem::weakly_canonical(content);
             for (auto& [name, definition] : pending.definitions)
             {

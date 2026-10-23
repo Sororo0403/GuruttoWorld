@@ -19,31 +19,29 @@ namespace SceneRuntime::PrefabMerge
         ArrayMode mode = ArrayMode::Atomic;
         std::string identity;
     };
+    /// <summary>Script配列の要素が型付きの安定IDを持つか確認します。</summary>
+    inline bool HasScriptIdentity(const Json& item)
+    {
+        if (!item.is_object() || item.value("kind", "") != "object" || !item.contains("value") ||
+            !item.at("value").contains("id"))
+            return false;
+        const auto& id = item.at("value").at("id");
+        return id.is_object() && (id.value("kind", "") == "string" || id.value("kind", "") == "number");
+    }
     /// <summary>保存形式のフィールドごとの配列の対応規則を返します。</summary>
     inline ArrayPolicy Policy(const std::string& type, const std::string& path, const Json& old)
     {
-        if (type == "Animator" && (path == "/states" || path == "/blendTrees" || path == "/ik"))
-            return {ArrayMode::Identity, "name"};
-        if (type == "AudioMixer" && path == "/groups")
-            return {ArrayMode::Identity, "name"};
-        if (type == "Ragdoll" && path == "/bones")
-            return {ArrayMode::Identity, "bone"};
-        if (type == "Canvas" && path == "/menu/entries")
-            return {ArrayMode::Identity, "index"};
-        if (type == "Canvas" && path == "/menu/settings")
-            return {ArrayMode::Identity, "key"};
+        static const std::map<std::pair<std::string, std::string>, std::string> identities{
+            {{"Animator", "/states"}, "name"},    {{"Animator", "/blendTrees"}, "name"},
+            {{"Animator", "/ik"}, "name"},        {{"AudioMixer", "/groups"}, "name"},
+            {{"Ragdoll", "/bones"}, "bone"},      {{"Canvas", "/menu/entries"}, "index"},
+            {{"Canvas", "/menu/settings"}, "key"}};
+        const auto found = identities.find({type, path});
+        if (found != identities.end())
+            return {ArrayMode::Identity, found->second};
         if (type == "Script" && path.ends_with("/value"))
         {
-            const bool identity = std::any_of(old.begin(), old.end(),
-                                              [](const auto& item)
-                                              {
-                                                  if (!item.is_object() || item.value("kind", "") != "object" ||
-                                                      !item.contains("value") || !item.at("value").contains("id"))
-                                                      return false;
-                                                  const auto& id = item.at("value").at("id");
-                                                  return id.is_object() && (id.value("kind", "") == "string" ||
-                                                                            id.value("kind", "") == "number");
-                                              });
+            const bool identity = std::any_of(old.begin(), old.end(), HasScriptIdentity);
             return {identity ? ArrayMode::Identity : ArrayMode::Index, identity ? "$scriptId" : ""};
         }
         static const std::set<std::string> indexed{"/center",
@@ -71,9 +69,10 @@ namespace SceneRuntime::PrefabMerge
                                                    "/bindOffset"};
         const auto separator = path.find_last_of('/');
         const auto field = separator == std::string::npos ? path : path.substr(separator);
-        if (indexed.contains(field) || ((type == "Terrain" || type == "NavMesh") && path == "/heights") ||
-            (type == "Tilemap" && path == "/tiles") || (type == "NavMesh" && path == "/walkable") ||
-            (type == "Material" && path == "/slots") || (type == "MeshRenderer" && path == "/lods"))
+        static const std::set<std::pair<std::string, std::string>> indexedPaths{
+            {"Terrain", "/heights"},  {"NavMesh", "/heights"}, {"Tilemap", "/tiles"},
+            {"NavMesh", "/walkable"}, {"Material", "/slots"},  {"MeshRenderer", "/lods"}};
+        if (indexed.contains(field) || indexedPaths.contains({type, path}))
             return {ArrayMode::Index, ""};
         return {};
     }
@@ -127,12 +126,12 @@ namespace SceneRuntime::PrefabMerge
     /// <summary>保存された基準・現在値・素材の更新を、フィールドの方針に従って統合します。</summary>
     inline Json Merge(const Json& old, const Json& current, const Json& source, std::string path = "",
                       std::string type = "");
-    /// <summary>安定IDで追加・削除・並べ替えを対応させ、削除と変更の競合を拒否します。</summary>
-    inline Json MergeIdentity(const Json& old, const Json& current, const Json& source, const std::string& path,
-                              const std::string& type, const ArrayPolicy& policy)
+    /// <summary>安定IDごとの変更を統合し、削除と変更の衝突を拒否します。</summary>
+    inline std::map<std::string, Json> MergeItems(const std::map<std::string, Json>& before,
+                                                  const std::map<std::string, Json>& local,
+                                                  const std::map<std::string, Json>& remote, const std::string& path,
+                                                  const std::string& type)
     {
-        const auto before = Items(old, policy, path), local = Items(current, policy, path),
-                   remote = Items(source, policy, path);
         std::map<std::string, Json> merged;
         for (const auto& [id, value] : before)
         {
@@ -154,6 +153,14 @@ namespace SceneRuntime::PrefabMerge
                     Conflict(path, "different additions have the same identity");
                 merged[id] = value;
             }
+        return merged;
+    }
+    /// <summary>両側の順序変更と追加位置を統合します。</summary>
+    inline std::vector<std::string> MergeOrder(const Json& old, const Json& current, const Json& source,
+                                               const std::map<std::string, Json>& before,
+                                               const std::map<std::string, Json>& merged, const std::string& path,
+                                               const ArrayPolicy& policy)
+    {
         const auto order = [&](const Json& array, bool originalOnly)
         {
             std::vector<std::string> result;
@@ -183,33 +190,45 @@ namespace SceneRuntime::PrefabMerge
             else
                 sequence.insert(sequence.begin() + insertion++, id);
         }
+        return sequence;
+    }
+    /// <summary>安定IDで追加・削除・並べ替えを対応させ、削除と変更の競合を拒否します。</summary>
+    inline Json MergeIdentity(const Json& old, const Json& current, const Json& source, const std::string& path,
+                              const std::string& type, const ArrayPolicy& policy)
+    {
+        const auto before = Items(old, policy, path), local = Items(current, policy, path),
+                   remote = Items(source, policy, path);
+        auto merged = MergeItems(before, local, remote, path, type);
+        const auto sequence = MergeOrder(old, current, source, before, merged, path, policy);
         auto result = Json::array();
-        for (const auto& id : sequence)
-            result.push_back(merged.at(id));
+        std::transform(sequence.begin(), sequence.end(), std::back_inserter(result),
+                       [&](const auto& id)
+                       {
+                           return merged.at(id);
+                       });
         return result;
     }
-    inline Json Merge(const Json& old, const Json& current, const Json& source, std::string path, std::string type)
+    /// <summary>格子の寸法変更とセル編集の競合を検出します。</summary>
+    inline void ValidateGridMerge(const Json& old, const Json& current, const Json& source, const std::string& path,
+                                  const std::string& type)
     {
-        if (current == old)
-            return source;
-        if (source == old || current == source)
-            return current;
-        if (old.is_array() && current.is_array() && source.is_array())
+        if (type == "Terrain" || type == "Tilemap" || type == "NavMesh")
         {
-            const auto policy = Policy(type, path, old.empty() ? current : old);
-            if (policy.mode == ArrayMode::Identity)
-                return MergeIdentity(old, current, source, path, type, policy);
-            if (policy.mode != ArrayMode::Index)
-                Conflict(path, "both sides changed an atomic array");
-            if (current.size() != old.size() || source.size() != old.size())
-                Conflict(path, "array size changed with other edits");
-            auto result = source;
-            for (size_t i = 0; i < old.size(); ++i)
-                result[i] = Merge(old[i], current[i], source[i], path + "/" + std::to_string(i), type);
-            return result;
+            const auto dimensionsChanged = [&](const Json& object)
+            {
+                return old.at("columns") != object.at("columns") || old.at("rows") != object.at("rows");
+            };
+            if (dimensionsChanged(current) || dimensionsChanged(source))
+                for (const auto* field : {"heights", "walkable", "tiles"})
+                    if (old.contains(field) && ((dimensionsChanged(source) && old.at(field) != current.at(field)) ||
+                                                (dimensionsChanged(current) && old.at(field) != source.at(field))))
+                        Conflict(path + "/" + field, "grid dimensions changed with cell edits");
         }
-        if (!old.is_object() || !current.is_object() || !source.is_object())
-            return current;
+    }
+    /// <summary>型と格子寸法の変更が上書きと競合しないことを確認します。</summary>
+    inline void ValidateMergeTypes(const Json& old, const Json& current, const Json& source, std::string& path,
+                                   std::string& type)
+    {
         if (old.contains("kind") && old.at("kind").is_string() && current.contains("kind") && source.contains("kind") &&
             (old.at("kind") != current.at("kind") || old.at("kind") != source.at("kind")))
             Conflict(path, "data type changed with overrides");
@@ -219,19 +238,29 @@ namespace SceneRuntime::PrefabMerge
                 Conflict(path, "component type changed with overrides");
             type = old.at("type").get<std::string>();
             path.clear();
-            if (type == "Terrain" || type == "Tilemap" || type == "NavMesh")
-            {
-                const auto dimensionsChanged = [&](const Json& object)
-                {
-                    return old.at("columns") != object.at("columns") || old.at("rows") != object.at("rows");
-                };
-                if (dimensionsChanged(current) || dimensionsChanged(source))
-                    for (const auto* field : {"heights", "walkable", "tiles"})
-                        if (old.contains(field) && ((dimensionsChanged(source) && old.at(field) != current.at(field)) ||
-                                                    (dimensionsChanged(current) && old.at(field) != source.at(field))))
-                            Conflict(path + "/" + field, "grid dimensions changed with cell edits");
-            }
+            ValidateGridMerge(old, current, source, path, type);
         }
+    }
+    /// <summary>配列の方針と寸法を確認して要素を再帰統合します。</summary>
+    inline Json MergeArray(const Json& old, const Json& current, const Json& source, const std::string& path,
+                           const std::string& type)
+    {
+        const auto policy = Policy(type, path, old.empty() ? current : old);
+        if (policy.mode == ArrayMode::Identity)
+            return MergeIdentity(old, current, source, path, type, policy);
+        if (policy.mode != ArrayMode::Index)
+            Conflict(path, "both sides changed an atomic array");
+        if (current.size() != old.size() || source.size() != old.size())
+            Conflict(path, "array size changed with other edits");
+        auto result = source;
+        for (size_t i = 0; i < old.size(); ++i)
+            result[i] = Merge(old[i], current[i], source[i], path + "/" + std::to_string(i), type);
+        return result;
+    }
+    /// <summary>オブジェクトの追加・削除・フィールド変更を統合します。</summary>
+    inline Json MergeObject(const Json& old, const Json& current, const Json& source, const std::string& path,
+                            const std::string& type)
+    {
         auto result = source;
         for (const auto& [key, value] : current.items())
         {
@@ -258,5 +287,18 @@ namespace SceneRuntime::PrefabMerge
                 result.erase(key);
             }
         return result;
+    }
+    inline Json Merge(const Json& old, const Json& current, const Json& source, std::string path, std::string type)
+    {
+        if (current == old)
+            return source;
+        if (source == old || current == source)
+            return current;
+        if (old.is_array() && current.is_array() && source.is_array())
+            return MergeArray(old, current, source, path, type);
+        if (!old.is_object() || !current.is_object() || !source.is_object())
+            return current;
+        ValidateMergeTypes(old, current, source, path, type);
+        return MergeObject(old, current, source, path, type);
     }
 }
