@@ -637,8 +637,8 @@ namespace SceneRuntime
             if (!ValidPath(path))
                 throw std::runtime_error("Invalid prefab path");
             RefreshScope scope(assetsRoot / path);
-            auto source = preparedAssets.contains(path) ? preparedAssets.at(path)
-                                                        : SceneLayout::Load(assetsRoot / path);
+            auto source =
+                preparedAssets.contains(path) ? preparedAssets.at(path) : SceneLayout::Load(assetsRoot / path);
             source.ResolveAssets(Engine::AssetDatabase(context, true));
             Refresh(source, assetsRoot, preparedAssets, context);
             const auto sourceRoot = Root(source);

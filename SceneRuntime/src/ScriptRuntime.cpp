@@ -10,133 +10,211 @@
 namespace
 {
     using namespace SceneRuntime;
-    std::uint64_t& RegistryRevision() {static std::uint64_t revision=0;return revision;}
-    std::set<std::string> ScriptDescendants(const SceneRuntime::SceneLayout &layout, const std::string &id)
+    std::uint64_t& RegistryRevision()
+    {
+        static std::uint64_t revision = 0;
+        return revision;
+    }
+    std::set<std::string> ScriptDescendants(const SceneRuntime::SceneLayout& layout, const std::string& id)
     {
         std::set<std::string> selected{id};
         bool changed = true;
         while (changed)
         {
             changed = false;
-            for (const auto &item : layout.objects)
-                if (selected.contains(item.parentId) && selected.insert(item.id).second) changed = true;
+            for (const auto& item : layout.objects)
+                if (selected.contains(item.parentId) && selected.insert(item.id).second)
+                    changed = true;
         }
         return selected;
     }
-    void ValidateUiKey(const std::string& key,size_t count,bool existing)
+    void ValidateUiKey(const std::string& key, size_t count, bool existing)
     {
-        if(key.empty() || key.size()>128 || key.find_first_of("=&")!=std::string::npos || key.find('\0')!=std::string::npos || (!existing && count>=256))
+        if (key.empty() || key.size() > 128 || key.find_first_of("=&") != std::string::npos ||
+            key.find('\0') != std::string::npos || (!existing && count >= 256))
             throw std::runtime_error("Invalid UI command key or command limit exceeded");
     }
-    struct UiUtf8Prefix {size_t bytes;char32_t code,minimum;};
+    struct UiUtf8Prefix
+    {
+        size_t bytes;
+        char32_t code, minimum;
+    };
     UiUtf8Prefix ReadUiUtf8Prefix(unsigned char lead)
     {
-        if(lead>=0xc2 && lead<=0xdf) return {1,static_cast<char32_t>(lead&0x1f),0x80};
-        if(lead>=0xe0 && lead<=0xef) return {2,static_cast<char32_t>(lead&0x0f),0x800};
-        if(lead>=0xf0 && lead<=0xf4) return {3,static_cast<char32_t>(lead&7),0x10000};
+        if (lead >= 0xc2 && lead <= 0xdf)
+            return {1, static_cast<char32_t>(lead & 0x1f), 0x80};
+        if (lead >= 0xe0 && lead <= 0xef)
+            return {2, static_cast<char32_t>(lead & 0x0f), 0x800};
+        if (lead >= 0xf0 && lead <= 0xf4)
+            return {3, static_cast<char32_t>(lead & 7), 0x10000};
         throw std::runtime_error("UI text must be valid UTF-8");
     }
     void ValidateUiText(const std::string& text)
     {
-        if(text.size()>4096 || text.find('\0')!=std::string::npos) throw std::runtime_error("Invalid UI text length");
-        for(size_t index=0;index<text.size();) {
-            const auto lead=static_cast<unsigned char>(text[index++]);if(lead<0x80) continue;
-            auto prefix=ReadUiUtf8Prefix(lead);
-            if(prefix.bytes>text.size()-index) throw std::runtime_error("UI text must be valid UTF-8");
-            for(size_t i=0;i<prefix.bytes;++i) {const auto byte=static_cast<unsigned char>(text[index++]);if((byte&0xc0)!=0x80) throw std::runtime_error("UI text must be valid UTF-8");prefix.code=(prefix.code<<6)|(byte&0x3f);}
-            if(prefix.code<prefix.minimum || prefix.code>0x10ffff || (prefix.code>=0xd800 && prefix.code<=0xdfff)) throw std::runtime_error("UI text must be valid UTF-8");
+        if (text.size() > 4096 || text.find('\0') != std::string::npos)
+            throw std::runtime_error("Invalid UI text length");
+        for (size_t index = 0; index < text.size();)
+        {
+            const auto lead = static_cast<unsigned char>(text[index++]);
+            if (lead < 0x80)
+                continue;
+            auto prefix = ReadUiUtf8Prefix(lead);
+            if (prefix.bytes > text.size() - index)
+                throw std::runtime_error("UI text must be valid UTF-8");
+            for (size_t i = 0; i < prefix.bytes; ++i)
+            {
+                const auto byte = static_cast<unsigned char>(text[index++]);
+                if ((byte & 0xc0) != 0x80)
+                    throw std::runtime_error("UI text must be valid UTF-8");
+                prefix.code = (prefix.code << 6) | (byte & 0x3f);
+            }
+            if (prefix.code < prefix.minimum || prefix.code > 0x10ffff ||
+                (prefix.code >= 0xd800 && prefix.code <= 0xdfff))
+                throw std::runtime_error("UI text must be valid UTF-8");
         }
     }
     ScriptDefinition FollowDefinition()
     {
         ScriptDefinition follow;
-        follow.dataFields={{"active",{true}},{"target",{ScriptObjectReference{}}},
-            {"offset",{ScriptValue::Object{{"x",{0.0f}},{"y",{0.0f}},{"z",{0.0f}}}}}};
-        follow.update=[](ScriptContext& context) {
-            if (!std::get<bool>(context.Data("active")->value)) return;
-            const auto* target=context.Reference("target");
-            if (!target) return;
-            if (target->parentId!=context.object.parentId) throw std::runtime_error("FollowTarget requires the same parent as its target");
-            const auto& offset=std::get<ScriptValue::Object>(context.Data("offset")->value);
-            const auto position=target->position;
-            const char* axes[]={"x","y","z"};
-            for (size_t axis=0;axis<3;++axis) context.object.position[axis]=position[axis]+std::get<float>(offset.at(axes[axis]).value);
+        follow.dataFields = {{"active", {true}},
+                             {"target", {ScriptObjectReference{}}},
+                             {"offset", {ScriptValue::Object{{"x", {0.0f}}, {"y", {0.0f}}, {"z", {0.0f}}}}}};
+        follow.update = [](ScriptContext& context)
+        {
+            if (!std::get<bool>(context.Data("active")->value))
+                return;
+            const auto* target = context.Reference("target");
+            if (!target)
+                return;
+            if (target->parentId != context.object.parentId)
+                throw std::runtime_error("FollowTarget requires the same parent as its target");
+            const auto& offset = std::get<ScriptValue::Object>(context.Data("offset")->value);
+            const auto position = target->position;
+            const char* axes[] = {"x", "y", "z"};
+            for (size_t axis = 0; axis < 3; ++axis)
+                context.object.position[axis] = position[axis] + std::get<float>(offset.at(axes[axis]).value);
         };
         return follow;
     }
-    const std::map<std::string,ScriptDefinition>& BuiltinDefinitions()
+    const std::map<std::string, ScriptDefinition>& BuiltinDefinitions()
     {
-        static const auto definitions=[] {
-            std::map<std::string,ScriptDefinition> result;
-            ScriptDefinition bob; bob.fields={{"amplitude",{0.5f,0,1000}},{"frequency",{1,0,1000}}};
-            bob.start=[](ScriptContext& context) { context.state["origin"]=context.object.position[1]; context.state["time"]=0; };
-            bob.update=[](ScriptContext& context) {
-                context.state["time"]+=static_cast<float>(context.seconds);
-                context.object.position[1]=context.state["origin"]+std::sin(context.state["time"]*context.Value("frequency",1)*6.2831853f)*context.Value("amplitude",0.5f);
+        static const auto definitions = []
+        {
+            std::map<std::string, ScriptDefinition> result;
+            ScriptDefinition bob;
+            bob.fields = {{"amplitude", {0.5f, 0, 1000}}, {"frequency", {1, 0, 1000}}};
+            bob.start = [](ScriptContext& context)
+            {
+                context.state["origin"] = context.object.position[1];
+                context.state["time"] = 0;
             };
-            result.emplace("Bob",std::move(bob));
-            ScriptDefinition spin; spin.fields={{"speed",{90,-100000,100000}}};
-            spin.update=[](ScriptContext& context) { context.object.rotation[1]=std::remainder(context.object.rotation[1]+static_cast<float>(context.seconds)*context.Value("speed",90)*0.0174532925f,6.2831853f); };
-            result.emplace("Spin",std::move(spin));
-            ScriptDefinition pulse; pulse.fields={{"duration",{.2f,.01f,60}},{"peak",{15,0,10000}}};
-            pulse.start=[](ScriptContext& context) { context.state["origin"]=context.object.pointLight ? context.object.pointLight->intensity : 0; context.state["remaining"]=0; context.state["scale"]=1; };
-            pulse.onEvent=[](ScriptContext& context) {
-                if (!context.event || !context.event->animation) return;
-                context.state["events"]+=1; context.state["remaining"]=context.Value("duration",.2f);
-                context.state["scale"]=context.event->animation->weight*std::clamp(std::abs(context.event->value),.1f,2.0f);
+            bob.update = [](ScriptContext& context)
+            {
+                context.state["time"] += static_cast<float>(context.seconds);
+                context.object.position[1] =
+                    context.state["origin"] +
+                    std::sin(context.state["time"] * context.Value("frequency", 1) * 6.2831853f) *
+                        context.Value("amplitude", 0.5f);
             };
-            pulse.update=[](ScriptContext& context) {
-                const float duration=context.Value("duration",.2f);
-                context.state["remaining"]=std::max(0.0f,context.state["remaining"]-static_cast<float>(context.seconds));
-                if (context.object.pointLight) context.object.pointLight->intensity=std::clamp(context.state["origin"]+context.Value("peak",15)*context.state["scale"]*context.state["remaining"]/duration,0.0f,10000.0f);
+            result.emplace("Bob", std::move(bob));
+            ScriptDefinition spin;
+            spin.fields = {{"speed", {90, -100000, 100000}}};
+            spin.update = [](ScriptContext& context)
+            {
+                context.object.rotation[1] =
+                    std::remainder(context.object.rotation[1] +
+                                       static_cast<float>(context.seconds) * context.Value("speed", 90) * 0.0174532925f,
+                                   6.2831853f);
+            };
+            result.emplace("Spin", std::move(spin));
+            ScriptDefinition pulse;
+            pulse.fields = {{"duration", {.2f, .01f, 60}}, {"peak", {15, 0, 10000}}};
+            pulse.start = [](ScriptContext& context)
+            {
+                context.state["origin"] = context.object.pointLight ? context.object.pointLight->intensity : 0;
+                context.state["remaining"] = 0;
+                context.state["scale"] = 1;
+            };
+            pulse.onEvent = [](ScriptContext& context)
+            {
+                if (!context.event || !context.event->animation)
+                    return;
+                context.state["events"] += 1;
+                context.state["remaining"] = context.Value("duration", .2f);
+                context.state["scale"] =
+                    context.event->animation->weight * std::clamp(std::abs(context.event->value), .1f, 2.0f);
+            };
+            pulse.update = [](ScriptContext& context)
+            {
+                const float duration = context.Value("duration", .2f);
+                context.state["remaining"] =
+                    std::max(0.0f, context.state["remaining"] - static_cast<float>(context.seconds));
+                if (context.object.pointLight)
+                    context.object.pointLight->intensity =
+                        std::clamp(context.state["origin"] + context.Value("peak", 15) * context.state["scale"] *
+                                                                 context.state["remaining"] / duration,
+                                   0.0f, 10000.0f);
             };
             pulse.prepareStop = [](ScriptContext& context)
             {
                 if (context.object.pointLight)
                     context.object.pointLight->intensity = context.state["origin"];
             };
-            result.emplace("AnimationEventPulse",std::move(pulse));
-            ScriptDefinition orbit; orbit.fields={{"radius",{.25f,0,1000}},{"frequency",{.3f,0,1000}},{"weight",{1,0,1}}};
-            orbit.update=[](ScriptContext& context) {
-                if (!context.scene || !context.object.animator || context.object.animator->ik.empty()) return;
-                const auto& item=context.object.animator->ik.front();
-                context.state["phase"]=std::remainder(context.state["phase"]+static_cast<float>(context.seconds)*context.Value("frequency",.3f)*6.2831853f,6.2831853f);
-                AnimatorIkTarget target{item.target,item.hint,context.Value("weight",1),item.worldSpace};
-                target.target[0]+=std::sin(context.state["phase"])*context.Value("radius",.25f);
-                target.target[2]+=std::cos(context.state["phase"])*context.Value("radius",.25f);
-                context.scene->SetIkTarget(context.object.id,item.name,target);
+            result.emplace("AnimationEventPulse", std::move(pulse));
+            ScriptDefinition orbit;
+            orbit.fields = {{"radius", {.25f, 0, 1000}}, {"frequency", {.3f, 0, 1000}}, {"weight", {1, 0, 1}}};
+            orbit.update = [](ScriptContext& context)
+            {
+                if (!context.scene || !context.object.animator || context.object.animator->ik.empty())
+                    return;
+                const auto& item = context.object.animator->ik.front();
+                context.state["phase"] =
+                    std::remainder(context.state["phase"] + static_cast<float>(context.seconds) *
+                                                                context.Value("frequency", .3f) * 6.2831853f,
+                                   6.2831853f);
+                AnimatorIkTarget target{item.target, item.hint, context.Value("weight", 1), item.worldSpace};
+                target.target[0] += std::sin(context.state["phase"]) * context.Value("radius", .25f);
+                target.target[2] += std::cos(context.state["phase"]) * context.Value("radius", .25f);
+                context.scene->SetIkTarget(context.object.id, item.name, target);
             };
-            result.emplace("IkOrbit",std::move(orbit));
-            ScriptDefinition rootMotion; rootMotion.fields={{"enabled",{1,-1,1}}};
-            rootMotion.update=[](ScriptContext& context) {
-                if (!context.scene || !context.object.animator) return;
-                const float enabled=context.Value("enabled",1);
-                context.scene->SetRootMotion(context.object.id,enabled<0 ? std::nullopt : std::optional<bool>(enabled>0));
+            result.emplace("IkOrbit", std::move(orbit));
+            ScriptDefinition rootMotion;
+            rootMotion.fields = {{"enabled", {1, -1, 1}}};
+            rootMotion.update = [](ScriptContext& context)
+            {
+                if (!context.scene || !context.object.animator)
+                    return;
+                const float enabled = context.Value("enabled", 1);
+                context.scene->SetRootMotion(context.object.id,
+                                             enabled < 0 ? std::nullopt : std::optional<bool>(enabled > 0));
             };
-            result.emplace("RootMotionControl",std::move(rootMotion));
-            result.emplace("FollowTarget",FollowDefinition());
+            result.emplace("RootMotionControl", std::move(rootMotion));
+            result.emplace("FollowTarget", FollowDefinition());
             return result;
         }();
         return definitions;
     }
-    std::map<std::string,ScriptDefinition>& Registry()
+    std::map<std::string, ScriptDefinition>& Registry()
     {
         static auto definitions = BuiltinDefinitions();
         return definitions;
     }
-    void Validate(const ScriptComponent& script,const ScriptDefinition& definition)
+    void Validate(const ScriptComponent& script, const ScriptDefinition& definition)
     {
-        size_t remaining=4096; ScriptValue{script.data}.Validate(0,remaining);
-        for (const auto& [name,value]:script.data) {
-            const auto field=definition.dataFields.find(name);
-            if (field!=definition.dataFields.end() && field->second.value.index()!=value.value.index())
-                throw std::runtime_error("Unknown or incompatible script data field: "+name);
-        }
-        for (const auto& [name,field] : definition.fields)
+        size_t remaining = 4096;
+        ScriptValue{script.data}.Validate(0, remaining);
+        for (const auto& [name, value] : script.data)
         {
-            const auto found=script.parameters.find(name);
-            const float value=found==script.parameters.end() ? field.initial : found->second;
-            if (!std::isfinite(value) || value<field.minimum || value>field.maximum) throw std::runtime_error("Script parameter outside range: "+name);
+            const auto field = definition.dataFields.find(name);
+            if (field != definition.dataFields.end() && field->second.value.index() != value.value.index())
+                throw std::runtime_error("Unknown or incompatible script data field: " + name);
+        }
+        for (const auto& [name, field] : definition.fields)
+        {
+            const auto found = script.parameters.find(name);
+            const float value = found == script.parameters.end() ? field.initial : found->second;
+            if (!std::isfinite(value) || value < field.minimum || value > field.maximum)
+                throw std::runtime_error("Script parameter outside range: " + name);
         }
     }
 }
@@ -147,83 +225,121 @@ namespace SceneRuntime
         static const auto schemas = []
         {
             std::map<std::string, ScriptSchema> result;
-            for (const auto& [name, definition] : BuiltinDefinitions()) result.emplace(name, static_cast<const ScriptSchema&>(definition));
+            for (const auto& [name, definition] : BuiltinDefinitions())
+                result.emplace(name, static_cast<const ScriptSchema&>(definition));
             return result;
         }();
         return schemas;
     }
     const ScenePlacement* ScriptScene::Find(const std::string& id) const
     {
-        const auto found=std::find_if(layout_.objects.begin(),layout_.objects.end(),[&](const auto& item) { return item.id==id; });
-        return found==layout_.objects.end() ? nullptr : &*found;
+        const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
+                                        [&](const auto& item)
+                                        {
+                                            return item.id == id;
+                                        });
+        return found == layout_.objects.end() ? nullptr : &*found;
     }
     std::vector<std::string> ScriptScene::FindByName(const std::string& name) const
     {
         std::vector<std::string> result;
-        for (const auto& item : layout_.objects) if (item.name==name) result.push_back(item.id);
+        for (const auto& item : layout_.objects)
+            if (item.name == name)
+                result.push_back(item.id);
         return result;
     }
     std::string ScriptScene::Spawn(ScenePlacement object)
     {
-        if (spawned_.size()>=4096) throw std::runtime_error("Script spawn limit exceeded");
-        if (reservedIds_.empty()) reservedIds_ = ObjectReferenceDomain(layout_);
-        object.VisitObjectReferences([&](const std::string& id) { if (!id.empty()) reservedIds_.insert(id); });
-        do { object.id="runtime-"+std::to_string(nextId_++); }
-        while (!reservedIds_.insert(object.id).second);
+        if (spawned_.size() >= 4096)
+            throw std::runtime_error("Script spawn limit exceeded");
+        if (reservedIds_.empty())
+            reservedIds_ = ObjectReferenceDomain(layout_);
+        object.VisitObjectReferences(
+            [&](const std::string& id)
+            {
+                if (!id.empty())
+                    reservedIds_.insert(id);
+            });
+        do
+        {
+            object.id = "runtime-" + std::to_string(nextId_++);
+        } while (!reservedIds_.insert(object.id).second);
         object.prefab.reset();
-        for(auto& [name,ids]:layout_.sceneObjects)
+        for (auto& [name, ids] : layout_.sceneObjects)
         {
             static_cast<void>(name);
-            if(std::find(ids.begin(),ids.end(),currentOwner)!=ids.end()) {ids.push_back(object.id);break;}
+            if (std::find(ids.begin(), ids.end(), currentOwner) != ids.end())
+            {
+                ids.push_back(object.id);
+                break;
+            }
         }
-        const auto id=object.id; spawned_.push_back(std::move(object)); return id;
+        const auto id = object.id;
+        spawned_.push_back(std::move(object));
+        return id;
     }
-    std::string ScriptScene::Instantiate(const std::string& id,const std::array<float,3>& position)
+    std::string ScriptScene::Instantiate(const std::string& id, const std::array<float, 3>& position)
     {
-        const auto* source=Find(id);
-        if (!source) throw std::runtime_error("Instantiate source missing: "+id);
-        const auto selected=ScriptDescendants(layout_,id);
-        std::map<std::string,std::string> ids;
-        const auto begin=spawned_.size();
-        for (auto item : layout_.objects) if (selected.contains(item.id))
+        const auto* source = Find(id);
+        if (!source)
+            throw std::runtime_error("Instantiate source missing: " + id);
+        const auto selected = ScriptDescendants(layout_, id);
+        std::map<std::string, std::string> ids;
+        const auto begin = spawned_.size();
+        for (auto item : layout_.objects)
+            if (selected.contains(item.id))
+            {
+                const auto original = item.id;
+                if (original == id)
+                    item.position = position;
+                ids[original] = Spawn(std::move(item));
+            }
+        for (size_t i = begin; i < spawned_.size(); ++i)
         {
-            const auto original=item.id;
-            if (original==id) item.position=position;
-            ids[original]=Spawn(std::move(item));
-        }
-        for (size_t i=begin;i<spawned_.size();++i)
-        {
-            auto& item=spawned_[i];
-            const auto remap=[&](std::string& value) { const auto found=ids.find(value); if (found!=ids.end()) value=found->second; };
+            auto& item = spawned_[i];
+            const auto remap = [&](std::string& value)
+            {
+                const auto found = ids.find(value);
+                if (found != ids.end())
+                    value = found->second;
+            };
             remap(item.parentId);
             item.RemapComponentReferences(ids);
         }
         return ids.at(id);
     }
-    void ScriptScene::Destroy(const std::string& id) { destroyed_.insert(id); }
-    void ScriptScene::SetComponents(const std::string& id,const ScenePlacement& components)
+    void ScriptScene::Destroy(const std::string& id)
     {
-        if (!Find(id)) throw std::runtime_error("Component owner missing: "+id);
-        components_[id]=components;
+        destroyed_.insert(id);
+    }
+    void ScriptScene::SetComponents(const std::string& id, const ScenePlacement& components)
+    {
+        if (!Find(id))
+            throw std::runtime_error("Component owner missing: " + id);
+        components_[id] = components;
     }
     void ScriptScene::Emit(ScriptEvent event)
     {
-        if (event.animation) AnimationEvents::ValidateOccurrence(*event.animation);
-        if (events.size()>=4096 || event.name.empty() || event.name.size()>128 || event.text.size()>4096 || !std::isfinite(event.value))
+        if (event.animation)
+            AnimationEvents::ValidateOccurrence(*event.animation);
+        if (events.size() >= 4096 || event.name.empty() || event.name.size() > 128 || event.text.size() > 4096 ||
+            !std::isfinite(event.value))
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events.push_back(std::move(event));
     }
-    void ScriptScene::AddImpulse(const std::string& id,const std::array<float,3>& impulse)
+    void ScriptScene::AddImpulse(const std::string& id, const std::array<float, 3>& impulse)
     {
-        const auto* object=Find(id);
-        if (!object || !object->rigidBody || !object->rigidBody->enabled || object->rigidBody->motion!="dynamic") throw std::runtime_error("Impulse requires a dynamic rigid body");
-        auto amount=impulses[id];
-        for (size_t i=0;i<3;++i)
+        const auto* object = Find(id);
+        if (!object || !object->rigidBody || !object->rigidBody->enabled || object->rigidBody->motion != "dynamic")
+            throw std::runtime_error("Impulse requires a dynamic rigid body");
+        auto amount = impulses[id];
+        for (size_t i = 0; i < 3; ++i)
         {
-            amount[i]+=impulse[i];
-            if (!Engine::InRange(amount[i],-1000000,1000000)) throw std::runtime_error("Invalid impulse");
+            amount[i] += impulse[i];
+            if (!Engine::InRange(amount[i], -1000000, 1000000))
+                throw std::runtime_error("Invalid impulse");
         }
-        impulses[id]=amount;
+        impulses[id] = amount;
     }
     void ScriptScene::DestroyQueuedObjects()
     {
@@ -233,29 +349,57 @@ namespace SceneRuntime
             while (changed)
             {
                 changed = false;
-                for (const auto &item : layout_.objects)
-                    if (destroyed_.contains(item.parentId) && destroyed_.insert(item.id).second) changed = true;
+                for (const auto& item : layout_.objects)
+                    if (destroyed_.contains(item.parentId) && destroyed_.insert(item.id).second)
+                        changed = true;
             }
-            std::erase_if(layout_.objects, [&](const auto &item) { return destroyed_.contains(item.id); });
+            std::erase_if(layout_.objects,
+                          [&](const auto& item)
+                          {
+                              return destroyed_.contains(item.id);
+                          });
         }
     }
     void ScriptScene::Commit()
     {
-        if(uiCommands.values.size()+uiCommands.texts.size()>256) throw std::runtime_error("Too many UI commands");
-        for(const auto& [key,value]:uiCommands.values) SetUiValue(key,value);
-        for(const auto& [key,text]:uiCommands.texts) SetUiText(key,text);
-        if (!components_.empty()) for (auto& item : layout_.objects)
-        {
-            const auto found=components_.find(item.id);
-            if (found!=components_.end()) item.CopyComponents(found->second);
-        }
-        for (auto& item : spawned_) layout_.objects.push_back(std::move(item));
+        if (uiCommands.values.size() + uiCommands.texts.size() > 256)
+            throw std::runtime_error("Too many UI commands");
+        for (const auto& [key, value] : uiCommands.values)
+            SetUiValue(key, value);
+        for (const auto& [key, text] : uiCommands.texts)
+            SetUiText(key, text);
+        if (!components_.empty())
+            for (auto& item : layout_.objects)
+            {
+                const auto found = components_.find(item.id);
+                if (found != components_.end())
+                    item.CopyComponents(found->second);
+            }
+        for (auto& item : spawned_)
+            layout_.objects.push_back(std::move(item));
         DestroyQueuedObjects();
-        std::erase_if(animatorParameters,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
-        std::erase_if(ikTargets,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
-        std::erase_if(rootMotions,[&](const auto& changes) { const auto* object=Find(changes.first); return !object || !object->animator; });
-        if (destroyed_.contains(layout_.settings.mainCamera)) layout_.settings.mainCamera.clear();
-        if (audioCommands.size() > 64) throw std::runtime_error("Too many audio commands");
+        std::erase_if(animatorParameters,
+                      [&](const auto& changes)
+                      {
+                          const auto* object = Find(changes.first);
+                          return !object || !object->animator;
+                      });
+        std::erase_if(ikTargets,
+                      [&](const auto& changes)
+                      {
+                          const auto* object = Find(changes.first);
+                          return !object || !object->animator;
+                      });
+        std::erase_if(rootMotions,
+                      [&](const auto& changes)
+                      {
+                          const auto* object = Find(changes.first);
+                          return !object || !object->animator;
+                      });
+        if (destroyed_.contains(layout_.settings.mainCamera))
+            layout_.settings.mainCamera.clear();
+        if (audioCommands.size() > 64)
+            throw std::runtime_error("Too many audio commands");
         for (const auto& command : audioCommands)
         {
             command.Validate();
@@ -267,8 +411,10 @@ namespace SceneRuntime
             }
         }
         Engine::CpuScope validationScope("Script layout validation");
-        if (validatedBefore_) layout_.ValidateChanges(*validatedBefore_);
-        else layout_.Validate();
+        if (validatedBefore_)
+            layout_.ValidateChanges(*validatedBefore_);
+        else
+            layout_.Validate();
     }
     void ScriptScene::PlayAudio(const std::string& object)
     {
@@ -289,107 +435,182 @@ namespace SceneRuntime
             throw std::runtime_error("Too many audio commands");
         audioCommands.push_back(std::move(command));
     }
-    void ScriptScene::SetUiValue(const std::string& key,float value)
+    void ScriptScene::SetUiValue(const std::string& key, float value)
     {
-        ValidateUiKey(key,uiCommands.values.size()+uiCommands.texts.size(),uiCommands.values.contains(key));
-        if(!Engine::InRange(value,-100000,100000)) throw std::runtime_error("Invalid UI value command");
-        uiCommands.values[key]=value;
+        ValidateUiKey(key, uiCommands.values.size() + uiCommands.texts.size(), uiCommands.values.contains(key));
+        if (!Engine::InRange(value, -100000, 100000))
+            throw std::runtime_error("Invalid UI value command");
+        uiCommands.values[key] = value;
     }
-    void ScriptScene::SetUiText(const std::string& key,std::string text)
+    void ScriptScene::SetUiText(const std::string& key, std::string text)
     {
-        ValidateUiKey(key,uiCommands.values.size()+uiCommands.texts.size(),uiCommands.texts.contains(key));
+        ValidateUiKey(key, uiCommands.values.size() + uiCommands.texts.size(), uiCommands.texts.contains(key));
         ValidateUiText(text);
-        uiCommands.texts[key]=std::move(text);
+        uiCommands.texts[key] = std::move(text);
     }
     void ScriptRuntime::QueueEvent(ScriptEvent event)
     {
-        if (event.animation) AnimationEvents::ValidateOccurrence(*event.animation);
-        if (events_.size()>=4096 || event.name.empty() || event.name.size()>128 || event.text.size()>4096 || !std::isfinite(event.value))
+        if (event.animation)
+            AnimationEvents::ValidateOccurrence(*event.animation);
+        if (events_.size() >= 4096 || event.name.empty() || event.name.size() > 128 || event.text.size() > 4096 ||
+            !std::isfinite(event.value))
             throw std::runtime_error("Invalid script event or event limit exceeded");
         events_.push_back(std::move(event));
     }
-    void ScriptScene::SetRootMotion(const std::string& id,std::optional<bool> enabled)
+    void ScriptScene::SetRootMotion(const std::string& id, std::optional<bool> enabled)
     {
-        const auto* object=Find(id);
-        if (!object || !object->animator) throw std::runtime_error("Root motion owner missing: "+id);
-        if (enabled.value_or(false) && object->animator->rootBone.empty()) throw std::runtime_error("Root motion bone missing: "+id);
-        rootMotions[id]=enabled;
+        const auto* object = Find(id);
+        if (!object || !object->animator)
+            throw std::runtime_error("Root motion owner missing: " + id);
+        if (enabled.value_or(false) && object->animator->rootBone.empty())
+            throw std::runtime_error("Root motion bone missing: " + id);
+        rootMotions[id] = enabled;
     }
-    void ScriptScene::SetAnimatorParameter(const std::string& id,const std::string& name,float value)
+    void ScriptScene::SetAnimatorParameter(const std::string& id, const std::string& name, float value)
     {
-        const auto* object=Find(id); if (!object || !object->animator) throw std::runtime_error("Animator parameter owner missing: "+id);
-        const auto found=animatorParameters.find(id);
-        auto values=found==animatorParameters.end() ? std::map<std::string,float>{} : found->second; values[name]=value;
-        Animator::ValidateParameters(values); animatorParameters[id]=std::move(values);
+        const auto* object = Find(id);
+        if (!object || !object->animator)
+            throw std::runtime_error("Animator parameter owner missing: " + id);
+        const auto found = animatorParameters.find(id);
+        auto values = found == animatorParameters.end() ? std::map<std::string, float>{} : found->second;
+        values[name] = value;
+        Animator::ValidateParameters(values);
+        animatorParameters[id] = std::move(values);
     }
-    void ScriptScene::SetIkTarget(const std::string& id,const std::string& name,const AnimatorIkTarget& target)
+    void ScriptScene::SetIkTarget(const std::string& id, const std::string& name, const AnimatorIkTarget& target)
     {
         Animator::ValidateIkTarget(target);
-        ClearIkTarget(id,name); ikTargets[id][name]=target;
+        ClearIkTarget(id, name);
+        ikTargets[id][name] = target;
     }
-    void ScriptScene::ClearIkTarget(const std::string& id,const std::string& name)
+    void ScriptScene::ClearIkTarget(const std::string& id, const std::string& name)
     {
-        const auto* object=Find(id);
-        if (!object || !object->animator || std::ranges::none_of(object->animator->ik,[&](const auto& item) { return item.name==name; }))
-            throw std::runtime_error("IK constraint owner missing: "+id+"/"+name);
-        ikTargets[id][name]=std::nullopt;
+        const auto* object = Find(id);
+        if (!object || !object->animator ||
+            std::ranges::none_of(object->animator->ik,
+                                 [&](const auto& item)
+                                 {
+                                     return item.name == name;
+                                 }))
+            throw std::runtime_error("IK constraint owner missing: " + id + "/" + name);
+        ikTargets[id][name] = std::nullopt;
     }
-    float ScriptContext::Value(const std::string& name,float fallback) const
-    { const auto found=parameters.find(name); return found==parameters.end() ? fallback : found->second; }
+    float ScriptContext::Value(const std::string& name, float fallback) const
+    {
+        const auto found = parameters.find(name);
+        return found == parameters.end() ? fallback : found->second;
+    }
     const ScriptValue* ScriptContext::Data(const std::string& name) const
-    { if (!data) return nullptr; const auto found=data->find(name); return found==data->end() ? nullptr : &found->second; }
+    {
+        if (!data)
+            return nullptr;
+        const auto found = data->find(name);
+        return found == data->end() ? nullptr : &found->second;
+    }
     const ScenePlacement* ScriptContext::Reference(const std::string& name) const
     {
-        const auto field=Data(name);
-        const auto reference=field ? std::get_if<ScriptObjectReference>(&field->value) : nullptr;
+        const auto field = Data(name);
+        const auto reference = field ? std::get_if<ScriptObjectReference>(&field->value) : nullptr;
         return reference && scene ? scene->Find(reference->id) : nullptr;
     }
-    bool ValidDefinition(const std::string& name,const ScriptDefinition& definition)
+    bool ValidDefinition(const std::string& name, const ScriptDefinition& definition)
     {
-        if (!definition.update && !definition.fixedUpdate && !definition.lateUpdate) return false;
-        try { definition.Validate(name); }
-        catch (const std::exception&) { return false; }
+        if (!definition.update && !definition.fixedUpdate && !definition.lateUpdate)
+            return false;
+        try
+        {
+            definition.Validate(name);
+        }
+        catch (const std::exception&)
+        {
+            return false;
+        }
         return true;
     }
-    bool ScriptRegistry::Register(std::string name,ScriptDefinition definition)
+    bool ScriptRegistry::Register(std::string name, ScriptDefinition definition)
     {
-        if(!ValidDefinition(name,definition) || !Registry().emplace(std::move(name),std::move(definition)).second) return false;
-        ++RegistryRevision();return true;
+        if (!ValidDefinition(name, definition) || !Registry().emplace(std::move(name), std::move(definition)).second)
+            return false;
+        ++RegistryRevision();
+        return true;
     }
-    bool ScriptRegistry::InstallModule(const std::string& owner,std::map<std::string,ScriptDefinition> definitions,std::string& error)
+    bool ScriptRegistry::InstallModule(const std::string& owner, std::map<std::string, ScriptDefinition> definitions,
+                                       std::string& error)
     {
-        static std::map<std::string,std::set<std::string>> owners;
-        try {
-            if (owner.empty() || owner.size()>32768 || definitions.size()>256) throw std::runtime_error("Invalid script module owner or size");
-            auto candidate=Registry(); auto candidateOwners=owners;
-            const auto previous=candidateOwners.find(owner);
-            if (previous!=candidateOwners.end()) for (const auto& name:previous->second) candidate.erase(name);
+        static std::map<std::string, std::set<std::string>> owners;
+        try
+        {
+            if (owner.empty() || owner.size() > 32768 || definitions.size() > 256)
+                throw std::runtime_error("Invalid script module owner or size");
+            auto candidate = Registry();
+            auto candidateOwners = owners;
+            const auto previous = candidateOwners.find(owner);
+            if (previous != candidateOwners.end())
+                for (const auto& name : previous->second)
+                    candidate.erase(name);
             std::set<std::string> names;
-            for (auto& [name,definition]:definitions) {
-                if (!ValidDefinition(name,definition)) throw std::runtime_error("Invalid script module definition: "+name);
-                if (candidate.contains(name)) throw std::runtime_error("Script module name conflicts with an existing behaviour: "+name);
-                names.insert(name); candidate.emplace(name,std::move(definition));
+            for (auto& [name, definition] : definitions)
+            {
+                if (!ValidDefinition(name, definition))
+                    throw std::runtime_error("Invalid script module definition: " + name);
+                if (candidate.contains(name))
+                    throw std::runtime_error("Script module name conflicts with an existing behaviour: " + name);
+                names.insert(name);
+                candidate.emplace(name, std::move(definition));
             }
-            candidateOwners[owner]=std::move(names); Registry().swap(candidate); owners.swap(candidateOwners); ++RegistryRevision();error.clear(); return true;
-        } catch (const std::exception& exception) { error=exception.what(); return false; }
-    }
-    const std::map<std::string,ScriptDefinition>& ScriptRegistry::Definitions() { return Registry(); }
-    std::uint64_t ScriptRegistry::Revision() {return RegistryRevision();}
-    float ScriptContext::Input(const std::string& name) const
-    { if (!input) return 0; const auto found=input->find(name); return found==input->end() ? 0 : found->second; }
-    bool ScriptContext::Pressed(const std::string& name) const
-    { if (!pressed) return false; const auto found=pressed->find(name); return found!=pressed->end() && found->second; }
-    bool ScriptRuntime::HasPhase(const SceneLayout& layout,ScriptPhase phase)
-    {
-        for (const auto& object:layout.objects) for (const auto& script:object.scripts) {
-            if (!script.enabled) continue;
-            const auto found=Registry().find(script.behaviour);
-            if (found==Registry().end()) continue;
-            const auto& definition=found->second;
-            if (phase==ScriptPhase::FixedUpdate && definition.fixedUpdate) return true;
-            if (phase==ScriptPhase::LateUpdate && definition.lateUpdate) return true;
-            if (phase==ScriptPhase::Update && definition.update) return true;
+            candidateOwners[owner] = std::move(names);
+            Registry().swap(candidate);
+            owners.swap(candidateOwners);
+            ++RegistryRevision();
+            error.clear();
+            return true;
         }
+        catch (const std::exception& exception)
+        {
+            error = exception.what();
+            return false;
+        }
+    }
+    const std::map<std::string, ScriptDefinition>& ScriptRegistry::Definitions()
+    {
+        return Registry();
+    }
+    std::uint64_t ScriptRegistry::Revision()
+    {
+        return RegistryRevision();
+    }
+    float ScriptContext::Input(const std::string& name) const
+    {
+        if (!input)
+            return 0;
+        const auto found = input->find(name);
+        return found == input->end() ? 0 : found->second;
+    }
+    bool ScriptContext::Pressed(const std::string& name) const
+    {
+        if (!pressed)
+            return false;
+        const auto found = pressed->find(name);
+        return found != pressed->end() && found->second;
+    }
+    bool ScriptRuntime::HasPhase(const SceneLayout& layout, ScriptPhase phase)
+    {
+        for (const auto& object : layout.objects)
+            for (const auto& script : object.scripts)
+            {
+                if (!script.enabled)
+                    continue;
+                const auto found = Registry().find(script.behaviour);
+                if (found == Registry().end())
+                    continue;
+                const auto& definition = found->second;
+                if (phase == ScriptPhase::FixedUpdate && definition.fixedUpdate)
+                    return true;
+                if (phase == ScriptPhase::LateUpdate && definition.lateUpdate)
+                    return true;
+                if (phase == ScriptPhase::Update && definition.update)
+                    return true;
+            }
         return false;
     }
     bool ScriptRuntime::ValidateForPlay(const SceneLayout& layout, std::string& error)
@@ -422,33 +643,82 @@ namespace SceneRuntime
             return false;
         return Advance(layout, 1.0 / 60, error, {}, {}, nullptr, ScriptPhase::Update, nullptr, true);
     }
-    bool ScriptRuntime::Update(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase)
+    bool ScriptRuntime::Update(SceneLayout& layout, double seconds, std::string& error,
+                               const std::map<std::string, float>& input, const std::map<std::string, bool>& pressed,
+                               const PhysicsWorld* physics, ScriptPhase phase)
     {
-        if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
-        if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
-        { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); error.clear(); return true; }
-        auto candidate=layout;
-        auto runtime=*this;
-        if (!runtime.UpdateCandidate(candidate,seconds,error,input,pressed,physics,phase)) return false;
+        if (!std::isfinite(seconds) || seconds <= 0)
+        {
+            error = "Invalid script time";
+            return false;
+        }
+        if (instances_.empty() && events_.empty() &&
+            std::none_of(layout.objects.begin(), layout.objects.end(),
+                         [](const auto& item)
+                         {
+                             return !item.scripts.empty();
+                         }))
+        {
+            impulses_.clear();
+            animatorParameters_.clear();
+            ikTargets_.clear();
+            rootMotions_.clear();
+            error.clear();
+            return true;
+        }
+        auto candidate = layout;
+        auto runtime = *this;
+        if (!runtime.UpdateCandidate(candidate, seconds, error, input, pressed, physics, phase))
+            return false;
         runtime.CommitStarts();
-        layout=std::move(candidate); *this=std::move(runtime); return true;
+        layout = std::move(candidate);
+        *this = std::move(runtime);
+        return true;
     }
-    bool ScriptRuntime::UpdateCandidate(SceneLayout& layout,double seconds,std::string& error,const std::map<std::string,float>& input,const std::map<std::string,bool>& pressed,const PhysicsWorld* physics,ScriptPhase phase,const SceneLayout* validatedBefore)
+    bool ScriptRuntime::UpdateCandidate(SceneLayout& layout, double seconds, std::string& error,
+                                        const std::map<std::string, float>& input,
+                                        const std::map<std::string, bool>& pressed, const PhysicsWorld* physics,
+                                        ScriptPhase phase, const SceneLayout* validatedBefore)
     {
         Engine::CpuScope scope("Scripts");
-        if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
-        if (instances_.empty() && events_.empty() && std::none_of(layout.objects.begin(),layout.objects.end(),[](const auto& item) { return !item.scripts.empty(); }))
-        { impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); error.clear(); return true; }
-        return Advance(layout,seconds,error,input,pressed,physics,phase,validatedBefore);
+        if (!std::isfinite(seconds) || seconds <= 0)
+        {
+            error = "Invalid script time";
+            return false;
+        }
+        if (instances_.empty() && events_.empty() &&
+            std::none_of(layout.objects.begin(), layout.objects.end(),
+                         [](const auto& item)
+                         {
+                             return !item.scripts.empty();
+                         }))
+        {
+            impulses_.clear();
+            animatorParameters_.clear();
+            ikTargets_.clear();
+            rootMotions_.clear();
+            error.clear();
+            return true;
+        }
+        return Advance(layout, seconds, error, input, pressed, physics, phase, validatedBefore);
     }
-    void ApplyParameterDefaults(std::map<std::string,float>& parameters,const ScriptDefinition& definition)
+    void ApplyParameterDefaults(std::map<std::string, float>& parameters, const ScriptDefinition& definition)
     {
-        for(const auto& [name,field]:definition.fields) parameters.try_emplace(name,field.initial);
+        for (const auto& [name, field] : definition.fields)
+            parameters.try_emplace(name, field.initial);
     }
     ScriptRuntime::PendingStart::~PendingStart()
     {
-        if(committed || !rollback) return;
-        try {rollback();} catch(...) {Engine::Log::Warning("Script start rollback failed");}
+        if (committed || !rollback)
+            return;
+        try
+        {
+            rollback();
+        }
+        catch (...)
+        {
+            Engine::Log::Warning("Script start rollback failed");
+        }
     }
     void ScriptRuntime::CommitStarts() noexcept
     {
@@ -478,44 +748,72 @@ namespace SceneRuntime
             }
         }
     }
-    void ScriptRuntime::Pause(SceneLayout& layout,bool paused) noexcept
+    void ScriptRuntime::Pause(SceneLayout& layout, bool paused) noexcept
     {
-        if(paused_==paused) return;
-        paused_=paused;
-        for(auto& [key,instance]:instances_) {
+        if (paused_ == paused)
+            return;
+        paused_ = paused;
+        for (auto& [key, instance] : instances_)
+        {
             static_cast<void>(key);
-            try {
-                const auto definition=Registry().find(instance.behaviour);
-                if(definition==Registry().end() || !definition->second.pause) continue;
-                const auto owner=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object){return object.id==instance.owner;});
-                if(owner==layout.objects.end()) continue;
-                ScriptContext context{*owner,instance.parameters,instance.state};context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data=&instance.data;context.dataState=&instance.dataState;
-                definition->second.pause(context,paused);
-            } catch(...) {Engine::Log::Warning("Script pause callback failed");}
+            try
+            {
+                const auto definition = Registry().find(instance.behaviour);
+                if (definition == Registry().end() || !definition->second.pause)
+                    continue;
+                const auto owner = std::find_if(layout.objects.begin(), layout.objects.end(),
+                                                [&](const auto& object)
+                                                {
+                                                    return object.id == instance.owner;
+                                                });
+                if (owner == layout.objects.end())
+                    continue;
+                ScriptContext context{*owner, instance.parameters, instance.state};
+                context.content = content_;
+                context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
+                context.data = &instance.data;
+                context.dataState = &instance.dataState;
+                definition->second.pause(context, paused);
+            }
+            catch (...)
+            {
+                Engine::Log::Warning("Script pause callback failed");
+            }
         }
     }
-    ScriptRuntime::Instance &ScriptRuntime::GetInstance(ScenePlacement &object, const ScriptComponent &script, const ScriptDefinition &definition, const TickContext &tick)
+    ScriptRuntime::Instance& ScriptRuntime::GetInstance(ScenePlacement& object, const ScriptComponent& script,
+                                                        const ScriptDefinition& definition, const TickContext& tick)
     {
         const auto key = std::pair{object.id, script.id};
         auto found = instances_.find(key);
         if (found != instances_.end() && found->second.behaviour != script.behaviour)
         {
             QueueStop(object, found->second);
-            instances_.erase(found); found = instances_.end();
+            instances_.erase(found);
+            found = instances_.end();
         }
         if (found == instances_.end())
         {
-            Instance instance{object.id, script.id, script.behaviour, {}, script.parameters, definition.dataFields, {}, {}};
-            ApplyParameterDefaults(instance.parameters,definition);
-            for (const auto &[name, value] : script.data) instance.data[name] = value;
-            auto &created = instances_.emplace(key, std::move(instance)).first->second;
-            ScriptContext context{object, created.parameters, created.state, 0, &tick.input, &tick.pressed, &tick.scene};
-            context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data = &created.data; context.dataState = &created.dataState;
+            Instance instance{object.id, script.id, script.behaviour, {}, script.parameters, definition.dataFields,
+                              {},        {}};
+            ApplyParameterDefaults(instance.parameters, definition);
+            for (const auto& [name, value] : script.data)
+                instance.data[name] = value;
+            auto& created = instances_.emplace(key, std::move(instance)).first->second;
+            ScriptContext context{object,      created.parameters, created.state, 0,
+                                  &tick.input, &tick.pressed,      &tick.scene};
+            context.content = content_;
+            context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
+            context.data = &created.data;
+            context.dataState = &created.dataState;
             context.phase = tick.phase;
-            try {
-                if (definition.start) definition.start(context);
-                if (definition.start && definition.stop) {
-                    auto pending=std::make_shared<PendingStart>();
+            try
+            {
+                if (definition.start)
+                    definition.start(context);
+                if (definition.start && definition.stop)
+                {
+                    auto pending = std::make_shared<PendingStart>();
                     pending->rollback = [content = content_, stop = definition.stop, owner = object,
                                          parameters = created.parameters, state = created.state, data = created.data,
                                          dataState = created.dataState]() mutable
@@ -527,9 +825,11 @@ namespace SceneRuntime
                         cleanup.dataState = &dataState;
                         stop(ScriptStopContext{cleanup});
                     };
-                    created.pending=std::move(pending);
+                    created.pending = std::move(pending);
                 }
-            } catch(...) {
+            }
+            catch (...)
+            {
                 if (definition.stop)
                 {
                     try
@@ -543,39 +843,61 @@ namespace SceneRuntime
                 }
                 throw;
             }
-            if(paused_ && definition.pause) definition.pause(context,true);
+            if (paused_ && definition.pause)
+                definition.pause(context, true);
             return created;
         }
         return found->second;
     }
 
-    void ScriptRuntime::TickScript(ScenePlacement &object, const ScriptComponent &script, const ScriptDefinition &definition, const TickContext &tick)
+    void ScriptRuntime::TickScript(ScenePlacement& object, const ScriptComponent& script,
+                                   const ScriptDefinition& definition, const TickContext& tick)
     {
-        auto &instance = GetInstance(object, script, definition, tick);
+        auto& instance = GetInstance(object, script, definition, tick);
         instance.parameters = script.parameters;
-        ApplyParameterDefaults(instance.parameters,definition);
-        ScriptContext context{object, instance.parameters, instance.state, std::min(tick.seconds, 0.1), &tick.input, &tick.pressed, &tick.scene};
+        ApplyParameterDefaults(instance.parameters, definition);
+        ScriptContext context{object,      instance.parameters, instance.state, std::min(tick.seconds, 0.1),
+                              &tick.input, &tick.pressed,       &tick.scene};
         instance.data = definition.dataFields;
-        for (const auto &[name, value] : script.data) instance.data[name] = value;
-        context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data = &instance.data; context.dataState = &instance.dataState;
+        for (const auto& [name, value] : script.data)
+            instance.data[name] = value;
+        context.content = content_;
+        context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
+        context.data = &instance.data;
+        context.dataState = &instance.dataState;
         context.phase = tick.phase;
         if (tick.phase == ScriptPhase::Update && definition.onEvent)
-            for (const auto &event : events_) if (event.target.empty() || event.target == object.id)
-                { context.event = &event; definition.onEvent(context); }
+            for (const auto& event : events_)
+                if (event.target.empty() || event.target == object.id)
+                {
+                    context.event = &event;
+                    definition.onEvent(context);
+                }
         context.event = nullptr;
-        const auto &callback = tick.phase == ScriptPhase::FixedUpdate ? definition.fixedUpdate :
-                        tick.phase == ScriptPhase::LateUpdate ? definition.lateUpdate : definition.update;
-        if (callback) callback(context);
-        size_t remaining = 4096; ScriptValue{instance.dataState}.Validate(0, remaining);
+        const auto& callback = tick.phase == ScriptPhase::FixedUpdate  ? definition.fixedUpdate
+                               : tick.phase == ScriptPhase::LateUpdate ? definition.lateUpdate
+                                                                       : definition.update;
+        if (callback)
+            callback(context);
+        size_t remaining = 4096;
+        ScriptValue{instance.dataState}.Validate(0, remaining);
     }
 
-    void ScriptRuntime::StopInactive(const std::set<std::pair<std::string, std::string>> &live, SceneLayout &layout)
+    void ScriptRuntime::StopInactive(const std::set<std::pair<std::string, std::string>>& live, SceneLayout& layout)
     {
         for (auto iterator = instances_.begin(); iterator != instances_.end();)
         {
-            if (live.contains(iterator->first)) { ++iterator; continue; }
-            auto &instance = iterator->second;
-            const auto owner = std::find_if(layout.objects.begin(), layout.objects.end(), [&](const auto &object) { return object.id == instance.owner; });
+            if (live.contains(iterator->first))
+            {
+                ++iterator;
+                continue;
+            }
+            auto& instance = iterator->second;
+            const auto owner = std::find_if(layout.objects.begin(), layout.objects.end(),
+                                            [&](const auto& object)
+                                            {
+                                                return object.id == instance.owner;
+                                            });
             if (owner != layout.objects.end())
             {
                 QueueStop(*owner, instance);
@@ -584,27 +906,34 @@ namespace SceneRuntime
         }
     }
 
-    std::vector<ScenePlacement> ScriptRuntime::CaptureStopOwners(const ScriptScene &scene) const
+    std::vector<ScenePlacement> ScriptRuntime::CaptureStopOwners(const ScriptScene& scene) const
     {
         std::vector<ScenePlacement> previousOwners;
-        for (const auto &[key, instance] : instances_) {
+        for (const auto& [key, instance] : instances_)
+        {
             static_cast<void>(key);
             if (!Registry().at(instance.behaviour).stop && !Registry().at(instance.behaviour).prepareStop)
                 continue;
-            const auto *owner = scene.Find(instance.owner);
-            if (owner) previousOwners.push_back(*owner);
+            const auto* owner = scene.Find(instance.owner);
+            if (owner)
+                previousOwners.push_back(*owner);
         }
         return previousOwners;
     }
 
-    void ScriptRuntime::StopDestroyed(const ScriptScene &scene, std::vector<ScenePlacement> &previousOwners)
+    void ScriptRuntime::StopDestroyed(const ScriptScene& scene, std::vector<ScenePlacement>& previousOwners)
     {
         for (auto iterator = instances_.begin(); iterator != instances_.end();)
-            if (scene.Find(iterator->second.owner)) ++iterator;
+            if (scene.Find(iterator->second.owner))
+                ++iterator;
             else
             {
-                auto &instance = iterator->second;
-                const auto owner = std::find_if(previousOwners.begin(), previousOwners.end(), [&](const auto &item) { return item.id == instance.owner; });
+                auto& instance = iterator->second;
+                const auto owner = std::find_if(previousOwners.begin(), previousOwners.end(),
+                                                [&](const auto& item)
+                                                {
+                                                    return item.id == instance.owner;
+                                                });
                 if (owner != previousOwners.end())
                     QueueStop(*owner, instance);
                 iterator = instances_.erase(iterator);
@@ -615,70 +944,102 @@ namespace SceneRuntime
                                 const PhysicsWorld* physics, ScriptPhase phase, const SceneLayout* validatedBefore,
                                 bool startOnly)
     {
-        if (!std::isfinite(seconds) || seconds<=0) { error="Invalid script time"; return false; }
+        if (!std::isfinite(seconds) || seconds <= 0)
+        {
+            error = "Invalid script time";
+            return false;
+        }
         try
         {
-            ScriptScene scene(layout,nextId_,physics,validatedBefore);
-            scene.sceneCommands=sceneCommands_;
-            scene.uiCommands=uiCommands_;
-            scene.audioCommands=audioCommands_;
-            if (startOnly || phase!=ScriptPhase::Update) scene.events=events_;
-            if (pendingFixedCommands_ && phase!=ScriptPhase::LateUpdate) {
-                scene.animatorParameters=animatorParameters_; scene.ikTargets=ikTargets_; scene.rootMotions=rootMotions_;
+            ScriptScene scene(layout, nextId_, physics, validatedBefore);
+            scene.sceneCommands = sceneCommands_;
+            scene.uiCommands = uiCommands_;
+            scene.audioCommands = audioCommands_;
+            if (startOnly || phase != ScriptPhase::Update)
+                scene.events = events_;
+            if (pendingFixedCommands_ && phase != ScriptPhase::LateUpdate)
+            {
+                scene.animatorParameters = animatorParameters_;
+                scene.ikTargets = ikTargets_;
+                scene.rootMotions = rootMotions_;
             }
-            const TickContext tick{input,pressed,scene,phase,seconds};
-            std::set<std::pair<std::string,std::string>> live;
+            const TickContext tick{input, pressed, scene, phase, seconds};
+            std::set<std::pair<std::string, std::string>> live;
             for (auto& object : layout.objects)
             {
                 // Callbacks may remove or replace their owner's Script components.
-                const auto scripts=object.scripts;
+                const auto scripts = object.scripts;
                 for (const auto& script : scripts)
                 {
-                    if (!script.enabled) continue;
-                    const auto definition=Registry().find(script.behaviour);
-                    if (definition==Registry().end()) throw std::runtime_error("Script behaviour is not registered: "+script.behaviour);
-                    Validate(script,definition->second);
-                    const auto key=std::pair{object.id,script.id}; live.insert(key);
-                    if (startOnly) static_cast<void>(GetInstance(object,script,definition->second,tick));
-                    else TickScript(object,script,definition->second,tick);
+                    if (!script.enabled)
+                        continue;
+                    const auto definition = Registry().find(script.behaviour);
+                    if (definition == Registry().end())
+                        throw std::runtime_error("Script behaviour is not registered: " + script.behaviour);
+                    Validate(script, definition->second);
+                    const auto key = std::pair{object.id, script.id};
+                    live.insert(key);
+                    if (startOnly)
+                        static_cast<void>(GetInstance(object, script, definition->second, tick));
+                    else
+                        TickScript(object, script, definition->second, tick);
                 }
             }
-            StopInactive(live,layout);
+            StopInactive(live, layout);
             // Stop callbacks need the former owner only when its object is removed.
-            auto previousOwners=CaptureStopOwners(scene);
+            auto previousOwners = CaptureStopOwners(scene);
             scene.Commit();
-            StopDestroyed(scene,previousOwners);
+            StopDestroyed(scene, previousOwners);
             if (!ValidateForPlay(layout, error))
                 throw std::runtime_error(error);
-            events_=std::move(scene.events);
-            if(scene.sceneCommands.size()>64) throw std::runtime_error("Too many scene commands");
-            sceneCommands_=std::move(scene.sceneCommands);
-            uiCommands_=std::move(scene.uiCommands);
-            audioCommands_=std::move(scene.audioCommands);
-            impulses_=std::move(scene.impulses);
-            animatorParameters_=std::move(scene.animatorParameters);
-            ikTargets_=std::move(scene.ikTargets);
-            rootMotions_=std::move(scene.rootMotions);
-            pendingFixedCommands_=phase==ScriptPhase::FixedUpdate;
-            error.clear(); return true;
+            events_ = std::move(scene.events);
+            if (scene.sceneCommands.size() > 64)
+                throw std::runtime_error("Too many scene commands");
+            sceneCommands_ = std::move(scene.sceneCommands);
+            uiCommands_ = std::move(scene.uiCommands);
+            audioCommands_ = std::move(scene.audioCommands);
+            impulses_ = std::move(scene.impulses);
+            animatorParameters_ = std::move(scene.animatorParameters);
+            ikTargets_ = std::move(scene.ikTargets);
+            rootMotions_ = std::move(scene.rootMotions);
+            pendingFixedCommands_ = phase == ScriptPhase::FixedUpdate;
+            error.clear();
+            return true;
         }
-        catch (const std::exception& exception) { error=exception.what(); return false; }
-        catch (...) { error="Script callback failed"; return false; }
+        catch (const std::exception& exception)
+        {
+            error = exception.what();
+            return false;
+        }
+        catch (...)
+        {
+            error = "Script callback failed";
+            return false;
+        }
     }
     void ScriptRuntime::Stop(SceneLayout& layout) noexcept
     {
         CommitStarts();
-        for (auto& [key,instance] : instances_)
+        for (auto& [key, instance] : instances_)
         {
             static_cast<void>(key);
             try
             {
-                const auto owner=std::find_if(layout.objects.begin(),layout.objects.end(),[&](const auto& object) { return object.id==instance.owner; });
-                if (owner==layout.objects.end()) continue;
-                ScriptContext context{*owner,instance.parameters,instance.state,0};
-                context.content=content_; context.contentRoot=content_ ? content_->Root() : std::filesystem::path{}; context.data=&instance.data; context.dataState=&instance.dataState;
-                const auto& definition=Registry().at(instance.behaviour);
-                if(instance.pending) instance.pending->committed=true;
+                const auto owner = std::find_if(layout.objects.begin(), layout.objects.end(),
+                                                [&](const auto& object)
+                                                {
+                                                    return object.id == instance.owner;
+                                                });
+                if (owner == layout.objects.end())
+                    continue;
+                ScriptContext context{*owner, instance.parameters, instance.state, 0};
+                context.content = content_;
+                context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
+                context.data = &instance.data;
+                context.dataState = &instance.dataState;
+                const auto& definition = Registry().at(instance.behaviour);
+                if (instance.pending)
+                    instance.pending->committed = true;
                 try
                 {
                     if (definition.prepareStop)
@@ -691,15 +1052,23 @@ namespace SceneRuntime
                 if (definition.stop)
                     definition.stop(ScriptStopContext{context});
             }
-            catch (...) { Engine::Log::Warning("Script stop callback failed"); }
+            catch (...)
+            {
+                Engine::Log::Warning("Script stop callback failed");
+            }
         }
         instances_.clear();
-        paused_=false;
+        paused_ = false;
         sceneCommands_.clear();
-        uiCommands_={};
+        uiCommands_ = {};
         audioCommands_.clear();
-        pendingFixedCommands_=false;
-        events_.clear(); impulses_.clear(); animatorParameters_.clear(); ikTargets_.clear(); rootMotions_.clear(); nextId_=1;
+        pendingFixedCommands_ = false;
+        events_.clear();
+        impulses_.clear();
+        animatorParameters_.clear();
+        ikTargets_.clear();
+        rootMotions_.clear();
+        nextId_ = 1;
     }
     void ScriptRuntime::QueueStop(ScenePlacement& owner, const Instance& instance)
     {
@@ -768,23 +1137,43 @@ namespace SceneRuntime
             entry = instances_.erase(entry);
         }
     }
-    void ScriptRuntime::StopRemoved(SceneLayout& previous,const SceneLayout& next) noexcept
+    void ScriptRuntime::StopRemoved(SceneLayout& previous, const SceneLayout& next) noexcept
     {
-        for(auto iterator=instances_.begin();iterator!=instances_.end();)
+        for (auto iterator = instances_.begin(); iterator != instances_.end();)
         {
-            const auto& instance=iterator->second;
-            const bool survives=std::any_of(next.objects.begin(),next.objects.end(),[&](const auto& object){return object.id==instance.owner &&
-                std::any_of(object.scripts.begin(),object.scripts.end(),[&](const auto& script){return script.enabled && script.id==instance.id && script.behaviour==instance.behaviour;});});
-            if(survives) {++iterator;continue;}
+            const auto& instance = iterator->second;
+            const bool survives = std::any_of(next.objects.begin(), next.objects.end(),
+                                              [&](const auto& object)
+                                              {
+                                                  return object.id == instance.owner &&
+                                                         std::any_of(object.scripts.begin(), object.scripts.end(),
+                                                                     [&](const auto& script)
+                                                                     {
+                                                                         return script.enabled &&
+                                                                                script.id == instance.id &&
+                                                                                script.behaviour == instance.behaviour;
+                                                                     });
+                                              });
+            if (survives)
+            {
+                ++iterator;
+                continue;
+            }
             try
             {
-                const auto owner=std::find_if(previous.objects.begin(),previous.objects.end(),[&](const auto& object){return object.id==instance.owner;});
-                const auto definition=Registry().find(instance.behaviour);
+                const auto owner = std::find_if(previous.objects.begin(), previous.objects.end(),
+                                                [&](const auto& object)
+                                                {
+                                                    return object.id == instance.owner;
+                                                });
+                const auto definition = Registry().find(instance.behaviour);
                 if (owner != previous.objects.end() && definition != Registry().end() &&
                     (definition->second.stop || definition->second.prepareStop))
                 {
-                    auto& state=iterator->second; ScriptContext context{*owner,state.parameters,state.state,0};
-                    if(state.pending) state.pending->committed=true;
+                    auto& state = iterator->second;
+                    ScriptContext context{*owner, state.parameters, state.state, 0};
+                    if (state.pending)
+                        state.pending->committed = true;
                     context.content = content_;
                     context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
                     context.data = &state.data;
@@ -802,8 +1191,11 @@ namespace SceneRuntime
                         definition->second.stop(ScriptStopContext{context});
                 }
             }
-            catch(...) {Engine::Log::Warning("Script stop callback failed while unloading a scene");}
-            iterator=instances_.erase(iterator);
+            catch (...)
+            {
+                Engine::Log::Warning("Script stop callback failed while unloading a scene");
+            }
+            iterator = instances_.erase(iterator);
         }
     }
 }
