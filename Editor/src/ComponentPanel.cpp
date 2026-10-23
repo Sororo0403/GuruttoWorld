@@ -266,6 +266,30 @@ namespace Editor
         }
         return edited;
     }
+    static bool DrawScriptMigration(SceneRuntime::ScriptComponent& script, const SceneRuntime::ScriptSchema* definition)
+    {
+        bool edited = false;
+        auto migrated = script;
+        const auto migration = definition->MigrateValues(migrated);
+        if (!migration.conflicts.empty())
+        {
+            ImGui::TextUnformatted("定義への移行に競合があります。値を確認してください。");
+            for (const auto& conflict : migration.conflicts)
+                ImGui::TextWrapped("%s", conflict.c_str());
+        }
+        else if (!migration.changes.empty())
+        {
+            ImGui::Text("定義への移行：%zu件の補完・参照指定", migration.changes.size());
+            for (const auto& change : migration.changes)
+                ImGui::TextWrapped("%s", change.c_str());
+            if (ImGui::Button("定義の変更を適用###Migrate Script"))
+            {
+                script = std::move(migrated);
+                edited = true;
+            }
+        }
+        return edited;
+    }
     bool ComponentPanel::DrawScripts(EditState& state, SceneRuntime::ScenePlacement& candidate,
                                      const ProjectCatalog* catalog)
     {
@@ -283,25 +307,7 @@ namespace Editor
                     ImGui::TextUnformatted("このゲーム処理は登録されていません。設定は保持されます。");
                 else
                 {
-                    auto migrated = script;
-                    const auto migration = definition->MigrateValues(migrated);
-                    if (!migration.conflicts.empty())
-                    {
-                        ImGui::TextUnformatted("定義への移行に競合があります。値を確認してください。");
-                        for (const auto& conflict : migration.conflicts)
-                            ImGui::TextWrapped("%s", conflict.c_str());
-                    }
-                    else if (!migration.changes.empty())
-                    {
-                        ImGui::Text("定義への移行：%zu件の補完・参照指定", migration.changes.size());
-                        for (const auto& change : migration.changes)
-                            ImGui::TextWrapped("%s", change.c_str());
-                        if (ImGui::Button("定義の変更を適用###Migrate Script"))
-                        {
-                            script = std::move(migrated);
-                            edited = true;
-                        }
-                    }
+                    edited |= DrawScriptMigration(script, definition);
                     for (const auto& [key, field] : definition->fields)
                     {
                         const auto found = script.parameters.find(key);

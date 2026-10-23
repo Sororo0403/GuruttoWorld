@@ -33,38 +33,11 @@ namespace Editor
             bool changed = false;
             const auto group = [&](auto component, const char* title, auto draw)
             {
-                if (std::any_of(objects.begin(), objects.end(),
-                                [&](const auto& object)
-                                {
-                                    return !(object.*component);
-                                }))
-                    return;
-                if (!ImGui::CollapsingHeader(title))
-                    return;
-                ImGui::PushID(title);
-                using Component = typename std::remove_reference_t<decltype(objects.front().*component)>::value_type;
-                changed |= Field(state, objects, component, &Component::enabled, "有効###Enabled",
-                                 [](auto& value)
-                                 {
-                                     return ImGui::Checkbox("有効###Enabled", &value);
-                                 });
-                draw(component);
-                ImGui::PopID();
+                changed |= DrawGroup(state, objects, component, title, draw);
             };
             const auto scalar = [&](auto component, auto field, const char* label, float low = 0, float high = 100000)
             {
-                if constexpr (std::is_same_v<decltype(field), float SceneRuntime::PlayerControllerComponent::*>)
-                {
-                    const auto& schema = SceneRuntime::PlayerControllerField(field);
-                    low = schema.minimum;
-                    high = schema.maximum;
-                }
-                changed |= Field(state, objects, component, field, label,
-                                 [&](auto& value)
-                                 {
-                                     return ImGui::DragFloat(label, &value, .05f, low, high, "%.3f",
-                                                             ImGuiSliderFlags_AlwaysClamp);
-                                 });
+                changed |= DrawScalar(state, objects, component, field, label, low, high);
             };
             const auto boolean = [&](auto component, auto field, const char* label)
             {
@@ -90,30 +63,7 @@ namespace Editor
             };
             const auto asset = [&](auto component, auto field, const char* label, AssetKind kind, bool empty)
             {
-                changed |= Field(state, objects, component, field, label,
-                                 [&](auto& value)
-                                 {
-                                     bool edited = false;
-                                     if (ImGui::BeginCombo(label, ProjectCatalog::Text(value).c_str()))
-                                     {
-                                         if (empty && ImGui::Selectable("モデルの設定", value.empty()))
-                                         {
-                                             value.clear();
-                                             edited = true;
-                                         }
-                                         if (catalog)
-                                             for (const auto& entry : catalog->Assets())
-                                                 if (entry.kind == kind &&
-                                                     ImGui::Selectable(ProjectCatalog::Text(entry.path).c_str(),
-                                                                       entry.path == value))
-                                                 {
-                                                     value = entry.path;
-                                                     edited = true;
-                                                 }
-                                         ImGui::EndCombo();
-                                     }
-                                     return edited;
-                                 });
+                changed |= DrawAsset(state, objects, component, field, label, kind, empty, catalog);
             };
             using P = SceneRuntime::ScenePlacement;
             group(&P::meshRenderer, "共通メッシュ描画###Shared mesh",
@@ -170,6 +120,79 @@ namespace Editor
         }
 
     private:
+        /// <summary>全対象が持つコンポーネントの共通編集を表示します。</summary>
+        template <class Member, class Draw>
+        static bool DrawGroup(EditState& state, std::vector<SceneRuntime::ScenePlacement>& objects, Member component,
+                              const char* title, Draw draw)
+        {
+            bool changed = false;
+            if (std::any_of(objects.begin(), objects.end(),
+                            [&](const auto& object)
+                            {
+                                return !(object.*component);
+                            }))
+                return false;
+            if (!ImGui::CollapsingHeader(title))
+                return false;
+            ImGui::PushID(title);
+            using Component = typename std::remove_reference_t<decltype(objects.front().*component)>::value_type;
+            changed |= Field(state, objects, component, &Component::enabled, "有効###Enabled",
+                             [](auto& value)
+                             {
+                                 return ImGui::Checkbox("有効###Enabled", &value);
+                             });
+            draw(component);
+            ImGui::PopID();
+            return changed;
+        }
+        /// <summary>共通アセットの選択を一括編集へ反映します。</summary>
+        template <class Member, class Value>
+        static bool DrawAsset(EditState& state, std::vector<SceneRuntime::ScenePlacement>& objects, Member component,
+                              Value field, const char* label, AssetKind kind, bool empty, const ProjectCatalog* catalog)
+        {
+            return Field(
+                state, objects, component, field, label,
+                [&](auto& value)
+                {
+                    bool edited = false;
+                    if (ImGui::BeginCombo(label, ProjectCatalog::Text(value).c_str()))
+                    {
+                        if (empty && ImGui::Selectable("モデルの設定", value.empty()))
+                        {
+                            value.clear();
+                            edited = true;
+                        }
+                        if (catalog)
+                            for (const auto& entry : catalog->Assets())
+                                if (entry.kind == kind &&
+                                    ImGui::Selectable(ProjectCatalog::Text(entry.path).c_str(), entry.path == value))
+                                {
+                                    value = entry.path;
+                                    edited = true;
+                                }
+                        ImGui::EndCombo();
+                    }
+                    return edited;
+                });
+        }
+        /// <summary>共通の数値フィールドをスキーマの範囲内で編集します。</summary>
+        template <class Member, class Value>
+        static bool DrawScalar(EditState& state, std::vector<SceneRuntime::ScenePlacement>& objects, Member component,
+                               Value field, const char* label, float low, float high)
+        {
+            if constexpr (std::is_same_v<decltype(field), float SceneRuntime::PlayerControllerComponent::*>)
+            {
+                const auto& schema = SceneRuntime::PlayerControllerField(field);
+                low = schema.minimum;
+                high = schema.maximum;
+            }
+            return Field(state, objects, component, field, label,
+                         [&](auto& value)
+                         {
+                             return ImGui::DragFloat(label, &value, .05f, low, high, "%.3f",
+                                                     ImGuiSliderFlags_AlwaysClamp);
+                         });
+        }
         static std::vector<SceneRuntime::ScenePlacement> SelectedObjects(const SceneRuntime::SceneLayout& layout,
                                                                          const EditState& state)
         {

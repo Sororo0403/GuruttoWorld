@@ -159,6 +159,14 @@ namespace
             }
         }
 
+        void PreparePresentations(Engine::DirectX12Renderer& renderer)
+        {
+            editingUiReady = presentation && presentation->Prepare(renderer, root, document.Layout(), fileStatus);
+            if (presentation && !editingUiReady)
+                LogResult(false);
+            if (gameSession.Runtime() && !gameSession.Runtime()->Prepare(renderer, root, fileStatus))
+                LogResult(false);
+        }
         Engine::RenderResult Draw(Engine::DirectX12Renderer& renderer)
         {
             const auto updateStart = std::chrono::steady_clock::now();
@@ -167,11 +175,7 @@ namespace
             audioPreview.Process(root);
             RefreshPlayerBindings();
             UpdateInput();
-            editingUiReady = presentation && presentation->Prepare(renderer, root, document.Layout(), fileStatus);
-            if (presentation && !editingUiReady)
-                LogResult(false);
-            if (gameSession.Runtime() && !gameSession.Runtime()->Prepare(renderer, root, fileStatus))
-                LogResult(false);
+            PreparePresentations(renderer);
             UpdatePlayInput();
             UpdateGamePointer();
             gameSession.Update(seconds, keyboard && keyboard->IsActive() && !closeRequested);

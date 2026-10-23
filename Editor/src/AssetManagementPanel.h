@@ -14,6 +14,52 @@ namespace Editor
         std::array<char, 1024> destination_{};
         std::string error_;
         AssetDependencies dependencies_;
+        /// <summary>選択した素材の編集基準と移動先を読み込みます。</summary>
+        void SelectAsset(const std::filesystem::path& root, const ProjectAsset& asset)
+        {
+            if (selected_ != asset.path)
+            {
+                Engine::AssetDatabase::Ensure(root / asset.path);
+                const auto source = Engine::FileContents::Read(Engine::AssetDatabase::Sidecar(root / asset.path));
+                settings_ = source ? Engine::AssetDatabase::ParseMetadata(*source)
+                                   : Engine::AssetDatabase::Read(root / asset.path);
+                settingsSource_ = source;
+                selected_ = asset.path;
+                destination_.fill(0);
+                const auto text = ProjectCatalog::Text(selected_);
+                std::copy_n(text.begin(), std::min(text.size(), destination_.size() - 1), destination_.begin());
+                error_.clear();
+            }
+        }
+        /// <summary>モデルのインポート設定を編集します。</summary>
+        void DrawModelImport(const std::filesystem::path& root, const ProjectAsset& asset)
+        {
+            if (asset.kind == AssetKind::Model && ImGui::CollapsingHeader("インポート設定###Import settings"))
+            {
+                ImGui::DragFloat("倍率###Scale", &settings_.scale, 0.01f, 0.0001f, 10000, "%.4f",
+                                 ImGuiSliderFlags_AlwaysClamp);
+                ImGui::Checkbox("V座標を反転###Flip V", &settings_.flipV);
+                if (ImGui::Button("設定を保存・再インポート###Save import"))
+                {
+                    Engine::AssetDatabase::Write(root / selected_, settings_, settingsSource_);
+                    settingsSource_ = Engine::AssetDatabase::SerializeMetadata(settings_);
+                }
+            }
+        }
+        /// <summary>選択素材の参照先と索引の診断を表示します。</summary>
+        void DrawDependencies(const std::filesystem::path& root, const ProjectAsset& asset)
+        {
+            if (ImGui::CollapsingHeader("参照するアセット###Dependencies"))
+            {
+                dependencies_.Refresh(root, asset);
+                for (const auto& path : dependencies_.Values())
+                    ImGui::BulletText("%s", path.c_str());
+                if (!dependencies_.Error().empty())
+                    ImGui::TextWrapped("%s", dependencies_.Error().c_str());
+                else if (dependencies_.Values().empty())
+                    ImGui::TextUnformatted("参照はありません。");
+            }
+        }
         void DrawTextureImport(const std::filesystem::path& root, const ProjectAsset& asset)
         {
             if (asset.kind == AssetKind::Texture && ImGui::CollapsingHeader("画像インポート###Texture import"))
@@ -51,19 +97,7 @@ namespace Editor
             bool disabled = false;
             try
             {
-                if (selected_ != asset.path)
-                {
-                    Engine::AssetDatabase::Ensure(root / asset.path);
-                    const auto source = Engine::FileContents::Read(Engine::AssetDatabase::Sidecar(root / asset.path));
-                    settings_ = source ? Engine::AssetDatabase::ParseMetadata(*source)
-                                       : Engine::AssetDatabase::Read(root / asset.path);
-                    settingsSource_ = source;
-                    selected_ = asset.path;
-                    destination_.fill(0);
-                    const auto text = ProjectCatalog::Text(selected_);
-                    std::copy_n(text.begin(), std::min(text.size(), destination_.size() - 1), destination_.begin());
-                    error_.clear();
-                }
+                SelectAsset(root, asset);
                 ImGui::TextWrapped("アセットID: %s", settings_.id.c_str());
                 const bool shared = Engine::ContentFiles::IsShared(root / asset.path);
                 if (shared)
@@ -81,17 +115,7 @@ namespace Editor
                     ImGui::TextUnformatted("共有素材をゲーム側で上書き中（IDとパスを維持）");
                 ImGui::BeginDisabled(!enabled || !Engine::ContentFiles::SharedFile(root / asset.path).empty());
                 disabled = true;
-                if (asset.kind == AssetKind::Model && ImGui::CollapsingHeader("インポート設定###Import settings"))
-                {
-                    ImGui::DragFloat("倍率###Scale", &settings_.scale, 0.01f, 0.0001f, 10000, "%.4f",
-                                     ImGuiSliderFlags_AlwaysClamp);
-                    ImGui::Checkbox("V座標を反転###Flip V", &settings_.flipV);
-                    if (ImGui::Button("設定を保存・再インポート###Save import"))
-                    {
-                        Engine::AssetDatabase::Write(root / selected_, settings_, settingsSource_);
-                        settingsSource_ = Engine::AssetDatabase::SerializeMetadata(settings_);
-                    }
-                }
+                DrawModelImport(root, asset);
                 DrawTextureImport(root, asset);
                 if (ImGui::CollapsingHeader("移動・改名###Move asset"))
                 {
@@ -112,16 +136,7 @@ namespace Editor
                 }
                 ImGui::EndDisabled();
                 disabled = false;
-                if (ImGui::CollapsingHeader("参照するアセット###Dependencies"))
-                {
-                    dependencies_.Refresh(root, asset);
-                    for (const auto& path : dependencies_.Values())
-                        ImGui::BulletText("%s", path.c_str());
-                    if (!dependencies_.Error().empty())
-                        ImGui::TextWrapped("%s", dependencies_.Error().c_str());
-                    else if (dependencies_.Values().empty())
-                        ImGui::TextUnformatted("参照はありません。");
-                }
+                DrawDependencies(root, asset);
             }
             catch (const std::exception& error)
             {

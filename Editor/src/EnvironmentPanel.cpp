@@ -58,6 +58,65 @@ namespace
         ImGui::DragFloat2(label, value.data(), 0.001f, low, high, "%.3f", ImGuiSliderFlags_AlwaysClamp);
         Track(state);
     }
+    void OceanQuality(Editor::EditState& state, SceneRuntime::OceanSkySettings& settings)
+    {
+        if (ImGui::TreeNode("描画品質と形状###Ocean quality and shape"))
+        {
+            int atmosphereSteps = static_cast<int>(settings.atmosphereSteps);
+            if (ImGui::SliderInt("大気の視線サンプル数###atmosphereSteps", &atmosphereSteps, 1, 64))
+                settings.atmosphereSteps = static_cast<unsigned int>(atmosphereSteps);
+            Track(state);
+            int solarSteps = static_cast<int>(settings.solarSteps);
+            if (ImGui::SliderInt("大気の太陽光サンプル数###solarSteps", &solarSteps, 1, 32))
+                settings.solarSteps = static_cast<unsigned int>(solarSteps);
+            Track(state);
+            int cloudSteps = static_cast<int>(settings.cloudSteps);
+            if (ImGui::SliderInt("雲の視線サンプル数###cloudSteps", &cloudSteps, 1, 96))
+                settings.cloudSteps = static_cast<unsigned int>(cloudSteps);
+            Track(state);
+            int cloudLightSteps = static_cast<int>(settings.cloudLightSteps);
+            if (ImGui::SliderInt("雲の太陽光サンプル数###cloudLightSteps", &cloudLightSteps, 1, 32))
+                settings.cloudLightSteps = static_cast<unsigned int>(cloudLightSteps);
+            Track(state);
+            int waveCount = static_cast<int>(settings.waveCount);
+            if (ImGui::SliderInt("波の成分数###waveCount", &waveCount, 1, 16))
+                settings.waveCount = static_cast<unsigned int>(waveCount);
+            Track(state);
+            int seaSteps = static_cast<int>(settings.seaSteps);
+            if (ImGui::SliderInt("海面探索回数###seaSteps", &seaSteps, 1, 64))
+                settings.seaSteps = static_cast<unsigned int>(seaSteps);
+            Track(state);
+            int seaRefineSteps = static_cast<int>(settings.seaRefineSteps);
+            if (ImGui::SliderInt("海面補間回数###seaRefineSteps", &seaRefineSteps, 1, 32))
+                settings.seaRefineSteps = static_cast<unsigned int>(seaRefineSteps);
+            Track(state);
+            Scalar(state, "太陽光の強度###solarIntensity", settings.solarIntensity, 0.0f, 1000.0f);
+            Scalar(state, "波の基準方向（ラジアン）###waveDirection", settings.waveDirection, -6.284f, 6.284f);
+            Scalar(state, "波の方向間隔（ラジアン）###waveSpread", settings.waveSpread, -6.284f, 6.284f);
+            Scalar(state, "波の周期比###wavePeriodRatio", settings.wavePeriodRatio, 0.2f, 0.99f);
+            Scalar(state, "波の振幅比###waveAmplitudeRatio", settings.waveAmplitudeRatio, 0.01f, 0.95f);
+            Scalar(state, "波の位相間隔###wavePhase", settings.wavePhase, 0.0f, 20.0f);
+            Scalar(state, "雲ノイズの空間倍率###cloudScale", settings.cloudScale, 1e-05f, 0.1f);
+            Scalar(state, "海面の最大描画距離###traceDistance", settings.traceDistance, 1000.0f, 1000000.0f);
+            Scalar(state, "雲の最大描画距離###cloudDistance", settings.cloudDistance, 1000.0f, 1000000.0f);
+            ImGui::DragFloat3("太陽光の色###solarColor", settings.solarColor.data(), .0001f, 0.0f, 1.0f, "%.5f",
+                              ImGuiSliderFlags_AlwaysClamp);
+            Track(state);
+            ImGui::DragFloat2("雲の移動方向倍率###cloudWind", settings.cloudWind.data(), .0001f, -10.0f, 10.0f, "%.5f",
+                              ImGuiSliderFlags_AlwaysClamp);
+            Track(state);
+            ImGui::DragFloat3("雲ノイズの混合比###cloudNoiseWeights", settings.cloudNoiseWeights.data(), .0001f, 0.0f,
+                              1.0f, "%.5f", ImGuiSliderFlags_AlwaysClamp);
+            Track(state);
+            ImGui::DragFloat3("雲ノイズの周波数比###cloudNoiseFrequencies", settings.cloudNoiseFrequencies.data(),
+                              .0001f, 0.01f, 100.0f, "%.5f", ImGuiSliderFlags_AlwaysClamp);
+            Track(state);
+            ImGui::DragFloat3("雲ノイズの位相###cloudNoiseOffsets", settings.cloudNoiseOffsets.data(), .0001f, -1000.0f,
+                              1000.0f, "%.5f", ImGuiSliderFlags_AlwaysClamp);
+            Track(state);
+            ImGui::TreePop();
+        }
+    }
     void Sky(Editor::EditState& state, SceneRuntime::SkyComponent& sky)
     {
         bool ocean = sky.ocean.has_value();
@@ -89,62 +148,7 @@ namespace
             Track(state);
             Scalar(state, "オゾン密度倍率###Ozone density", settings.ozoneStrength, 0, 3);
             Scalar(state, "雲の散乱異方性###Cloud anisotropy", settings.cloudAnisotropy, 0, .9f);
-            if (ImGui::TreeNode("描画品質と形状###Ocean quality and shape"))
-            {
-                int atmosphereSteps = static_cast<int>(settings.atmosphereSteps);
-                if (ImGui::SliderInt("大気の視線サンプル数###atmosphereSteps", &atmosphereSteps, 1, 64))
-                    settings.atmosphereSteps = static_cast<unsigned int>(atmosphereSteps);
-                Track(state);
-                int solarSteps = static_cast<int>(settings.solarSteps);
-                if (ImGui::SliderInt("大気の太陽光サンプル数###solarSteps", &solarSteps, 1, 32))
-                    settings.solarSteps = static_cast<unsigned int>(solarSteps);
-                Track(state);
-                int cloudSteps = static_cast<int>(settings.cloudSteps);
-                if (ImGui::SliderInt("雲の視線サンプル数###cloudSteps", &cloudSteps, 1, 96))
-                    settings.cloudSteps = static_cast<unsigned int>(cloudSteps);
-                Track(state);
-                int cloudLightSteps = static_cast<int>(settings.cloudLightSteps);
-                if (ImGui::SliderInt("雲の太陽光サンプル数###cloudLightSteps", &cloudLightSteps, 1, 32))
-                    settings.cloudLightSteps = static_cast<unsigned int>(cloudLightSteps);
-                Track(state);
-                int waveCount = static_cast<int>(settings.waveCount);
-                if (ImGui::SliderInt("波の成分数###waveCount", &waveCount, 1, 16))
-                    settings.waveCount = static_cast<unsigned int>(waveCount);
-                Track(state);
-                int seaSteps = static_cast<int>(settings.seaSteps);
-                if (ImGui::SliderInt("海面探索回数###seaSteps", &seaSteps, 1, 64))
-                    settings.seaSteps = static_cast<unsigned int>(seaSteps);
-                Track(state);
-                int seaRefineSteps = static_cast<int>(settings.seaRefineSteps);
-                if (ImGui::SliderInt("海面補間回数###seaRefineSteps", &seaRefineSteps, 1, 32))
-                    settings.seaRefineSteps = static_cast<unsigned int>(seaRefineSteps);
-                Track(state);
-                Scalar(state, "太陽光の強度###solarIntensity", settings.solarIntensity, 0.0f, 1000.0f);
-                Scalar(state, "波の基準方向（ラジアン）###waveDirection", settings.waveDirection, -6.284f, 6.284f);
-                Scalar(state, "波の方向間隔（ラジアン）###waveSpread", settings.waveSpread, -6.284f, 6.284f);
-                Scalar(state, "波の周期比###wavePeriodRatio", settings.wavePeriodRatio, 0.2f, 0.99f);
-                Scalar(state, "波の振幅比###waveAmplitudeRatio", settings.waveAmplitudeRatio, 0.01f, 0.95f);
-                Scalar(state, "波の位相間隔###wavePhase", settings.wavePhase, 0.0f, 20.0f);
-                Scalar(state, "雲ノイズの空間倍率###cloudScale", settings.cloudScale, 1e-05f, 0.1f);
-                Scalar(state, "海面の最大描画距離###traceDistance", settings.traceDistance, 1000.0f, 1000000.0f);
-                Scalar(state, "雲の最大描画距離###cloudDistance", settings.cloudDistance, 1000.0f, 1000000.0f);
-                ImGui::DragFloat3("太陽光の色###solarColor", settings.solarColor.data(), .0001f, 0.0f, 1.0f, "%.5f",
-                                  ImGuiSliderFlags_AlwaysClamp);
-                Track(state);
-                ImGui::DragFloat2("雲の移動方向倍率###cloudWind", settings.cloudWind.data(), .0001f, -10.0f, 10.0f,
-                                  "%.5f", ImGuiSliderFlags_AlwaysClamp);
-                Track(state);
-                ImGui::DragFloat3("雲ノイズの混合比###cloudNoiseWeights", settings.cloudNoiseWeights.data(), .0001f,
-                                  0.0f, 1.0f, "%.5f", ImGuiSliderFlags_AlwaysClamp);
-                Track(state);
-                ImGui::DragFloat3("雲ノイズの周波数比###cloudNoiseFrequencies", settings.cloudNoiseFrequencies.data(),
-                                  .0001f, 0.01f, 100.0f, "%.5f", ImGuiSliderFlags_AlwaysClamp);
-                Track(state);
-                ImGui::DragFloat3("雲ノイズの位相###cloudNoiseOffsets", settings.cloudNoiseOffsets.data(), .0001f,
-                                  -1000.0f, 1000.0f, "%.5f", ImGuiSliderFlags_AlwaysClamp);
-                Track(state);
-                ImGui::TreePop();
-            }
+            OceanQuality(state, settings);
             Color(state, "水中の色###Water body color", settings.waterColor);
             Scalar(state, "雲の不透明度###Ocean cloud opacity", sky.cloudOpacity, 0, 1);
             ImGui::TextWrapped(

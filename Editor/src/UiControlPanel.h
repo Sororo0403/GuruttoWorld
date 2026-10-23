@@ -6,6 +6,71 @@
 #include <imgui.h>
 namespace Editor
 {
+    /// <summary>自動レイアウトの方向・寸法・余白を編集します。</summary>
+    inline void DrawLayoutGroup(EditState& state, SceneRuntime::LayoutGroupComponent& c)
+    {
+        const auto track = [&]()
+        {
+            TrackComponentInteraction(state);
+        };
+        if (ImGui::BeginCombo("方向###Direction", c.direction.c_str()))
+        {
+            for (const char* direction : {"horizontal", "vertical", "grid"})
+                if (ImGui::Selectable(direction, c.direction == direction))
+                    c.direction = direction;
+            ImGui::EndCombo();
+        }
+        ImGui::DragFloat2("間隔###Spacing", c.spacing.data(), 1, 0, 10000, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+        track();
+        ImGui::DragFloat4("余白（左・上・右・下）###Padding", c.padding.data(), 1, 0, 10000, "%.1f",
+                          ImGuiSliderFlags_AlwaysClamp);
+        track();
+        if (c.direction == "grid")
+        {
+            ImGui::DragFloat2("セルサイズ###Cell size", c.cellSize.data(), 1, 1, 10000, "%.1f",
+                              ImGuiSliderFlags_AlwaysClamp);
+            track();
+            int columns = static_cast<int>(c.columns);
+            if (ImGui::InputInt("列数###Columns", &columns))
+                c.columns = static_cast<unsigned int>(std::clamp(columns, 1, 1024));
+            track();
+        }
+        else
+        {
+            ImGui::Checkbox("幅を広げる###Expand width", &c.expandWidth);
+            ImGui::Checkbox("高さを広げる###Expand height", &c.expandHeight);
+        }
+        ImGui::TextWrapped(
+            "直下のRectTransformをHierarchy順で配置します。個別アンカーと位置は実行時にレイアウトで上書きされます。");
+    }
+    /// <summary>UI文字列の編集とUndoの操作状態を記録します。</summary>
+    inline void DrawControlText(EditState& state, const char* label, std::string& value)
+    {
+        std::vector<char> buffer(std::max(size_t(16385), value.size() + 1));
+        std::copy(value.begin(), value.end(), buffer.begin());
+        if (ImGui::InputText(label, buffer.data(), buffer.size()))
+            value = buffer.data();
+        TrackComponentInteraction(state);
+    }
+    /// <summary>UIコンポーネント共通の有効化・リセット・削除を表示します。</summary>
+    template <class Component, class Draw> inline void DrawUiControl(Component& optional, const char* title, Draw draw)
+    {
+        if (!optional || !ImGui::CollapsingHeader(title, ImGuiTreeNodeFlags_DefaultOpen))
+            return;
+        ImGui::PushID(optional->id.c_str());
+        ImGui::Checkbox("有効###Enabled", &optional->enabled);
+        draw(*optional);
+        if (ImGui::Button("リセット###Reset"))
+        {
+            const auto id = optional->id;
+            optional = std::decay_t<decltype(*optional)>{};
+            optional->id = id;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("削除###Remove"))
+            optional.reset();
+        ImGui::PopID();
+    }
     /// <summary>汎用UIのプロパティーを通常のComponent編集とUndoへ接続します。</summary>
     inline void DrawUiControls(EditState& state, SceneRuntime::ScenePlacement& p)
     {
@@ -15,29 +80,11 @@ namespace Editor
         };
         const auto text = [&](const char* label, std::string& value)
         {
-            std::vector<char> buffer(std::max(size_t(16385), value.size() + 1));
-            std::copy(value.begin(), value.end(), buffer.begin());
-            if (ImGui::InputText(label, buffer.data(), buffer.size()))
-                value = buffer.data();
-            track();
+            DrawControlText(state, label, value);
         };
         const auto component = [&](auto& optional, const char* title, auto draw)
         {
-            if (!optional || !ImGui::CollapsingHeader(title, ImGuiTreeNodeFlags_DefaultOpen))
-                return;
-            ImGui::PushID(optional->id.c_str());
-            ImGui::Checkbox("有効###Enabled", &optional->enabled);
-            draw(*optional);
-            if (ImGui::Button("リセット###Reset"))
-            {
-                const auto id = optional->id;
-                optional = std::decay_t<decltype(*optional)>{};
-                optional->id = id;
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("削除###Remove"))
-                optional.reset();
-            ImGui::PopID();
+            DrawUiControl(optional, title, draw);
         };
         component(
             p.inputField, "入力欄###InputField",
@@ -108,41 +155,11 @@ namespace Editor
                   {
                       ImGui::TextWrapped("子孫の表示とヒット判定をこの矩形内に制限します。");
                   });
-        component(
-            p.layoutGroup, "自動レイアウト###LayoutGroup",
-            [&](auto& c)
-            {
-                if (ImGui::BeginCombo("方向###Direction", c.direction.c_str()))
-                {
-                    for (const char* direction : {"horizontal", "vertical", "grid"})
-                        if (ImGui::Selectable(direction, c.direction == direction))
-                            c.direction = direction;
-                    ImGui::EndCombo();
-                }
-                ImGui::DragFloat2("間隔###Spacing", c.spacing.data(), 1, 0, 10000, "%.1f",
-                                  ImGuiSliderFlags_AlwaysClamp);
-                track();
-                ImGui::DragFloat4("余白（左・上・右・下）###Padding", c.padding.data(), 1, 0, 10000, "%.1f",
-                                  ImGuiSliderFlags_AlwaysClamp);
-                track();
-                if (c.direction == "grid")
-                {
-                    ImGui::DragFloat2("セルサイズ###Cell size", c.cellSize.data(), 1, 1, 10000, "%.1f",
-                                      ImGuiSliderFlags_AlwaysClamp);
-                    track();
-                    int columns = static_cast<int>(c.columns);
-                    if (ImGui::InputInt("列数###Columns", &columns))
-                        c.columns = static_cast<unsigned int>(std::clamp(columns, 1, 1024));
-                    track();
-                }
-                else
-                {
-                    ImGui::Checkbox("幅を広げる###Expand width", &c.expandWidth);
-                    ImGui::Checkbox("高さを広げる###Expand height", &c.expandHeight);
-                }
-                ImGui::TextWrapped(
-                    "直下のRectTransformをHierarchy順で配置します。個別アンカーと位置は実行時にレイアウトで上書きされます。");
-            });
+        component(p.layoutGroup, "自動レイアウト###LayoutGroup",
+                  [&](auto& c)
+                  {
+                      DrawLayoutGroup(state, c);
+                  });
     }
     /// <summary>汎用UIを追加し、必要なRectTransformも作成します。</summary>
     inline bool AddUiControls(SceneRuntime::ScenePlacement& p)
