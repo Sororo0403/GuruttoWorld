@@ -1,6 +1,7 @@
 import copy
 import importlib.util
 import json
+import re
 from pathlib import Path
 import tempfile
 import subprocess
@@ -56,8 +57,13 @@ class ParkAuthoringTests(unittest.TestCase):
             schema["scripts"]["ParkPlayer"]["data"]["statsTemplate"]["value"] = "日本語's \"text\"\\path\n"
             (scripts / schema_path.name).write_text(json.dumps(schema, ensure_ascii=False, indent=1), encoding="utf-8")
             subprocess.run(command, check=True, capture_output=True)
-            self.assertIn('{"maxHp",{17.0f,', header.read_text(encoding="utf-8"))
-            self.assertIn("日本語's \\\"text\\\"\\\\path\\n", header.read_text(encoding="utf-8"))
+            generated_schemas = {}
+            for block in header.read_text(encoding="utf-8").split("std::string source;")[1:]:
+                chunks = re.finditer(r'R"(WP1_\d+)\((.*?)\)\1"', block, re.DOTALL)
+                generated_schemas.update(json.loads("".join(match.group(2) for match in chunks))["scripts"])
+            generated_player = generated_schemas["ParkPlayer"]
+            self.assertEqual(generated_player["parameters"]["maxHp"]["initial"], 17)
+            self.assertEqual(generated_player["data"]["statsTemplate"], schema["scripts"]["ParkPlayer"]["data"]["statsTemplate"])
             valid_header = header.read_bytes()
             schema["scripts"]["ParkPlayer"]["data"]["statsTemplate"]["value"] = "left\0right"
             (scripts / schema_path.name).write_text(json.dumps(schema), encoding="utf-8")
