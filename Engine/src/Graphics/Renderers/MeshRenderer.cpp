@@ -121,6 +121,28 @@ namespace Engine
         }
         return true;
     }
+    static void WriteTextureView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE handle, const Texture2D* texture)
+    {
+        if (texture)
+            device->CopyDescriptorsSimple(1, handle, texture->GetShaderResourceView(),
+                                          D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        else
+        {
+            D3D12_SHADER_RESOURCE_VIEW_DESC view{};
+            view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            view.Texture2D.MipLevels = 1;
+            device->CreateShaderResourceView(nullptr, &view, handle);
+        }
+    }
+    static bool ValidateSkinSize(size_t size, size_t required)
+    {
+        if (!size || size >= required)
+            return true;
+        Log::Error("Skin palette does not cover vertex joints.");
+        return false;
+    }
     std::shared_ptr<MeshRenderer::Binding> MeshRenderer::CreateBinding(const BindingRequest& request) const
     {
         const auto& [shadow, overrideTexture, normal, lights, palette, instances, localShadow, surfaceImages] = request;
@@ -151,17 +173,7 @@ namespace Engine
             device->CreateShaderResourceView(nullptr, &view, handle);
         }
         handle.ptr += device->GetDescriptorHandleIncrementSize(description.Type);
-        if (normal)
-            device->CopyDescriptorsSimple(1, handle, normal->GetShaderResourceView(), description.Type);
-        else
-        {
-            D3D12_SHADER_RESOURCE_VIEW_DESC view{};
-            view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            view.Texture2D.MipLevels = 1;
-            device->CreateShaderResourceView(nullptr, &view, handle);
-        }
+        WriteTextureView(device.Get(), handle, normal.get());
         handle.ptr += device->GetDescriptorHandleIncrementSize(description.Type);
         if (lights.resource)
             device->CopyDescriptorsSimple(1, handle, lights.srv, description.Type);
@@ -214,17 +226,7 @@ namespace Engine
         for (const auto& image : {environment, lightmap})
         {
             handle.ptr += device->GetDescriptorHandleIncrementSize(description.Type);
-            if (image)
-                device->CopyDescriptorsSimple(1, handle, image->GetShaderResourceView(), description.Type);
-            else
-            {
-                D3D12_SHADER_RESOURCE_VIEW_DESC view{};
-                view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-                view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-                view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-                view.Texture2D.MipLevels = 1;
-                device->CreateShaderResourceView(nullptr, &view, handle);
-            }
+            WriteTextureView(device.Get(), handle, image.get());
         }
         auto binding = std::make_shared<Binding>();
         binding->heap = std::move(heap);
@@ -423,11 +425,8 @@ namespace Engine
         {
             return;
         }
-        if (!palette.empty() && palette.size() < requiredPaletteSize_)
-        {
-            Log::Error("Skin palette does not cover vertex joints.");
+        if (!ValidateSkinSize(palette.size(), requiredPaletteSize_))
             return;
-        }
         using namespace DirectX;
         const XMMATRIX worldMatrix = XMLoadFloat4x4(&world);
         const bool mirrored = XMVectorGetX(XMMatrixDeterminant(worldMatrix)) < 0;

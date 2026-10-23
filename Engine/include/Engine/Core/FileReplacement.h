@@ -10,6 +10,14 @@ namespace Engine
     /// <summary>比較したファイルを排他的に保持し、上書きしない改名で候補を確定します。</summary>
     class FileReplacement final
     {
+        struct SaveBatch
+        {
+            std::unique_ptr<FileSaveLock> lock;
+            std::vector<std::unique_ptr<FileReplacement>> replacements;
+            std::unique_ptr<FileJournal> journal;
+            bool accepted = false;
+        };
+
     public:
         struct Change
         {
@@ -146,57 +154,27 @@ namespace Engine
                              const std::function<bool()>& commitDocument)
         {
             error.clear();
-            std::unique_ptr<FileSaveLock> lock;
-            std::vector<std::unique_ptr<FileReplacement>> replacements;
-            std::unique_ptr<FileJournal> journal;
-            bool accepted = false;
+            SaveBatch batch;
             try
             {
                 if (changes.empty())
                     return commitDocument();
-                std::vector<FileJournal::Entry> entries;
-                for (const auto& change : changes)
-                    entries.push_back({change.path, {}, {}, change.before, change.after});
-                const auto root = FileJournal::Root(entries);
-                lock = std::make_unique<FileSaveLock>(root);
-                if (lock->Outermost())
-                    FileJournal::RecoverLocked(root);
-                for (size_t i = 0; i < changes.size(); ++i)
-                {
-                    const auto& change = changes[i];
-                    auto replacement = std::make_unique<FileReplacement>(change.path, change.before, change.after);
-                    entries[i].stage = replacement->stagedPath_;
-                    entries[i].backup = replacement->backupPath_;
-                    if (replacement->original_ != INVALID_HANDLE_VALUE)
-                        entries[i].beforeId = FileJournal::Identity(replacement->original_);
-                    if (replacement->staged_ != INVALID_HANDLE_VALUE)
-                        entries[i].afterId = FileJournal::Identity(replacement->staged_);
-                    replacements.push_back(std::move(replacement));
-                }
-                std::vector<FileJournal::Entry> modified;
-                for (auto& entry : entries)
-                    if (entry.before != entry.after)
-                        modified.push_back(std::move(entry));
-                if (!modified.empty())
-                    journal = std::make_unique<FileJournal>(root, modified);
-                for (size_t i = 0; i < changes.size(); ++i)
-                    if (changes[i].before != changes[i].after)
-                        replacements[i]->Apply();
+                PrepareBatch(changes, batch);
                 // 受理後のメモリー更新と同期失敗が食い違わないよう、確定方針を先に同期します。
-                if (journal)
+                if (batch.journal)
                 {
-                    journal->CommitIntent();
-                    journal->Complete();
+                    batch.journal->CommitIntent();
+                    batch.journal->Complete();
                 }
-                accepted = commitDocument();
-                if (!accepted)
+                batch.accepted = commitDocument();
+                if (!batch.accepted)
                     throw std::runtime_error("ドキュメントを適用できません。");
-                for (auto& replacement : replacements)
+                for (auto& replacement : batch.replacements)
                     replacement->Commit();
-                if (journal)
+                if (batch.journal)
                     try
                     {
-                        journal->Accept();
+                        batch.journal->Accept();
                     }
                     catch (const std::exception& failure)
                     {
@@ -213,33 +191,76 @@ namespace Engine
             {
                 error = "保存中に不明な例外が発生しました。";
             }
-            if (!accepted && journal)
+            return FinishBatch(batch, error);
+        }
+
+    private:
+        /// <summary>排他を取得し、全作業ファイルと記録を準備してから置換します。</summary>
+        static void PrepareBatch(const std::vector<Change>& changes, SaveBatch& batch)
+        {
+            std::vector<FileJournal::Entry> entries;
+            entries.reserve(changes.size());
+            std::transform(changes.begin(), changes.end(), std::back_inserter(entries),
+                           [](const auto& change)
+                           {
+                               return FileJournal::Entry{change.path, {}, {}, change.before, change.after};
+                           });
+            const auto root = FileJournal::Root(entries);
+            batch.lock = std::make_unique<FileSaveLock>(root);
+            if (batch.lock->Outermost())
+                FileJournal::RecoverLocked(root);
+            for (size_t i = 0; i < changes.size(); ++i)
+            {
+                const auto& change = changes[i];
+                auto replacement = std::make_unique<FileReplacement>(change.path, change.before, change.after);
+                entries[i].stage = replacement->stagedPath_;
+                entries[i].backup = replacement->backupPath_;
+                if (replacement->original_ != INVALID_HANDLE_VALUE)
+                    entries[i].beforeId = FileJournal::Identity(replacement->original_);
+                if (replacement->staged_ != INVALID_HANDLE_VALUE)
+                    entries[i].afterId = FileJournal::Identity(replacement->staged_);
+                batch.replacements.push_back(std::move(replacement));
+            }
+            std::vector<FileJournal::Entry> modified;
+            for (auto& entry : entries)
+                if (entry.before != entry.after)
+                    modified.push_back(std::move(entry));
+            if (!modified.empty())
+                batch.journal = std::make_unique<FileJournal>(root, modified);
+            for (size_t i = 0; i < changes.size(); ++i)
+                if (changes[i].before != changes[i].after)
+                    batch.replacements[i]->Apply();
+        }
+        /// <summary>失敗時の取消方針を同期し、対象の保持を解放してから記録を掃除します。</summary>
+        static bool FinishBatch(SaveBatch& batch, std::string& error)
+        {
+            if (!batch.accepted && batch.journal)
             {
                 try
                 {
-                    journal->RollbackIntent();
+                    batch.journal->RollbackIntent();
                 }
                 catch (const std::exception& failure)
                 {
                     // 取消方針を記録できない場合は、確定済み世代を壊さず次回の復旧へ渡します。
-                    for (auto& replacement : replacements)
+                    for (auto& replacement : batch.replacements)
                         replacement->Commit();
                     error += " / " + std::string(failure.what());
                     return false;
                 }
             }
-            replacements.clear();
-            if (journal)
+            batch.replacements.clear();
+            if (batch.journal)
                 try
                 {
-                    const auto conflicts = journal->Finish();
+                    const auto conflicts = batch.journal->Finish();
                     if (!conflicts.empty())
                         error +=
                             " / 保存内容を保管して復旧しました：" + FileContents::Text(conflicts.front().parent_path());
                 }
                 catch (const std::exception& failure)
                 {
-                    if (accepted)
+                    if (batch.accepted)
                     {
                         error +=
                             " / 保存は完了しましたが、作業記録の掃除を再試行します：" + std::string(failure.what());
@@ -248,10 +269,8 @@ namespace Engine
                     else
                         error += " / 復旧が必要です。次の保存前に再試行します：" + std::string(failure.what());
                 }
-            return accepted;
+            return batch.accepted;
         }
-
-    private:
         /// <summary>同じフォルダーに衝突しない作業名を生成します。</summary>
         static std::filesystem::path Unique(std::filesystem::path path, const wchar_t* kind)
         {

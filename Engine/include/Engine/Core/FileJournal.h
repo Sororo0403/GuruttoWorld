@@ -37,10 +37,13 @@ namespace Engine
             if (entries.empty() || entries.size() > 1024)
                 throw std::runtime_error("一括保存の対象数は1から1024件にしてください。");
             const auto root = FileSaveLock::Root(entries.front().path);
-            for (const auto& entry : entries)
-                if (CompareStringOrdinal(root.c_str(), -1, FileSaveLock::Root(entry.path).c_str(), -1, TRUE) !=
-                    CSTR_EQUAL)
-                    throw std::runtime_error("異なる保存領域の変更は、領域ごとに分けて保存してください。");
+            if (std::any_of(entries.begin(), entries.end(),
+                            [&](const auto& entry)
+                            {
+                                return CompareStringOrdinal(root.c_str(), -1, FileSaveLock::Root(entry.path).c_str(),
+                                                            -1, TRUE) != CSTR_EQUAL;
+                            }))
+                throw std::runtime_error("異なる保存領域の変更は、領域ごとに分けて保存してください。");
             return root;
         }
         /// <summary>元のパスを変更する前に、復旧に必要な全コピーと一覧を永続化します。</summary>
@@ -146,6 +149,14 @@ namespace Engine
         }
 
     private:
+        struct HandleCloser
+        {
+            /// <summary>保存中の記録の保持を解放します。</summary>
+            void operator()(void* handle) const
+            {
+                CloseHandle(handle);
+            }
+        };
         /// <summary>旧実装の保存領域を再探索し、探索後に追加された記録を見落とさないようにします。</summary>
         static std::vector<std::filesystem::path> SaveRoots(const std::filesystem::path& root)
         {
@@ -310,6 +321,119 @@ namespace Engine
                 throw;
             }
         }
+        struct RecoveryState
+        {
+            bool forward, restore, preserve;
+        };
+        /// <summary>受理と取消の記録が完了境界と矛盾しないことを確認します。</summary>
+        static void ValidateOutcome(const Json& json, const std::optional<std::string>& completion,
+                                    const std::optional<std::string>& aborted,
+                                    const std::optional<std::string>& accepted)
+        {
+            if ((aborted && (json.at("version") != 4 || *aborted != "aborted\n")) ||
+                (accepted && (json.at("version") != 4 || !completion || aborted || *accepted != "accepted\n")))
+                throw std::runtime_error("保存の受理・取消記録が不正です");
+        }
+        /// <summary>記録された確定・完了・取消の組合せを検証します。</summary>
+        static RecoveryState ReadRecoveryState(const std::filesystem::path& directory, const Json& json)
+        {
+            const auto marker = FileContents::Read(directory / "committed");
+            if (marker && *marker != "committed\n")
+                throw std::runtime_error("保存の確定記録が不正です");
+            const auto completion = FileContents::Read(directory / "completed");
+            if (completion && (!marker || json.at("version") == 2 || *completion != "completed\n"))
+                throw std::runtime_error("保存の完了記録が不正です");
+            const auto aborted = FileContents::Read(directory / "aborted");
+            const auto accepted = FileContents::Read(directory / "accepted");
+            ValidateOutcome(json, completion, aborted, accepted);
+            return {marker.has_value() && !aborted, bool(aborted) || !completion,
+                    !aborted && !accepted && (json.at("version") == 4 || marker.has_value())};
+        }
+        /// <summary>対象と作業ファイルを回復し、掃除が終わるまで対象を保持します。</summary>
+        static std::vector<std::unique_ptr<void, HandleCloser>> RecoverEntries(const std::filesystem::path& directory,
+                                                                               const std::vector<Entry>& entries,
+                                                                               const RecoveryState& state)
+        {
+            std::vector<std::unique_ptr<void, HandleCloser>> held;
+            for (const auto& entry : entries)
+            {
+                // 完了後の外部編集や削除は、以前の保存内容を再適用せずそのまま保持します。
+                if (state.restore)
+                {
+                    const bool forward = state.forward;
+                    const auto& desired = forward ? entry.after : entry.before;
+                    const auto& other = forward ? entry.before : entry.after;
+                    const auto& desiredId = forward ? entry.afterId : entry.beforeId;
+                    const auto& otherId = forward ? entry.beforeId : entry.afterId;
+                    const bool retained = Retire(entry.path, directory, desired, other, desiredId, otherId, true);
+                    if (desired && !retained)
+                    {
+                        std::filesystem::create_directories(entry.path.parent_path());
+                        FileContents::Write(entry.path, *desired, false);
+                    }
+                    if (desired)
+                    {
+                        auto handle = Open(entry.path);
+                        std::unique_ptr<void, HandleCloser> guard(handle);
+                        if (Read(handle) != *desired)
+                            throw std::runtime_error("復旧中に対象が変更されました。再試行してください。");
+                        held.push_back(std::move(guard));
+                    }
+                }
+                Retire(entry.stage, directory, entry.after, {}, entry.afterId, {});
+                Retire(entry.backup, directory, entry.before, {}, entry.beforeId, {});
+            }
+            return held;
+        }
+        /// <summary>実体IDと作業名が対象の保存領域に属することを確認します。</summary>
+        static void ValidateEntry(const Entry& entry, const Json& value, const std::filesystem::path& root)
+        {
+            if (entry.beforeId.empty() == value.at("before").get<bool>() ||
+                entry.afterId.empty() == value.at("after").get<bool>())
+                throw std::runtime_error("復旧記録の実体IDが不正です");
+            for (const auto& path : {entry.path, entry.stage, entry.backup})
+                if (!path.is_absolute() || !Inside(root, path))
+                    throw std::runtime_error("復旧記録のパスが保存領域外です");
+            const auto prefix = entry.path.native() + L".wp1-";
+            if (!entry.stage.native().starts_with(prefix) || !entry.stage.native().ends_with(L"-stage") ||
+                !entry.backup.native().starts_with(prefix) || !entry.backup.native().ends_with(L"-backup"))
+                throw std::runtime_error("復旧記録の作業名が不正です");
+        }
+        /// <summary>復旧先の領域と全世代のコピーを、書き戻し前に検証します。</summary>
+        static std::vector<Entry> ReadEntries(const std::filesystem::path& root, const std::filesystem::path& directory,
+                                              const Json& json)
+        {
+            if ((json.at("version") != 2 && json.at("version") != 3 && json.at("version") != 4) ||
+                !json.at("entries").is_array() || json.at("entries").size() > 1024)
+                throw std::runtime_error("復旧記録が不正です：" + FileContents::Text(directory));
+            std::vector<Entry> entries;
+            size_t index = 0;
+            for (const auto& value : json.at("entries"))
+            {
+                Entry entry;
+                entry.path = Path(value.at("path").get<std::string>());
+                entry.stage = Path(value.at("stage").get<std::string>());
+                entry.backup = Path(value.at("backup").get<std::string>());
+                entry.beforeId = value.at("beforeId").get<std::string>();
+                entry.afterId = value.at("afterId").get<std::string>();
+                ValidateEntry(entry, value, root);
+                const auto name = std::to_string(index++);
+                if (value.at("before").get<bool>())
+                {
+                    entry.before = FileContents::Read(directory / (name + ".before"));
+                    if (!entry.before)
+                        throw std::runtime_error("復旧用の旧内容がありません");
+                }
+                if (value.at("after").get<bool>())
+                {
+                    entry.after = FileContents::Read(directory / (name + ".after"));
+                    if (!entry.after)
+                        throw std::runtime_error("復旧用の保存候補がありません");
+                }
+                entries.push_back(std::move(entry));
+            }
+            return entries;
+        }
         /// <summary>全コピーを先に検証してから、確定記録に従って回復を再開します。</summary>
         static std::vector<std::filesystem::path> RecoverOne(const std::filesystem::path& root,
                                                              const std::filesystem::path& directory)
@@ -337,103 +461,26 @@ namespace Engine
                 return {};
             }
             const auto json = Json::parse(*manifest);
-            if ((json.at("version") != 2 && json.at("version") != 3 && json.at("version") != 4) ||
-                !json.at("entries").is_array() || json.at("entries").size() > 1024)
-                throw std::runtime_error("復旧記録が不正です：" + FileContents::Text(directory));
-            std::vector<Entry> entries;
-            size_t index = 0;
-            for (const auto& value : json.at("entries"))
-            {
-                Entry entry;
-                entry.path = Path(value.at("path").get<std::string>());
-                entry.stage = Path(value.at("stage").get<std::string>());
-                entry.backup = Path(value.at("backup").get<std::string>());
-                entry.beforeId = value.at("beforeId").get<std::string>();
-                entry.afterId = value.at("afterId").get<std::string>();
-                if (entry.beforeId.empty() == value.at("before").get<bool>() ||
-                    entry.afterId.empty() == value.at("after").get<bool>())
-                    throw std::runtime_error("復旧記録の実体IDが不正です");
-                for (const auto& path : {entry.path, entry.stage, entry.backup})
-                    if (!path.is_absolute() || !Inside(root, path))
-                        throw std::runtime_error("復旧記録のパスが保存領域外です");
-                const auto prefix = entry.path.native() + L".wp1-";
-                if (!entry.stage.native().starts_with(prefix) || !entry.stage.native().ends_with(L"-stage") ||
-                    !entry.backup.native().starts_with(prefix) || !entry.backup.native().ends_with(L"-backup"))
-                    throw std::runtime_error("復旧記録の作業名が不正です");
-                const auto name = std::to_string(index++);
-                if (value.at("before").get<bool>())
-                {
-                    entry.before = FileContents::Read(directory / (name + ".before"));
-                    if (!entry.before)
-                        throw std::runtime_error("復旧用の旧内容がありません");
-                }
-                if (value.at("after").get<bool>())
-                {
-                    entry.after = FileContents::Read(directory / (name + ".after"));
-                    if (!entry.after)
-                        throw std::runtime_error("復旧用の保存候補がありません");
-                }
-                entries.push_back(std::move(entry));
-            }
-            const auto marker = FileContents::Read(directory / "committed");
-            if (marker && *marker != "committed\n")
-                throw std::runtime_error("保存の確定記録が不正です");
-            const auto completion = FileContents::Read(directory / "completed");
-            if (completion && (!marker || json.at("version") == 2 || *completion != "completed\n"))
-                throw std::runtime_error("保存の完了記録が不正です");
-            const auto aborted = FileContents::Read(directory / "aborted");
-            const auto accepted = FileContents::Read(directory / "accepted");
-            if ((aborted && (json.at("version") != 4 || *aborted != "aborted\n")) ||
-                (accepted && (json.at("version") != 4 || !completion || aborted || *accepted != "accepted\n")))
-                throw std::runtime_error("保存の受理・取消記録が不正です");
-            const bool preserve = !aborted && !accepted && (json.at("version") == 4 || marker.has_value());
-            const auto close = [](void* handle)
-            {
-                CloseHandle(handle);
-            };
-            std::vector<std::unique_ptr<void, decltype(close)>> held;
-            for (const auto& entry : entries)
-            {
-                // 完了後の外部編集や削除は、以前の保存内容を再適用せずそのまま保持します。
-                if (aborted || !completion)
-                {
-                    const bool forward = marker.has_value() && !aborted;
-                    const auto& desired = forward ? entry.after : entry.before;
-                    const auto& other = forward ? entry.before : entry.after;
-                    const auto& desiredId = forward ? entry.afterId : entry.beforeId;
-                    const auto& otherId = forward ? entry.beforeId : entry.afterId;
-                    const bool retained = Retire(entry.path, directory, desired, other, desiredId, otherId, true);
-                    if (desired && !retained)
-                    {
-                        std::filesystem::create_directories(entry.path.parent_path());
-                        FileContents::Write(entry.path, *desired, false);
-                    }
-                    if (desired)
-                    {
-                        auto handle = Open(entry.path);
-                        std::unique_ptr<void, decltype(close)> guard(handle, close);
-                        if (Read(handle) != *desired)
-                            throw std::runtime_error("復旧中に対象が変更されました。再試行してください。");
-                        held.push_back(std::move(guard));
-                    }
-                }
-                Retire(entry.stage, directory, entry.after, {}, entry.afterId, {});
-                Retire(entry.backup, directory, entry.before, {}, entry.beforeId, {});
-            }
+            const auto entries = ReadEntries(root, directory, json);
+            const auto state = ReadRecoveryState(directory, json);
+            const auto held = RecoverEntries(directory, entries, state);
             std::vector<std::filesystem::path> conflicts;
             for (const auto& entry : std::filesystem::directory_iterator(directory))
                 if (entry.path().extension() == ".conflict")
                     conflicts.push_back(entry.path().filename());
             // 受理結果を確定できない記録は、両世代のコピーを保管して掃除から除外します。
-            if (preserve)
+            if (state.preserve)
                 conflicts.push_back("manifest.json");
             if (!conflicts.empty())
             {
                 auto archived = directory;
                 archived.replace_extension(".recovered");
                 RenameDirectory(directory, archived);
-                for (auto& conflict : conflicts)
-                    conflict = archived / conflict;
+                std::transform(conflicts.begin(), conflicts.end(), conflicts.begin(),
+                               [&](const auto& conflict)
+                               {
+                                   return archived / conflict;
+                               });
             }
             else
             {
@@ -446,14 +493,6 @@ namespace Engine
             return conflicts;
         }
         std::filesystem::path directory_;
-        struct HandleCloser
-        {
-            /// <summary>保存中の記録の保持を解放します。</summary>
-            void operator()(void* handle) const
-            {
-                CloseHandle(handle);
-            }
-        };
         std::unique_ptr<void, HandleCloser> lease_;
     };
 }

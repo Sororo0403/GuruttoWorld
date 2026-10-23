@@ -39,10 +39,13 @@ namespace Engine
         }
         /// <summary>異常終了で放棄された排他も取得し、呼出元に復旧の機会を与えます。</summary>
         explicit FileSaveLock(const std::filesystem::path& root)
+            : key_(std::filesystem::weakly_canonical(std::filesystem::absolute(root)).native())
         {
-            key_ = std::filesystem::weakly_canonical(std::filesystem::absolute(root)).native();
-            for (auto& c : key_)
-                c = static_cast<wchar_t>(std::towupper(c));
+            std::transform(key_.begin(), key_.end(), key_.begin(),
+                           [](wchar_t c)
+                           {
+                               return static_cast<wchar_t>(std::towupper(c));
+                           });
             outermost_ = std::find(held_.begin(), held_.end(), key_) == held_.end();
             unsigned long long hash = 14695981039346656037ull;
             for (const auto c : key_)
