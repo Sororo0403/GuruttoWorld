@@ -208,6 +208,17 @@ namespace DeepStateValidation
         candidate.objects[0].position[0] = 4;
         Require(physics.ConstrainRootMotion(before, candidate, {0}, root, error),
                 "External geometry query cache reuses valid shapes");
+        const auto buffer = root / "Assets/Models/buffer%20data.bin";
+        const auto modified = std::filesystem::last_write_time(buffer);
+        Engine::FileContents::Write(buffer, std::string(bytes.size(), static_cast<char>(255)));
+        std::filesystem::last_write_time(buffer, modified);
+        const auto unchanged = candidate.Serialize();
+        Require(!physics.ConstrainRootMotion(before, candidate, {0}, root, error) && candidate.Serialize() == unchanged,
+                "same-size geometry edits with restored timestamps invalidate collision queries");
+        Engine::FileContents::Write(buffer, bytes);
+        std::filesystem::last_write_time(buffer, modified);
+        Require(physics.ConstrainRootMotion(before, candidate, {0}, root, error),
+                "restored external geometry recovers collision queries");
         {
             std::ofstream output(root / "Assets/Models/buffer%20data.bin", std::ios::binary | std::ios::trunc);
         }
