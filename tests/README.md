@@ -458,4 +458,3 @@ python tests/TestSceneMigration.py
 `TestSceneMigration.py` は通常変換と再変換、複数入力の後続ファイルに非有限数・UTF-8化できない文字・不正階層がある場合の事前拒否、書込・同期失敗時の元ファイル保持と一時ファイルの削除を確認します。検証用データは `generated/tests/scene-migration` に作成し、制作シーンを変換しません。地域設定による小数点表記の違い、繰り返し実行と失敗時の打ち切り、先頭の失敗原因と末尾の診断表示は `TestRegressionRunner.ps1` が確認します。
 
 `FileSaveRecoveryValidation` の失敗注入は、検証EXEのAPIインポートを一時的に置換して行います。静的ライブラリーも同じAPIを経由するため、Releaseの最適化でも停止・拒否の注入位置を保持します。製品側の保存実装はそのまま使用します。
-

@@ -168,7 +168,8 @@ int main()
     {
         ValidateArrival();
         ValidateGameplayContinues();
-        std::cout << "PASS arrival timing, music restore, exactly-once responses, restart, continued gameplay movement and explicit cancel\n";
+        std::cout
+            << "PASS arrival timing, music restore, exactly-once responses, restart, continued gameplay movement and explicit cancel\n";
         return 0;
     }
     catch (const std::exception& error)
