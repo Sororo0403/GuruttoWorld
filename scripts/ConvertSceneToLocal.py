@@ -87,6 +87,9 @@ def decompose(matrix, reference):
 
 
 def resolve(objects):
+    if any(not isinstance(obj["id"], str) or not obj["id"] or
+           not isinstance(obj.get("parent", ""), str) for obj in objects):
+        raise ValueError("Object IDs and parent IDs must be strings")
     indices = {obj["id"]: i for i, obj in enumerate(objects)}
     if len(indices) != len(objects) or any(not obj["id"] for obj in objects):
         raise ValueError("Empty or duplicate object ID")
@@ -138,6 +141,8 @@ def convert(document):
 
 
 def format_document(document, original_text):
+    # 元の行を再利用する場合も、全フィールドが JSON として出力可能か確認します。
+    json.dumps(document, ensure_ascii=False, allow_nan=False)
     # 変更のないオブジェクトの行は、数値の元の表記も含めて保持します。
     lines = {}
     for line in original_text.splitlines():
@@ -167,19 +172,24 @@ def main():
     prepared = []
     for path in args.paths:
         original = path.read_text(encoding="utf-8-sig")
-        prepared.append((path, convert(json.loads(original)), original))
-    for path, document, original in prepared:
+        document = convert(json.loads(original))
+        # すべての入力の出力形式と文字コードを確認してから、ファイルの置換を開始します。
+        text = format_document(document, original)
+        text.encode("utf-8")
+        prepared.append((path, document, text))
+    for path, document, text in prepared:
         if args.write:
-            text = format_document(document, original)
-            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as temporary:
-                temporary.write(text)
-                temporary.flush()
-                os.fsync(temporary.fileno())
+            temporary_name = None
             try:
-                os.replace(temporary.name, path)
+                with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as temporary:
+                    temporary_name = temporary.name
+                    temporary.write(text)
+                    temporary.flush()
+                    os.fsync(temporary.fileno())
+                os.replace(temporary_name, path)
             finally:
-                if os.path.exists(temporary.name):
-                    os.unlink(temporary.name)
+                if temporary_name is not None and os.path.exists(temporary_name):
+                    os.unlink(temporary_name)
         print(f"{'Converted' if args.write else 'Validated'}: {path} ({len(document['objects'])} objects)")
 
 
