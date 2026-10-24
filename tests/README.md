@@ -1,11 +1,27 @@
-# カメラ・パーティクルの検証
+# 検証の実行と構成
+
+実行スクリプトと `.vcxproj` はこのフォルダー直下に置き、既存の実行コマンドを維持しています。C++ のテスト本体は `src/Animation`、`Architecture`、`Assets`、`Gameplay`、`Physics`、`Rendering`、`Scene`、`Scripts`、`Ui` に分類しています。通し回帰の入口は `src/Regression`、共通の計測・fixture ヘッダーは `src/Support`、DLL 用のソースは `fixtures` です。結果は従来どおり `generated/tests` などへ出力します。
+
+## 構造と確定境界の回帰（2026-10-23）
+
+`./tests/TestArchitectureStructure.ps1` は Debug / Development / Release の構造契約・既存148契約・GPU監査回帰、Editorとゲームのビルド、実DLLと独立Schema生成を検証します。
+シーンを一度取得した後の外部変更・読み取り不能、編集と実行の所有分離、Script定義の独立性、シーン操作の結果通知、GPU同期、DLL公開のプロセス間排他と失敗時保持を対象にします。
+Editorのプロジェクト検証とゲームのパッケージ検証も実行します。`-SkipGpu` はGPU実行、`-SkipHosts` はEditorとゲームの構築・実行を省略します。
+ログは `generated/architecture-fixes/validation-*` に保存します。設計と保証範囲は `docs/ArchitectureFixes-2026-10-23.md` を参照してください。
+`SceneExecutionProfile.vcxproj` はReleaseでWorld更新の基準計測を行います。描画を含めずCSVを出力し、時間を合否判定には使いません。
 
 通常回帰の前に、同じ構成の`ReviewRegressionValidation`をビルドし、`./scripts/BuildScripts.ps1 -Configuration Release -Content Games/GuruttoWorld`でソース側のゲームDLLも更新してください。Debugでは両方の構成名をDebugへ変更します。通常回帰の共通再生検証はソース側のDLLを読み込むため、ビルド出力側のDLL更新だけでは古いABIが残ります。
+
+`WP1_TITLE_SIZES_ONLY=1` を設定して `ReviewRegressionValidation.exe` を直接実行すると、今回分離した編集・履歴・保存の検証を1回行い、同じ編集結果を1280×720・1024×768・720×1280で描画します。各サイズでタイトル・背景演出・設定UIも描画し、編集とサイズ別描画の所要秒数を出力します。通常回帰でも同じ分離を使用します。`RunRegression.ps1` は単独検証用の環境変数を解除するため、このモードでは実行ファイルを直接起動してください。
+
+テクスチャのミップ・圧縮結果は、元の全画素と寸法・sRGB・サイズ制限・圧縮・ミップ設定を照合して共有します。保持するCPUデータは192MiB・128件を上限に古い項目から退避し、GPUリソースは各呼び出しで生成・転送します。通常回帰の `TextureImportValidation` は共有の実行回数、元データの編集との分離、全設定と寸法の相違、不正設定の拒否、最大ミップと縮小描画の結果一致も確認します。単独実行は `WP1_TEXTURE_IMPORT_ONLY=1` を設定して検証実行ファイルを起動します。`TextureImportCacheValidation.vcxproj` の単独実行では、実素材に近い約149MiBの変換結果を2回使用し、全件が再利用できることも確認します。
 
 通常回帰は `powershell -NoProfile -ExecutionPolicy Bypass -File tests/RunRegression.ps1 -Configuration Release` で実行します。Debugも同様です。実行フェーズと経過秒数、プロセス別のログを記録し、既定の上限は1800秒です。固定120秒で打ち切らず、タイトルのApp／Editor比較と実際の開始先シーンまで完走させます。`-TimeoutSeconds`で上限を変更できます。
 `tests/TestRegressionRunner.ps1`は実プロセスで成功・終了コード7・検証モードの隔離と復元・期限超過時の子プロセス終了を確認します。1秒の上限に対して1.5秒で終了するケースも、確実に期限超過として拒否します。
 
 `tests/TestSharedContent.ps1 -Configuration Release` は新しい出力先へ素材をコピーし、現行ゲームのシーン・音声・Script・Shaderの内容一致を確認します。`SunriseStreetValidation`の`WP1_SOUND_LIFECYCLE_ONLY=1`は、独自音声の開始失敗、Pause、Step、再開、フォーカス喪失と復帰、停止時の解放を実際の出力音量で検証します。Scriptの候補破棄と描画準備失敗は通常のScript回帰に含みます。
+
+静的モデルの変換キャッシュは通常回帰の `ModelImportCacheValidation` で検証します。同じ入力の共有、呼び出し元のメッシュ編集との分離、同じサイズ・更新日時に戻したOBJ／MTL変更、倍率変更、MTLの削除・追加、不正モデル時の失敗と出力保持を確認します。テクスチャ参照は共有結果からも毎回解決します。 128件の作業集合の連続再利用と、上限超過時に最近使った項目が残り、最も古い項目だけが再取り込みされることも確認します。単独検証は `ModelImportCacheValidation.vcxproj` を対象構成でビルドし、対応する `ModelImportCacheValidation.exe` を実行します。タイトル演出・設定遷移・再生一致の各シナリオは `Timing:` 行に実時間を出力します。 初期化・入力更新・状態比較・ログ確認は実行回数と合計時間も記録します。`WP1_TITLE_PRESENTATION_ONLY=1` と `WP1_INITIALIZATION_TIMING=1` の単独実行では、初期化内のCPUプロファイルも出力します。この詳細計測時はプロファイラーのサンプルを読み出します。
 
 通しプレイのCPU検証は、実行時と同じ候補更新・差分検証を使います。最初に全体を検証し、その後も物理更新とテスト側の直接編集を含む全変更を、直前の確定状態と比較します。Script API自体の失敗時の復元は、通常のScript回帰で別に検証します。
 
@@ -405,3 +421,41 @@ Debug／Development／Releaseに対応し、CPUだけで検証します。元の
 `WP1_MIRRORED_MESH_ONLY=1`は通し回帰の最後と同じ反転メッシュの描画を単独で確認します。通常・X鏡映・XY鏡映の面が見え、裏向きの面が除去されることをGPUの遮蔽サンプルで検査します。独自のコマンドリストにもRenderFrameContextを記録し、定数バッファーをGPUフェンス完了まで保持します。
 
 `WP1_ALL_SCENES_ONLY=1`は公園用の静的登録を使用せず、実Appと同じGuruttoWorldのゲームDLLを読み込みます。実行する構成の`BuildScripts.ps1 -Content Games/GuruttoWorld -Configuration Debug`などを先に通してください。全シーンの保存往復・スクリプト開始・各フレームの更新・音声・描画と診断を確認します。`RunAuthoringIsolation.ps1`もTEMP／TMPを結果フォルダー内へ隔離し、呼出元の値を復元します。
+
+
+### シーン・Prefabの層境界と更新費用
+
+`TestArchitectureStructure.ps1` は3構成で `SceneDataValidation` も実行します。Engine / SceneRuntime をリンクせず、実際のシーン・Prefab計35ファイル、直接正規化、入れ子素材の再利用、上書き、循環・読取・検証失敗時の原状維持と再試行を確認します。`TestSceneLayers.ps1` はデータ層の推移的なinclude、プロジェクト参照方向、ソースの単独所有を検査します。標準ファイル入出力、素材索引、Windows、描画・物理ホストがデータ層に再混入すると失敗します。
+
+GPU構造テストには、FixedUpdate / Update / LateUpdate の同一候補、外部準備からの中間状態の不可視性、準備回数、再入拒否、Runtime / UI 失敗からの再試行を含めています。
+
+```powershell
+./tests/TestSceneLayers.ps1
+./tests/TestArchitectureStructure.ps1
+./tests/TestScenePerformance.ps1 -Runs 5
+```
+
+性能ランナーはReleaseで、通常配置0 / 1,000 / 5,000個、100剛体、親子階層・Rotator・Scriptを含む1,000個を測定します。Prefabは1 / 8 / 32個体の入れ子素材について更新時間と依存素材の読取回数を記録します。初期化とGPU描画は計測に含めません。結果は `generated/architecture-fixes/performance-*` のCSVで、時間による合否判定は設けません。各依存素材を更新処理ごとに一度だけ読むことは回帰テストとして検査します。
+
+`TransformResolutionCacheValidation.vcxproj` は座標の再利用結果を、キャッシュを使わない完全計算と比較します。親子・SRT・並び順の変更、重複ID・循環・欠損親・ゼロ拡縮・NaN、保持数を超える入力、返却結果の独立性を確認します。`PipelineReuseValidation.vcxproj` はシーン所有者の破棄後のPSO再利用、シェーダー改訂時の再生成、キャッシュ解放と現存所有者の有効性を確認します。どちらも3構成をサポートし、同じ確認を通常回帰にも含めています。
+
+`RunRegression.ps1` の進捗には子テスト本体の累積CPU秒を併記します。経過秒との差にはGPU・ファイル・子プロセスの待機やスケジューリングが含まれ、CPU秒だけで原因を断定しません。`WP1_UPDATE_TIMING=1` を指定すると、設定画面と再生比較の更新CPU区間を描画時のリセット前に集計します。`WP1_INITIALIZATION_TIMING=1` は設定画面の初期化内訳を記録します。詳細計測のためにCPU計測値を消費するので、通常の所要時間比較はこれらを解除し、ビルドと他の回帰実行を重ねず、同じ構成を複数回完走させて範囲を記録してください。
+
+`./tests/RunRegression.ps1 -Configuration Debug -Runs 3` は全回帰を3回直列に実行し、各回の秒数と最小・中央値・最大値を `generated/tests/regression-runs/repeated-*.json` に保存します。各回の失敗やタイムアウトはその場で失敗させ、成功した回だけで集計しません。既定の `-Runs 1` は従来と同じ単発実行です。
+### 素材更新・計測・入力検証の追加回帰
+
+`AuditCoreValidation` は、日時とサイズを保持した素材の編集・置換、依存一覧の再取得、骨格プレビューの更新と一時失敗後の再試行、CPU計測範囲、DLL名の検証をGPUなしで確認します。これらは通し回帰の `EngineEditorReviewValidation::Data` にも含まれます。
+
+`TextureImportCacheValidation` はGPUを使い、画像・メタデータの日時を保持した変更、壊れたメタデータでの旧資源の拒否、正常化後の復旧も確認します。
+
+```powershell
+msbuild tests/AuditCoreValidation.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:PreferredToolArchitecture=x64 /m:1 /nr:false
+./generated/tests/outputs/x64/Debug/AuditCoreValidation/AuditCoreValidation.exe
+python tests/TestSceneMigration.py
+./tests/TestRegressionRunner.ps1
+```
+
+`TestSceneMigration.py` は通常変換と再変換、複数入力の後続ファイルに非有限数・UTF-8化できない文字・不正階層がある場合の事前拒否、書込・同期失敗時の元ファイル保持と一時ファイルの削除を確認します。検証用データは `generated/tests/scene-migration` に作成し、制作シーンを変換しません。地域設定による小数点表記の違い、繰り返し実行と失敗時の打ち切り、先頭の失敗原因と末尾の診断表示は `TestRegressionRunner.ps1` が確認します。
+
+`FileSaveRecoveryValidation` の失敗注入は、検証EXEのAPIインポートを一時的に置換して行います。静的ライブラリーも同じAPIを経由するため、Releaseの最適化でも停止・拒否の注入位置を保持します。製品側の保存実装はそのまま使用します。
+
