@@ -8,11 +8,20 @@
 #include <string>
 #include <thread>
 #include <map>
+#include <vector>
+#include <cstring>
+#include <array>
+#include <algorithm>
+#include <stdexcept>
+#include <memory>
 
 namespace
 {
     std::function<void(const std::string&, const std::filesystem::path&)> checkpoint;
     bool denyCompletion = false, denyManifest = false, denyAbort = false, denyAcceptance = false;
+    decltype(&::CreateFileW) nativeCreate = nullptr;
+    decltype(&::SetFileInformationByHandle) nativeInformation = nullptr;
+    decltype(&::MoveFileExW) nativeMove = nullptr;
 
     HANDLE WINAPI ObserveCreate(LPCWSTR name, DWORD access, DWORD sharing, LPSECURITY_ATTRIBUTES security,
                                 DWORD creation, DWORD flags, HANDLE templateFile)
@@ -22,12 +31,12 @@ namespace
             SetLastError(ERROR_ACCESS_DENIED);
             return INVALID_HANDLE_VALUE;
         }
-        return ::CreateFileW(name, access, sharing, security, creation, flags, templateFile);
+        return nativeCreate(name, access, sharing, security, creation, flags, templateFile);
     }
 
     BOOL WINAPI ObserveInformation(HANDLE file, FILE_INFO_BY_HANDLE_CLASS kind, LPVOID data, DWORD size)
     {
-        const auto result = ::SetFileInformationByHandle(file, kind, data, size);
+        const auto result = nativeInformation(file, kind, data, size);
         const auto error = GetLastError();
         if (result && checkpoint)
         {
@@ -51,25 +60,115 @@ namespace
             SetLastError(ERROR_ACCESS_DENIED);
             return FALSE;
         }
-        const auto result = ::MoveFileExW(from, to, flags);
+        const auto result = nativeMove(from, to, flags);
         const auto error = GetLastError();
         if (result && checkpoint)
             checkpoint("publish", to);
         SetLastError(error);
         return result;
     }
+
+    // 最適化された静的ライブラリーも同じAPIを通るよう、この検証EXEのインポート先だけを差し替えます。
+    class FileApiHooks final
+    {
+        struct Replacement
+        {
+            ULONG_PTR* slot = nullptr;
+            ULONG_PTR original = 0;
+        };
+        std::vector<Replacement> replacements_;
+
+        void Restore() noexcept
+        {
+            for (auto item = replacements_.rbegin(); item != replacements_.rend(); ++item)
+            {
+                DWORD protection = 0;
+                if (VirtualProtect(item->slot, sizeof(*item->slot), PAGE_READWRITE, &protection))
+                {
+                    *item->slot = item->original;
+                    DWORD ignored = 0;
+                    VirtualProtect(item->slot, sizeof(*item->slot), protection, &ignored);
+                }
+            }
+            replacements_.clear();
+        }
+
+    public:
+        FileApiHooks()
+        {
+            const auto kernel = GetModuleHandleW(L"kernel32.dll");
+            nativeCreate = reinterpret_cast<decltype(nativeCreate)>(GetProcAddress(kernel, "CreateFileW"));
+            nativeInformation =
+                reinterpret_cast<decltype(nativeInformation)>(GetProcAddress(kernel, "SetFileInformationByHandle"));
+            nativeMove = reinterpret_cast<decltype(nativeMove)>(GetProcAddress(kernel, "MoveFileExW"));
+            if (!nativeCreate || !nativeInformation || !nativeMove)
+                throw std::runtime_error("Cannot resolve file APIs for failure injection");
+            try
+            {
+                auto* base = reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
+                const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+                const auto* image = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
+                const auto imports = image->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+                if (!imports)
+                    throw std::runtime_error("File API imports are missing");
+                std::array<bool, 3> found{};
+                for (auto* module = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>(base + imports); module->Name; ++module)
+                {
+                    if (!module->OriginalFirstThunk)
+                        continue;
+                    auto* names = reinterpret_cast<IMAGE_THUNK_DATA*>(base + module->OriginalFirstThunk);
+                    auto* targets = reinterpret_cast<IMAGE_THUNK_DATA*>(base + module->FirstThunk);
+                    for (; names->u1.AddressOfData; ++names, ++targets)
+                    {
+                        if (IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal))
+                            continue;
+                        const auto* import =
+                            reinterpret_cast<const IMAGE_IMPORT_BY_NAME*>(base + names->u1.AddressOfData);
+                        const std::array<const char*, 3> functions{"CreateFileW", "SetFileInformationByHandle",
+                                                                   "MoveFileExW"};
+                        const std::array<ULONG_PTR, 3> replacements{reinterpret_cast<ULONG_PTR>(&ObserveCreate),
+                                                                    reinterpret_cast<ULONG_PTR>(&ObserveInformation),
+                                                                    reinterpret_cast<ULONG_PTR>(&ObserveMove)};
+                        for (size_t index = 0; index < functions.size(); ++index)
+                        {
+                            if (std::strcmp(import->Name, functions[index]) != 0)
+                                continue;
+                            auto* slot = reinterpret_cast<ULONG_PTR*>(&targets->u1.Function);
+                            replacements_.push_back({slot, *slot});
+                            DWORD protection = 0;
+                            if (!VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &protection))
+                                throw std::runtime_error("Cannot enable file API failure injection");
+                            *slot = replacements[index];
+                            DWORD ignored = 0;
+                            if (!VirtualProtect(slot, sizeof(*slot), protection, &ignored))
+                                throw std::runtime_error("Cannot restore file API import protection");
+                            found[index] = true;
+                        }
+                    }
+                }
+                if (std::ranges::any_of(found,
+                                        [](bool value)
+                                        {
+                                            return !value;
+                                        }))
+                    throw std::runtime_error("Not all file API failure hooks were installed");
+            }
+            catch (...)
+            {
+                Restore();
+                throw;
+            }
+        }
+        ~FileApiHooks()
+        {
+            Restore();
+        }
+    };
 }
 
-// 実APIの成功後だけで停止し、管理対象の保存実装をそのまま検証します。
-#define CreateFileW ObserveCreate
-#define SetFileInformationByHandle ObserveInformation
-#define MoveFileExW ObserveMove
 #include "../../../Editor/src/Documents/FileTransaction.h"
 #include <Engine/Assets/AssetDatabase.h>
 #include <SceneRuntime/Project/ProjectSettings.h>
-#undef CreateFileW
-#undef MoveFileExW
-#undef SetFileInformationByHandle
 
 namespace
 {
@@ -93,32 +192,52 @@ namespace
     {
     public:
         Child(const std::wstring& mode, const std::filesystem::path& root, const std::wstring& extra = L"",
-              const std::filesystem::path& executable = {})
+              const std::filesystem::path& executable = {}, bool ownProcessTree = false)
             : root_(root), mode_(mode)
         {
-            auto command = L"\"" + (executable.empty() ? Executable() : executable).native() + L"\" " + mode + L" \"" +
-                           root.native() + L"\" " + extra;
-            STARTUPINFOW startup{};
-            startup.cb = sizeof(startup);
-            const auto started = CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW,
-                                                nullptr, nullptr, &startup, &process_);
-            const auto error = GetLastError();
-            Require(started != FALSE, "start child: " + FileContents::Text(root_) + ", error " + std::to_string(error));
+            try
+            {
+                if (ownProcessTree)
+                {
+                    job_ = CreateJobObjectW(nullptr, nullptr);
+                    Require(job_ != nullptr, "create recovery group job");
+                    JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+                    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+                    Require(SetInformationJobObject(job_, JobObjectExtendedLimitInformation, &limits, sizeof(limits)) !=
+                                FALSE,
+                            "configure recovery group job");
+                }
+                auto command = L"\"" + (executable.empty() ? Executable() : executable).native() + L"\" " + mode +
+                               L" \"" + root.native() + L"\" " + extra;
+                STARTUPINFOW startup{};
+                startup.cb = sizeof(startup);
+                const auto flags = CREATE_NO_WINDOW | (ownProcessTree ? CREATE_SUSPENDED : 0);
+                const auto started = CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, flags, nullptr,
+                                                    nullptr, &startup, &process_);
+                const auto error = GetLastError();
+                Require(started != FALSE,
+                        "start child: " + FileContents::Text(root_) + ", error " + std::to_string(error));
+                if (ownProcessTree)
+                {
+                    Require(AssignProcessToJobObject(job_, process_.hProcess) != FALSE, "assign recovery group job");
+                    Require(ResumeThread(process_.hThread) != static_cast<DWORD>(-1), "resume recovery group");
+                }
+            }
+            catch (...)
+            {
+                Cleanup();
+                throw;
+            }
         }
         ~Child()
         {
-            if (WaitForSingleObject(process_.hProcess, 0) != WAIT_OBJECT_0)
-            {
-                TerminateProcess(process_.hProcess, 99);
-                WaitForSingleObject(process_.hProcess, 10000);
-            }
-            CloseHandle(process_.hProcess);
-            CloseHandle(process_.hThread);
+            Cleanup();
         }
-        void Wait(DWORD expected = 0, std::optional<DWORD> alternative = {})
+        void Wait(DWORD expected = 0, std::optional<DWORD> alternative = {}, DWORD timeout = 30000)
         {
-            Require(WaitForSingleObject(process_.hProcess, 30000) == WAIT_OBJECT_0,
-                    "child timeout: " + FileContents::Text(mode_) + " " + FileContents::Text(root_));
+            Require(WaitForSingleObject(process_.hProcess, timeout) == WAIT_OBJECT_0,
+                    "child timeout " + std::to_string(timeout) + "ms: " + FileContents::Text(mode_) + " " +
+                        FileContents::Text(root_));
             DWORD code = 0;
             const bool exited = GetExitCodeProcess(process_.hProcess, &code) != FALSE;
             if (!exited || (code != expected && (!alternative || code != *alternative)))
@@ -134,7 +253,31 @@ namespace
         }
 
     private:
+        void Cleanup() noexcept
+        {
+            if (job_)
+            {
+                CloseHandle(job_);
+                job_ = nullptr;
+            }
+            if (process_.hProcess)
+            {
+                if (WaitForSingleObject(process_.hProcess, 0) != WAIT_OBJECT_0)
+                {
+                    TerminateProcess(process_.hProcess, 99);
+                    WaitForSingleObject(process_.hProcess, 10000);
+                }
+                CloseHandle(process_.hProcess);
+                process_.hProcess = nullptr;
+            }
+            if (process_.hThread)
+            {
+                CloseHandle(process_.hThread);
+                process_.hThread = nullptr;
+            }
+        }
         PROCESS_INFORMATION process_{};
+        HANDLE job_ = nullptr;
         std::filesystem::path root_, mode_;
     };
     std::vector<Editor::FileChange> Plans(const std::filesystem::path& root)
@@ -219,9 +362,8 @@ namespace
         if (mode == L"--recover-index")
         {
             Require(argc == 4, "recovery index argument");
-            int count = 0;
             const int target = std::stoi(argv[3]);
-            checkpoint = [&](const std::string& operation, const std::filesystem::path&)
+            checkpoint = [count = 0, target](const std::string& operation, const std::filesystem::path&) mutable
             {
                 if ((operation == "rename" || operation == "publish") && ++count == target)
                     TerminateProcess(GetCurrentProcess(), 77);
@@ -285,10 +427,9 @@ namespace
             plans = {Editor::FileTransaction::Prepare(Engine::AssetDatabase::Sidecar(asset),
                                                       Engine::AssetDatabase::SerializeMetadata(metadata))};
         }
-        int renames = 0;
         if (mode == L"--abort-denied")
             denyAbort = true;
-        checkpoint = [&](const std::string& operation, const std::filesystem::path& to)
+        checkpoint = [renames = 0, mode](const std::string& operation, const std::filesystem::path& to) mutable
         {
             if (operation == "rename")
             {
@@ -1076,15 +1217,95 @@ namespace
                 "no-op plans never take ownership of subsequently created files");
         std::cout << "PASS: save domain boundaries and no-op ownership\n";
     }
+    struct SuiteCase
+    {
+        const wchar_t* name;
+        void (*run)(const std::filesystem::path&);
+    };
+    const std::array<SuiteCase, 12> SuiteCases{{{L"completion", Completion},
+                                                {L"cancellation", Cancellation},
+                                                {L"nested-domains", NestedDomains},
+                                                {L"late-legacy", LateLegacy},
+                                                {L"crashes", Crashes},
+                                                {L"conflicts", Conflicts},
+                                                {L"metadata", Metadata},
+                                                {L"public-apis", PublicSaveApis},
+                                                {L"fixture-moves", FixtureMoves},
+                                                {L"diagnostics", Diagnostics},
+                                                {L"invalid-journal", InvalidJournal},
+                                                {L"boundaries", Boundaries}}};
+
+    void RunSuiteCase(const std::filesystem::path& root, const std::wstring& name)
+    {
+        const auto found = std::find_if(SuiteCases.begin(), SuiteCases.end(),
+                                        [&](const auto& group)
+                                        {
+                                            return name == group.name;
+                                        });
+        Require(found != SuiteCases.end(), "unknown recovery group: " + FileContents::Text(name));
+        std::ofstream output(root / "suite-output.log");
+        Require(output.good(), "create recovery group output: " + FileContents::Text(root));
+        auto* previous = std::cout.rdbuf(output.rdbuf());
+        try
+        {
+            const auto started = GetTickCount64();
+            // 検証対象のルートは未作成のまま渡し、群のログを既存・不存在の検証へ混入させません。
+            found->run(root / "case");
+            std::cout << "Recovery group runtime: " << FileContents::Text(name) << ' ' << GetTickCount64() - started
+                      << "ms\n";
+        }
+        catch (...)
+        {
+            std::cout.rdbuf(previous);
+            throw;
+        }
+        std::cout.rdbuf(previous);
+    }
+    void RunParallelSuites(const std::filesystem::path& root)
+    {
+        // 外側の180秒制限より先に失敗を返して子孫を回収します。各ケース内の30秒制限は変更しません。
+        const auto deadline = GetTickCount64() + 120000;
+        auto results = Engine::Json::array();
+        const auto resultsPath = root / "group-results.json";
+        FileContents::Write(resultsPath, results.dump(2));
+        for (size_t first = 0; first < SuiteCases.size(); first += 2)
+        {
+            std::array<std::unique_ptr<Child>, 2> children;
+            for (size_t offset = 0; offset < children.size(); ++offset)
+            {
+                const auto& group = SuiteCases[first + offset];
+                const auto directory = root / group.name;
+                std::filesystem::create_directories(directory);
+                std::cout << "Recovery group start: " << FileContents::Text(group.name) << '\n';
+                children[offset] =
+                    std::make_unique<Child>(L"--suite-case", directory, group.name, std::filesystem::path{}, true);
+            }
+            for (size_t offset = 0; offset < children.size(); ++offset)
+            {
+                const auto& group = SuiteCases[first + offset];
+                const auto now = GetTickCount64();
+                Require(now < deadline, "recovery group watchdog 120000ms: " + FileContents::Text(group.name));
+                children[offset]->Wait(0, {}, static_cast<DWORD>(deadline - now));
+                const auto output = FileContents::Read(root / group.name / "suite-output.log");
+                Require(output.has_value(), "read recovery group output: " + FileContents::Text(group.name));
+                std::cout << *output << "PASS: recovery group " << FileContents::Text(group.name) << '\n';
+                // 故障注入と共有しないsuite親のルートへ、終了が確認できた群だけを記録します。
+                results.push_back({{"group", FileContents::Text(group.name)}, {"status", "passed"}});
+                FileContents::Write(resultsPath, results.dump(2));
+            }
+        }
+    }
 }
 
 int wmain(int argc, wchar_t** argv)
 {
     std::filesystem::path root;
-    const bool suite =
-        argc >= 3 && (std::wstring(argv[1]) == L"--suite" || std::wstring(argv[1]) == L"--suite-diagnostic");
+    const bool suiteCase = argc >= 4 && std::wstring(argv[1]) == L"--suite-case";
+    const bool suite = suiteCase || argc >= 3 && (std::wstring(argv[1]) == L"--suite" ||
+                                                  std::wstring(argv[1]) == L"--suite-diagnostic");
     try
     {
+        FileApiHooks hooks;
         if (argc >= 3 && !suite)
             return RunChild(argc, argv);
         root = suite ? std::filesystem::absolute(argv[2])
@@ -1093,18 +1314,10 @@ int wmain(int argc, wchar_t** argv)
         std::filesystem::create_directories(root);
         if (suite && std::wstring(argv[1]) == L"--suite-diagnostic")
             throw std::runtime_error("injected suite diagnostic");
-        Diagnostics(root / "diagnostics");
-        FixtureMoves(root / "fixture-moves");
-        PublicSaveApis(root / "public-apis");
-        Completion(root / "completion");
-        Cancellation(root / "cancellation");
-        LateLegacy(root / "late-legacy");
-        NestedDomains(root / "nested-domains");
-        Crashes(root / "crashes");
-        Conflicts(root / "conflicts");
-        Metadata(root / "metadata");
-        InvalidJournal(root / "invalid-journal");
-        Boundaries(root / "boundaries");
+        if (suiteCase)
+            RunSuiteCase(root, argv[3]);
+        else
+            RunParallelSuites(root);
         return 0;
     }
     catch (const std::exception& failure)
