@@ -1,6 +1,9 @@
 #pragma once
 #include <SceneRuntime/Scene/SceneLayout.h>
-#include <Engine/Assets/AssetDatabase.h>
+namespace Engine
+{
+    class AssetDatabase;
+}
 
 namespace SceneRuntime
 {

@@ -15,6 +15,7 @@
 #include <sstream>
 #include <functional>
 #include <stdexcept>
+#include <limits>
 
 namespace AuthoringSettingsValidation
 {
@@ -22,6 +23,70 @@ namespace AuthoringSettingsValidation
     {
         if (!condition)
             throw std::runtime_error(message);
+    }
+    /// <summary>登録済みの全成分について、直接比較と従来のタプル比較の同値性を確認します。</summary>
+    inline void SameComponentsEquivalence()
+    {
+        using namespace SceneRuntime;
+        const auto check = [](const ScenePlacement& left, const ScenePlacement& right, bool expected)
+        {
+            const bool original = left.Components() == right.Components();
+            Require(original == expected && left.SameComponents(right) == original &&
+                        right.SameComponents(left) == original,
+                    "Direct component comparison differs from the original tuple comparison");
+        };
+        ScenePlacement empty;
+        check(empty, empty, true);
+        ScenePlacement populated;
+#define ENGINE_SCENE_PRESENT_OPTIONAL(Type, member, references, assets, order) populated.member.emplace();
+#define ENGINE_SCENE_PRESENT_REPEATED(Type, member, references, assets, order) populated.member.emplace_back();
+        ENGINE_SCENE_COMPONENTS(ENGINE_SCENE_PRESENT_OPTIONAL, ENGINE_SCENE_PRESENT_REPEATED)
+#undef ENGINE_SCENE_PRESENT_OPTIONAL
+#undef ENGINE_SCENE_PRESENT_REPEATED
+        const auto copied = populated;
+        check(populated, copied, true);
+#define ENGINE_SCENE_COMPARE_OPTIONAL(Type, member, references, assets, order)                                         \
+    {                                                                                                                  \
+        auto changed = populated;                                                                                      \
+        changed.member.reset();                                                                                        \
+        check(populated, changed, false);                                                                              \
+        changed = populated;                                                                                           \
+        changed.member->id += "-changed";                                                                              \
+        check(populated, changed, false);                                                                              \
+        changed = populated;                                                                                           \
+        changed.member->enabled = !changed.member->enabled;                                                            \
+        check(populated, changed, false);                                                                              \
+    }
+#define ENGINE_SCENE_COMPARE_REPEATED(Type, member, references, assets, order)                                         \
+    {                                                                                                                  \
+        auto changed = populated;                                                                                      \
+        changed.member.clear();                                                                                        \
+        check(populated, changed, false);                                                                              \
+        changed = populated;                                                                                           \
+        changed.member.front().id += "-changed";                                                                       \
+        check(populated, changed, false);                                                                              \
+        changed = populated;                                                                                           \
+        changed.member.front().enabled = !changed.member.front().enabled;                                              \
+        check(populated, changed, false);                                                                              \
+        changed = populated;                                                                                           \
+        changed.member.push_back(changed.member.front());                                                              \
+        check(populated, changed, false);                                                                              \
+    }
+        ENGINE_SCENE_COMPONENTS(ENGINE_SCENE_COMPARE_OPTIONAL, ENGINE_SCENE_COMPARE_REPEATED)
+#undef ENGINE_SCENE_COMPARE_OPTIONAL
+#undef ENGINE_SCENE_COMPARE_REPEATED
+        auto changed = populated;
+        changed.persistent = !changed.persistent;
+        check(populated, changed, false);
+        changed = populated;
+        changed.id = "another-object";
+        changed.name = "Another name";
+        changed.parentId = "another-parent";
+        changed.position = {1, 2, 3};
+        changed.rotation = {1, 2, 3};
+        changed.scale = {2, 3, 4};
+        changed.prefab.emplace();
+        check(populated, changed, true);
     }
     /// <summary>設定操作の各段階と保存内容を記録し、保存失敗と入力・読み込みの失敗を区別します。</summary>
     inline void PreviewSettings(const std::filesystem::path& output, const std::function<void()>& beforeSave = {},
@@ -185,8 +250,156 @@ namespace AuthoringSettingsValidation
         Require(runtime.Update(scene, .01, error) && scene.objects[0].position[0] == 23,
                 "Saved parameters did not override defaults");
     }
+    /// <summary>成分検証の共有が無効値・構造変更・配置全体の制約を隠さないことを確認します。</summary>
+    inline void ComponentValidationReuse()
+    {
+        using namespace SceneRuntime;
+        SceneLayout baseline;
+        for (int index = 0; index < 36; ++index)
+        {
+            ScenePlacement object;
+            object.id = "validation-" + std::to_string(index);
+            object.name = object.id;
+            object.material.emplace();
+            baseline.objects.push_back(std::move(object));
+        }
+        baseline.Validate();
+        auto repeated = baseline;
+        for (auto& object : repeated.objects)
+            object.material->roughness = .7f;
+        repeated.ValidateChanges(baseline);
+        const auto reject = [&](const SceneLayout& candidate)
+        {
+            bool rejected = false;
+            try
+            {
+                candidate.ValidateChanges(baseline);
+            }
+            catch (const std::exception&)
+            {
+                rejected = true;
+            }
+            Require(rejected, "Component validation reuse concealed an invalid change");
+        };
+        for (const float invalid : {-1.0f, std::numeric_limits<float>::quiet_NaN()})
+        {
+            auto candidate = repeated;
+            candidate.objects.back().material->roughness = invalid;
+            reject(candidate);
+        }
+        auto candidate = repeated;
+        candidate.objects.back().material->id = "transform";
+        reject(candidate);
+        candidate = repeated;
+        candidate.objects.back().pointLight.emplace();
+        candidate.objects.back().pointLight->id = "material";
+        reject(candidate);
+        candidate = repeated;
+        candidate.objects.back().scale[0] = 0;
+        reject(candidate);
+        candidate = repeated;
+        candidate.objects.back().position[0] = std::numeric_limits<float>::quiet_NaN();
+        reject(candidate);
+        candidate = repeated;
+        candidate.objects.back().parentId = candidate.objects.back().id;
+        reject(candidate);
+        candidate = repeated;
+        candidate.settings.mainCamera = candidate.objects.back().id;
+        reject(candidate);
+        candidate = repeated;
+        for (auto& object : candidate.objects)
+            object.pointLight.emplace();
+        reject(candidate);
+        candidate = repeated;
+        for (size_t index = 0; index < 2; ++index)
+        {
+            candidate.objects[index].canvas.emplace();
+            candidate.objects[index].canvas->menu = DefaultMenuConfiguration();
+        }
+        reject(candidate);
+        candidate = repeated;
+        for (size_t index = 0; index < candidate.objects.size(); ++index)
+            candidate.objects[index].material->roughness = .1f + float(index % 12) * .05f;
+        candidate.ValidateChanges(baseline);
+        candidate.objects.back().material->roughness = -1;
+        reject(candidate);
+        candidate = repeated;
+        for (auto& object : candidate.objects)
+            object.scripts.emplace_back();
+        candidate.ValidateChanges(baseline);
+        candidate.objects.back().scripts.push_back(candidate.objects.back().scripts.front());
+        reject(candidate);
+        const auto accepted = [](const auto& validate)
+        {
+            try
+            {
+                validate();
+                return true;
+            }
+            catch (const std::exception&)
+            {
+                return false;
+            }
+        };
+        const auto sameAcceptance = [&](const SceneLayout& paths)
+        {
+            const bool complete = accepted(
+                [&]()
+                {
+                    paths.Validate();
+                });
+            Require(accepted(
+                        [&]()
+                        {
+                            paths.ValidateChanges(baseline);
+                        }) == complete,
+                    "Component validation reuse concealed a raw path spelling difference");
+            return complete;
+        };
+        candidate = repeated;
+        candidate.objects[0].meshRenderer.emplace();
+        candidate.objects[0].meshRenderer->model = "Assets/Models/probe.obj";
+        candidate.objects[1].meshRenderer = candidate.objects[0].meshRenderer;
+        Require(sameAcceptance(candidate), "Canonical model path fixture rejected");
+        candidate.objects[1].meshRenderer->model = "Assets\\Models\\probe.obj";
+        Require(!sameAcceptance(candidate), "Backslash model path unexpectedly accepted");
+        candidate = repeated;
+        candidate.objects[0].image.emplace();
+        candidate.objects[0].image->texture = "Assets/Textures/probe.png";
+        candidate.objects[1].image = candidate.objects[0].image;
+        Require(sameAcceptance(candidate), "Canonical image path fixture rejected");
+        candidate.objects[1].image->texture = "Assets\\Textures\\probe.png";
+        // Imageの保存処理はgeneric_u8stringへ正規化してからAssets/の制約を検証します。
+        Require(sameAcceptance(candidate), "Normalized image path changed validation acceptance");
+        candidate = repeated;
+        candidate.objects[0].tilemap.emplace();
+        candidate.objects[0].tilemap->texture = "Assets/Textures/probe.png";
+        candidate.objects[1].tilemap = candidate.objects[0].tilemap;
+        Require(sameAcceptance(candidate), "Canonical tilemap path fixture rejected");
+        candidate.objects[1].tilemap->texture = "Assets\\Textures\\probe.png";
+        // Tilemapの保存処理もgeneric_stringで区切り文字を正規化します。
+        Require(sameAcceptance(candidate), "Normalized tilemap path changed validation acceptance");
+        for (const bool slots : {false, true})
+        {
+            candidate = repeated;
+            if (slots)
+            {
+                candidate.objects[0].material->slots = {"Assets/Materials/probe.mat"};
+                candidate.objects[1].material->slots = {"Assets\\Materials\\probe.mat"};
+            }
+            else
+            {
+                candidate.objects[0].material->asset = "Assets/Materials/probe.mat";
+                candidate.objects[1].material->asset = "Assets\\Materials\\probe.mat";
+            }
+            static_cast<void>(sameAcceptance(candidate));
+        }
+        repeated.ValidateChanges(baseline);
+    }
     inline void Run()
     {
+        SameComponentsEquivalence();
+        ComponentValidationReuse();
         using namespace SceneRuntime;
         DeepStateValidation::Run();
         FollowupStateValidation::Run();

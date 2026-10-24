@@ -5,6 +5,13 @@
 
 namespace SceneRuntime
 {
+    struct SceneCommandResult
+    {
+        SceneCommand command;
+        bool succeeded = false;
+        std::string error;
+    };
+
     class SceneEnvironment final
     {
     public:
@@ -74,6 +81,11 @@ namespace SceneRuntime
         const SceneCollection& Scenes() const { return scenes_; }
         /// <summary>UIが予約したシーン操作を描画命令の記録前に適用します。</summary>
         void FlushSceneChanges() { ProcessSceneCommands(); }
+        /// <summary>最後に処理したシーン操作の結果を予約順に取得します。操作ごとに確定します。</summary>
+        const std::vector<SceneCommandResult>& SceneCommandResults() const
+        {
+            return sceneCommandResults_;
+        }
         /// <summary>実行更新の成功を返し、成功した場合だけ音声予約を確定可能にします。</summary>
         bool Update(double deltaSeconds, bool enabled, bool active);
         bool QueueScriptEvent(ScriptEvent event,std::string& error) { return world_.QueueScriptEvent(std::move(event),error); }
@@ -115,12 +127,13 @@ namespace SceneRuntime
         /// <summary>成功したフレームのシーン操作をGPU描画前に反映します。</summary>
         void ProcessSceneCommands();
         /// <summary>コールバック、ナビゲーション、剛体・キャラクター・骨に固定更新が必要か判定します。</summary>
-        static bool RequiresFixedUpdate(const SceneLayout& layout);
+        bool RequiresFixedUpdate(const SceneLayout& layout) const;
         uint64_t sceneRevision_=0;
         std::string activeSceneName_;
         std::set<std::string> visitedTitles_;
         SceneCollection scenes_;
         std::vector<SceneCommand> uiSceneCommands_;
+        std::vector<SceneCommandResult> sceneCommandResults_;
         const Engine::DirectX12Renderer* renderer_=nullptr;
         std::filesystem::path root_;
         /// <summary>保存した移動クリップを現在位置から評価し、メニュー選択へ追従します。</summary>

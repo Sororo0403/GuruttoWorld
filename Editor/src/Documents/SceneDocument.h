@@ -49,14 +49,64 @@ namespace Editor
         {
             return data_->Layout();
         }
-        /// <summary>読み込んだ正本を維持して、開いたファイルの保存基準を更新します。</summary>
-        void OpenPath(std::filesystem::path path)
+        class OpenCandidate final
         {
-            const auto source = ReadSource(path);
-            path_ = std::move(path);
-            savedSource_ = source;
-            unsavedNew_ = false;
+            friend class SceneDocument;
+            /// <summary>候補の生成を、一回の取得と解析を行うPrepareOpenに限定します。</summary>
+            OpenCandidate() = default;
+            std::filesystem::path path_;
+            std::optional<std::string> source_;
+            SceneRuntime::SceneLayout layout_;
+            bool create_ = false;
+        };
+        /// <summary>解析対象と保存比較基準を同じ一回の読み取りから準備します。</summary>
+        static OpenCandidate PrepareOpen(std::filesystem::path path, bool create = false)
+        {
+            OpenCandidate candidate;
+            candidate.path_ = std::move(path);
+            candidate.create_ = create;
+            candidate.source_ = ReadSource(candidate.path_);
+            if (create)
+            {
+                if (candidate.source_)
+                    throw std::runtime_error("新規シーンの保存先が既に存在します。別の名前を指定してください。");
+            }
+            else
+            {
+                if (!candidate.source_)
+                    throw std::runtime_error("Cannot open layout: " + candidate.path_.string());
+                candidate.layout_ = SceneRuntime::SceneLayout::Parse(*candidate.source_);
+            }
+            return candidate;
+        }
+        /// <summary>準備済みの候補を投影し、成功後は例外のない交換だけで保存基準を確定します。</summary>
+        bool Apply(SceneRuntime::SceneWorld& world, const std::filesystem::path& root, OpenCandidate candidate,
+                   std::string& error)
+        {
+            const bool success = candidate.create_
+                                     ? world.ReplaceLayout(std::move(candidate.layout_), root, error)
+                                     : world.ReloadLayout(root, std::move(candidate.layout_), error, true);
+            if (!success)
+                return false;
+            path_.swap(candidate.path_);
+            savedSource_.swap(candidate.source_);
+            unsavedNew_ = candidate.create_;
             Cancel();
+            return true;
+        }
+        /// <summary>ファイルの取得・解析・投影と保存基準の確定を一つの操作として実行します。</summary>
+        bool Open(SceneRuntime::SceneWorld& world, const std::filesystem::path& root, const std::filesystem::path& path,
+                  std::string& error)
+        {
+            try
+            {
+                return Apply(world, root, PrepareOpen(path), error);
+            }
+            catch (const std::exception& exception)
+            {
+                error = exception.what();
+                return false;
+            }
         }
         const std::filesystem::path& Path() const
         {
@@ -170,17 +220,7 @@ namespace Editor
             Cancel();
             try
             {
-                if (request.create && std::filesystem::exists(request.path))
-                    throw std::runtime_error("新規シーンの保存先が既に存在します。別の名前を指定してください。");
-                SceneRuntime::SceneLayout empty;
-                const bool success = request.create ? world.ReplaceLayout(std::move(empty), root, error)
-                                                    : world.Reload(root, request.path, error, true);
-                if (!success)
-                    return false;
-                path_ = std::move(request.path);
-                unsavedNew_ = request.create;
-                savedSource_ = ReadSource(path_);
-                return true;
+                return Apply(world, root, PrepareOpen(std::move(request.path), request.create), error);
             }
             catch (const std::exception& exception)
             {

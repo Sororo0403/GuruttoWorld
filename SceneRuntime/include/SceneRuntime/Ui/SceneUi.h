@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/Ui/UiState.h>
 #include <Engine/Assets/ContentContext.h>
 #include <SceneRuntime/Scene/SceneLayout.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
@@ -12,19 +13,6 @@ namespace Engine
 namespace SceneRuntime
 {
     class SceneWorld;
-    struct UiState
-    {
-        std::map<std::string, float> values;
-        std::map<std::string, bool> visibility;
-        std::string hovered, pressed;
-        std::map<std::string, std::string> strings;
-        std::map<std::string, std::array<float, 2>> scrollOffsets;
-        std::string focused;
-        std::array<float, 2> dragPosition{}, dragScroll{};
-        float Value(const std::string& key, float fallback = 0) const;
-        bool Matches(const std::string& expression) const;
-        bool Assign(const std::string& expression);
-    };
     struct UiRect
     {
         std::array<float, 2> position{}, size{};

@@ -145,7 +145,12 @@ namespace SceneRuntime
         /// <summary>永続化指定と全コンポーネントを比較します。</summary>
         bool SameComponents(const ScenePlacement& other) const
         {
-            return Components() == other.Components();
+#define ENGINE_SCENE_COMPARE(Type, member, references, assets, order)                                                  \
+    if (!(member == other.member))                                                                                     \
+        return false;
+            ENGINE_SCENE_COMPONENTS(ENGINE_SCENE_COMPARE, ENGINE_SCENE_COMPARE)
+#undef ENGINE_SCENE_COMPARE
+            return persistent == other.persistent;
         }
         /// <summary>個体の識別子・階層・姿勢を維持して全コンポーネントをコピーします。</summary>
         void CopyComponents(const ScenePlacement& other)
@@ -214,6 +219,8 @@ namespace SceneRuntime
         void ResolveAssets(const Engine::AssetDatabase& index);
         /// <summary>JSON を読み込んで新しい配置を返します。形式や値の検証に失敗した場合は例外を送出します。</summary>
         static SceneLayout Parse(std::string_view json);
+        /// <summary>保存形式の規則で既定値と成分を正規化します。文字列やファイルを経由しません。</summary>
+        SceneLayout Normalized() const;
         /// <summary>文字列への変換を行わず、保存時と同じ規則で配置を検証します。</summary>
         void Validate() const;
         /// <summary>検証済みの変更前配置との成分差分を検証します。未検証の配置を変更前に指定してはいけません。</summary>

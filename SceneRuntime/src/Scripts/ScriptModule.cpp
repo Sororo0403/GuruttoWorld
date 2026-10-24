@@ -1,4 +1,5 @@
 #include <SceneRuntime/Scripts/ScriptModule.h>
+#include <SceneRuntime/Scripts/ScriptRuntime.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <Windows.h>

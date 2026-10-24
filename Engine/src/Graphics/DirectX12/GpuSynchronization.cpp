@@ -42,6 +42,19 @@ namespace
 
 namespace Engine
 {
+    bool SynchronizeGpuQueue(ID3D12Device* device, ID3D12CommandQueue* queue)
+    {
+        if (!device || !queue || queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT)
+            return false;
+        Microsoft::WRL::ComPtr<ID3D12Device> owner;
+        if (FAILED(queue->GetDevice(IID_PPV_ARGS(&owner))) || owner.Get() != device)
+            return false;
+        Microsoft::WRL::ComPtr<ID3D12Fence> fence;
+        if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
+            return false;
+        return SignalGpuFence(device, queue, fence.Get(), 1) && WaitForGpuFence(device, fence.Get(), 1, nullptr);
+    }
+
     bool SignalGpuFence(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Fence* fence, UINT64 value)
     {
         const HRESULT result = queue->Signal(fence, value);

@@ -72,6 +72,9 @@
     <ClCompile Include="src\Scene\SceneWorld.cpp">
       <Filter>src\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="src\Animation\BlendTreePose.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
     <ClCompile Include="src\Scene\SceneTransactions.cpp">
       <Filter>src\Scene</Filter>
     </ClCompile>
@@ -87,6 +90,18 @@
     <ClCompile Include="src\Scripts\ScriptModule.cpp">
       <Filter>src\Scripts</Filter>
     </ClCompile>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptApi.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneExecutionState.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneResourceChanges.h">
+      <Filter>include\SceneRuntime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Physics\PhysicsTypes.h">
+      <Filter>include\SceneRuntime\Physics</Filter>
+    </ClInclude>
     <ClInclude Include="include\SceneRuntime\Animation\Animation.h">
       <Filter>include\SceneRuntime\Animation</Filter>
     </ClInclude>
@@ -264,58 +279,5 @@
     <ClInclude Include="include\SceneRuntime\Scene\SceneWorld.h">
       <Filter>include\SceneRuntime\Scene</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Animation\Animation.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Animation\AnimationProperties.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Animation\AnimationEvents.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Animation\BlendTree.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Animation\AnimatorJson.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Gameplay\GenreJson.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Audio\AudioJson.cpp">
-      <Filter>src\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Ui\UiJson.cpp">
-      <Filter>src\Ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Rendering\EnvironmentJson.cpp">
-      <Filter>src\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scene\SceneSettingsJson.cpp">
-      <Filter>src\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scene\SceneLayout.cpp">
-      <Filter>src\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scene\SceneAssetReferences.cpp">
-      <Filter>src\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scripts\ScriptSchema.cpp">
-      <Filter>src\Scripts</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scripts\ScriptValueJson.cpp">
-      <Filter>src\Scripts</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scene\SceneComponentJson.cpp">
-      <Filter>src\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scene\Prefab.cpp">
-      <Filter>src\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scene\SceneTransforms.cpp">
-      <Filter>src\Scene</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

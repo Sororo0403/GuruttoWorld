@@ -1,4 +1,7 @@
 #pragma once
+#include "../Assets/ModelImportCacheValidation.h"
+#include "../Rendering/PipelineReuseValidation.h"
+#include "../Assets/AssetFreshnessValidation.h"
 #include "../../../Editor/src/Documents/SceneDocument.h"
 #include "../Rendering/EnvironmentValidation.h"
 #include <SceneRuntime/Scene/Prefab.h>
@@ -64,9 +67,104 @@ namespace EngineEditorReviewValidation
                     menu.configTransition.returnCameraTarget == "external-camera",
                 "internal menu cameras remap while external references remain intact");
     }
+    /// <summary>値だけの編集と構造変更を、全体検証と差分検証で同じように受理・拒否します。</summary>
+    inline void ComponentChanges()
+    {
+        SceneRuntime::SceneLayout baseline;
+        SceneRuntime::ScenePlacement object;
+        object.id = "animated";
+        object.SetModel("Assets/Models/Triangle.obj");
+        object.material.emplace();
+        object.animation.emplace();
+        SceneRuntime::AnimationTrack track;
+        track.property = "position";
+        object.animation->tracks.push_back(track);
+        baseline.objects.push_back(object);
+        baseline.Validate();
+        const auto check = [&](auto edit, bool accepted)
+        {
+            auto candidate = baseline;
+            edit(candidate.objects.front());
+            const bool full = !Rejected(
+                [&]
+                {
+                    candidate.Validate();
+                });
+            const bool difference = !Rejected(
+                [&]
+                {
+                    candidate.ValidateChanges(baseline);
+                });
+            Require(full == accepted && difference == full, "component delta validation matches full validation");
+        };
+        check(
+            [](auto& item)
+            {
+                item.material->color = {.2f, .3f, .4f, 1};
+                item.position[0] = 2;
+            },
+            true);
+        check(
+            [](auto& item)
+            {
+                item.material->roughness = .03f;
+            },
+            false);
+        check(
+            [](auto& item)
+            {
+                item.material->color[0] = 2;
+            },
+            false);
+        check(
+            [](auto& item)
+            {
+                item.animation->tracks.front().keys.back().time = 0;
+            },
+            false);
+        check(
+            [](auto& item)
+            {
+                item.material->id = item.animation->id;
+            },
+            false);
+        check(
+            [](auto& item)
+            {
+                item.material->id = "transform";
+            },
+            false);
+        check(
+            [](auto& item)
+            {
+                item.material.reset();
+            },
+            true);
+        check(
+            [](auto& item)
+            {
+                item.text.emplace();
+                item.text->fontSize = 0;
+            },
+            false);
+        check(
+            [](auto& item)
+            {
+                for (int index = 0; index < 33; ++index)
+                {
+                    SceneRuntime::ScriptComponent script;
+                    script.id = "script-" + std::to_string(index);
+                    script.behaviour = "Fixture";
+                    item.scripts.push_back(std::move(script));
+                }
+            },
+            false);
+    }
     /// <summary>保存競合・シェーダー改名・Prefab配置とスクリプト複製の再発条件を検証します。</summary>
     inline void Data()
     {
+        AssetFreshnessValidation::Run();
+        ComponentChanges();
         const auto& root = Fixtures();
         std::filesystem::create_directories(root / "Assets/Scenes");
         const auto source = root / "Assets/Scenes/A.json", destination = root / "Assets/Scenes/B.json";
@@ -272,12 +370,8 @@ namespace EngineEditorReviewValidation
         model.meshRenderer->lods = {{20, "Assets/Models/Static.glb"}};
         SceneRuntime::SceneLayout layout;
         layout.objects = {model};
-        SceneRuntime::SceneWorld world;
-        std::string error, created;
-        Require(world.Initialize(renderer, Fixtures(), layout, root / "Shaders/Mesh.hlsl", &error), error.c_str());
-        model.id = "added";
-        Require(world.AddObject(model, Fixtures(), created, error), error.c_str());
-        auto runtimeModel = world.Layout().objects.front();
+        auto runtimeModel = layout.objects.front();
+
         runtimeModel.meshRenderer->lods.front().model = "Assets/Models/Static.gltf";
         SceneRuntime::ScriptDefinition definition;
         definition.update = [runtimeModel](SceneRuntime::ScriptContext& context)
@@ -289,6 +383,12 @@ namespace EngineEditorReviewValidation
             }
         };
         Require(SceneRuntime::ScriptRegistry::Register("ReviewStaticLod", definition), "LOD script registers");
+        // ワールドが定義を取り込む前に、実行するスクリプトを登録します。
+        SceneRuntime::SceneWorld world;
+        std::string error, created;
+        Require(world.Initialize(renderer, Fixtures(), layout, root / "Shaders/Mesh.hlsl", &error), error.c_str());
+        model.id = "added";
+        Require(world.AddObject(model, Fixtures(), created, error), error.c_str());
         SceneRuntime::ScenePlacement script;
         script.id = "script";
         script.scripts.push_back({"lod", true, "ReviewStaticLod", {}});
@@ -453,6 +553,8 @@ namespace EngineEditorReviewValidation
     /// <summary>複製制約・LOD・入力経路・GPU資源寿命を実際の描画環境で検証します。</summary>
     inline void Runtime(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
+        PipelineReuseValidation::Run(renderer, Fixtures() / "pipeline-reuse");
+        ModelImportCacheValidation::Run();
         DuplicateLimits(renderer, root);
         StaticLods(renderer, root);
         UiEvents(renderer, root);

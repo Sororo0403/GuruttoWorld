@@ -5,7 +5,7 @@
 #include <SceneRuntime/Gameplay/Navigation.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
-#include <Engine/Graphics/Resources/Texture2D.h>
+#include <Engine/Graphics/DirectX12/GpuSynchronization.h>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -71,8 +71,7 @@ namespace SceneRuntime
             if (!presentation_.Initialize(renderer, contentRoot, error, world_.Content()) ||
                 !world_.Initialize(renderer, contentRoot, std::move(layout), contentRoot / "Shaders/Mesh.hlsl",
                                    &error) ||
-                !ScriptRuntime::ValidateForPlay(world_.Layout(), error) ||
-                !presentation_.Prepare(renderer, contentRoot, world_.Layout(), error))
+                !world_.ValidateScripts(error) || !presentation_.Prepare(renderer, contentRoot, world_.Layout(), error))
                 return false;
             seconds_ = 0;
             motionEnabled_ = true;
@@ -350,9 +349,9 @@ namespace SceneRuntime
         NotifyUiEvent(event);
         return event;
     }
-    bool SceneEnvironment::RequiresFixedUpdate(const SceneLayout& layout)
+    bool SceneEnvironment::RequiresFixedUpdate(const SceneLayout& layout) const
     {
-        return ScriptRuntime::HasPhase(layout, ScriptPhase::FixedUpdate) || Navigation::HasAgents(layout) ||
+        return world_.HasScriptPhase(ScriptPhase::FixedUpdate) || Navigation::HasAgents(layout) ||
                std::any_of(layout.objects.begin(), layout.objects.end(),
                            [](const auto& object)
                            {
@@ -366,6 +365,8 @@ namespace SceneRuntime
         auto commands = world_.TakeSceneCommands();
         commands.insert(commands.end(), uiSceneCommands_.begin(), uiSceneCommands_.end());
         uiSceneCommands_.clear();
+        sceneCommandResults_.clear();
+        sceneCommandResults_.reserve(commands.size());
         for (const auto& command : commands)
         {
             std::string error;
@@ -373,6 +374,15 @@ namespace SceneRuntime
                 command.unload ? UnloadScene(command.scene, error) : LoadScene(command.scene, command.additive, error);
             if (!success)
                 Engine::Log::Warning(error);
+            sceneCommandResults_.push_back({command, success, error});
+            ScriptEvent event;
+            event.name = success ? "sceneCommandCompleted" : "sceneCommandFailed";
+            event.sender = command.scene;
+            event.text = error.substr(0, 4096);
+            event.value = command.unload ? -1.0f : command.additive ? 1.0f : 0.0f;
+            std::string eventError;
+            if (!world_.QueueScriptEvent(std::move(event), eventError))
+                Engine::Log::Warning(eventError);
         }
     }
     bool SceneEnvironment::ApplySceneLayout(SceneLayout layout, SceneCollection scenes, std::string& error,
@@ -383,8 +393,7 @@ namespace SceneRuntime
             error = "Scene environment is not initialized";
             return false;
         }
-        Engine::Texture2D fenceTexture;
-        if (!fenceTexture.Initialize(renderer_->GetDevice(), renderer_->GetCommandQueue(), {}))
+        if (!Engine::SynchronizeGpuQueue(renderer_->GetDevice(), renderer_->GetCommandQueue()))
         {
             error = "Cannot synchronize scene resource release";
             return false;

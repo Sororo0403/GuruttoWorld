@@ -8,4 +8,6 @@
   <Project Path="Games/GuruttoWorld/GuruttoWorld.vcxproj" />
   <Project Path="Engine/Engine.vcxproj" />
   <Project Path="SceneRuntime/SceneRuntime.vcxproj" />
+  <Project Path="SceneRuntime/SceneData.vcxproj" />
+  <Project Path="SceneRuntime/SceneStorage.vcxproj" />
 </Solution>

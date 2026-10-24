@@ -40,6 +40,8 @@ namespace SceneRuntime
         Engine::Json Serialize() const;
         /// <summary>DLLの登録に依存しない組込動作の宣言を取得します。</summary>
         static const std::map<std::string, ScriptSchema>& Builtins();
+        /// <summary>一つの宣言文書の形式を検証し、版番号を返します。継承の解決は全宣言の統合後に行います。</summary>
+        static int ValidateDocument(const Engine::Json& source);
         /// <summary>プロジェクト全体の継承を解決し、重複・欠損した基底・循環を拒否します。</summary>
         static std::map<std::string, ScriptSchema> LoadProject(const std::filesystem::path& root);
     };

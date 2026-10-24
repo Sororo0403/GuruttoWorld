@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include" />
+    <Filter Include="include\SceneRuntime" />
+    <Filter Include="include\SceneRuntime\Rendering" />
+    <Filter Include="include\SceneRuntime\Scripts" />
+    <Filter Include="include\SceneRuntime\Ui" />
+    <Filter Include="src" />
+    <Filter Include="src\Animation" />
+    <Filter Include="src\Audio" />
+    <Filter Include="src\Gameplay" />
+    <Filter Include="src\Physics" />
+    <Filter Include="src\Rendering" />
+    <Filter Include="src\Scene" />
+    <Filter Include="src\Scripts" />
+    <Filter Include="src\Ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Scripts\ScriptSchema.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scripts\ScriptBuiltinSchemas.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scripts\ScriptValueJson.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneLayout.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneTransforms.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Physics\RagdollValidation.cpp">
+      <Filter>src\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\Prefab.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneAssetInheritance.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneComponentJson.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneSettingsJson.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimatorJson.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimatorValidation.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\BlendTree.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\Animation.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimationProperties.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimationEvents.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Audio\AudioJson.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\GenreJson.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiJson.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiState.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\EnvironmentJson.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scripts\ScriptSchemaMigration.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClInclude Include="include\SceneRuntime\Rendering\MaterialAssetFormat.h">
+      <Filter>include\SceneRuntime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Ui\UiState.h">
+      <Filter>include\SceneRuntime\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\AnimatorValidation.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\BlendTreeValidation.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scene\SceneAssetWalk.h">
+      <Filter>src\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptSchema.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptValue.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptValueJson.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

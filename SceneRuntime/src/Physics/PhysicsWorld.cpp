@@ -46,12 +46,10 @@ namespace
 {
     using namespace SceneRuntime;
     using Matrix = DirectX::XMFLOAT4X4;
-    using QueryFiles = std::map<std::filesystem::path, std::pair<std::filesystem::file_time_type, std::uintmax_t>>;
-    auto QueryFileStamp(const std::filesystem::path& path)
+    using QueryFiles = std::map<std::filesystem::path, std::optional<Engine::AssetFileRevision>>;
+    std::optional<Engine::AssetFileRevision> QueryFileStamp(const std::filesystem::path& path)
     {
-        return std::filesystem::exists(path)
-                   ? std::pair{std::filesystem::last_write_time(path), std::filesystem::file_size(path)}
-                   : std::pair{std::filesystem::file_time_type::min(), std::uintmax_t{0}};
+        return std::filesystem::exists(path) ? std::optional{Engine::AssetFileRevision::Capture(path)} : std::nullopt;
     }
     Engine::Json GeometryDocument(const std::filesystem::path& path)
     {

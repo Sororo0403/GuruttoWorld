@@ -8,6 +8,8 @@
   <Project Path="Games/GuruttoWorld/GuruttoWorld.vcxproj" />
   <Project Path="Engine/Engine.vcxproj" Id="689a4162-50df-480e-93d1-6e6453148017" />
   <Project Path="SceneRuntime/SceneRuntime.vcxproj" Id="d402069a-f7e5-4d62-a98d-6f5436d7513d" />
+  <Project Path="SceneRuntime/SceneData.vcxproj" />
+  <Project Path="SceneRuntime/SceneStorage.vcxproj" />
   <Project Path="Editor/Editor.vcxproj" Id="69a15d37-8a13-4d48-93a0-bd431711911e">
     <BuildType Solution="Release|*" Project="Development" />
     <Build Solution="Release|*" Project="false" />

@@ -1,9 +1,35 @@
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <Engine/Core/Log.h>
+#include <Engine/Core/Profiler.h>
 #include <cmath>
+
+namespace
+{
+    bool ValidUpdateInput(double seconds, float horizontal, float vertical)
+    {
+        return std::isfinite(seconds) && seconds > 0 && std::isfinite(horizontal) && std::isfinite(vertical);
+    }
+}
 
 namespace SceneRuntime
 {
+    bool SceneWorld::CanMutateScene(std::string* error) const
+    {
+        if (!execution_ || !execution_->values.frameUpdating)
+            return true;
+        if (error)
+            *error = "Scene mutation is unavailable during frame preparation";
+        return false;
+    }
+    void SceneWorld::ForgetExecutionObject(const std::string& id)
+    {
+        if (!execution_)
+            return;
+        execution_->values.physics.erase(id);
+        execution_->values.previousPhysical.erase(id);
+        execution_->values.currentPhysical.erase(id);
+    }
+
     bool SceneWorld::PrepareRuntimeCallbacks(const SceneLayout& layout, const ScriptRuntime& runtime,
                                              std::string& error) const
     {
@@ -13,19 +39,22 @@ namespace SceneRuntime
     bool SceneWorld::ReplaceRuntimeLayout(SceneLayout layout, const std::filesystem::path& assetsRoot,
                                           std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         try
         {
-            if (!scripts_ || !ScriptRuntime::ValidateForPlay(layout, error))
+            if (!execution_ ||
+                !ScriptRuntime::ValidateForPlay(layout, error, &execution_->values.scripts.Definitions()))
                 return false;
             PreparedLayout prepared;
             if (!PrepareLayout(std::move(layout), assetsRoot, error, true, prepared))
                 return false;
-            auto runtime = *scripts_;
+            auto runtime = execution_->values.scripts;
             runtime.PrepareTransition(layout_, prepared.layout);
             auto started = prepared.layout;
             if (!runtime.StartCandidate(started, error))
                 return false;
-            if (!ScriptRuntime::ValidateForPlay(started, error))
+            if (!ScriptRuntime::ValidateForPlay(started, error, &execution_->values.scripts.Definitions()))
                 return false;
             PreparedLayout candidate;
             if (!PrepareScriptLayout(std::move(started), &prepared, candidate, error) ||
@@ -35,11 +64,11 @@ namespace SceneRuntime
                 candidate.shadow = prepared.shadow;
             if (!candidate.localShadow)
                 candidate.localShadow = prepared.localShadow;
-            if (!ScriptRuntime::ValidateForPlay(candidate.layout, error))
+            if (!ScriptRuntime::ValidateForPlay(candidate.layout, error, &execution_->values.scripts.Definitions()))
                 return false;
             CommitLayout(std::move(candidate), true);
             runtime.CommitStarts();
-            *scripts_ = std::move(runtime);
+            execution_->values.scripts = std::move(runtime);
             error.clear();
             return true;
         }
@@ -54,28 +83,87 @@ namespace SceneRuntime
             return false;
         }
     }
+    struct SceneWorld::FrameTransaction final
+    {
+        SceneWorld& world;
+        SceneExecutionState::Values saved;
+        PhysicsWorld::Transaction physics;
+        bool committed = false;
+
+        // 未確定の実行値だけを分離し、配置と描画資源は確定まで現状を維持します。
+        explicit FrameTransaction(SceneWorld& target)
+            : world(target), saved(target.execution_->values),
+              physics(target.execution_->physicsWorld.BeginTransaction())
+        {
+            world.execution_->values.frameUpdating = true;
+        }
+        // 配置の中間確定がないため、実行値と物理だけを同じ保存点へ戻します。
+        ~FrameTransaction()
+        {
+            if (!committed)
+            {
+                world.execution_->values = std::move(saved);
+                world.preparedRenderVersion_ = static_cast<size_t>(-1);
+            }
+            world.execution_->values.frameUpdating = false;
+        }
+        void Commit() noexcept
+        {
+            physics.Commit();
+            world.execution_->values.scripts.CommitStarts();
+            committed = true;
+        }
+        FrameTransaction(const FrameTransaction&) = delete;
+        FrameTransaction& operator=(const FrameTransaction&) = delete;
+    };
+
     bool SceneWorld::UpdateFrame(double seconds, float horizontal, float vertical, bool jump, bool advancePhysics)
     {
-        if (!scripts_ || frameUpdating_ ||
-            (!std::isfinite(seconds) || seconds <= 0 || !std::isfinite(horizontal) || !std::isfinite(vertical)))
+        return ExecuteUpdate(seconds, horizontal, vertical, jump, advancePhysics, true);
+    }
+    bool SceneWorld::ExecuteUpdate(double seconds, float horizontal, float vertical, bool jump, bool movement,
+                                   bool components)
+    {
+        if (!execution_ || execution_->values.frameUpdating || !ValidUpdateInput(seconds, horizontal, vertical))
             return false;
-        auto baseline = RuntimeLayout();
-        baseline.diagnostics = resourceDiagnostics_;
-        auto runtime = *scripts_;
-        auto physics = physics_;
-        auto previous = previousPhysical_;
-        auto current = currentPhysical_;
-        const auto fixedSeconds = fixedSeconds_;
-        const auto fixedJump = fixedJump_;
-        auto pressed = fixedPressed_;
-        const auto version = renderVersion_;
-        auto transaction = physicsWorld_.BeginTransaction();
-        frameUpdating_ = true;
-        bool success = false;
         try
         {
-            success =
-                (!advancePhysics || MovePlayers(seconds, horizontal, vertical, jump)) && UpdateComponents(seconds);
+            FrameTransaction transaction = [&]
+            {
+                Engine::CpuScope timing("Frame transaction snapshot");
+                return FrameTransaction(*this);
+            }();
+            // 固定更新と可変更新が同じ候補を所有し、成功時に一度だけ投影します。
+            auto candidate = [&]
+            {
+                Engine::CpuScope timing("Frame layout copy");
+                return layout_;
+            }();
+            if (movement && !PrepareMovement(candidate, seconds, horizontal, vertical, jump))
+                return false;
+            PreparedLayout prepared;
+            std::vector<AnimatorFrame> frames;
+            std::map<std::string, std::array<float, 3>> impulses;
+            std::string error;
+            const bool ready = components
+                                   ? PrepareComponents(std::move(candidate), seconds, prepared, frames, impulses, error)
+                                   : PrepareScriptLayout(std::move(candidate), nullptr, prepared, error) &&
+                                         PrepareRuntimeCallbacks(prepared.layout, execution_->values.scripts, error) &&
+                                         ValidateScriptsCandidate(prepared.layout, error);
+            if (!ready)
+            {
+                Engine::Log::Warning(error);
+                return false;
+            }
+            {
+                Engine::CpuScope timing("Frame commit");
+                CommitLayout(std::move(prepared), true);
+                CommitAnimatorFrames(frames);
+                for (const auto& [id, impulse] : impulses)
+                    execution_->physicsWorld.AddImpulse(id, impulse);
+                transaction.Commit();
+            }
+            return true;
         }
         catch (const std::exception& failure)
         {
@@ -85,23 +173,10 @@ namespace SceneRuntime
         {
             Engine::Log::Warning("Frame preparation failed with an unknown exception");
         }
-        frameUpdating_ = false;
-        if (success)
-        {
-            transaction.Commit();
-            scripts_->CommitStarts();
-            return true;
-        }
-        CommitLayout(std::move(baseline), true);
-        *scripts_ = std::move(runtime);
-        physics_ = std::move(physics);
-        previousPhysical_ = std::move(previous);
-        currentPhysical_ = std::move(current);
-        fixedSeconds_ = fixedSeconds;
-        fixedJump_ = fixedJump;
-        fixedPressed_ = std::move(pressed);
-        renderVersion_ = version;
-        preparedRenderVersion_ = static_cast<size_t>(-1);
         return false;
+    }
+    bool SceneWorld::ValidateScriptsCandidate(const SceneLayout& candidate, std::string& error) const
+    {
+        return ScriptRuntime::ValidateForPlay(candidate, error, &execution_->values.scripts.Definitions());
     }
 }

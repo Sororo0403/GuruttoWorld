@@ -1,0 +1,72 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64"><Configuration>Debug</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64"><Configuration>Development</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals"><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Debug'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <OutDir>$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\SceneData\</OutDir>
+    <IntDir>$(MSBuildThisFileDirectory)..\generated\intermediate\$(Platform)\$(Configuration)\SceneData\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'!='Debug'">MultiThreadedDLL</RuntimeLibrary>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <Optimization Condition="'$(Configuration)'!='Debug'">MaxSpeed</Optimization>
+      <DebugInformationFormat Condition="'$(Configuration)'!='Release'">ProgramDatabase</DebugInformationFormat>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Development'">NDEBUG;ENGINE_DEVELOPMENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;$(MSBuildThisFileDirectory)..\Engine\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Scripts\ScriptSchema.cpp" />
+    <ClCompile Include="src\Scripts\ScriptBuiltinSchemas.cpp" />
+    <ClCompile Include="src\Scripts\ScriptValueJson.cpp" />
+    <ClCompile Include="src\Scene\SceneLayout.cpp" />
+    <ClCompile Include="src\Scene\SceneTransforms.cpp" />
+    <ClCompile Include="src\Physics\RagdollValidation.cpp" />
+    <ClCompile Include="src\Scene\Prefab.cpp" />
+    <ClCompile Include="src\Scene\SceneAssetInheritance.cpp" />
+    <ClCompile Include="src\Scene\SceneComponentJson.cpp" />
+    <ClCompile Include="src\Scene\SceneSettingsJson.cpp" />
+    <ClCompile Include="src\Animation\AnimatorJson.cpp" />
+    <ClCompile Include="src\Animation\AnimatorValidation.cpp" />
+    <ClCompile Include="src\Animation\BlendTree.cpp" />
+    <ClCompile Include="src\Animation\Animation.cpp" />
+    <ClCompile Include="src\Animation\AnimationProperties.cpp" />
+    <ClCompile Include="src\Animation\AnimationEvents.cpp" />
+    <ClCompile Include="src\Audio\AudioJson.cpp" />
+    <ClCompile Include="src\Gameplay\GenreJson.cpp" />
+    <ClCompile Include="src\Ui\UiJson.cpp" />
+    <ClCompile Include="src\Ui\UiState.cpp" />
+    <ClCompile Include="src\Rendering\EnvironmentJson.cpp" />
+    <ClCompile Include="src\Scripts\ScriptSchemaMigration.cpp" />
+    <ClInclude Include="include\SceneRuntime\Rendering\MaterialAssetFormat.h" />
+    <ClInclude Include="include\SceneRuntime\Ui\UiState.h" />
+    <ClInclude Include="src\Animation\AnimatorValidation.h" />
+    <ClInclude Include="src\Animation\BlendTreeValidation.h" />
+    <ClInclude Include="src\Scene\SceneAssetWalk.h" />
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptSchema.h" />
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptValue.h" />
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptValueJson.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

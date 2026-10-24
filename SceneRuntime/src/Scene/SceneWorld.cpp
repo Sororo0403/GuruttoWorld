@@ -1,4 +1,6 @@
+#include <Engine/Core/Profiler.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
+#include <SceneRuntime/Rendering/SceneResourceChanges.h>
 #include <SceneRuntime/Scene/SceneAssetReferences.h>
 #include <iterator>
 #include <Engine/Core/Validation.h>
@@ -30,15 +32,6 @@ namespace
     {
         return p.meshRenderer || p.material || p.terrain || p.tilemap;
     }
-    bool DifferentMeshMaterial(const SceneRuntime::ScenePlacement& a, const SceneRuntime::ScenePlacement& b)
-    {
-        return std::tie(a.meshRenderer, a.material) != std::tie(b.meshRenderer, b.material);
-    }
-    bool DifferentAnimatedResources(const SceneRuntime::ScenePlacement& a, const SceneRuntime::ScenePlacement& b)
-    {
-        return std::tie(a.animator, a.terrain, a.tilemap) != std::tie(b.animator, b.terrain, b.tilemap) ||
-               (a.animator && DifferentMeshMaterial(a, b));
-    }
     void CopySceneOwnership(SceneRuntime::SceneLayout& layout, const std::string& source, const std::string& copy)
     {
         for (auto& [name, ids] : layout.sceneObjects)
@@ -50,10 +43,6 @@ namespace
                 return;
             }
         }
-    }
-    bool ValidPlayerInput(double seconds, float horizontal, float vertical)
-    {
-        return std::isfinite(seconds) && seconds > 0 && std::isfinite(horizontal) && std::isfinite(vertical);
     }
     bool RenderableEnabled(const SceneRuntime::ScenePlacement& p)
     {
@@ -173,11 +162,11 @@ namespace
                                return !track.property.starts_with("ui") && track.property != "opacity";
                            });
     }
-    bool ApplyTransformAnimation(SceneRuntime::ScenePlacement& placement, const std::map<std::string, float>& clocks)
+    bool ApplyTransformAnimation(SceneRuntime::ScenePlacement& placement, const SceneRuntime::ScenePlacement& before,
+                                 const std::map<std::string, float>& clocks)
     {
         if (!HasTransformAnimation(placement))
             return false;
-        const auto before = placement;
         for (const auto& track : placement.animation->tracks)
         {
             if (track.property.starts_with("ui") || track.property == "opacity")
@@ -240,14 +229,16 @@ namespace SceneRuntime
                                 const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath,
                                 std::string* diagnostic, bool allowReferenceMigration)
     {
+        if (!CanMutateScene(diagnostic))
+            return false;
         try
         {
             if (!context_)
                 context_ = Engine::ContentContext::Capture(assetsRoot);
             context_->RequireRoot(assetsRoot);
             document_->context_ = context_;
-            if (scripts_)
-                scripts_->SetContentContext(context_);
+            if (execution_)
+                execution_->values.scripts.SetContentContext(context_);
         }
         catch (const std::exception& failure)
         {
@@ -277,14 +268,16 @@ namespace SceneRuntime
     bool SceneWorld::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
                                 SceneLayout layout, const std::filesystem::path& shaderPath, std::string* diagnostic)
     {
+        if (!CanMutateScene(diagnostic))
+            return false;
         try
         {
             if (!context_)
                 context_ = Engine::ContentContext::Capture(assetsRoot);
             context_->RequireRoot(assetsRoot);
             document_->context_ = context_;
-            if (scripts_)
-                scripts_->SetContentContext(context_);
+            if (execution_)
+                execution_->values.scripts.SetContentContext(context_);
         }
         catch (const std::exception& failure)
         {
@@ -327,6 +320,7 @@ namespace SceneRuntime
     bool SceneWorld::InitializeModels(const Engine::DirectX12Renderer& renderer,
                                       const std::filesystem::path& shaderPath, std::string* diagnostic)
     {
+        Engine::CpuScope timing("Scene renderer initialization");
         materialDevice_ = renderer.GetDevice();
         materialQueue_ = renderer.GetCommandQueue();
         retirement_ = Engine::GpuRetirement::Shared(materialDevice_.Get(), materialQueue_.Get());
@@ -353,16 +347,35 @@ namespace SceneRuntime
     }
     bool SceneWorld::Animate(const std::map<std::string, float>& clocks)
     {
+        Engine::CpuScope timing("Transform animation");
+        if (!CanMutateScene())
+            return false;
         if (std::none_of(layout_.objects.begin(), layout_.objects.end(), HasTransformAnimation))
+        {
+            animationScratch_.reset();
             return true;
-        auto candidate = layout_;
-        bool changed = false;
-        for (auto& placement : candidate.objects)
-            changed = ApplyTransformAnimation(placement, clocks) || changed;
-        if (!changed)
+        }
+        auto& candidate = [&]() -> SceneLayout&
+        {
+            Engine::CpuScope scope("Animation layout clone");
+            // 全内容を毎回同期し、外部編集と失敗後の候補を持ち越さず格納領域だけ再利用します。
+            if (!animationScratch_)
+                animationScratch_ = std::make_unique<SceneLayout>();
+            *animationScratch_ = layout_;
+            return *animationScratch_;
+        }();
+        std::vector<size_t> changed;
+        {
+            Engine::CpuScope scope("Animation evaluate placements");
+            for (size_t index = 0; index < candidate.objects.size(); ++index)
+                if (ApplyTransformAnimation(candidate.objects[index], layout_.objects[index], clocks))
+                    changed.push_back(index);
+        }
+        if (changed.empty())
             return true;
         try
         {
+            Engine::CpuScope scope("Animation validate changes");
             candidate.ValidateChanges(layout_);
         }
         catch (const std::exception& error)
@@ -370,12 +383,18 @@ namespace SceneRuntime
             Engine::Log::Warning(error.what());
             return false;
         }
-        if (!CommitTransforms(candidate))
-            return false;
-        for (size_t i = 0; i < candidate.objects.size(); ++i)
         {
-            layout_.objects[i].CopyComponents(candidate.objects[i]);
-            ApplySurfaceOverride(objects_[i], layout_.objects[i]);
+            Engine::CpuScope scope("Animation commit transforms");
+            if (!CommitTransforms(candidate))
+                return false;
+        }
+        {
+            Engine::CpuScope scope("Animation copy changed components");
+            for (const auto i : changed)
+            {
+                layout_.objects[i].CopyComponents(candidate.objects[i]);
+                ApplySurfaceOverride(objects_[i], layout_.objects[i]);
+            }
         }
         return true;
     }
@@ -383,12 +402,29 @@ namespace SceneRuntime
     bool SceneWorld::Reload(const std::filesystem::path& assetsRoot, const std::filesystem::path& layoutPath,
                             std::string& error, bool allowReferenceMigration)
     {
+        if (!CanMutateScene(&error))
+            return false;
+        try
+        {
+            return ReloadLayout(assetsRoot, SceneLayout::Load(layoutPath), error, allowReferenceMigration);
+        }
+        catch (const std::exception& exception)
+        {
+            error = exception.what();
+            return false;
+        }
+    }
+
+    bool SceneWorld::ReloadLayout(const std::filesystem::path& assetsRoot, SceneLayout layout, std::string& error,
+                                  bool allowReferenceMigration)
+    {
+        if (!CanMutateScene(&error))
+            return false;
         try
         {
             if (!context_)
                 context_ = Engine::ContentContext::Capture(assetsRoot);
             context_->RequireRoot(assetsRoot);
-            auto layout = SceneLayout::Load(layoutPath);
             std::string migration;
             try
             {
@@ -411,14 +447,13 @@ namespace SceneRuntime
                     throw;
                 migration = exception.what();
             }
-            if (!ReplaceLayout(std::move(layout), assetsRoot, error))
+            PreparedLayout prepared;
+            if (!PrepareLayout(std::move(layout), assetsRoot, error, false, prepared))
                 return false;
-            if (!migration.empty())
-            {
-                error = migration;
-                if (IsDocumentView())
-                    resourceDiagnostics_.push_back(migration);
-            }
+            if (!migration.empty() && IsDocumentView())
+                prepared.diagnostics.push_back(migration);
+            CommitLayout(std::move(prepared), false);
+            error.swap(migration);
             return true;
         }
         catch (const std::exception& exception)
@@ -431,6 +466,8 @@ namespace SceneRuntime
     bool SceneWorld::ReloadAssets(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
                                   const std::filesystem::path& shaderPath, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         auto storage = std::make_shared<SceneDocumentData>(SceneLayout{}, context_);
         auto candidate = IsDocumentView() ? std::make_unique<SceneWorld>(storage) : std::make_unique<SceneWorld>();
         if (context_ && !candidate->Content())
@@ -439,6 +476,7 @@ namespace SceneRuntime
             return false;
         models_.Swap(candidate->models_);
         layout_ = std::move(candidate->layout_);
+        animationScratch_.reset();
         objects_.swap(candidate->objects_);
         animatedModels_.swap(candidate->animatedModels_);
         animatorStates_.swap(candidate->animatorStates_);
@@ -459,13 +497,15 @@ namespace SceneRuntime
     bool SceneWorld::ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,
                                    bool preserveExecution)
     {
+        if (!CanMutateScene(&error))
+            return false;
         PreparedLayout prepared;
         if (!PrepareLayout(std::move(layout), assetsRoot, error, preserveExecution, prepared))
             return false;
         if (preserveExecution && prepareRuntime_ && !prepareRuntime_(prepared.layout, error))
             return false;
-        if (preserveExecution && scripts_)
-            scripts_->StopRemoved(layout_, prepared.layout);
+        if (preserveExecution && execution_)
+            execution_->values.scripts.StopRemoved(layout_, prepared.layout);
         CommitLayout(std::move(prepared), preserveExecution);
         error.clear();
         return true;
@@ -579,19 +619,22 @@ namespace SceneRuntime
 
     std::map<std::string, float> SceneWorld::AnimatorInputs(const SceneLayout& layout, const std::string& id) const
     {
-        auto parameters = inputValues_;
+        if (!execution_)
+            return {{"moveX", 0.0f}, {"moveY", 0.0f}, {"speed", 0.0f}, {"grounded", 1.0f}};
+        auto parameters = execution_->values.inputValues;
         const auto input = [&](const std::string& name)
         {
-            const auto found = inputValues_.find(name);
-            return found == inputValues_.end() ? 0.0f : found->second;
+            const auto found = execution_->values.inputValues.find(name);
+            return found == execution_->values.inputValues.end() ? 0.0f : found->second;
         };
         const auto& mapping = layout.settings.playerInputs;
         parameters["moveX"] = input(mapping[0]) - input(mapping[1]);
         parameters["moveY"] = input(mapping[2]) - input(mapping[3]);
         parameters["speed"] = std::hypot(parameters["moveX"], parameters["moveY"]);
-        const auto body = physics_.find(id);
-        parameters["grounded"] = body == physics_.end() ? 1.0f : (body->second.grounded ? 1.0f : 0.0f);
-        for (const auto& [name, pressed] : inputPressed_)
+        const auto body = execution_->values.physics.find(id);
+        parameters["grounded"] =
+            body == execution_->values.physics.end() ? 1.0f : (body->second.grounded ? 1.0f : 0.0f);
+        for (const auto& [name, pressed] : execution_->values.inputPressed)
             parameters["pressed:" + name] = pressed ? 1.0f : 0.0f;
         return parameters;
     }
@@ -670,6 +713,7 @@ namespace SceneRuntime
                                           PreparedLayout& prepared, const LayoutView& baseline, bool preserveExecution,
                                           bool indexAvailable, const std::map<std::string, std::string>& unresolved)
     {
+        Engine::CpuScope timing("Scene object preparation");
         prepared.objects.reserve(layout.objects.size());
         for (const auto& placement : layout.objects)
         {
@@ -699,6 +743,7 @@ namespace SceneRuntime
     bool SceneWorld::PrepareLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,
                                    bool preserveExecution, PreparedLayout& result, const PreparedLayout* previous)
     {
+        Engine::CpuScope timing("Scene layout preparation");
         if (!modelsReady_ && !IsDocumentView())
         {
             error = "Scene renderer is unavailable. Check shaders and restart.";
@@ -707,6 +752,9 @@ namespace SceneRuntime
         try
         {
             layout.Validate();
+            // 参照解決はパス・成分・Prefab 基準データ・参照表だけを変更し、ID や名前は生成しません。
+            // 直前に全体を検証した同じ候補との差分を検証し、解決で生じた不正な値も拒否します。
+            const auto validatedBeforeResolution = layout;
             if (!context_)
                 context_ = Engine::ContentContext::Capture(assetsRoot);
             context_->RequireRoot(assetsRoot);
@@ -723,7 +771,7 @@ namespace SceneRuntime
             std::map<std::string, std::string> unresolved;
             const bool indexAvailable =
                 PrepareLayoutAssets(layout, prepared, previous, configurationCurrent, unresolved);
-            layout.Validate();
+            layout.ValidateChanges(validatedBeforeResolution);
             std::vector<DirectX::XMFLOAT4X4> matrices;
             if (!SceneTransforms::Resolve(layout, matrices, error))
                 throw std::runtime_error(error);
@@ -750,8 +798,10 @@ namespace SceneRuntime
     }
     void SceneWorld::CommitLayout(PreparedLayout&& prepared, bool preserveExecution)
     {
-        if (!preserveExecution && scripts_)
-            scripts_->Stop(layout_);
+        if (!preserveExecution)
+            animationScratch_.reset();
+        if (!preserveExecution && execution_)
+            execution_->values.scripts.Stop(layout_);
         if (prepared.shadow && prepared.shadow != shadow_)
         {
             if (retirement_)
@@ -772,18 +822,18 @@ namespace SceneRuntime
         if (retirement_)
             retirement_->Collect();
         ++renderVersion_;
-        if (!preserveExecution)
+        if (execution_ && !preserveExecution)
         {
-            previousPhysical_.clear();
-            currentPhysical_.clear();
-            physics_.clear();
-            physicsWorld_.Reset();
-            fixedSeconds_ = 0;
-            fixedJump_ = false;
-            fixedPressed_.clear();
+            execution_->values.previousPhysical.clear();
+            execution_->values.currentPhysical.clear();
+            execution_->values.physics.clear();
+            execution_->physicsWorld.Reset();
+            execution_->values.fixedSeconds = 0;
+            execution_->values.fixedJump = false;
+            execution_->values.fixedPressed.clear();
         }
-        else
-            std::erase_if(physics_,
+        else if (execution_)
+            std::erase_if(execution_->values.physics,
                           [&](const auto& pair)
                           {
                               return std::none_of(layout_.objects.begin(), layout_.objects.end(),
@@ -1013,11 +1063,13 @@ namespace SceneRuntime
         return SceneTransforms::Compose(placement, matrix);
     }
 
-    bool SceneWorld::CommitTransforms(SceneLayout candidate)
+    bool SceneWorld::CommitTransforms(const SceneLayout& candidate)
     {
+        if (!CanMutateScene())
+            return false;
         auto objects = objects_;
         std::string error;
-        if (!PrepareTransforms(candidate, objects, error))
+        if (!PrepareTransforms(candidate, objects, error, &layout_))
             return false;
         for (size_t index = 0; index < layout_.objects.size(); ++index)
         {
@@ -1026,7 +1078,7 @@ namespace SceneRuntime
             target.position = source.position;
             target.rotation = source.rotation;
             target.scale = source.scale;
-            target.parentId = std::move(candidate.objects[index].parentId);
+            target.parentId = source.parentId;
         }
         objects_ = std::move(objects);
         ++renderVersion_;
@@ -1035,11 +1087,15 @@ namespace SceneRuntime
 
     bool SceneWorld::SetParent(std::string_view id, const std::string& parentId, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         return SetParents({std::string(id)}, parentId, error);
     }
 
     bool SceneWorld::SetParents(const std::vector<std::string>& ids, const std::string& parentId, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         try
         {
             if (ids.empty())
@@ -1094,6 +1150,8 @@ namespace SceneRuntime
     }
     bool SceneWorld::SetSettings(const SceneSettings& settings, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         try
         {
             auto candidate = layout_;
@@ -1116,11 +1174,11 @@ namespace SceneRuntime
                     return false;
                 localShadow_ = std::move(local);
             }
-            if (layout_.settings.fixedStep != settings.fixedStep)
+            if (execution_ && layout_.settings.fixedStep != settings.fixedStep)
             {
-                fixedSeconds_ = 0;
-                previousPhysical_.clear();
-                currentPhysical_.clear();
+                execution_->values.fixedSeconds = 0;
+                execution_->values.previousPhysical.clear();
+                execution_->values.currentPhysical.clear();
             }
             layout_.settings = settings;
             ++renderVersion_;
@@ -1137,6 +1195,8 @@ namespace SceneRuntime
     bool SceneWorld::SetComponents(std::string_view id, const ScenePlacement& settings,
                                    const std::filesystem::path& assetsRoot, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         auto owner = settings;
         owner.id = id;
         return SetComponentBatch({std::move(owner)}, assetsRoot, error);
@@ -1144,6 +1204,8 @@ namespace SceneRuntime
     bool SceneWorld::SetComponentBatch(const std::vector<ScenePlacement>& settings,
                                        const std::filesystem::path& assetsRoot, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         try
         {
             auto candidate = layout_;
@@ -1161,8 +1223,8 @@ namespace SceneRuntime
                 if (!found->camera && candidate.settings.mainCamera == setting.id)
                     candidate.settings.mainCamera.clear();
                 const auto index = static_cast<size_t>(found - candidate.objects.begin());
-                rebuild |= DifferentMeshMaterial(*found, layout_.objects[index]) ||
-                           DifferentAnimatedResources(*found, layout_.objects[index]);
+                rebuild |= SceneRuntime::SceneResourceChanges::MeshChanged(*found, layout_.objects[index]) ||
+                           SceneRuntime::SceneResourceChanges::AnimationChanged(*found, layout_.objects[index]);
             }
             static_cast<void>(candidate.Serialize());
             if (IsDocumentView())
@@ -1195,6 +1257,8 @@ namespace SceneRuntime
 
     bool SceneWorld::GenerateRagdoll(const std::string& id, const std::filesystem::path& root, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         const auto model = animatedModels_.find(id);
         const auto state = animatorStates_.find(id);
         if (model == animatedModels_.end() || state == animatorStates_.end())
@@ -1209,13 +1273,15 @@ namespace SceneRuntime
     }
     bool SceneWorld::AddImpulse(const std::string& id, const std::array<float, 3>& impulse)
     {
+        if (!CanMutateScene())
+            return false;
         const auto object = std::find_if(layout_.objects.begin(), layout_.objects.end(),
                                          [&](const auto& item)
                                          {
                                              return item.id == id;
                                          });
-        return object != layout_.objects.end() && object->rigidBody && object->rigidBody->enabled &&
-               object->rigidBody->motion == "dynamic" && physicsWorld_.AddImpulse(id, impulse);
+        return execution_ && object != layout_.objects.end() && object->rigidBody && object->rigidBody->enabled &&
+               object->rigidBody->motion == "dynamic" && execution_->physicsWorld.AddImpulse(id, impulse);
     }
     std::map<std::string, bool> SceneWorld::FixedRootOverrides(SceneLayout& layout, const ScriptRuntime& scripts) const
     {
@@ -1341,10 +1407,12 @@ namespace SceneRuntime
                                           std::vector<AnimatorFrame>& frames,
                                           std::map<std::string, std::array<float, 3>>& impulses, std::string& error)
     {
-        if (ScriptRuntime::HasPhase(prepared.layout, ScriptPhase::LateUpdate))
+        if (ScriptRuntime::HasPhase(prepared.layout, ScriptPhase::LateUpdate,
+                                    &execution_->values.scripts.Definitions()))
         {
             auto late = prepared.layout;
-            if (!runtime.UpdateCandidate(late, seconds, error, inputValues_, inputPressed_, &physicsWorld_,
+            if (!runtime.UpdateCandidate(late, seconds, error, execution_->values.inputValues,
+                                         execution_->values.inputPressed, &execution_->physicsWorld,
                                          ScriptPhase::LateUpdate, &layout_))
             {
                 Engine::Log::Warning(error);
@@ -1524,8 +1592,10 @@ namespace SceneRuntime
                 continue;
             }
             const auto& original = before.objects[found->second];
-            changes.resolveAssets = changes.resolveAssets || DifferentMeshMaterial(p, original);
-            changes.animatedChange = changes.animatedChange || DifferentAnimatedResources(p, original);
+            changes.resolveAssets =
+                changes.resolveAssets || SceneRuntime::SceneResourceChanges::MeshChanged(p, original);
+            changes.animatedChange =
+                changes.animatedChange || SceneRuntime::SceneResourceChanges::AnimationChanged(p, original);
         }
         return changes;
     }
@@ -1626,85 +1696,57 @@ namespace SceneRuntime
     }
     bool SceneWorld::MovePlayers(double seconds, float horizontal, float vertical, bool jump)
     {
-        if (!scripts_)
-            return false;
+        return ExecuteUpdate(seconds, horizontal, vertical, jump, true, false);
+    }
+    bool SceneWorld::PrepareMovement(SceneLayout& candidate, double seconds, float horizontal, float vertical,
+                                     bool jump)
+    {
         Engine::CpuScope scope("Physics and player movement");
-        if (!ValidPlayerInput(seconds, horizontal, vertical))
-            return false;
-        auto pending = std::min(seconds, 0.1) + fixedSeconds_;
-        auto pressed = fixedPressed_;
-        AccumulatePressed(inputPressed_, pressed);
-        bool pendingJump = fixedJump_ || jump;
+        auto& values = execution_->values;
+        std::string error;
+        auto pending = std::min(seconds, 0.1) + values.fixedSeconds;
+        auto pressed = values.fixedPressed;
+        AccumulatePressed(values.inputPressed, pressed);
+        bool pendingJump = values.fixedJump || jump;
         if (pending + 1e-10 < FixedStep())
         {
-            fixedSeconds_ = pending;
-            ++renderVersion_;
-            fixedPressed_ = std::move(pressed);
-            fixedJump_ = pendingJump;
+            values.fixedSeconds = pending;
+            values.fixedPressed = std::move(pressed);
+            values.fixedJump = pendingJump;
             return true;
         }
-        try
+        unsigned int steps = 0;
+        const auto MaximumFixedSteps = layout_.settings.maximumFixedSteps;
+        while (pending + 1e-10 >= FixedStep() && steps < MaximumFixedSteps)
         {
-            auto transaction = physicsWorld_.BeginTransaction();
-            auto candidate = layout_;
-            auto states = physics_;
-            auto runtime = *scripts_;
-            std::string error;
-            auto previousPoses = previousPhysical_, currentPoses = currentPhysical_;
-            unsigned int steps = 0;
-            const auto MaximumFixedSteps = layout_.settings.maximumFixedSteps;
-            while (pending + 1e-10 >= FixedStep() && steps < MaximumFixedSteps)
-            {
-                previousPoses = PhysicalPoses(candidate);
-                if (!FixedTick(candidate, states, runtime, horizontal, vertical, pendingJump, pressed, error))
-                {
-                    Engine::Log::Warning(error);
-                    return false;
-                }
-                currentPoses = PhysicalPoses(candidate);
-                ++steps;
-                pending = std::max(0.0, pending - FixedStep());
-                pendingJump = false;
-                pressed.clear();
-            }
-            pending = DropFixedBacklog(pending, FixedStep());
-            PreparedLayout prepared;
-            if (!PrepareScriptLayout(std::move(candidate), nullptr, prepared, error) ||
-                (prepareRuntime_ && !prepareRuntime_(prepared.layout, error)))
+            values.previousPhysical = PhysicalPoses(candidate);
+            if (!FixedTick(candidate, values.physics, values.scripts, horizontal, vertical, pendingJump, pressed,
+                           error))
             {
                 Engine::Log::Warning(error);
                 return false;
             }
-            if (!frameUpdating_)
-                if (!ScriptRuntime::ValidateForPlay(prepared.layout, error))
-                    return false;
-            CommitLayout(std::move(prepared), true);
-            physics_ = std::move(states);
-            if (!frameUpdating_)
-                runtime.CommitStarts();
-            *scripts_ = std::move(runtime);
-            previousPhysical_ = std::move(previousPoses);
-            currentPhysical_ = std::move(currentPoses);
-            fixedSeconds_ = pending;
-            ++renderVersion_;
-            fixedJump_ = pendingJump;
-            fixedPressed_ = std::move(pressed);
-            transaction.Commit();
-            return true;
+            values.currentPhysical = PhysicalPoses(candidate);
+            ++steps;
+            pending = std::max(0.0, pending - FixedStep());
+            pendingJump = false;
+            pressed.clear();
         }
-        catch (const std::exception& error)
-        {
-            Engine::Log::Warning(error.what());
-            return false;
-        }
+        pending = DropFixedBacklog(pending, FixedStep());
+        values.fixedSeconds = pending;
+        values.fixedJump = pendingJump;
+        values.fixedPressed = std::move(pressed);
+        return true;
     }
     bool SceneWorld::FixedTick(SceneLayout& layout, ScenePhysics::States& states, ScriptRuntime& scripts,
                                float horizontal, float vertical, bool jump, const std::map<std::string, bool>& pressed,
                                std::string& error)
     {
-        const bool hasFixedUpdate = ScriptRuntime::HasPhase(layout, ScriptPhase::FixedUpdate);
-        if (hasFixedUpdate && !scripts.UpdateCandidate(layout, FixedStep(), error, inputValues_, pressed,
-                                                       &physicsWorld_, ScriptPhase::FixedUpdate, &layout_))
+        const bool hasFixedUpdate =
+            ScriptRuntime::HasPhase(layout, ScriptPhase::FixedUpdate, &execution_->values.scripts.Definitions());
+        if (hasFixedUpdate &&
+            !scripts.UpdateCandidate(layout, FixedStep(), error, execution_->values.inputValues, pressed,
+                                     &execution_->physicsWorld, ScriptPhase::FixedUpdate, &layout_))
             return false;
         if (std::any_of(layout.objects.begin(), layout.objects.end(),
                         [](const auto& p)
@@ -1719,7 +1761,7 @@ namespace SceneRuntime
         const auto savedRootMotion = FixedRootOverrides(layout, scripts);
         if (hasFixedUpdate)
             for (const auto& [id, impulse] : scripts.Impulses())
-                if (!physicsWorld_.AddImpulse(id, impulse))
+                if (!execution_->physicsWorld.AddImpulse(id, impulse))
                 {
                     error = "FixedUpdate impulse rejected";
                     return false;
@@ -1729,7 +1771,8 @@ namespace SceneRuntime
         const auto ragdollOwnerEnabled = DisableRagdollOwners(layout, states);
         if (!AdvanceLegacyPlayers(layout, states, horizontal, vertical, jump))
             return false;
-        if (!physicsWorld_.Advance(layout, states, FixedStep(), horizontal, vertical, jump, assetsRoot_, error))
+        if (!execution_->physicsWorld.Advance(layout, states, FixedStep(), horizontal, vertical, jump, assetsRoot_,
+                                              error))
             return false;
         RestoreRagdollOwners(layout, ragdollOwnerEnabled);
         for (auto& object : layout.objects)
@@ -1744,11 +1787,11 @@ namespace SceneRuntime
             for (const auto& script : object.scripts)
                 if (script.enabled)
                 {
-                    const auto definition = ScriptRegistry::Definitions().find(script.behaviour);
-                    if (definition != ScriptRegistry::Definitions().end() && definition->second.onEvent)
+                    const auto definition = scripts.Definitions().find(script.behaviour);
+                    if (definition != scripts.Definitions().end() && definition->second.onEvent)
                         listeners.insert(object.id);
                 }
-        for (const auto& contact : physicsWorld_.Events())
+        for (const auto& contact : execution_->physicsWorld.Events())
         {
             const auto name = std::string(contact.trigger ? "trigger" : "collision") + contact.phase;
             try
@@ -1861,11 +1904,13 @@ namespace SceneRuntime
 
     bool SceneWorld::QueueScriptEvent(ScriptEvent event, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         try
         {
-            if (!scripts_)
+            if (!execution_)
                 throw std::runtime_error("Editing document cannot receive runtime events");
-            scripts_->QueueEvent(std::move(event));
+            execution_->values.scripts.QueueEvent(std::move(event));
             error.clear();
             return true;
         }
@@ -1878,13 +1923,15 @@ namespace SceneRuntime
 
     bool SceneWorld::StartScripts(std::string& error)
     {
-        if (!scripts_)
+        if (!CanMutateScene(&error))
+            return false;
+        if (!execution_)
         {
             error = "Editing documents cannot start scripts";
             return false;
         }
         auto layout = layout_;
-        auto runtime = *scripts_;
+        auto runtime = execution_->values.scripts;
         if (!runtime.StartCandidate(layout, error))
             return false;
         PreparedLayout prepared;
@@ -1894,37 +1941,36 @@ namespace SceneRuntime
             return false;
         if (prepareUi_ && !prepareUi_(prepared.layout, runtime.UiCommands(), error))
             return false;
-        if (!ScriptRuntime::ValidateForPlay(prepared.layout, error))
+        if (!ScriptRuntime::ValidateForPlay(prepared.layout, error, &execution_->values.scripts.Definitions()))
             return false;
         CommitLayout(std::move(prepared), true);
         runtime.CommitStarts();
-        *scripts_ = std::move(runtime);
+        execution_->values.scripts = std::move(runtime);
         return true;
     }
     bool SceneWorld::UpdateComponents(double seconds)
     {
-        if (!scripts_)
-            return false;
+        return ExecuteUpdate(seconds, 0, 0, false, false, true);
+    }
+    bool SceneWorld::PrepareComponents(SceneLayout candidate, double seconds, PreparedLayout& prepared,
+                                       std::vector<AnimatorFrame>& frames,
+                                       std::map<std::string, std::array<float, 3>>& impulses, std::string& error)
+    {
         Engine::CpuScope scope("Components update");
-        if (!std::isfinite(seconds) || seconds <= 0)
-            return false;
-        auto candidate = layout_;
         RotateComponents(candidate, seconds);
-        auto runtime = *scripts_;
-        std::string error;
-        if (!runtime.UpdateCandidate(candidate, seconds, error, inputValues_, inputPressed_, &physicsWorld_,
-                                     ScriptPhase::Update, &layout_))
+        auto& runtime = execution_->values.scripts;
+        if (!runtime.UpdateCandidate(candidate, seconds, error, execution_->values.inputValues,
+                                     execution_->values.inputPressed, &execution_->physicsWorld, ScriptPhase::Update,
+                                     &layout_))
         {
             Engine::Log::Warning(error);
             return false;
         }
-        PreparedLayout prepared;
         if (!PrepareScriptLayout(std::move(candidate), nullptr, prepared, error))
         {
             Engine::Log::Warning(error);
             return false;
         }
-        std::vector<AnimatorFrame> frames;
         if (!PrepareAnimators(prepared.layout, seconds, prepared.animated, prepared.states, runtime, frames, error))
         {
             Engine::Log::Warning(error);
@@ -1937,7 +1983,7 @@ namespace SceneRuntime
         }
         for (const auto& frame : frames)
             prepared.states.at(frame.id) = frame.state;
-        auto impulses = runtime.Impulses();
+        impulses = runtime.Impulses();
         if (!UpdateLateComponents(seconds, prepared, runtime, frames, impulses, error))
             return false;
         if (!PrepareRuntimeCallbacks(prepared.layout, runtime, error))
@@ -1945,15 +1991,8 @@ namespace SceneRuntime
             Engine::Log::Warning(error);
             return false;
         }
-        if (!ScriptRuntime::ValidateForPlay(prepared.layout, error))
+        if (!ScriptRuntime::ValidateForPlay(prepared.layout, error, &execution_->values.scripts.Definitions()))
             return false;
-        CommitLayout(std::move(prepared), true);
-        CommitAnimatorFrames(frames);
-        for (const auto& [id, impulse] : impulses)
-            physicsWorld_.AddImpulse(id, impulse);
-        if (!frameUpdating_)
-            runtime.CommitStarts();
-        *scripts_ = std::move(runtime);
         return true;
     }
 
@@ -1979,7 +2018,7 @@ namespace SceneRuntime
             }
             if (actors.empty())
                 return true;
-            if (!physicsWorld_.ConstrainRootMotion(before, prepared.layout, actors, assetsRoot_, error))
+            if (!execution_->physicsWorld.ConstrainRootMotion(before, prepared.layout, actors, assetsRoot_, error))
                 return false;
             if (!PrepareTransforms(prepared.layout, prepared.objects, error))
                 return false;
@@ -1998,6 +2037,8 @@ namespace SceneRuntime
     }
     bool SceneWorld::SetAnimatorParameter(const std::string& id, const std::string& name, float value)
     {
+        if (!CanMutateScene())
+            return false;
         const auto found = animatorStates_.find(id);
         if (found == animatorStates_.end())
             return false;
@@ -2016,12 +2057,16 @@ namespace SceneRuntime
     }
     bool SceneWorld::ClearAnimatorParameter(const std::string& id, const std::string& name)
     {
+        if (!CanMutateScene())
+            return false;
         const auto found = animatorStates_.find(id);
         return found != animatorStates_.end() && found->second.parameterOverrides.erase(name) > 0;
     }
 
     bool SceneWorld::RenameObject(std::string_view id, std::string name)
     {
+        if (!CanMutateScene())
+            return false;
         if (name.find_first_not_of(" \t\r\n") == std::string::npos || name.find('\0') != std::string::npos)
             return false;
         const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
@@ -2037,23 +2082,32 @@ namespace SceneRuntime
 
     bool SceneWorld::SetPlacementTransform(std::string_view id, const ScenePlacement& placement)
     {
-        auto candidate = layout_;
-        const auto found = std::find_if(candidate.objects.begin(), candidate.objects.end(),
+        Engine::CpuScope timing("Placement transform update");
+        if (!CanMutateScene())
+            return false;
+        const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
                                         [&](const auto& value)
                                         {
                                             return value.id == id;
                                         });
-        if (found == candidate.objects.end())
+        if (found == layout_.objects.end())
             return false;
-        found->position = placement.position;
-        found->rotation = placement.rotation;
-        found->scale = placement.scale;
+        if (found->position == placement.position && found->rotation == placement.rotation &&
+            found->scale == placement.scale)
+            return true;
+        const auto index = static_cast<size_t>(found - layout_.objects.begin());
+        auto candidate = layout_;
+        candidate.objects[index].position = placement.position;
+        candidate.objects[index].rotation = placement.rotation;
+        candidate.objects[index].scale = placement.scale;
         return CommitTransforms(std::move(candidate));
     }
 
     bool SceneWorld::SetLocalTransform(std::string_view id, const std::array<float, 3>& position,
                                        const std::array<float, 3>& rotation, const std::array<float, 3>& scale)
     {
+        if (!CanMutateScene())
+            return false;
         const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
                                         [&](const auto& value)
                                         {
@@ -2071,6 +2125,8 @@ namespace SceneRuntime
     bool SceneWorld::SetWorldTransform(std::string_view id, const std::array<float, 3>& position,
                                        const std::array<float, 3>& rotation, const std::array<float, 3>& scale)
     {
+        if (!CanMutateScene())
+            return false;
         ScenePlacement placement;
         placement.position = position;
         placement.rotation = rotation;
@@ -2083,6 +2139,8 @@ namespace SceneRuntime
 
     bool SceneWorld::SetWorldTransform(std::string_view id, const DirectX::XMFLOAT4X4& matrix)
     {
+        if (!CanMutateScene())
+            return false;
         ScenePlacement placement;
         if (!LocalTransformFromWorld(id, matrix, placement))
             return false;
@@ -2091,6 +2149,8 @@ namespace SceneRuntime
 
     bool SceneWorld::TranslateObjectsWorld(const std::vector<std::string>& ids, const std::array<float, 3>& delta)
     {
+        if (!CanMutateScene())
+            return false;
         if (ids.empty() || !std::all_of(delta.begin(), delta.end(),
                                         [](float value)
                                         {
@@ -2121,6 +2181,8 @@ namespace SceneRuntime
     bool SceneWorld::RotateObjectsWorld(const std::vector<std::string>& ids, const std::array<float, 3>& pivot,
                                         const DirectX::XMFLOAT4X4& rotation)
     {
+        if (!CanMutateScene())
+            return false;
         if (ids.empty() || !IsRotation(rotation) ||
             !std::all_of(pivot.begin(), pivot.end(),
                          [](float value)
@@ -2139,6 +2201,8 @@ namespace SceneRuntime
     bool SceneWorld::ScaleObjectsWorld(const std::vector<std::string>& ids, const std::array<float, 3>& pivot,
                                        const DirectX::XMFLOAT4X4& axes, const std::array<float, 3>& factors)
     {
+        if (!CanMutateScene())
+            return false;
         if (!IsRotation(axes) ||
             !std::all_of(pivot.begin(), pivot.end(),
                          [](float value)
@@ -2165,6 +2229,8 @@ namespace SceneRuntime
 
     bool SceneWorld::TransformObjectsWorld(const std::vector<std::string>& ids, const DirectX::XMFLOAT4X4& delta)
     {
+        if (!CanMutateScene())
+            return false;
         if (ids.empty() || !SceneTransforms::IsUsable(delta))
             return false;
         auto candidate = layout_;
@@ -2215,6 +2281,8 @@ namespace SceneRuntime
     bool SceneWorld::AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,
                                std::string& createdId, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         createdId.clear();
         try
         {
@@ -2271,6 +2339,8 @@ namespace SceneRuntime
     bool SceneWorld::DuplicateObject(std::string_view id, const std::array<float, 3>& offset, std::string& createdId,
                                      std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         std::vector<std::string> created;
         const bool success = DuplicateObjects({std::string(id)}, offset, created, error);
         createdId = success ? created.front() : std::string{};
@@ -2280,6 +2350,12 @@ namespace SceneRuntime
     static bool FindDuplicateIndices(const SceneLayout& layout, const std::vector<std::string>& requested,
                                      std::vector<size_t>& indices, std::string& error)
     {
+        if (requested.empty())
+        {
+            error = "No objects selected";
+            return false;
+        }
+
         for (const auto& id : requested)
         {
             const auto found = std::find_if(layout.objects.begin(), layout.objects.end(),
@@ -2314,13 +2390,10 @@ namespace SceneRuntime
     bool SceneWorld::DuplicateObjects(const std::vector<std::string>& ids, const std::array<float, 3>& offset,
                                       std::vector<std::string>& createdIds, std::string& error)
     {
+        if (!CanMutateScene(&error))
+            return false;
         const auto requested = ids;
         createdIds.clear();
-        if (requested.empty())
-        {
-            error = "No objects selected";
-            return false;
-        }
         std::vector<size_t> indices;
         if (!FindDuplicateIndices(layout_, requested, indices, error))
             return false;
@@ -2402,18 +2475,18 @@ namespace SceneRuntime
         return true;
     }
 
-    bool SceneWorld::RemoveObjects(const std::vector<std::string>& ids, std::string& error)
+    static bool ValidateRemovedIds(const SceneLayout& layout, const std::unordered_set<std::string>& removed,
+                                   std::string& error)
     {
-        if (ids.empty())
+        if (removed.empty())
         {
             error = "No objects selected";
             return false;
         }
-        const std::unordered_set<std::string> removed(ids.begin(), ids.end());
         const auto missing = std::find_if(removed.begin(), removed.end(),
                                           [&](const auto& id)
                                           {
-                                              return std::none_of(layout_.objects.begin(), layout_.objects.end(),
+                                              return std::none_of(layout.objects.begin(), layout.objects.end(),
                                                                   [&](const auto& object)
                                                                   {
                                                                       return object.id == id;
@@ -2424,6 +2497,15 @@ namespace SceneRuntime
             error = *missing + ": object no longer exists";
             return false;
         }
+        return true;
+    }
+    bool SceneWorld::RemoveObjects(const std::vector<std::string>& ids, std::string& error)
+    {
+        if (!CanMutateScene(&error))
+            return false;
+        const std::unordered_set<std::string> removed(ids.begin(), ids.end());
+        if (!ValidateRemovedIds(layout_, removed, error))
+            return false;
         auto candidate = layout_;
         candidate.objects.clear();
         for (auto& [name, members] : candidate.sceneObjects)
@@ -2466,10 +2548,8 @@ namespace SceneRuntime
         {
             animatedModels_.erase(id);
             animatorStates_.erase(id);
-            physics_.erase(id);
             lodModels_.erase(id);
-            previousPhysical_.erase(id);
-            currentPhysical_.erase(id);
+            ForgetExecutionObject(id);
         }
         error.clear();
         return true;
@@ -2531,10 +2611,11 @@ namespace SceneRuntime
     bool SceneWorld::InterpolatedLocalTransform(const ScenePlacement& p, DirectX::XMFLOAT4X4& transform,
                                                 DirectX::XMFLOAT4X4& rotation) const
     {
-        if (!HasPhysicalPose(p))
+        if (!execution_ || !HasPhysicalPose(p))
             return false;
-        const auto before = previousPhysical_.find(p.id), now = currentPhysical_.find(p.id);
-        if (before == previousPhysical_.end() || now == currentPhysical_.end())
+        const auto before = execution_->values.previousPhysical.find(p.id),
+                   now = execution_->values.currentPhysical.find(p.id);
+        if (before == execution_->values.previousPhysical.end() || now == execution_->values.currentPhysical.end())
             return false;
         const auto& a = before->second;
         const auto& b = now->second;
@@ -2551,7 +2632,7 @@ namespace SceneRuntime
             if (std::abs(a.scale[i] - b.scale[i]) >
                 1e-5f * std::max(1.0f, std::max(std::abs(a.scale[i]), std::abs(b.scale[i]))))
                 return false;
-        const float alpha = static_cast<float>(std::clamp(fixedSeconds_ / FixedStep(), 0.0, 1.0));
+        const float alpha = static_cast<float>(std::clamp(execution_->values.fixedSeconds / FixedStep(), 0.0, 1.0));
         std::array<float, 3> position;
         for (size_t i = 0; i < 3; ++i)
             position[i] = a.position[i] + (p.position[i] - a.position[i]) * alpha;

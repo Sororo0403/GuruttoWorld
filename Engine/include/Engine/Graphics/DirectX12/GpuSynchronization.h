@@ -5,6 +5,9 @@
 
 namespace Engine
 {
+    /// <summary>同一デバイスのDIRECTキューへフェンスを送信し、それ以前の処理の完了を待ちます。</summary>
+    bool SynchronizeGpuQueue(ID3D12Device* device, ID3D12CommandQueue* queue);
+
     /// <summary>
     /// GPU キューへ完了値を登録します。失敗時はデバイス喪失を確定させ、安全な解放を可能にします。
     /// </summary>

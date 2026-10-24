@@ -434,4 +434,7 @@
       <Filter>include\Engine\Assets</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Core\Utf8.h"><Filter>include\Engine\Core</Filter></ClInclude>
+  </ItemGroup>
 </Project>

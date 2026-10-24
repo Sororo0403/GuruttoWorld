@@ -35,8 +35,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ScriptSchemaCompiler.cpp" />
-    <ProjectReference Include="..\..\SceneRuntime\SceneRuntime.vcxproj" />
-    <ProjectReference Include="..\..\Engine\Engine.vcxproj" />
+    <ProjectReference Include="..\..\SceneRuntime\SceneData.vcxproj" />
   </ItemGroup>
   <ItemDefinitionGroup>
     <Manifest>

@@ -1,5 +1,6 @@
 #pragma once
 #include "../Ui/UiValidation.h"
+#include "../Scene/LayoutAssetValidation.h"
 #include "../../../Editor/src/Playback/GameSession.h"
 #include <limits>
 #if defined(_DEBUG)
@@ -55,6 +56,7 @@ namespace AnimationValidation
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
+        LayoutAssetValidation::Run(root);
         using namespace SceneRuntime;
         auto layout = UiValidation::Layout();
         layout.objects.back().audioSource.reset();
@@ -90,6 +92,22 @@ namespace AnimationValidation
         Editor::GameSession session;
         std::string error;
         UiValidation::Require(session.Play(renderer, root, layout, error), "animated scene initializes in Editor");
+        auto& world = session.Runtime()->World();
+        const auto originalLayout = world.Layout().Serialize();
+        const auto originalCamera = world.Layout().objects[layout.objects.size() - 2];
+        UiValidation::Require(
+            world.SetLocalTransform("camera", originalCamera.position, originalCamera.rotation, originalCamera.scale),
+            "identical placement transform is accepted");
+        UiValidation::Require(!world.SetLocalTransform("missing-camera", originalCamera.position,
+                                                       originalCamera.rotation, originalCamera.scale),
+                              "identical transform still requires an existing object");
+        auto invalidCamera = originalCamera;
+        invalidCamera.position[0] = std::numeric_limits<float>::quiet_NaN();
+        UiValidation::Require(
+            !world.SetLocalTransform("camera", invalidCamera.position, invalidCamera.rotation, invalidCamera.scale),
+            "nonfinite placement transform is rejected");
+        UiValidation::Require(world.Layout().Serialize() == originalLayout,
+                              "identical and rejected transforms preserve the complete scene");
         UiValidation::Require(session.Runtime()->MovePlayers(0.1, 1, 1), "player movement accepted");
         const auto moved = session.Runtime()->World().Layout().objects.back().position;
         const float maximumDistance =
@@ -105,6 +123,15 @@ namespace AnimationValidation
         session.Runtime()->SeekAnimation(0.5f, 0.5f);
         UiValidation::Require(session.Runtime()->CameraPosition() == std::array<float, 3>{2, 1, -9},
                               "camera keyframe preview");
+        const auto sampledLayout = world.Layout().Serialize();
+        UiValidation::Require(world.Animate(session.Runtime()->Ui().values) &&
+                                  world.Layout().Serialize() == sampledLayout,
+                              "repeated animation time preserves the complete scene");
+        UiValidation::Require(
+            world.SetLocalTransform("camera", {20, 10, -30}, originalCamera.rotation, originalCamera.scale) &&
+                world.Animate(session.Runtime()->Ui().values) &&
+                session.Runtime()->CameraPosition() == std::array<float, 3>{2, 1, -9},
+            "same animation clock reapplies after an external transform edit");
         session.Pause();
         const auto before = session.Runtime()->CameraPosition();
         session.Update(0.1, true);
@@ -118,6 +145,43 @@ namespace AnimationValidation
         session.Runtime()->SeekAnimation(0, 0, -1);
         UiValidation::Require(session.Runtime()->CameraPosition() == std::array<float, 3>{0, 0, -10},
                               "seeking backward restores camera pose");
+        auto configuredCamera = world.Layout().objects[layout.objects.size() - 2];
+        auto invalidAnimatedCamera = configuredCamera;
+        invalidAnimatedCamera.camera->nearClip = 1;
+        invalidAnimatedCamera.camera->farClip = 100;
+        auto nearTrack = track;
+        nearTrack.property = "camera.nearClip";
+        nearTrack.keys = {{0, {1, 0, 0, 0}}, {1, {200, 0, 0, 0}}};
+        invalidAnimatedCamera.animation->tracks.push_back(nearTrack);
+        const auto configuredPlayer = world.Layout().objects.back();
+        auto animatedPlayer = configuredPlayer;
+        animatedPlayer.animation = AnimationComponent{"animation", true, {track}};
+        UiValidation::Require(world.SetComponentBatch({invalidAnimatedCamera, animatedPlayer}, root, error),
+                              "cross-property animation fixture initializes");
+        const auto beforeInvalidAnimation = world.Layout().Serialize();
+        UiValidation::Require(!world.Animate({{"sceneTime", 1.0f}}) &&
+                                  world.Layout().Serialize() == beforeInvalidAnimation,
+                              "invalid animated camera rolls back changes to every placement together");
+        UiValidation::Require(world.SetComponentBatch({configuredCamera, configuredPlayer}, root, error) &&
+                                  world.Animate({{"sceneTime", .5f}}) &&
+                                  session.Runtime()->CameraPosition() == std::array<float, 3>{2, 1, -9},
+                              "animation candidate recovers after validation failure and component replacement");
+        auto overlappingCamera = configuredCamera;
+        auto lastTrack = track;
+        lastTrack.keys = {{0, {7, 0, -10, 0}}, {1, {7, 0, -10, 0}}};
+        overlappingCamera.animation->tracks.push_back(lastTrack);
+        UiValidation::Require(world.SetComponentBatch({overlappingCamera}, root, error) &&
+                                  world.Animate({{"sceneTime", .5f}}) &&
+                                  session.Runtime()->CameraPosition() == std::array<float, 3>{7, 0, -10} &&
+                                  world.Animate({{"sceneTime", .5f}}) &&
+                                  session.Runtime()->CameraPosition() == std::array<float, 3>{7, 0, -10},
+                              "overlapping animation tracks retain declaration order on repeated application");
+        configuredCamera.animation.reset();
+        UiValidation::Require(world.SetComponentBatch({configuredCamera}, root, error),
+                              "animation component removal succeeds");
+        const auto withoutAnimation = world.Layout().Serialize();
+        UiValidation::Require(world.Animate({{"sceneTime", 1.0f}}) && world.Layout().Serialize() == withoutAnimation,
+                              "removed animation does not reuse a previous candidate");
         session.Stop();
         UiValidation::Require(layout.Serialize() == saved, "preview never changes authored scene");
 #if defined(_DEBUG)

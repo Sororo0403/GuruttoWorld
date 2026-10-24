@@ -1,46 +1,15 @@
 #pragma once
 #include "../Editing/EditState.h"
+#include <SceneRuntime/Rendering/SceneResourceChanges.h>
 
 namespace Editor
 {
     struct ComponentEditResources
     {
-        static bool TextChanged(const SceneRuntime::ScenePlacement& before, const SceneRuntime::ScenePlacement& after)
-        {
-            if (before.text)
-            {
-                if (before.text->text != after.text->text || before.text->font != after.text->font ||
-                    before.text->fontSize != after.text->fontSize)
-                    return true;
-                const std::array<float, 2> defaultSize{200, 60};
-                const auto oldSize = before.rectTransform ? before.rectTransform->size : defaultSize;
-                const auto newSize = after.rectTransform ? after.rectTransform->size : defaultSize;
-                if (oldSize != newSize)
-                    return true;
-            }
-            return false;
-        }
+        /// <summary>資源交換の判定を、描画準備を所有するランタイムへ委譲します。</summary>
         static bool Changed(const SceneRuntime::ScenePlacement& before, const SceneRuntime::ScenePlacement& after)
         {
-            const auto resources = [](const SceneRuntime::ScenePlacement& value)
-            {
-                return std::tie(value.terrain, value.tilemap, value.inputField, value.meshRenderer, value.material,
-                                value.animator);
-            };
-            if (resources(before) != resources(after))
-                return true;
-            const auto controls = [](const SceneRuntime::ScenePlacement& value)
-            {
-                return std::array{value.slider.has_value(), value.toggle.has_value(), value.image.has_value(),
-                                  value.text.has_value()};
-            };
-            if (controls(before) != controls(after))
-                return true;
-            if (before.image && before.image->texture != after.image->texture)
-                return true;
-            if (TextChanged(before, after))
-                return true;
-            return false;
+            return SceneRuntime::SceneResourceChanges::RequiresSynchronization(before, after);
         }
         static bool NeedsIdle(const SceneRuntime::SceneLayout& layout, const ObjectRequest& request)
         {

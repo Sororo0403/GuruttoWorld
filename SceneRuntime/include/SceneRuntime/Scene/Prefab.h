@@ -1,6 +1,12 @@
 #pragma once
 #include <SceneRuntime/Scene/SceneLayout.h>
-#include <Engine/Assets/ContentContext.h>
+#include <memory>
+#include <functional>
+#include <stdexcept>
+namespace Engine
+{
+    class ContentContext;
+}
 
 namespace SceneRuntime
 {
@@ -16,6 +22,12 @@ namespace SceneRuntime
     class Prefab final
     {
     public:
+        using SourceLoader = std::function<SceneLayout(const std::filesystem::path&)>;
+        /// <summary>明示された読取関数で依存素材を一度ずつ解決し、全体の検証後に更新します。</summary>
+        static void RefreshPrepared(SceneLayout& scene, const SourceLoader& loader);
+        /// <summary>更新済みの基準データへ個体を戻します。ファイルや索引へはアクセスしません。</summary>
+        static void RevertInstance(SceneLayout& scene, const std::string& rootId);
+
         static bool ValidPath(const std::filesystem::path& path);
         static SceneLayout Extract(const SceneLayout& scene, const std::string& rootId);
         /// <summary>内部参照を変換し、指定された外部接続だけを解決して配置します。</summary>

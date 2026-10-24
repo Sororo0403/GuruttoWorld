@@ -1,21 +1,11 @@
 #pragma once
+#include <SceneRuntime/Physics/PhysicsTypes.h>
 #include <SceneRuntime/Physics/ScenePhysics.h>
 #include <memory>
+#include <Engine/Assets/AssetFileRevision.h>
 
 namespace SceneRuntime
 {
-    struct PhysicsRayHit
-    {
-        std::string object;
-        float distance = 0;
-        std::array<float, 3> position{}, normal{};
-        bool trigger = false;
-    };
-    struct PhysicsContactEvent
-    {
-        std::string first, second, phase;
-        bool trigger = false;
-    };
     class PhysicsWorld final
     {
     public:
@@ -71,8 +61,7 @@ namespace SceneRuntime
         std::shared_ptr<Impl> impl_;
         mutable std::shared_ptr<Impl> rootQueries_;
         mutable std::filesystem::path rootQueryRoot_;
-        mutable std::map<std::filesystem::path, std::pair<std::filesystem::file_time_type, std::uintmax_t>>
-            rootQueryFiles_;
+        mutable std::map<std::filesystem::path, std::optional<Engine::AssetFileRevision>> rootQueryFiles_;
         std::map<std::string, std::array<float, 3>> impulses_;
         std::vector<PhysicsContactEvent> events_;
     };

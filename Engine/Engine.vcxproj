@@ -212,6 +212,7 @@
     <ClCompile Include="src\Animation\TwoBoneIk.cpp" />
     <ClInclude Include="include\Engine\Assets\AssetDatabase.h" />
     <ClInclude Include="include\Engine\Assets\AssetPath.h" />
+    <ClInclude Include="include\Engine\Core\Utf8.h" />
     <ClInclude Include="include\Engine\Assets\ContentContext.h" />
     <ClInclude Include="include\Engine\Assets\AssetReferenceResolver.h" />
     <ClInclude Include="include\Engine\Assets\TextureImport.h" />

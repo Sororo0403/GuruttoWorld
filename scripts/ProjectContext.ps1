@@ -81,6 +81,8 @@ function Sync-GeneratedGameProject {
   <Project Path="__NAME__.vcxproj" />
   <Project Path="__ROOT__Engine/Engine.vcxproj" />
   <Project Path="__ROOT__SceneRuntime/SceneRuntime.vcxproj" />
+  <Project Path="__ROOT__SceneRuntime/SceneData.vcxproj" />
+  <Project Path="__ROOT__SceneRuntime/SceneStorage.vcxproj" />
 </Solution>
 '@
     $projectFiles = @{

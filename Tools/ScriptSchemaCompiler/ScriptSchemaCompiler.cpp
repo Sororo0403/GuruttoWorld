@@ -1,4 +1,5 @@
 #include <SceneRuntime/Scripts/ScriptSchema.h>
+#include <SceneRuntime/Scripts/ScriptSchemaFiles.h>
 #include <Engine/Core/FileContents.h>
 #include <iostream>
 #include <vector>
@@ -25,7 +26,7 @@ int wmain(int count, wchar_t** arguments)
         if (count != 2)
             throw std::runtime_error("Usage: ScriptSchemaCompiler <content root>");
         const auto root = std::filesystem::absolute(arguments[1]);
-        const auto schemas = SceneRuntime::ScriptSchema::LoadProject(root);
+        const auto schemas = SceneRuntime::ScriptSchemaFiles::LoadProject(root);
         const auto sourceRoot = root / "Assets/Scripts";
         std::vector<std::pair<std::filesystem::path, std::string>> plans;
         if (!std::filesystem::is_directory(sourceRoot))
@@ -37,7 +38,7 @@ int wmain(int count, wchar_t** arguments)
                 continue;
             const auto document = Engine::Json::parse(*Engine::FileContents::Read(entry.path()));
             std::string text =
-                "// スキーマのJSONから生成します。定義の変更はJSONへ記述してください。\n#pragma once\n#include <SceneRuntime/Scripts/ScriptRuntime.h>\n\nnamespace SceneRuntime::GeneratedSchemas\n{\n";
+                "// スキーマのJSONから生成します。定義の変更はJSONへ記述してください。\n#pragma once\n#include <SceneRuntime/Scripts/ScriptApi.h>\n\nnamespace SceneRuntime::GeneratedSchemas\n{\n";
             for (const auto& [name, declaration] : document.at("scripts").items())
             {
                 static_cast<void>(declaration);

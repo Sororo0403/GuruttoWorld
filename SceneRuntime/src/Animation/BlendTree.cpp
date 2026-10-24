@@ -1,5 +1,7 @@
 #include <Engine/Core/Validation.h>
 #include <SceneRuntime/Animation/BlendTree.h>
+#include "BlendTreeValidation.h"
+using namespace SceneRuntime::Detail;
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -13,15 +15,7 @@ namespace
     {
         return !value.empty() && value.size() <= limit && value.find('\0') == std::string::npos;
     }
-    double ClipDuration(const Engine::SkeletonData& rig, const std::string& name)
-    {
-        if (name.empty())
-            return 1;
-        const auto found = std::ranges::find(rig.clips, name, &Engine::SkeletalClip::name);
-        if (found == rig.clips.end() || !std::isfinite(found->duration) || found->duration <= 0)
-            throw std::runtime_error("Blend Tree clip missing or invalid: " + name);
-        return found->duration;
-    }
+
     double Parameter(const std::map<std::string, float>& parameters, const std::string& name)
     {
         const auto found = parameters.find(name);
@@ -131,11 +125,7 @@ namespace
                 samples.push_back({child.clip, speed * child.speed, static_cast<float>(weight * weights[index])});
         }
     }
-    void ValidateSample(const SceneRuntime::AnimatorMotionSample& sample)
-    {
-        if (!std::isfinite(sample.weight) || sample.weight < 0 || !std::isfinite(sample.speed) || sample.speed <= 0)
-            throw std::runtime_error("Invalid Blend Tree sample");
-    }
+
     void ValidateMotion(const SceneRuntime::AnimatorBlendMotion& child)
     {
         if (!Engine::ValidString(child.clip, 256) || !Engine::ValidString(child.blendTree, 128) ||
@@ -258,63 +248,5 @@ namespace SceneRuntime
             throw std::runtime_error("Invalid Blend Tree duration");
         return duration / total;
     }
-    std::vector<Engine::BonePose> BlendTree::SamplePose(const std::vector<AnimatorMotionSample>& samples,
-                                                        const Engine::SkeletonData& rig, double phase, bool loop)
-    {
-        if (!std::isfinite(phase) || phase < 0 || samples.empty() || samples.size() > 256)
-            throw std::runtime_error("Invalid Blend Tree phase");
-        std::vector<std::vector<Engine::BonePose>> poses;
-        std::vector<float> weights;
-        double total = 0;
-        for (const auto& sample : samples)
-        {
-            ValidateSample(sample);
-            if (sample.weight == 0)
-                continue;
-            poses.push_back(Engine::Skeleton::Sample(
-                rig, sample.clip,
-                (loop ? std::fmod(phase, 1.0) : std::min(phase, 1.0)) * ClipDuration(rig, sample.clip), false));
-            weights.push_back(sample.weight);
-            total += sample.weight;
-        }
-        if (total <= 0)
-            throw std::runtime_error("Empty Blend Tree weights");
-        if (poses.size() == 1)
-            return poses.front();
-        if (poses.size() == 2)
-            return Engine::Skeleton::Blend(poses[0], poses[1], static_cast<float>(weights[1] / total));
-        auto result = poses.front();
-        for (size_t node = 0; node < result.size(); ++node)
-        {
-            auto& value = result[node];
-            value.position = {};
-            value.scale = {};
-            const auto& first = poses[0][node].rotation;
-            auto rotation =
-                DirectX::XMQuaternionNormalize(DirectX::XMVectorSet(first[0], first[1], first[2], first[3]));
-            double accumulated = weights[0];
-            for (size_t index = 0; index < poses.size(); ++index)
-            {
-                const float weight = static_cast<float>(weights[index] / total);
-                const auto& source = poses[index][node];
-                for (size_t axis = 0; axis < 3; ++axis)
-                {
-                    value.position[axis] += source.position[axis] * weight;
-                    value.scale[axis] += source.scale[axis] * weight;
-                }
-                auto quaternion = DirectX::XMQuaternionNormalize(DirectX::XMVectorSet(
-                    source.rotation[0], source.rotation[1], source.rotation[2], source.rotation[3]));
-                if (index > 0)
-                {
-                    accumulated += weights[index];
-                    rotation = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionSlerp(
-                        rotation, quaternion, static_cast<float>(weights[index] / accumulated)));
-                }
-            }
-            DirectX::XMFLOAT4 output;
-            DirectX::XMStoreFloat4(&output, DirectX::XMQuaternionNormalize(rotation));
-            value.rotation = {output.x, output.y, output.z, output.w};
-        }
-        return result;
-    }
+
 }

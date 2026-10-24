@@ -91,7 +91,7 @@ namespace
                                 return part == "..";
                             }))
                 throw std::runtime_error("Invalid initial scene path");
-            document.OpenPath(root / scene);
+            document.Request(root / scene, false, false);
         }
         int Run()
         {
@@ -491,9 +491,8 @@ namespace
                 reloadRequested = false;
                 if (!renderer.WaitForIdle())
                     return false;
-                if (world.Reload(root, document.Path(), fileStatus, true))
+                if (document.Open(world, root, document.Path(), fileStatus))
                 {
-                    document.OpenPath(document.Path());
                     sceneLoaded = true;
                     editState.Reloaded();
                     history.Reset(Snapshot(SceneJson()));
@@ -660,6 +659,14 @@ namespace
             return true;
         }
 
+        // 編集投影を準備し、取得済みのシーンと保存基準を同じ操作で受理します。
+        bool InitializeDocument(Engine::DirectX12Renderer& renderer)
+        {
+            if (!world.Initialize(renderer, root, SceneRuntime::SceneLayout{}, root / "Shaders/Mesh.hlsl", &fileStatus))
+                return false;
+            return document.Apply(world, root, fileStatus);
+        }
+
         bool ApplyPendingChanges(Engine::DirectX12Renderer& renderer)
         {
             if (!initialized)
@@ -673,8 +680,7 @@ namespace
                 const auto settingsRoot = Engine::GetDiagnosticsRoot();
                 Editor::PanelLayout::Initialize(settingsRoot.empty() ? std::filesystem::path{}
                                                                      : settingsRoot / "Editor/layout.ini");
-                sceneLoaded =
-                    world.Initialize(renderer, root, document.Path(), root / "Shaders/Mesh.hlsl", &fileStatus, true);
+                sceneLoaded = InitializeDocument(renderer);
                 presentation = std::make_unique<SceneRuntime::ScenePresentation>();
                 if (!presentation->Initialize(renderer, root, fileStatus, context))
                 {

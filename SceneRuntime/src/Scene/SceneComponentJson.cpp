@@ -7,8 +7,8 @@
 #include "../Ui/UiJson.h"
 #include "../Gameplay/GenreJson.h"
 #include "../Animation/AnimatorJson.h"
-#include <SceneRuntime/Rendering/MaterialAsset.h>
-#include <SceneRuntime/Ui/SceneUi.h>
+#include <SceneRuntime/Rendering/MaterialAssetFormat.h>
+#include <SceneRuntime/Ui/UiState.h>
 #include <algorithm>
 #include <iterator>
 #include <cmath>
@@ -129,7 +129,7 @@ namespace
         {
             const auto text = component.at("material").get<std::string>();
             legacyMaterial = std::filesystem::path(std::u8string(text.begin(), text.end()));
-            if (!legacyMaterial.empty() && !SceneRuntime::MaterialAsset::ValidPath(legacyMaterial))
+            if (!legacyMaterial.empty() && !SceneRuntime::MaterialAssetFormat::ValidPath(legacyMaterial))
                 throw std::runtime_error("Invalid legacy mesh material path");
         }
     }
@@ -189,7 +189,7 @@ namespace
             throw std::runtime_error("Only one Material is allowed");
         const auto text = component.at("asset").get<std::string>();
         const auto path = std::filesystem::path(std::u8string(text.begin(), text.end()));
-        if (!path.empty() && !SceneRuntime::MaterialAsset::ValidPath(path))
+        if (!path.empty() && !SceneRuntime::MaterialAssetFormat::ValidPath(path))
             throw std::runtime_error("Invalid material asset path");
         placement.material = SceneRuntime::MaterialComponent{id, enabled, path};
         auto& material = *placement.material;
@@ -198,7 +198,7 @@ namespace
             material.color = component.at("color").get<std::array<float, 4>>();
         material.roughness = component.value("roughness", .5f);
         material.metallic = component.value("metallic", 0.0f);
-        material.shaderParameters = SceneRuntime::MaterialAsset::ReadShaderParameters(component);
+        material.shaderParameters = SceneRuntime::MaterialAssetFormat::ReadShaderParameters(component);
         if (std::any_of(std::begin(material.color), std::end(material.color),
                         [](const auto channel)
                         {
@@ -221,7 +221,7 @@ namespace
             {
                 const auto slotText = value.get<std::string>();
                 const auto slot = std::filesystem::path(std::u8string(slotText.begin(), slotText.end()));
-                if (!slot.empty() && !SceneRuntime::MaterialAsset::ValidPath(slot))
+                if (!slot.empty() && !SceneRuntime::MaterialAssetFormat::ValidPath(slot))
                     throw std::runtime_error("Invalid Material slot asset path");
                 placement.material->slots.push_back(slot);
             }

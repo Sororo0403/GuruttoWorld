@@ -2,7 +2,8 @@
 #include "UiJson.h"
 #include "../Audio/AudioJson.h"
 #include "UiControlJson.h"
-#include <SceneRuntime/Ui/SceneUi.h>
+#include <SceneRuntime/Gameplay/MenuConfiguration.h>
+#include <SceneRuntime/Ui/UiState.h>
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>

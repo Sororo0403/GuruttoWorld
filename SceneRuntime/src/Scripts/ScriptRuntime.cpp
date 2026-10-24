@@ -1,5 +1,7 @@
 #include <Engine/Core/Validation.h>
+#include <Engine/Core/Utf8.h>
 #include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <SceneRuntime/Physics/PhysicsWorld.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Profiler.h>
 #include <algorithm>
@@ -34,51 +36,17 @@ namespace
             key.find('\0') != std::string::npos || (!existing && count >= 256))
             throw std::runtime_error("Invalid UI command key or command limit exceeded");
     }
-    struct UiUtf8Prefix
-    {
-        size_t bytes;
-        char32_t code, minimum;
-    };
-    UiUtf8Prefix ReadUiUtf8Prefix(unsigned char lead)
-    {
-        if (lead >= 0xc2 && lead <= 0xdf)
-            return {1, static_cast<char32_t>(lead & 0x1f), 0x80};
-        if (lead >= 0xe0 && lead <= 0xef)
-            return {2, static_cast<char32_t>(lead & 0x0f), 0x800};
-        if (lead >= 0xf0 && lead <= 0xf4)
-            return {3, static_cast<char32_t>(lead & 7), 0x10000};
-        throw std::runtime_error("UI text must be valid UTF-8");
-    }
     void ValidateUiText(const std::string& text)
     {
         if (text.size() > 4096 || text.find('\0') != std::string::npos)
             throw std::runtime_error("Invalid UI text length");
-        for (size_t index = 0; index < text.size();)
-        {
-            const auto lead = static_cast<unsigned char>(text[index++]);
-            if (lead < 0x80)
-                continue;
-            auto prefix = ReadUiUtf8Prefix(lead);
-            if (prefix.bytes > text.size() - index)
-                throw std::runtime_error("UI text must be valid UTF-8");
-            for (size_t i = 0; i < prefix.bytes; ++i)
-            {
-                const auto byte = static_cast<unsigned char>(text[index++]);
-                if ((byte & 0xc0) != 0x80)
-                    throw std::runtime_error("UI text must be valid UTF-8");
-                prefix.code = (prefix.code << 6) | (byte & 0x3f);
-            }
-            if (prefix.code < prefix.minimum || prefix.code > 0x10ffff ||
-                (prefix.code >= 0xd800 && prefix.code <= 0xdfff))
-                throw std::runtime_error("UI text must be valid UTF-8");
-        }
+        if (!Engine::ValidUtf8(text))
+            throw std::runtime_error("UI text must be valid UTF-8");
     }
     ScriptDefinition FollowDefinition()
     {
         ScriptDefinition follow;
-        follow.dataFields = {{"active", {true}},
-                             {"target", {ScriptObjectReference{}}},
-                             {"offset", {ScriptValue::Object{{"x", {0.0f}}, {"y", {0.0f}}, {"z", {0.0f}}}}}};
+        static_cast<ScriptSchema&>(follow) = ScriptSchema::Builtins().at("FollowTarget");
         follow.update = [](ScriptContext& context)
         {
             if (!std::get<bool>(context.Data("active")->value))
@@ -102,7 +70,7 @@ namespace
         {
             std::map<std::string, ScriptDefinition> result;
             ScriptDefinition bob;
-            bob.fields = {{"amplitude", {0.5f, 0, 1000}}, {"frequency", {1, 0, 1000}}};
+            static_cast<ScriptSchema&>(bob) = ScriptSchema::Builtins().at("Bob");
             bob.start = [](ScriptContext& context)
             {
                 context.state["origin"] = context.object.position[1];
@@ -118,7 +86,7 @@ namespace
             };
             result.emplace("Bob", std::move(bob));
             ScriptDefinition spin;
-            spin.fields = {{"speed", {90, -100000, 100000}}};
+            static_cast<ScriptSchema&>(spin) = ScriptSchema::Builtins().at("Spin");
             spin.update = [](ScriptContext& context)
             {
                 context.object.rotation[1] =
@@ -128,7 +96,7 @@ namespace
             };
             result.emplace("Spin", std::move(spin));
             ScriptDefinition pulse;
-            pulse.fields = {{"duration", {.2f, .01f, 60}}, {"peak", {15, 0, 10000}}};
+            static_cast<ScriptSchema&>(pulse) = ScriptSchema::Builtins().at("AnimationEventPulse");
             pulse.start = [](ScriptContext& context)
             {
                 context.state["origin"] = context.object.pointLight ? context.object.pointLight->intensity : 0;
@@ -162,7 +130,7 @@ namespace
             };
             result.emplace("AnimationEventPulse", std::move(pulse));
             ScriptDefinition orbit;
-            orbit.fields = {{"radius", {.25f, 0, 1000}}, {"frequency", {.3f, 0, 1000}}, {"weight", {1, 0, 1}}};
+            static_cast<ScriptSchema&>(orbit) = ScriptSchema::Builtins().at("IkOrbit");
             orbit.update = [](ScriptContext& context)
             {
                 if (!context.scene || !context.object.animator || context.object.animator->ik.empty())
@@ -179,7 +147,7 @@ namespace
             };
             result.emplace("IkOrbit", std::move(orbit));
             ScriptDefinition rootMotion;
-            rootMotion.fields = {{"enabled", {1, -1, 1}}};
+            static_cast<ScriptSchema&>(rootMotion) = ScriptSchema::Builtins().at("RootMotionControl");
             rootMotion.update = [](ScriptContext& context)
             {
                 if (!context.scene || !context.object.animator)
@@ -220,17 +188,7 @@ namespace
 }
 namespace SceneRuntime
 {
-    const std::map<std::string, ScriptSchema>& ScriptSchema::Builtins()
-    {
-        static const auto schemas = []
-        {
-            std::map<std::string, ScriptSchema> result;
-            for (const auto& [name, definition] : BuiltinDefinitions())
-                result.emplace(name, static_cast<const ScriptSchema&>(definition));
-            return result;
-        }();
-        return schemas;
-    }
+
     const ScenePlacement* ScriptScene::Find(const std::string& id) const
     {
         const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
@@ -420,6 +378,12 @@ namespace SceneRuntime
         else
             layout_.Validate();
     }
+    std::optional<PhysicsRayHit> ScriptScene::Raycast(const std::array<float, 3>& origin,
+                                                      const std::array<float, 3>& direction, float distance,
+                                                      unsigned int mask, bool triggers, const std::string& ignore) const
+    {
+        return physics_ ? physics_->Raycast(origin, direction, distance, mask, triggers, ignore) : std::nullopt;
+    }
     void ScriptScene::PlayAudio(const std::string& object)
     {
         AudioCommand command{AudioCommandKind::Play, object};
@@ -597,15 +561,20 @@ namespace SceneRuntime
         const auto found = pressed->find(name);
         return found != pressed->end() && found->second;
     }
-    bool ScriptRuntime::HasPhase(const SceneLayout& layout, ScriptPhase phase)
+    std::shared_ptr<const ScriptDefinitions> ScriptRegistry::Capture()
     {
+        return std::make_shared<const ScriptDefinitions>(Registry());
+    }
+    bool ScriptRuntime::HasPhase(const SceneLayout& layout, ScriptPhase phase, const ScriptDefinitions* definitions)
+    {
+        const auto& catalog = definitions ? *definitions : Registry();
         for (const auto& object : layout.objects)
             for (const auto& script : object.scripts)
             {
                 if (!script.enabled)
                     continue;
-                const auto found = Registry().find(script.behaviour);
-                if (found == Registry().end())
+                const auto found = catalog.find(script.behaviour);
+                if (found == catalog.end())
                     continue;
                 const auto& definition = found->second;
                 if (phase == ScriptPhase::FixedUpdate && definition.fixedUpdate)
@@ -617,8 +586,10 @@ namespace SceneRuntime
             }
         return false;
     }
-    bool ScriptRuntime::ValidateForPlay(const SceneLayout& layout, std::string& error)
+    bool ScriptRuntime::ValidateForPlay(const SceneLayout& layout, std::string& error,
+                                        const ScriptDefinitions* definitions)
     {
+        const auto& catalog = definitions ? *definitions : Registry();
         try
         {
             for (const auto& object : layout.objects)
@@ -626,8 +597,8 @@ namespace SceneRuntime
                 {
                     if (!script.enabled)
                         continue;
-                    const auto definition = Registry().find(script.behaviour);
-                    if (definition == Registry().end())
+                    const auto definition = catalog.find(script.behaviour);
+                    if (definition == catalog.end())
                         throw std::runtime_error(object.id + "/" + script.id +
                                                  ": Script behaviour is not registered: " + script.behaviour);
                     Validate(script, definition->second);
@@ -643,7 +614,7 @@ namespace SceneRuntime
     }
     bool ScriptRuntime::StartCandidate(SceneLayout& layout, std::string& error)
     {
-        if (!ValidateForPlay(layout, error))
+        if (!ValidateForPlay(layout, error, &Definitions()))
             return false;
         return Advance(layout, 1.0 / 60, error, {}, {}, {nullptr, ScriptPhase::Update, nullptr, true});
     }
@@ -762,8 +733,8 @@ namespace SceneRuntime
             static_cast<void>(key);
             try
             {
-                const auto definition = Registry().find(instance.behaviour);
-                if (definition == Registry().end() || !definition->second.pause)
+                const auto definition = Definitions().find(instance.behaviour);
+                if (definition == Definitions().end() || !definition->second.pause)
                     continue;
                 const auto owner = std::find_if(layout.objects.begin(), layout.objects.end(),
                                                 [&](const auto& object)
@@ -916,7 +887,7 @@ namespace SceneRuntime
         for (const auto& [key, instance] : instances_)
         {
             static_cast<void>(key);
-            if (!Registry().at(instance.behaviour).stop && !Registry().at(instance.behaviour).prepareStop)
+            if (!Definitions().at(instance.behaviour).stop && !Definitions().at(instance.behaviour).prepareStop)
                 continue;
             const auto* owner = scene.Find(instance.owner);
             if (owner)
@@ -955,8 +926,8 @@ namespace SceneRuntime
             {
                 if (!script.enabled)
                     continue;
-                const auto definition = Registry().find(script.behaviour);
-                if (definition == Registry().end())
+                const auto definition = Definitions().find(script.behaviour);
+                if (definition == Definitions().end())
                     throw std::runtime_error("Script behaviour is not registered: " + script.behaviour);
                 Validate(script, definition->second);
                 const auto key = std::pair{object.id, script.id};
@@ -1000,7 +971,7 @@ namespace SceneRuntime
             auto previousOwners = CaptureStopOwners(scene);
             scene.Commit();
             StopDestroyed(scene, previousOwners);
-            if (!ValidateForPlay(layout, error))
+            if (!ValidateForPlay(layout, error, &Definitions()))
                 throw std::runtime_error(error);
             events_ = std::move(scene.events);
             if (scene.sceneCommands.size() > 64)
@@ -1047,7 +1018,7 @@ namespace SceneRuntime
                 context.contentRoot = content_ ? content_->Root() : std::filesystem::path{};
                 context.data = &instance.data;
                 context.dataState = &instance.dataState;
-                const auto& definition = Registry().at(instance.behaviour);
+                const auto& definition = Definitions().at(instance.behaviour);
                 if (instance.pending)
                     instance.pending->committed = true;
                 try
@@ -1082,7 +1053,7 @@ namespace SceneRuntime
     }
     void ScriptRuntime::QueueStop(ScenePlacement& owner, const Instance& instance)
     {
-        const auto& definition = Registry().at(instance.behaviour);
+        const auto& definition = Definitions().at(instance.behaviour);
         auto parameters = instance.parameters;
         auto state = instance.state;
         auto data = instance.data;
@@ -1168,8 +1139,8 @@ namespace SceneRuntime
                                                 {
                                                     return object.id == instance.owner;
                                                 });
-                const auto definition = Registry().find(instance.behaviour);
-                if (owner != previous.objects.end() && definition != Registry().end() &&
+                const auto definition = Definitions().find(instance.behaviour);
+                if (owner != previous.objects.end() && definition != Definitions().end() &&
                     (definition->second.stop || definition->second.prepareStop))
                 {
                     auto& state = iterator->second;

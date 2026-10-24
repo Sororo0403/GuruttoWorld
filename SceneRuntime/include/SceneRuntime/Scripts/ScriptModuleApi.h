@@ -1,5 +1,5 @@
 #pragma once
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <SceneRuntime/Scripts/ScriptApi.h>
 #include <cstdint>
 #include <Engine/Core/BuildIdentity.h>
 

@@ -1,16 +1,14 @@
-#include <SceneRuntime/Scene/SceneAssetReferences.h>
+#include <Engine/Core/Profiler.h>
 #include <SceneRuntime/Scene/SceneLayout.h>
 #include <iterator>
 #include "SceneComponentJson.h"
 #include "SceneSettingsJson.h"
 #include <SceneRuntime/Scene/Prefab.h>
-#include <Engine/Assets/AssetDatabase.h>
-#include <Engine/Core/FileContents.h>
-#include <Engine/Core/FileReplacement.h>
+#include <Engine/Assets/AssetPath.h>
 #include <Engine/Core/Json.h>
+#include <Engine/Core/Utf8.h>
 #include <cmath>
 #include <algorithm>
-#include <fstream>
 #include <limits>
 #include <stdexcept>
 #include <unordered_set>
@@ -229,7 +227,7 @@ namespace SceneRuntime
     static void ValidateAssetMetadata(const SceneLayout& layout)
     {
         for (const auto& [path, id] : layout.assetReferences)
-            if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
+            if (!Engine::AssetPath::Valid(path) || !Engine::AssetPath::ValidId(id))
                 throw std::runtime_error("Invalid asset reference metadata");
     }
     static SceneLayout ParseDocument(const Json& document)
@@ -341,12 +339,103 @@ namespace SceneRuntime
         return document;
     }
 
+    static void ValidateDocumentValues(const Json& value)
+    {
+        if (value.is_number_float() && !std::isfinite(value.get<double>()))
+            throw std::runtime_error("Cannot normalize nonfinite component number");
+        if (value.is_string() && !Engine::ValidUtf8(value.get_ref<const Json::string_t&>()))
+            throw std::runtime_error("Scene strings must be valid UTF-8");
+        if (value.is_object())
+            for (const auto& [key, child] : value.items())
+            {
+                if (!Engine::ValidUtf8(key))
+                    throw std::runtime_error("Scene keys must be valid UTF-8");
+                ValidateDocumentValues(child);
+            }
+        else if (value.is_array())
+            for (const auto& child : value)
+                ValidateDocumentValues(child);
+    }
+    SceneLayout SceneLayout::Normalized() const
+    {
+        const auto document = LayoutDocument(*this);
+        // 保存形式のUTF-8と数値の制約を、文字列の生成・再解析なしで維持します。
+        ValidateDocumentValues(document);
+        return ParseDocument(document);
+    }
     void SceneLayout::Validate() const
     {
-        static_cast<void>(ParseDocument(LayoutDocument(*this)));
+        Engine::CpuScope timing("Scene layout validation");
+        static_cast<void>(Normalized());
     }
 
-    static void ValidateObjectChanges(const ScenePlacement& object, const ScenePlacement& before)
+    static bool ReusableMaterialComponents(const ScenePlacement& components)
+    {
+        if (!components.material)
+            return false;
+        size_t count = 0;
+        components.VisitComponents(
+            [&](const auto&)
+            {
+                ++count;
+            });
+        if (count != 1)
+            return false;
+        bool canonical = true;
+        auto material = *components.material;
+        ComponentAssetReferences(
+            material,
+            [&](const std::filesystem::path& path)
+            {
+                canonical = canonical && path.native() == path.generic_string<std::filesystem::path::value_type>();
+            });
+        return canonical;
+    }
+    static void ValidateComponentChanges(const ScenePlacement& object, const ScenePlacement& before,
+                                         std::vector<ScenePlacement>& validatedComponents)
+    {
+        ScenePlacement changed;
+        bool structureChanged = false;
+#define ENGINE_SCENE_CHANGED_OPTIONAL(Type, member, references, assets, order)                                         \
+    if (object.member != before.member)                                                                                \
+    {                                                                                                                  \
+        structureChanged |= !object.member || !before.member || object.member->id != before.member->id;                \
+        changed.member = object.member;                                                                                \
+    }
+#define ENGINE_SCENE_CHANGED_REPEATED(Type, member, references, assets, order)                                         \
+    structureChanged |= object.member != before.member;
+        ENGINE_SCENE_COMPONENTS(ENGINE_SCENE_CHANGED_OPTIONAL, ENGINE_SCENE_CHANGED_REPEATED)
+#undef ENGINE_SCENE_CHANGED_OPTIONAL
+#undef ENGINE_SCENE_CHANGED_REPEATED
+        // 構造が同じなら未変更の値は検証済みです。ID・多重度が変わる場合は従来の全体検証を維持します。
+        const auto& components = structureChanged ? object : changed;
+        // パスの成分比較で生表記の違いを隠さないよう、標準表記の単独Materialだけを共有します。
+        const bool reusable = ReusableMaterialComponents(components);
+        if (reusable && std::any_of(validatedComponents.begin(), validatedComponents.end(),
+                                    [&](const auto& validated)
+                                    {
+                                        return validated.SameComponents(components);
+                                    }))
+        {
+            Engine::CpuProfiler::Add("Component validation cache hit", 0);
+            return;
+        }
+        {
+            Engine::CpuScope timing("Component change validation");
+            ScenePlacement checked;
+            ReadSceneComponents(Json{{"components", WriteSceneComponents(components)}}, checked, false);
+        }
+        // この呼び出しで成功した完全な成分集合だけを共有し、次回の検証へ状態を持ち越しません。
+        if (reusable && validatedComponents.size() < 8)
+        {
+            ScenePlacement validated;
+            validated.CopyComponents(components);
+            validatedComponents.push_back(std::move(validated));
+        }
+    }
+
+    static void ValidateObjectChanges(const ScenePlacement& object, const ScenePlacement& before,
+                                      std::vector<ScenePlacement>& validatedComponents)
     {
         for (const auto& vector : {object.position, object.rotation, object.scale})
             if (std::any_of(vector.begin(), vector.end(),
@@ -363,8 +452,7 @@ namespace SceneRuntime
             throw std::runtime_error("Transform contains an invalid number or zero scale");
         if (!object.SameComponents(before))
         {
-            ScenePlacement checked;
-            ReadSceneComponents(Json{{"components", WriteSceneComponents(object)}}, checked, false);
+            ValidateComponentChanges(object, before, validatedComponents);
         }
         if (object.prefab != before.prefab && object.prefab && (!ValidPrefabLink(*object.prefab)))
             throw std::runtime_error("Invalid prefab link");
@@ -377,7 +465,7 @@ namespace SceneRuntime
     {
         if (layout.assetReferences != validatedBefore.assetReferences)
             for (const auto& [path, id] : layout.assetReferences)
-                if (!Engine::AssetDatabase::Valid(path) || !Engine::AssetDatabase::ValidId(id))
+                if (!Engine::AssetPath::Valid(path) || !Engine::AssetPath::ValidId(id))
                     throw std::runtime_error("Invalid asset reference metadata");
     }
     static void CountSceneComponents(const ScenePlacement& object, size_t& menus, size_t& localLights)
@@ -412,12 +500,13 @@ namespace SceneRuntime
             // オブジェクト ID は検証済みの基準状態と一致しているため、階層が無効になる可能性があるのは親の編集時だけです。
             bool parentsChanged = false;
             size_t menus = 0, localLights = 0;
+            std::vector<ScenePlacement> validatedComponents;
             for (size_t index = 0; index < objects.size(); ++index)
             {
                 const auto& object = objects[index];
                 const auto& before = validatedBefore.objects[index];
                 parentsChanged = parentsChanged || object.parentId != before.parentId;
-                ValidateObjectChanges(object, before);
+                ValidateObjectChanges(object, before, validatedComponents);
                 CountSceneComponents(object, menus, localLights);
             }
             if (parentsChanged)
@@ -474,47 +563,4 @@ namespace SceneRuntime
         return json;
     }
 
-    std::string SceneLayout::SerializeForSave(const std::filesystem::path& path) const
-    {
-        auto saved = Parse(Serialize());
-        const auto root = Engine::AssetDatabase::Root(path);
-        if (!root.empty())
-            ResolveSceneAssetReferences(saved, Engine::AssetDatabase(root), true, false);
-        return Json::parse(saved.Serialize()).dump(2) + "\n";
-    }
-    void SceneLayout::Save(const std::filesystem::path& path, bool overwrite) const
-    {
-        Engine::FileReplacement::Save(
-            path,
-            [&]
-            {
-                return SerializeForSave(path);
-            },
-            overwrite);
-    }
-
-    void SceneLayout::ResolveAssets(const std::filesystem::path& root)
-    {
-        ResolveAssets(Engine::AssetDatabase(root));
-    }
-    void SceneLayout::ResolveAssets(const Engine::AssetDatabase& index)
-    {
-        auto candidate = Parse(Serialize());
-        ResolveSceneAssetReferences(candidate, index);
-        *this = Parse(candidate.Serialize());
-    }
-    SceneLayout SceneLayout::Load(const std::filesystem::path& path, const std::filesystem::path& assetsRoot)
-    {
-        const auto source = Engine::FileContents::Read(path);
-        if (!source)
-            throw std::runtime_error("Cannot open layout: " + path.string());
-        auto json = *source;
-        // 一般的なテキストエディターが付けるUTF-8 BOMを許可します。
-        if (json.starts_with("\xEF\xBB\xBF"))
-            json.erase(0, 3);
-        auto layout = Parse(json);
-        if (!assetsRoot.empty())
-            layout.ResolveAssets(assetsRoot);
-        return layout;
-    }
 }
