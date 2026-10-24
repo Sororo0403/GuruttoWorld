@@ -115,8 +115,16 @@ namespace
     }
     bool ModuleFilename(const std::string& filename)
     {
-        return filename.size() <= 128 && filename.starts_with("GameScripts-") && filename.ends_with(".dll") &&
-               filename.find_first_of("/\\:") == std::string::npos && filename.find("..") == std::string::npos;
+        constexpr std::string_view Prefix = "GameScripts-", Suffix = ".dll";
+        if (filename.size() <= Prefix.size() + Suffix.size() || filename.size() > Prefix.size() + Suffix.size() + 64 ||
+            !filename.starts_with(Prefix) || !filename.ends_with(Suffix))
+            return false;
+        return std::all_of(filename.begin() + Prefix.size(), filename.end() - Suffix.size(),
+                           [](unsigned char value)
+                           {
+                               return (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') ||
+                                      (value >= '0' && value <= '9') || value == '_' || value == '-';
+                           });
     }
 }
 namespace SceneRuntime
