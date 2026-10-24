@@ -5,10 +5,35 @@
 #include <iterator>
 #include <stdexcept>
 #include <unordered_map>
+#include <Engine/Core/Profiler.h>
 
 namespace
 {
     using Matrix = DirectX::XMFLOAT4X4;
+    struct TransformInput
+    {
+        std::string id, parent;
+        std::array<float, 3> position{}, rotation{}, scale{};
+        bool Matches(const SceneRuntime::ScenePlacement& placement) const
+        {
+            return id == placement.id && parent == placement.parentId && position == placement.position &&
+                   rotation == placement.rotation && scale == placement.scale;
+        }
+    };
+    struct ResolvedTransforms
+    {
+        std::vector<TransformInput> inputs;
+        std::vector<Matrix> matrices;
+        bool Matches(const SceneRuntime::SceneLayout& layout) const
+        {
+            if (inputs.size() != layout.objects.size())
+                return false;
+            for (size_t index = 0; index < inputs.size(); ++index)
+                if (!inputs[index].Matches(layout.objects[index]))
+                    return false;
+            return true;
+        }
+    };
     std::vector<std::optional<size_t>> ParentIndices(const SceneRuntime::SceneLayout& layout)
     {
         std::unordered_map<std::string, size_t> indices;
@@ -229,12 +254,49 @@ namespace SceneRuntime
     bool SceneTransforms::Resolve(const SceneLayout& layout, std::vector<DirectX::XMFLOAT4X4>& output,
                                   std::string& error)
     {
-        return Resolve(layout, {}, output, error);
+        // 同じ配置を物理・描画・音声が繰り返し解決します。全入力を比較し、成功した計算だけを保持します。
+        static thread_local std::vector<ResolvedTransforms> cache;
+        try
+        {
+            for (auto item = cache.begin(); item != cache.end(); ++item)
+                if (item->Matches(layout))
+                {
+                    output = item->matrices;
+                    std::rotate(item, item + 1, cache.end());
+                    error.clear();
+                    Engine::CpuProfiler::Add("Transform resolution cache hit", 0);
+                    return true;
+                }
+            if (!Resolve(layout, {}, output, error))
+                return false;
+            // 巨大な配置やIDをキャッシュへ固定せず、各スレッドで最大4件・各1MiBに制限します。
+            size_t bytes = layout.objects.size() * (sizeof(TransformInput) + sizeof(Matrix));
+            for (const auto& object : layout.objects)
+                bytes += object.id.size() + object.parentId.size();
+            if (bytes <= 1024 * 1024)
+            {
+                ResolvedTransforms entry;
+                entry.matrices = output;
+                entry.inputs.reserve(layout.objects.size());
+                for (const auto& object : layout.objects)
+                    entry.inputs.push_back(
+                        {object.id, object.parentId, object.position, object.rotation, object.scale});
+                cache.push_back(std::move(entry));
+                if (cache.size() > 4)
+                    cache.erase(cache.begin());
+            }
+            return true;
+        }
+        catch (const std::exception&)
+        {
+            return Resolve(layout, {}, output, error);
+        }
     }
     bool SceneTransforms::Resolve(const SceneLayout& layout,
                                   const std::map<std::string, DirectX::XMFLOAT4X4>& localOverrides,
                                   std::vector<DirectX::XMFLOAT4X4>& output, std::string& error)
     {
+        Engine::CpuScope timing("Transform resolution calculation");
         try
         {
             const auto parents = ParentIndices(layout);
