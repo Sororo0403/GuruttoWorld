@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="References" />
+    <Filter Include="References\Games" />
+    <Filter Include="References\Games\GuruttoWorld" />
+    <Filter Include="References\Games\GuruttoWorld\Assets" />
+    <Filter Include="References\Games\GuruttoWorld\Assets\Scripts" />
+    <Filter Include="src" />
+    <Filter Include="src\Gameplay" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Gameplay\StreetArrivalValidation.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\StreetArrival.cpp">
+      <Filter>References\Games\GuruttoWorld\Assets\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\SunriseStreet.cpp">
+      <Filter>References\Games\GuruttoWorld\Assets\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\StreetJourney.cpp">
+      <Filter>References\Games\GuruttoWorld\Assets\Scripts</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
