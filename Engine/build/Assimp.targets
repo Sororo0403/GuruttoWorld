@@ -7,6 +7,9 @@
     <AssimpZlibName Condition="'$(AssimpConfiguration)'=='Debug'">zlibstaticd.lib</AssimpZlibName>
     <AssimpZlibName Condition="'$(AssimpConfiguration)'!='Debug'">zlibstatic.lib</AssimpZlibName>
   </PropertyGroup>
+  <ItemGroup>
+    <AssimpDependencySources Include="$(AssimpRoot)dependencies\assimp-src\include\**\*;$(AssimpRoot)dependencies\assimp-src\code\**\*;$(AssimpRoot)dependencies\assimp-src\contrib\**\*" />
+  </ItemGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>$(AssimpRoot)dependencies\assimp-src\include;$(AssimpRoot)intermediate\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -20,7 +23,7 @@
     <Delete Files="$(AssimpRoot)intermediate\assimp\$(AssimpConfiguration).ready" />
   </Target>
   <Target Name="BuildAssimp" BeforeTargets="ClCompile"
-          Inputs="$(MSBuildThisFileDirectory)..\..\scripts\BuildAssimp.ps1;$(MSBuildThisFileFullPath)"
+          Inputs="$(MSBuildThisFileDirectory)..\..\scripts\BuildAssimp.ps1;$(MSBuildThisFileFullPath);@(AssimpDependencySources)"
           Outputs="$(AssimpRoot)intermediate\assimp\$(AssimpConfiguration).ready">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\scripts\BuildAssimp.ps1&quot; -Configuration $(AssimpConfiguration)" />
   </Target>

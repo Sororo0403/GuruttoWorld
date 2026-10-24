@@ -11,5 +11,6 @@ $taskShell = Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.e
 if ($LASTEXITCODE -ne 0) { throw 'Native identity fixture compilation failed.' }
 $taskModuleFolder = Join-Path $taskFixture "Assets/Scripts/Bin/$Configuration"
 $taskManifest = Get-Content -LiteralPath (Join-Path $taskModuleFolder 'module.json') -Raw | ConvertFrom-Json
-& (Join-Path $PSScriptRoot 'TestArchitectureContracts.ps1') -Configuration $Configuration -SkipBuild -Baseline -Require project-native-module-identity -Module (Join-Path $taskModuleFolder $taskManifest.file)
+# DLL構築でSDKも更新されるため、照合するホストも同じライブラリーから構築します。
+& (Join-Path $PSScriptRoot 'TestArchitectureContracts.ps1') -Configuration $Configuration -Baseline -Require project-native-module-identity -Module (Join-Path $taskModuleFolder $taskManifest.file)
 Write-Output "PASS: $Configuration native module accepts matching identity and rejects mismatches before registration."

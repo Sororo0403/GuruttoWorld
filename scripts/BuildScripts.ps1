@@ -8,6 +8,8 @@ param(
 
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'FileHash.ps1')
+. (Join-Path $PSScriptRoot 'ScriptBuildSession.ps1')
+. (Join-Path $PSScriptRoot 'EngineBuildInputs.ps1')
 if ($RunId -notmatch '^[a-zA-Z0-9_-]{1,64}$') { throw 'Invalid script build run ID.' }
 $repoRoot=Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'ProjectContext.ps1')
@@ -46,7 +48,11 @@ function Set-ScriptProgress([int]$Step,[string]$Phase) {
     [ordered]@{step=$Step;phase=$Phase} | ConvertTo-Json | Set-Content -LiteralPath "$progressPath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$progressPath.tmp" -Destination $progressPath -Force
 }
+$scriptBuildSession = $null
+$nativeBuildSession = $null
 try {
+    $scriptBuildSession = Enter-ScriptBuildSession -OutputContent $OutputContent -Configuration $Configuration
+    $nativeBuildSession = Enter-ScriptBuildSession -OutputContent $repoRoot -Configuration ($Configuration + '-native')
     & (Join-Path $PSScriptRoot 'GenerateScriptSchemas.ps1') -Content $Content -Configuration $Configuration
     Set-ScriptProgress 0 'ゲーム処理ソースを確認中'
     $sourceRoot=Join-Path $Content 'Assets/Scripts'
@@ -62,16 +68,19 @@ try {
     New-Item -ItemType Directory -Path $outputFolder -Force | Out-Null
     $manifestPath=Join-Path $outputFolder 'module.json'
     if (!$sources.Count) {
-        [ordered]@{version=1;file='';configuration=$Configuration;sources=@{}} | ConvertTo-Json | Set-Content -LiteralPath "$manifestPath.tmp" -Encoding UTF8
-        Move-Item -LiteralPath "$manifestPath.tmp" -Destination $manifestPath -Force
+        $manifestJson = [ordered]@{version=1;file='';configuration=$Configuration;sources=@{}} | ConvertTo-Json
+        Publish-ScriptManifest -Path $manifestPath -Json $manifestJson
     } else {
         $engineLibrary=Join-Path $repoRoot "generated/outputs/x64/$Configuration/Engine/Engine.lib"
         $sceneLibrary=Join-Path $repoRoot "generated/outputs/x64/$Configuration/SceneRuntime/SceneRuntime.lib"
-        if (!(Test-Path -LiteralPath $engineLibrary) -or !(Test-Path -LiteralPath $sceneLibrary)) { throw 'Build the matching Engine and SceneRuntime configuration first.' }
         $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
         $installation=& $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -property installationPath
         if (!$installation) { throw 'Visual Studio with C++ and MSBuild is required.' }
         $msbuild=Join-Path $installation 'MSBuild/Current/Bin/MSBuild.exe'
+        & $msbuild (Join-Path $repoRoot 'SceneRuntime/SceneRuntime.vcxproj') "/p:Configuration=$Configuration" '/p:Platform=x64' '/p:PreferredToolArchitecture=x64' '/m:1' '/nr:false' '/v:minimal' '/nologo'
+        if ($LASTEXITCODE -ne 0) { throw 'Native SDK dependency build failed; the previous module was retained.' }
+        $nativeBefore = Get-SourceHashes @(Get-Item -LiteralPath $engineLibrary, $sceneLibrary)
+        $sdkBefore = Get-SourceHashes @(Get-EngineBuildInputFiles -Root $repoRoot -IncludeDependencies)
         $aggregate='#include <SceneRuntime/Scripts/ScriptModuleApi.h>'+"`r`n"
         foreach ($sourceFile in $sources) { $aggregate+="bool Register_$($sourceFile.BaseName)(void*,SceneRuntime::RegisterModuleScript);`r`n" }
         $aggregate+='extern "C" __declspec(dllexport) bool Wp1RegisterScripts(const SceneRuntime::ScriptModuleAbi* abi,void* context,SceneRuntime::RegisterModuleScript add)'+"`r`n{`r`n"
@@ -113,6 +122,10 @@ try {
         $current=@(Get-TrackedFiles $sourceRoot)
         $after=Get-SourceHashes $current
         if (($before | ConvertTo-Json -Compress) -ne ($after | ConvertTo-Json -Compress)) { throw 'Script sources changed during compilation; the previous module was retained.' }
+        $nativeAfter = Get-SourceHashes @(Get-Item -LiteralPath $engineLibrary, $sceneLibrary)
+        if (($nativeBefore | ConvertTo-Json -Compress) -ne ($nativeAfter | ConvertTo-Json -Compress)) { throw 'Native SDK libraries changed during script compilation; the previous module was retained.' }
+        $sdkAfter = Get-SourceHashes @(Get-EngineBuildInputFiles -Root $repoRoot -IncludeDependencies)
+        if (($sdkBefore | ConvertTo-Json -Compress) -ne ($sdkAfter | ConvertTo-Json -Compress)) { throw 'Native SDK inputs changed during script compilation; the previous module was retained.' }
         $filename="GameScripts-$RunId.dll"
         Set-ScriptProgress 3 'コンパイル済み処理を保存中'
         Copy-Item -LiteralPath (Join-Path $workspace "bin/$filename") -Destination (Join-Path $outputFolder $filename)
@@ -120,8 +133,10 @@ try {
         if (Test-Path -LiteralPath $symbols) { Copy-Item -LiteralPath $symbols -Destination $outputFolder }
         $publicHashes=[ordered]@{}
         foreach ($sourceFile in $tracked) { $publicHashes[$sourceFile.FullName.Substring($sourceRoot.Length).TrimStart('\','/').Replace('\','/')]=$before[$sourceFile.FullName] }
-        [ordered]@{version=1;file=$filename;configuration=$Configuration;sources=$publicHashes} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$manifestPath.tmp" -Encoding UTF8
-        Move-Item -LiteralPath "$manifestPath.tmp" -Destination $manifestPath -Force
+        $nativeHashes = [ordered]@{}
+        foreach ($libraryPath in $nativeBefore.Keys) { $nativeHashes[[IO.Path]::GetFileName($libraryPath)] = $nativeBefore[$libraryPath] }
+        $manifestJson = [ordered]@{version=1;file=$filename;configuration=$Configuration;sources=$publicHashes;nativeLibraries=$nativeHashes} | ConvertTo-Json -Depth 5
+        Publish-ScriptManifest -Path $manifestPath -Json $manifestJson
     }
     [ordered]@{success=$true;configuration=$Configuration;manifest=$manifestPath;log=$logPath} | ConvertTo-Json | Set-Content -LiteralPath $resultPath -Encoding UTF8
     Set-ScriptProgress 4 'コンパイル完了'
@@ -130,4 +145,8 @@ try {
     [ordered]@{success=$false;error=$_.Exception.Message;log=$logPath} | ConvertTo-Json | Set-Content -LiteralPath $resultPath -Encoding UTF8
     Write-Output $_.Exception.Message
     exit 1
-} finally { Stop-Transcript | Out-Null }
+} finally {
+    Exit-ScriptBuildSession -Session $nativeBuildSession
+    Exit-ScriptBuildSession -Session $scriptBuildSession
+    Stop-Transcript | Out-Null
+}

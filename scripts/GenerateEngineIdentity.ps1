@@ -2,12 +2,9 @@ param([ValidateSet('Debug', 'Development', 'Release')][string]$Configuration)
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'FileHash.ps1')
+. (Join-Path $PSScriptRoot 'EngineBuildInputs.ps1')
 $identityRoot = Split-Path $PSScriptRoot -Parent
-$identityFiles = @()
-foreach ($identityFolder in @('Engine/include', 'Engine/src', 'Engine/build', 'SceneRuntime/include', 'SceneRuntime/src', 'SceneRuntime/build')) {
-    $identityFiles += @(Get-ChildItem -LiteralPath (Join-Path $identityRoot $identityFolder) -File -Recurse | Sort-Object FullName)
-}
-$identityFiles += @(Get-Item -LiteralPath (Join-Path $identityRoot 'Engine/Engine.vcxproj'), (Join-Path $identityRoot 'SceneRuntime/SceneRuntime.vcxproj'), (Join-Path $identityRoot 'scripts/BuildScripts.ps1'), $PSCommandPath)
+$identityFiles = @(Get-EngineBuildInputFiles -Root $identityRoot)
 $identityRecords = @("WP1 engine identity v1 $Configuration")
 foreach ($identityFile in $identityFiles | Sort-Object FullName -Unique) {
     $identityRelative = $identityFile.FullName.Substring($identityRoot.Length).Replace('\', '/')
