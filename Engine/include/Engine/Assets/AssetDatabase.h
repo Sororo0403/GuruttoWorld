@@ -1,4 +1,5 @@
 #pragma once
+#include <Engine/Assets/AssetPath.h>
 #include <Engine/Core/Validation.h>
 #include <Engine/Core/FileContents.h>
 #include <Engine/Core/FileReplacement.h>
@@ -33,23 +34,46 @@ struct AssetMetadata {
 };
 class AssetDatabase final {
     std::filesystem::path root_;
-    std::map<std::string,std::filesystem::path> ids_;
-    std::map<std::string,std::set<std::filesystem::path>> aliases_;
+    struct Index
+    {
+        std::map<std::string, std::filesystem::path> ids;
+        std::map<std::string, std::set<std::filesystem::path>> aliases;
+        std::map<std::string, AssetMetadata> metadata;
+    };
+    /// <summary>同じ素材層の索引を共有し、変更通知がある場合だけ再構築します。</summary>
+    static std::shared_ptr<const Index> AcquireIndex(const std::shared_ptr<const ContentContext>& context);
+    /// <summary>検証済みの不変な索引を構築します。失敗した索引は公開しません。</summary>
+    static std::shared_ptr<const Index> BuildIndex(const ContentContext& context);
+    std::shared_ptr<const Index> index_;
     bool snapshot_=false;
     std::shared_ptr<const ContentContext> context_;
-    std::map<std::string,AssetMetadata> metadata_;
 public:
     /// <summary>索引が使用する固定した素材層を取得します。</summary>
     const std::shared_ptr<const ContentContext>& Content() const { return context_; }
-    static std::string Text(const std::filesystem::path& path) { const auto s=path.generic_u8string(); return {s.begin(),s.end()}; }
-    static std::filesystem::path Path(const std::string& value) { return std::filesystem::path(std::u8string(value.begin(),value.end())); }
-    static bool Valid(const std::filesystem::path& path) {
-        const auto text=Text(path);
-        return !path.is_absolute() && !path.has_root_name() && (text.starts_with("Assets/") || text.starts_with("Shaders/")) &&
-            text.find(':')==std::string::npos && text.find('\\')==std::string::npos && text.find('\0')==std::string::npos &&
-            std::none_of(path.begin(),path.end(),[](const auto& part) { return part==".." || part=="."; });
+    /// <summary>論理アセットパスをUTF-8の保存値へ変換します。</summary>
+    static std::string Text(const std::filesystem::path& path)
+    {
+        return AssetPath::Text(path);
     }
-    static bool ValidId(const std::string& id) { return id.size()==32 && std::all_of(id.begin(),id.end(),[](char c) { return (c>='0' && c<='9') || (c>='a' && c<='f'); }); }
+
+    /// <summary>UTF-8の保存値を論理パスへ変換します。</summary>
+    static std::filesystem::path Path(const std::string& value)
+    {
+        return AssetPath::Path(value);
+    }
+
+    /// <summary>共通の論理パス規則でルート外への逸脱を拒否します。</summary>
+    static bool Valid(const std::filesystem::path& path)
+    {
+        return AssetPath::Valid(path);
+    }
+
+    /// <summary>共通の保存形式でアセットIDを検証します。</summary>
+    static bool ValidId(const std::string& id)
+    {
+        return AssetPath::ValidId(id);
+    }
+
     static std::filesystem::path Sidecar(std::filesystem::path path) { path+=".meta"; return path; }
         /// <summary>既存のメタデータ形式を、副作用なしに解釈して検証します。</summary>
         static AssetMetadata ParseMetadata(std::string_view source)
@@ -189,48 +213,24 @@ public:
     /// <summary>snapshot はプレイ中の参照解決用にメタデータを保持します。編集時は既定の最新読み込みを使います。</summary>
     explicit AssetDatabase(std::filesystem::path root,bool snapshot=false) : AssetDatabase(ContentContext::Capture(root),snapshot) {}
     /// <summary>所有者が固定した素材層で索引を作成し、descriptorを再解決しません。</summary>
-    explicit AssetDatabase(std::shared_ptr<const ContentContext> context,bool snapshot=false) : root_(context->Root()),snapshot_(snapshot),context_(std::move(context)) {
-        std::map<std::filesystem::path,std::string> identities;
-        for (const auto& layer : context_->Layers()) {
-        for (const auto* folder : {"Assets","Shaders"}) {
-            if (!std::filesystem::is_directory(layer/folder)) continue;
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(layer/folder)) {
-                if (FileSaveLock::IsJournalPath(entry.path().lexically_relative(layer)))
-                    continue;
-                if (!entry.is_regular_file() || entry.path().extension()!=".meta") continue;
-                auto source=entry.path(); source.replace_extension(); if (!std::filesystem::is_regular_file(source)) continue;
-                const auto rawMetadata = FileContents::Read(Sidecar(source));
-                const auto metadata=ParseMetadata(*rawMetadata); const auto relative=source.lexically_relative(layer);
-                const auto identity=identities.find(relative);
-                if (identity!=identities.end() && identity->second!=metadata.id) throw std::runtime_error("Shared override must preserve asset ID: "+Text(relative));
-                identities[relative]=metadata.id;
-                if(snapshot_) metadata_.insert_or_assign(Text(relative),metadata);
-                const auto [found,inserted]=ids_.emplace(metadata.id,relative);
-                if (!inserted && found->second!=relative) throw std::runtime_error("Duplicate asset ID: "+metadata.id);
-                for (const auto& alias : metadata.previousPaths) {
-                    aliases_[alias].insert(relative);
-                }
-            }
-        }
-        }
-    }
+    explicit AssetDatabase(std::shared_ptr<const ContentContext> context, bool snapshot = false);
     std::filesystem::path Resolve(const std::filesystem::path& path,const std::string& id={}) const {
         if (!Valid(path)) throw std::runtime_error("Invalid asset reference");
         if (!id.empty()) {
-            const auto found=ids_.find(id); if (found==ids_.end()) throw std::runtime_error("Missing asset ID: "+id);
+            const auto found=index_->ids.find(id); if (found==index_->ids.end()) throw std::runtime_error("Missing asset ID: "+id);
             return found->second;
         }
-        if (snapshot_ && metadata_.contains(Text(path))) return path;
+        if (snapshot_ && index_->metadata.contains(Text(path))) return path;
         if (std::filesystem::is_regular_file(root_/path)) return path;
-        const auto found=aliases_.find(Text(path));
-        if(found==aliases_.end()) return path;
+        const auto found=index_->aliases.find(Text(path));
+        if(found==index_->aliases.end()) return path;
         if(found->second.size()!=1) throw std::runtime_error("Ambiguous asset alias: "+Text(path));
         return *found->second.begin();
     }
     /// <summary>参照先のIDを取得します。スナップショットでは保持済みメタデータだけを使用します。</summary>
     std::string ReferenceId(const std::filesystem::path& path) const {
-        const auto saved=metadata_.find(Text(path));
-        if (snapshot_) return saved==metadata_.end() ? std::string{} : saved->second.id;
+        const auto saved=index_->metadata.find(Text(path));
+        if (snapshot_) return saved==index_->metadata.end() ? std::string{} : saved->second.id;
         const auto raw = FileContents::Read(context_->Resolve(Sidecar(root_/path)));
         return raw ? ParseMetadata(*raw).id : std::string{};
     }

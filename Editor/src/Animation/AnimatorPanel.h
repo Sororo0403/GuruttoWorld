@@ -4,6 +4,7 @@
 #include "BlendTreePanel.h"
 #include "AnimationEventPanel.h"
 #include "IkPanel.h"
+#include "../Assets/SkeletonPreview.h"
 #include <imgui.h>
 namespace Editor
 {
@@ -21,26 +22,13 @@ namespace Editor
         static std::shared_ptr<const Engine::SkeletonData> LoadRig(const SceneRuntime::ScenePlacement& object,
                                                                    const ProjectCatalog* catalog)
         {
-            std::shared_ptr<const Engine::SkeletonData> rig;
-            static std::filesystem::path cachedPath;
-            static std::filesystem::file_time_type cachedTime;
-            static std::shared_ptr<const Engine::SkeletonData> cachedRig;
+            static SkeletonPreview preview;
             if (catalog && object.meshRenderer)
             {
                 const auto path = catalog->Root() / object.Model();
-                std::error_code error;
-                const auto time = std::filesystem::last_write_time(path, error);
-                if (!error && (cachedPath != path || cachedTime != time))
-                {
-                    std::string message;
-                    cachedRig = Engine::Skeleton::Load(path, message);
-                    cachedPath = path;
-                    cachedTime = time;
-                }
-                if (!error && cachedPath == path)
-                    rig = cachedRig;
+                return preview.Load(path, catalog->Revision());
             }
-            return rig;
+            return {};
         }
 
         static bool DrawRootMotion(SceneRuntime::AnimatorComponent& animator, const Engine::SkeletonData* rig)

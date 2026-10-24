@@ -1,5 +1,6 @@
 #pragma once
 #include "../Project/ProjectCatalog.h"
+#include "AssetRevision.h"
 #include <filesystem>
 #include <map>
 #include <string>
@@ -22,6 +23,7 @@ namespace Editor
             std::filesystem::file_time_type time;
             std::uintmax_t bytes = 0;
             std::uint64_t shaderHash = 0;
+            AssetRevision revision{};
             bool operator==(const Stamp&) const = default;
         };
         using Files = std::map<std::filesystem::path, Stamp>;
@@ -35,8 +37,9 @@ namespace Editor
             Files files;
             for (const auto& [relative, source] : Engine::ContentFiles::List(root))
                 if (Watched(relative))
-                    files.emplace(source, Stamp{std::filesystem::last_write_time(source),
-                                                std::filesystem::file_size(source), ShaderHash(source)});
+                    files.emplace(source,
+                                  Stamp{std::filesystem::last_write_time(source), std::filesystem::file_size(source),
+                                        ShaderHash(source), AssetRevision::Capture(source)});
             return files;
         }
         void Observe(Files files)

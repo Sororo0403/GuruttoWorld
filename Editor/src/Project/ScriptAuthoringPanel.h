@@ -1,5 +1,6 @@
 #pragma once
 #include "BuildPanel.h"
+#include "../Assets/AssetRevision.h"
 #include <SceneRuntime/Scripts/ScriptModule.h>
 #include <shellapi.h>
 #pragma comment(lib, "shell32.lib")
@@ -8,7 +9,7 @@ namespace Editor
 {
     class ScriptAuthoringPanel final
     {
-        using Inventory = std::map<std::filesystem::path, std::pair<std::filesystem::file_time_type, uintmax_t>>;
+        using Inventory = std::map<std::filesystem::path, AssetRevision>;
         Inventory inventory_;
         BuildPanel build_{true, SceneRuntime::ScriptModule::Configuration()};
         std::array<char, 65> name_{};
@@ -38,7 +39,7 @@ namespace Editor
                 const auto extension = file.path().extension();
                 if (extension == ".cpp" || extension == ".h" || extension == ".hpp" ||
                     file.path().filename().string().ends_with(".schema.json"))
-                    result[file.path()] = {file.last_write_time(), file.file_size()};
+                    result[file.path()] = AssetRevision::Capture(file.path());
             }
             return result;
         }

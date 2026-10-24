@@ -9,8 +9,7 @@ namespace ScriptAuthoringValidation
 {
     inline std::string Read(const std::filesystem::path& path)
     {
-        std::ifstream input(path, std::ios::binary);
-        return {std::istreambuf_iterator<char>(input), {}};
+        return Engine::FileContents::Read(path).value_or(std::string{});
     }
     inline void Require(bool value, const char* message)
     {
@@ -88,15 +87,22 @@ namespace ScriptAuthoringValidation
         Require(SceneRuntime::ScriptRegistry::Definitions().contains("ValidationAuthoringWatcher"),
                 "Stop installs the watched script into the real registry");
         const auto compiled = Read(fixture.manifest);
+        const auto sourceTime = std::filesystem::last_write_time(source);
+        auto revisedSource = Read(source);
+        const auto separator = revisedSource.find(' ');
+        Require(separator != std::string::npos, "watcher fixture contains editable whitespace");
+        revisedSource[separator] = '\t';
         {
-            std::ofstream output(source, std::ios::app);
-            output << "\n// automatic watcher revision\n";
+            std::ofstream output(source, std::ios::binary | std::ios::trunc);
+            output << revisedSource;
         }
+        std::filesystem::last_write_time(source, sourceTime);
         Until(
             [&]
             {
                 panel.Poll(fixture.root, false);
-                return Read(fixture.manifest) != compiled;
+                const auto manifest = Read(fixture.manifest);
+                return !manifest.empty() && manifest != compiled;
             });
         Require(!panel.Ready() && SceneRuntime::ScriptRegistry::Definitions().contains("ValidationAuthoringWatcher"),
                 "editing recompiles while preserving the active definition until Stop");
@@ -111,7 +117,13 @@ namespace ScriptAuthoringValidation
                 panel.Poll(fixture.root, false);
                 return panel.Failed();
             });
-        Require(Read(fixture.manifest) == published, "failed revision retains published module");
+        const auto retained = Read(fixture.manifest);
+        if (retained != published)
+        {
+            Engine::FileContents::Write(fixture.root / "expected-manifest.json", published);
+            Engine::FileContents::Write(fixture.root / "retained-manifest.json", retained);
+        }
+        Require(retained == published, "failed revision retains published module");
         for (int i = 0; i < 10; ++i)
             panel.Poll(fixture.root, true);
         Require(!panel.Ready(), "Stop after a failed latest revision must not install the earlier pending module");

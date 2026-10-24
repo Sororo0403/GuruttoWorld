@@ -142,6 +142,8 @@
     <ClInclude Include="src\Project\ProjectCatalog.h" />
     <ClInclude Include="src\Assets\AssetInfo.h" />
     <ClInclude Include="src\Assets\AssetChanges.h" />
+    <ClInclude Include="src\Assets\AssetRevision.h" />
+    <ClInclude Include="src\Assets\SkeletonPreview.h" />
     <ClInclude Include="src\Assets\ModelDrop.h" />
     <ClCompile Include="src\Editing\SceneSelection.cpp" />
     <ClCompile Include="src\Viewport\TransformGizmo.cpp" />

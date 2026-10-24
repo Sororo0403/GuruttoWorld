@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="src\Assets">
+      <UniqueIdentifier>{B95D7F15-255B-46EE-A180-38F59DF16ABD}</UniqueIdentifier>
+    </Filter>
     <Filter Include="build">
       <UniqueIdentifier>{2292C95E-B86B-5E6C-9F2F-ECCE3CC1A155}</UniqueIdentifier>
     </Filter>
@@ -95,6 +98,9 @@
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
       <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetDatabase.cpp">
+      <Filter>src\Assets</Filter>
     </ClCompile>
     <ClCompile Include="src\Core\Log.cpp">
       <Filter>src\Core</Filter>
@@ -311,6 +317,12 @@
     <ClInclude Include="include\Engine\Graphics\Resources\TextureManager.h">
       <Filter>include\Engine\Graphics\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="include\Engine\Assets\AssetSourceStamp.h">
+      <Filter>include\Engine\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\Assets\AssetFileRevision.h">
+      <Filter>include\Engine\Assets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Graphics\Models\ModelManager.cpp">
@@ -416,5 +428,10 @@
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include\Engine\Projects" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Assets\AssetPath.h">
+      <Filter>include\Engine\Assets</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

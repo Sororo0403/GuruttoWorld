@@ -1,5 +1,6 @@
 #pragma once
 #include "../Project/ProjectCatalog.h"
+#include "AssetRevision.h"
 #include <Engine/Core/Json.h>
 #include <fstream>
 #include <sstream>
@@ -10,18 +11,17 @@ namespace Editor
     class AssetDependencies final
     {
     public:
-        void Refresh(const std::filesystem::path& root, const ProjectAsset& asset)
+        void Refresh(const std::filesystem::path& root, const ProjectAsset& asset,
+                     std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now())
         {
             const auto path = Engine::ContentFiles::Resolve(root / asset.path);
-            const auto now = std::chrono::steady_clock::now();
             if (path == path_ && now < next_)
                 return;
             next_ = now + std::chrono::milliseconds(500);
             try
             {
-                const auto time = std::filesystem::last_write_time(path);
-                const auto size = std::filesystem::file_size(path);
-                if (path == path_ && loaded_ && time == time_ && size == size_)
+                const auto revision = AssetRevision::Capture(path);
+                if (path == path_ && loaded_ && revision == revision_)
                     return;
                 path_ = path;
                 loaded_ = false;
@@ -45,8 +45,7 @@ namespace Editor
                     values_ = {values.begin(), values.end()};
                     ++reads_;
                 }
-                time_ = time;
-                size_ = size;
+                revision_ = revision;
                 loaded_ = true;
             }
             catch (const std::exception& error)
@@ -123,8 +122,7 @@ namespace Editor
         }
 
         std::filesystem::path path_;
-        std::filesystem::file_time_type time_{};
-        std::uintmax_t size_ = 0;
+        AssetRevision revision_{};
         std::chrono::steady_clock::time_point next_{};
         std::vector<std::string> values_;
         std::string error_;

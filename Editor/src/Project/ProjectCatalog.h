@@ -80,6 +80,7 @@ namespace Editor
                 for (const auto& folder : folders_)
                     children_[folder.parent_path()].push_back(folder);
                 error_.clear();
+                ++revision_;
                 return true;
             }
             catch (const std::exception& error)
@@ -147,6 +148,11 @@ namespace Editor
         {
             return root_;
         }
+        /// <summary>依存ファイルの再走査を、派生したプレビューの更新へ伝える世代を返します。</summary>
+        size_t Revision() const
+        {
+            return revision_;
+        }
         const std::vector<ProjectAsset>& Assets() const
         {
             return assets_;
@@ -167,6 +173,7 @@ namespace Editor
         }
 
     private:
+        size_t revision_ = 0;
         static bool HasExtension(const std::string& extension, std::initializer_list<std::string_view> supported)
         {
             return std::find(supported.begin(), supported.end(), extension) != supported.end();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/Resources/Texture2D.h>
+#include <Engine/Assets/AssetSourceStamp.h>
 #include <map>
 #include <memory>
 
@@ -36,7 +37,7 @@ namespace Engine
         bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue);
 
         /// <summary>
-        /// 同じ正規化パスのテクスチャを共有します。初回だけファイルを読み込み、GPU 転送の完了を待機します。
+        /// 同じ正規化パスと内容のテクスチャを共有します。変更時に再取り込みし、GPU 転送の完了を待機します。
         /// 失敗時は空を返し、キャッシュに登録しません。空のパスは共有の白い一画素を生成します。
         /// Windows の通常のパスとして大文字・小文字を区別せず扱います。
         /// </summary>
@@ -54,8 +55,6 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_;
         std::map<std::filesystem::path, std::shared_ptr<const Texture2D>, PathLess> textures_;
-        std::map<std::filesystem::path, std::pair<std::filesystem::file_time_type, std::filesystem::file_time_type>,
-                 PathLess>
-            textureStamps_;
+        std::map<std::filesystem::path, AssetSourceStamp, PathLess> textureStamps_;
     };
 }

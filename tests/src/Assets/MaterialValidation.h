@@ -273,12 +273,22 @@ namespace MaterialValidation
         material = *edited;
         Require(sample() == std::array<unsigned char, 4>{0, 0, 255, 255},
                 "edited material texture reaches the GPU without replacing earlier owners");
-        Engine::AssetDatabase::Ensure(imagePath);
+        auto importMetadata = Engine::AssetDatabase::Ensure(imagePath);
+        const auto metadataBaseline = asset.Prepare(renderer.GetDevice(), renderer.GetCommandQueue(), root);
         const auto metadataPath = std::filesystem::path(imagePath.wstring() + L".meta");
         std::filesystem::last_write_time(metadataPath,
                                          std::filesystem::last_write_time(metadataPath) + std::chrono::seconds(2));
+        Require(asset.Prepare(renderer.GetDevice(), renderer.GetCommandQueue(), root)->texture ==
+                    metadataBaseline->texture,
+                "timestamp-only metadata edits reuse unchanged material contents");
+        const auto metadataTime = std::filesystem::last_write_time(metadataPath);
+        importMetadata.texture.srgb = !importMetadata.texture.srgb;
+        Engine::AssetDatabase::Write(imagePath, importMetadata);
+        std::filesystem::last_write_time(metadataPath, metadataTime);
         const auto metadataEdited = asset.Prepare(renderer.GetDevice(), renderer.GetCommandQueue(), root);
-        Require(metadataEdited->texture != edited->texture, "import metadata changes invalidate material textures");
+        Require(metadataEdited->texture != metadataBaseline->texture &&
+                    Engine::AssetDatabase::Read(imagePath).texture.srgb == importMetadata.texture.srgb,
+                "same-time import metadata changes invalidate material textures");
         material = *prepared;
         Require(sample() == std::array<unsigned char, 4>{0, 255, 0, 255},
                 "earlier scene resources stay valid until their GPU draws finish");

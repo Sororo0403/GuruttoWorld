@@ -118,6 +118,7 @@
     <ClCompile Include="src\Core\Application.cpp" />
     <ClCompile Include="src\Core\DiagnosticPaths.cpp" />
     <ClCompile Include="src\Core\Log.cpp" />
+    <ClCompile Include="src\Assets\AssetDatabase.cpp" />
     <ClCompile Include="src\Core\CrashHandler.cpp" />
     <ClCompile Include="src\Platform\Window.cpp" />
     <ClCompile Include="src\Graphics\DirectX12\DirectX12Renderer.cpp" />
@@ -210,6 +211,7 @@
     <ClCompile Include="src\Animation\RootMotion.cpp" />
     <ClCompile Include="src\Animation\TwoBoneIk.cpp" />
     <ClInclude Include="include\Engine\Assets\AssetDatabase.h" />
+    <ClInclude Include="include\Engine\Assets\AssetPath.h" />
     <ClInclude Include="include\Engine\Assets\ContentContext.h" />
     <ClInclude Include="include\Engine\Assets\AssetReferenceResolver.h" />
     <ClInclude Include="include\Engine\Assets\TextureImport.h" />
@@ -253,6 +255,8 @@
   <ItemGroup>
     <ClCompile Include="src\Graphics\Resources\TextureManager.cpp"></ClCompile>
     <ClInclude Include="include\Engine\Graphics\Resources\TextureManager.h"></ClInclude>
+    <ClInclude Include="include\Engine\Assets\AssetSourceStamp.h" />
+    <ClInclude Include="include\Engine\Assets\AssetFileRevision.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Graphics\Models\ModelManager.cpp" />
