@@ -72,6 +72,12 @@
     <ClInclude Include="src\Architecture\EngineEditorReviewValidation.h">
       <Filter>src\Architecture</Filter>
     </ClInclude>
+    <ClInclude Include="src\Assets\ModelImportCacheValidation.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\RegressionTiming.h">
+      <Filter>src\Support</Filter>
+    </ClInclude>
     <ClInclude Include="src\Rendering\SpriteResourceValidation.h">
       <Filter>src\Rendering</Filter>
     </ClInclude>

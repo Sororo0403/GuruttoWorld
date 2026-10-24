@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/RegressionTiming.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include "../../../App/src/Scenes/AuthoredScene.h"
 #include "../../../Editor/src/Playback/GameSession.h"
@@ -28,6 +29,11 @@ namespace GamePlaybackParityValidation
         const auto run = [&](const std::string& scene, int frames, bool title, bool pointerTitle = false,
                              bool quitTitle = false, bool startTitle = false)
         {
+            RegressionTiming::Scope timing(scene);
+            RegressionTiming::CpuTotals cpu;
+            RegressionTiming::Total initialization{"parity initialization"}, updates{"parity update"},
+                comparisons{"parity compare"}, logs{"parity logs"};
+            const auto initializeStarted = std::chrono::steady_clock::now();
             auto playerWorld = std::make_shared<SceneRuntime::SceneEnvironment>();
             auto player =
                 std::make_unique<App::AuthoredScene>(root, scene, playerWorld, false, true, directory / "player.json");
@@ -51,6 +57,7 @@ namespace GamePlaybackParityValidation
             pointer.y = 700;
             const auto compare = [&]
             {
+                RegressionTiming::Scope measured(comparisons);
                 const auto editorScene =
                     editor.Runtime()->ActiveSceneName() == "Main" ? scene : editor.Runtime()->ActiveSceneName();
                 require(playerWorld->ActiveSceneName() == editorScene,
@@ -79,6 +86,7 @@ namespace GamePlaybackParityValidation
                 }
             };
             require(player->Draw(renderer) != Engine::RenderResult::Failed, "parity player draws");
+            initialization.AddSince(initializeStarted);
             bool entered = false, returned = false, started = false;
             int loads = 0, quits = 0;
             auto previousRevision = playerWorld->SceneRevision();
@@ -138,6 +146,8 @@ namespace GamePlaybackParityValidation
                     if (frame >= 40 && frame < 45)
                         active = false;
                 }
+                cpu.DiscardPending();
+                const auto updateStarted = std::chrono::steady_clock::now();
                 keyboard.ApplyDiagnosticState(nullptr, active, keys, pointer);
                 if ((startTitle && frame == 90) ||
                     (title && !pointerTitle && !quitTitle && !startTitle && frame == 325))
@@ -159,10 +169,14 @@ namespace GamePlaybackParityValidation
                 }
                 require(player->Update(1.0 / 60, keyboard).empty(),
                         "player loads authored scenes internally in shared tick");
+                updates.AddSince(updateStarted);
+                cpu.Collect();
                 compare();
+                const auto logStarted = std::chrono::steady_clock::now();
                 for (const auto& entry : Engine::Log::Recent())
                     if (entry.sequence > firstSequence && entry.level == Engine::LogLevel::Error)
                         throw std::runtime_error("runtime parity logged error: " + entry.text);
+                logs.AddSince(logStarted);
                 if (title && !pointerTitle &&
                     ((startTitle && (frame == 145 || frame == 245 || frame == 275)) ||
                      (quitTitle && (frame == 145 || frame == 240 || frame == 285)) ||

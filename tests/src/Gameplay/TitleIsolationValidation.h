@@ -114,7 +114,8 @@ namespace TitleIsolationValidation
                 "settings presentation uses its configured state keys and animation clock");
         require(!configState.values.contains("screen") && !configState.values.contains("configEnterTime"),
                 "settings presentation creates no implicit game state");
-        for (const auto& entry : SceneRuntime::DefaultMenuConfiguration().entries)
+        const auto defaults = SceneRuntime::DefaultMenuConfiguration();
+        for (const auto& entry : defaults.entries)
             require(entry.focusClock.empty(), "generic defaults have no game camera animation clocks");
     }
 }

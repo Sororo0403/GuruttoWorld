@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/RegressionTiming.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include "../../../Editor/src/Playback/GameSession.h"
 #include <SceneRuntime/Project/ProjectSettings.h>
@@ -14,18 +15,41 @@ namespace TitleConfigTransitionValidation
             if (!ok)
                 throw std::runtime_error(message);
         };
+        RegressionTiming::Scope timing("title config transition");
+        RegressionTiming::CpuTotals cpu;
         const auto layout = SceneRuntime::SceneLayout::Load(root / "Assets/Scenes/TitleStreet.json", root);
         const auto path = std::filesystem::absolute("generated/tests/config-controls") /
                           std::to_string(GetTickCount64()) / "settings.json";
         Editor::GameSession session;
         std::string error;
-        require(session.Play(renderer, root, layout, error, path), "config play initializes");
+        RegressionTiming::Total initialization{"config initialization"}, updates{"config input/update"};
+        const auto play = [&](const SceneRuntime::SceneLayout& candidate)
+        {
+            RegressionTiming::Scope measured(initialization);
+            const auto success = session.Play(renderer, root, candidate, error, path);
+            if (GetEnvironmentVariableW(L"WP1_INITIALIZATION_TIMING", nullptr, 0))
+            {
+                auto samples = Engine::CpuProfiler::Take();
+                std::sort(samples.begin(), samples.end(),
+                          [](const auto& a, const auto& b)
+                          {
+                              return a.milliseconds > b.milliseconds;
+                          });
+                for (const auto& sample : samples)
+                    std::cerr << "CPU initialization: " << sample.name << " " << sample.milliseconds / 1000 << "s / "
+                              << sample.calls << " calls\n";
+            }
+            return success;
+        };
+        require(play(layout), "config play initializes");
         Engine::InputActions actions;
         actions.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions);
         Engine::InputSnapshot snapshot;
         snapshot.active = true;
         const auto tick = [&](unsigned int key = 0, double dt = .1)
         {
+            cpu.DiscardPending();
+            RegressionTiming::Scope measured(updates);
             snapshot.down.fill(false);
             snapshot.pressed.fill(false);
             if (key)
@@ -33,6 +57,7 @@ namespace TitleConfigTransitionValidation
             actions.Update(snapshot);
             session.PrepareInput(actions, true, dt, &snapshot);
             session.Update(dt, true);
+            cpu.Collect();
         };
         for (int i = 0; i < 16; ++i)
             tick();
@@ -46,7 +71,7 @@ namespace TitleConfigTransitionValidation
         require(session.Runtime()->Ui().Value("configEnterTime") == time, "paused presentation freezes");
         require(session.Step(), "presentation single step accepts");
         require(session.Runtime()->Ui().Value("configEnterTime") > time, "single step advances presentation");
-        require(session.Play(renderer, root, layout, error, path), "resume accepts");
+        require(play(layout), "resume accepts");
         for (int i = 0; i < 23; ++i)
             tick();
         require(session.Runtime()->ActiveSceneName() == "Assets/Scenes/Settings.json",
@@ -102,7 +127,7 @@ namespace TitleConfigTransitionValidation
         require(session.Runtime()->ActiveSceneName() == "Assets/Scenes/TitleStreet.json", "ESC return completes");
         require(renderer.WaitForIdle(), "controls GPU complete");
         session.Stop();
-        require(session.Play(renderer, root, layout, error, path), "restart accepts");
+        require(play(layout), "restart accepts");
         require(session.Runtime()->Ui().Value("configEnterTime") == 0, "restart resets presentation");
         snapshot = {};
         snapshot.active = true;
@@ -137,7 +162,7 @@ namespace TitleConfigTransitionValidation
                 object.rotation = {0, 0, 0};
             }
         }
-        require(session.Play(renderer, root, authored, error, path), "authored transition fixture initializes");
+        require(play(authored), "authored transition fixture initializes");
         snapshot = {};
         snapshot.active = true;
         actions.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions);
@@ -177,7 +202,7 @@ namespace TitleConfigTransitionValidation
         SceneRuntime::ScriptComponent component;
         component.behaviour = "PlaybackParitySceneReplacement";
         scripted.objects.front().scripts.push_back(component);
-        require(session.Play(renderer, root, scripted, error, path), "replacement fixture initializes");
+        require(play(scripted), "replacement fixture initializes");
         snapshot = {};
         snapshot.active = true;
         actions.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions);
@@ -205,7 +230,7 @@ namespace TitleConfigTransitionValidation
         race.objects.front().scripts.push_back(raceScript);
         for (const char* eventName : {"menu:0", "menu:2"})
         {
-            require(session.Play(renderer, root, race, error, path), "superseded command fixture initializes");
+            require(play(race), "superseded command fixture initializes");
             snapshot = {};
             snapshot.active = true;
             actions.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions);
@@ -231,7 +256,7 @@ namespace TitleConfigTransitionValidation
             require(renderer.WaitForIdle(), "superseded command GPU complete");
             session.Stop();
         }
-        require(session.Play(renderer, root, layout, error, path), "QUIT fixture initializes");
+        require(play(layout), "QUIT fixture initializes");
         snapshot = {};
         snapshot.active = true;
         actions.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions);

@@ -1,7 +1,9 @@
 #pragma once
+#include "../Support/RegressionTiming.h"
 #include "../Rendering/EnvironmentValidation.h"
 #include <SceneRuntime/Ui/SceneUi.h>
 #include "TitleConfigTransitionValidation.h"
+#include "GamePlaybackCapture.h"
 #include <SceneRuntime/Gameplay/TitleController.h>
 
 namespace TitlePresentationValidation
@@ -73,9 +75,7 @@ namespace TitlePresentationValidation
         std::filesystem::create_directories(directory);
         std::ofstream output(directory / (name + ".ppm"), std::ios::binary);
         output << "P6\n" << width << " " << height << "\n255\n";
-        for (UINT y = 0; y < height; ++y)
-            for (UINT x = 0; x < width; ++x)
-                output.write(reinterpret_cast<char*>(pixels + y * pitch + x * 4), 3);
+        GamePlaybackCapture::WriteRgbRows(output, pixels, width, height, pitch);
         const D3D12_RANGE empty{0, 0};
         readback->Unmap(0, &empty);
         Require(static_cast<bool>(output), "title capture saved");
@@ -83,6 +83,8 @@ namespace TitlePresentationValidation
     inline void Run(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
         using EnvironmentValidation::Require;
+        RegressionTiming::Scope timing("title presentation");
+        GamePlaybackCapture::ValidateRgbRows();
         TitleConfigTransitionValidation::Run(renderer, root);
         const auto layout = SceneRuntime::SceneLayout::Load(root / "Assets/Scenes/TitleStreet.json");
         SceneRuntime::SceneEnvironment scene;

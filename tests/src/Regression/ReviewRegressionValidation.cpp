@@ -1947,24 +1947,413 @@ namespace
         Check(renderer.WaitForIdle(), "asset reload resources are safe to release");
     }
 
-    void ValidateTitle()
+    // 編集・保存の検証は画面サイズに依存しないため、最初の描画デバイスで一度だけ実行します。
+    void ValidateTitleEditing(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneWorld& editorWorld)
+    {
+        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        Check(editorWorld.Initialize(renderer, content, content / "Assets/Scenes/TitleStreet.json",
+                                     content / "Shaders/Mesh.hlsl"),
+              "shared scene loads without App content");
+        Engine::RenderTexture sceneTarget;
+        Check(sceneTarget.Resize(renderer, 96, 48), "offscreen scene target");
+        Engine::Camera sceneCamera;
+        AuthoredViewFixture::SetHome(sceneCamera);
+        AuthoredViewFixture::SetProjection(sceneCamera, 2.0f);
+        Check(renderer.Render({0, 0, 0, 1},
+                              [&](ID3D12GraphicsCommandList* commands, float)
+                              {
+                                  Check(sceneTarget.Begin(commands, {0, 0, 0, 1}), "offscreen scene begin");
+                                  editorWorld.Draw(commands, sceneCamera, AuthoredViewFixture::Light());
+                                  Check(sceneTarget.End(commands), "offscreen scene end");
+                              }) != Engine::RenderResult::Failed,
+              "shared scene renders to texture");
+        Check(renderer.WaitForIdle(), "offscreen scene GPU completion");
+        const auto pickRoot = std::filesystem::absolute("generated/tests/picking");
+        std::filesystem::create_directories(pickRoot / "Assets/Models/Title");
+        {
+            std::ofstream fixture(pickRoot / "Assets/Models/Title/triangle.obj");
+            fixture << "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
+        }
+        SceneRuntime::SceneLayout pickLayout;
+        SceneRuntime::ScenePlacement nearObject;
+        nearObject.id = "pick-near";
+        nearObject.name = "Near triangle";
+        nearObject.SetModel("Assets/Models/Title/triangle.obj");
+        nearObject.position = {0, 0, 5};
+        nearObject.scale = {-2, 3, 2};
+        auto farObject = nearObject;
+        farObject.id = "pick-far";
+        farObject.position[2] = 10;
+        pickLayout.objects = {farObject, nearObject};
+        const auto pickPath = pickRoot / "scene.json";
+        pickLayout.Save(pickPath);
+        SceneRuntime::SceneWorld pickingWorld;
+        Check(pickingWorld.Initialize(renderer, pickRoot, pickPath, content / "Shaders/Mesh.hlsl"),
+              "picking fixture loaded");
+        ValidateGroupMove(renderer, pickingWorld, pickRoot);
+        ValidateParentOperations(renderer, pickingWorld, pickRoot);
+        Check(pickingWorld.PickRay({-0.4f, 0.6f, 0}, {0, 0, 5}).value_or("") == "pick-near",
+              "nearest triangle selected independent of object order and mirrored scale");
+        Check(!pickingWorld.PickRay({-1.8f, 2.7f, 0}, {0, 0, 1}), "empty portion of bounding box is not selected");
+        Check(!pickingWorld.PickRay({-0.4f, 0.6f, 0}, {0, 0, 1}, 1) && !pickingWorld.PickRay({0, 0, 0}, {0, 0, 0}) &&
+                  !pickingWorld.PickRay({NAN, 0, 0}, {0, 0, 1}),
+              "invalid and out-of-range rays rejected");
+        std::array<std::array<float, 3>, 8> corners;
+        Check(pickingWorld.WorldBounds("pick-near", corners), "selected world bounds available");
+        std::array<float, 3> center{};
+        for (const auto& corner : corners)
+            for (size_t axis = 0; axis < 3; ++axis)
+                center[axis] += corner[axis] / 8;
+        Check(std::abs(center[0] + 1) < 0.001f && std::abs(center[1] - 1.5f) < 0.001f &&
+                  std::abs(center[2] - 5) < 0.001f,
+              "selection corners use instance transform");
+        Check(pickingWorld.SetLocalTransform("pick-near", nearObject.position, {0, DirectX::XM_PIDIV2, 0},
+                                             nearObject.scale) &&
+                  pickingWorld.PickRay({-5, 0.6f, 5.4f}, {1, 0, 0}).value_or("") == "pick-near",
+              "rotated object uses updated picking transform");
+        std::string removalError;
+        Check(pickingWorld.RemoveObjects({"pick-near"}, removalError) &&
+                  pickingWorld.PickRay({-0.4f, 0.6f, 0}, {0, 0, 1}).value_or("") == "pick-far" &&
+                  !pickingWorld.WorldBounds("pick-near", corners),
+              "deleted object cannot be selected or outlined");
+        Check(renderer.WaitForIdle(), "picking resources GPU completion");
+        const auto original = editorWorld.Layout().objects.front();
+        auto moved = original.position;
+        moved[2] += 2.0f;
+        const std::array<float, 3> rotated{0.1f, 0.2f, 0.3f};
+        const std::array<float, 3> scaled{120, 4, 160};
+        Check(editorWorld.SetLocalTransform(original.id, moved, rotated, scaled), "live transform edit accepted");
+        const auto& changed = editorWorld.Layout().objects.front();
+        Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled &&
+                  changed.Model() == original.Model(),
+              "live edits update layout while keeping model reference");
+        Check(!editorWorld.SetLocalTransform(original.id, original.position, original.rotation, {0, 4, 4}),
+              "zero scale edit rejected");
+        auto invalidPosition = original.position;
+        invalidPosition[0] = NAN;
+        Check(!editorWorld.SetLocalTransform(original.id, invalidPosition, original.rotation, original.scale),
+              "nonfinite position edit rejected");
+        Check(!editorWorld.SetLocalTransform("missing-object", original.position, original.rotation, original.scale),
+              "unknown object edit rejected");
+        Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled,
+              "rejected edits preserve previous valid placement");
+        Engine::Camera editorView;
+        editorView.SetPosition({-0.8f, 2.8f, -7.0f});
+        editorView.SetRotation(0.03f, 0.09f);
+        editorView.SetPerspective(DirectX::XM_PIDIV4, 16.0f / 9.0f, 0.1f, 220.0f);
+        Check(renderer.Render({0.66f, 0.79f, 0.83f, 1},
+                              [&](ID3D12GraphicsCommandList* commands, float)
+                              {
+                                  editorWorld.Draw(commands, editorView, {});
+                              }) != Engine::RenderResult::Failed,
+              "independent editor scene rendering");
+        Check(renderer.WaitForIdle(), "editor scene GPU completion");
+        SceneRuntime::SceneWorld startupFailure;
+        std::string startupError;
+        Check(!startupFailure.Initialize(renderer, content, content / "Assets/Scenes/missing.json",
+                                         content / "Shaders/Mesh.hlsl", &startupError) &&
+                  !startupError.empty(),
+              "startup load failure provides a diagnostic");
+        Check(startupFailure.Reload(content, content / "Assets/Scenes/TitleStreet.json", startupError),
+              "failed initial load can be recovered by reload");
+        Check(renderer.WaitForIdle(), "startup recovery GPU completion");
+        std::string reloadError;
+        Check(!editorWorld.Reload(content, content / "Assets/Scenes/missing.json", reloadError) &&
+                  !reloadError.empty() && editorWorld.Layout().objects.front().position == moved,
+              "failed reload preserves live edits and provides error");
+        auto invalidLayout = editorWorld.Layout();
+        invalidLayout.objects.back().SetModel("Assets/Models/Title/Roads/missing.obj");
+        const auto reloadPath = std::filesystem::absolute("generated/tests/layout-io/missing-model.json");
+        invalidLayout.Save(reloadPath);
+        Check(!editorWorld.Reload(content, reloadPath, reloadError) &&
+                  editorWorld.Layout().objects.front().position == moved,
+              "partial model load failure preserves current world");
+        Check(editorWorld.Reload(content, content / "Assets/Scenes/TitleStreet.json", reloadError) &&
+                  reloadError.empty() && editorWorld.Layout().objects.front().position == original.position,
+              "successful reload restores saved scene");
+        SceneRuntime::ScenePlacement added;
+        added.name = "Test awning";
+        added.SetModel("Assets/Models/Title/Commercial/detail-awning.obj");
+        added.position = {9, 0.16f, 10};
+        added.rotation = {0, 0.25f, 0};
+        added.scale = {4, 4, 4};
+        const auto count = editorWorld.Layout().objects.size();
+        std::string addedId, duplicateId, operationError;
+        Check(editorWorld.AddObject(added, content, addedId, operationError) && !addedId.empty(),
+              "new model can be added with a generated ID");
+        Check(editorWorld.DuplicateObject(addedId, {4, 0, 0}, duplicateId, operationError) && duplicateId != addedId &&
+                  editorWorld.Layout().objects.back().position[0] == 13 &&
+                  editorWorld.Layout().objects.back().rotation == added.rotation &&
+                  editorWorld.Layout().objects.back().scale == added.scale,
+              "duplicate preserves model transform and has a distinct ID");
+        added.id = addedId;
+        std::string rejectedId;
+        Check(!editorWorld.AddObject(added, content, rejectedId, operationError), "duplicate ID rejected");
+        added.id.clear();
+        added.SetModel("Assets/Models/Title/Roads/missing.obj");
+        Check(!editorWorld.AddObject(added, content, rejectedId, operationError) &&
+                  editorWorld.Layout().objects.size() == count + 2,
+              "failed addition keeps all current objects");
+        Check(!editorWorld.DuplicateObject(addedId, {NAN, 0, 0}, rejectedId, operationError) &&
+                  editorWorld.Layout().objects.size() == count + 2,
+              "invalid duplicate keeps current scene");
+        Check(!editorWorld.RemoveObjects({"missing-id"}, operationError), "unknown delete does not change scene");
+        const auto beforeDelete = editorWorld.Layout();
+        Check(editorWorld.RemoveObjects({addedId}, operationError) &&
+                  editorWorld.Layout().objects.size() == count + 1 &&
+                  editorWorld.Layout().objects.back().id == duplicateId,
+              "delete removes only selected object");
+        const auto afterDelete = editorWorld.Layout();
+        Check(editorWorld.ReplaceLayout(beforeDelete, content, operationError) &&
+                  editorWorld.Layout().Serialize() == beforeDelete.Serialize(),
+              "undo restores deleted object ID and ordering");
+        auto brokenSnapshot = beforeDelete;
+        brokenSnapshot.objects.back().SetModel("Assets/Models/Title/Roads/missing.obj");
+        Check(!editorWorld.ReplaceLayout(brokenSnapshot, content, operationError) &&
+                  editorWorld.Layout().Serialize() == beforeDelete.Serialize(),
+              "failed history restoration preserves the whole live scene");
+        Check(editorWorld.ReplaceLayout(afterDelete, content, operationError) &&
+                  editorWorld.Layout().Serialize() == afterDelete.Serialize(),
+              "redo restores the deletion snapshot");
+        const auto editedPath = std::filesystem::absolute("generated/tests/layout-io/object-edits.json");
+        editorWorld.Layout().Save(editedPath);
+        Check(renderer.Render({0, 0, 0, 1},
+                              [&](ID3D12GraphicsCommandList* commands, float)
+                              {
+                                  editorWorld.Draw(commands, editorView, {});
+                              }) != Engine::RenderResult::Failed,
+              "added and duplicated objects render after deletion");
+        Check(renderer.WaitForIdle(), "object editing GPU completion");
+        Check(editorWorld.Reload(content, editedPath, operationError) &&
+                  editorWorld.Layout().objects.size() == count + 1 &&
+                  editorWorld.Layout().objects.back().id == duplicateId,
+              "object changes survive save and reload");
+        Editor::EditState editState;
+        editState.Select(duplicateId);
+        editState.Request({Editor::ObjectAction::Duplicate, editState.SelectedId(), {}, {}});
+        const auto request = editState.TakeRequest();
+        Check(request && request->id == duplicateId && !editState.TakeRequest(),
+              "shared edit request consumed exactly once");
+        Editor::EditHistory workflow;
+        const auto initialJson = editorWorld.Layout().Serialize();
+        workflow.Reset({initialJson, editState.SelectedId()});
+        std::string workflowId;
+        Check(editorWorld.DuplicateObject(duplicateId, {4, 0, 0}, workflowId, operationError), "workflow duplicate");
+        editState.ObjectChanged(workflowId);
+        const auto duplicatedJson = editorWorld.Layout().Serialize();
+        workflow.Observe({duplicatedJson, workflowId}, {});
+        auto edited = editorWorld.Layout().objects.back();
+        for (int frame = 0; frame < 3; ++frame)
+        {
+            edited.position[0] += 1;
+            edited.rotation[1] += 0.1f;
+            edited.scale[0] = -4;
+            Check(editState.SetLocalTransform(editorWorld, workflowId, edited.position, edited.rotation, edited.scale),
+                  "workflow transform");
+            workflow.Observe({editorWorld.Layout().Serialize(), editState.SelectedId()}, "drag");
+        }
+        const auto transformedJson = editorWorld.Layout().Serialize();
+        Check(!editState.SetLocalTransform(editorWorld, workflowId, edited.position, edited.rotation, {0, 1, 1}) &&
+                  editState.InvalidTransform() && editorWorld.Layout().Serialize() == transformedJson,
+              "shared edit rejects invalid transform without changing scene");
+        editState.Select(workflowId);
+        Check(!editState.InvalidTransform() && editState.HasChanges(),
+              "selection clears transform error and preserves unsaved state");
+        workflow.Observe({transformedJson, workflowId}, {});
+        const auto applyHistory = [&](bool redo)
+        {
+            Check(redo ? workflow.CanRedo() : workflow.CanUndo(), "workflow history entry exists");
+            const auto target = workflow.Target(redo);
+            Check(editorWorld.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), content, operationError),
+                  "workflow history restore succeeds");
+            workflow.Applied(redo);
+            Check(editorWorld.Layout().Serialize() == target.json, "workflow restores complete scene exactly");
+            editState.Select(target.selection);
+            editState.SetChanged(workflow.Dirty(target.json));
+            return editState.SelectedId();
+        };
+        Check(applyHistory(false) == workflowId && editorWorld.Layout().Serialize() == duplicatedJson,
+              "one undo reverses the whole continuous transform");
+        Check(applyHistory(false) == duplicateId && editorWorld.Layout().Serialize() == initialJson,
+              "second undo reverses duplicate and restores selection");
+        applyHistory(true);
+        applyHistory(true);
+        Check(editorWorld.Layout().Serialize() == transformedJson, "redo restores mirrored transformed duplicate");
+        editorWorld.Layout().Save(editedPath);
+        workflow.Saved(transformedJson);
+        editState.MarkSaved();
+        Check(!editState.HasChanges(), "shared edit state marked saved");
+        Check(editorWorld.RemoveObjects({workflowId}, operationError), "workflow delete");
+        editState.ObjectChanged("");
+        workflow.Observe({editorWorld.Layout().Serialize(), editState.SelectedId()}, {});
+        Check(workflow.Dirty(editorWorld.Layout().Serialize()), "deleting saved object marks scene dirty");
+        Check(applyHistory(false) == workflowId && !workflow.Dirty(editorWorld.Layout().Serialize()),
+              "undo deletion restores selected object and saved state");
+        Check(editorWorld.Reload(content, editedPath, operationError) &&
+                  editorWorld.Layout().Serialize() == transformedJson,
+              "workflow save and reload preserves final transforms");
+        Editor::EditHistory inspectorHistory;
+        inspectorHistory.Reset({transformedJson, workflowId});
+        const std::string renamedName = "新しい建物##display";
+        Check(editState.Rename(editorWorld, workflowId, renamedName), "Inspector rename accepted");
+        const auto renamedJson = editorWorld.Layout().Serialize();
+        inspectorHistory.Observe({renamedJson, workflowId}, {});
+        Check(editorWorld.Layout().objects.back().id == workflowId &&
+                  editorWorld.Layout().objects.back().name == renamedName,
+              "rename preserves object ID and Unicode name");
+        Check(!editState.Rename(editorWorld, workflowId, " \t") &&
+                  !editState.Rename(editorWorld, "missing-id", "name") &&
+                  editorWorld.Layout().Serialize() == renamedJson,
+              "invalid rename preserves scene");
+        Check(editState.ResetTransform(editorWorld, workflowId), "Inspector transform reset accepted");
+        const auto& reset = editorWorld.Layout().objects.back();
+        Check(reset.position == std::array<float, 3>{0, 0, 0} && reset.rotation == std::array<float, 3>{0, 0, 0} &&
+                  reset.scale == std::array<float, 3>{1, 1, 1} && reset.name == renamedName,
+              "reset restores identity and keeps name");
+        const auto resetJson = editorWorld.Layout().Serialize();
+        inspectorHistory.Observe({resetJson, workflowId}, {});
+        const auto restoreInspector = [&](bool redo)
+        {
+            const auto target = inspectorHistory.Target(redo);
+            Check(editorWorld.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), content, operationError),
+                  "Inspector history restoration");
+            inspectorHistory.Applied(redo);
+            editState.Select(target.selection);
+        };
+        restoreInspector(false);
+        Check(editorWorld.Layout().Serialize() == renamedJson, "one undo restores pre-reset mirrored transform");
+        restoreInspector(false);
+        Check(editorWorld.Layout().Serialize() == transformedJson, "next undo restores original name");
+        restoreInspector(true);
+        restoreInspector(true);
+        Check(editorWorld.Layout().Serialize() == resetJson && editState.SelectedId() == workflowId,
+              "redo restores rename and reset with selection");
+        editorWorld.Layout().Save(editedPath);
+        Check(editorWorld.Reload(content, editedPath, operationError) && editorWorld.Layout().Serialize() == resetJson,
+              "Inspector name and reset survive save and reload");
+        Check(renderer.WaitForIdle(), "title editing resources GPU completion");
+    }
+
+    // 編集後の同じ配置を各サイズで描画し、縦横比に依存する検証を維持します。
+    void ValidateTitleRendering(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneWorld& editorWorld,
+                                App::AuthoredScene& title, App::TitleUi& ui, const std::array<int, 2>& size)
+    {
+        Check(renderer.GetWidth() == static_cast<UINT>(size[0]) && renderer.GetHeight() == static_cast<UINT>(size[1]),
+              "aspect ratio renderer matches requested dimensions");
+        Engine::Camera editorView;
+        editorView.SetPosition({-0.8f, 2.8f, -7.0f});
+        editorView.SetRotation(0.03f, 0.09f);
+        editorView.SetPerspective(DirectX::XM_PIDIV4, float(size[0]) / float(size[1]), 0.1f, 220.0f);
+        Check(renderer.Render({0.66f, 0.79f, 0.83f, 1},
+                              [&](ID3D12GraphicsCommandList* commands, float)
+                              {
+                                  editorWorld.Draw(commands, editorView, {});
+                              }) != Engine::RenderResult::Failed,
+              "edited scene renders at each aspect ratio");
+        Check(renderer.WaitForIdle(), "aspect ratio scene GPU completion");
+        std::string operationError;
+        Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
+        Check(renderer.WaitForIdle(), "title GPU completion");
+        SceneRuntime::SceneEnvironment environment;
+        Check(environment.Initialize(renderer, TestContentRoot(), TestContentRoot() / "Assets/Scenes/TitleStreet.json",
+                                     operationError),
+              "ambient environment assets");
+        for (int state = 0; state < 3; ++state)
+        {
+            for (int frame = 0; frame < 30; ++frame)
+                environment.Update(0.1, state != 1, true);
+            Check(renderer.Render({0, 0, 0, 1},
+                                  [&](ID3D12GraphicsCommandList* commands, float)
+                                  {
+                                      environment.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
+                                  }) != Engine::RenderResult::Failed,
+                  "ambient ON OFF resume rendering");
+            Check(renderer.WaitForIdle(), "ambient GPU completion");
+        }
+        App::TitleMenu animated(true);
+        App::TitleMenuInput animationInput;
+        animationInput.active = true;
+        for (int frame = 0; frame < 14; ++frame)
+        {
+            animationInput.keyboardButtons = frame >= 8 ? App::MenuConfirm : 0;
+            animated.Update(animationInput, 0.1);
+            Check(renderer.Render({0, 0, 0, 1},
+                                  [&](ID3D12GraphicsCommandList* commands, float)
+                                  {
+                                      ui.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), animated);
+                                  }) != Engine::RenderResult::Failed,
+                  "animated title rendering");
+            Check(renderer.WaitForIdle(), "animation GPU completion");
+        }
+        App::TitleMenu menu;
+        App::TitleMenuInput input;
+        input.active = true;
+        menu.Update(input);
+        input.keyboardButtons = App::MenuDown;
+        menu.Update(input);
+        input.keyboardButtons = App::MenuConfirm;
+        menu.Update(input);
+        for (int row = 0; row < 3; ++row)
+        {
+            menu.CompleteSave(false);
+            Check(renderer.Render({0, 0, 0, 1},
+                                  [&](ID3D12GraphicsCommandList* commands, float)
+                                  {
+                                      ui.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), menu);
+                                  }) != Engine::RenderResult::Failed,
+                  "settings UI rendering");
+            Check(renderer.WaitForIdle(), "settings GPU completion");
+            input.keyboardButtons = 0;
+            menu.Update(input);
+            input.keyboardButtons = App::MenuDown;
+            menu.Update(input);
+        }
+    }
+
+    void ValidateTitle(bool sizesOnly = false)
     {
         Check(Engine::Log::Initialize("generated/tests/title-rendering.log"), "title diagnostic log");
-        constexpr std::array<std::array<int, 2>, 3> TitleSizes{{ {1280, 720}, {1024, 768}, {720, 1280} }};
+        constexpr std::array<std::array<int, 2>, 3> TitleSizes{{{1280, 720}, {1024, 768}, {720, 1280}}};
+        Engine::Window window;
+        Engine::DirectX12Renderer renderer;
+        SceneRuntime::SceneWorld editorWorld;
+        const auto titleWorld = std::make_shared<SceneRuntime::SceneEnvironment>();
+        App::AuthoredScene title(
+            TestContentRoot(),
+            Engine::AssetDatabase::Path(SceneRuntime::ProjectSettings::Load(TestContentRoot()).startupScene),
+            titleWorld);
+        App::TitleUi ui;
+        Check(window.Create(L"Hidden title validation", TitleSizes[0][0], TitleSizes[0][1]), "title window");
+        std::string editedJson;
+        std::string titleJson;
+        SceneRuntime::UiState titleUi;
         for (const auto& size : TitleSizes)
         {
-            Engine::Window window;
-            Engine::DirectX12Renderer renderer;
-            Check(window.Create(L"Hidden title validation", size[0], size[1]), "title window");
-            Check(renderer.Initialize(window.GetHandle()), "title renderer");
-            if (size==TitleSizes[0])
+            // 縦長サイズがモニター内へ縮められないよう、非表示の検証ウィンドウは枠を外します。
+            Check(SetWindowLongPtrW(window.GetHandle(), GWL_STYLE, WS_POPUP) != 0,
+                  "title validation window removes size constraints");
+            Check(SetWindowPos(window.GetHandle(), nullptr, 0, 0, size[0], size[1],
+                               SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED),
+                  "title validation window uses requested dimensions");
+            if (size == TitleSizes[0])
+            {
+                Check(renderer.Initialize(window.GetHandle()), "title renderer");
+            }
+            else
+            {
+                // 同じデバイスと編集結果を保ち、描画先だけを変更して各縦横比を検証します。
+                Check(renderer.Render({0, 0, 0, 1}) != Engine::RenderResult::Failed,
+                      "title renderer applies aspect ratio resize");
+                Check(renderer.WaitForIdle(), "aspect ratio resize GPU completion");
+            }
+            if (!sizesOnly && size == TitleSizes[0])
             {
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
-                EditorFontValidation::Run(renderer,TestContentRoot());
+                EditorFontValidation::Run(renderer, TestContentRoot());
 #endif
-                std::cerr<<"Title validation: ValidateAssetReload"<<std::endl;
+                std::cerr << "Title validation: ValidateAssetReload" << std::endl;
                 ValidateAssetReload(renderer);
-                std::cerr<<"Title validation: ValidateEmptyObjects"<<std::endl;
+                std::cerr << "Title validation: ValidateEmptyObjects" << std::endl;
                 ValidateEmptyObjects(renderer);
                 std::cerr<<"Title validation: EnvironmentValidation::Run"<<std::endl;
                 EnvironmentValidation::Run(renderer);
@@ -2011,319 +2400,49 @@ namespace
                 std::cerr<<"Title validation: ValidateGameSession"<<std::endl;
                 ValidateGameSession(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
                 std::cerr<<"Title validation: ValidateSceneDocument"<<std::endl;
-                ValidateSceneDocument(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
-                std::cerr<<"Title validation: ValidateInheritedRendering"<<std::endl;
-                ValidateInheritedRendering(renderer,std::filesystem::absolute("Games/GuruttoWorld"));
+                ValidateSceneDocument(renderer, std::filesystem::absolute("Games/GuruttoWorld"));
+                std::cerr << "Title validation: ValidateInheritedRendering" << std::endl;
+                ValidateInheritedRendering(renderer, std::filesystem::absolute("Games/GuruttoWorld"));
             }
             {
-                SceneRuntime::SceneWorld editorWorld;
-                const auto content = std::filesystem::absolute("Games/GuruttoWorld");
-                Check(editorWorld.Initialize(renderer, content, content / "Assets/Scenes/TitleStreet.json",
-                    content / "Shaders/Mesh.hlsl"), "shared scene loads without App content");
-                Engine::RenderTexture sceneTarget;
-                Check(sceneTarget.Resize(renderer,96,48), "offscreen scene target");
-                Engine::Camera sceneCamera;
-                AuthoredViewFixture::SetHome(sceneCamera);
-                AuthoredViewFixture::SetProjection(sceneCamera,2.0f);
-                Check(renderer.Render({0,0,0,1},[&](ID3D12GraphicsCommandList* commands,float)
+                if (size == TitleSizes[0])
                 {
-                    Check(sceneTarget.Begin(commands,{0,0,0,1}), "offscreen scene begin");
-                    editorWorld.Draw(commands,sceneCamera,AuthoredViewFixture::Light());
-                    Check(sceneTarget.End(commands), "offscreen scene end");
-                })!=Engine::RenderResult::Failed, "shared scene renders to texture");
-                Check(renderer.WaitForIdle(), "offscreen scene GPU completion");
-                const auto pickRoot = std::filesystem::absolute("generated/tests/picking");
-                std::filesystem::create_directories(pickRoot / "Assets/Models/Title");
-                {
-                    std::ofstream fixture(pickRoot / "Assets/Models/Title/triangle.obj");
-                    fixture << "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
+                    const auto editingStart = std::chrono::steady_clock::now();
+                    std::cerr << "Title validation: ValidateTitleEditing" << std::endl;
+                    ValidateTitleEditing(renderer, editorWorld);
+                    editedJson = editorWorld.Layout().Serialize();
+                    std::cerr << "Title editing completed in "
+                              << std::chrono::duration<double>(std::chrono::steady_clock::now() - editingStart).count()
+                              << "s" << std::endl;
                 }
-                SceneRuntime::SceneLayout pickLayout;
-                SceneRuntime::ScenePlacement nearObject;
-                nearObject.id = "pick-near";
-                nearObject.name = "Near triangle";
-                nearObject.SetModel("Assets/Models/Title/triangle.obj");
-                nearObject.position = { 0, 0, 5 };
-                nearObject.scale = { -2, 3, 2 };
-                auto farObject = nearObject;
-                farObject.id = "pick-far";
-                farObject.position[2] = 10;
-                pickLayout.objects = { farObject, nearObject };
-                const auto pickPath = pickRoot / "scene.json";
-                pickLayout.Save(pickPath);
-                SceneRuntime::SceneWorld pickingWorld;
-                Check(pickingWorld.Initialize(renderer, pickRoot, pickPath, content / "Shaders/Mesh.hlsl"),
-                    "picking fixture loaded");
-                ValidateGroupMove(renderer,pickingWorld,pickRoot);
-                ValidateParentOperations(renderer,pickingWorld,pickRoot);
-                Check(pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 5 }).value_or("") == "pick-near",
-                    "nearest triangle selected independent of object order and mirrored scale");
-                Check(!pickingWorld.PickRay({ -1.8f, 2.7f, 0 }, { 0, 0, 1 }),
-                    "empty portion of bounding box is not selected");
-                Check(!pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 1 }, 1) &&
-                    !pickingWorld.PickRay({ 0, 0, 0 }, { 0, 0, 0 }) &&
-                    !pickingWorld.PickRay({ NAN, 0, 0 }, { 0, 0, 1 }), "invalid and out-of-range rays rejected");
-                std::array<std::array<float, 3>, 8> corners;
-                Check(pickingWorld.WorldBounds("pick-near", corners), "selected world bounds available");
-                std::array<float, 3> center{};
-                for (const auto& corner : corners)
-                    for (size_t axis = 0; axis < 3; ++axis) center[axis] += corner[axis] / 8;
-                Check(std::abs(center[0] + 1) < 0.001f && std::abs(center[1] - 1.5f) < 0.001f &&
-                    std::abs(center[2] - 5) < 0.001f, "selection corners use instance transform");
-                Check(pickingWorld.SetLocalTransform("pick-near", nearObject.position, { 0, DirectX::XM_PIDIV2, 0 },
-                    nearObject.scale) && pickingWorld.PickRay({ -5, 0.6f, 5.4f }, { 1, 0, 0 }).value_or("") == "pick-near",
-                    "rotated object uses updated picking transform");
-                std::string removalError;
-                Check(pickingWorld.RemoveObjects({"pick-near"},removalError) &&
-                    pickingWorld.PickRay({ -0.4f, 0.6f, 0 }, { 0, 0, 1 }).value_or("") == "pick-far" &&
-                    !pickingWorld.WorldBounds("pick-near", corners), "deleted object cannot be selected or outlined");
-                Check(renderer.WaitForIdle(), "picking resources GPU completion");
-                const auto original = editorWorld.Layout().objects.front();
-                auto moved = original.position;
-                moved[2] += 2.0f;
-                const std::array<float, 3> rotated{ 0.1f, 0.2f, 0.3f };
-                const std::array<float, 3> scaled{ 120, 4, 160 };
-                Check(editorWorld.SetLocalTransform(original.id, moved, rotated, scaled), "live transform edit accepted");
-                const auto& changed = editorWorld.Layout().objects.front();
-                Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled &&
-                    changed.Model()==original.Model(), "live edits update layout while keeping model reference");
-                Check(!editorWorld.SetLocalTransform(original.id, original.position, original.rotation, { 0, 4, 4 }),
-                    "zero scale edit rejected");
-                auto invalidPosition = original.position;
-                invalidPosition[0] = NAN;
-                Check(!editorWorld.SetLocalTransform(original.id, invalidPosition, original.rotation, original.scale),
-                    "nonfinite position edit rejected");
-                Check(!editorWorld.SetLocalTransform("missing-object", original.position, original.rotation, original.scale),
-                    "unknown object edit rejected");
-                Check(changed.position == moved && changed.rotation == rotated && changed.scale == scaled,
-                    "rejected edits preserve previous valid placement");
-                Engine::Camera editorView;
-                editorView.SetPosition({ -0.8f, 2.8f, -7.0f });
-                editorView.SetRotation(0.03f, 0.09f);
-                editorView.SetPerspective(DirectX::XM_PIDIV4, float(size[0]) / float(size[1]), 0.1f, 220.0f);
-                Check(renderer.Render({ 0.66f, 0.79f, 0.83f, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
+                const auto renderingStart = std::chrono::steady_clock::now();
+                std::cerr << "Title validation: ValidateTitleRendering " << size[0] << 'x' << size[1] << std::endl;
+                if (size == TitleSizes[0])
                 {
-                    editorWorld.Draw(commands, editorView, {});
-                }) != Engine::RenderResult::Failed, "independent editor scene rendering");
-                Check(renderer.WaitForIdle(), "editor scene GPU completion");
-                SceneRuntime::SceneWorld startupFailure;
-                std::string startupError;
-                Check(!startupFailure.Initialize(renderer, content, content / "Assets/Scenes/missing.json",
-                    content / "Shaders/Mesh.hlsl", &startupError) && !startupError.empty(),
-                    "startup load failure provides a diagnostic");
-                Check(startupFailure.Reload(content, content / "Assets/Scenes/TitleStreet.json", startupError),
-                    "failed initial load can be recovered by reload");
-                Check(renderer.WaitForIdle(), "startup recovery GPU completion");
-                std::string reloadError;
-                Check(!editorWorld.Reload(content, content / "Assets/Scenes/missing.json", reloadError) &&
-                    !reloadError.empty() && editorWorld.Layout().objects.front().position == moved,
-                    "failed reload preserves live edits and provides error");
-                auto invalidLayout = editorWorld.Layout();
-                invalidLayout.objects.back().SetModel("Assets/Models/Title/Roads/missing.obj");
-                const auto reloadPath = std::filesystem::absolute("generated/tests/layout-io/missing-model.json");
-                invalidLayout.Save(reloadPath);
-                Check(!editorWorld.Reload(content, reloadPath, reloadError) &&
-                    editorWorld.Layout().objects.front().position == moved,
-                    "partial model load failure preserves current world");
-                Check(editorWorld.Reload(content, content / "Assets/Scenes/TitleStreet.json", reloadError) &&
-                    reloadError.empty() && editorWorld.Layout().objects.front().position == original.position,
-                    "successful reload restores saved scene");
-                SceneRuntime::ScenePlacement added;
-                added.name = "Test awning";
-                added.SetModel("Assets/Models/Title/Commercial/detail-awning.obj");
-                added.position = { 9, 0.16f, 10 };
-                added.rotation = { 0, 0.25f, 0 };
-                added.scale = { 4, 4, 4 };
-                const auto count = editorWorld.Layout().objects.size();
-                std::string addedId, duplicateId, operationError;
-                Check(editorWorld.AddObject(added, content, addedId, operationError) && !addedId.empty(),
-                    "new model can be added with a generated ID");
-                Check(editorWorld.DuplicateObject(addedId, { 4, 0, 0 }, duplicateId, operationError) &&
-                    duplicateId != addedId && editorWorld.Layout().objects.back().position[0] == 13 &&
-                    editorWorld.Layout().objects.back().rotation == added.rotation &&
-                    editorWorld.Layout().objects.back().scale == added.scale,
-                    "duplicate preserves model transform and has a distinct ID");
-                added.id = addedId;
-                std::string rejectedId;
-                Check(!editorWorld.AddObject(added, content, rejectedId, operationError), "duplicate ID rejected");
-                added.id.clear();
-                added.SetModel("Assets/Models/Title/Roads/missing.obj");
-                Check(!editorWorld.AddObject(added, content, rejectedId, operationError) &&
-                    editorWorld.Layout().objects.size() == count + 2, "failed addition keeps all current objects");
-                Check(!editorWorld.DuplicateObject(addedId, { NAN, 0, 0 }, rejectedId, operationError) &&
-                    editorWorld.Layout().objects.size() == count + 2, "invalid duplicate keeps current scene");
-                Check(!editorWorld.RemoveObjects({"missing-id"},operationError), "unknown delete does not change scene");
-                const auto beforeDelete=editorWorld.Layout();
-                Check(editorWorld.RemoveObjects({addedId},operationError) && editorWorld.Layout().objects.size() == count + 1 &&
-                    editorWorld.Layout().objects.back().id == duplicateId, "delete removes only selected object");
-                const auto afterDelete=editorWorld.Layout();
-                Check(editorWorld.ReplaceLayout(beforeDelete, content, operationError) &&
-                    editorWorld.Layout().Serialize()==beforeDelete.Serialize(), "undo restores deleted object ID and ordering");
-                auto brokenSnapshot=beforeDelete;
-                brokenSnapshot.objects.back().SetModel("Assets/Models/Title/Roads/missing.obj");
-                Check(!editorWorld.ReplaceLayout(brokenSnapshot, content, operationError) &&
-                    editorWorld.Layout().Serialize()==beforeDelete.Serialize(), "failed history restoration preserves the whole live scene");
-                Check(editorWorld.ReplaceLayout(afterDelete, content, operationError) &&
-                    editorWorld.Layout().Serialize()==afterDelete.Serialize(), "redo restores the deletion snapshot");
-                const auto editedPath = std::filesystem::absolute("generated/tests/layout-io/object-edits.json");
-                editorWorld.Layout().Save(editedPath);
-                Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
-                {
-                    editorWorld.Draw(commands, editorView, {});
-                }) != Engine::RenderResult::Failed, "added and duplicated objects render after deletion");
-                Check(renderer.WaitForIdle(), "object editing GPU completion");
-                Check(editorWorld.Reload(content, editedPath, operationError) &&
-                    editorWorld.Layout().objects.size() == count + 1 &&
-                    editorWorld.Layout().objects.back().id == duplicateId, "object changes survive save and reload");
-                Editor::EditState editState;
-                editState.Select(duplicateId);
-                editState.Request({Editor::ObjectAction::Duplicate, editState.SelectedId(), {}, {}});
-                const auto request = editState.TakeRequest();
-                Check(request && request->id == duplicateId && !editState.TakeRequest(),
-                    "shared edit request consumed exactly once");
-                Editor::EditHistory workflow;
-                const auto initialJson=editorWorld.Layout().Serialize();
-                workflow.Reset({initialJson,editState.SelectedId()});
-                std::string workflowId;
-                Check(editorWorld.DuplicateObject(duplicateId,{4,0,0},workflowId,operationError), "workflow duplicate");
-                editState.ObjectChanged(workflowId);
-                const auto duplicatedJson=editorWorld.Layout().Serialize();
-                workflow.Observe({duplicatedJson,workflowId},{});
-                auto edited=editorWorld.Layout().objects.back();
-                for (int frame=0;frame<3;++frame)
-                {
-                    edited.position[0]+=1;
-                    edited.rotation[1]+=0.1f;
-                    edited.scale[0]=-4;
-                    Check(editState.SetLocalTransform(editorWorld,workflowId,edited.position,edited.rotation,edited.scale), "workflow transform");
-                    workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},"drag");
+                    // 更新しない描画資源は保持し、各サイズのメニューと環境更新は独立して検証します。
+                    Check(title.Initialize(renderer), "title assets and sprite pipeline");
+                    Check(ui.Initialize(renderer, TestContentRoot()), "settings UI assets");
+                    titleJson = titleWorld->World().Layout().Serialize();
+                    titleUi = titleWorld->Ui();
                 }
-                const auto transformedJson=editorWorld.Layout().Serialize();
-                Check(!editState.SetLocalTransform(editorWorld,workflowId,edited.position,edited.rotation,{0,1,1}) &&
-                    editState.InvalidTransform() && editorWorld.Layout().Serialize()==transformedJson,
-                    "shared edit rejects invalid transform without changing scene");
-                editState.Select(workflowId);
-                Check(!editState.InvalidTransform() && editState.HasChanges(),
-                    "selection clears transform error and preserves unsaved state");
-                workflow.Observe({transformedJson,workflowId},{});
-                const auto applyHistory=[&](bool redo)
+                if (size != TitleSizes[0])
                 {
-                    Check(redo ? workflow.CanRedo() : workflow.CanUndo(), "workflow history entry exists");
-                    const auto target=workflow.Target(redo);
-                    Check(editorWorld.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json),content,operationError),
-                        "workflow history restore succeeds");
-                    workflow.Applied(redo);
-                    Check(editorWorld.Layout().Serialize()==target.json,"workflow restores complete scene exactly");
-                    editState.Select(target.selection);
-                    editState.SetChanged(workflow.Dirty(target.json));
-                    return editState.SelectedId();
-                };
-                Check(applyHistory(false)==workflowId && editorWorld.Layout().Serialize()==duplicatedJson,
-                    "one undo reverses the whole continuous transform");
-                Check(applyHistory(false)==duplicateId && editorWorld.Layout().Serialize()==initialJson,
-                    "second undo reverses duplicate and restores selection");
-                applyHistory(true);
-                applyHistory(true);
-                Check(editorWorld.Layout().Serialize()==transformedJson,"redo restores mirrored transformed duplicate");
-                editorWorld.Layout().Save(editedPath);
-                workflow.Saved(transformedJson);
-                editState.MarkSaved();
-                Check(!editState.HasChanges(), "shared edit state marked saved");
-                Check(editorWorld.RemoveObjects({workflowId},operationError),"workflow delete");
-                editState.ObjectChanged("");
-                workflow.Observe({editorWorld.Layout().Serialize(),editState.SelectedId()},{});
-                Check(workflow.Dirty(editorWorld.Layout().Serialize()),"deleting saved object marks scene dirty");
-                Check(applyHistory(false)==workflowId && !workflow.Dirty(editorWorld.Layout().Serialize()),
-                    "undo deletion restores selected object and saved state");
-                Check(editorWorld.Reload(content,editedPath,operationError) &&
-                    editorWorld.Layout().Serialize()==transformedJson,"workflow save and reload preserves final transforms");
-                Editor::EditHistory inspectorHistory;
-                inspectorHistory.Reset({transformedJson,workflowId});
-                const std::string renamedName="新しい建物##display";
-                Check(editState.Rename(editorWorld,workflowId,renamedName), "Inspector rename accepted");
-                const auto renamedJson=editorWorld.Layout().Serialize();
-                inspectorHistory.Observe({renamedJson,workflowId},{});
-                Check(editorWorld.Layout().objects.back().id==workflowId &&
-                    editorWorld.Layout().objects.back().name==renamedName, "rename preserves object ID and Unicode name");
-                Check(!editState.Rename(editorWorld,workflowId," \t") && !editState.Rename(editorWorld,"missing-id","name") &&
-                    editorWorld.Layout().Serialize()==renamedJson, "invalid rename preserves scene");
-                Check(editState.ResetTransform(editorWorld,workflowId), "Inspector transform reset accepted");
-                const auto& reset=editorWorld.Layout().objects.back();
-                Check(reset.position==std::array<float,3>{0,0,0} && reset.rotation==std::array<float,3>{0,0,0} &&
-                    reset.scale==std::array<float,3>{1,1,1} && reset.name==renamedName, "reset restores identity and keeps name");
-                const auto resetJson=editorWorld.Layout().Serialize();
-                inspectorHistory.Observe({resetJson,workflowId},{});
-                const auto restoreInspector=[&](bool redo)
-                {
-                    const auto target=inspectorHistory.Target(redo);
-                    Check(editorWorld.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json),content,operationError),
-                        "Inspector history restoration");
-                    inspectorHistory.Applied(redo);
-                    editState.Select(target.selection);
-                };
-                restoreInspector(false);
-                Check(editorWorld.Layout().Serialize()==renamedJson, "one undo restores pre-reset mirrored transform");
-                restoreInspector(false);
-                Check(editorWorld.Layout().Serialize()==transformedJson, "next undo restores original name");
-                restoreInspector(true);
-                restoreInspector(true);
-                Check(editorWorld.Layout().Serialize()==resetJson && editState.SelectedId()==workflowId,
-                    "redo restores rename and reset with selection");
-                editorWorld.Layout().Save(editedPath);
-                Check(editorWorld.Reload(content,editedPath,operationError) && editorWorld.Layout().Serialize()==resetJson,
-                    "Inspector name and reset survive save and reload");
-
-                App::AuthoredScene title(TestContentRoot(),Engine::AssetDatabase::Path(SceneRuntime::ProjectSettings::Load(TestContentRoot()).startupScene));
-                Check(title.Initialize(renderer), "title assets and sprite pipeline");
-                Check(title.Draw(renderer) != Engine::RenderResult::Failed, "title rendering");
-                Check(renderer.WaitForIdle(), "title GPU completion");
-                SceneRuntime::SceneEnvironment environment;
-                Check(environment.Initialize(renderer,TestContentRoot(),TestContentRoot()/"Assets/Scenes/TitleStreet.json",operationError), "ambient environment assets");
-                for (int state = 0; state < 3; ++state)
-                {
-                    for (int frame = 0; frame < 30; ++frame) environment.Update(0.1, state != 1, true);
-                    Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
-                    {
-                        environment.Draw(commands, renderer.GetWidth(), renderer.GetHeight());
-                    }) != Engine::RenderResult::Failed, "ambient ON OFF resume rendering");
-                    Check(renderer.WaitForIdle(), "ambient GPU completion");
+                    Check(editorWorld.Layout().Serialize() == editedJson,
+                          "aspect ratio resize preserves the edited scene");
                 }
-                App::TitleUi ui;
-                Check(ui.Initialize(renderer, TestContentRoot()), "settings UI assets");
-                App::TitleMenu animated(true);
-                App::TitleMenuInput animationInput;
-                animationInput.active = true;
-                for (int frame = 0; frame < 14; ++frame)
-                {
-                    animationInput.keyboardButtons = frame >= 8 ? App::MenuConfirm : 0;
-                    animated.Update(animationInput, 0.1);
-                    Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
-                    {
-                        ui.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), animated);
-                    }) != Engine::RenderResult::Failed, "animated title rendering");
-                    Check(renderer.WaitForIdle(), "animation GPU completion");
-                }
-                App::TitleMenu menu;
-                App::TitleMenuInput input;
-                input.active = true;
-                menu.Update(input);
-                input.keyboardButtons = App::MenuDown;
-                menu.Update(input);
-                input.keyboardButtons = App::MenuConfirm;
-                menu.Update(input);
-                for (int row = 0; row < 3; ++row)
-                {
-                    menu.CompleteSave(false);
-                    Check(renderer.Render({ 0, 0, 0, 1 }, [&](ID3D12GraphicsCommandList* commands, float)
-                    {
-                        ui.Draw(commands, renderer.GetWidth(), renderer.GetHeight(), menu);
-                    }) != Engine::RenderResult::Failed, "settings UI rendering");
-                    Check(renderer.WaitForIdle(), "settings GPU completion");
-                    input.keyboardButtons = 0;
-                    menu.Update(input);
-                    input.keyboardButtons = App::MenuDown;
-                    menu.Update(input);
-                }
+                ValidateTitleRendering(renderer, editorWorld, title, ui, size);
+                const auto& currentUi = titleWorld->Ui();
+                Check(titleWorld->World().Layout().Serialize() == titleJson && currentUi.values == titleUi.values &&
+                          currentUi.visibility == titleUi.visibility && currentUi.strings == titleUi.strings &&
+                          currentUi.hovered == titleUi.hovered && currentUi.pressed == titleUi.pressed &&
+                          currentUi.scrollOffsets == titleUi.scrollOffsets && currentUi.focused == titleUi.focused &&
+                          currentUi.dragPosition == titleUi.dragPosition && currentUi.dragScroll == titleUi.dragScroll,
+                      "shared title drawing preserves the complete scene and UI state at each aspect ratio");
+                Check(editorWorld.Layout().Serialize() == editedJson,
+                      "aspect ratio rendering preserves the edited scene");
+                std::cerr << "Title rendering " << size[0] << 'x' << size[1] << " completed in "
+                          << std::chrono::duration<double>(std::chrono::steady_clock::now() - renderingStart).count()
+                          << "s" << std::endl;
             }
             CheckGpuMessages(renderer.GetDevice());
         }
@@ -3890,6 +4009,19 @@ int main()
         if(GetEnvironmentVariableW(L"WP1_ASSET_ONLY",nullptr,0)) {
             AssetDatabaseValidation::Run(); std::cout<<"PASS: stable asset IDs, scene references, rename, import settings and invalid operations\n"; return 0;
         }
+        if (GetEnvironmentVariableW(L"WP1_ANIMATION_RUNTIME_ONLY", nullptr, 0))
+        {
+            Engine::Window window;
+            Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden transform animation validation", 640, 360), "animation test window");
+            Check(renderer.Initialize(window.GetHandle()), "animation test renderer");
+            AnimationValidation::Schema();
+            AnimationValidation::Runtime(renderer, TestContentRoot());
+            Check(renderer.WaitForIdle(), "animation test GPU completion");
+            CheckGpuMessages(renderer.GetDevice());
+            std::cout << "PASS: animation candidate reuse, rollback, edits, track order and removal\n";
+            return 0;
+        }
         if(GetEnvironmentVariableW(L"WP1_ANIMATOR_ONLY",nullptr,0)) {
             AnimatorValidation::Run();
             Engine::Window window; Engine::DirectX12Renderer renderer;
@@ -4073,7 +4205,13 @@ int main()
             std::cout<<"PASS: authored Game schema/shortcuts, title bindings/presentation and project settings\n";
             return 0;
         }
-        if (GetEnvironmentVariableW(L"WP1_TITLE_PRESENTATION_ONLY",nullptr,0))
+        if (GetEnvironmentVariableW(L"WP1_TITLE_SIZES_ONLY", nullptr, 0))
+        {
+            ValidateTitle(true);
+            std::cout << "PASS: title editing once and rendering at three aspect ratios\n";
+            return 0;
+        }
+        if (GetEnvironmentVariableW(L"WP1_TITLE_PRESENTATION_ONLY", nullptr, 0))
         {
             Check(Engine::Log::Initialize("generated/tests/title-focused.log"),"focused title diagnostic log");
             ValidateTitleMenu();

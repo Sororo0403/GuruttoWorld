@@ -1,7 +1,10 @@
 #pragma once
 #include "../Assets/ModelImportCacheValidation.h"
+#include "../Scene/TransformResolutionCacheValidation.h"
 #include "../Rendering/PipelineReuseValidation.h"
 #include "../Assets/AssetFreshnessValidation.h"
+#include "../Support/RegressionTimingValidation.h"
+#include "../Scripts/ScriptModulePathValidation.h"
 #include "../../../Editor/src/Documents/SceneDocument.h"
 #include "../Rendering/EnvironmentValidation.h"
 #include <SceneRuntime/Scene/Prefab.h>
@@ -164,6 +167,9 @@ namespace EngineEditorReviewValidation
     inline void Data()
     {
         AssetFreshnessValidation::Run();
+        RegressionTimingValidation::Run();
+        ScriptModulePathValidation::Run();
+        TransformResolutionCacheValidation::Run();
         ComponentChanges();
         const auto& root = Fixtures();
         std::filesystem::create_directories(root / "Assets/Scenes");

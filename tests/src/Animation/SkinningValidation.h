@@ -202,9 +202,14 @@ namespace SkinningValidation
         const auto originalPose = model.Pose();
         Require(model.PreparePose(pending, prepared) && model.Pose().back().rotation == originalPose.back().rotation,
                 "preparing pose leaves rendered instance unchanged");
-        Require(!copy->ApplyPreparedPose(std::move(prepared)) && model.ApplyPreparedPose(std::move(prepared)) &&
-                    !model.ApplyPreparedPose(std::move(prepared)),
-                "pose ticket applies only to its owner and only once");
+        Require(!copy->ApplyPreparedPose(std::move(prepared)),
+                "pose ticket rejects another owner without consuming it");
+        // 所有者不一致では引数を消費せず、成功時だけチケットを消費します。
+        // cppcheck-suppress accessMoved
+        Require(model.ApplyPreparedPose(std::move(prepared)), "pose ticket remains available to its owner");
+        // 消費済みチケットを再提示し、二重適用の拒否を検証します。
+        // cppcheck-suppress accessMoved
+        Require(!model.ApplyPreparedPose(std::move(prepared)), "pose ticket cannot apply twice");
         auto pose = Skeleton::Sample(*model.Rig(), "Walk", .5, false);
         auto* geometry = model.GeometryResource(0);
         Require(model.ApplyPose(pose) && model.GeometryResource(0) == geometry,

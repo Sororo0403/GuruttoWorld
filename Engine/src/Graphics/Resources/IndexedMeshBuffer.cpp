@@ -1,3 +1,4 @@
+#include <Engine/Core/Profiler.h>
 #include <Engine/Graphics/Resources/IndexedMeshBuffer.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
@@ -25,6 +26,7 @@ namespace
     bool UploadMesh(ID3D12Device* device, ID3D12CommandQueue* queue, ID3D12Resource* destination,
                     ID3D12Resource* upload)
     {
+        Engine::CpuScope timing("Mesh GPU upload");
         ComPtr<ID3D12CommandAllocator> allocator;
         ComPtr<ID3D12GraphicsCommandList> commands;
         ComPtr<ID3D12Fence> fence;

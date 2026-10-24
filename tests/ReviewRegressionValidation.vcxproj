@@ -94,6 +94,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Architecture\EngineEditorReviewValidation.h" />
+    <ClInclude Include="src\Assets\ModelImportCacheValidation.h" />
+    <ClInclude Include="src\Support\RegressionTiming.h" />
     <ClInclude Include="src\Rendering\SpriteResourceValidation.h" />
     <ClCompile Include="src\Regression\ReviewRegressionValidation.cpp" />
     <ClCompile Include="src\Architecture\ArchitectureAuditFixValidation.cpp">
