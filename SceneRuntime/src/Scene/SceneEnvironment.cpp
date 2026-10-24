@@ -1,0 +1,548 @@
+#include <SceneRuntime/Scene/SceneEnvironment.h>
+#include <SceneRuntime/Scene/Prefab.h>
+#include <SceneRuntime/Gameplay/TitleBindings.h>
+#include <iterator>
+#include <SceneRuntime/Gameplay/Navigation.h>
+#include <Engine/Core/Log.h>
+#include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
+#include <Engine/Graphics/Resources/Texture2D.h>
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+
+namespace
+{
+    struct CameraPose
+    {
+        std::array<float, 3> position{}, rotation{};
+        float duration = 0;
+    };
+    CameraPose SampleCameraFocus(const SceneRuntime::ScenePlacement& camera, const std::string& clock, float seconds,
+                                 const std::array<float, 3>& position, const std::array<float, 3>& rotation)
+    {
+        CameraPose pose{camera.position, camera.rotation};
+        for (auto track : camera.animation->tracks)
+        {
+            if (track.clock != clock || track.keys.size() < 2 ||
+                (track.property != "position" && track.property != "rotation"))
+                continue;
+            const auto& source = track.property == "position" ? position : rotation;
+            track.keys.front().value = {source[0], source[1], source[2], 0};
+            const auto value = SceneRuntime::Animation::Sample(track, {{clock, seconds}});
+            if (!value)
+                continue;
+            auto& target = track.property == "position" ? pose.position : pose.rotation;
+            target = {(*value)[0], (*value)[1], (*value)[2]};
+            pose.duration = std::max(pose.duration, track.keys.back().time);
+        }
+        return pose;
+    }
+}
+
+namespace SceneRuntime
+{
+    bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+                                      const std::filesystem::path& scenePath, std::string& error)
+    {
+        try
+        {
+            if (!Initialize(renderer, root, SceneLayout::Load(scenePath), error))
+                return false;
+            activeSceneName_ = scenePath.is_absolute() ? scenePath.lexically_relative(root).generic_string()
+                                                       : scenePath.generic_string();
+            scenes_.Reset(world_.Layout(), activeSceneName_);
+            return true;
+        }
+        catch (const std::exception& exception)
+        {
+            error = exception.what();
+            return false;
+        }
+    }
+    bool SceneEnvironment::Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+                                      SceneLayout layout, std::string& error)
+    {
+        try
+        {
+            if (!world_.Content())
+                world_.SetContentContext(Engine::ContentContext::Capture(root));
+            world_.Content()->RequireRoot(root);
+            const auto& contentRoot = world_.Content()->Root();
+            if (!presentation_.Initialize(renderer, contentRoot, error, world_.Content()) ||
+                !world_.Initialize(renderer, contentRoot, std::move(layout), contentRoot / "Shaders/Mesh.hlsl",
+                                   &error) ||
+                !ScriptRuntime::ValidateForPlay(world_.Layout(), error) ||
+                !presentation_.Prepare(renderer, contentRoot, world_.Layout(), error))
+                return false;
+            seconds_ = 0;
+            motionEnabled_ = true;
+            uiState_ = SceneUi::Defaults(world_.Layout());
+            renderer_ = &renderer;
+            root_ = contentRoot;
+            scenes_.Reset(world_.Layout());
+            activeSceneName_ = "Main";
+            ++sceneRevision_;
+            uiSceneCommands_.clear();
+            pendingAudio_.clear();
+            committedAudio_.clear();
+            audioReady_ = false;
+            pendingUiResources_.reset();
+            world_.SetRuntimePreparation(
+                [this](const SceneLayout& candidate, std::string& diagnostic)
+                {
+                    return PrepareRuntimeUi(candidate, {}, diagnostic);
+                });
+            world_.SetUiPreparation(
+                [this](const SceneLayout& candidate, const ScriptUiCommands& commands, std::string& diagnostic)
+                {
+                    return PrepareRuntimeUi(candidate, commands, diagnostic);
+                });
+            SeekAnimation(0, 0);
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& failure)
+        {
+            error = failure.what();
+            return false;
+        }
+    }
+    bool SceneEnvironment::PrepareRuntimeUi(const SceneLayout& layout, const ScriptUiCommands& commands,
+                                            std::string& error)
+    {
+        if (!renderer_)
+        {
+            error = "UI renderer is not initialized";
+            return false;
+        }
+        auto candidate = uiPreparationOverride_ ? *uiPreparationOverride_ : uiState_;
+        for (const auto& [key, value] : commands.values)
+            candidate.values[key] = value;
+        for (const auto& [key, text] : commands.texts)
+            candidate.strings[key] = text;
+        auto resources = pendingUiResources_ ? *pendingUiResources_ : presentation_.CaptureUi();
+        if (!presentation_.PrepareCandidate(*renderer_, root_, layout, error, candidate, resources))
+            return false;
+        pendingUiResources_ = std::move(resources);
+        return true;
+    }
+    void SceneEnvironment::ApplyUiCommands(const ScriptUiCommands& commands)
+    {
+        for (const auto& [key, value] : commands.values)
+            uiState_.values[key] = value;
+        for (const auto& [key, text] : commands.texts)
+            uiState_.strings[key] = text;
+        if (pendingUiResources_)
+            presentation_.RestoreUi(std::move(*pendingUiResources_));
+        pendingUiResources_.reset();
+    }
+    void SceneEnvironment::DiscardPreparedUi()
+    {
+        world_.DiscardUiCommands();
+        world_.DiscardAudioCommands();
+        pendingAudio_.clear();
+        committedAudio_.clear();
+        audioReady_ = false;
+        uiSceneCommands_.clear();
+        pendingUiResources_.reset();
+    }
+    bool SceneEnvironment::Update(double deltaSeconds, bool enabled, bool active)
+    {
+        motionEnabled_ = enabled;
+        committedAudio_.clear();
+        audioReady_ = false;
+        if (!active || !std::isfinite(deltaSeconds) || deltaSeconds <= 0)
+        {
+            DiscardPendingInput();
+            return false;
+        }
+        world_.PauseScripts(false);
+        const bool physicsReady = !physicsAttempted_ || physicsSucceeded_;
+        const bool advancePhysics =
+            movement_.has_value() || (!physicsAttempted_ && RequiresFixedUpdate(world_.Layout()));
+        const auto movement = movement_.value_or(Movement{});
+        movement_.reset();
+        physicsAttempted_ = false;
+        if (!physicsReady)
+        {
+            DiscardPreparedUi();
+            Engine::Log::Warning("FixedUpdate failed; frame update was skipped.");
+            return false;
+        }
+        if (!world_.UpdateFrame(deltaSeconds, movement.horizontal, movement.vertical, movement.jump, advancePhysics))
+        {
+            DiscardPreparedUi();
+            Engine::Log::Warning("Component update failed; runtime clocks were preserved.");
+            return false;
+        }
+        auto scriptAudio = world_.TakeAudioCommands();
+        pendingAudio_.insert(pendingAudio_.end(), scriptAudio.begin(), scriptAudio.end());
+        ApplyUiCommands(world_.TakeUiCommands());
+        ProcessSceneCommands();
+        if (enabled)
+            seconds_ += std::min(deltaSeconds, 0.1);
+        const float elapsed = static_cast<float>(std::min(deltaSeconds, 0.1));
+        sceneSeconds_ += elapsed;
+        if (uiState_.Value("startRequested") == 1 && startSeconds_ < 0)
+            startSeconds_ = 0;
+        else if (startSeconds_ >= 0)
+            startSeconds_ += elapsed;
+        uiState_.values["sceneTime"] = sceneSeconds_;
+        uiState_.values["motionTime"] = static_cast<float>(seconds_);
+        uiState_.values["startTime"] = startSeconds_;
+        if (startSeconds_ >= 0)
+        {
+            const float duration = std::clamp(uiState_.Value("startDuration", 0.32f), 0.1f, 10.0f);
+            const float progress = std::clamp(startSeconds_ / duration, 0.0f, 1.0f);
+            SetTransitionState(progress);
+        }
+        AnimateCameraFocus(elapsed);
+        audioReady_ = true;
+        committedAudio_ = std::move(pendingAudio_);
+        pendingAudio_.clear();
+        return true;
+    }
+    void SceneEnvironment::SetTransitionState(float progress)
+    {
+        if (const auto* menu = TitleBindings::Configuration(world_.Layout()))
+        {
+            const auto defaults = uiState_.values;
+            for (const auto& binding : menu->bindings)
+                if (binding.source == "transition")
+                    uiState_.values[binding.key] = EvaluateMenuBinding(binding, progress, defaults);
+            return;
+        }
+        uiState_.values["transition"] = progress;
+    }
+    void SceneEnvironment::AnimateCameraFocus(float elapsed)
+    {
+        const auto* camera = SceneView::CameraObject(world_.Layout());
+        const auto position = camera ? camera->position : std::array<float, 3>{};
+        const auto rotation = camera ? camera->rotation : std::array<float, 3>{};
+        const auto* menu = TitleBindings::Configuration(world_.Layout());
+        const float requested = uiState_.Value(menu ? menu->focusState : "cameraFocus");
+        if (requested != focusRequested_)
+        {
+            focusRequested_ = requested;
+            focusEngaged_ = true;
+            focusSeconds_ = 0;
+            focusPosition_ = position;
+            focusRotation_ = rotation;
+        }
+        else
+            focusSeconds_ += elapsed;
+        if (!world_.Animate(uiState_.values))
+            Engine::Log::Warning("Animation rejected an invalid transform.");
+        if (!focusEngaged_ || startSeconds_ >= 0)
+            return;
+        ApplyCameraFocus(menu);
+    }
+    void SceneEnvironment::ApplyCameraFocus(const MenuConfiguration* menu)
+    {
+        const auto* camera = SceneView::CameraObject(world_.Layout());
+        if (!camera || !camera->animation || !camera->animation->enabled)
+            return;
+        if (!menu)
+            return;
+        const auto entry = std::find_if(menu->entries.begin(), menu->entries.end(),
+                                        [&](const auto& e)
+                                        {
+                                            return e.focus == focusRequested_;
+                                        });
+        if (entry == menu->entries.end() || entry->focusClock.empty())
+            return;
+        const auto& clock = entry->focusClock;
+        const auto pose = SampleCameraFocus(*camera, clock, focusSeconds_, focusPosition_, focusRotation_);
+        if (!world_.SetLocalTransform(camera->id, pose.position, pose.rotation, camera->scale))
+            Engine::Log::Warning("Camera focus rejected an invalid transform.");
+        if (entry->view == 0 && focusSeconds_ >= pose.duration)
+            focusEngaged_ = false;
+    }
+    void SceneEnvironment::SeekAnimation(float sceneSeconds, float motionSeconds, float startSeconds)
+    {
+        if (!std::isfinite(sceneSeconds) || !std::isfinite(motionSeconds) || !std::isfinite(startSeconds) ||
+            sceneSeconds < 0 || motionSeconds < 0)
+            return;
+        sceneSeconds_ = sceneSeconds;
+        seconds_ = motionSeconds;
+        startSeconds_ = startSeconds;
+        focusRequested_ = 0;
+        focusEngaged_ = false;
+        focusSeconds_ = 0;
+        uiState_.values["sceneTime"] = sceneSeconds;
+        uiState_.values["motionTime"] = motionSeconds;
+        uiState_.values["startTime"] = startSeconds;
+        const float duration = std::clamp(uiState_.Value("startDuration", 0.32f), 0.1f, 10.0f);
+        const float progress = std::clamp(startSeconds / duration, 0.0f, 1.0f);
+        SetTransitionState(progress);
+        world_.Animate(uiState_.values);
+    }
+    std::array<float, 3> SceneEnvironment::CameraPosition() const
+    {
+        Engine::Camera camera;
+        return SceneView::Camera(world_, 16.0f / 9.0f, seconds_, camera) ? camera.GetPosition()
+                                                                         : std::array<float, 3>{};
+    }
+    std::array<float, 4> SceneEnvironment::Particle(unsigned int index) const
+    {
+        const auto& objects = world_.Layout().objects;
+        const auto found = std::find_if(objects.begin(), objects.end(),
+                                        [](const auto& placement)
+                                        {
+                                            return placement.particleEmitter && placement.particleEmitter->enabled;
+                                        });
+        return found == objects.end() ? std::array<float, 4>{}
+                                      : ScenePresentation::Particle(world_, *found, index, seconds_);
+    }
+    void SceneEnvironment::QueueAudio(AudioCommand command)
+    {
+        try
+        {
+            command.Validate();
+            if (pendingAudio_.size() >= 64)
+                throw std::runtime_error("Too many UI audio commands");
+            pendingAudio_.push_back(std::move(command));
+        }
+        catch (const std::exception& failure)
+        {
+            Engine::Log::Warning(failure.what());
+        }
+    }
+    void SceneEnvironment::CommitAudioCommands()
+    {
+        if (!audioReady_)
+            return;
+        auto commands = std::move(committedAudio_);
+        committedAudio_.clear();
+        audioReady_ = false;
+        UpdateAudio(true);
+        for (const auto& command : commands)
+        {
+            try
+            {
+                if (audioCommandHandler_)
+                    audioCommandHandler_(command);
+                else if (command.kind == AudioCommandKind::Play)
+                    audio_.Play(command.target);
+                else
+                    audio_.Cue(command.target);
+            }
+            catch (const std::exception& failure)
+            {
+                Engine::Log::Warning(failure.what());
+            }
+        }
+    }
+    UiEvent SceneEnvironment::Click(const std::string& object)
+    {
+        const auto event = SceneUi::Activate(world_.Layout(), object, uiState_);
+        if (!event.sound.empty())
+            QueueAudio({AudioCommandKind::Play, event.sound});
+        if (event.action == "playAudio")
+            QueueAudio({AudioCommandKind::Play, event.target});
+        if (uiSceneCommands_.size() < 64)
+        {
+            if (event.action == "loadSceneAdditive")
+                uiSceneCommands_.push_back({event.target, true, false});
+            if (event.action == "unloadScene")
+                uiSceneCommands_.push_back({event.target, false, true});
+        }
+        NotifyUiEvent(event);
+        return event;
+    }
+    bool SceneEnvironment::RequiresFixedUpdate(const SceneLayout& layout)
+    {
+        return ScriptRuntime::HasPhase(layout, ScriptPhase::FixedUpdate) || Navigation::HasAgents(layout) ||
+               std::any_of(layout.objects.begin(), layout.objects.end(),
+                           [](const auto& object)
+                           {
+                               return (object.ragdoll && !object.ragdoll->bones.empty()) ||
+                                      (object.rigidBody && object.rigidBody->enabled) ||
+                                      (object.playerController && object.playerController->enabled);
+                           });
+    }
+    void SceneEnvironment::ProcessSceneCommands()
+    {
+        auto commands = world_.TakeSceneCommands();
+        commands.insert(commands.end(), uiSceneCommands_.begin(), uiSceneCommands_.end());
+        uiSceneCommands_.clear();
+        for (const auto& command : commands)
+        {
+            std::string error;
+            const bool success =
+                command.unload ? UnloadScene(command.scene, error) : LoadScene(command.scene, command.additive, error);
+            if (!success)
+                Engine::Log::Warning(error);
+        }
+    }
+    bool SceneEnvironment::ApplySceneLayout(SceneLayout layout, SceneCollection scenes, std::string& error,
+                                            bool resetUi)
+    {
+        if (!renderer_)
+        {
+            error = "Scene environment is not initialized";
+            return false;
+        }
+        Engine::Texture2D fenceTexture;
+        if (!fenceTexture.Initialize(renderer_->GetDevice(), renderer_->GetCommandQueue(), {}))
+        {
+            error = "Cannot synchronize scene resource release";
+            return false;
+        }
+        auto candidateUi = SceneUi::SceneState(world_.Layout(), layout, uiState_, resetUi);
+        const auto previousOverride = uiPreparationOverride_;
+        struct RestorePreparation
+        {
+            const UiState*& target;
+            const UiState* previous;
+            ~RestorePreparation()
+            {
+                target = previous;
+            }
+        } restore{uiPreparationOverride_, previousOverride};
+        uiPreparationOverride_ = &candidateUi;
+        const auto* previousMenu = TitleBindings::MenuCanvas(world_.Layout());
+        const auto* nextMenu = TitleBindings::MenuCanvas(layout);
+        const bool menuChanged =
+            (previousMenu == nullptr) != (nextMenu == nullptr) ||
+            (previousMenu && nextMenu &&
+             (previousMenu->id != nextMenu->id || previousMenu->canvas->menu != nextMenu->canvas->menu));
+        auto previousResources = presentation_.CaptureUi();
+        if (!presentation_.Prepare(*renderer_, root_, layout, error, candidateUi))
+            return false;
+        if (!world_.ReplaceRuntimeLayout(std::move(layout), root_, error))
+        {
+            pendingUiResources_.reset();
+            presentation_.RestoreUi(std::move(previousResources));
+            return false;
+        }
+        uiPreparationOverride_ = previousOverride;
+        pendingAudio_.clear();
+        committedAudio_.clear();
+        audioReady_ = false;
+        pendingAudio_ = world_.TakeAudioCommands();
+        scenes_ = std::move(scenes);
+        uiState_ = std::move(candidateUi);
+        if (resetUi || menuChanged)
+            ++sceneRevision_;
+        ApplyUiCommands(world_.TakeUiCommands());
+        if (resetUi)
+        {
+            world_.DiscardUiCommands();
+            seconds_ = 0;
+            sceneSeconds_ = 0;
+            startSeconds_ = -1;
+            focusRequested_ = 0;
+            focusEngaged_ = false;
+            focusSeconds_ = 0;
+        }
+        if (!audio_.Reconcile(root_, world_.Layout(), error))
+            Engine::Log::Warning(error);
+        error.clear();
+        return true;
+    }
+    bool SceneEnvironment::LoadScene(const std::filesystem::path& scene, bool additive, std::string& error)
+    {
+        try
+        {
+            const auto relative = scene.lexically_normal();
+            if (relative.is_absolute() || relative.has_root_name() || relative.extension() != ".json" ||
+                !relative.generic_string().starts_with("Assets/Scenes/") ||
+                std::any_of(relative.begin(), relative.end(),
+                            [](const auto& part)
+                            {
+                                return part == "..";
+                            }))
+                throw std::runtime_error("Invalid scene path");
+            auto incoming = SceneLayout::Load(root_ / relative);
+            incoming.ResolveAssets(Engine::AssetDatabase(world_.Content(), true));
+            Prefab::Refresh(incoming, root_, {}, world_.Content());
+            auto collection = scenes_;
+            auto layout = world_.Layout();
+            std::set<std::string> reserved;
+            if (!additive)
+            {
+                for (const auto& object : layout.objects)
+                    reserved.insert(object.id);
+                const auto entries = collection.Entries();
+                std::for_each(entries.begin(), entries.end(),
+                              [&](const auto& entry)
+                              {
+                                  layout = collection.Unload(layout, entry.name);
+                              });
+            }
+            layout = collection.Add(layout, std::move(incoming), relative.generic_string(), !additive, reserved);
+            const bool success = ApplySceneLayout(std::move(layout), std::move(collection), error, !additive);
+            if (success && !additive)
+                activeSceneName_ = relative.generic_string();
+            return success;
+        }
+        catch (const std::exception& exception)
+        {
+            error = exception.what();
+            return false;
+        }
+    }
+    bool SceneEnvironment::UnloadScene(const std::string& name, std::string& error)
+    {
+        try
+        {
+            auto collection = scenes_;
+            auto layout = collection.Unload(world_.Layout(), name);
+            return ApplySceneLayout(std::move(layout), std::move(collection), error);
+        }
+        catch (const std::exception& exception)
+        {
+            error = exception.what();
+            return false;
+        }
+    }
+    UiEvent SceneEnvironment::UiPointer(unsigned int width, unsigned int height, float x, float y, bool down,
+                                        bool pressed, bool released, float wheel)
+    {
+        const auto pressedObject = uiState_.pressed;
+        const auto found = std::find_if(world_.Layout().objects.begin(), world_.Layout().objects.end(),
+                                        [&](const auto& p)
+                                        {
+                                            return p.id == pressedObject;
+                                        });
+        const bool button = found != world_.Layout().objects.end() && found->button && found->button->enabled &&
+                            !found->toggle && !found->inputField;
+        auto event = SceneUi::Pointer(world_.Layout(), width, height, {x, y, down, pressed, released && !button, wheel},
+                                      uiState_);
+        if (released && button)
+        {
+            uiState_.pressed.clear();
+            if (pressedObject == uiState_.hovered)
+                return Click(pressedObject);
+        }
+        NotifyUiEvent(event);
+        return event;
+    }
+    void SceneEnvironment::NotifyUiEvent(const UiEvent& event)
+    {
+        if (!event.event.empty())
+        {
+            ScriptEvent scriptEvent;
+            scriptEvent.name = event.event;
+            scriptEvent.sender = event.object;
+            scriptEvent.value = event.value;
+            scriptEvent.text = event.text;
+            std::string error;
+            if (!QueueScriptEvent(std::move(scriptEvent), error))
+                Engine::Log::Warning(error);
+        }
+    }
+    UiEvent SceneEnvironment::UiTextInput(char32_t character)
+    {
+        auto event = SceneUi::TextInput(world_.Layout(), character, uiState_);
+        NotifyUiEvent(event);
+        return event;
+    }
+    void SceneEnvironment::Draw(ID3D12GraphicsCommandList* commands, unsigned int width, unsigned int height,
+                                const Engine::Camera* sceneCamera, bool showSceneUi) const
+    {
+        presentation_.Draw(commands, world_, width, height,
+                           {sceneCamera, seconds_, motionEnabled_, &uiState_, showSceneUi});
+    }
+}

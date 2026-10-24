@@ -1,7 +1,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <SceneRuntime/ScriptModuleApi.h>
+#include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include "StreetScriptSchema.generated.h"
 #include <algorithm>
 #include <cmath>

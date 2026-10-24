@@ -3,6 +3,8 @@
 ## フォルダ構成
 
 - `App`：共通プレイヤーの起動・シーン遷移・開発用表示。
+- `Editor/src`：ゲームエディター。起動処理の `main.cpp` 以外は、素材管理の `Assets`、保存処理の `Documents`、編集状態の `Editing`、`Animation`、`Inspector`、`Project`、`Viewport`、`Ui`、`Playback`、画面共通処理の `Shell` に分ける。
+- `SceneRuntime/include/SceneRuntime` と `SceneRuntime/src`：共通のシーン処理。公開ヘッダーと実装を同じ機能分類（`Scene`、`Rendering`、`Animation`、`Audio`、`Physics`、`Scripts`、`Ui`、`Gameplay`、`Project`）に分ける。`SceneData`・`SceneStorage`・`SceneRuntime` のビルド責務は各 `.vcxproj` で管理する。
 - `Games/GuruttoWorld`：「ぐるっとワールド」の独立ゲームプロジェクト。ゲーム固有の処理・素材・シーン・設定はここで管理する。
 - `Content`：エディター用フォント・共通シェーダー・コンテンツのビルド設定。
 - `App/Shaders/Common`：複数のシェーダーから読み込む共通処理。
@@ -12,6 +14,9 @@
 - `Engine/externals`：外部ライブラリのソースやライセンス。命名規則の一括変更対象にしない。
 - `Engine/build`：エンジンのビルド設定（`.targets` など）。
 - `scripts`：依存ライブラリの構築などのスクリプト。
+- `tests`：実行スクリプトとテスト用 `.vcxproj`。C++ のテスト本体は `tests/src` の機能別フォルダーに置き、共通補助は `Support`、通し回帰の入口は `Regression`、DLL 用の素材は `tests/fixtures` に置く。
+- `Tools`：ビルド時に使用する開発ツール。
+- `docs`：設計・機能・制作手順の資料。
 - `generated`：ビルド出力、中間生成物、取得した依存ライブラリ、一時検証結果。Git 管理しない。
 
 `Graphics` は次の役割で分類する。
@@ -25,6 +30,7 @@
 | `Materials` | マテリアル関連のパラメーター、UV 変換、光源設定 |
 
 `ShaderCompiler` は `Graphics` 直下に置く。分類のためだけに空のフォルダを先に増やさない。
+SceneRuntime の公開ヘッダーは `<SceneRuntime/機能名/ファイル名.h>` で参照する。同じ機能の非公開ヘッダーは同じフォルダーから、別機能の非公開ヘッダーは相対パスで参照する。
 Visual Studio のフィルターは実際のフォルダ構成と一致させる。
 ソースを `Debug` というフォルダに置かない（`.gitignore` のビルド生成物ルールに一致する）。
 

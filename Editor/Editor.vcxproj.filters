@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="externals" />
+    <Filter Include="externals\ImGuizmo" />
+    <Filter Include="src" />
+    <Filter Include="src\Animation" />
+    <Filter Include="src\Assets" />
+    <Filter Include="src\Documents" />
+    <Filter Include="src\Editing" />
+    <Filter Include="src\Inspector" />
+    <Filter Include="src\Playback" />
+    <Filter Include="src\Project" />
+    <Filter Include="src\Shell" />
+    <Filter Include="src\Ui" />
+    <Filter Include="src\Viewport" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shell\EditorFonts.cpp">
+      <Filter>src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\CameraPanel.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\ObjectPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\ComponentPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\EnvironmentPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiCanvasPanel.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiComponentPanel.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\ProjectPanel.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetPreview.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Editing\SceneSelection.cpp">
+      <Filter>src\Editing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\TransformGizmo.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">
+      <Filter>externals\ImGuizmo</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Shell\EditorFonts.h">
+      <Filter>src\Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\ComponentWidgets.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shell\EditorLanguage.h">
+      <Filter>src\Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\UiCanvasPanel.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AudioPreview.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\AudioComponentPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\GenreComponentPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\UiComponentPanel.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\UiControlPanel.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\RagdollPanel.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\AnimationPanel.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\AnimatorPanel.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Documents\MaterialDocument.h">
+      <Filter>src\Documents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Documents\SceneSnapshotCache.h">
+      <Filter>src\Documents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\UiCanvasTransform.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\UiEditorPanel.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\TitlePreview.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\MenuPanel.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AssetManagementPanel.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Project\BuildPanel.h">
+      <Filter>src\Project</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shell\ProfilerPanel.h">
+      <Filter>src\Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\ComponentPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AssetPreview.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Project\ProjectPanel.h">
+      <Filter>src\Project</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Project\ProjectCatalog.h">
+      <Filter>src\Project</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AssetInfo.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AssetChanges.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\ModelDrop.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Viewport\TransformGizmo.h">
+      <Filter>src\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Viewport\GizmoTransform.h">
+      <Filter>src\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Editing\EditHistory.h">
+      <Filter>src\Editing</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Documents\FileTransaction.h">
+      <Filter>src\Documents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Documents\DocumentSave.h">
+      <Filter>src\Documents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AssetFileChanges.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Documents\PrefabEditPlan.h">
+      <Filter>src\Documents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Editing\EditState.h">
+      <Filter>src\Editing</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Playback\PlayState.h">
+      <Filter>src\Playback</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Playback\GameSession.h">
+      <Filter>src\Playback</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Editing\SelectionSet.h">
+      <Filter>src\Editing</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Editing\HierarchyRows.h">
+      <Filter>src\Editing</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Viewport\SceneViewport.h">
+      <Filter>src\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Viewport\ScenePanel.h">
+      <Filter>src\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shell\ConsolePanel.h">
+      <Filter>src\Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shell\ConsoleFilter.h">
+      <Filter>src\Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Documents\SceneDocument.h">
+      <Filter>src\Documents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Documents\SaveAsPanel.h">
+      <Filter>src\Documents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Project\ProjectSettingsPanel.h">
+      <Filter>src\Project</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Project\InputBindingsPanel.h">
+      <Filter>src\Project</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\MaterialPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\LightmapPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\PrefabPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\PhysicsPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\BlendTreePanel.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\AnimationEventPanel.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\IkPanel.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Editing\FocusSelection.h">
+      <Filter>src\Editing</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shell\PanelLayout.h">
+      <Filter>src\Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="externals\ImGuizmo\ImGuizmo.h">
+      <Filter>externals\ImGuizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Editing\SceneSelection.h">
+      <Filter>src\Editing</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\ObjectPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\ScriptDataPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Project\ScriptAuthoringPanel.h">
+      <Filter>src\Project</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Project\GameProject.h">
+      <Filter>src\Project</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Inspector\JointPanel.h">
+      <Filter>src\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Viewport\CameraPanel.h">
+      <Filter>src\Viewport</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,5 +1,5 @@
-#include <SceneRuntime/ScriptModuleApi.h>
-#include <SceneRuntime/GameSettings.h>
+#include <SceneRuntime/Scripts/ScriptModuleApi.h>
+#include <SceneRuntime/Project/GameSettings.h>
 #include <Engine/Audio/AudioSystem.h>
 #include <iterator>
 #include "ParkScriptSchema.generated.h"

@@ -1,5 +1,5 @@
 #pragma once
-#include <SceneRuntime/GameSettings.h>
+#include <SceneRuntime/Project/GameSettings.h>
 namespace App
 {
     using SceneRuntime::GameSettings;

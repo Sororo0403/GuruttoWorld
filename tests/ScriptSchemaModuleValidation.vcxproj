@@ -34,7 +34,7 @@
     <Link><SubSystem>Console</SubSystem><TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors></Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ScriptSchemaModuleValidation.cpp" />
+    <ClCompile Include="src\Scripts\ScriptSchemaModuleValidation.cpp" />
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
     <ProjectReference Include="..\Engine\Engine.vcxproj" />
   </ItemGroup>

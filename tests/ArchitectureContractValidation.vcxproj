@@ -34,15 +34,15 @@
     <Link><SubSystem>Console</SubSystem><TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors></Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ArchitectureContractValidation.cpp" />
-    <ClInclude Include="ComponentContractValidation.h" />
-    <ClInclude Include="AssetReferenceContractValidation.h" />
-    <ClInclude Include="SchemaContractValidation.h" />
-    <ClInclude Include="MigrationContractValidation.h" />
-    <ClInclude Include="PrefabDesignContractValidation.h" />
-    <ClInclude Include="EditTransactionContractValidation.h" />
-    <ClInclude Include="SessionDesignContractValidation.h" />
-    <ClInclude Include="ExtensibilityContractValidation.h" />
+    <ClCompile Include="src\Architecture\ArchitectureContractValidation.cpp" />
+    <ClInclude Include="src\Architecture\ComponentContractValidation.h" />
+    <ClInclude Include="src\Assets\AssetReferenceContractValidation.h" />
+    <ClInclude Include="src\Scripts\SchemaContractValidation.h" />
+    <ClInclude Include="src\Architecture\MigrationContractValidation.h" />
+    <ClInclude Include="src\Scene\PrefabDesignContractValidation.h" />
+    <ClInclude Include="src\Architecture\EditTransactionContractValidation.h" />
+    <ClInclude Include="src\Architecture\SessionDesignContractValidation.h" />
+    <ClInclude Include="src\Architecture\ExtensibilityContractValidation.h" />
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
     <ProjectReference Include="..\Engine\Engine.vcxproj" />
   </ItemGroup>

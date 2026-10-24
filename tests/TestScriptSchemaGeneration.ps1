@@ -53,7 +53,7 @@ foreach ($taskInvalid in @(
 Remove-Item -LiteralPath $taskBad
 if ($BuildNative) {
     $taskSource = @'
-#include <SceneRuntime/ScriptModuleApi.h>
+#include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include "Script.generated.h"
 #include "Long.generated.h"
 bool Register_Long(void* context, SceneRuntime::RegisterModuleScript add)
@@ -65,7 +65,7 @@ bool Register_Long(void* context, SceneRuntime::RegisterModuleScript add)
 '@
     [IO.File]::WriteAllText((Join-Path $taskScripts 'Long.cpp'), $taskSource, $taskUtf8)
     $taskNamesakeSource = @'
-#include <SceneRuntime/ScriptModuleApi.h>
+#include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include "Script.generated.h"
 bool Register_Script(void* context, SceneRuntime::RegisterModuleScript add)
 {

@@ -93,13 +93,13 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="EngineEditorReviewValidation.h" />
-    <ClInclude Include="SpriteResourceValidation.h" />
-    <ClCompile Include="ReviewRegressionValidation.cpp" />
-    <ClCompile Include="ArchitectureAuditFixValidation.cpp">
+    <ClInclude Include="src\Architecture\EngineEditorReviewValidation.h" />
+    <ClInclude Include="src\Rendering\SpriteResourceValidation.h" />
+    <ClCompile Include="src\Regression\ReviewRegressionValidation.cpp" />
+    <ClCompile Include="src\Architecture\ArchitectureAuditFixValidation.cpp">
       <PreprocessorDefinitions>WP1_AUDIT_EMBEDDED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <ClInclude Include="ArchitectureAuditFixValidation.h" />
+    <ClInclude Include="src\Architecture\ArchitectureAuditFixValidation.h" />
     <ClCompile Include="..\Engine\externals\imgui\imgui.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Release'">true</ExcludedFromBuild>
     </ClCompile>
@@ -112,25 +112,25 @@
     <ClCompile Include="..\Engine\externals\imgui\imgui_widgets.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\Editor\src\EditorFonts.cpp">
+    <ClCompile Include="..\Editor\src\Shell\EditorFonts.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\Editor\src\AssetPreview.cpp">
+    <ClCompile Include="..\Editor\src\Assets\AssetPreview.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\Editor\src\ComponentPanel.cpp">
+    <ClCompile Include="..\Editor\src\Inspector\ComponentPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\Editor\src\UiComponentPanel.cpp">
+    <ClCompile Include="..\Editor\src\Ui\UiComponentPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\Editor\src\EnvironmentPanel.cpp">
+    <ClCompile Include="..\Editor\src\Inspector\EnvironmentPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\Editor\src\ObjectPanel.cpp">
+    <ClCompile Include="..\Editor\src\Inspector\ObjectPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\Editor\src\UiCanvasPanel.cpp" />
+    <ClCompile Include="..\Editor\src\Ui\UiCanvasPanel.cpp" />
     <ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp" />
     <ClCompile Include="..\App\src\Scenes\SceneFactory.cpp" />
   </ItemGroup>
@@ -167,8 +167,8 @@
     <Copy SourceFiles="@(TestAppShaders)" DestinationFiles="@(TestAppShaders-&gt;'$(OutDir)Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
-    <ClInclude Include="GamePlaybackParityValidation.h" />
-    <ClInclude Include="PrefabGpuContractValidation.h" />
-    <ClInclude Include="OptionalFeaturesValidation.h" />
+    <ClInclude Include="src\Gameplay\GamePlaybackParityValidation.h" />
+    <ClInclude Include="src\Scene\PrefabGpuContractValidation.h" />
+    <ClInclude Include="src\Rendering\OptionalFeaturesValidation.h" />
   </ItemGroup>
 </Project>

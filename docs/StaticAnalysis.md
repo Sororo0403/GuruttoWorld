@@ -82,7 +82,7 @@ Debug・Releaseで通常回帰、既存25シーンの保存・再読み込みと
 - スキーマの文字列と項目名にNULが含まれる場合は生成を拒否し、既存ヘッダーを保持します。
 - ルートモーション用の衝突ワールドを通常の物理ワールドから独立させて再利用します。座標を同期し、形状・親子関係・構成・ルート・モデルとメタデータ・glTF/GLBの外部バッファが変わった場合は再構築します。無効なColliderは依存ファイルの監視から除外します。
 
-`tests/DeepStateValidation.h`に所属のID再利用、所属だけのキャッシュ更新、通常の文字列と宣言された参照の改名後の挙動、衝突ワールドの再利用・座標と形状の変更・通常物理への非干渉、外部モデルのバッファ変更と失敗時の候補保持を追加しました。Authoring検証はDebug・Releaseとも成功しました。
+`tests/src/Architecture/DeepStateValidation.h`に所属のID再利用、所属だけのキャッシュ更新、通常の文字列と宣言された参照の改名後の挙動、衝突ワールドの再利用・座標と形状の変更・通常物理への非干渉、外部モデルのバッファ変更と失敗時の候補保持を追加しました。Authoring検証はDebug・Releaseとも成功しました。
 
 Scriptの自動コンパイル検証は専用Contentへ分離し、成功の反映待ち→最新編集の失敗→Stop→修正後の成功を確認しました。ビルド側はContentの祖先からリポジトリを検出し、同じビルドスクリプトと結果保存先を使います。検証用ソースによる並行ビルドへの干渉を解消しました。
 
@@ -105,7 +105,7 @@ Releaseで衝突箱3,000個・移動対象1個の同じ合成条件を計測し�
 8. 未編集のScriptシーン参照は保存時に既定値と用途を記録し、改名後やモジュールがない状態でも参照を解決できます。編集用の配置データ自体は変更せず、通常の既定値は省略できます。
 9. Scriptの登録・モジュール交換の成功時に定義世代を更新し、用途・既定値の変更やモジュール削除でUndo・復旧用JSONのキャッシュを更新します。失敗した登録では世代とキャッシュを維持します。
 
-`tests/FollowupStateValidation.h`に全9件と境界条件の回帰を追加しました。`WP1_FOLLOWUP_STATE_ONLY=1`の集中検証で、Debug・Releaseの両構成が成功しました。保存・再読み込み後の所属、曖昧な旧パスの局所的拒否とID解決、未解決データの保存、PrefabのOverride操作、地形・タイルの即時選択判定、不正な地形編集の失敗時のデータ・モデル保持を確認しています。集中検証のログは`generated/followup-fixes-{debug,release}-focused.log`です。
+`tests/src/Architecture/FollowupStateValidation.h`に全9件と境界条件の回帰を追加しました。`WP1_FOLLOWUP_STATE_ONLY=1`の集中検証で、Debug・Releaseの両構成が成功しました。保存・再読み込み後の所属、曖昧な旧パスの局所的拒否とID解決、未解決データの保存、PrefabのOverride操作、地形・タイルの即時選択判定、不正な地形編集の失敗時のデータ・モデル保持を確認しています。集中検証のログは`generated/followup-fixes-{debug,release}-focused.log`です。
 
 最終静的解析は`AnalyzeCode.ps1 -Label followup-fixes-final -Jobs 4`で、CppcheckのDebug・Development・ReleaseとLizardがすべて終了コード0です。閾値はCCN 15・関数長100・引数8のまま、2,022関数・警告0件です。解析対象の除外・警告抑制は追加していません。ログは`generated/followup-fixes-final-analysis.log`と`generated/analysis/*-followup-fixes-final*.txt`です。
 
@@ -128,7 +128,7 @@ Debug・Releaseで通常回帰、既存25シーンの保存・再読み込みと
 3. 最大傾斜は地形の接線をワールドへ変換した後の法線から求めます。親の縮尺と回転を反映し、回転した平面のNavMeshにも同じ最大傾斜を適用します。
 4. アセットの旧パス履歴は重複を追加せず、既存の1024件上限を維持します。新しい履歴が上限を超える移動はディレクトリ作成・モデル移動の前に拒否し、元のファイル・ID・履歴を保持します。メタデータの直接保存でも上限とパスの妥当性を検証し、読み込めない`.meta`を生成しません。
 
-`tests/NavigationTransformValidation.h`に親子の逆順・中間親・通常の子孫・親の回転と非一様縮尺・拡大／縮小／反転した障害物・縮尺のある地形・回転した平面・失敗時の配置保持の回帰を追加しました。`tests/AssetDatabaseValidation.h`には履歴上限での移動拒否と元データ保持、不正な履歴の保存拒否、上限でも既知の旧パスを再利用できることの回帰を追加しました。Debug・Releaseの`WP1_GENRE_ONLY`と`WP1_ASSET_ONLY`がすべて終了コード0です。
+`tests/src/Physics/NavigationTransformValidation.h`に親子の逆順・中間親・通常の子孫・親の回転と非一様縮尺・拡大／縮小／反転した障害物・縮尺のある地形・回転した平面・失敗時の配置保持の回帰を追加しました。`tests/src/Assets/AssetDatabaseValidation.h`には履歴上限での移動拒否と元データ保持、不正な履歴の保存拒否、上限でも既知の旧パスを再利用できることの回帰を追加しました。Debug・Releaseの`WP1_GENRE_ONLY`と`WP1_ASSET_ONLY`がすべて終了コード0です。
 
 最終静的解析は`AnalyzeCode.ps1 -Label navigation-fixes-final -Jobs 4`で、Debug・Development・ReleaseのCppcheckとLizardがすべて終了コード0です。CCN 15・関数長100・引数8、解析対象・警告抑制は変更していません。2,025関数・警告0件です。ログは`generated/navigation-fixes-analysis.log`と`generated/analysis/*-navigation-fixes-final*.txt`です。
 

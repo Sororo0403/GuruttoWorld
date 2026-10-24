@@ -72,7 +72,7 @@ try {
         $installation=& $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -property installationPath
         if (!$installation) { throw 'Visual Studio with C++ and MSBuild is required.' }
         $msbuild=Join-Path $installation 'MSBuild/Current/Bin/MSBuild.exe'
-        $aggregate='#include <SceneRuntime/ScriptModuleApi.h>'+"`r`n"
+        $aggregate='#include <SceneRuntime/Scripts/ScriptModuleApi.h>'+"`r`n"
         foreach ($sourceFile in $sources) { $aggregate+="bool Register_$($sourceFile.BaseName)(void*,SceneRuntime::RegisterModuleScript);`r`n" }
         $aggregate+='extern "C" __declspec(dllexport) bool Wp1RegisterScripts(const SceneRuntime::ScriptModuleAbi* abi,void* context,SceneRuntime::RegisterModuleScript add)'+"`r`n{`r`n"
         $aggregate+='    if (!abi || !add || *abi!=SceneRuntime::ScriptModuleAbi{}) return false;'+"`r`n"

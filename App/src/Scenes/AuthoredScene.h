@@ -1,7 +1,7 @@
 #pragma once
 #include <Engine/Scenes/IScene.h>
-#include <SceneRuntime/SceneEnvironment.h>
-#include <SceneRuntime/GamePlayback.h>
+#include <SceneRuntime/Scene/SceneEnvironment.h>
+#include <SceneRuntime/Gameplay/GamePlayback.h>
 #include <Engine/Input/Gamepad.h>
 #include <Engine/Input/InputActions.h>
 #include <memory>

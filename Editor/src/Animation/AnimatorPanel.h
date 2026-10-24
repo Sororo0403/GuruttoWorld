@@ -1,0 +1,252 @@
+#pragma once
+#include <SceneRuntime/Animation/Animator.h>
+#include "../Project/ProjectCatalog.h"
+#include "BlendTreePanel.h"
+#include "AnimationEventPanel.h"
+#include "IkPanel.h"
+#include <imgui.h>
+namespace Editor
+{
+    class AnimatorPanel final
+    {
+        static bool Text(const char* label, std::string& value)
+        {
+            std::vector<char> buffer(std::max(size_t(1024), value.size() + 1));
+            std::copy(value.begin(), value.end(), buffer.begin());
+            if (!ImGui::InputText(label, buffer.data(), buffer.size()))
+                return false;
+            value = buffer.data();
+            return true;
+        }
+        static std::shared_ptr<const Engine::SkeletonData> LoadRig(const SceneRuntime::ScenePlacement& object,
+                                                                   const ProjectCatalog* catalog)
+        {
+            std::shared_ptr<const Engine::SkeletonData> rig;
+            static std::filesystem::path cachedPath;
+            static std::filesystem::file_time_type cachedTime;
+            static std::shared_ptr<const Engine::SkeletonData> cachedRig;
+            if (catalog && object.meshRenderer)
+            {
+                const auto path = catalog->Root() / object.Model();
+                std::error_code error;
+                const auto time = std::filesystem::last_write_time(path, error);
+                if (!error && (cachedPath != path || cachedTime != time))
+                {
+                    std::string message;
+                    cachedRig = Engine::Skeleton::Load(path, message);
+                    cachedPath = path;
+                    cachedTime = time;
+                }
+                if (!error && cachedPath == path)
+                    rig = cachedRig;
+            }
+            return rig;
+        }
+
+        static bool DrawRootMotion(SceneRuntime::AnimatorComponent& animator, const Engine::SkeletonData* rig)
+        {
+            bool edited = false;
+            if (rig && ImGui::BeginCombo("移動ボーン###Root bone", animator.rootBone.c_str()))
+            {
+                for (const auto& node : rig->nodes)
+                    if (ImGui::Selectable(node.name.c_str(), node.name == animator.rootBone))
+                    {
+                        animator.rootBone = node.name;
+                        edited = true;
+                    }
+                ImGui::EndCombo();
+            }
+            if (!rig)
+                edited |= Text("移動ボーン###Root bone", animator.rootBone);
+            if (animator.rootMotion && animator.rootBone.empty() && rig && !rig->nodes.empty())
+            {
+                animator.rootBone = rig->nodes.front().name;
+                edited = true;
+            }
+            return edited;
+        }
+
+        static bool RenameState(SceneRuntime::AnimatorComponent& animator, SceneRuntime::AnimatorStateDefinition& state)
+        {
+            bool edited = false;
+            const auto oldName = state.name;
+            if (Text("名前###Name", state.name))
+            {
+                if (animator.initialState == oldName)
+                    animator.initialState = state.name;
+                for (auto& transition : animator.transitions)
+                {
+                    if (transition.from == oldName)
+                        transition.from = state.name;
+                    if (transition.to == oldName)
+                        transition.to = state.name;
+                }
+                edited = true;
+            }
+            return edited;
+        }
+        static bool DrawStates(SceneRuntime::AnimatorComponent& animator, const Engine::SkeletonData* rig)
+        {
+            bool edited = false;
+            if (ImGui::BeginCombo("初期状態###Initial state", animator.initialState.c_str()))
+            {
+                for (const auto& state : animator.states)
+                    if (ImGui::Selectable(state.name.c_str(), state.name == animator.initialState))
+                    {
+                        animator.initialState = state.name;
+                        edited = true;
+                    }
+                ImGui::EndCombo();
+            }
+            ImGui::TextWrapped(
+                "clipはglTFのアニメーション名です。空欄では初期姿勢を使用します。speed・grounded・入力Actionを遷移条件に使用できます。");
+            for (size_t i = 0; i < animator.states.size(); ++i)
+            {
+                ImGui::PushID(static_cast<int>(i));
+                auto& state = animator.states[i];
+                if (ImGui::TreeNode("state", "状態: %s", state.name.c_str()))
+                {
+                    edited |= RenameState(animator, state);
+                    edited |= BlendTreePanel::Motion("Motion###Clip", state.clip, state.blendTree, animator, rig);
+                    edited |= ImGui::DragFloat("再生速度###Speed", &state.speed, 0.01f, 0, 1000, "%.2f",
+                                               ImGuiSliderFlags_AlwaysClamp);
+                    edited |= ImGui::Checkbox("ループ###Loop", &state.loop);
+                    if (animator.states.size() > 1 && ImGui::Button("状態を削除###Remove"))
+                    {
+                        const auto name = state.name;
+                        animator.states.erase(animator.states.begin() + i);
+                        if (animator.initialState == name)
+                            animator.initialState = animator.states.front().name;
+                        std::erase_if(animator.transitions,
+                                      [&](const auto& transition)
+                                      {
+                                          return transition.from == name || transition.to == name;
+                                      });
+                        edited = true;
+                        ImGui::TreePop();
+                        ImGui::PopID();
+                        break;
+                    }
+                    ImGui::TreePop();
+                }
+                ImGui::PopID();
+            }
+            if (animator.states.size() < 32 && ImGui::Button("状態を追加###Add state"))
+            {
+                SceneRuntime::AnimatorStateDefinition next;
+                size_t number = animator.states.size() + 1;
+                do
+                {
+                    next.name = "State" + std::to_string(number++);
+                } while (std::any_of(animator.states.begin(), animator.states.end(),
+                                     [&](const auto& state)
+                                     {
+                                         return state.name == next.name;
+                                     }));
+                animator.states.push_back(next);
+                edited = true;
+            }
+            return edited;
+        }
+
+        static bool DrawTransitionEndpoints(const SceneRuntime::AnimatorComponent& animator,
+                                            SceneRuntime::AnimatorTransition& transition)
+        {
+            bool edited = false;
+            for (const auto& field :
+                 {std::pair{"遷移元###From", &transition.from}, std::pair{"遷移先###To", &transition.to}})
+            {
+                if (ImGui::BeginCombo(field.first, field.second->c_str()))
+                {
+                    if (field.second == &transition.from && ImGui::Selectable("*", transition.from == "*"))
+                    {
+                        transition.from = "*";
+                        edited = true;
+                    }
+                    for (const auto& value : animator.states)
+                        if (ImGui::Selectable(value.name.c_str(), *field.second == value.name))
+                        {
+                            *field.second = value.name;
+                            edited = true;
+                        }
+                    ImGui::EndCombo();
+                }
+            }
+            return edited;
+        }
+        static bool DrawTransitions(SceneRuntime::AnimatorComponent& animator)
+        {
+            bool edited = false;
+            for (size_t i = 0; i < animator.transitions.size(); ++i)
+            {
+                ImGui::PushID(static_cast<int>(i + 100));
+                auto& transition = animator.transitions[i];
+                if (ImGui::TreeNode("transition", "遷移: %s -> %s", transition.from.c_str(), transition.to.c_str()))
+                {
+                    edited |= DrawTransitionEndpoints(animator, transition);
+                    edited |= Text("パラメーター###Parameter", transition.parameter);
+                    if (ImGui::BeginCombo("比較###Comparison", transition.comparison.c_str()))
+                    {
+                        for (const auto* comparison : {">", ">=", "<", "<=", "==", "!="})
+                            if (ImGui::Selectable(comparison, transition.comparison == comparison))
+                            {
+                                transition.comparison = comparison;
+                                edited = true;
+                            }
+                        ImGui::EndCombo();
+                    }
+                    edited |= ImGui::InputFloat("閾値###Value", &transition.value);
+                    edited |= ImGui::DragFloat("ブレンド秒###Blend", &transition.blendSeconds, 0.01f, 0, 60, "%.2f",
+                                               ImGuiSliderFlags_AlwaysClamp);
+                    edited |= ImGui::DragFloat("終了時刻（-1で無効）###Exit", &transition.exitTime, 0.01f, -1, 100,
+                                               "%.2f", ImGuiSliderFlags_AlwaysClamp);
+                    if (ImGui::Button("遷移を削除###Remove"))
+                    {
+                        animator.transitions.erase(animator.transitions.begin() + i);
+                        edited = true;
+                        ImGui::TreePop();
+                        ImGui::PopID();
+                        break;
+                    }
+                    ImGui::TreePop();
+                }
+                ImGui::PopID();
+            }
+            if (animator.transitions.size() < 128 && ImGui::Button("遷移を追加###Add transition"))
+            {
+                SceneRuntime::AnimatorTransition next;
+                next.from = animator.initialState;
+                next.to = animator.initialState;
+                animator.transitions.push_back(next);
+                edited = true;
+            }
+            return edited;
+        }
+
+    public:
+        static bool Draw(SceneRuntime::ScenePlacement& object, const ProjectCatalog* catalog)
+        {
+            if (!object.animator || !ImGui::CollapsingHeader("骨格アニメーション###Animator"))
+                return false;
+            const auto rig = LoadRig(object, catalog);
+            auto& animator = *object.animator;
+            ImGui::PushID(animator.id.c_str());
+            bool edited = ImGui::Checkbox("有効###Enabled", &animator.enabled);
+            edited |= ImGui::Checkbox("ルートモーション###Root motion", &animator.rootMotion);
+            edited |= DrawRootMotion(animator, rig.get());
+            edited |= BlendTreePanel::Parameters(animator);
+            edited |= DrawStates(animator, rig.get());
+            edited |= BlendTreePanel::Draw(animator, rig.get());
+            edited |= AnimationEventPanel::Draw(animator, rig.get());
+            edited |= IkPanel::Draw(animator, rig.get());
+            edited |= DrawTransitions(animator);
+            if (ImGui::Button("Animatorを削除###Remove Animator"))
+            {
+                object.animator.reset();
+                edited = true;
+            }
+            ImGui::PopID();
+            return edited;
+        }
+    };
+}

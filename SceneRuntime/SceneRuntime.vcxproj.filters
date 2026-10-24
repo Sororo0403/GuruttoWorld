@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include" />
+    <Filter Include="include\SceneRuntime" />
+    <Filter Include="include\SceneRuntime\Animation" />
+    <Filter Include="include\SceneRuntime\Audio" />
+    <Filter Include="include\SceneRuntime\Gameplay" />
+    <Filter Include="include\SceneRuntime\Physics" />
+    <Filter Include="include\SceneRuntime\Project" />
+    <Filter Include="include\SceneRuntime\Rendering" />
+    <Filter Include="include\SceneRuntime\Scene" />
+    <Filter Include="include\SceneRuntime\Scripts" />
+    <Filter Include="include\SceneRuntime\Ui" />
+    <Filter Include="src" />
+    <Filter Include="src\Animation" />
+    <Filter Include="src\Audio" />
+    <Filter Include="src\Gameplay" />
+    <Filter Include="src\Physics" />
+    <Filter Include="src\Project" />
+    <Filter Include="src\Rendering" />
+    <Filter Include="src\Scene" />
+    <Filter Include="src\Scripts" />
+    <Filter Include="src\Ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Gameplay\TitleMenu.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\TitleUi.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\GameSettings.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\ProjectUserSettings.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\Animator.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Physics\Ragdoll.cpp">
+      <Filter>src\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Audio\SceneAudio.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\GenreGeometry.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\Navigation.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\SceneUi.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiLayout.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\SceneView.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\ScenePresentation.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneEnvironment.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneMigration.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneWorld.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneTransactions.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Physics\ScenePhysics.cpp">
+      <Filter>src\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Physics\PhysicsWorld.cpp">
+      <Filter>src\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scripts\ScriptRuntime.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scripts\ScriptModule.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClInclude Include="include\SceneRuntime\Animation\Animation.h">
+      <Filter>include\SceneRuntime\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Animation\Animator.h">
+      <Filter>include\SceneRuntime\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Animation\AnimationEvents.h">
+      <Filter>include\SceneRuntime\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Animation\BlendTree.h">
+      <Filter>include\SceneRuntime\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\AnimatorJson.h">
+      <Filter>src\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Ui\UiComponents.h">
+      <Filter>include\SceneRuntime\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Ui\UiControls.h">
+      <Filter>include\SceneRuntime\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Physics\Ragdoll.h">
+      <Filter>include\SceneRuntime\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Physics\RagdollJson.h">
+      <Filter>src\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\UiControlJson.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Gameplay\MenuConfiguration.h">
+      <Filter>include\SceneRuntime\Gameplay</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Audio\SceneAudio.h">
+      <Filter>include\SceneRuntime\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Gameplay\Navigation.h">
+      <Filter>include\SceneRuntime\Gameplay</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\GenreJson.h">
+      <Filter>src\Gameplay</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Gameplay\GenreComponents.h">
+      <Filter>include\SceneRuntime\Gameplay</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Gameplay\GenreGeometry.h">
+      <Filter>include\SceneRuntime\Gameplay</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Audio\AudioJson.h">
+      <Filter>src\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Audio\AudioComponents.h">
+      <Filter>include\SceneRuntime\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Ui\SceneUi.h">
+      <Filter>include\SceneRuntime\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Ui\SceneCanvas.h">
+      <Filter>include\SceneRuntime\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Ui\UiJson.h">
+      <Filter>src\Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\EnvironmentComponents.h">
+      <Filter>include\SceneRuntime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneView.h">
+      <Filter>include\SceneRuntime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Rendering\EnvironmentJson.h">
+      <Filter>src\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\ScenePresentation.h">
+      <Filter>include\SceneRuntime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneEnvironment.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scene\SceneSettingsJson.h">
+      <Filter>src\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scene\SceneComponentJson.h">
+      <Filter>src\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneComponents.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\MaterialAsset.h">
+      <Filter>include\SceneRuntime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\MaterialTextureCache.h">
+      <Filter>include\SceneRuntime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\LightmapBaker.h">
+      <Filter>include\SceneRuntime\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Rendering\SceneRenderPlan.h">
+      <Filter>src\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Physics\PhysicsWorld.h">
+      <Filter>include\SceneRuntime\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scene\PrefabMerge.h">
+      <Filter>src\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\Prefab.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptRuntime.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptValue.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptModuleApi.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptModule.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Physics\ScenePhysics.h">
+      <Filter>include\SceneRuntime\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneTransforms.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneLayout.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneDocumentData.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\ObjectReferenceDomain.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\ComponentAssetReferences.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneAssetReferences.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneMigration.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptSchema.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Audio\AudioCommand.h">
+      <Filter>include\SceneRuntime\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptValueJson.h">
+      <Filter>include\SceneRuntime\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\ComponentDefinitions.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\ComponentFieldSchema.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\ComponentObjectReferences.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneCollection.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Physics\JointComponent.h">
+      <Filter>include\SceneRuntime\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Physics\PhysicsJoints.h">
+      <Filter>src\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Project\ProjectSettings.h">
+      <Filter>include\SceneRuntime\Project</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneWorld.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Animation\Animation.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimationProperties.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimationEvents.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\BlendTree.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimatorJson.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\GenreJson.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Audio\AudioJson.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiJson.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\EnvironmentJson.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneSettingsJson.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneLayout.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneAssetReferences.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scripts\ScriptSchema.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scripts\ScriptValueJson.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneComponentJson.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\Prefab.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneTransforms.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

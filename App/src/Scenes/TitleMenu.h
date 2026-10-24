@@ -1,6 +1,6 @@
 #pragma once
 #include "GameSettings.h"
-#include <SceneRuntime/TitleMenu.h>
+#include <SceneRuntime/Gameplay/TitleMenu.h>
 namespace App
 {
     using SceneRuntime::TitleMenu;

@@ -90,7 +90,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="OceanSunsetValidation.cpp" />
+    <ClCompile Include="src\Gameplay\OceanSunsetValidation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">

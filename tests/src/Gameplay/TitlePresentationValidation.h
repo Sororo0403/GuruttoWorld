@@ -1,0 +1,285 @@
+#pragma once
+#include "../Rendering/EnvironmentValidation.h"
+#include <SceneRuntime/Ui/SceneUi.h>
+#include "TitleConfigTransitionValidation.h"
+#include <SceneRuntime/Gameplay/TitleController.h>
+
+namespace TitlePresentationValidation
+{
+    inline void Capture(Engine::DirectX12Renderer& renderer, SceneRuntime::SceneEnvironment& scene, unsigned int width,
+                        unsigned int height, const std::string& name)
+    {
+        using EnvironmentValidation::Require;
+        Engine::RenderTexture target;
+        Require(target.Resize(renderer, width, height), "title capture target");
+        const UINT pitch = (width * 4 + 255) & ~255u;
+        D3D12_HEAP_PROPERTIES heap{};
+        heap.Type = D3D12_HEAP_TYPE_READBACK;
+        D3D12_RESOURCE_DESC description{};
+        description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        description.Width = static_cast<UINT64>(pitch) * height;
+        description.Height = 1;
+        description.DepthOrArraySize = 1;
+        description.MipLevels = 1;
+        description.SampleDesc.Count = 1;
+        description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        Microsoft::WRL::ComPtr<ID3D12Resource> readback;
+        Require(SUCCEEDED(renderer.GetDevice()->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
+                                                                        D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                                        IID_PPV_ARGS(&readback))),
+                "title capture readback");
+        Require(renderer.Render({0, 0, 0, 1},
+                                [&](ID3D12GraphicsCommandList* commands, float)
+                                {
+                                    Require(target.Begin(commands, {0, 0, 0, 1}), "title capture begins");
+                                    scene.Draw(commands, width, height);
+                                    Require(target.End(commands), "title capture ends");
+                                    D3D12_RESOURCE_BARRIER barrier{};
+                                    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                                    barrier.Transition.pResource = target.GetResource();
+                                    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                                    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+                                    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+                                    commands->ResourceBarrier(1, &barrier);
+                                    D3D12_TEXTURE_COPY_LOCATION source{}, destination{};
+                                    source.pResource = target.GetResource();
+                                    source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                                    destination.pResource = readback.Get();
+                                    destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+                                    destination.PlacedFootprint.Footprint = {Engine::RenderTexture::Format, width,
+                                                                             height, 1, pitch};
+                                    commands->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+                                    std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+                                    commands->ResourceBarrier(1, &barrier);
+                                }) != Engine::RenderResult::Failed &&
+                    renderer.WaitForIdle(),
+                "title capture GPU complete");
+        unsigned char* pixels = nullptr;
+        const D3D12_RANGE range{0, static_cast<SIZE_T>(pitch) * height};
+        Require(SUCCEEDED(readback->Map(0, &range, reinterpret_cast<void**>(&pixels))), "title capture maps");
+        if (name == "quit-focus")
+            Require(pixels[0] + pixels[1] + pixels[2] > 60,
+                    "QUIT selection keeps the scene visible before confirmation");
+        if (name.starts_with("covered"))
+        {
+            for (const auto offset : std::array<SIZE_T, 4>{0, (width - 1) * 4, (height - 1) * pitch,
+                                                           (height - 1) * pitch + (width - 1) * 4})
+                Require(((pixels[offset] < 15 && pixels[offset + 1] < 15 && pixels[offset + 2] < 15) ||
+                         (pixels[offset] > 240 && pixels[offset + 1] > 240 && pixels[offset + 2] > 240)) &&
+                            pixels[offset + 3] == 255,
+                        "completed departure renders opaque black/white at every aspect ratio");
+        }
+        const auto directory = std::filesystem::absolute("generated/title-rebuild/previews");
+        std::filesystem::create_directories(directory);
+        std::ofstream output(directory / (name + ".ppm"), std::ios::binary);
+        output << "P6\n" << width << " " << height << "\n255\n";
+        for (UINT y = 0; y < height; ++y)
+            for (UINT x = 0; x < width; ++x)
+                output.write(reinterpret_cast<char*>(pixels + y * pitch + x * 4), 3);
+        const D3D12_RANGE empty{0, 0};
+        readback->Unmap(0, &empty);
+        Require(static_cast<bool>(output), "title capture saved");
+    }
+    inline void Run(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
+    {
+        using EnvironmentValidation::Require;
+        TitleConfigTransitionValidation::Run(renderer, root);
+        const auto layout = SceneRuntime::SceneLayout::Load(root / "Assets/Scenes/TitleStreet.json");
+        SceneRuntime::SceneEnvironment scene;
+        std::string error;
+        Require(scene.Initialize(renderer, root, layout, error), "title presentation initializes");
+        SceneRuntime::TitleController departure;
+        Engine::InputActions actions;
+        Engine::InputSnapshot neutral;
+        neutral.active = true;
+        actions.Update(neutral);
+        std::string departureTarget;
+        const auto beginDeparture = [&](int index)
+        {
+            const auto* configuration = SceneRuntime::TitleBindings::Configuration(layout);
+            Require(configuration != nullptr, "departure has authored menu configuration");
+            const auto entry = std::find_if(configuration->entries.begin(), configuration->entries.end(),
+                                            [&](const auto& item)
+                                            {
+                                                return item.index == index;
+                                            });
+            Require(entry != configuration->entries.end(), "departure has authored menu entry");
+            departureTarget = entry->transitionCameraTarget;
+            departure.Initialize(layout, scene.Ui());
+            SceneRuntime::UiEvent event;
+            event.event = "menu:" + std::to_string(index);
+            Require(departure.Activate(event, scene.Ui()), "authored departure activates");
+            departure.AdvancePresentation(scene, 0, true);
+        };
+        const auto advanceDeparture = [&](float progress)
+        {
+            const int frames = static_cast<int>(std::ceil(scene.Ui().Value("startDuration", .32f) / .1f)) + 3;
+            for (int frame = 0; frame < frames && scene.Ui().Value("transition") < progress; ++frame)
+            {
+                Require(!departure.Update(actions, true, .1, scene.Ui()),
+                        "departure draws its completed frame before issuing a command");
+                departure.AdvancePresentation(scene, .1, true);
+            }
+            Require(scene.Ui().Value("transition") >= progress, "authored departure reaches requested progress");
+            if (progress == 1)
+            {
+                const auto* camera = SceneRuntime::SceneView::CameraObject(scene.World().Layout());
+                DirectX::XMFLOAT4X4 actual{}, target{};
+                Require(camera && scene.World().WorldMatrix(camera->id, actual) &&
+                            scene.World().WorldMatrix(departureTarget, target),
+                        "departure camera and target exist");
+                Require(std::abs(actual._41 - target._41) < .001f && std::abs(actual._42 - target._42) < .001f &&
+                            std::abs(actual._43 - target._43) < .001f,
+                        "completed departure reaches its authored camera endpoint");
+            }
+        };
+        const auto startupCamera = scene.CameraPosition();
+        for (float seconds : {.435f, .85f, 1.3f})
+        {
+            scene.SeekAnimation(seconds, 0);
+            Require(scene.CameraPosition() == startupCamera,
+                    "startup keeps the overview camera without a two-stage entrance");
+        }
+        scene.SeekAnimation(3, 3);
+        const auto firstCamera = scene.CameraPosition();
+        scene.SeekAnimation(8, 8);
+        Require(scene.CameraPosition() != firstCamera, "authored waiting motion changes camera pose");
+        const auto stopped = scene.CameraPosition();
+        scene.Update(0.1, false, true);
+        Require(scene.CameraPosition() == stopped, "background OFF freezes waiting animation and sway");
+        scene.SeekAnimation(3, 3);
+        scene.Ui().values["cameraFocus"] = 1;
+        scene.Ui().values["focusView"] = 1;
+        scene.Ui().values["selected"] = 1;
+        scene.Ui().values["startEmphasis"] = .6f;
+        scene.Ui().values["configEmphasis"] = 1;
+        const auto beforeFocus = scene.CameraPosition();
+        scene.Update(.1, true, true);
+        const auto focusStart = scene.CameraPosition();
+        Require(std::abs(focusStart[0] - beforeFocus[0]) < .2f, "CONFIG focus begins from the current pose");
+        for (int frame = 0; frame < 4; ++frame)
+            scene.Update(.1, true, true);
+        Require(scene.CameraPosition()[0] > 7.2f, "CONFIG outBack overshoots before settling");
+        for (int frame = 0; frame < 4; ++frame)
+            scene.Update(.1, true, true);
+        const auto configCamera = scene.CameraPosition();
+        Require(configCamera[0] > 6 && configCamera[2] > 4, "CONFIG selection reaches the cog facility");
+        Capture(renderer, scene, 1280, 720, "config-focus");
+        scene.Ui().values["screen"] = 1;
+        for (const auto& size : std::array<std::array<UINT, 2>, 3>{{{1280, 720}, {1024, 768}, {720, 1280}}})
+            Capture(renderer, scene, size[0], size[1],
+                    "config-settings-" + std::to_string(size[0]) + "x" + std::to_string(size[1]));
+        scene.Ui().values["screen"] = 0;
+        scene.Ui().values["cameraFocus"] = 0;
+        const auto inactiveCamera = scene.CameraPosition();
+        scene.Update(.1, true, false);
+        Require(scene.CameraPosition() == inactiveCamera, "inactive title does not advance menu camera motion");
+        scene.Update(.1, true, true);
+        const auto reverseStart = scene.CameraPosition();
+        Require(std::abs(reverseStart[0] - configCamera[0]) < .2f, "START return begins without a pose jump");
+        for (int frame = 0; frame < 8; ++frame)
+            scene.Update(.1, true, true);
+        Require(scene.CameraPosition()[0] < 0, "START returns to the street overview");
+        scene.Ui().values["cameraFocus"] = 1;
+        scene.Update(.1, true, true);
+        scene.Update(.1, true, true);
+        const auto interrupted = scene.CameraPosition();
+        scene.Ui().values["cameraFocus"] = 0;
+        scene.Update(.1, true, true);
+        Require(std::abs(scene.CameraPosition()[0] - interrupted[0]) < .2f,
+                "rapid selection reverses from the in-flight pose");
+        scene.Ui().values["cameraFocus"] = 2;
+        scene.Ui().values["selected"] = 2;
+        scene.Ui().values["focusView"] = 1;
+        scene.Ui().values["quitEmphasis"] = 1;
+        const auto beforeQuit = scene.CameraPosition();
+        scene.Update(.1, true, true);
+        Require(std::abs(scene.CameraPosition()[0] - beforeQuit[0]) < .2f,
+                "QUIT starts from the interrupted camera pose");
+        for (int frame = 0; frame < 8; ++frame)
+            scene.Update(.1, true, true);
+        Require(std::abs(scene.CameraPosition()[0] + 1.5f) < .2f && scene.CameraPosition()[1] > 5.0f,
+                "QUIT camera reaches the left building sign");
+        Capture(renderer, scene, 1280, 720, "quit-focus");
+        beginDeparture(2);
+        advanceDeparture(1);
+        Capture(renderer, scene, 1280, 720, "covered-quit");
+        departure.Initialize(layout, scene.Ui());
+        scene.Ui().values["cameraFocus"] = 0;
+        scene.Ui().values["focusView"] = 0;
+        scene.SeekAnimation(3, 3);
+        scene.Ui().values["selected"] = 0;
+        scene.Ui().values["startEmphasis"] = 1;
+        scene.Ui().values["configEmphasis"] = .6f;
+        scene.Ui().values["quitEmphasis"] = .6f;
+        const auto prompt = std::find_if(layout.objects.begin(), layout.objects.end(),
+                                         [](const auto& o)
+                                         {
+                                             return o.id == "world-start";
+                                         });
+        Require(prompt != layout.objects.end(), "title has an editable start prompt");
+        for (const auto& size : std::array<std::array<UINT, 2>, 3>{{{1280, 720}, {1024, 768}, {720, 1280}}})
+        {
+            for (const auto& id : {"world-start", "world-config", "world-quit"})
+            {
+                const auto button = std::find_if(layout.objects.begin(), layout.objects.end(),
+                                                 [&](const auto& o)
+                                                 {
+                                                     return o.id == id;
+                                                 });
+                Require(button != layout.objects.end() && button->text && !button->image,
+                        "main menu uses plain text buttons");
+                const auto bounds = SceneRuntime::SceneUi::Resolve(layout, *button, size[0], size[1], scene.Ui());
+                Require(bounds.visible && bounds.position[1] + bounds.size[1] <= size[1],
+                        "all three menu buttons fit each aspect ratio");
+            }
+            const auto rect = SceneRuntime::SceneUi::Resolve(layout, *prompt, size[0], size[1], scene.Ui());
+            Require(rect.visible && rect.position[0] >= 0 && rect.position[1] >= 0 &&
+                        rect.position[0] + rect.size[0] <= size[0] && rect.position[1] + rect.size[1] <= size[1],
+                    "start prompt fits every window aspect");
+            Capture(renderer, scene, size[0], size[1],
+                    "idle-" + std::to_string(size[0]) + "x" + std::to_string(size[1]));
+        }
+        scene.SeekAnimation(0.85f, 0.85f);
+        Capture(renderer, scene, 1280, 720, "intro");
+        beginDeparture(0);
+        advanceDeparture(.4375f);
+        Capture(renderer, scene, 1280, 720, "start");
+        advanceDeparture(1);
+        for (const auto& size : std::array<std::array<UINT, 2>, 3>{{{1280, 720}, {1024, 768}, {720, 1280}}})
+            Capture(renderer, scene, size[0], size[1],
+                    "covered-" + std::to_string(size[0]) + "x" + std::to_string(size[1]));
+        const auto pixel = EnvironmentValidation::Pixel(renderer,
+                                                        [&](ID3D12GraphicsCommandList* commands)
+                                                        {
+                                                            scene.Draw(commands, 64, 32);
+                                                        });
+        Require((pixel[0] < 15 && pixel[1] < 15 && pixel[2] < 15) ||
+                    (pixel[0] > 240 && pixel[1] > 240 && pixel[2] > 240),
+                "completed START preserves authored black/white palette");
+        departure.Initialize(layout, scene.Ui());
+        scene.SeekAnimation(3, 3, -1);
+        Require(scene.Ui().Value("transition") == 0 && scene.Ui().Value("titleEffectTime") == 0,
+                "rewinding departure restores title presentation");
+        if (GetEnvironmentVariableW(L"WP1_TITLE_PREVIEW", nullptr, 0))
+        {
+            for (int frame = 0; frame < 64; ++frame)
+            {
+                const float seconds = frame * 0.05f;
+                scene.SeekAnimation(seconds, seconds);
+                Capture(renderer, scene, 960, 540, "frame-" + std::to_string(frame));
+            }
+            beginDeparture(0);
+            const int frames = static_cast<int>(std::ceil(scene.Ui().Value("startDuration", .32f) / .05f));
+            for (int frame = 0; frame <= frames; ++frame)
+            {
+                departure.Update(actions, true, .05, scene.Ui());
+                departure.AdvancePresentation(scene, .05, true);
+                Capture(renderer, scene, 960, 540, "frame-" + std::to_string(frame + 64));
+            }
+        }
+        Require(SceneRuntime::SceneLayout::Load(root / "Assets/Scenes/TitleStreet.json").Serialize() ==
+                    layout.Serialize(),
+                "preview preserves saved title");
+    }
+}

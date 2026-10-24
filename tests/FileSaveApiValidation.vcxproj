@@ -34,7 +34,7 @@
     <Link><SubSystem>Console</SubSystem><TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors></Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FileSaveApiValidation.cpp" />
+    <ClCompile Include="src\Assets\FileSaveApiValidation.cpp" />
 
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
     <ProjectReference Include="..\Engine\Engine.vcxproj" />

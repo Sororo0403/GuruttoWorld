@@ -1,5 +1,7 @@
 # ゲームエディター
 
+ソースは `src` 配下で機能別に分けています。起動処理は `main.cpp`、素材管理は `Assets`、保存処理は `Documents`、編集状態は `Editing`、Inspector は `Inspector`、プロジェクト管理は `Project`、シーン表示・操作は `Viewport`、再生は `Playback`、共通画面は `Shell` にあります。アニメーション編集は `Animation`、ゲーム内 UI の編集は `Ui` です。
+
 エディター開発は `Editor.slnx`、既存ゲームは `Game.slnx` で独立してビルドできます。
 外部のゲーム専用ソリューションの作成・編集・配布は[ゲームプロジェクトの説明](../docs/GameProjects.md)を参照してください。
 起動時は`--project <ゲームフォルダー>`で対象を指定できます。指定がなければ現在フォルダーのWP1.project.jsonを使い、見つからない場合は選択ダイアログを開きます。Editorのビルドは特定ゲームの素材やDLLを自動的に含めません。

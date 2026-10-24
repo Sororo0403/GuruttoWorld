@@ -1,4 +1,4 @@
-#include <SceneRuntime/ScriptModuleApi.h>
+#include <SceneRuntime/Scripts/ScriptModuleApi.h>
 
 bool Register_IdentityProbe(void* context, SceneRuntime::RegisterModuleScript add)
 {

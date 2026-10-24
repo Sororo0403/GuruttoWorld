@@ -1,4 +1,4 @@
-#include <SceneRuntime/ScriptModuleApi.h>
+#include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include <iterator>
 #include "ParkScriptSchema.generated.h"
 #include <algorithm>

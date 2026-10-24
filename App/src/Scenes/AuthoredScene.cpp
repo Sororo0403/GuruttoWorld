@@ -4,7 +4,7 @@
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Profiler.h>
 #include "GameSettings.h"
-#include <SceneRuntime/ProjectSettings.h>
+#include <SceneRuntime/Project/ProjectSettings.h>
 #include <Engine/Platform/Window.h>
 namespace App {
 bool AuthoredScene::Initialize(Engine::DirectX12Renderer& renderer) {

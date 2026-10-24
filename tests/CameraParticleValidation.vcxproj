@@ -88,7 +88,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CameraParticleValidation.cpp" />
+    <ClCompile Include="src\Rendering\CameraParticleValidation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">

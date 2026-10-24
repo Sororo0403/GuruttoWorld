@@ -3,8 +3,8 @@
 #include <Engine/Scenes/SceneManager.h>
 #include <Engine/Core/Application.h>
 #include <Windows.h>
-#include <SceneRuntime/ProjectSettings.h>
-#include <SceneRuntime/ScriptModule.h>
+#include <SceneRuntime/Project/ProjectSettings.h>
+#include <SceneRuntime/Scripts/ScriptModule.h>
 #include <Engine/Core/Log.h>
 #include <winrt/base.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>

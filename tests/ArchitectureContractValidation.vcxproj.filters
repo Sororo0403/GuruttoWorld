@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src" />
+    <Filter Include="src\Architecture" />
+    <Filter Include="src\Assets" />
+    <Filter Include="src\Scene" />
+    <Filter Include="src\Scripts" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Architecture\ArchitectureContractValidation.cpp">
+      <Filter>src\Architecture</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Architecture\ComponentContractValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AssetReferenceContractValidation.h">
+      <Filter>src\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scripts\SchemaContractValidation.h">
+      <Filter>src\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Architecture\MigrationContractValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scene\PrefabDesignContractValidation.h">
+      <Filter>src\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Architecture\EditTransactionContractValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Architecture\SessionDesignContractValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Architecture\ExtensibilityContractValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

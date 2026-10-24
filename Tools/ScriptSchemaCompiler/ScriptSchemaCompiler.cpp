@@ -1,4 +1,4 @@
-#include <SceneRuntime/ScriptSchema.h>
+#include <SceneRuntime/Scripts/ScriptSchema.h>
 #include <Engine/Core/FileContents.h>
 #include <iostream>
 #include <vector>
@@ -37,7 +37,7 @@ int wmain(int count, wchar_t** arguments)
                 continue;
             const auto document = Engine::Json::parse(*Engine::FileContents::Read(entry.path()));
             std::string text =
-                "// スキーマのJSONから生成します。定義の変更はJSONへ記述してください。\n#pragma once\n#include <SceneRuntime/ScriptRuntime.h>\n\nnamespace SceneRuntime::GeneratedSchemas\n{\n";
+                "// スキーマのJSONから生成します。定義の変更はJSONへ記述してください。\n#pragma once\n#include <SceneRuntime/Scripts/ScriptRuntime.h>\n\nnamespace SceneRuntime::GeneratedSchemas\n{\n";
             for (const auto& [name, declaration] : document.at("scripts").items())
             {
                 static_cast<void>(declaration);

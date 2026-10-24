@@ -2,7 +2,7 @@
 #include <Engine/Scenes/ISceneFactory.h>
 #include <filesystem>
 #include <string>
-#include <SceneRuntime/SceneEnvironment.h>
+#include <SceneRuntime/Scene/SceneEnvironment.h>
 
 namespace App
 {

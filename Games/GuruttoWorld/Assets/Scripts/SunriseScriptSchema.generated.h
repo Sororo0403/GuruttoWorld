@@ -1,6 +1,6 @@
 // スキーマのJSONから生成します。定義の変更はJSONへ記述してください。
 #pragma once
-#include <SceneRuntime/ScriptRuntime.h>
+#include <SceneRuntime/Scripts/ScriptRuntime.h>
 
 namespace SceneRuntime::GeneratedSchemas
 {

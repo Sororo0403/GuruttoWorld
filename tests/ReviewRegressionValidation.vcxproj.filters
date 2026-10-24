@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="References" />
+    <Filter Include="References\App" />
+    <Filter Include="References\App\src" />
+    <Filter Include="References\App\src\Scenes" />
+    <Filter Include="References\Editor" />
+    <Filter Include="References\Editor\src" />
+    <Filter Include="References\Editor\src\Assets" />
+    <Filter Include="References\Editor\src\Inspector" />
+    <Filter Include="References\Editor\src\Shell" />
+    <Filter Include="References\Editor\src\Ui" />
+    <Filter Include="References\Engine" />
+    <Filter Include="References\Engine\externals" />
+    <Filter Include="References\Engine\externals\imgui" />
+    <Filter Include="src" />
+    <Filter Include="src\Architecture" />
+    <Filter Include="src\Assets" />
+    <Filter Include="src\Gameplay" />
+    <Filter Include="src\Regression" />
+    <Filter Include="src\Rendering" />
+    <Filter Include="src\Scene" />
+    <Filter Include="src\Support" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Regression\ReviewRegressionValidation.cpp">
+      <Filter>src\Regression</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Architecture\ArchitectureAuditFixValidation.cpp">
+      <Filter>src\Architecture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\externals\imgui\imgui.cpp">
+      <Filter>References\Engine\externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\externals\imgui\imgui_draw.cpp">
+      <Filter>References\Engine\externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\externals\imgui\imgui_tables.cpp">
+      <Filter>References\Engine\externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\externals\imgui\imgui_widgets.cpp">
+      <Filter>References\Engine\externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Shell\EditorFonts.cpp">
+      <Filter>References\Editor\src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Assets\AssetPreview.cpp">
+      <Filter>References\Editor\src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Inspector\ComponentPanel.cpp">
+      <Filter>References\Editor\src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Ui\UiComponentPanel.cpp">
+      <Filter>References\Editor\src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Inspector\EnvironmentPanel.cpp">
+      <Filter>References\Editor\src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Inspector\ObjectPanel.cpp">
+      <Filter>References\Editor\src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Ui\UiCanvasPanel.cpp">
+      <Filter>References\Editor\src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp">
+      <Filter>References\App\src\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\App\src\Scenes\SceneFactory.cpp">
+      <Filter>References\App\src\Scenes</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Architecture\EngineEditorReviewValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Rendering\SpriteResourceValidation.h">
+      <Filter>src\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Architecture\ArchitectureAuditFixValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\GamePlaybackParityValidation.h">
+      <Filter>src\Gameplay</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scene\PrefabGpuContractValidation.h">
+      <Filter>src\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Rendering\OptionalFeaturesValidation.h">
+      <Filter>src\Rendering</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

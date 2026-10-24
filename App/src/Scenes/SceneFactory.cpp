@@ -1,5 +1,5 @@
 #include "SceneFactory.h"
-#include <SceneRuntime/ProjectSettings.h>
+#include <SceneRuntime/Project/ProjectSettings.h>
 #include "AuthoredScene.h"
 #include <utility>
 

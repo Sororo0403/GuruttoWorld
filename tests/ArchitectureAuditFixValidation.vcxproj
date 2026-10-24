@@ -34,8 +34,8 @@
     <Link><SubSystem>Console</SubSystem><TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors></Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ArchitectureAuditFixValidation.cpp" />
-    <ClInclude Include="ArchitectureAuditFixValidation.h" />
+    <ClCompile Include="src\Architecture\ArchitectureAuditFixValidation.cpp" />
+    <ClInclude Include="src\Architecture\ArchitectureAuditFixValidation.h" />
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
     <ProjectReference Include="..\Engine\Engine.vcxproj" />
   </ItemGroup>
