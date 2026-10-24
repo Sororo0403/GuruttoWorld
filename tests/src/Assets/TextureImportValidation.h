@@ -3,12 +3,107 @@
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <Engine/Graphics/Resources/TextureManager.h>
+#include <Engine/Core/Profiler.h>
+#include <Engine/Core/FileContents.h>
+#include <Engine/Graphics/Renderers/MeshResources.h>
+#include <SceneRuntime/Rendering/MaterialTextureCache.h>
 namespace TextureImportValidation
 {
     using EnvironmentValidation::Require;
+    /// <summary>画像変換結果の共有と、画素・寸法・全取り込み設定の違いを検証します。</summary>
+    inline void Cache(Engine::DirectX12Renderer& renderer)
+    {
+        using namespace Engine;
+        const auto calls = [](const char* name)
+        {
+            unsigned int count = 0;
+            for (const auto& sample : CpuProfiler::Take())
+                if (sample.name == name)
+                    count += sample.calls;
+            return count;
+        };
+        TextureImportSettings settings;
+        settings.mipmaps = true;
+        std::vector<unsigned char> pixels(32 * 16 * 4);
+        for (size_t index = 0; index < pixels.size(); index += 4)
+        {
+            pixels[index] = 23;
+            pixels[index + 1] = 45;
+            pixels[index + 2] = 67;
+            pixels[index + 3] = 255;
+        }
+        const auto load = [&](const auto& source, const auto& configuration, UINT width = 32, UINT height = 16)
+        {
+            auto texture = std::make_shared<Texture2D>();
+            Require(texture->InitializePixels(renderer.GetDevice(), renderer.GetCommandQueue(), width, height, source,
+                                              configuration),
+                    "texture cache fixture uploads");
+            return texture;
+        };
+        calls("Texture mip build");
+        const auto first = load(pixels, settings);
+        Require(calls("Texture mip build") == 1, "initial mip chain is built");
+        const auto second = load(pixels, settings);
+        Require(calls("Texture mip cache hit") == 1, "identical pixels and settings reuse converted levels");
+        const auto capture = [&](const auto& texture, bool minify = false)
+        {
+            SpriteRenderer sprite;
+            Require(sprite.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture,
+                                      std::filesystem::absolute("Games/GuruttoWorld/Shaders/Sprite.hlsl")),
+                    "cache verification sprite initializes");
+            SpriteDrawParameters draw;
+            draw.size = minify ? std::array<float, 2>{1, 1} : std::array<float, 2>{32, 16};
+            return SkinningValidation::Capture(renderer,
+                                               [&](auto* commands)
+                                               {
+                                                   sprite.Draw(commands, 64, 32, draw);
+                                               });
+        };
+        Require(first->GetMipLevels() == 6 && capture(first) == capture(second) &&
+                    capture(first, true) == capture(second, true),
+                "cached mip chain renders exactly like the first conversion");
+        auto revised = pixels;
+        for (size_t index = 0; index < revised.size(); index += 4)
+            revised[index] = 123;
+        const auto changed = load(revised, settings);
+        Require(calls("Texture mip build") == 1 && capture(changed) != capture(first),
+                "changed pixels rebuild and reach the GPU");
+        const auto restored = load(pixels, settings);
+        Require(calls("Texture mip cache hit") == 1 && capture(restored) == capture(first),
+                "caller pixel edits do not mutate cached input or output");
+        auto srgb = settings;
+        srgb.srgb = true;
+        const auto gamma = load(pixels, srgb);
+        Require(calls("Texture mip build") == 1 && gamma->GetFormat() == DXGI_FORMAT_R8G8B8A8_UNORM,
+                "sRGB filtering setting has its own converted levels");
+        auto limited = settings;
+        limited.maxSize = 8;
+        const auto limitedTexture = load(pixels, limited);
+        Require(calls("Texture mip build") == 1 && limitedTexture->GetWidth() == 8 && limitedTexture->GetHeight() == 4,
+                "size limit has its own converted dimensions");
+        auto compressed = settings;
+        compressed.compression = "bc3";
+        const auto blocks = load(pixels, compressed);
+        Require(calls("Texture mip build") == 1 && blocks->GetFormat() == DXGI_FORMAT_BC3_UNORM,
+                "compression setting has its own converted blocks");
+        const auto reshaped = load(pixels, settings, 16, 32);
+        Require(calls("Texture mip build") == 1 && reshaped->GetWidth() == 16 && reshaped->GetHeight() == 32,
+                "equal byte counts with different dimensions do not share converted levels");
+        auto single = settings;
+        single.mipmaps = false;
+        Require(load(pixels, single)->GetMipLevels() == 1, "disabling mipmaps preserves a single level");
+        auto invalid = settings;
+        invalid.maxSize = 0;
+        Texture2D rejected;
+        Require(!rejected.InitializePixels(renderer.GetDevice(), renderer.GetCommandQueue(), 32, 16, pixels, invalid) &&
+                    rejected.GetMipLevels() == 0,
+                "invalid settings cannot reuse a cached conversion");
+        Require(renderer.WaitForIdle(), "texture cache verification GPU completes");
+    }
     inline void Run(Engine::DirectX12Renderer& renderer)
     {
         using namespace Engine;
+        Cache(renderer);
         TextureLevel odd{7, 3, std::vector<unsigned char>(7 * 3 * 4, 255)};
         TextureImportSettings settings;
         settings.mipmaps = true;
@@ -161,12 +256,50 @@ namespace TextureImportValidation
         const auto initial = manager.Load(image);
         Require(initial && manager.Load(image) == initial && initial->GetMipLevels() == 1,
                 "texture cache reuses unchanged import");
+        MeshResources meshes;
+        Require(meshes.Initialize(renderer.GetDevice(), std::filesystem::absolute("Content/Shaders/Mesh.hlsl"),
+                                  renderer.GetCommandQueue()),
+                "mesh texture cache initializes");
+        const auto meshInitial = meshes.GetTexture(renderer.GetDevice(), renderer.GetCommandQueue(), image);
+        Require(meshInitial != nullptr, "initial mesh texture loads");
+        const auto material = [&]
+        {
+            return SceneRuntime::MaterialTextureCache::Load(renderer.GetDevice(), renderer.GetCommandQueue(), image);
+        };
+        const auto materialInitial = material();
+        Require(material() == materialInitial, "unchanged material textures are shared");
+        const auto imageTime = std::filesystem::last_write_time(image);
+        const auto originalImage = *FileContents::Read(image);
+        auto revisedImage = originalImage;
+        revisedImage[54] = static_cast<char>(255);
+        FileContents::Write(image, revisedImage);
+        std::filesystem::last_write_time(image, imageTime);
+        const auto revised = manager.Load(image);
+        const auto meshRevised = meshes.GetTexture(renderer.GetDevice(), renderer.GetCommandQueue(), image);
+        const auto materialRevised = material();
+        Require(revised && revised != initial && meshRevised && meshRevised != meshInitial &&
+                    materialRevised != materialInitial,
+                "same-size pixel edits with restored timestamps reimport in all three texture caches");
+        FileContents::Write(image, originalImage);
+        std::filesystem::last_write_time(image, imageTime);
+        Require(manager.Load(image) != revised &&
+                    meshes.GetTexture(renderer.GetDevice(), renderer.GetCommandQueue(), image) != meshRevised &&
+                    material() != materialRevised,
+                "restored bytes invalidate all texture caches independently of timestamps");
+        const auto metadataTime = std::filesystem::last_write_time(AssetDatabase::Sidecar(image));
         metadata.texture = {true, true, 4, "bc3"};
         AssetDatabase::Write(image, metadata);
+        std::filesystem::last_write_time(AssetDatabase::Sidecar(image), metadataTime);
         const auto imported = manager.Load(image);
+        const auto meshImported = meshes.GetTexture(renderer.GetDevice(), renderer.GetCommandQueue(), image);
+        const auto materialImported = material();
         Require(imported && imported != initial && imported->GetWidth() == 4 && imported->GetMipLevels() == 3 &&
                     imported->GetFormat() == DXGI_FORMAT_BC3_UNORM && initial->GetWidth() == 8,
                 "metadata reimport replaces cache while retaining old resource");
+        Require(meshImported && meshImported->GetWidth() == 4 && meshImported->GetMipLevels() == 3 &&
+                    meshImported->GetFormat() == DXGI_FORMAT_BC3_UNORM && materialImported->GetWidth() == 4 &&
+                    materialImported->GetMipLevels() == 3 && materialImported->GetFormat() == DXGI_FORMAT_BC3_UNORM,
+                "same-time metadata edits reimport mesh and material textures");
         const auto saved = AssetDatabase::Read(image);
         Require(saved.id == metadata.id && saved.texture.srgb && saved.texture.mipmaps && saved.texture.maxSize == 4 &&
                     saved.texture.compression == "bc3",
@@ -183,5 +316,26 @@ namespace TextureImportValidation
         }
         Require(invalid && AssetDatabase::Read(image).texture.maxSize == 4,
                 "invalid import setting preserves saved metadata");
+        const auto validMetadata = *FileContents::Read(AssetDatabase::Sidecar(image));
+        FileContents::Write(AssetDatabase::Sidecar(image), "{");
+        std::filesystem::last_write_time(AssetDatabase::Sidecar(image), metadataTime);
+        Require(!manager.Load(image) && !meshes.GetTexture(renderer.GetDevice(), renderer.GetCommandQueue(), image),
+                "corrupt metadata cannot return stale cached textures");
+        invalid = false;
+        try
+        {
+            material();
+        }
+        catch (const std::exception&)
+        {
+            invalid = true;
+        }
+        Require(invalid, "corrupt metadata cannot return a stale material texture");
+        FileContents::Write(AssetDatabase::Sidecar(image), validMetadata);
+        std::filesystem::last_write_time(AssetDatabase::Sidecar(image), metadataTime);
+        Require(manager.Load(image) == imported &&
+                    meshes.GetTexture(renderer.GetDevice(), renderer.GetCommandQueue(), image) == meshImported &&
+                    material() == materialImported,
+                "failed reimport preserves the last valid cache entry");
     }
 }
