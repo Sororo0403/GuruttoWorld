@@ -28,6 +28,33 @@ namespace
 
 namespace Engine
 {
+    struct MeshResources::PipelineCache
+    {
+        using Key = std::tuple<ID3D12Device*, ID3D12CommandQueue*, std::string>;
+        struct Entry
+        {
+            std::shared_ptr<PipelineBundle> pipeline;
+            uint64_t used = 0;
+        };
+        std::mutex mutex;
+        std::map<Key, Entry> entries;
+        uint64_t sequence = 0;
+    };
+    MeshResources::PipelineCache& MeshResources::SharedPipelines()
+    {
+        static PipelineCache cache;
+        return cache;
+    }
+    void MeshResources::ClearPipelineCache(ID3D12Device* device)
+    {
+        auto& cache = SharedPipelines();
+        std::lock_guard lock(cache.mutex);
+        std::erase_if(cache.entries,
+                      [device](const auto& entry)
+                      {
+                          return std::get<0>(entry.first) == device;
+                      });
+    }
     bool MeshResources::Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath,
                                    ID3D12CommandQueue* queue)
     {
@@ -38,18 +65,15 @@ namespace Engine
         std::string revision;
         if (!GetShaderRevision(shaderPath, revision))
             return false;
-        using Key = std::tuple<ID3D12Device*, ID3D12CommandQueue*, std::string>;
-        static std::mutex mutex;
-        static std::map<Key, std::weak_ptr<PipelineBundle>> cache;
-        std::lock_guard lock(mutex);
-        for (auto iterator = cache.begin(); iterator != cache.end();)
-            if (iterator->second.expired())
-                iterator = cache.erase(iterator);
-            else
-                ++iterator;
-        Key key{device, queue, std::move(revision)};
-        if (const auto found = cache.find(key); found != cache.end())
-            pipeline_ = found->second.lock();
+        auto& cache = SharedPipelines();
+        std::lock_guard lock(cache.mutex);
+        PipelineCache::Key key{device, queue, std::move(revision)};
+        if (const auto found = cache.entries.find(key); found != cache.entries.end())
+        {
+            pipeline_ = found->second.pipeline;
+            found->second.used = ++cache.sequence;
+            CpuProfiler::Add("Mesh pipeline cache hit", 0);
+        }
         if (!pipeline_)
         {
             pipeline_ = std::make_shared<PipelineBundle>();
@@ -65,7 +89,17 @@ namespace Engine
                 pipeline_.reset();
                 return false;
             }
-            cache.emplace(std::move(key), pipeline_);
+            // シーン破棄後も再利用し、シェーダー変更や多数のデバイスで無制限に増やしません。
+            while (cache.entries.size() >= 64)
+            {
+                const auto oldest = std::min_element(cache.entries.begin(), cache.entries.end(),
+                                                     [](const auto& a, const auto& b)
+                                                     {
+                                                         return a.second.used < b.second.used;
+                                                     });
+                cache.entries.erase(oldest);
+            }
+            cache.entries.emplace(std::move(key), PipelineCache::Entry{pipeline_, ++cache.sequence});
         }
         device_ = device;
         return true;
@@ -85,22 +119,10 @@ namespace Engine
             Log::Error("Cannot resolve the texture cache path.");
             return {};
         }
-        std::pair<std::filesystem::file_time_type, std::filesystem::file_time_type> stamp{};
-        if (!key.empty())
-        {
-            stamp.first = std::filesystem::last_write_time(key, error);
-            if (error)
-                return {};
-            auto metadata = key;
-            metadata += ".meta";
-            if (std::filesystem::exists(metadata, error))
-            {
-                stamp.second = std::filesystem::last_write_time(metadata, error);
-                if (error)
-                    return {};
-            }
-        }
-        if (const auto found = textures_.find(key); found != textures_.end() && textureStamps_.at(key) == stamp)
+        const auto stamp = AssetSourceStamp::Capture(key);
+        if (!stamp)
+            return {};
+        if (const auto found = textures_.find(key); found != textures_.end() && textureStamps_.at(key) == *stamp)
         {
             return found->second;
         }
@@ -109,8 +131,10 @@ namespace Engine
         {
             return {};
         }
+        if (AssetSourceStamp::Capture(key) != stamp)
+            return {};
         textures_[key] = texture;
-        textureStamps_[key] = stamp;
+        textureStamps_[key] = *stamp;
         return texture;
     }
 

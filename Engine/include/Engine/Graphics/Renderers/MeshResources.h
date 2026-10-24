@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/Resources/Texture2D.h>
+#include <Engine/Assets/AssetSourceStamp.h>
 #include <Engine/Graphics/Models/MeshData.h>
 #include <Engine/Graphics/Resources/LocalLightBuffer.h>
 #include <Engine/Graphics/Resources/SkinPaletteBuffer.h>
@@ -30,7 +31,7 @@ namespace Engine
         MeshResources& operator=(const MeshResources&) = delete;
 
         /// <summary>
-        /// 同じデバイス・キュー・シェーダーのルートシグネチャと PSO を弱参照キャッシュで共有します。
+        /// 同じデバイス・キュー・シェーダーのルートシグネチャと PSO を上限付きキャッシュで共有します。
         /// </summary>
         /// <param name="device">生成に使用するデバイス。</param>
         /// <param name="shaderPath">共通メッシュ用シェーダー。</param>
@@ -38,6 +39,9 @@ namespace Engine
         /// <returns>初期化に成功した場合は true。</returns>
         bool Initialize(ID3D12Device* device, const std::filesystem::path& shaderPath,
                         ID3D12CommandQueue* queue = nullptr);
+
+        /// <summary>GPU完了後のデバイス終了時に、再利用用のパイプライン参照を解放します。</summary>
+        static void ClearPipelineCache(ID3D12Device* device);
 
         /// <summary>
         /// 正規化したパスに対応する画像を共有します。未登録の場合のみ転送し、完了を待機します。
@@ -77,6 +81,9 @@ namespace Engine
         }
 
     private:
+        struct PipelineCache;
+        /// <summary>デバイス終了時にも参照できる、上限付き共有キャッシュを取得します。</summary>
+        static PipelineCache& SharedPipelines();
         LocalLightBuffer localLights_;
         SkinPaletteBuffer skinPalettes_;
         SkinPaletteBuffer instances_;
@@ -114,8 +121,6 @@ namespace Engine
         };
         std::shared_ptr<PipelineBundle> pipeline_;
         std::map<std::filesystem::path, std::shared_ptr<Texture2D>, PathLess> textures_;
-        std::map<std::filesystem::path, std::pair<std::filesystem::file_time_type, std::filesystem::file_time_type>,
-                 PathLess>
-            textureStamps_;
+        std::map<std::filesystem::path, AssetSourceStamp, PathLess> textureStamps_;
     };
 }

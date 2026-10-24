@@ -1,4 +1,5 @@
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
+#include <Engine/Graphics/Renderers/MeshResources.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
 #include <Engine/Graphics/Resources/RenderTargetBinding.h>
@@ -86,6 +87,7 @@ namespace Engine
         renderTargetHeap_.Reset();
         swapChain_.Reset();
         fence_.Reset();
+        MeshResources::ClearPipelineCache(device_.Get());
         queue_.Reset();
         device_.Reset();
         factory_.Reset();

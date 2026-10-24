@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src" />
+    <Filter Include="src\Rendering" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Rendering\PipelineReuseValidation.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
