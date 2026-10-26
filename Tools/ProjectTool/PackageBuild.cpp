@@ -1,6 +1,13 @@
 #include "PackageBuild.h"
+#include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include "ProjectFiles.h"
 #include "ScriptBuild.h"
+#include <Engine/Assets/AssetArtifact.h>
+#include <Engine/Assets/AssetDatabase.h>
+#include <Engine/Animation/SkeletonAssets.h>
+#include <Engine/Graphics/Models/ModelAssets.h>
+#include <Engine/Assets/TextureAssets.h>
+#include <set>
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -141,23 +148,165 @@ namespace ProjectTool
             return text.data();
         }
 
+        void CookModels(const Path& staging)
+        {
+            std::vector<Path> models, textures;
+            const std::set<std::string> imageExtensions{".png", ".jpg",  ".jpeg", ".bmp", ".gif",
+                                                        ".tif", ".tiff", ".ico",  ".dds"};
+            for (const auto& file : std::filesystem::recursive_directory_iterator(staging / "Assets"))
+            {
+                auto extension = file.path().extension().string();
+                std::transform(extension.begin(), extension.end(), extension.begin(),
+                               [](unsigned char c)
+                               {
+                                   return static_cast<char>(std::tolower(c));
+                               });
+                if (file.is_regular_file() && (extension == ".obj" || extension == ".gltf" || extension == ".glb"))
+                    models.push_back(file.path());
+                if (file.is_regular_file() && imageExtensions.contains(extension))
+                    textures.push_back(file.path());
+            }
+            std::string error;
+            for (const auto& texture : textures)
+                if (!Engine::TextureAssets::Cook(texture, staging / "Assets/Compiled/texture-mips", error))
+                    throw std::runtime_error(error);
+            for (const auto& model : models)
+            {
+                if (!Engine::ModelAssets::Cook(model, staging / "Assets/Compiled/static-mesh", error))
+                    throw std::runtime_error(error);
+                auto extension = model.extension().string();
+                std::transform(extension.begin(), extension.end(), extension.begin(),
+                               [](unsigned char c)
+                               {
+                                   return static_cast<char>(std::tolower(c));
+                               });
+                if ((extension == ".gltf" || extension == ".glb") &&
+                    !Engine::SkeletonAssets::Cook(model, staging / "Assets/Compiled/skeletal-mesh", error))
+                    throw std::runtime_error(error);
+            }
+        }
         void WriteManifest(const Path& staging, const Options& options)
         {
-            const auto startup = ResolveStartup(staging, ReadJson(staging / "Assets/Project.json"));
+            const auto settings = ReadJson(staging / "Assets/Project.json");
+            const auto startup = ResolveStartup(staging, settings);
+            const auto runtime = ReadJson(staging / "WP1.runtime.json");
+            const auto modulePath = staging / "Assets/Scripts/Bin" / options.configuration / "module.json";
+            const auto module = ReadJson(modulePath);
+            const auto fingerprintPath =
+                options.engine / "generated/build-identity" / options.configuration / "EngineBuildIdentity.generated.h";
+            std::ifstream fingerprintInput(fingerprintPath, std::ios::binary);
+            const std::string fingerprintSource(std::istreambuf_iterator<char>(fingerprintInput), {});
+            std::smatch fingerprint;
+            if (!fingerprintInput || !std::regex_search(fingerprintSource, fingerprint,
+                                                        std::regex("EngineBuildFingerprint = 0x([a-f0-9]{16})ULL")))
+                throw std::runtime_error("Missing package engine build identity");
             std::vector<Path> files;
             for (const auto& file : std::filesystem::recursive_directory_iterator(staging))
                 if (file.is_regular_file())
                     files.push_back(file.path());
             std::sort(files.begin(), files.end());
             auto entries = Json::array();
+            auto artifacts = Json::array();
+            std::set<std::string> assetIds;
             for (const auto& file : files)
+            {
+                const auto relative = Utf8(file.lexically_relative(staging).generic_wstring());
+                const auto digest = Sha256(file);
+                std::string identity = "path:" + relative;
+                auto dependencies = Json::array();
+                auto metadata = file;
+                metadata += ".meta";
+                Engine::ArtifactDescriptor descriptor;
+                descriptor.kind = "package-source";
+                descriptor.sourceRevision = digest;
+                descriptor.importerVersion = "WP1-source-copy/v1";
+                descriptor.platform = "windows-x64";
+                descriptor.settings = options.configuration;
+                if (std::filesystem::is_regular_file(metadata))
+                {
+                    const auto values = ReadJson(metadata);
+                    if (values.contains("id"))
+                    {
+                        identity = values.at("id").get<std::string>();
+                        if (identity.empty() || !assetIds.insert(identity).second)
+                            throw std::runtime_error("Duplicate or empty asset ID in package: " + relative);
+                    }
+                    const auto revision = Sha256(metadata);
+                    descriptor.dependencies.push_back({"metadata", revision});
+                    dependencies.push_back({{"id", "metadata"}, {"revision", revision}});
+                }
+                descriptor.assetId = identity;
+                auto key = Sha256Text(descriptor.Canonical());
+                Json recipe;
+                if (file.extension() == ".artifact")
+                {
+                    const auto recipePath = file.parent_path() / (Utf8(file.stem()) + ".recipe.json");
+                    recipe = ReadJson(recipePath);
+                    if (recipe.at("version") != 1 || recipe.at("key") != Utf8(file.stem()))
+                        throw std::runtime_error("Invalid cooked artifact recipe: " + relative);
+                    descriptor = {recipe.at("kind"),           recipe.at("assetId"),
+                                  recipe.at("sourceRevision"), recipe.at("importerVersion"),
+                                  recipe.at("settings"),       recipe.at("platform"),
+                                  recipe.at("compiler"),       {}};
+                    if (recipe.contains("keyInputs"))
+                        for (const auto& input : recipe.at("keyInputs"))
+                            descriptor.dependencies.push_back(
+                                {input.at("id").get<std::string>(), input.at("revision").get<std::string>()});
+                    key = Sha256Text(descriptor.Canonical());
+                    if (key != Utf8(file.stem()))
+                        throw std::runtime_error("Cooked artifact key mismatch: " + relative);
+                    std::ifstream artifact(file, std::ios::binary);
+                    const std::string bytes(std::istreambuf_iterator<char>(artifact), {});
+                    if (artifact.bad())
+                        throw std::runtime_error("Cannot read cooked artifact: " + relative);
+                    if (bytes.size() < 136 || bytes.substr(0, 8) != "WP1ART02" || bytes.substr(8, 64) != key ||
+                        bytes.substr(72, 64) != Sha256Text(bytes.substr(136)) ||
+                        recipe.at("outputRevision") != bytes.substr(72, 64))
+                        throw std::runtime_error("Cooked artifact integrity mismatch: " + relative);
+                    dependencies = Json::array();
+                    for (const auto& input : recipe.at("inputs"))
+                    {
+                        const auto dependency = std::filesystem::weakly_canonical(
+                            file.parent_path() / FromUtf8(recipe.value("inputBase", std::string(".."))) /
+                            FromUtf8(input.at("path").get<std::string>()));
+                        const auto within = dependency.lexically_relative(std::filesystem::weakly_canonical(staging));
+                        const auto expected = input.at("sha256").get<std::string>();
+                        const bool matches = expected == "missing" ? !std::filesystem::exists(dependency)
+                                                                   : std::filesystem::is_regular_file(dependency) &&
+                                                                         Sha256(dependency) == expected;
+                        if (within.empty() || within.is_absolute() || *within.begin() == ".." || !matches)
+                            throw std::runtime_error("Cooked artifact input missing or changed: " + relative);
+                        dependencies.push_back(
+                            {{"id", Utf8(dependency.lexically_relative(staging))}, {"revision", input.at("sha256")}});
+                    }
+                    identity = descriptor.assetId;
+                }
+                artifacts.push_back({{"key", key},
+                                     {"assetId", identity},
+                                     {"kind", descriptor.kind},
+                                     {"sourceRevision", descriptor.sourceRevision},
+                                     {"importerVersion", descriptor.importerVersion},
+                                     {"platform", descriptor.platform},
+                                     {"compiler", descriptor.compiler},
+                                     {"settings", descriptor.settings},
+                                     {"dependencies", dependencies},
+                                     {"outputs", Json::array({relative})}});
                 entries.push_back({{"path", Utf8(file.lexically_relative(staging).generic_wstring())},
                                    {"bytes", std::filesystem::file_size(file)},
-                                   {"sha256", Sha256(file)}});
-            WriteJsonAtomic(staging / "package.json", {{"configuration", options.configuration},
+                                   {"sha256", digest}});
+            }
+            WriteJsonAtomic(staging / "package.json", {{"projectId", runtime.at("projectId")},
+                                                       {"engineBuild", fingerprint[1].str()},
+                                                       {"scriptAbi", SceneRuntime::ScriptModuleAbiVersion},
+                                                       {"scriptModule", module},
+                                                       {"settings", settings},
+                                                       {"executableRevision", Sha256(staging / "App.exe")},
+                                                       {"configuration", options.configuration},
                                                        {"createdUtc", CreatedUtc()},
                                                        {"startupScene", startup},
-                                                       {"files", entries}});
+                                                       {"files", entries},
+                                                       {"artifactVersion", 2},
+                                                       {"artifacts", artifacts}});
         }
     }
 
@@ -237,12 +386,16 @@ namespace ProjectTool
             const auto shaderCode = RunProcess(staging / "App.exe", {L"--prepare-shaders", L"."}, staging, log, 180000);
             if (shaderCode != 0)
                 throw std::runtime_error("Shader cache preparation failed (" + std::to_string(shaderCode) + ").");
+            Progress(options, false, 2, "配布用アセットを取り込み中");
+            CookModels(staging);
             WriteManifest(staging, options);
             Progress(options, false, 3, "パッケージの起動を検証中");
             const auto validation = RunProcess(staging / "App.exe", {L"--validate-package"}, staging, log, 180000);
             if (validation != 0)
                 throw std::runtime_error("Package startup validation failed (" + std::to_string(validation) +
                                          "); see Diagnostics/package-validation.log.");
+            // CPU取り込みの走査が保持した監視を閉じ、Windowsで配布ルートを改名できる状態に戻します。
+            Engine::AssetDatabase::ReleaseIndexCache();
             std::filesystem::rename(staging, package);
             Progress(options, false, 4, "完了");
             WriteJsonAtomic(result, {{"success", true},

@@ -28,7 +28,14 @@ if (!$taskResult.success) { throw 'Native package build did not publish success.
 $taskPackage = $taskResult.package
 $taskPackageManifest = Join-Path $taskPackage 'package.json'
 $taskManifest = Get-Content -LiteralPath $taskPackageManifest -Raw | ConvertFrom-Json
-if ($taskManifest.configuration -ne $Configuration -or !$taskManifest.createdUtc) { throw 'Incorrect package metadata.' }
+if ($taskManifest.configuration -ne $Configuration -or !$taskManifest.createdUtc -or
+    $taskManifest.projectId -cnotmatch '^[a-f0-9]{32}$' -or
+    $taskManifest.engineBuild -cnotmatch '^[a-f0-9]{16}$' -or $taskManifest.scriptAbi -ne 18 -or
+    $taskManifest.settings.startupScene -ne $taskManifest.startupScene -or
+    $taskManifest.scriptModule.configuration -ne $Configuration -or
+    $taskManifest.executableRevision -ine (Get-FileHash -LiteralPath (Join-Path $taskPackage 'App.exe') -Algorithm SHA256).Hash) {
+    throw 'Incorrect package provenance metadata.'
+}
 if (!(Test-Path -LiteralPath (Join-Path $taskPackage $taskManifest.startupScene) -PathType Leaf)) {
     throw 'Resolved package startup scene is missing.'
 }
