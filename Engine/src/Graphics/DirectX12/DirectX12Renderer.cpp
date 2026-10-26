@@ -475,6 +475,8 @@ namespace Engine
             debugUi_.CancelFrame();
 #endif
             commands_->SetPrivateData(RenderFrameContext::Key, 0, nullptr);
+            commands_->SetPrivateData(RenderTargetBinding::Key, 0, nullptr);
+            commands_->SetPrivateData(RenderFrameContext::PredicateKey, 0, nullptr);
             commands_->SetPrivateData(GpuScope::Key, 0, nullptr);
             commands_->Close();
             frameResources_[index].clear();

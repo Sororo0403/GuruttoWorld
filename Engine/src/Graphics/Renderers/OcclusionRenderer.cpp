@@ -1,5 +1,6 @@
 #include <Engine/Graphics/Renderers/OcclusionRenderer.h>
 #include <Engine/Graphics/Resources/RenderTargetBinding.h>
+#include <tuple>
 
 namespace Engine
 {
@@ -45,6 +46,9 @@ namespace Engine
         pipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         if (FAILED(device->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&pipeline_))))
             return false;
+        pipelineLease_ = std::make_shared<
+            std::tuple<Microsoft::WRL::ComPtr<ID3D12RootSignature>, Microsoft::WRL::ComPtr<ID3D12PipelineState>>>(
+            root_, pipeline_);
         device_ = device;
         return true;
     }
@@ -78,14 +82,15 @@ namespace Engine
             return false;
         if (frame.used == frame.entries.size())
         {
-            auto candidate = std::make_unique<Entry>();
+            auto candidate = std::make_shared<Entry>();
             if (!candidate->Initialize(device_.Get()))
                 return false;
             frame.entries.push_back(std::move(candidate));
         }
-        auto& entry = *frame.entries[frame.used++];
-        if (entry.predication)
-            Transition(commands, entry.buffer.Get(), D3D12_RESOURCE_STATE_PREDICATION, D3D12_RESOURCE_STATE_COPY_DEST);
+        const auto lease = frame.entries[frame.used++];
+        if (!RenderFrameContext::Retain(commands, pipelineLease_) || !RenderFrameContext::Retain(commands, lease))
+            return false;
+        auto& entry = *lease;
         struct Constants
         {
             DirectX::XMFLOAT4X4 transform;
@@ -107,9 +112,23 @@ namespace Engine
         commands->ResolveQueryData(entry.query.Get(), D3D12_QUERY_TYPE_BINARY_OCCLUSION, 0, 1, entry.buffer.Get(), 0);
         target.Bind(commands);
         Transition(commands, entry.buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PREDICATION);
-        entry.predication = true;
-        commands->SetPredication(entry.buffer.Get(), 0, D3D12_PREDICATION_OP_EQUAL_ZERO);
+        auto* buffer = entry.buffer.Get();
+        commands->SetPrivateData(RenderFrameContext::PredicateKey, sizeof(buffer), &buffer);
+        commands->SetPredication(buffer, 0, D3D12_PREDICATION_OP_EQUAL_ZERO);
         return true;
+    }
+
+    void OcclusionRenderer::End(ID3D12GraphicsCommandList* commands)
+    {
+        if (!commands)
+            return;
+        commands->SetPredication(nullptr, 0, D3D12_PREDICATION_OP_EQUAL_ZERO);
+        ID3D12Resource* buffer = nullptr;
+        UINT bytes = sizeof(buffer);
+        if (SUCCEEDED(commands->GetPrivateData(RenderFrameContext::PredicateKey, &bytes, &buffer)) &&
+            bytes == sizeof(buffer) && buffer)
+            Transition(commands, buffer, D3D12_RESOURCE_STATE_PREDICATION, D3D12_RESOURCE_STATE_COPY_DEST);
+        commands->SetPrivateData(RenderFrameContext::PredicateKey, 0, nullptr);
     }
 
     auto OcclusionRenderer::Transition(ID3D12GraphicsCommandList* commands, ID3D12Resource* resource,

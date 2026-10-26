@@ -1,7 +1,8 @@
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
+#include <Engine/Animation/SkeletonAssets.h>
 #include <array>
 #include <iterator>
-#include <Engine/Graphics/Models/ModelLoader.h>
+#include <Engine/Graphics/Models/ModelAssets.h>
 #include <limits>
 #include <Engine/Core/Log.h>
 #include <algorithm>
@@ -39,6 +40,7 @@ namespace Engine
             return false;
         }
         std::vector<MeshData> data;
+        std::shared_ptr<const std::vector<MeshData>> staticData;
         auto extension = modelPath.extension().string();
         std::transform(extension.begin(), extension.end(), extension.begin(),
                        [](unsigned char character)
@@ -49,7 +51,7 @@ namespace Engine
         if (extension == ".gltf" || extension == ".glb")
         {
             std::string error;
-            rig = Skeleton::Load(modelPath, error);
+            rig = SkeletonAssets::Load(modelPath, error);
             if (!rig)
             {
                 Log::Error(error);
@@ -69,9 +71,17 @@ namespace Engine
                 return false;
             }
         }
-        else if (!ModelLoader::Load(modelPath, data))
-            return false;
-        if (!Initialize(device, queue, data, shaderPath))
+        else
+        {
+            std::string error;
+            staticData = ModelAssets::Load(modelPath, error);
+            if (!staticData)
+            {
+                Log::Error(error);
+                return false;
+            }
+        }
+        if (!Initialize(device, queue, staticData ? *staticData : data, shaderPath))
             return false;
         rig_ = std::move(rig);
         if (rig_)

@@ -32,6 +32,8 @@ namespace Engine
         bool Begin(ID3D12GraphicsCommandList* commands, const std::array<float, 4>& clearColor);
         /// <summary>Begin と同じコマンドリストで描画を終え、色をシェーダーから読み取り可能にします。次の描画先は呼び出し側で設定してください。</summary>
         bool End(ID3D12GraphicsCommandList* commands);
+        /// <summary>未送信コマンドを破棄するときに、CPU側の記録状態を解除します。</summary>
+        void Cancel(ID3D12GraphicsCommandList* commands) noexcept;
         UINT GetWidth() const noexcept;
         UINT GetHeight() const noexcept;
         /// <summary>描画先の色形式を取得します。未初期化の場合はUNKNOWNを返します。</summary>

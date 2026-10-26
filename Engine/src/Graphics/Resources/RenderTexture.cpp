@@ -157,6 +157,11 @@ namespace Engine
         recording_ = nullptr;
         return true;
     }
+    void RenderTexture::Cancel(ID3D12GraphicsCommandList* commands) noexcept
+    {
+        if (recording_ == commands)
+            recording_ = nullptr;
+    }
     UINT RenderTexture::GetWidth() const noexcept
     {
         return resources_ ? resources_->width : 0;

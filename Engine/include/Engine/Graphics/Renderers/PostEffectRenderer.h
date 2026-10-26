@@ -26,6 +26,8 @@ namespace Engine
                    const std::array<float, 4>& linearClear);
         /// <summary>HDR描画を終え、ブルーム・露出・トーンマッピングを適用して元の出力先へ戻します。</summary>
         bool End(ID3D12GraphicsCommandList* commands, const PostEffectSettings& settings);
+        /// <summary>未送信コマンドの破棄に合わせ、描画先の記録状態を解除して再試行できるようにします。</summary>
+        void Cancel(ID3D12GraphicsCommandList* commands) noexcept;
 
     private:
         struct Impl;

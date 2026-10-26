@@ -262,6 +262,16 @@ namespace Engine
         ++frame.used;
         return true;
     }
+    void PostEffectRenderer::Cancel(ID3D12GraphicsCommandList* commands) noexcept
+    {
+        if (!impl_ || impl_->commands != commands || !impl_->active)
+            return;
+        for (auto* texture :
+             {&impl_->active->scene, &impl_->active->bright, &impl_->active->temporary, &impl_->active->meter})
+            texture->Cancel(commands);
+        impl_->active = nullptr;
+        impl_->commands = nullptr;
+    }
     bool PostEffectRenderer::End(ID3D12GraphicsCommandList* commands, const PostEffectSettings& settings)
     {
         if (!impl_ || !impl_->active || impl_->commands != commands)
