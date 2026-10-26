@@ -17,10 +17,10 @@ Inspectorの「コンポーネントを追加」から各UIを追加できます
 
 Slider/Toggleの`binding`は`SceneEnvironment::Ui().values`、InputFieldは`Ui().strings`のキーを指定します。空欄はオブジェクトIDを使います。ScrollViewの実行時位置は`Ui().scrollOffsets`に保存します。これらはPlay状態であり、操作によってシーンの初期値を書き換えません。
 
-`changedEvent`と`submittedEvent`を指定するとScriptへ通知します。`ScriptContext::event`の`name`に指定名、`sender`にUIオブジェクトID、`value`にSlider/Toggleの値、`text`に入力欄のUTF-8文字列が届きます。入力欄のフォーカス中は移動とショートカットを抑制します。
+`changedEvent`と`submittedEvent`を指定するとScriptへ通知します。`RuntimeScriptContext::event`の`name`に指定名、`sender`にUIオブジェクトID、`value`にSlider/Toggleの値、`text`に入力欄のUTF-8文字列が届きます。入力欄のフォーカス中は移動とショートカットを抑制します。
 
 Scriptから表示値を変える場合は`ScriptScene::SetUiValue("volume",0.5f)`と`SetUiText("playerName","Player")`を使います。FixedUpdate・Update・LateUpdateの予約を順に合成し、フレーム全体が成功した場合だけ実行中のbindingと文字描画へ反映します。失敗したフレームの予約は破棄されます。Componentの`value`や`text`は初期値であり、すでに存在するbindingを変更する用途にはこのAPIを使ってください。
 
-UI予約は1フレーム合計256キーまで、キーは空でない128バイト以下、数値は有限な±100000以内、文字列は有効なUTF-8で4096バイト以下です。ネイティブScriptModule ABIはversion 3で、ScriptSceneのサイズも照合するため、古いDLLは再コンパイルしてください。
+UI予約は1フレーム合計256キーまで、キーは空でない128バイト以下、数値は有限な±100000以内、文字列は有効なUTF-8で4096バイト以下です。ネイティブScriptModule ABIはversion 18で、RuntimeScriptContext・RuntimeScriptScene・ハンドルのサイズも照合するため、古いDLLは再コンパイルしてください。
 
 表示範囲のクリップはCanvas座標で評価するため、GameのオーバーレイとSceneの3D Canvasで共通です。回転したマスクのクリップ範囲は矩形の外接矩形です。

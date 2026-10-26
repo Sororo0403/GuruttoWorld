@@ -2,12 +2,14 @@
 
 調査日: 2026-10-24（日本時間）
 
-状態: 推奨設計と段階的な実装状況。現行実装の説明・設計判断・今後の検証条件を区別する。
+状態: M0〜M7の移行と最終検証が完了。設計時点の調査と移行後の実装を区別する。
 
-実装状況（2026-10-25）: M1の変更捕捉境界を、Transform・コンポーネント・個体構造・資源依存・Script状態と
-Start/Pause/終了準備、Animator・物理の実行状態まで拡張した。
-書き込み経路の監査と互換経路は[シーン変更捕捉API](ChangeCaptureApi.md)を参照する。
-M0の性能基準全体と、M2以降の編集・実行・描画分離の完了を意味しない。Script SDK ABIは16。
+実装状況（2026-10-26）: M1の変更捕捉から、CPUドキュメント、WorldDefinition/WorldStateと
+RuntimeSession、描画パケット、型別の差分更新、共通アセット成果物、任意のTitleとターゲット分割まで移行した。
+公開Script SDKはRuntimeScriptContext/RuntimeScriptDefinitionを使うABI 18へ更新した。
+具体的な公開境界は [シーン変更捕捉API](ChangeCaptureApi.md)、最終検証と性能の改善・退行は
+[実装記録](ArchitectureImplementation.md) を参照する。以下の「現状」の調査表は2026-10-24時点の比較基準であり、
+削除済みのSceneExecutionStateや旧ScriptApiを現在の実装として扱わない。
 
 前提: Windows / DirectX 12 / C++ / 自作エディターを活かし、少人数で複数の3Dゲームを制作する。ユーザー確認済み。
 
@@ -647,3 +649,53 @@ M0→M1を必須の順とする。M2を足場にM3へ進み、M3の読取契約�
 | 移行の開始点 | 基準記録とTransformの変更境界 | M0/M1の結果から順序修正が必要 |
 
 実装の判断単位は「ファイルを小さくしたか」より、誰が変更できるか、どこで失敗できるか、いつ確定するか、どの版を使うかを説明・検証できることである。
+
+## 21. 移行後の実装と設計案の対応
+
+2026-10-26のコード上の構成。最終検証と性能比較は [実装記録](ArchitectureImplementation.md) に記録した。
+
+```mermaid
+classDiagram
+    SceneDocumentData *-- SceneLayout : 編集の正本
+    SceneDocument --> SceneDocumentData : 保存と履歴
+    SceneWorld --> SceneDocumentData : 編集投影
+    SceneWorld *-- RuntimeSession : 再生時
+    RuntimeSession *-- WorldState
+    WorldState --> WorldDefinition : 不変定義
+    WorldState *-- Transaction : 単一書込候補
+    RuntimeSession *-- RuntimeScripts
+    RuntimeSession *-- RuntimePipeline
+    RuntimePipeline *-- RuntimeNavigation
+    RuntimePipeline *-- RuntimeAnimation
+    RuntimePipeline *-- RuntimePhysics
+    RuntimePipeline *-- RuntimeProjection
+    RuntimeProjection --> RenderPacket : 不変の描画世代
+    ScenePresentation --> PresentationPacket : 資源準備と捕捉
+    PresentationPacket --> RenderPacket
+    RenderPresentation --> PresentationPacket : 描画
+    GamePlayback *-- SceneEnvironment
+    GamePlayback *-- PlaybackFeature : 任意機能
+    PlaybackFeature <|-- TitleController
+    ArtifactRequests --> ArtifactStore : 整合性検証と保存
+    ModelAssets --> ArtifactRequests
+    SkeletonAssets --> ArtifactRequests
+    TextureAssets --> ArtifactRequests
+```
+
+編集用SceneWorldはCPUドキュメントに接続するGPU投影であり、RuntimeSessionを生成しない。再生用SceneWorldは互換ファサードとしてRuntimeSessionを所有する。編集・保存と再生が別の正本を持ち、描画はどちらの可変状態も参照しない。
+
+| 設計案の責務 | 実装 | 境界 |
+|---|---|---|
+| Documentと編集サービス | SceneDocumentData / SceneEdits / SceneStorage | GPUや再生ホストなしで編集・保存候補を作る |
+| RuntimeWorldと取引 | WorldDefinition / WorldState / RuntimeSession | 型別の値・世代付きハンドル・候補の一括確定 |
+| システム群 | RuntimePipelineと各RuntimeSystem | 物理・Animation・Navigation・投影の準備失敗を同じ取引で復元 |
+| 描画専用Scene | RenderPacket / PresentationPacket / RenderPresentation | 保存用SceneLayoutやScript APIを描画から除外 |
+| 変更に比例する更新 | 型別COWページ、dirty行列、RuntimeProjection | 数値の定常更新で保存シーン全体を複製しない |
+| 共通アセット成果物 | ArtifactDescriptor / ArtifactSources / ArtifactRequests / ArtifactStore | 内容hash、取り込み版、設定、依存、プラットフォーム、compilerをキーへ含める |
+| 非同期取り込みと公開 | ModelAssets / SkeletonAssets / TextureAssets | CPUジョブを共有し、所有者・世代・元ファイルを再照合して公開 |
+| 配布のcook | ProjectToolのCPU変換とshader出力、package.json | ランタイムと同じバイナリ形式、入力証明、成果物hashを検証 |
+| 任意のゲーム機能 | PlaybackFeature / SceneTitle | 共通PlayerへTitleを必須リンクしない |
+
+ターゲットは依存のないEngineCore、OS境界のEnginePlatform、CPU取り込みのEngineAssets、GPUのEngine、保存型のSceneData、SceneStorage、SceneRuntimeCore、SceneSimulation、SceneRendering、ホストのSceneRuntime、任意のSceneTitleに分割した。`tests/TestSceneLayers.ps1` が禁止include・参照方向・ソースの重複所有・旧APIとTitleの共通コードへの混入を検査する。
+
+旧ScriptRuntimeとadapterは過去のfixtureを動かすテスト専用ターゲットに移した。製品のSceneWorldはRuntimeSessionを実行し、SDKはABI 18のRuntimeScriptContextを公開する。別compilerに配る安定C ABI、保存型の汎用reflection、並列でのWorld書き込みは今回の実装対象には追加していない。

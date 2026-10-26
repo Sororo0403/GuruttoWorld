@@ -90,7 +90,7 @@ Editor は自身と異なるエンジンチェックアウトのプロジェク�
 
 ## 再生処理の共有
 
-エディターのGame再生と配布プレイヤーは、`SceneRuntime::GamePlayback` と `TitleController` を共用します。
+エディターのGame再生と配布プレイヤーは `SceneRuntime::GamePlayback` を共用します。Titleは任意の `PlaybackFeature` として注入し、`SceneTitle` ターゲットで実装します。Titleを使うゲームはdescriptorに `"titleFeature": true` を指定し、`Player::Options::playbackFeature` に `TitleController` のfactoryを渡します。既定の最小ゲームは共通再生だけをリンクします。
 プレイヤーとEditorでゲームの動作を別々に実装せず、共通処理またはゲーム側のScriptへ追加します。
 Editorは編集データの複製・Pause・StepとGameパネルの座標変換を担当し、プレイヤーはウィンドウ入力を取得します。QUITはEditorでは再生停止、プレイヤーでは終了として受け取ります。
 設定の保存先は両方とも `GameSettings::UserPath()` です。CONFIGの移動先・戻り先・時間はCanvasのメニュー設定とシーンのTransformで編集します。
@@ -98,7 +98,7 @@ Editorは編集データの複製・Pause・StepとGameパネルの座標変換�
 
 ## スクリプト宣言と任意のゲーム機能
 
-新規スクリプトは処理用CPPと同名の`*.schema.json`を持ちます。設定の既定値・範囲・型・素材用途はJSONに記述し、CPPは`SceneRuntime::ScriptCallbacks`へ処理を設定して動作名とともに登録します。EXE側がJSONを直接読み、同名の処理と結合して`ScriptDefinition`を作ります。Inspectorも同じJSON解析を使い、DLLなしで宣言を表示します。生成ヘッダーは使用しません。JSONだけの変更は再生停止中に再読み込みし、DLLの再ビルドは不要です。不正な宣言では直前の有効な登録を保持します。既存シーンへの既定値追加はInspectorの明示的な移行操作で行います。
+新規スクリプトは処理用CPPと同名の`*.schema.json`を持ちます。設定の既定値・範囲・型・素材用途はJSONに記述し、CPPは`SceneRuntime::RuntimeScriptDefinition`へ `RuntimeScriptContext&` を受け取る処理を設定し、動作名とともに登録します。EXE側がJSONを直接読み、同名の処理へScriptSchemaを結合します。Inspectorも同じJSON解析を使い、DLLなしで宣言を表示します。生成ヘッダーは使用しません。JSONだけの変更は再生停止中に再読み込みし、DLLの再ビルドは不要です。不正な宣言では直前の有効な登録を保持します。既存シーンへの既定値追加はInspectorの明示的な移行操作で行います。
 
 version 1の宣言は従来どおり使用できます。version 2では動作に`"extends": "基底の動作名"`を指定でき、同じプロジェクト内の別ファイルも参照できます。parameters／data／purposesをキー単位で上書きし、不要な継承項目はnullで削除します。配列や構造の既定値は項目全体の置換です。循環・基底欠損・16段を超える継承・用途と型の不一致はJSONの読み込み時に拒否します。Editorとプレイヤーは同じScriptSchemaの解析を使います。
 
@@ -110,6 +110,6 @@ version 1の宣言は従来どおり使用できます。version 2では動作�
 
 ビルドはゲーム固有のvcxproj／slnxを入口にしてください。ゲーム側の `src/main.cpp` をコンパイルし、`Engine/build/GameProject.targets` の設定で `Player/Player.vcxproj` を参照します。Editorのフォントは `Editor/Resources/Fonts`、標準シェーダーは `Engine/Shaders` に分離しています。ゲーム素材は明示したプロジェクトだけを使用します。
 
-既存の外部ゲームを移行する場合は、各動作の宣言を用意し、生成ヘッダーのincludeと生成関数の呼び出しを削除します。CPPは`ScriptCallbacks`だけを登録する形へ変更し、対応する構成のSDKとDLLをABI 15で再ビルドします。シーンに保存済みの値の補完は明示的な移行として確認します。手順と互換経路は[根本設計の段階移行](ArchitectureMigration.md)を参照してください。
+既存の外部ゲームを移行する場合は、各動作の宣言を用意し、生成ヘッダーのincludeと生成関数の呼び出しを削除します。CPPは `RuntimeScriptDefinition` を登録する形へ変更し、`context.object` への直接変更をReadViewと型付きsetterに置き換えて、対応する構成のSDKとDLLをABI 18で再ビルドします。シーンに保存済みの値の補完は明示的な移行として確認します。手順と互換経路は[根本設計の段階移行](ArchitectureMigration.md)を参照してください。
 
 外部ゲームの C++ 整形は、エンジン側から `scripts/FormatCode.ps1 -RepositoryRoot ../GuruttoWorld -Paths Assets/Scripts/SunriseStreet.cpp` のように対象リポジトリを指定できます。
