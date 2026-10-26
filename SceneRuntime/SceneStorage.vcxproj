@@ -44,7 +44,7 @@
     <ClCompile Include="src\Scene\PrefabStorage.cpp" />
     <ClCompile Include="src\Scene\SceneAssetReferences.cpp" />
     <ProjectReference Include="SceneData.vcxproj"><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
-    <ProjectReference Include="..\Engine\Engine.vcxproj"><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="..\Engine\EngineAssets.vcxproj"><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

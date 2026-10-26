@@ -46,6 +46,12 @@
     <ClInclude Include="include\SceneRuntime\Scene\WorldReadView.h" />
     <ClCompile Include="src\Scripts\ScriptBuiltinSchemas.cpp" />
     <ClCompile Include="src\Scripts\ScriptValueJson.cpp" />
+    <ClCompile Include="src\Scene\SceneCamera.cpp" />
+    <ClCompile Include="src\Ui\UiGeometry.cpp" />
+    <ClInclude Include="include\SceneRuntime\Ui\UiPacket.h" />
+    <ClInclude Include="include\SceneRuntime\Ui\UiGeometry.h" />
+    <ClInclude Include="src\Ui\UiGeometryFunctions.h" />
+    <ClInclude Include="include\SceneRuntime\Scene\SceneCamera.h" />
     <ClCompile Include="src\Scene\SceneLayout.cpp" />
     <ClCompile Include="src\Scene\SceneTransforms.cpp" />
     <ClCompile Include="src\Physics\RagdollValidation.cpp" />
@@ -90,5 +96,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Engine\EngineCore.vcxproj" />
     <ClCompile Include="src\Scripts\ScriptValue.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneMenu.h" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="src\Ui\UiGeometry.cpp"><Filter>src\Ui</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Ui\UiPacket.h"><Filter>include\SceneRuntime\Ui</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Ui\UiGeometry.h"><Filter>include\SceneRuntime\Ui</Filter></ClInclude>
+    <ClInclude Include="src\Ui\UiGeometryFunctions.h"><Filter>src\Ui</Filter></ClInclude>
+    <ClCompile Include="src\Scene\SceneCamera.cpp"><Filter>src\Scene</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneCamera.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
     <Filter Include="include" />
     <Filter Include="include\SceneRuntime" />
     <Filter Include="include\SceneRuntime\Scene" />
@@ -164,5 +170,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Audio\AudioCommand.cpp"><Filter>src\Audio</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneMenu.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
   </ItemGroup>
 </Project>
