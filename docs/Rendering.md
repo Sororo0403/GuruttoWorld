@@ -1,6 +1,6 @@
 # 描画・照明
 
-Windows／DirectX 12のEditorとAppは同じ描画経路を使います。設定はシーンまたはMaterialに保存されます。
+Windows／DirectX 12のEditorとプレイヤーは同じ描画経路を使います。設定はシーンまたはMaterialに保存されます。
 
 ## LODと描画の集約
 

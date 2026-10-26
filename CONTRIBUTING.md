@@ -2,20 +2,22 @@
 
 ## フォルダ構成
 
-- `App`：共通プレイヤーの起動・シーン遷移・開発用表示。
+- `Player/include/Player` と `Player/src`：起動・更新・描画ループを提供する共通の静的ライブラリ。ゲームの `main.cpp` と個別の診断処理はゲーム側の `src` に置く。
 - `Editor/src`：ゲームエディター。起動処理の `main.cpp` 以外は、素材管理の `Assets`、保存処理の `Documents`、編集状態の `Editing`、`Animation`、`Inspector`、`Project`、`Viewport`、`Ui`、`Playback`、画面共通処理の `Shell` に分ける。
 - `SceneRuntime/include/SceneRuntime` と `SceneRuntime/src`：共通のシーン処理。公開ヘッダーと実装を同じ機能分類（`Scene`、`Rendering`、`Animation`、`Audio`、`Physics`、`Scripts`、`Ui`、`Gameplay`、`Project`）に分ける。`SceneData`・`SceneStorage`・`SceneRuntime` のビルド責務は各 `.vcxproj` で管理する。
-- `Games/GuruttoWorld`：「ぐるっとワールド」の独立ゲームプロジェクト。ゲーム固有の処理・素材・シーン・設定はここで管理する。
-- `Content`：エディター用フォント・共通シェーダー・コンテンツのビルド設定。
-- `App/Shaders/Common`：複数のシェーダーから読み込む共通処理。
+- 個別ゲームはエンジンの外に置く。ぐるっとワールドは隣の `../GuruttoWorld` で独立管理し、ゲーム側の `WP1.project.json` でエンジンを参照する。
+- `Engine/Shaders`：標準描画のシェーダー。ゲームの素材とは別のリソースとして配布する。
+- `Editor/Resources/Fonts`：エディター専用フォントとライセンス。ゲームには配布しない。
+- `Tools/GameProject/Templates`：新規ゲーム作成用のひな形。
+- `Engine/Shaders/Common`：複数のシェーダーから読み込む共通処理。
 - `Engine/include/Engine`：アプリに公開するヘッダー。
 - `Engine/src`：実装。公開ヘッダーと同じ機能分類を使う。
 - `Engine/include/Engine/DevTools` と `Engine/src/DevTools`：ImGui の統合やデバッグカメラなど、開発用の共通機能。
 - `Engine/externals`：外部ライブラリのソースやライセンス。命名規則の一括変更対象にしない。
-- `Engine/build`：エンジンのビルド設定（`.targets` など）。
-- `scripts`：依存ライブラリの構築などのスクリプト。
+- `Engine/build`：エンジンのビルド設定（`.targets`）とアプリケーションのマニフェスト。
+- `scripts`：依存ライブラリ構築、コード整形・解析、エンジンのビルド識別子生成、旧シーン変換などの開発用スクリプト。エディターの主要機能は置かない。
 - `tests`：実行スクリプトとテスト用 `.vcxproj`。C++ のテスト本体は `tests/src` の機能別フォルダーに置き、共通補助は `Support`、通し回帰の入口は `Regression`、DLL 用の素材は `tests/fixtures` に置く。
-- `Tools`：ビルド時に使用する開発ツール。
+- `Tools`：ビルド時に使用する開発ツール。`Tools/ProjectTool` はゲーム処理のコンパイル、配布物の作成、素材同期、プロジェクト作成・更新を担うC++製CLIで、エディターとMSBuildから共用する。
 - `docs`：設計・機能・制作手順の資料。
 - `generated`：ビルド出力、中間生成物、取得した依存ライブラリ、一時検証結果。Git 管理しない。
 
@@ -46,7 +48,7 @@ Visual Studio のフィルターは実際のフォルダ構成と一致させる
 | 名前付きのコンパイル時定数（`constexpr`） | PascalCase | `BufferCount`、`DescriptorCount` |
 | 列挙値 | PascalCase | `RenderResult::Failed` |
 | 自作マクロ | UPPER_SNAKE_CASE、エンジン用は `ENGINE_` 接頭辞 | `ENGINE_DEVELOPMENT` |
-| 名前空間 | PascalCase | `Engine`、`App` |
+| 名前空間 | PascalCase | `Engine`、`Player` |
 | C++ ファイル | 主な型・機能の PascalCase 名 | `UvTransform.h`、`UvTransform.cpp` |
 | 機能フォルダ | PascalCase | `Graphics`、`DevTools` |
 | 基盤フォルダ | 小文字 | `src`、`include`、`externals`、`scripts`、`build`、`generated` |
@@ -105,7 +107,7 @@ PATH 上の clang-format、または Visual Studio 同梱の x64 版を使用す
 ## 構成と変更確認
 
 - `Debug`：デバッグ向けの構成。
-- `Development`：Engine は最適化あり、App は最適化なし。両方にデバッグ情報を付ける。
+- `Development`：Engine は最適化あり、Player とゲーム側の起動処理は最適化なし。デバッグ情報を付ける。
 - `Release`：配布向けの構成。
 - 開発用 UI・カメラの条件は `defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)` とする。
 - 移動・改名では include、プロジェクト登録、フィルター、シェーダーの include、アセットのコピー先も更新する。

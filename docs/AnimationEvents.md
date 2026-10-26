@@ -1,5 +1,7 @@
 # アニメーションイベント
 
+この文書のゲーム素材は、WP1 の外にある `../GuruttoWorld` で管理します。制作スクリプトの `scripts/...` はゲーム側ルートで実行し、エンジン側の C++ 検証コマンドは WP1 ルートで実行してください。
+
 AnimatorのInspectorで、クリップ名・時刻（秒）・イベント名・数値／文字列／整数引数・最低重みを設定する。
 設定はシーン保存、Undo/Redo、Prefabのプロパティ上書きに含まれる。旧形式ではイベント一覧を省略できる。
 1つのAnimatorは最大256キーを保存できる。時刻はクリップの開始から終了までの範囲で指定する。
@@ -24,9 +26,9 @@ Blend Treeでは共通の位相から各クリップの時刻を求める。同�
 `SceneWorld::UpdateComponents`は、全個体の姿勢・イベント・Scriptの候補を検証してから反映する。
 姿勢の失敗やイベント超過では、先に評価した個体、Scriptの状態、配置、生成ID、イベントキューも保持する。
 通常の更新では頂点バッファーを再作成しない。イベントは通常のScript通知と合わせて、1シーンの更新につき4096件まで予約できる。
-App／Editor共通の環境時計も、拒否されたComponent更新では進めない。
+プレイヤー／Editor共通の環境時計も、拒否されたComponent更新では進めない。
 
-`Games/GuruttoWorld/Assets/Scenes/AnimationEventPlayground.json`はイベントを受けて各キャラクターのライトを点滅させる。
+`../GuruttoWorld/Assets/Scenes/AnimationEventPlayground.json`はイベントを受けて各キャラクターのライトを点滅させる。
 登録済みの`AnimationEventPulse` Scriptを使用し、`duration`と`peak`で光の長さと強さを調整できる。
 `scripts/GenerateAnimationEventPlayground.py`で比較シーンを再生成できる。
-`WP1_ANIMATION_EVENTS_ONLY=1`で、ループ・重み・引数・保存編集・App/Editor・更新失敗時の保持を検証する。
+`WP1_ANIMATION_EVENTS_ONLY=1`で、ループ・重み・引数・保存編集・プレイヤー/Editor・更新失敗時の保持を検証する。

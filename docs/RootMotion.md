@@ -1,5 +1,7 @@
 # ルートモーション
 
+この文書のゲーム素材は、WP1 の外にある `../GuruttoWorld` で管理します。制作スクリプトの `scripts/...` はゲーム側ルートで実行し、エンジン側の C++ 検証コマンドは WP1 ルートで実行してください。
+
 ## 抽出計算
 
 `Engine::RootMotion::Sample(rig,bone,clip,phase,loop)`は、指定ボーンのローカル位置と回転を剛体行列として返す。phaseはクリップ長で正規化した時刻であり、Scaleは抽出しない。空のクリップ名はRest姿勢を返す。global=trueでは祖先の位置・回転を含むSkeleton座標の剛体フレームを評価し、祖先Scaleによる位置の変化も反映する。PoseFrameは評価済みの姿勢から同じフレームを取得する。
@@ -22,7 +24,7 @@ Blend Treeは同じ正規化位相の各クリップの差分を重み付きで�
 
 SceneWorldはRestフレーム・inverseRoot・importScaleを使って差分をモデル座標へ変換し、ObjectのローカルTransformへ適用する。親子Transformを解決した後、移動後のWorld座標でIKと描画姿勢を再評価する。更新中は候補状態だけを変更し、いずれかの個体で失敗すれば全個体のTransform・時計・Script状態を保持する。Scale・回転・位置で表現できないShearが生じる組み合わせは更新を拒否する。微小な移動も適用する。
 
-`RootMotionPlayground.json`はその場再生・直進・回転移動を比較する。`scripts/GenerateRootMotionPlayground.py`でモデルとシーンを再生成できる。`WP1_ROOT_PLAYBACK_ONLY=1`はObject移動、ループ、親Transform、移動後のWorld IK、失敗時の保持、App／EditorのPlay・Pause・Step・Stopを検証する。回転移動のGPU画像を、移動を抽出しない元の姿勢の描画と比較する。祖先アニメーションの変換再構築も数学検証に含める。
+`RootMotionPlayground.json`はその場再生・直進・回転移動を比較する。`scripts/GenerateRootMotionPlayground.py`でモデルとシーンを再生成できる。`WP1_ROOT_PLAYBACK_ONLY=1`はObject移動、ループ、親Transform、移動後のWorld IK、失敗時の保持、プレイヤー／EditorのPlay・Pause・Step・Stopを検証する。回転移動のGPU画像を、移動を抽出しない元の姿勢の描画と比較する。祖先アニメーションの変換再構築も数学検証に含める。
 
 有効な固体Colliderを持つルート移動は、一時的なJoltワールドのCharacterVirtualで衝突・滑りを解決してから反映する。衝突レイヤー・Mask・Trigger除外・親子除外を使用し、移動ColliderはConvexを必要とする。通常の物理時計・重力・速度は進めず、次の物理更新で配置と接触を同期する。Playerの入力による移動はルート移動が有効な間停止し、重力とジャンプは継続する。
 

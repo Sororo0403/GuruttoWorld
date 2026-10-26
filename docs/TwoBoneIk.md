@@ -1,5 +1,7 @@
 # 二関節IK
 
+この文書のゲーム素材は、WP1 の外にある `../GuruttoWorld` で管理します。制作スクリプトの `scripts/...` はゲーム側ルートで実行し、エンジン側の C++ 検証コマンドは WP1 ルートで実行してください。
+
 ## 計算API
 
 `Engine::TwoBoneIk::Solve` は、直接つながったroot・middle・tipの3ノードからなるチェーンを解く。位置目標targetと曲げ方向の補助点hintは、Skeletonのグローバル座標で指定する。モデルのimportScale・inverseRootやシーンのObject Transformを適用する前の座標である。
@@ -26,4 +28,4 @@ Script更新の予約結果をSceneWorldの候補状態に取り込み、すべ�
 
 `Assets/Scenes/IkPlayground.json`で重み0・0.5・1を比較する。所有するAnimatedBoxモデルへ補助ノードTipを追加した`IkBox.gltf`を使い、`IkOrbit` Scriptが目標を動かす。右側の個体はWorld座標を使う。`radius`・`frequency`・`weight`をScriptパラメーターとして編集できる。`scripts/GenerateIkPlayground.py`でモデルとシーンを再生成する。
 
-`WP1_IK_PLAYBACK_ONLY=1`で、実際にモデルを読み込む統合検証を実行する。World座標の先端とScriptの目標が一致すること、GPU画像がCPU変形したモデルの画像と一致すること、重みで実際の描画が変わることを確認する。AppとEditorの再生・一時停止・コマ送り・停止、Inspectorの描画、遅い個体のIK失敗時に早い個体とScript状態を保持する更新も検証する。通常のAnimator／全体回帰テストにも含まれる。
+`WP1_IK_PLAYBACK_ONLY=1`で、実際にモデルを読み込む統合検証を実行する。World座標の先端とScriptの目標が一致すること、GPU画像がCPU変形したモデルの画像と一致すること、重みで実際の描画が変わることを確認する。プレイヤーとEditorの再生・一時停止・コマ送り・停止、Inspectorの描画、遅い個体のIK失敗時に早い個体とScript状態を保持する更新も検証する。通常のAnimator／全体回帰テストにも含まれる。

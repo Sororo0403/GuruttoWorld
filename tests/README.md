@@ -1,25 +1,38 @@
+# 外部ゲームを使う統合回帰について
+
+エンジンのソリューションは個別ゲームを参照しません。ぐるっとワールドの制作テストは外部ゲーム側の `tests` に移動しました。
+エンジン側に残る実ゲームの統合回帰は、外部の制作データを検証用入力として明示します。
+`GameContent.props` の `TestGameRoot` が参照先で、既定値は隣の `../GuruttoWorld` です。
+異なる場所のゲームを使う場合は、関連する検証プロジェクトを `/p:TestGameRoot=C:\Games\GuruttoWorld` 付きでビルドします。
+C++ テスト内の `WP1_TEST_GAME_ROOT` と素材コピー・ゲームCPPの参照は同じ値から設定します。
+実行時の作業フォルダーは従来どおり WP1 のルートです。
+`TestGameContent.ps1 -TestGameRoot <パス>` と `TestArchitectureStructure.ps1 -GameProject <パス>` も指定できます。
+`TestGameProjects.ps1`・`TestProjectContext.ps1`・`TestEngineResources.ps1` は最小テンプレートと独立したテスト素材だけで検証します。
+`TestEngineResources.ps1` は標準シェーダーとゲーム独自シェーダーの分離、Editorフォントの配布除外、スナップショットの不変性と新規ゲームへのリソース複製防止を確認します。
+`EngineResourceValidation.vcxproj` は独立したゲームを使い、標準シェーダーの旧パス・ID互換、同名のゲーム素材、改名、変更監視、欠損リソースの再配置をC++で検証します。
+
 # 検証の実行と構成
 
 実行スクリプトと `.vcxproj` はこのフォルダー直下に置き、既存の実行コマンドを維持しています。C++ のテスト本体は `src/Animation`、`Architecture`、`Assets`、`Gameplay`、`Physics`、`Rendering`、`Scene`、`Scripts`、`Ui` に分類しています。通し回帰の入口は `src/Regression`、共通の計測・fixture ヘッダーは `src/Support`、DLL 用のソースは `fixtures` です。結果は従来どおり `generated/tests` などへ出力します。
 
 ## 構造と確定境界の回帰（2026-10-23）
 
-`./tests/TestArchitectureStructure.ps1` は Debug / Development / Release の構造契約・既存148契約・GPU監査回帰、Editorとゲームのビルド、実DLLと独立Schema生成を検証します。
+`./tests/TestArchitectureStructure.ps1` は Debug / Development / Release の構造契約・既存148契約・GPU監査回帰、Editorとゲームのビルド、実DLLとEXEによるJSONスキーマの直接読み込みを検証します。
 シーンを一度取得した後の外部変更・読み取り不能、編集と実行の所有分離、Script定義の独立性、シーン操作の結果通知、GPU同期、DLL公開のプロセス間排他と失敗時保持を対象にします。
 Editorのプロジェクト検証とゲームのパッケージ検証も実行します。`-SkipGpu` はGPU実行、`-SkipHosts` はEditorとゲームの構築・実行を省略します。
 ログは `generated/architecture-fixes/validation-*` に保存します。設計と保証範囲は `docs/ArchitectureFixes-2026-10-23.md` を参照してください。
 `SceneExecutionProfile.vcxproj` はReleaseでWorld更新の基準計測を行います。描画を含めずCSVを出力し、時間を合否判定には使いません。
 
-通常回帰の前に、同じ構成の`ReviewRegressionValidation`をビルドし、`./scripts/BuildScripts.ps1 -Configuration Release -Content Games/GuruttoWorld`でソース側のゲームDLLも更新してください。Debugでは両方の構成名をDebugへ変更します。通常回帰の共通再生検証はソース側のDLLを読み込むため、ビルド出力側のDLL更新だけでは古いABIが残ります。
+先に`WP1.slnx`のDevelopmentをビルドしてProjectToolを用意します。通常回帰の前に、同じ構成の`ReviewRegressionValidation`をビルドし、`./generated/outputs/x64/Development/ProjectTool/ProjectTool.exe build-scripts --engine . --configuration Release --content ../GuruttoWorld`でソース側のゲームDLLも更新してください。Debugの検証では`ReviewRegressionValidation`と`--configuration`の指定をDebugへ変更します。通常回帰の共通再生検証はソース側のDLLを読み込むため、ビルド出力側のDLL更新だけでは古いABIが残ります。
 
 `WP1_TITLE_SIZES_ONLY=1` を設定して `ReviewRegressionValidation.exe` を直接実行すると、今回分離した編集・履歴・保存の検証を1回行い、同じ編集結果を1280×720・1024×768・720×1280で描画します。各サイズでタイトル・背景演出・設定UIも描画し、編集とサイズ別描画の所要秒数を出力します。通常回帰でも同じ分離を使用します。`RunRegression.ps1` は単独検証用の環境変数を解除するため、このモードでは実行ファイルを直接起動してください。
 
 テクスチャのミップ・圧縮結果は、元の全画素と寸法・sRGB・サイズ制限・圧縮・ミップ設定を照合して共有します。保持するCPUデータは192MiB・128件を上限に古い項目から退避し、GPUリソースは各呼び出しで生成・転送します。通常回帰の `TextureImportValidation` は共有の実行回数、元データの編集との分離、全設定と寸法の相違、不正設定の拒否、最大ミップと縮小描画の結果一致も確認します。単独実行は `WP1_TEXTURE_IMPORT_ONLY=1` を設定して検証実行ファイルを起動します。`TextureImportCacheValidation.vcxproj` の単独実行では、実素材に近い約149MiBの変換結果を2回使用し、全件が再利用できることも確認します。
 
-通常回帰は `powershell -NoProfile -ExecutionPolicy Bypass -File tests/RunRegression.ps1 -Configuration Release` で実行します。Debugも同様です。実行フェーズと経過秒数、プロセス別のログを記録し、既定の上限は1800秒です。固定120秒で打ち切らず、タイトルのApp／Editor比較と実際の開始先シーンまで完走させます。`-TimeoutSeconds`で上限を変更できます。
+通常回帰は `powershell -NoProfile -ExecutionPolicy Bypass -File tests/RunRegression.ps1 -Configuration Release` で実行します。Debugも同様です。実行フェーズと経過秒数、プロセス別のログを記録し、既定の上限は1800秒です。固定120秒で打ち切らず、タイトルのプレイヤー／Editor比較と実際の開始先シーンまで完走させます。`-TimeoutSeconds`で上限を変更できます。
 `tests/TestRegressionRunner.ps1`は実プロセスで成功・終了コード7・検証モードの隔離と復元・期限超過時の子プロセス終了を確認します。1秒の上限に対して1.5秒で終了するケースも、確実に期限超過として拒否します。
 
-`tests/TestSharedContent.ps1 -Configuration Release` は新しい出力先へ素材をコピーし、現行ゲームのシーン・音声・Script・Shaderの内容一致を確認します。`SunriseStreetValidation`の`WP1_SOUND_LIFECYCLE_ONLY=1`は、独自音声の開始失敗、Pause、Step、再開、フォーカス喪失と復帰、停止時の解放を実際の出力音量で検証します。Scriptの候補破棄と描画準備失敗は通常のScript回帰に含みます。
+`tests/TestGameContent.ps1 -Configuration Release` は新しい出力先へ素材をコピーし、現行ゲームのシーン・音声・Script・Shaderの内容一致を確認します。`SunriseStreetValidation`の`WP1_SOUND_LIFECYCLE_ONLY=1`は、独自音声の開始失敗、Pause、Step、再開、フォーカス喪失と復帰、停止時の解放を実際の出力音量で検証します。Scriptの候補破棄と描画準備失敗は通常のScript回帰に含みます。
 
 静的モデルの変換キャッシュは通常回帰の `ModelImportCacheValidation` で検証します。同じ入力の共有、呼び出し元のメッシュ編集との分離、同じサイズ・更新日時に戻したOBJ／MTL変更、倍率変更、MTLの削除・追加、不正モデル時の失敗と出力保持を確認します。テクスチャ参照は共有結果からも毎回解決します。 128件の作業集合の連続再利用と、上限超過時に最近使った項目が残り、最も古い項目だけが再取り込みされることも確認します。単独検証は `ModelImportCacheValidation.vcxproj` を対象構成でビルドし、対応する `ModelImportCacheValidation.exe` を実行します。タイトル演出・設定遷移・再生一致の各シナリオは `Timing:` 行に実時間を出力します。 初期化・入力更新・状態比較・ログ確認は実行回数と合計時間も記録します。`WP1_TITLE_PRESENTATION_ONLY=1` と `WP1_INITIALIZATION_TIMING=1` の単独実行では、初期化内のCPUプロファイルも出力します。この詳細計測時はプロファイラーのサンプルを読み出します。
 
@@ -42,27 +55,27 @@ generated/tests/outputs/x64/Debug/ArchitectureAuditFixValidation/ArchitectureAud
 
 `FileSaveApiValidation`は別プロセスでScene／Materialの公開保存APIとプロジェクトのOpen／Scanを実行します。先行復旧後の保存内容と上書き禁止を確認し、保存完了記録・掃除の失敗、完了後の外部編集／削除、旧形式2の読込、48境界の復旧中再終了、入れ子のAssets／Shadersと旧保存領域の探索も通常の保存回帰に含めます。形式3の完了記録後は、対象ファイルへ内容を再適用せず作業ファイルだけを回収します。
 
-Script SDK ABI 14では、配置の復元などは`prepareStop(ScriptContext&)`へ移します。この処理は候補データだけを変更し、音声停止などの外部副作用を起こしません。`stop(const ScriptStopContext&)`は確定後の資源解放、または失敗したStartの後始末に使用します。旧DLLはABI照合で拒否するため、ホストと同じ構成で再ビルドしてください。
+Script SDK ABI 15では、配置の復元などは`prepareStop(ScriptContext&)`へ移します。この処理は候補データだけを変更し、音声停止などの外部副作用を起こしません。`stop(const ScriptStopContext&)`は確定後の資源解放、または失敗したStartの後始末に使用します。旧DLLはABI照合で拒否するため、ホストと同じ構成で再ビルドしてください。
 
 ## エディター／プレイヤーの共通再生検証
 
-`GamePlaybackFocusedValidation` は実際の `App::AuthoredScene::Update` と `Editor::GameSession` に同じ診断入力を渡し、毎フレームのシーン・UI値・Transform・Materialを比較します。CONFIGの設定シーンへの切り替え、取消・保存による帰還、START、クリック、一時停止・コマ送り・再開、ゲームパッドの入力元、編集した接近先・時間、スクリプトによるシーン差し替えと旧操作の破棄、QUIT、Material強度だけの変更の保存・Undoを検証します。
+`GamePlaybackFocusedValidation` は実際の `Player::AuthoredScene::Update` と `Editor::GameSession` に同じ診断入力を渡し、毎フレームのシーン・UI値・Transform・Materialを比較します。CONFIGの設定シーンへの切り替え、取消・保存による帰還、START、クリック、一時停止・コマ送り・再開、ゲームパッドの入力元、編集した接近先・時間、スクリプトによるシーン差し替えと旧操作の破棄、QUIT、Material強度だけの変更の保存・Undoを検証します。
 
 リポジトリのルートで、DevelopmentのEngine／SceneRuntimeと一致するゲームDLLを先に生成してから実行します。
 
 ```powershell
 MSBuild tests/GamePlaybackFocusedValidation.vcxproj /p:Configuration=Development /p:Platform=x64 /p:PreferredToolArchitecture=x64 /m:1 /nr:false
-./scripts/BuildScripts.ps1 -Configuration Development -Content Games/GuruttoWorld -OutputContent Games/GuruttoWorld -WorkRoot Games/GuruttoWorld
+./generated/outputs/x64/Development/ProjectTool/ProjectTool.exe build-scripts --engine . --configuration Development --content ../GuruttoWorld --output-content ../GuruttoWorld --work-root ../GuruttoWorld
 ./generated/tests/outputs/x64/Development/GamePlaybackFocusedValidation/GamePlaybackFocusedValidation.exe
 ```
 
 GPUで描画した両者の接近中・設定画面・帰還中の画像は `generated/tests/playback-captures` に保存します。設定の保存先は検証用ディレクトリに分離します。
 `TitleDepartureValidation` はSTART／QUITの色、現在カメラからの出発、道路・看板矢印の方向、Pause／Step／Resume、最終描画前のロード・終了抑止を追加検証します。白黒化の途中とカメラ到着時のGPU画像も同じディレクトリへ保存します。
-色や配置を調整するときは検証実行ファイルに `--departure-only` を渡すと、STARTのApp／Editor比較とSTART／QUITの描画・移動だけを実行できます。
+色や配置を調整するときは検証実行ファイルに `--departure-only` を渡すと、STARTのプレイヤー／Editor比較とSTART／QUITの描画・移動だけを実行できます。
 
 ## 静的解析（2026-10-13）
 
-`scripts/AnalyzeCode.ps1 -Label authoring-final` は、Engine・SceneRuntime・App・Editor・C++ゲーム処理の全101ソースをCppcheck 2.21.0で解析します。MSVCのDebug・Development・Releaseの定義をそれぞれ指定し、Jolt・Assimpの実際のインクルード先を使用します。外部ライブラリ自体の診断は対象外です。4並列と構成別キャッシュで再検査でき、結果は`generated/analysis/cppcheck-authoring-final-<構成>.txt`に保存します。構成を指定しない解析はJSONライブラリの未使用条件の組合せを検査して長時間化するため、実際のビルド条件を明示しています。
+`scripts/AnalyzeCode.ps1 -Label authoring-final` は、Engine・SceneRuntime・App・Editorの自作ソースをCppcheck 2.21.0で解析します。MSVCのDebug・Development・Releaseの定義をそれぞれ指定し、Jolt・Assimpの実際のインクルード先を使用します。外部ライブラリ自体の診断は対象外です。4並列と構成別キャッシュで再検査でき、結果は`generated/analysis/cppcheck-authoring-final-<構成>.txt`に保存します。構成を指定しない解析はJSONライブラリの未使用条件の組合せを検査して長時間化するため、実際のビルド条件を明示しています。
 
 修正後のCppcheck診断は3構成とも0件です。値渡しによるコピー、構造体の既定値、重複条件、検証・変換ループを見直しました。シェーダーincludeは保持用コンテナーへ格納してから呼び出し元へポインターを返します。DLLの寿命を保持する`ModuleCallback::lifetime`は削除せず、用途をコメントに記載して当該メンバーの`unusedStructMember`誤検出だけを抑制しています。
 
@@ -73,8 +86,8 @@ AuthoringSettingsValidationは全既存シーンの保存復元、物理・影�
 `WP1_ALL_SCENES_ONLY=1`を設定してParkAdventureValidationを実行すると、全25既存シーンを個別に保存・再読込・初期化し、6フレームずつ物理・ゲーム処理・アニメーション・音声・GPU描画を実行します。実行中の警告・エラーとD3D12のエラーも検査し、元のシーンが変更されていないことを確認します。長い操作シーケンスは公園の通しプレイと個別機能の回帰検証で補います。
 
 ScriptModuleValidationはモジュール単位の登録、名前競合と不正設定時の既存登録保持、ソース作成と上書き拒否をScriptValidationに含めます。
-実DLLの確認は `WP1_SCRIPT_MODULE_SETUP=1` で検証用ソースを作成し、`scripts/BuildScripts.ps1 -Configuration Debug -Content generated/tests/native-script-project/Content` でコンパイルした後、`WP1_SCRIPT_MODULE_ONLY=1` で実行します。
-この検証には同じ構成でビルドした`Games/GuruttoWorld`のDLLも使用します。作業フォルダーを別プロジェクトへ変更し、一時コピーしたDLLが登録元ゲームの音声を再生できることを確認します。SDK ABI 8では、すべてのDLLコールバックへ`ScriptContext::contentRoot`で登録元の絶対素材ルートを渡します。`WP1_SOUND_LIFECYCLE_ONLY=1`は実行中の`clip`変更後の再生も検証します。
+実DLLの確認は `WP1_SCRIPT_MODULE_SETUP=1` で検証用ソースを作成し、`./generated/outputs/x64/Development/ProjectTool/ProjectTool.exe build-scripts --engine . --configuration Debug --content generated/tests/native-script-project/Content` でコンパイルした後、`WP1_SCRIPT_MODULE_ONLY=1` で実行します。
+この検証には同じ構成でビルドした`../GuruttoWorld`のDLLも使用します。作業フォルダーを別プロジェクトへ変更し、一時コピーしたDLLが登録元ゲームの音声を再生できることを確認します。SDK ABI 8では、すべてのDLLコールバックへ`ScriptContext::contentRoot`で登録元の絶対素材ルートを渡します。`WP1_SOUND_LIFECYCLE_ONLY=1`は実行中の`clip`変更後の再生も検証します。
 Releaseも同じ構成のDLLを用意します。ホストContextでの移動、再読み込み後の古いコールバックの寿命、ABI不一致・パス逸脱・読み込み失敗時の登録保持を検証します。
 `tests/TestScriptBuild.ps1` は意図したC++エラーを検出し、診断の公開と前のDLL manifestの保持を確認してソースを戻します。
 
@@ -86,7 +99,7 @@ ScriptPhaseValidationは更新段階の順序、60Hz物理の30／120fps比較�
 
 MenuAuthoringValidationは、任意のメニュー番号と遷移先、4行以上の設定、独自キーの保存・取消・保存失敗、音量の範囲と小数の刻み、状態出力、カメラ時計、操作音、Undo／Redo、シーン改名後のランタイム選択、右スティック・トリガー・マウスの共通入力を検証します。WP1_AUTHORING_ONLYにも含まれます。タイトルの描画検証では、スクラブ・実行中の遷移が保存した倍率・加算・上下限と独自の出力キーを使うことも確認します。
 
-Game.jsonの保存復元・状態によるモデル切り替え・無効ショートカットの拒否と、Appでのモデル／粒子／画像／UI描画をUiValidationで確認します。タイトルの開始先・ID変更・項目の無効化・選択順・演出時間・クリックによる登場スキップはValidateTitleAuthoringで検証します。ProjectSettingsValidationは一時フォルダーで設定保存復元と不正値・存在しないシーンによる保存失敗時の保持を確認し、ユーザーの設定は変更しません。
+Game.jsonの保存復元・状態によるモデル切り替え・無効ショートカットの拒否と、プレイヤーでのモデル／粒子／画像／UI描画をUiValidationで確認します。タイトルの開始先・ID変更・項目の無効化・選択順・演出時間・クリックによる登場スキップはValidateTitleAuthoringで検証します。ProjectSettingsValidationは一時フォルダーで設定保存復元と不正値・存在しないシーンによる保存失敗時の保持を確認し、ユーザーの設定は変更しません。
 `WP1_AUTHORING_ONLY=1`を設定すると、今回のシーン・タイトル・プロジェクト設定に関するデータ検証だけをGPUなしで実行できます。描画の確認は通常の全回帰検証で行います。
 
 ## START／CONFIG／QUITタイトル（2026-10-07）
@@ -110,7 +123,7 @@ Editorのカメラプレビュー・Pause・Step・開始時計・巻き戻し�
 
 リポジトリのルートで `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/AnalyzeCode.ps1 -Label latest` を実行します。
 cppcheck と lizard が必要です。PATH にない場合は `-Cppcheck` と `-Lizard` で実行ファイルを指定します。
-Engine／App／Editor／SceneRuntime の自作コードを対象とし、外部ライブラリの診断は除外します。
+Engine／プレイヤー／Editor／SceneRuntime の自作コードを対象とし、外部ライブラリの診断は除外します。
 cppcheck は C++20／win64 の warning・style・performance・portability を確認し、
 lizard は CCN 15 超・100 行超・引数 8 個超を検出します。どちらかに指摘があればスクリプトは失敗します。
 解析結果は `generated/analysis` に保存します。Windows SDK の完全なコンパイル検証の代替にはならないため、
@@ -157,7 +170,7 @@ Release でも実行してください。診断保存先が LocalAppData/WP1 に
 
 WARP 上のオクルージョンクエリで、通常の三角形と X／XY 鏡映した三角形が同じサンプル数を描画すること、裏向きの面は引き続き除去されることを確認します。Debug では利用可能な D3D12 InfoQueue のエラーも確認します。音量の取得・ミュート・再初期化後の状態は AudioValidation で検証します。
 
-タイトルUIは全構成で Games/GuruttoWorld/Assets/Textures/Title/Morning の Logo.png と StartBand.png を使用します。再生成する場合のみ PowerShell 7で scripts/GenerateMorningTitleArt.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。未使用になった Title.png・UiAtlas.png・Caption.png・Slash.png は削除済みです。
+タイトルUIは全構成で ../GuruttoWorld/Assets/Textures/Title/Morning の Logo.png と StartBand.png を使用します。再生成する場合のみ ゲーム側のルートからPowerShell 7で scripts/GenerateMorningTitleArt.ps1 を実行してください。通常のビルドは生成済み画像をコピーします。未使用になった Title.png・UiAtlas.png・Caption.png・Slash.png は削除済みです。
 
 タイトルの回帰検証では1280×720、1024×768、720×1280の非表示ウィンドウで初期化と描画を確認します。
 
@@ -181,7 +194,7 @@ Debugでは利用可能なD3D12 InfoQueueのエラーを確認します。
 
 背景待機演出は150秒分のシーンに設定したカメラ位置範囲・粒の不透明度を検証します。OFFと非アクティブ時の停止、不正時間の無視、3サイズでのON／OFF／再開描画も確認します。
 
-タイトル音声の回帰検証は5つのWAVの読み込み・無音ループ再生・停止と、メニュー効果音イベントの重複抑止を確認します。実機では音量設定の即時反映と取消、0%の無音、フォーカス復帰時のBGMの続きからの再開、ゲーム遷移・終了時の停止を確認してください。音源再生成は scripts/GenerateTitleAudio.py を実行します。
+タイトル音声の回帰検証は5つのWAVの読み込み・無音ループ再生・停止と、メニュー効果音イベントの重複抑止を確認します。実機では音量設定の即時反映と取消、0%の無音、フォーカス復帰時のBGMの続きからの再開、ゲーム遷移・終了時の停止を確認してください。音源再生成はゲーム側のルートから scripts/GenerateTitleAudio.py を実行します。
 
 DebugのRenderTexture検証ではScene用SRVの枠がリサイズ後も同じであること、ドッキング後の画像領域、
 レイアウトの保存内容も確認します。初回配置の測定フレームの次から画像領域を検証します。
@@ -259,7 +272,7 @@ PlayStateはEditing/Playing/Pausedの状態遷移、状態ごとの編集可否�
 重複コマンド、非有限・非正のフレーム時間、累積時間のオーバーフローで状態と時計が破損しないことも確認します。GameSessionの実行接続は下記で確認し、コマ送りは後続の段階です。
 
 GameSessionは未保存配置の独立コピー、実際のカメラ・粒の更新、非アクティブ・無効時間・Pause時の凍結、Resumeで同じ実行用シーンを継続することを検証します。
-Game用RenderTextureへの描画とGPU完了後のStop、初期化失敗時のEditing維持、空シーンと再開始時の演出リセット、保存ファイルを変更しないことも確認します。Appのタイトル背景の既存描画テストも共通化後に継続します。
+Game用RenderTextureへの描画とGPU完了後のStop、初期化失敗時のEditing維持、空シーンと再開始時の演出リセット、保存ファイルを変更しないことも確認します。プレイヤーのタイトル背景の既存描画テストも共通化後に継続します。
 
 StepはPausedでだけ固定1/60秒・更新一回を受理し、繰り返し実行とResumeが時計を維持すること、Gameの粒が一度だけ進み描画・通常更新では進まないことを確認します。
 
@@ -320,7 +333,7 @@ PBRの正面照明をGGXの解析値と比較し、金属の反射色・粗さ�
 
 AnimatorValidationはglTF読み込み、ボーン変形・法線、補間・ループ・状態遷移、GPU更新、複製・削除と不正クリップ時の保持を確認します。`WP1_ANIMATOR_ONLY=1`で単独実行します。AssetDatabaseValidationは参照ID保存、改名後の旧パス・ID解決、倍率・UV反転、上書き・パス逸脱・ID欠損の拒否を確認します。`WP1_ASSET_ONLY=1`で単独実行します。
 
-ProfilerValidationはCPU描画時間・フレーム数と、完了フェンスに同期したGPUタイムスタンプの読み戻しを確認します。`WP1_PROFILER_ONLY=1`で単独実行します。`scripts/BuildPlayer.ps1 -Configuration Release` は配布物を生成し、そのAppを `--validate-package` で起動して実際のリソース読み込み・描画を検証します。package.jsonに同梱ファイルのサイズ・SHA-256を記録します。
+ProfilerValidationはCPU描画時間・フレーム数と、完了フェンスに同期したGPUタイムスタンプの読み戻しを確認します。`WP1_PROFILER_ONLY=1`で単独実行します。`scripts/BuildPlayer.ps1 -Configuration Release` は配布物を生成し、そのプレイヤーを `--validate-package` で起動して実際のリソース読み込み・描画を検証します。package.jsonに同梱ファイルのサイズ・SHA-256を記録します。
 
 ## 公園ステージの検証
 
@@ -337,18 +350,18 @@ ProfilerValidationはCPU描画時間・フレーム数と、完了フェンス�
 
 `WP1_PARK_UPDATE_ONLY=1`は通常更新を30回温めた後に240回測定し、`generated/park/updates.csv`へ処理別のCPU時間・呼出回数を保存します。描画とCSV出力はTotal update区間に含みません。Park検証では`LayoutDeltaValidation`により、全検証と差分検証、全世界行列解決と差分解決について正常・不正更新の判定一致と失敗時の出力保持を確認します。`WP1_RIGID_ONLY=1`はActorへの書込み途中の物理失敗で全Actorが元に戻ること、`WP1_SCRIPT_ONLY=1`は候補更新と従来の独立更新の結果一致も検証します。
 
-## 配布Appの負荷計測
+## 配布プレイヤーの負荷計測
 
-`App.exe --profile-park --profile-frames=600 --profile-output=C:/temp/park.csv` は配布Appの本番ループを計測します。タイトルは `--profile-title` を使います。入力フォーカスを取得できない検証環境では `--profile-simulate-inactive` を明示追加し、CSVの `input.active` と `simulation.override` を確認します。背景での物理・スクリプト・音声更新だけ継続し、実入力は非アクティブのままです。`Present wait` と `Frame fence wait` を処理時間から区別し、初期化直後のフレームを除外して比較します。詳細は `docs/ParkAdventure.md` に記録します。
+`App.exe --profile-park --profile-frames=600 --profile-output=C:/temp/park.csv` は配布プレイヤーの本番ループを計測します。タイトルは `--profile-title` を使います。入力フォーカスを取得できない検証環境では `--profile-simulate-inactive` を明示追加し、CSVの `input.active` と `simulation.override` を確認します。背景での物理・スクリプト・音声更新だけ継続し、実入力は非アクティブのままです。`Present wait` と `Frame fence wait` を処理時間から区別し、初期化直後のフレームを除外して比較します。詳細は `docs/ParkAdventure.md` に記録します。
 
 `WP1_AUDIO_FEATURES_ONLY=1` の音声回帰は、設定未変更時の音源再構築省略、確定World行列と単体座標解決の出力一致、親移動への追従、ロード失敗時の再生保持、音量バインディング・awake・cueの変更、停止中の変更と再開、音源の生成・削除を確認します。
 2026-10-13の追加検証: `WP1_SCENE_UI_ONLY=1` は文字再表示・色変更・整数ラスタ寸法・候補失敗時の履歴保持・32種類/16MiB上限をGPU描画と生成回数で確認します。`WP1_INPUT_ONLY=1` は診断Keyboardの押下/保持/解放とフォーカス復帰抑止も確認します。`WP1_PARK_RESOURCE_ONLY=1` は日本語の入れ子includeと別の配置先・作業フォルダーでも同じシェーダーrevision/バイトコードになることを確認します。時間の上限を合否条件にはしません。
 
-配布Appの `--profile-replay-input` は決定的な診断入力です。実キー・マウスの計測ではこのオプションと `--profile-simulate-inactive` を外し、`input.device.active=1`、`input.diagnostic.replay=0`、`simulation.override=0` と実際の押下・座標・UI状態を確認します。診断再生のフォーカス検証では、`replay.update.index` で210～229、230、231を結合します。シェーダー事前生成はpackage.jsonのハッシュ記録前に実行されます。
+配布プレイヤーの `--profile-replay-input` は決定的な診断入力です。実キー・マウスの計測ではこのオプションと `--profile-simulate-inactive` を外し、`input.device.active=1`、`input.diagnostic.replay=0`、`simulation.override=0` と実際の押下・座標・UI状態を確認します。診断再生のフォーカス検証では、`replay.update.index` で210～229、230、231を結合します。シェーダー事前生成はpackage.jsonのハッシュ記録前に実行されます。
 
 ## 外部ゲームプロジェクト
 
-`powershell -NoProfile -ExecutionPolicy Bypass -File tests/TestGameProjects.ps1` は、空白を含むパスでプロジェクトを作成し、参照先・既存フォルダーの保護・テンプレート検証・元Contentの保持を確認します。
+`powershell -NoProfile -ExecutionPolicy Bypass -File tests/TestGameProjects.ps1` は、空白を含むパスでプロジェクトを作成し、参照先・既存フォルダーの保護・テンプレート検証・元テンプレートの保持を確認します。
 `-Build` を追加すると、ゲーム専用ソリューションのDebug／Development／Releaseビルド、ゲーム側素材と設定・DLLの配置、起動シーン検証まで実行します。
 
 ## 根本設計の移行契約
@@ -366,7 +379,7 @@ Debug／Development／Releaseに対応し、CPUだけで検証します。元の
 段階2の利用側の確認は、共通ライブラリ・Editor・検証実行ファイル・対象プレイヤーをビルドした後に実行します。
 
 ```powershell
-./tests/TestArchitectureIntegration.ps1 -Project <生成した最小ゲームのフォルダー> -AdditionalProjects Games/GuruttoWorld
+./tests/TestArchitectureIntegration.ps1 -Project <生成した最小ゲームのフォルダー> -AdditionalProjects ../GuruttoWorld
 # パッケージだけを確認する場合は -SkipRegression、既存回帰だけなら -Configurations @() を指定します。
 ```
 
@@ -403,7 +416,7 @@ Debug／Development／Releaseに対応し、CPUだけで検証します。元の
 
 ### ドキュメントと実行セッション
 
-`SessionDesignContractValidation.h`はGPUなしの編集・修復・Undo、投影の単一所有、固定した素材層と設定ID、参照宣言変更の診断、欠損個体参照の追加ロード・生成、Scriptのライフサイクルと開始候補を確認します。
+`SessionDesignContractValidation.h`はGPUなしの編集・修復・Undo、投影の単一所有、固定した標準シェーダー参照先と設定ID、参照宣言変更の診断、欠損個体参照の追加ロード・生成、Scriptのライフサイクルと開始候補を確認します。
 `WP1_PREFAB_RUNTIME_ONLY`は編集の欠損資源、Playの設定・開始・モデル・UI失敗、失敗したStepの時計保持、Stop時のデータ維持と資源解放、参照宣言変更時の混在防止も確認します。ABIは13です。
 
 ### ゲーム拡張と旧経路の撤去
@@ -411,16 +424,20 @@ Debug／Development／Releaseに対応し、CPUだけで検証します。元の
 `ExtensibilityContractValidation.h`は宣言の継承・削除・往復、別ファイルの基底、循環・欠損・深さ・用途の競合、実行Registryからの独立性、新規ソースの正本と既存ファイルの保持を確認します。通常の設計契約に含まれます。
 
 ```powershell
-./tests/TestScriptSchemaGeneration.ps1 -Configuration Debug -BuildNative
+./tests/TestScriptSchemaLoading.ps1 -Configuration Debug
 ```
 
-この生成検証は日本語のパス、大きなUTF-8既定値、決定的生成、不正宣言を拒否したときの生成物保持、生成C++の実DLL化と宣言の照合を確認します。Scriptという動作名でも、元のScriptSchema型が利用できることをコンパイルで確認します。`ScriptSchemaModuleValidation`は`--export DLL snapshot.json`、`--compare DLL snapshot.json [project]`、`--validate DLL project`でDLLのメタデータを実行コールバックなしで照合します。
+この検証はコールバックだけを持つ実DLLを作り、EXEが日本語パスのJSONを直接読んで設定を結合することを確認します。別ファイルの継承、大きなUTF-8既定値、Scriptという動作名、JSONだけの変更の反映、DLLとmanifestの不変性、既存セッションの定義と保存済みの値の保持、不正宣言時の登録保持を検証します。生成ヘッダーは作成しません。`ScriptSchemaModuleValidation <project>`でホストの読み込みと再読み込みを実行します。
+
+`WP1_SCRIPT_AUTHORING_ONLY=1`は、C++変更時の自動コンパイル・失敗時の旧DLL保持に加え、JSON変更をPlay中は保留しStop後に再コンパイルなしで反映すること、不正なJSONの拒否と修正後の回復、JSON変更による最新C++コンパイル失敗の迂回防止を確認します。
+
+上の直接読み込み検証をビルドした後は、`generated/tests/outputs/x64/Debug/ScriptSchemaModuleValidation/ScriptSchemaModuleValidation.exe --watcher`でも同じ変更監視を単独で検証できます。
 
 統合ランナーはGPU有効時に`WP1_OPTIONAL_FEATURES_ONLY`と`WP1_DOCUMENT_SESSION_ONLY`を含めます。前者は空・粒子・UIのシェーダーがないゲーム、機能を追加したときの準備、準備失敗時のシーン保持と環境描画を確認します。後者はPlay／Stopで編集データ・選択・履歴の分岐・未保存の新規シーンが変わらないことと、Prefabの準備失敗時のファイル保持を確認します。
 
 `WP1_MIRRORED_MESH_ONLY=1`は通し回帰の最後と同じ反転メッシュの描画を単独で確認します。通常・X鏡映・XY鏡映の面が見え、裏向きの面が除去されることをGPUの遮蔽サンプルで検査します。独自のコマンドリストにもRenderFrameContextを記録し、定数バッファーをGPUフェンス完了まで保持します。
 
-`WP1_ALL_SCENES_ONLY=1`は公園用の静的登録を使用せず、実Appと同じGuruttoWorldのゲームDLLを読み込みます。実行する構成の`BuildScripts.ps1 -Content Games/GuruttoWorld -Configuration Debug`などを先に通してください。全シーンの保存往復・スクリプト開始・各フレームの更新・音声・描画と診断を確認します。`RunAuthoringIsolation.ps1`もTEMP／TMPを結果フォルダー内へ隔離し、呼出元の値を復元します。
+`WP1_ALL_SCENES_ONLY=1`は公園用の静的登録を使用せず、実Appと同じGuruttoWorldのゲームDLLを読み込みます。実行する構成の`./generated/outputs/x64/Development/ProjectTool/ProjectTool.exe build-scripts --engine . --content ../GuruttoWorld --configuration Debug`などを先に通してください。全シーンの保存往復・スクリプト開始・各フレームの更新・音声・描画と診断を確認します。`RunAuthoringIsolation.ps1`もTEMP／TMPを結果フォルダー内へ隔離し、呼出元の値を復元します。
 
 
 ### シーン・Prefabの層境界と更新費用
@@ -458,3 +475,19 @@ python tests/TestSceneMigration.py
 `TestSceneMigration.py` は通常変換と再変換、複数入力の後続ファイルに非有限数・UTF-8化できない文字・不正階層がある場合の事前拒否、書込・同期失敗時の元ファイル保持と一時ファイルの削除を確認します。検証用データは `generated/tests/scene-migration` に作成し、制作シーンを変換しません。地域設定による小数点表記の違い、繰り返し実行と失敗時の打ち切り、先頭の失敗原因と末尾の診断表示は `TestRegressionRunner.ps1` が確認します。
 
 `FileSaveRecoveryValidation` の失敗注入は、検証EXEのAPIインポートを一時的に置換して行います。静的ライブラリーも同じAPIを経由するため、Releaseの最適化でも停止・拒否の注入位置を保持します。製品側の保存実装はそのまま使用します。
+
+### C++プロジェクト管理ツール
+
+`./tests/TestScriptPublication.ps1` は `ProjectToolValidation` をビルドして、DLL公開の排他・異常終了後の復旧・原子的な保存・Windows引数・子孫プロセスの停止を確認します。
+プロジェクト作成・素材同期・スナップショットの既存PS1テストも、製品と同じ `ProjectTool.exe` を実行します。
+`TestGameProjects.ps1 -Build -Configurations Debug` と `TestContentSynchronization.ps1 -Configurations Debug` のように構成を限定できます。既定では3構成を確認します。
+`WP1_PROJECT_TOOL` 環境変数を設定すると、検証に使うツールの実行ファイルを明示できます。
+
+## 外部ライブラリへ委譲する処理の回帰
+
+`TextureProcessingValidation.vcxproj` は外部ゲームや GPU を使わず、DirectXTex の縮小・sRGB/アルファのミップ生成・BC3 の各ミップの復号・不正入力を確認します。
+`NavigationLibraryValidation.vcxproj` は Recast / Detour の迂回経路の各区間、セル編集後のキャッシュ更新、親子座標、障害物の拡縮・反転、傾斜、時間刻みと到着判定を CPU で確認します。保存形式と手動セル編集は従来の格子形式を維持し、通行判定と経路探索をライブラリへ委譲します。多層のナビメッシュ保存形式への拡張は含みません。
+`WaveLoaderValidation.vcxproj` は既存の WAV fixture を使い、COM / Media Foundation の初期化前・共有 MTA・STA、失敗時の出力保持とサイズ制限を確認します。
+
+3 プロジェクトとも Debug / Development / Release を指定してビルドでき、リポジトリルートから `generated/tests/outputs/x64/<構成>/<プロジェクト名>/<プロジェクト名>.exe` を実行します。
+依存ライブラリは `scripts/BuildDirectXTex.ps1` と `scripts/BuildRecast.ps1` に固定したリビジョンで自動取得・構築します。Development は Release 版の依存ライブラリを使用します。

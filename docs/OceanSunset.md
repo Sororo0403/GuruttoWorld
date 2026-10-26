@@ -1,8 +1,10 @@
 # 海に映る夕焼け — エディター用シーン
 
+この文書のゲーム素材は、WP1 の外にある `../GuruttoWorld` で管理します。制作スクリプトの `scripts/...` はゲーム側ルートで実行し、エンジン側の C++ 検証コマンドは WP1 ルートで実行してください。
+
 Editorの「ファイル → シーンを開く」またはProjectで
 `Assets/Scenes/OceanSunset.json` を開き、GameビューにフォーカスしてPlayします。
-専用シーンを直接開く場合は `Editor.exe --scene=Assets/Scenes/OceanSunset.json`。
+WP1 ルートから直接開く場合は `./generated/outputs/x64/Development/Editor/Editor.exe --project ../GuruttoWorld --scene Assets/Scenes/OceanSunset.json`。
 起動設定と既存のタイトル・公園シーンは変更していません。
 
 シーンの「夕景 / 空・雲・海面反射」を選ぶと、Skyの「立体的な海と夕空」で

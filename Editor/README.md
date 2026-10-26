@@ -2,7 +2,8 @@
 
 ソースは `src` 配下で機能別に分けています。起動処理は `main.cpp`、素材管理は `Assets`、保存処理は `Documents`、編集状態は `Editing`、Inspector は `Inspector`、プロジェクト管理は `Project`、シーン表示・操作は `Viewport`、再生は `Playback`、共通画面は `Shell` にあります。アニメーション編集は `Animation`、ゲーム内 UI の編集は `Ui` です。
 
-エディター開発は `Editor.slnx`、既存ゲームは `Game.slnx` で独立してビルドできます。
+エディター・エンジン開発は WP1 ルートの `WP1.slnx`、ぐるっとワールドは外部ゲーム側の `../GuruttoWorld/GuruttoWorld.slnx` で独立してビルドできます。
+以下の `Assets/...` は開いているゲームプロジェクト内のパスです。ぐるっとワールドの制作スクリプトは外部ゲーム側の `scripts` にあり、ゲーム側ルートで実行します。ゲーム処理のコンパイル、素材同期、ゲームプロジェクトの作成・更新、配布物の作成はC++製 `Tools/ProjectTool` が担当し、エディターとCLIで同じ処理を使います。WP1側の `scripts` には依存ライブラリ構築、整形・解析、エンジンのビルド識別子生成、旧シーン変換などの開発用処理だけを置きます。
 外部のゲーム専用ソリューションの作成・編集・配布は[ゲームプロジェクトの説明](../docs/GameProjects.md)を参照してください。
 起動時は`--project <ゲームフォルダー>`で対象を指定できます。指定がなければ現在フォルダーのWP1.project.jsonを使い、見つからない場合は選択ダイアログを開きます。Editorのビルドは特定ゲームの素材やDLLを自動的に含めません。
 
@@ -16,11 +17,11 @@ Animationでは任意の時計名を入力でき、3Dスケール、ライト、
 
 ゲーム処理の公開データは、配列の要素型・構造内の項目・追加データをInspectorから編集できます。C++で宣言した最上位フィールドの型は互換性のため固定です。オブジェクト参照はHierarchyからドラッグでき、配列・構造内の参照も複製とPrefabで変換されます。シーンを表す文字列にはシーンアセット選択も表示します。
 
-メニューの選択・状態出力・設定の保存処理はSceneRuntimeをAppとEditorで共有します。AppとEditor Playは `GameSettings::UserPath()` が返すユーザー領域の `settings.json` を使用します。保存失敗も画面の状態へ反映します。
+メニューの選択・状態出力・設定の保存処理はSceneRuntimeをプレイヤーとEditorで共有します。プレイヤーとEditor Playは `GameSettings::UserPath()` が返すユーザー領域の `settings.json` を使用します。保存失敗も画面の状態へ反映します。
 
 公園のParkPlayerではHP、戦闘・収集・チェックポイント・クリアの距離と条件、復帰境界、戻り先、入力Action、UI対象・文言を編集できます。文言には`{hp}`・`{coins}`・`{switches}`・`{elapsed}`・`{coinTotal}`・`{requiredSwitches}`を使えます。対象配列はオブジェクト参照です。`useNameLookup`を有効にした場合のみ、空配列で設定した名前を検索します。ParkCameraは追従率・前後の範囲・注視点も編集できます。既存公園シーンは従来の値と対象参照を明示して保存しています。
 
-旧シーンは新しい項目を省略しても従来の既定値で動作します。C++モジュールABIは10で、エンジンのソース・構成の識別子も検査します。変更後は「C++ゲーム処理」の自動コンパイルまたは`scripts/BuildScripts.ps1`で再ビルドしてください。
+旧シーンは新しい項目を省略しても従来の既定値で動作します。C++モジュールABIは15で、エンジンのソース・構成の識別子も検査します。変更後は「C++ゲーム処理」の自動コンパイルまたは `ProjectTool.exe build-scripts --engine <WP1フォルダー> --content <ゲームフォルダー> --configuration <構成>` で再ビルドしてください。
 
 ## こもれび公園の基準ステージ
 
@@ -47,24 +48,24 @@ Start、FixedUpdate、LateUpdate、Event、Stopも定義できます。オブジ
 ## ゲームシーンの編集
 
 `Assets/Scenes/ParkAdventure.json`が通常のゲーム開始先です。`Assets/Scenes/Game.json`はモデル表示を切り替える編集可能なサンプルです。モデル・Transform・Rotator・Camera・照明・粒子・Image・音源をエディターで編集して保存できます。`EngineDemo`という旧名も同じ編集可能なGameシーンを開きます。C++による別の配置・描画経路は削除しました。
-タイトルCanvasの「メニュー設定 → 項目・遷移先」で開始先のJSONを変更します。ButtonのGame event `menu:番号` はメニュー項目を呼び出し、Canvas側で指定した動作・遷移先をAppとEditor Playの両方で使用します。メニュー以外の直接遷移はButtonの`loadScene`とTargetを使います。
+タイトルCanvasの「メニュー設定 → 項目・遷移先」で開始先のJSONを変更します。ButtonのGame event `menu:番号` はメニュー項目を呼び出し、Canvas側で指定した動作・遷移先をプレイヤーとEditor Playの両方で使用します。メニュー以外の直接遷移はButtonの`loadScene`とTargetを使います。
 MeshRendererの表示条件には`model=0`のような状態条件を設定できます。Canvasの初期状態とButtonの状態値設定でモデルの表示を切り替えられます。非表示モデルは影も描画しません。
 Buttonの入力Action名と「ファイル → プロジェクト設定 → 入力Action」でキー・パッド・スティック・トリガー・マウスを割り当てます。旧Space／Escape／1／2はJump／Cancel／SelectModel1／SelectModel2へ読み込み時に移行します。無効・非表示のボタンは反応しません。Editorでは再生中にGameへフォーカスを置いて操作します。
 
 タイトルCanvasの「タイトル演出の設定」で登場・入力待ち時間、開始遷移、選択演出の時間と移動量、非選択項目の不透明度、BGMフェード時間、遷移帯の進行倍率を編集できます。数値はCanvasの初期状態として保存され、Undo／Redoに対応します。登場中のクリックは演出のスキップだけを行い、改めて押すと決定します。
-Canvasの「メニューを使用」を有効にすると、そのシーンはAppでもメニューとして動きます。シーンの複製・改名・起動シーンの変更に専用のコード変更は不要です。有効なメニューCanvasはシーンに一つだけ配置します。
+Canvasの「メニューを使用」を有効にすると、そのシーンはプレイヤーでもメニューとして動きます。シーンの複製・改名・起動シーンの変更に専用のコード変更は不要です。有効なメニューCanvasはシーンに一つだけ配置します。
 「項目・遷移先」で0〜127の番号とloadScene／settings／quit／setStateを設定し、対応するButtonのイベントを`menu:番号`にします。上下移動はHierarchyのButton順です。無効・初期メニューで非表示のButtonは選択から外れます。カメラの焦点値・ビュー値・移動Animationの時計も各項目で変更できます。
 「設定画面の項目」ではnumber／toggle／save、保存キー、範囲、刻み、初期値を設定します。Buttonの`settings:行番号`で操作し、`back`で取消します。volumeは指定範囲を0〜1の音量に換算し、motionは背景演出を切り替えます。独自キーもユーザー設定へ保存されます。Editor Playでは設定の保存・取消を実行シーン内で試せます。
 「入力Action・操作音」で上下左右・決定・取消のAction名と選択／決定／取消／保存失敗時のAudioSourceキューを変更します。「状態値の出力」では実行時のselected／row／intro／transition／setting:保存キーなどをUIやAnimationの状態キーへ割り当て、比較・倍率・加算・上下限を編集できます。emphasisは比較一致時に1、非一致時に倍率キーの値を出力します。編集はシーンの保存・Undo／Redoに含まれます。
 
 タイトル生成スクリプトは通常ビルドでは実行しません。手動実行時も`generated/authoring`に下書きを作り、編集中のTitleStreet.jsonは上書きしません。配置・UI・Animation・音源・メニューの通常の変更はエディターから行います。
 
-ファイル → プロジェクト設定で、Appの起動シーン・ウィンドウタイトル・幅・高さを編集できます。保存先は`Games/GuruttoWorld/Assets/Project.json`で、次回のビルドでAppへコピーされます。保存は現在のシーンの保存と独立しています。存在しない起動シーン、不正なサイズ、保存失敗はエラーを表示し、以前の設定ファイルを保持します。
+ファイル → プロジェクト設定で、プレイヤーの起動シーン・ウィンドウタイトル・幅・高さを編集できます。保存先は`<ゲームプロジェクト>/Assets/Project.json`で、次回のビルドでプレイヤーへコピーされます。保存は現在のシーンの保存と独立しています。存在しない起動シーン、不正なサイズ、保存失敗はエラーを表示し、以前の設定ファイルを保持します。
 
 
 `WP1.slnx` の Debug または Development をビルドし、
 `generated/outputs/x64/<構成>/Editor/Editor.exe` を起動します。
-Release のソリューションビルドはゲームを対象とし、Editor は除外します。
+`WP1.slnx` の Release は Player・Engine・SceneRuntime・SceneData・SceneStorage のライブラリをビルドし、Editor は除外します。ゲーム本体はゲーム側の専用ソリューションでビルドします。
 
 - 右ドラッグ：視点回転
 - 右ドラッグ＋WASD：移動、Q/E：上下移動、Shift：加速
@@ -134,20 +135,21 @@ Snapを有効にすると、移動4単位・回転15度・拡縮0.25刻みにそ
 ## 依存関係
 
 ```text
-App ──────→ SceneRuntime ──→ Engine
+ゲームのmain.cpp → Player → SceneRuntime → Engine
 Editor ───→ SceneRuntime ──→ Engine
 ```
 
 SceneRuntime は配置データとモデルの描画を担当し、ゲーム入力や編集UIを含みません。
-SceneRuntime はシーンのComponentからカメラ・照明・空・粒子・揺れを描画します。App は開始シーンの選択とタイトルのUI・音声を担当します。
-Editor は独自の起動処理・自由カメラ・編集UIを担当し、Appを参照しません。
+SceneRuntime はシーンのComponentからカメラ・照明・空・粒子・揺れを描画します。Player は設定された起動シーンを読み込み、共通の更新・描画ループを実行します。ゲーム固有の起動処理はゲーム側の main.cpp が担当します。
+Editor は独自の起動処理・自由カメラ・編集UIを担当し、プレイヤーを参照しません。
 
-モデル・JSON・共有のメッシュシェーダーは `Content` にあります。
-Appへの配置は `Content/Content.targets` が行います。
-開発環境のEditorは実行ファイルから上位へ探索して、元の `Content` を読みます。
-元のContentが見つからない配布環境では、実行ファイルに同梱されたデータを読みます。
+モデル・JSON・独自シェーダーは、選択したゲームプロジェクトの `Assets`・`Shaders` に置きます。
+標準描画のシェーダーはエンジンが `Engine/Shaders` に所有し、ゲームの素材一覧には表示しません。
+プレイヤーへの配置は `Engine/build/Content.targets` が行い、ゲーム素材と標準シェーダーを別々のパスへコピーします。
+開発時のEditorはゲームの元データを直接編集し、標準シェーダーはプロジェクトのエンジン参照先から読みます。
+配布時のプレイヤーは、実行ファイルに同梱されたゲーム素材と `Engine/Shaders` を使います。
 このため開発時に扱うJSONは、ビルド出力にあるコピーではなく
-`Games/GuruttoWorld/Assets/Scenes/TitleStreet.json` です。
+`<ゲームプロジェクト>/Assets/Scenes/TitleStreet.json` です。
 
 ## 編集状態
 
@@ -277,7 +279,7 @@ Playing/Paused中は配置・選択の編集、保存、シーン切り替え、
 Gameの実行は下記の共通ランタイムへ接続しています。Pause中はStepで1/60秒ずつコマ送りします。
 手動確認: 未保存の編集と複数選択を作る → PlayでGameへ切り替わり時計が進む → 編集・Save・Undoが無効 → Pauseで時計が止まる → Resumeで続く → Stopで時計が0になり編集・選択・Undo履歴・未保存状態が維持されることを確認してください。
 
-Playで現在の未保存シーンを実行用シーンへコピーし、そのComponentだけを更新・描画します。背景の更新処理はAppのタイトルとSceneRuntimeで共有しています。タイトルUI・メニュー・音声は実行対象に含みません。
+Playで現在の未保存シーンを実行用シーンへコピーし、そのComponentだけを更新・描画します。背景の更新処理はプレイヤーのタイトルとSceneRuntimeで共有しています。タイトルUI・メニュー・音声は実行対象に含みません。
 PauseはGameの時計・カメラ・光の粒を止めて描画だけを続け、Resumeは同じ実行用シーンを継続します。StopはGPU完了後に実行用シーンを破棄し、編集時の静的なGameプレビューへ戻します。
 実行開始・終了は描画の外で処理します。開始失敗時はEditingを維持してConsoleへ理由を表示し、編集配置・選択・保存済みシーンを変更しません。
 手動確認: モデルを移動して未保存のままPlay → Gameにその配置と空・動く光の粒が出る → Pauseで粒と視点が止まる → Resumeで続く → Stopで静的プレビューへ戻り未保存の編集が残ることを確認してください。
@@ -290,7 +292,7 @@ Play開始時に配置・編集状態・複数選択・保存先と新規シー�
 手動確認: 未保存の編集とRedo可能な履歴を作る → Play/Pause/Step/Resume → Stop → 配置・複数選択・保存先・未保存表示が戻り、Ctrl+Z/Ctrl+YがPlay前と同じ履歴をたどることを確認してください。
 
 ProjectはModel/Scene/Texture/Audio/Shader/Fontを種類別に表示し、AssetsとShadersを参照します。画像・音声・フォントの登録は情報表示用で、シーンへの追加はModelだけです。
-アセットをクリックするとInspectorに種類・Content相対パス・ファイルサイズを表示します。OBJ・Scene JSON・シェーダーは先頭8192バイトまで読み取り専用でプレビューします。Refreshで情報を更新します。
+アセットをクリックするとInspectorに種類・ゲームプロジェクト相対パス・ファイルサイズを表示します。OBJ・Scene JSON・シェーダーは先頭8192バイトまで読み取り専用でプレビューします。Refreshで情報を更新します。
 アセットの参照は配置と未保存状態を変更しません。HierarchyまたはSceneで対象を選ぶとInspectorはオブジェクト編集へ戻ります。
 手動確認: ProjectのTypeで画像・シェーダーなどを絞り込む → アセットを選んでInspectorの種類・サイズ・ソースを確認 → Hierarchyを選んでTransform編集へ戻ることを確認してください。
 
@@ -298,7 +300,7 @@ ProjectはModel/Scene/Texture/Audio/Shader/Fontを種類別に表示し、Assets
 
 ## 機能拡張前の画面確認
 
-[手動チェックリスト](ManualChecks.md)と`Games/GuruttoWorld/Assets/Scenes/EditorAcceptance.json`を使用してください。親子・複数選択・Play・Inspector・保存・ドッキングの確認を項目別に進められます。自動テストの成功と画面確認の完了は別に記録します。
+[手動チェックリスト](ManualChecks.md)と`<ゲームプロジェクト>/Assets/Scenes/EditorAcceptance.json`を使用してください。親子・複数選択・Play・Inspector・保存・ドッキングの確認を項目別に進められます。自動テストの成功と画面確認の完了は別に記録します。
 
 ## アセットの実表示プレビュー
 
@@ -344,7 +346,7 @@ Sceneは編集用の自由カメラ、Gameはシーン内のCameraを使いま�
 
 空の新規シーンにはCamera・照明・Sky・粒子を自動追加しません。Gameでモデルを表示する場合は、Create empty → Add Component → Cameraと、別の空オブジェクト → DirectionalLightを作成してください。Cameraの配置例は位置[0,3,-10]・回転[6,0,0]度です。モデルを原点付近へ配置し、必要に応じて構図を調整します。Sky・ParticleEmitter・CameraSwayは必要に応じて追加します。旧version 2／3の外部シーンも同様に環境を追加できます。
 
-TitleStreet.jsonとUiCheck.jsonにはCamera・DirectionalLight・Sky・ParticleEmitterがあり、CameraにCameraSwayが付いています。ComponentDemo.jsonとEditorAcceptance.jsonにもCamera・照明・Skyを保存しています。AppのタイトルはTitleStreet.jsonを使用し、背景専用の固定カメラ・専用シェーダーは使用しません。保存した変更は次のビルドでAppへコピーされます。タイトルUI・BGM・効果音も同じシーンへ保存し、共通ランタイムで描画・再生します。
+TitleStreet.jsonとUiCheck.jsonにはCamera・DirectionalLight・Sky・ParticleEmitterがあり、CameraにCameraSwayが付いています。ComponentDemo.jsonとEditorAcceptance.jsonにもCamera・照明・Skyを保存しています。プレイヤーのタイトルはTitleStreet.jsonを使用し、背景専用の固定カメラ・専用シェーダーは使用しません。保存した変更は次のビルドでプレイヤーへコピーされます。タイトルUI・BGM・効果音も同じシーンへ保存し、共通ランタイムで描画・再生します。
 
 手動確認はManualChecks.mdのK〜Pを最新ビルドのEditorで実施してください。自動テストの成功と画面確認の結果は別に記録します。
 
@@ -384,17 +386,17 @@ Animation ComponentはJSONへの保存／読み込み、複製、Undo／Redoに�
 | show / hide / toggle | 表示を切り替えるオブジェクトID。子UIにも反映 |
 | playAudio | AudioSourceを持つオブジェクトID |
 | loadScene | Assets/Scenes配下のJSONパス |
-| quit | EditorではPlay終了、Appでは終了要求 |
+| quit | EditorではPlay終了、プレイヤーでは終了要求 |
 | setState | `screen=1&volume=5`のような状態値の代入 |
 | click | ゲーム処理へUiEventを通知 |
 
-Click audio objectにはクリック音のAudioSource IDを指定します。Game eventはAppの処理に渡す識別子です。複製した対象に含まれるボタンのTarget／音源参照は複製先IDへ移します。setStateの値やシーンパスはそのままです。
+Click audio objectにはクリック音のAudioSource IDを指定します。Game eventはプレイヤーの処理に渡す識別子です。複製した対象に含まれるボタンのTarget／音源参照は複製先IDへ移します。setStateの値やシーンパスはそのままです。
 
 CanvasのState defaultsで初期状態値を保存できます。RectTransformのVisible whenは`screen=1&selected=0`のような一致条件です。空なら常に表示します。X offset／Opacity／Width bindingは状態キーを指定します。Widthは0〜1の倍率です。Intro delay／X offsetは状態キー`intro`の0〜1進行率に対応します。編集プレビューでもState defaultsを使うので、分岐画面のレイアウトを確認できます。
 
 Playは独立したUI状態と音源を使用します。Pauseとフォーカス喪失で音声の再生位置を保持して停止し、Resume／復帰で再開します。Stepは一フレームの動作を進め、音声は停止したままです。Stopで音源・UI状態を破棄し、編集データ・選択・Undo/Redoを復元します。Play開始時に試聴を停止します。
 
-TitleStreetのロゴ・メニュー・設定表示・遷移帯・5音源はHierarchyから編集できます。タイトル固有の選択、設定保存、音量フェード、Game開始はAppのTitleMenuから状態／イベントで接続します。EditorのStartボタンのloadScene先はComponentDemoで、変更可能です。Appでは`menu:0`／`start`イベントが既存Gameへの開始を扱います。Game eventを空にすれば汎用Actionを使います。
+TitleStreetのロゴ・メニュー・設定表示・遷移帯・5音源はHierarchyから編集できます。タイトル固有の選択、設定保存、音量フェード、Game開始はプレイヤーのTitleMenuから状態／イベントで接続します。EditorのStartボタンのloadScene先はComponentDemoで、変更可能です。プレイヤーでは`menu:0`／`start`イベントが既存Gameへの開始を扱います。Game eventを空にすれば汎用Actionを使います。
 
 C++のJSON処理はnlohmann/json 3.12.0へ統一しています。依存ヘッダーとMITライセンスを同梱し、ビルド時のダウンロードは不要です。シーンversion 2〜4を読めます。ユーザー設定はsettings.jsonへ保存し、旧settings.txtも読み込みます。保存・再読み込み・UndoのJSON生成は同じ実装を使います。
 
@@ -403,7 +405,7 @@ C++のJSON処理はnlohmann/json 3.12.0へ統一しています。依存ヘッ�
 
 英数字はFira Mono Regular、日本語はM PLUS 1p Regularを同じImGuiフォントへ合成し、16pxを基準に表示します。Fira MonoのASCIIを維持し、同梱の日本語フォントでひらがな・カタカナ・漢字・日本語記号を補います。ImGui 1.92の動的字形読み込みを使い、旧GetGlyphRangesJapaneseの常用漢字リストで制限しません。
 
-フォントの正本はContent/Assets/Fontsに置き、Editorはここから読み込み、配布ビルドにもTTFとOFLライセンスをコピーします。Windowsへのフォントインストールは不要です。欠損時は起動エラーを表示し、別のフォントへの無言の置き換えは行いません。フォントを更新した場合はEditorを起動し直してください。出典とSHA-256はContent/Assets/Fonts/README.mdに記録しています。
+フォントの正本は `Editor/Resources/Fonts` に置き、Editorはここから読み込みます。Editorの配布時にTTFとOFLライセンスを同梱し、ゲームの配布物には含めません。Windowsへのフォントインストールは不要です。欠損時は起動エラーを表示し、別のフォントへの無言の置き換えは行いません。フォントを更新した場合はEditorを起動し直してください。出典とSHA-256は `Editor/Resources/Fonts/README.md` に記録しています。
 
 エディターのメニュー、パネル、ツールバー、コンポーネントの設定項目、保存確認、操作結果は日本語で表示します。ドッキングの標準メニュー・説明も日本語です。InputTextは既存のWin32 Unicode／IME入力を使ってUTF-8の値を編集します。英語表記の旧パネル配置は読み込み時に移行し、位置・サイズ・ドッキング・選択タブを引き継ぎます。
 
@@ -413,7 +415,7 @@ C++のJSON処理はnlohmann/json 3.12.0へ統一しています。依存ヘッ�
 
 ## プレイヤー操作
 
-Inspectorの「コンポーネントを追加 → プレイヤー操作」でPlayerControllerを追加し、移動速度を設定できます。Play中にGame画像へカーソルを置き、WASDまたは矢印キーで親のローカルXZ平面を移動します。斜め移動の速度は一定で、長いフレームの移動時間は0.1秒までです。Appの編集済みシーンでも同じキーで操作できます。箱の衝突判定を持つプレイヤーは、有効な箱の衝突判定を持つ床や壁で止まります。重力を使用すると世界の下向きへ落下し、接地中にSpaceでジャンプできます。設定の保存、複製、Undo／Redoに対応し、Stopでは編集時の配置に戻ります。
+Inspectorの「コンポーネントを追加 → プレイヤー操作」でPlayerControllerを追加し、移動速度を設定できます。Play中にGame画像へカーソルを置き、WASDまたは矢印キーで親のローカルXZ平面を移動します。斜め移動の速度は一定で、長いフレームの移動時間は0.1秒までです。プレイヤーの編集済みシーンでも同じキーで操作できます。箱の衝突判定を持つプレイヤーは、有効な箱の衝突判定を持つ床や壁で止まります。重力を使用すると世界の下向きへ落下し、接地中にSpaceでジャンプできます。設定の保存、複製、Undo／Redoに対応し、Stopでは編集時の配置に戻ります。
 
 ## 衝突・重力・ジャンプ
 
@@ -436,11 +438,11 @@ PlayerControllerの「重力を使用」「重力加速度」「ジャンプ速�
 ## 独自のゲーム処理
 
 Inspectorの「コンポーネントを追加 → ゲーム処理」で登録済みのC++処理を追加できます。Bob（上下運動）とSpin（回転）を同梱し、同じオブジェクトへ複数の処理を追加できます。パラメーター・有効状態はシーンに保存され、複製とUndo／Redoにも対応します。
-新しい処理はApp／EditorのPlay開始前に`SceneRuntime::ScriptRegistry::Register`へ名前と`ScriptDefinition`を登録します。`fields`はInspectorに出す数値の初期値・最小値・最大値、`start`／`update`／`stop`は開始・毎フレーム・無効化または終了のコールバックです。`ScriptContext`の`Value`で保存値を読み、`state`でインスタンス固有の数値を保持し、`object.position`／`rotation`／`scale`を変更できます。オブジェクトやComponentの配列そのものはコールバックから変更しません。Pause中は更新せず、Stepは1/60秒、再生し直しではstateを初期化します。C++処理の追加には再ビルドが必要です。
+新しい処理はプレイヤー／EditorのPlay開始前に`SceneRuntime::ScriptRegistry::Register`へ名前と`ScriptDefinition`を登録します。`fields`はInspectorに出す数値の初期値・最小値・最大値、`start`／`update`／`stop`は開始・毎フレーム・無効化または終了のコールバックです。`ScriptContext`の`Value`で保存値を読み、`state`でインスタンス固有の数値を保持し、`object.position`／`rotation`／`scale`を変更できます。オブジェクトやComponentの配列そのものはコールバックから変更しません。Pause中は更新せず、Stepは1/60秒、再生し直しではstateを初期化します。C++処理の追加には再ビルドが必要です。
 
 `start`／`update`／`onEvent`では`context.scene`から`Find(id)`／`FindByName(name)`、`GetComponent(id, &ScenePlacement::boxCollider)`で現在のオブジェクトとComponentを参照できます。参照の有効期間はコールバック中だけです。`Spawn(placement)`は新規IDを返し、`Instantiate(id, position)`は対象とその子孫を参照IDごと複製します。`Destroy(id)`は子孫も削除し、`SetComponents(id, placement)`はComponentを置き換えます。これらは全コールバックが終わってから反映され、新しいScriptは次のフレームに開始します。
 
-`Emit({name, sender, target, value})`は次のフレームに`onEvent`へ届きます。空のtargetは全Script宛て、指定したtargetはそのオブジェクト宛てです。外部からは`ScriptRuntime::QueueEvent`で予約できます。生成とイベントには各フレーム4096件の上限があります。検証・モデル読み込み・UI準備の失敗ではシーンと内部state、ID採番、未処理イベントを保持します。コールバックが外部へ行った副作用は取り消せないため、状態はcontext.stateとシーンAPIで管理してください。`stop`では構造変更APIを使いません。生成したモデル・UI・音源はAppとEditorの再生で反映され、Stopで編集シーンに戻ります。
+`Emit({name, sender, target, value})`は次のフレームに`onEvent`へ届きます。空のtargetは全Script宛て、指定したtargetはそのオブジェクト宛てです。外部からは`ScriptRuntime::QueueEvent`で予約できます。生成とイベントには各フレーム4096件の上限があります。検証・モデル読み込み・UI準備の失敗ではシーンと内部state、ID採番、未処理イベントを保持します。コールバックが外部へ行った副作用は取り消せないため、状態はcontext.stateとシーンAPIで管理してください。`stop`では構造変更APIを使いません。生成したモデル・UI・音源はプレイヤーとEditorの再生で反映され、Stopで編集シーンに戻ります。
 
 `Assets/Scenes/ScriptPlayground.json`では、操作できるPlayerと上下運動・回転するFloatingCubeを同時に確認できます。
 
@@ -452,7 +454,7 @@ Hierarchyで親オブジェクトを一つ選び「編集 → 選択をPrefabと
 Inspectorの「Prefabの上書き」には変更したプロパティを表示し、各行から「元へ戻す」「元Prefabへ適用」を実行できます。元へ戻す操作はシーンのUndo／Redoに対応します。元ファイルへの適用はアセットの保存で、シーンのUndoではファイルを戻しません。「編集 → Prefabの上書きをすべて戻す」は最新の元ファイルを読み込み、配置値を維持して全リンク対象の値を戻します。
 
 Prefabインスタンスを別の親の下へ配置し、その親をPrefabとして保存すると入れ子の参照を維持します。元の内側Prefabの変更は外側Prefabを介して反映され、外側を再適用しても参照を保持します。「編集 → Prefab Variantとして保存」は選択したインスタンスから派生アセットを作り、元Prefabの未編集プロパティを継承します。保存先は元アセットと同じフォルダーの `<元の名前>Variant.prefab` で、既存ファイルは上書きしません。依存の循環・64段を超える入れ子はエラーとして拒否し、現在のシーンを保持します。
-外部で元ファイルを変更した場合は「編集 → Prefabの変更を反映」を使います。シーンを開く際とAppの起動時にも反映します。元ファイルがない場合はエラーを表示して現在のシーンを保持します。「Prefabのリンクを解除」で通常の親子オブジェクトに戻せます。配置・変更反映・リンク解除はUndo／Redoに対応します。
+外部で元ファイルを変更した場合は「編集 → Prefabの変更を反映」を使います。シーンを開く際とプレイヤーの起動時にも反映します。元ファイルがない場合はエラーを表示して現在のシーンを保持します。「Prefabのリンクを解除」で通常の親子オブジェクトに戻せます。配置・変更反映・リンク解除はUndo／Redoに対応します。
 
 `Assets/Scenes/PrefabPlayground.json`には同じFloatingCube Prefabを三つ配置しています。元Prefabを一つのインスタンスから変更して、他の配置にも反映されることを確認できます。
 
@@ -465,7 +467,7 @@ PlayerControllerとタイトルメニューは共通のAction設定を使いま�
 
 「Componentを追加」の点光源（PointLight）・スポットライト（SpotLight）で局所ライトを作れます。Inspectorで色、強度、到達距離を指定し、スポットでは内側・外側の円錐全体の角度を設定します。親を含むトランスフォームのワールド位置を発生原点にして、スポットはローカル+Z方向へ照射します。到達距離はワールド単位で、トランスフォームの拡縮から独立しています。
 有効な点光源・スポットライトはシーン全体で最大32灯です。上限を超えた編集・読み込みはエラーとして直前のシーンを保持します。距離の逆二乗で減衰し、到達距離で滑らかに消えます。スポットは内側から外側へ照度を減らします。光源中心は半径1cmとして計算し、強度は相対値です。PBR・従来Materialの双方へ加算します。局所ライトの影は未対応で、リアルタイムの影は平行光源に使用します。
-`Assets/Scenes/LocalLightPlayground.json`にはPBR・法線マップ、スクリプトで動く点光源とカメラの子にしたスポットを配置しています。平行光源を無効にして局所ライトだけで照らす例です。Appの起動シーンにも指定できます。
+`Assets/Scenes/LocalLightPlayground.json`にはPBR・法線マップ、スクリプトで動く点光源とカメラの子にしたスポットを配置しています。平行光源を無効にして局所ライトだけで照らす例です。プレイヤーの起動シーンにも指定できます。
 
 ## Materialの共有と編集
 
@@ -473,13 +475,13 @@ PlayerControllerとタイトルメニューは共通のAction設定を使いま�
 
 シーン設定の「ポストエフェクトを有効化」で、メッシュ・空・パーティクルを線形FP16（RGBA16_FLOAT）へ描画し、1を超える明るさを保持します。旧シーンでは無効のままなので従来の表示を維持します。「露出（EV）」の+1は線形の明るさを2倍、-1は半分にします。トーンマッピングはなし・Reinhard・ACES近似から選び、最後にsRGBへ変換します。ACES近似には[Narkowiczの公開曲線](https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/)を使います。
 ブルームはHDRの明部を半解像度へ抽出し、縦横のガウスぼかしで周囲へ広げます。しきい値、強さ、広がりを調整できます。画面のリサイズとScene/Game双方の描画に対応し、使用中のGPU領域はフレーム枠ごとに保持します。UIは処理後に重ねるため露出・ブルームの影響を受けません。設定はシーン保存・Undo/Redo・再生停止時の編集データ復元へ含まれます。FP16を超える極端な明るさは合成時に上限へ制限し、トーンマッピングなしでは表示先で白に飽和します。HDRディスプレイへの出力、IBL、自動露出、カラーグレーディングは未対応です。
-`Assets/Scenes/PostEffectsPlayground.json`で、PBRと影・局所ライト・発光パーティクル・UIをまとめて確認できます。Appの起動シーンにも指定できます。比較シーンは`python scripts/GenerateRenderingPlayground.py`で再生成します。
+`Assets/Scenes/PostEffectsPlayground.json`で、PBRと影・局所ライト・発光パーティクル・UIをまとめて確認できます。プレイヤーの起動シーンにも指定できます。比較シーンは`python scripts/GenerateRenderingPlayground.py`で再生成します。
 
 Projectの「Materialを作成」で名前を指定し、Materialアセットを選ぶとInspectorで色・透明度・画像・UV拡縮／回転／移動・粗さ・金属感を編集できます。「Materialを保存」でファイルへ保存し、操作が終わるとシーンの共有Materialへ反映します。「物理ベースの照明（PBR）」を有効にするとGGX・Smith・Schlickによる反射を使い、金属ではベース色を反射色にして拡散光を減らします。ベース色はsRGBから線形へ変換して照明を計算します。古いMaterialとモデルの設定は従来のハイライトを維持します。環境光は一定色で、環境マップによるIBLは未対応です。
 「法線マップ」で接線空間のRGB画像を指定できます。線形の画像値を使い、UVとワールド位置の微分から接線を作るため、OBJに接線属性は不要です。UVのない面は幾何法線を使用します。異なるY軸規約の画像には「法線マップのYを反転」を使います。画像参照はメタデータIDを保持し、Projectからの改名後も追従します。
 MeshRendererのMaterial欄でアセットを割り当てます。「モデルの設定」に戻すと元のモデルの色・画像を使います。同じMaterialを割り当てたオブジェクトは設定を共有し、異なるMaterialを使えば同じモデルでも外観を変えられます。色の透明度を下げると透明描画になり、不透明なものの後に距離順で描画します。透明面同士が交差する場合の完全な順序解決と透過した影は扱いません。
 `Assets/Scenes/MaterialPlayground.json`で共有した赤色Materialと透明な青色Materialを確認できます。Materialの変更はアセットへの保存なので、シーンのUndoとは別です。
-`Assets/Scenes/RenderingPlayground.json`では粗さの異なる非金属・金属球と、法線マップの有無を比較できます。Appの起動シーンにも指定できます。素材と法線画像はリポジトリで作成したもので、`python scripts/GenerateRenderingPlayground.py`で再生成します。
+`Assets/Scenes/RenderingPlayground.json`では粗さの異なる非金属・金属球と、法線マップの有無を比較できます。プレイヤーの起動シーンにも指定できます。素材と法線画像はリポジトリで作成したもので、`python scripts/GenerateRenderingPlayground.py`で再生成します。
 
 ### 骨格アニメーション
 
@@ -495,23 +497,23 @@ Projectの一覧更新時にアセットの隣へ `.meta` を作成し、32桁�
 
 ### ビルドと性能計測
 
-メニューの「ビルド」でRelease / Developmentを選択し、保存済みContentからAppをビルドします。Visual Studio/MSBuildを検出して非表示の別プロセスで実行し、`generated/builds` にログ・結果JSON・配布用フォルダーを出力します。既存の配布物は上書きしません。App.exe、Assets、Shaders、メタデータ、x64 MSVC CRTとSHA-256一覧のpackage.jsonを同梱します。配布物内のAppを `--validate-package` で起動し、起動シーン・モデル・シェーダー・UIを実際に描画できた場合に成功とします。ソースやVisual Studioがない環境ではEditorからのビルドはできません。
+メニューの「ビルド」でRelease / Developmentを選択し、保存済みのゲームプロジェクトからプレイヤーをビルドします。同梱する `ProjectTool.exe` を非表示の別プロセスで実行し、そのC++実装がVisual Studio/MSBuildを検出して呼び出します。`generated/builds` にログ・結果JSON・配布用フォルダーを出力します。既存の配布物は上書きしません。App.exe、ゲーム側のAssets・Shaders、標準描画用のEngine/Shaders、メタデータ、x64 MSVC CRTとSHA-256一覧のpackage.jsonを同梱します。Editor専用フォントは含めません。配布物内のプレイヤーを `--validate-package` で起動し、起動シーン・モデル・シェーダー・UIを実際に描画できた場合に成功とします。ソースやVisual Studioがない環境ではEditorからのビルドはできません。PowerShellによる製品機能の実行は不要です。
 
 「表示 → 性能計測」ではフレーム時間、CPUの更新・準備と描画・Present待ち、フェンス完了後のGPUタイムスタンプ、メッシュ描画数・三角形数（影を含む）、プロセスのWorking set / Privateメモリ、GPUローカルメモリと予算を表示します。描画数はSceneWorldのメッシュが対象で、UI・粒子は含みません。GPUは数フレーム前に完了した測定値です。直近600サンプルを記録停止でき、`generated/profiler` へCSV出力できます。詳細な関数別CPU計測・GPUパス別計測は今後の拡張です。
 
 ## Scriptの初期値と入力用途
 
-公園Scriptの初期値・範囲・型付きデータは`Games/GuruttoWorld/Assets/Scripts/ParkScriptSchema.schema.json`を正とします。
-シーン生成はこのJSONを直接読み、通常ビルドとScriptの自動コンパイルは`GenerateScriptSchemas.ps1`で同じ定義から`ParkScriptSchema.generated.h`を再生成します。
-生成ヘッダーは直接編集しません。JSON変更も「C++ゲーム処理」の変更監視・再コンパイル対象で、一覧から開けます。
-既存シーンで編集・保存した値は生成時に上書きしません。
+公園Scriptの初期値・範囲・型付きデータは`<ゲームプロジェクト>/Assets/Scripts/ParkScriptSchema.schema.json`を正とします。
+シーン生成・Editor・プレイヤーはこのJSONを直接読みます。DLLは動作名と`ScriptCallbacks`だけを登録し、EXE側がJSONの設定と結合します。生成ヘッダーは使用しません。
+JSON変更も「C++ゲーム処理」の一覧から開けます。変更は再生停止中に再読み込みし、DLLを再コンパイルしません。C++ソースや補助ヘッダーの変更は自動コンパイルします。
+既存シーンで編集・保存した値は再読み込み時に上書きしません。
 未設定の数値は実行時に登録スキーマの初期値を補い、保存済みの値を優先します。シーンへ初期値を自動的に書き戻しません。
-変更監視は元のJSONを対象にし、対応する生成ヘッダーの更新で二重コンパイルしません。
+不正なJSONは再生を拒否し、直前の有効な定義を保持します。JSONを修正すると再読み込みで復帰します。
 
-文字列のアセット用途は名前から推測せず、`ScriptDefinition::dataPurposes`へ明示します。
-例えば`dataPurposes={{"destination",ScriptDataPurpose::SceneAsset}}`は`destination`という文字列にシーン選択を表示します。
-宣言のない文字列は通常の文字列編集になり、存在しない項目・文字列以外の項目への用途指定は登録時に拒否します。
-Scriptの参照用途とエンジンのビルド識別子を含むABIは10です。各構成のモジュールを再ビルドしてください。
+文字列のアセット用途は名前から推測せず、JSONの`purposes`へ明示します。
+例えば`"purposes": {"destination": "sceneAsset"}`は`destination`という文字列にシーン選択を表示します。
+宣言のない文字列は通常の文字列編集になり、存在しない項目・文字列以外の項目への用途指定はJSONの読み込み時に拒否します。
+コールバックだけを登録するScript SDKのABIは15です。各構成のモジュールを再ビルドしてください。
 保存された`sceneAssets`は宣言されたScriptのシーン参照だけを記録し、モジュールがない状態でも参照用途を保持します。
 未編集のシーン参照も保存時に既定値と用途を記録し、改名後の参照先を保持します。通常の文字列・数値の既定値は従来どおり省略できます。
 Scriptの登録・再読み込みだけではUndoと復旧用JSONを変更しません。定義の変更はInspectorから明示的に移行します。

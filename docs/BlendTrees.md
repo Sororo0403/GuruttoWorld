@@ -1,5 +1,7 @@
 # Blend Tree
 
+この文書のゲーム素材は、WP1 の外にある `../GuruttoWorld` で管理します。制作スクリプトの `scripts/...` はゲーム側ルートで実行し、エンジン側の C++ 検証コマンドは WP1 ルートで実行してください。
+
 Animatorの状態のMotionに、クリップ・初期姿勢・Blend Treeを指定できる。
 既存の`clip`だけを持つ状態は従来どおり再生する。
 InspectorでTreeの方式、入力パラメーター、子、速度、入れ子の参照を編集する。
@@ -32,8 +34,8 @@ Inspectorのパラメーター一覧で保存値を指定できる。保存値�
 Scriptの変更はコールバック後に適用し、オブジェクト削除時に破棄する。上限超過ではScriptの状態とシーンも保持する。
 `SceneWorld::AnimatorStatus`で現在の位相・Motion重み・姿勢を確認できる。
 
-`Games/GuruttoWorld/Assets/Scenes/BlendTreePlayground.json`では、左のPlayerが入れ子の1D、中央が2D、右がDirectを使用する。
+`../GuruttoWorld/Assets/Scenes/BlendTreePlayground.json`では、左のPlayerが入れ子の1D、中央が2D、右がDirectを使用する。
 WASDやアナログ入力で比較する。右のDirectは`MoveRight`・`MoveForward`・`speed`でIdle・Walk・Jumpを混ぜる。
 `scripts/GenerateBlendTreePlayground.py`で同じ比較シーンを再生成できる。
 
-`WP1_BLEND_ONLY=1`で回帰テストを実行すると、補間・同期・遷移・循環拒否・保存・Undo/Redo・Prefab・独立複製・App/Editor再生を検証する。
+`WP1_BLEND_ONLY=1`で回帰テストを実行すると、補間・同期・遷移・循環拒否・保存・Undo/Redo・Prefab・独立複製・プレイヤー/Editor再生を検証する。
