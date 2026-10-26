@@ -1,5 +1,6 @@
 #pragma once
 #include <SceneRuntime/Scene/SceneLayout.h>
+#include <SceneRuntime/Scene/SceneChanges.h>
 #include <DirectXMath.h>
 
 namespace SceneRuntime
@@ -8,6 +9,8 @@ namespace SceneRuntime
     class SceneTransforms final
     {
     public:
+        /// <summary>保存データを作らず、ローカル姿勢の数値だけを行列へ変換します。</summary>
+        static bool Compose(const LocalTransform& transform, DirectX::XMFLOAT4X4& output);
         static bool Compose(const ScenePlacement& placement, DirectX::XMFLOAT4X4& output);
         static bool WorldToLocal(const DirectX::XMFLOAT4X4& world, const DirectX::XMFLOAT4X4& parentWorld,
                                  DirectX::XMFLOAT4X4& output);
@@ -27,6 +30,9 @@ namespace SceneRuntime
         /// </summary>
         static bool ReadTransform(const DirectX::XMFLOAT4X4& matrix, const ScenePlacement& reference,
                                   ScenePlacement& output);
+        /// <summary>保存データを作らず、符号と等価な回転を保ってローカル姿勢を分解します。</summary>
+        static bool ReadTransform(const DirectX::XMFLOAT4X4& matrix, const LocalTransform& reference,
+                                  LocalTransform& output);
         static bool Matches(const DirectX::XMFLOAT4X4& left, const DirectX::XMFLOAT4X4& right);
         static bool IsUsable(const DirectX::XMFLOAT4X4& matrix);
     };

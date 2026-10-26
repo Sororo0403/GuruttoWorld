@@ -340,9 +340,9 @@ namespace ProjectTool
                                    "  </Configurations>\r\n"
                                    "  <Project Path=\"" +
                                    name + ".vcxproj\" />\r\n";
-        for (const auto* reference : {"Player/Player.vcxproj", "Engine/Engine.vcxproj",
+        for (const auto* reference : {"Player/Player.vcxproj", "Engine/Engine.vcxproj", "Engine/EngineCore.vcxproj",
                                       "SceneRuntime/SceneRuntime.vcxproj", "SceneRuntime/SceneData.vcxproj",
-                                      "SceneRuntime/SceneStorage.vcxproj"})
+                                      "SceneRuntime/SceneStorage.vcxproj", "SceneRuntime/SceneRuntimeCore.vcxproj"})
             solutionText += "  <Project Path=\"" + XmlEscape(ForwardPath(enginePath / reference)) + "\" />\r\n";
         solutionText += "</Solution>\r\n";
         RejectLinks(root / (name + ".vcxproj"));

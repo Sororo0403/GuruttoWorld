@@ -38,6 +38,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Scripts\ScriptSchema.cpp" />
+    <ClCompile Include="src\Scene\SceneChanges.cpp" />
+    <ClCompile Include="src\Scene\SceneEdits.cpp" />
+    <ClInclude Include="include\SceneRuntime\Scene\SceneEdits.h" />
+    <ClInclude Include="include\SceneRuntime\Scene\SceneEditTarget.h" />
+    <ClInclude Include="include\SceneRuntime\Scene\SceneChanges.h" />
+    <ClInclude Include="include\SceneRuntime\Scene\WorldReadView.h" />
     <ClCompile Include="src\Scripts\ScriptBuiltinSchemas.cpp" />
     <ClCompile Include="src\Scripts\ScriptValueJson.cpp" />
     <ClCompile Include="src\Scene\SceneLayout.cpp" />
@@ -53,6 +59,7 @@
     <ClCompile Include="src\Animation\Animation.cpp" />
     <ClCompile Include="src\Animation\AnimationProperties.cpp" />
     <ClCompile Include="src\Animation\AnimationEvents.cpp" />
+    <ClCompile Include="src\Audio\AudioCommand.cpp" />
     <ClCompile Include="src\Audio\AudioJson.cpp" />
     <ClCompile Include="src\Gameplay\GenreJson.cpp" />
     <ClCompile Include="src\Ui\UiJson.cpp" />
@@ -73,7 +80,6 @@
     <ClCompile Include="src\Animation\BlendTreeValidation.cpp" />
     <ClCompile Include="src\Gameplay\MenuConfiguration.cpp" />
     <ClCompile Include="src\Physics\JointComponent.cpp" />
-    <ClCompile Include="src\Project\ProjectSettings.cpp" />
     <ClCompile Include="src\Rendering\MaterialAssetFormat.cpp" />
     <ClCompile Include="src\Scene\ComponentFieldSchema.cpp" />
     <ClCompile Include="src\Scene\ObjectReferenceDomain.cpp" />
@@ -82,6 +88,7 @@
     <ClCompile Include="src\Ui\UiControlJson.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Engine\Engine.vcxproj" />
+    <ProjectReference Include="..\Engine\EngineCore.vcxproj" />
+    <ClCompile Include="src\Scripts\ScriptValue.cpp" />
   </ItemGroup>
 </Project>

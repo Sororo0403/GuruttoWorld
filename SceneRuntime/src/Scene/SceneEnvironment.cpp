@@ -1,3 +1,4 @@
+#include "../Rendering/RuntimePresentationData.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <SceneRuntime/Scene/Prefab.h>
 #include <SceneRuntime/Gameplay/TitleBindings.h>
@@ -86,15 +87,13 @@ namespace SceneRuntime
             committedAudio_.clear();
             audioReady_ = false;
             pendingUiResources_.reset();
-            world_.SetRuntimePreparation(
-                [this](const SceneLayout& candidate, std::string& diagnostic)
+            presentationDefinition_.reset();
+            pendingPresentationDefinition_.reset();
+            world_.SetFramePreparation(
+                [this](WorldState::ReadView view, const SceneChangeSet& changes, const ScriptUiCommands& commands,
+                       std::string& diagnostic)
                 {
-                    return PrepareRuntimeUi(candidate, {}, diagnostic);
-                });
-            world_.SetUiPreparation(
-                [this](const SceneLayout& candidate, const ScriptUiCommands& commands, std::string& diagnostic)
-                {
-                    return PrepareRuntimeUi(candidate, commands, diagnostic);
+                    return PrepareRuntimeUi(view, changes, commands, diagnostic);
                 });
             SeekAnimation(0, 0);
             error.clear();
@@ -106,14 +105,18 @@ namespace SceneRuntime
             return false;
         }
     }
-    bool SceneEnvironment::PrepareRuntimeUi(const SceneLayout& layout, const ScriptUiCommands& commands,
-                                            std::string& error)
+    bool SceneEnvironment::PrepareRuntimeUi(WorldState::ReadView view, const SceneChangeSet& changes,
+                                            const ScriptUiCommands& commands, std::string& error)
     {
         if (!renderer_)
         {
             error = "UI renderer is not initialized";
             return false;
         }
+        auto definition = pendingPresentationDefinition_ ? pendingPresentationDefinition_ : presentationDefinition_;
+        if (!definition || RuntimePresentationData::Changed(changes))
+            definition = RuntimePresentationData::Extract(view);
+        const auto& layout = *definition;
         auto candidate = uiPreparationOverride_ ? *uiPreparationOverride_ : uiState_;
         for (const auto& [key, value] : commands.values)
             candidate.values[key] = value;
@@ -123,6 +126,7 @@ namespace SceneRuntime
         if (!presentation_.PrepareCandidate(*renderer_, root_, layout, error, candidate, resources))
             return false;
         pendingUiResources_ = std::move(resources);
+        pendingPresentationDefinition_ = std::move(definition);
         return true;
     }
     void SceneEnvironment::ApplyUiCommands(const ScriptUiCommands& commands)
@@ -134,6 +138,9 @@ namespace SceneRuntime
         if (pendingUiResources_)
             presentation_.RestoreUi(std::move(*pendingUiResources_));
         pendingUiResources_.reset();
+        if (pendingPresentationDefinition_)
+            presentationDefinition_.swap(pendingPresentationDefinition_);
+        pendingPresentationDefinition_.reset();
     }
     void SceneEnvironment::DiscardPreparedUi()
     {
@@ -144,6 +151,7 @@ namespace SceneRuntime
         audioReady_ = false;
         uiSceneCommands_.clear();
         pendingUiResources_.reset();
+        pendingPresentationDefinition_.reset();
     }
     bool SceneEnvironment::Update(double deltaSeconds, bool enabled, bool active)
     {
@@ -422,6 +430,7 @@ namespace SceneRuntime
         if (!world_.ReplaceRuntimeLayout(std::move(layout), root_, error))
         {
             pendingUiResources_.reset();
+            pendingPresentationDefinition_.reset();
             presentation_.RestoreUi(std::move(previousResources));
             return false;
         }

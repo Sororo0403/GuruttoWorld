@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src" />
+    <Filter Include="src\Core" />
+    <Filter Include="src\Assets" />
+    <Filter Include="src\Graphics" />
+    <Filter Include="src\Graphics\Materials" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Core\Json.cpp"><Filter>src\Core</Filter></ClCompile>
+    <ClCompile Include="src\Core\Utf8.cpp"><Filter>src\Core</Filter></ClCompile>
+    <ClCompile Include="src\Core\Profiler.cpp"><Filter>src\Core</Filter></ClCompile>
+    <ClCompile Include="src\Assets\AssetPath.cpp"><Filter>src\Assets</Filter></ClCompile>
+    <ClCompile Include="src\Graphics\Materials\PostEffectSettings.cpp"><Filter>src\Graphics\Materials</Filter></ClCompile>
+  </ItemGroup>
+</Project>

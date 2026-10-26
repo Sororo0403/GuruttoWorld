@@ -89,9 +89,11 @@ namespace SceneRuntime::RenderPlan
                     if (item.object.HasMaterialPass(Engine::MaterialPass::Opaque))
                     {
                         Count(item.object, Engine::MaterialPass::Opaque, 1, telemetry);
-                        item.object.GetModel()->DrawShadow(commands, item.object.GetWorldMatrix(), atlas,
-                                                           item.object.GetMaterial().get(),
-                                                           item.object.GetMaterialSlots());
+                        item.object.GetModel()->DrawShadow(
+                            commands, item.object.GetWorldMatrix(), atlas, item.object.GetMaterial().get(),
+                            item.object.GetMaterialSlots(),
+                            item.skin ? std::span<const std::vector<Engine::SkinMatrix>>(item.skin->palettes)
+                                      : std::span<const std::vector<Engine::SkinMatrix>>{});
                     }
                 atlas.End(commands);
             }
@@ -137,13 +139,21 @@ namespace SceneRuntime::RenderPlan
             GatherInstances(items, index, drawn, instances);
             Count(item.object, Engine::MaterialPass::Opaque, instances.empty() ? 1 : instances.size(), telemetry);
             if (item.occlusion)
-                occlusion.Begin(commands, item.object.GetModel()->Bounds(), item.object.GetWorldMatrix(),
-                                camera.GetViewProjectionMatrix());
+            {
+                auto bounds = item.object.GetModel()->Bounds();
+                if (item.skin)
+                    bounds = {{item.skin->bounds.center[0], item.skin->bounds.center[1], item.skin->bounds.center[2]},
+                              {item.skin->bounds.extent[0], item.skin->bounds.extent[1], item.skin->bounds.extent[2]}};
+                occlusion.Begin(commands, bounds, item.object.GetWorldMatrix(), camera.GetViewProjectionMatrix());
+            }
             item.object.GetModel()->Draw(commands, item.object.GetWorldMatrix(), camera.GetViewProjectionMatrix(),
                                          light, camera.GetPosition(), {}, item.object.GetMaterial().get(),
                                          {item.object.GetMaterialSlots(), Engine::MaterialPass::Opaque,
                                           instances.size() > 1 ? std::span<const DirectX::XMFLOAT4X4>(instances)
-                                                               : std::span<const DirectX::XMFLOAT4X4>{}});
+                                                               : std::span<const DirectX::XMFLOAT4X4>{},
+                                          item.skin
+                                              ? std::span<const std::vector<Engine::SkinMatrix>>(item.skin->palettes)
+                                              : std::span<const std::vector<Engine::SkinMatrix>>{}});
             if (item.occlusion)
                 Engine::OcclusionRenderer::End(commands);
         }

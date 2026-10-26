@@ -350,9 +350,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Animation\SkinMatrix.cpp" />
-    <ClCompile Include="src\Animation\SkinMatrix.cpp" />
     <ClCompile Include="src\Assets\AssetFileRevision.cpp" />
-    <ClCompile Include="src\Assets\AssetPath.cpp" />
     <ClCompile Include="src\Assets\AssetReferenceResolver.cpp" />
     <ClCompile Include="src\Assets\AssetSourceStamp.cpp" />
     <ClCompile Include="src\Assets\ContentContext.cpp" />
@@ -361,11 +359,7 @@
     <ClCompile Include="src\Core\FileJournal.cpp" />
     <ClCompile Include="src\Core\FileReplacement.cpp" />
     <ClCompile Include="src\Core\FileSaveLock.cpp" />
-    <ClCompile Include="src\Core\Json.cpp" />
-    <ClCompile Include="src\Core\Profiler.cpp" />
-    <ClCompile Include="src\Core\Utf8.cpp" />
     <ClCompile Include="src\Graphics\DirectX12\GpuRetirement.cpp" />
-    <ClCompile Include="src\Graphics\Materials\PostEffectSettings.cpp" />
     <ClCompile Include="src\Graphics\Renderers\OcclusionRenderer.cpp" />
     <ClCompile Include="src\Graphics\Resources\ConstantBuffer.cpp" />
     <ClCompile Include="src\Graphics\Resources\GpuProfiler.cpp" />
@@ -375,5 +369,8 @@
     <ClCompile Include="src\Graphics\Resources\SkinPaletteBuffer.cpp" />
     <ClCompile Include="src\Input\InputActions.cpp" />
     <ClCompile Include="src\Projects\ProjectContext.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="EngineCore.vcxproj" />
   </ItemGroup>
 </Project>

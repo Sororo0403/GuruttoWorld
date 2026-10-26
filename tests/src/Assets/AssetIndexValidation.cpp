@@ -1,4 +1,5 @@
 #include <Engine/Assets/AssetDatabase.h>
+#include <Engine/Core/FileContents.h>
 #include <Engine/Core/Profiler.h>
 #include <future>
 #include <iostream>
@@ -60,8 +61,10 @@ int main()
         const std::string second = "22222222222222222222222222222222";
         const std::string third = "33333333333333333333333333333333";
         const std::string fourth = "44444444444444444444444444444444";
-        Write(asset, "fixture");
-        Write(Engine::AssetDatabase::Sidecar(asset), "{\"id\":\"" + first + "\"}");
+        // 初期保存を完了してから監視を始め、以降の外部編集は通常のWriteで再現します。
+        std::filesystem::create_directories(asset.parent_path());
+        Engine::FileContents::Write(asset, "fixture");
+        Engine::FileContents::Write(Engine::AssetDatabase::Sidecar(asset), "{\"id\":\"" + first + "\"}");
         const auto context = Engine::ContentContext::Capture(game);
         Engine::AssetDatabase original(context, true);
         Require(Rebuilds() == 1, "initial index was not built once");
@@ -71,7 +74,9 @@ int main()
             Require(shared.Resolve("Assets/Textures/Test.png", first) == "Assets/Textures/Test.png",
                     "shared index lost an ID");
         }
-        Require(Rebuilds() == 0, "unchanged content rebuilt the index");
+        const auto unchangedRebuilds = Rebuilds();
+        Require(unchangedRebuilds == 0,
+                ("unchanged content rebuilt the index " + std::to_string(unchangedRebuilds) + " times").c_str());
 
         const auto metadata = Engine::AssetDatabase::Sidecar(asset);
         const auto stamp = std::filesystem::last_write_time(metadata);
@@ -126,16 +131,16 @@ int main()
                     recovered.Resolve("Assets/Textures/Test.png", second) == "Assets/Textures/Test.png",
                 "rename aliases or frozen ID mappings were lost");
 
-        const auto shared = fixture / "Engine/Content/Shaders/Mesh.hlsl";
+        const auto shared = fixture / "Engine/Engine/Shaders/Mesh.hlsl";
         Write(shared, "shader");
         Write(Engine::AssetDatabase::Sidecar(shared), "{\"id\":\"" + first + "\"}");
         Write(game / "WP1.project.json", "{\"engineRoot\":\"../Engine\"}");
         const auto layered = Engine::ContentContext::Capture(game);
-        Require(Engine::AssetDatabase(layered, true).ReferenceId("Shaders/Mesh.hlsl") == first &&
-                    Engine::AssetDatabase(context, true).ReferenceId("Shaders/Mesh.hlsl").empty(),
+        Require(Engine::AssetDatabase(layered, true).ReferenceId("Engine/Shaders/Mesh.hlsl") == first &&
+                    Engine::AssetDatabase(context, true).ReferenceId("Engine/Shaders/Mesh.hlsl").empty(),
                 "content layers leaked between contexts");
         Write(Engine::AssetDatabase::Sidecar(shared), "{\"id\":\"" + fourth + "\"}");
-        Require(Engine::AssetDatabase(layered, true).ReferenceId("Shaders/Mesh.hlsl") == fourth,
+        Require(Engine::AssetDatabase(layered, true).ReferenceId("Engine/Shaders/Mesh.hlsl") == fourth,
                 "shared layer edit was not detected");
         const auto shader = game / "Shaders/Local.hlsl";
         Write(shader, "local");

@@ -55,6 +55,8 @@ namespace Engine
         /// UI の入力を更新し、新しいフレームの構築を開始します。
         /// </summary>
         void BeginFrame();
+        /// <summary>未送信の描画を中止するとき、構築中のUIフレームを閉じます。</summary>
+        void CancelFrame();
 
         /// <summary>
         /// UI フレームを確定し、シーン描画後のコマンドリストへ描画命令を追加します。
@@ -95,6 +97,7 @@ namespace Engine
         static constexpr UINT DescriptorCount = 64;
         ImGuiContext* context_ = nullptr;
         bool platformInitialized_ = false;
+        bool frameActive_ = false;
         bool rendererInitialized_ = false;
         D3D12_CPU_DESCRIPTOR_HANDLE sceneCpu_[5]{};
         D3D12_GPU_DESCRIPTOR_HANDLE sceneGpu_[5]{};

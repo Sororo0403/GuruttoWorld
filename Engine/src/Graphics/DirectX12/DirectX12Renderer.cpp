@@ -71,6 +71,8 @@ namespace Engine
         timestampPending_.fill(false);
         telemetry_ = {};
         commands_.Reset();
+        for (auto& resources : frameResources_)
+            resources.clear();
         for (auto& allocator : allocators_)
         {
             allocator.Reset();
@@ -460,13 +462,24 @@ namespace Engine
             return RenderResult::Failed;
         }
         const UINT index = swapChain_->GetCurrentBackBufferIndex();
-        if (!BeginFrame(index, clearColor, debugUi))
+        try
         {
-            return RenderResult::Failed;
+            if (!BeginFrame(index, clearColor, debugUi))
+                return RenderResult::Failed;
+            if (draw)
+                draw(commands_.Get(), static_cast<float>(width_) / static_cast<float>(height_));
         }
-        if (draw)
+        catch (...)
         {
-            draw(commands_.Get(), static_cast<float>(width_) / static_cast<float>(height_));
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
+            debugUi_.CancelFrame();
+#endif
+            commands_->SetPrivateData(RenderFrameContext::Key, 0, nullptr);
+            commands_->SetPrivateData(GpuScope::Key, 0, nullptr);
+            commands_->Close();
+            frameResources_[index].clear();
+            Log::Warning("Unsubmitted render frame was cancelled after a callback failure.");
+            return RenderResult::Failed;
         }
         const auto result = EndFrame(index);
         telemetry_.cpuRenderMilliseconds =
@@ -520,12 +533,13 @@ namespace Engine
             if (!WaitForFence(frameFenceValues_[index]))
                 return false;
         }
+        frameResources_[index].clear();
         if (!Check(allocators_[index]->Reset(), "Reset command allocator") ||
             !Check(commands_->Reset(allocators_[index].Get(), nullptr), "Reset command list"))
         {
             return false;
         }
-        RenderFrameContext{index, ++recordingSerial_}.Record(commands_.Get());
+        RenderFrameContext{index, ++recordingSerial_, &frameResources_[index]}.Record(commands_.Get());
         if (timestampReadback_ && timestampPending_[index])
         {
             telemetry_.gpuSample = false;

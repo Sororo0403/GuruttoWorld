@@ -1,5 +1,6 @@
 #pragma once
 #include "EditState.h"
+#include <SceneRuntime/Scene/SceneWorld.h>
 #include "../Viewport/SceneViewport.h"
 #include <Engine/Graphics/Camera.h>
 

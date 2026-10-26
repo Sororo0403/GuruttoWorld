@@ -149,6 +149,8 @@
     <ClCompile Include="src\Project\ProjectUserSettings.cpp" />
 
     <ClCompile Include="src\Animation\Animator.cpp" />
+    <ClCompile Include="src\Animation\RuntimeAnimation.cpp" />
+    <ClInclude Include="include\SceneRuntime\Animation\RuntimeAnimation.h" />
     <ClInclude Include="include\SceneRuntime\Animation\Animator.h" />
     <ClInclude Include="include\SceneRuntime\Animation\AnimationEvents.h" />
     <ClInclude Include="include\SceneRuntime\Animation\BlendTree.h" />
@@ -164,6 +166,10 @@
     <ClCompile Include="src\Audio\SceneAudio.cpp" />
     <ClCompile Include="src\Gameplay\GenreGeometry.cpp" />
     <ClCompile Include="src\Gameplay\Navigation.cpp" />
+    <ClCompile Include="src\Gameplay\RuntimeNavigation.cpp" />
+    <ClCompile Include="src\Scene\RuntimeSimulation.cpp" />
+    <ClInclude Include="include\SceneRuntime\Gameplay\RuntimeNavigation.h" />
+    <ClInclude Include="include\SceneRuntime\Scene\RuntimeSimulation.h" />
     <ClCompile Include="src\Gameplay\NavigationMesh.cpp" />
     <ClInclude Include="src\Gameplay\NavigationMesh.h" />
     <ClInclude Include="include\SceneRuntime\Gameplay\Navigation.h" />
@@ -195,11 +201,20 @@
     <ClInclude Include="src\Rendering\SceneRenderPlan.h" />
     <ClCompile Include="src\Scene\SceneWorld.cpp" />
     <ClCompile Include="src\Animation\BlendTreePose.cpp" />
+    <ClCompile Include="src\Scene\SceneWorldRuntime.cpp" />
     <ClCompile Include="src\Scene\SceneTransactions.cpp" />
     <ClCompile Include="src\Physics\ScenePhysics.cpp" />
     <ClCompile Include="src\Physics\PhysicsWorld.cpp" />
+    <ClCompile Include="src\Physics\PhysicsFrame.cpp" />
+    <ClCompile Include="src\Physics\RuntimePhysics.cpp" />
+    <ClCompile Include="src\Physics\RuntimeRagdoll.cpp" />
+    <ClInclude Include="src\Physics\PhysicsFrame.h" />
+    <ClInclude Include="include\SceneRuntime\Physics\RuntimePhysics.h" />
+    <ClInclude Include="include\SceneRuntime\Physics\RuntimeRagdoll.h" />
     <ClInclude Include="include\SceneRuntime\Physics\PhysicsWorld.h" />
     <ClCompile Include="src\Scripts\ScriptRuntime.cpp" />
+    <ClCompile Include="src\Scripts\LegacyScriptAdapter.cpp" />
+    <ClInclude Include="include\SceneRuntime\Scripts\LegacyScriptAdapter.h" />
     <ClInclude Include="src\Scene\PrefabMerge.h" />
     <ClInclude Include="include\SceneRuntime\Scene\Prefab.h" />
     <ClInclude Include="include\SceneRuntime\Scripts\ScriptRuntime.h" />
@@ -227,6 +242,7 @@
     <ClInclude Include="include\SceneRuntime\Project\ProjectSettings.h" />
     <ClInclude Include="include\SceneRuntime\Scene\SceneWorld.h" />
     <ProjectReference Include="SceneStorage.vcxproj"><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+    <ProjectReference Include="SceneRuntimeCore.vcxproj"><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
     <ProjectReference Include="SceneData.vcxproj">
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
@@ -236,14 +252,13 @@
   </ItemGroup>
   <ItemDefinitionGroup>
     <Lib>
-      <AdditionalDependencies>$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\SceneStorage\SceneStorage.lib;$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\SceneData\SceneData.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\SceneRuntimeCore\SceneRuntimeCore.lib;$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\SceneStorage\SceneStorage.lib;$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\SceneData\SceneData.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="build\Recast.targets" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Audio\AudioCommand.cpp" />
     <ClCompile Include="src\Gameplay\GamePlayback.cpp" />
     <ClCompile Include="src\Gameplay\TitleBindings.cpp" />
     <ClCompile Include="src\Gameplay\TitleConfigTransition.cpp" />
@@ -251,10 +266,14 @@
     <ClCompile Include="src\Rendering\LightmapBaker.cpp" />
     <ClCompile Include="src\Rendering\MaterialAsset.cpp" />
     <ClCompile Include="src\Rendering\MaterialTextureCache.cpp" />
+    <ClCompile Include="src\Rendering\RuntimePresentationData.cpp" />
+    <ClInclude Include="src\Rendering\RuntimePresentationData.h" />
+    <ClCompile Include="src\Rendering\RenderScene.cpp" />
+    <ClInclude Include="include\SceneRuntime\Rendering\RenderScene.h" />
+    <ClInclude Include="src\Rendering\SceneRenderResources.h" />
     <ClCompile Include="src\Rendering\SceneRenderPlan.cpp" />
     <ClCompile Include="src\Rendering\SceneResourceChanges.cpp" />
     <ClCompile Include="src\Scene\SceneCollection.cpp" />
-    <ClCompile Include="src\Scripts\ScriptSchemaFiles.cpp" />
     <ClCompile Include="src\Ui\SceneCanvas.cpp" />
   </ItemGroup>
   <ItemGroup>

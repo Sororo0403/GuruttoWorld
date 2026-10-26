@@ -9,6 +9,7 @@
 
 #include <array>
 #include <functional>
+#include <memory>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
@@ -62,7 +63,7 @@ namespace Engine
 
         /// <summary>
         /// 背景をクリアし、指定された描画処理を記録して表示します。サイズ変更を反映し、最小化中は描画を休止します。
-        /// 初期化したスレッドから呼び出してください。
+        /// 初期化したスレッドから呼び出してください。未送信の描画コールバックの失敗はFailedで返します。
         /// </summary>
         /// <param name="clearColor">赤、緑、青、不透明度の順で指定する 0.0 から 1.0 の色。</param>
         /// <param name="draw">クリア後に呼ぶ描画処理。記録中のコマンドリストと幅÷高さを渡します。ポインターを保持しないでください。</param>
@@ -237,6 +238,7 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D12Resource> timestampReadback_;
         UINT64 timestampFrequency_ = 0;
         std::array<bool, 2> timestampPending_{};
+        std::array<std::vector<std::shared_ptr<const void>>, 2> frameResources_;
         std::array<std::vector<GpuProfileRecord>, 2> gpuRecords_;
 
         static constexpr UINT BufferCount = 2;

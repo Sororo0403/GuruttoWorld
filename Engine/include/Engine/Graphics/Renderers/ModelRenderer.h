@@ -20,6 +20,7 @@ namespace Engine
         std::span<const std::shared_ptr<const Material>> slots;
         MaterialPass pass = MaterialPass::All;
         std::span<const DirectX::XMFLOAT4X4> instances;
+        std::span<const std::vector<SkinMatrix>> palettes;
     };
     class ModelRenderer final
     {
@@ -37,6 +38,17 @@ namespace Engine
             PreparedPose(const PreparedPose&) = delete;
             /// <summary>候補のコピー代入を禁止します。</summary>
             PreparedPose& operator=(const PreparedPose&) = delete;
+
+            /// <summary>この世代のメッシュ別スキン行列を、公開前の表示抽出へ渡します。</summary>
+            const std::vector<std::vector<SkinMatrix>>& Palettes() const noexcept
+            {
+                return palettes_;
+            }
+            /// <summary>この世代のスキン姿勢を囲むモデル空間の境界を取得します。</summary>
+            const DirectX::BoundingBox& Bounds() const noexcept
+            {
+                return bounds_;
+            }
 
         private:
             friend class ModelRenderer;
@@ -135,8 +147,8 @@ namespace Engine
         bool ApplyPreparedPose(PreparedPose&& pose) noexcept;
         /// <summary>モデル内のすべてのメッシュを光源の深度へ描画します。</summary>
         void DrawShadow(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world, const ShadowMap& shadow,
-                        const Material* material = nullptr,
-                        std::span<const std::shared_ptr<const Material>> slots = {}) const;
+                        const Material* material = nullptr, std::span<const std::shared_ptr<const Material>> slots = {},
+                        std::span<const std::vector<SkinMatrix>> palettes = {}) const;
         /// <summary>ローカル空間の単位レイを現在の姿勢の三角形へ当て、最も近い交点距離を出力します。</summary>
         bool IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const;
 

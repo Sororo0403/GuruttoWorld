@@ -2,6 +2,13 @@
 
 namespace SceneRuntime
 {
+    void ScriptValue::ValidateObject(const Object& object, size_t depth, size_t& remaining)
+    {
+        if (depth > 8 || remaining == 0)
+            throw std::runtime_error("Script data exceeds nesting or element limit");
+        --remaining;
+        ValidateItem(object, depth, remaining);
+    }
     auto ScriptValue::Validate(size_t depth, size_t& remaining) const -> void
     {
         if (depth > 8 || remaining == 0)

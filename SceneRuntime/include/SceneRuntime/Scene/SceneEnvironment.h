@@ -173,7 +173,8 @@ namespace SceneRuntime
         void ApplyCameraFocus(const MenuConfiguration* menu);
 
         /// <summary>スクリプト更新のUI候補を現在の描画資源から分離して準備します。</summary>
-        bool PrepareRuntimeUi(const SceneLayout&, const ScriptUiCommands&, std::string& error);
+        bool PrepareRuntimeUi(WorldState::ReadView view, const SceneChangeSet& changes,
+                              const ScriptUiCommands& commands, std::string& error);
         /// <summary>成功したフレームのバインディング変更と準備したUI資源を確定します。</summary>
         void ApplyUiCommands(const ScriptUiCommands& commands);
         /// <summary>失敗したフレームのUI予約と候補描画資源を破棄します。</summary>
@@ -202,6 +203,7 @@ namespace SceneRuntime
         UiState uiState_;
         const UiState* uiPreparationOverride_ = nullptr;
         std::optional<SceneUi> pendingUiResources_;
+        std::shared_ptr<const SceneLayout> presentationDefinition_, pendingPresentationDefinition_;
         SceneAudio audio_;
         /// <summary>UI・演出の音声予約を上限付きで保持します。</summary>
         void QueueAudio(AudioCommand command);

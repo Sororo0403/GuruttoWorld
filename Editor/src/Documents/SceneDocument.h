@@ -1,5 +1,5 @@
 #pragma once
-#include <SceneRuntime/Scene/SceneWorld.h>
+#include <SceneRuntime/Scene/SceneDocumentData.h>
 #include <optional>
 #include <algorithm>
 #include <cctype>
@@ -8,6 +8,11 @@
 #include <utility>
 #include <fstream>
 #include "DocumentSave.h"
+
+namespace SceneRuntime
+{
+    class SceneWorld;
+}
 
 namespace Editor
 {
@@ -50,6 +55,10 @@ namespace Editor
         };
         /// <summary>解析対象と保存比較基準を同じ一回の読み取りから準備します。</summary>
         static OpenCandidate PrepareOpen(std::filesystem::path path, bool create = false);
+        /// <summary>GPU投影を持たない文書へ取得済み候補を適用し、成功後だけ保存基準を更新します。</summary>
+        bool Apply(OpenCandidate candidate, std::string& error);
+        /// <summary>GPU・実行ホストを使わず、一回の取得と解析で文書を開きます。</summary>
+        bool Open(const std::filesystem::path& path, std::string& error);
         /// <summary>準備済みの候補を投影し、成功後は例外のない交換だけで保存基準を確定します。</summary>
         bool Apply(SceneRuntime::SceneWorld& world, const std::filesystem::path& root, OpenCandidate candidate,
                    std::string& error);
@@ -103,11 +112,11 @@ namespace Editor
             request_.reset();
             ready_ = false;
         }
-        /// <summary>Request の処理を実行します。</summary>
+        /// <summary>変更の要求を登録します。</summary>
         bool Request(std::filesystem::path path, bool create, bool dirty);
-        /// <summary>SaveTarget の処理を実行します。</summary>
+        /// <summary>保存対象のパスを求めます。</summary>
         static std::filesystem::path SaveTarget(const std::filesystem::path& root, const std::string& name);
-        /// <summary>NewTarget の処理を実行します。</summary>
+        /// <summary>新規作成する対象の保存先を求めます。</summary>
         static std::filesystem::path NewTarget(const std::filesystem::path& root, const std::string& name);
         /// <summary>
         /// 呼び出し側で GPU の完了を待ち、Render の外で呼んでください。失敗時は現在のドキュメントとワールドを保持します。
@@ -115,10 +124,8 @@ namespace Editor
         bool Apply(SceneRuntime::SceneWorld& world, const std::filesystem::path& root, std::string& error);
 
     private:
-        static std::optional<std::string> ReadSource(const std::filesystem::path& path)
-        {
-            return Engine::FileContents::Read(path);
-        }
+        /// <summary>外部変更を比較するため、元ファイルを一度だけ取得します。</summary>
+        static std::optional<std::string> ReadSource(const std::filesystem::path& path);
         struct RequestData
         {
             std::filesystem::path path;

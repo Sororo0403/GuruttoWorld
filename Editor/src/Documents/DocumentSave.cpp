@@ -1,4 +1,5 @@
 #include "DocumentSave.h"
+#include <stdexcept>
 
 namespace Editor
 {

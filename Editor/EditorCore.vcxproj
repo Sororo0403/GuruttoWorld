@@ -58,7 +58,7 @@
     <ClCompile Include="src\Assets\AssetFileChanges.cpp" />
     <ClCompile Include="src\Assets\AssetInfo.cpp" />
     <ClCompile Include="src\Assets\AssetManagementPanel.cpp" />
-    <ClCompile Include="src\Assets\AssetPreview.cpp" />
+    <ClCompile Include="src\Assets\AssetPreviewState.cpp" />
     <ClCompile Include="src\Assets\AudioPreview.cpp" />
     <ClCompile Include="src\Assets\ModelDrop.cpp" />
     <ClCompile Include="src\Assets\SkeletonPreview.cpp" />
@@ -68,6 +68,7 @@
     <ClCompile Include="src\Documents\PrefabEditPlan.cpp" />
     <ClCompile Include="src\Documents\SaveAsPanel.cpp" />
     <ClCompile Include="src\Documents\SceneDocument.cpp" />
+    <ClCompile Include="src\Documents\SceneDocumentProjection.cpp" />
     <ClCompile Include="src\Documents\SceneRecovery.cpp" />
     <ClCompile Include="src\Documents\SceneSnapshotCache.cpp" />
     <ClCompile Include="src\Editing\EditHistory.cpp" />

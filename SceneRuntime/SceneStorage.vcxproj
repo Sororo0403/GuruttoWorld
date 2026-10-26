@@ -38,6 +38,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Scene\SceneStorage.cpp" />
+    <ClCompile Include="src\Project\ProjectSettings.cpp" />
+    <ClCompile Include="src\Scripts\ScriptSchemaFiles.cpp" />
     <ClInclude Include="include\SceneRuntime\Scripts\ScriptSchemaFiles.h" />
     <ClCompile Include="src\Scene\PrefabStorage.cpp" />
     <ClCompile Include="src\Scene\SceneAssetReferences.cpp" />

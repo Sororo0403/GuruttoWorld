@@ -1,4 +1,5 @@
 #include "FileTransaction.h"
+#include <Engine/Core/FileReplacement.h>
 
 namespace Editor
 {

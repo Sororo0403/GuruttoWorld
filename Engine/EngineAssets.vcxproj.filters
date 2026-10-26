@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\Assets" />
+    <Filter Include="include\Engine\Assets" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Assets\AssetArtifact.cpp"><Filter>src\Assets</Filter></ClCompile>
+    <ClInclude Include="include\Engine\Assets\AssetArtifact.h"><Filter>include\Engine\Assets</Filter></ClInclude>
+  </ItemGroup>
+</Project>

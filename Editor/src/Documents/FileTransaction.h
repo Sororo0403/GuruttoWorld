@@ -1,5 +1,7 @@
 #pragma once
-#include <Engine/Core/FileReplacement.h>
+#include <filesystem>
+#include <optional>
+#include <string>
 #include <functional>
 #include <vector>
 

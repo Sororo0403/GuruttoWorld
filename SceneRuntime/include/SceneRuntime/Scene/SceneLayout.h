@@ -186,6 +186,8 @@ namespace SceneRuntime
         std::map<std::string, std::string> assetReferences;
         std::map<std::string, std::string> prefabSlots;
         std::map<std::string, std::vector<std::string>> sceneObjects;
+        /// <summary>確保を行わず、準備済みの保存データと設定を交換します。</summary>
+        void Swap(SceneLayout& other) noexcept;
         /// <summary>指定ルートの索引を取得し、保存されたアセット ID から参照パスを解決します。</summary>
         void ResolveAssets(const std::filesystem::path& root);
         /// <summary>ロード済み索引で参照を解決し、ディレクトリの再探索を避けます。</summary>

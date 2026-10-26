@@ -3,9 +3,12 @@
 #include <Engine/Graphics/DirectX12/GpuRetirement.h>
 #include <SceneRuntime/Scene/SceneLayout.h>
 #include <SceneRuntime/Scene/SceneDocumentData.h>
+#include <SceneRuntime/Scene/WorldReadView.h>
+#include <SceneRuntime/Scene/WorldState.h>
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
 #include <optional>
+#include <SceneRuntime/Rendering/RenderTelemetry.h>
 #include <unordered_map>
 #include <SceneRuntime/Physics/ScenePhysics.h>
 #include <SceneRuntime/Scene/SceneExecutionState.h>
@@ -19,24 +22,17 @@ namespace Engine
 namespace SceneRuntime
 {
     struct UiState;
+    struct RuntimeScriptEffects;
+    struct RenderPacket;
 }
 namespace SceneRuntime
 {
-    /// <summary>直前のシーン描画の呼び出し数と三角形数を保持します。</summary>
-    struct MeshTelemetry
-    {
-        size_t draws = 0, triangles = 0;
-    };
     /// <summary>シーンの配置と描画資源を管理します。実行用ワールドは物理とスクリプトの状態も所有します。</summary>
-    class SceneWorld final
+    class SceneWorld final : public SceneEditTarget
     {
     public:
         /// <summary>独立した実行データと実行状態を所有するワールドを作成します。</summary>
-        SceneWorld()
-            : execution_(std::make_unique<SceneExecutionState>()), document_(std::make_shared<SceneDocumentData>()),
-              layout_(document_->layout_)
-        {
-        }
+        SceneWorld();
         /// <summary>外部ドキュメントの描画投影を作成します。実行状態は所有しません。</summary>
         explicit SceneWorld(std::shared_ptr<SceneDocumentData> document);
         /// <summary>初期化前に所有者の固定した参照情報を受け取ります。</summary>
@@ -55,16 +51,9 @@ namespace SceneRuntime
             return !execution_;
         }
         /// <summary>この実行セッションの定義集合で、現在のスクリプトを検証します。</summary>
-        bool ValidateScripts(std::string& error) const
-        {
-            return execution_ &&
-                   ScriptRuntime::ValidateForPlay(layout_, error, &execution_->values.scripts.Definitions());
-        }
+        bool ValidateScripts(std::string& error) const;
         /// <summary>この実行セッションに指定段階のコールバックがあるかを返します。</summary>
-        bool HasScriptPhase(ScriptPhase phase) const
-        {
-            return execution_ && ScriptRuntime::HasPhase(layout_, phase, &execution_->values.scripts.Definitions());
-        }
+        bool HasScriptPhase(ScriptPhase phase) const;
         /// <summary>最後の投影で取得できなかった資源の診断を返します。</summary>
         const std::vector<std::string>& ResourceDiagnostics() const
         {
@@ -99,14 +88,29 @@ namespace SceneRuntime
         /// <summary>現在の配置を補間した描画行列で描画し、描画呼び出し数と三角形数を記録します。</summary>
         void Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
                   const Engine::DirectionalLight& light, const UiState* state = nullptr) const;
+        /// <summary>描画へ公開した不変packetを保持します。World破棄後も表示値と資源の世代は有効です。</summary>
+        std::shared_ptr<const RenderPacket> RenderSnapshot() const noexcept;
         const MeshTelemetry& Telemetry() const
         {
             return meshTelemetry_;
         }
-        const SceneLayout& Layout() const
+        const SceneLayout& Layout() const override
         {
             return layout_;
         }
+        /// <summary>描画に依存しない編集要求を準備し、投影の成功後に確定します。</summary>
+        SceneEditResult Edit(const SceneEdit& edit, std::string& error) override;
+        /// <summary>次の変更まで有効な読み取り専用ビューを取得します。</summary>
+        WorldReadView Read() const noexcept;
+        /// <summary>ローカル姿勢を検証し、成功した変更だけを返します。同じ値なら資源を準備しません。</summary>
+        SceneEditResult ApplyLocalTransform(std::string_view id, const LocalTransform& transform);
+        /// <summary>コンポーネントだけを置き換え、準備が成功した場合だけ変更結果を返します。</summary>
+        SceneEditResult ApplyComponents(std::string_view id, const ScenePlacement& components,
+                                        const std::filesystem::path& assetsRoot, std::string& error);
+        /// <summary>Pauseの変更候補を準備し、失敗時は配置・実行値・通知を保持します。</summary>
+        bool SetScriptsPaused(bool paused, std::string& error);
+        /// <summary>確定済みのTransform変更を一度だけ取得します。フレーム準備中は既存通知も保持します。</summary>
+        SceneChangeSet TakeChanges() noexcept;
         /// <summary>スクリプトが所有する音声などの外部資源を一時停止・再開します。</summary>
         void PauseScripts(bool paused);
         /// <summary>親基準の位置・回転・スケールを配置と描画へ一括反映します。回転はラジアンで指定し、失敗時は変更しません。</summary>
@@ -147,22 +151,11 @@ namespace SceneRuntime
         /// <summary>実行セッションの次のスクリプト更新へイベントを予約します。無効なイベントや実行状態のない投影では失敗します。</summary>
         bool QueueScriptEvent(ScriptEvent event, std::string& error);
         /// <summary>成功した更新で予約されたシーン操作を取り出します。</summary>
-        std::vector<SceneCommand> TakeSceneCommands()
-        {
-            return execution_ && CanMutateScene() ? execution_->values.scripts.TakeSceneCommands()
-                                                  : std::vector<SceneCommand>{};
-        }
-        /// <summary>成功したフレームのスクリプト UI変更を取得します。</summary>
-        ScriptUiCommands TakeUiCommands()
-        {
-            return execution_ && CanMutateScene() ? execution_->values.scripts.TakeUiCommands() : ScriptUiCommands{};
-        }
-        /// <summary>フレーム更新が確定した後に実行する音声指示を取り出します。</summary>
-        std::vector<AudioCommand> TakeAudioCommands()
-        {
-            return execution_ && CanMutateScene() ? execution_->values.scripts.TakeAudioCommands()
-                                                  : std::vector<AudioCommand>{};
-        }
+        std::vector<SceneCommand> TakeSceneCommands();
+        /// <summary>成功したフレームのスクリプトUI変更を取得します。</summary>
+        ScriptUiCommands TakeUiCommands();
+        /// <summary>確定したフレームで予約された音声指示を取得します。</summary>
+        std::vector<AudioCommand> TakeAudioCommands();
         /// <summary>失敗または中断したフレームの音声指示を破棄します。</summary>
         void DiscardAudioCommands();
         /// <summary>失敗フレームの未適用スクリプト UI変更を破棄します。</summary>
@@ -171,22 +164,25 @@ namespace SceneRuntime
         void SetRuntimePreparation(std::function<bool(const SceneLayout&, std::string&)> prepare);
         /// <summary>スクリプトと姿勢の確定前にUI変更の描画資源を候補へ準備します。</summary>
         void SetUiPreparation(std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)> prepare);
+        /// <summary>候補の型付き実行値と変更通知から、表示・UIの公開を準備します。借用ビューを保持しないでください。</summary>
+        void SetFramePreparation(
+            std::function<bool(WorldState::ReadView, const SceneChangeSet&, const ScriptUiCommands&, std::string&)>
+                prepare);
+        /// <summary>型付きの表示準備を取得し、同じ候補の検証へ処理を追加できます。</summary>
+        const std::function<bool(WorldState::ReadView, const SceneChangeSet&, const ScriptUiCommands&, std::string&)>&
+        FramePreparation() const
+        {
+            return prepareFrame_;
+        }
         /// <summary>現在のUI候補準備を取得し、検証処理を追加して委譲できます。</summary>
         const std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)>& UiPreparation() const
         {
             return prepareUi_;
         }
-        std::string AnimatorStateName(const std::string& id) const
-        {
-            const auto found = animatorStates_.find(id);
-            return found == animatorStates_.end() ? std::string{} : found->second.current;
-        }
+        /// <summary>確定済みのAnimator状態名を取得します。</summary>
+        std::string AnimatorStateName(const std::string& id) const;
         /// <summary>現在のクリップ重み・同期位相・骨格姿勢を取得します。変更操作後に再取得してください。</summary>
-        const AnimatorState* AnimatorStatus(const std::string& id) const
-        {
-            const auto found = animatorStates_.find(id);
-            return found == animatorStates_.end() ? nullptr : &found->second;
-        }
+        const AnimatorState* AnimatorStatus(const std::string& id) const;
         /// <summary>個体のAnimatorパラメーターを実行中だけ上書きします。保存したコンポーネントには反映しません。</summary>
         bool SetAnimatorParameter(const std::string& id, const std::string& name, float value);
         /// <summary>個体のパラメーター上書きを解除し、入力または保存値を使用します。</summary>
@@ -205,11 +201,7 @@ namespace SceneRuntime
         std::optional<PhysicsRayHit> PhysicsRaycast(const std::array<float, 3>& origin,
                                                     const std::array<float, 3>& direction, float distance,
                                                     unsigned int mask = 0xffffffffu, bool triggers = false,
-                                                    const std::string& ignore = {}) const
-        {
-            return execution_ ? execution_->physicsWorld.Raycast(origin, direction, distance, mask, triggers, ignore)
-                              : std::nullopt;
-        }
+                                                    const std::string& ignore = {}) const;
         /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
         bool Animate(const std::map<std::string, float>& clocks);
         size_t RenderVersion() const
@@ -254,6 +246,41 @@ namespace SceneRuntime
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
 
     private:
+        class ChangePreparation final
+        {
+        public:
+            /// <summary>準備中の再入と通知取得を禁止し、入れ子の状態は終了時に戻します。</summary>
+            explicit ChangePreparation(bool& flag) noexcept : flag_(flag), previous_(flag)
+            {
+                flag_ = true;
+            }
+            /// <summary>準備前の状態を復元します。</summary>
+            ~ChangePreparation()
+            {
+                flag_ = previous_;
+            }
+
+        private:
+            bool& flag_;
+            bool previous_;
+        };
+        struct RuntimeData;
+        class RuntimeProjection;
+        std::unique_ptr<RuntimeData> runtime_;
+        std::shared_ptr<const RenderPacket> documentPacket_;
+        /// <summary>新しいCPUセッションで配置と表示を準備し、成功時だけ所有者を交換します。</summary>
+        bool ReplaceSession(SceneLayout layout, const std::filesystem::path& root, bool start, std::string& error);
+        /// <summary>実行値と表示の候補を同じ境界で編集します。</summary>
+        bool EditSession(const SceneEdit& edit, std::string& error, bool start = false);
+        /// <summary>相対表記を正規化し、実行所有者と同じ素材ルートかを検証します。</summary>
+        bool CheckSessionRoot(const std::filesystem::path& root, std::string& error) const;
+        /// <summary>外部からの実行指示を、表示準備も含めて一括確定します。</summary>
+        bool ApplySessionEffects(const RuntimeScriptEffects& effects);
+        /// <summary>固定段階と可変段階を、共通セッションへ渡します。</summary>
+        bool UpdateSession(double seconds, float horizontal, float vertical, bool jump, bool movement, bool components);
+        /// <summary>確定済みの指示を表示所有者へ移し、CPU側の通知を取得します。</summary>
+        void DrainSession() noexcept;
+        mutable bool preparingChanges_ = false;
         /// <summary>フレームの候補所有中に、外側から確定済みシーンを書き換える操作を拒否します。</summary>
         bool CanMutateScene(std::string* error = nullptr) const;
         struct PreparedLayout
@@ -269,6 +296,14 @@ namespace SceneRuntime
             std::map<std::string, AnimatorState> states;
             std::map<std::string, std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lods;
         };
+        /// <summary>保存データの編集結果から、実行処理を起動せず表示packetだけを準備します。</summary>
+        std::shared_ptr<const RenderPacket> PrepareDocumentPacket(const PreparedLayout& prepared, std::string& error);
+        /// <summary>保存値を変えず、交換候補のGPU資源と現在の実行姿勢を表示packetへまとめます。</summary>
+        std::shared_ptr<const RenderPacket> PrepareRuntimePacket(const PreparedLayout& prepared, std::string& error);
+        /// <summary>編集投影の姿勢更新に用いる表示資源を共有し、表示packetを準備します。</summary>
+        std::shared_ptr<const RenderPacket> PrepareDocumentPacket(const SceneLayout& layout,
+                                                                  const std::vector<Engine::Object3D>& objects,
+                                                                  std::string& error);
         struct LayoutView
         {
             const decltype(PreparedLayout::layout)& layout;
@@ -370,8 +405,6 @@ namespace SceneRuntime
         Engine::Object3D BuildAddedObject(const ScenePlacement& placement, const SceneLayout& validation,
                                           const DirectX::XMFLOAT4X4& matrix, const std::filesystem::path& assetsRoot,
                                           PreparedLayout& prepared);
-        static void RemapDuplicateLinks(ScenePlacement& placement,
-                                        const std::unordered_map<std::string, std::string>& copies);
         void InitializeAddedAnimator(Engine::Object3D& object, const ScenePlacement& placement,
                                      const SceneLayout& validation, const DirectX::XMFLOAT4X4& matrix,
                                      const std::shared_ptr<const Engine::ModelRenderer>& model,
@@ -399,15 +432,12 @@ namespace SceneRuntime
         std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)> prepareUi_;
         bool InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
                               std::string* error);
-        bool ReparentPlacement(ScenePlacement& placement, std::string parentId, std::string& error) const;
-        bool TranslatePlacement(ScenePlacement& placement, const std::array<float, 3>& delta) const;
         /// <summary>配置の世界行列を準備し、検証済みの前回配置がある場合は未変更の行列を再利用します。</summary>
         static bool PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects,
                                       std::string& error, const SceneLayout* validatedBefore = nullptr);
         bool SetPlacementTransform(std::string_view id, const ScenePlacement& placement);
         bool CommitTransforms(const SceneLayout& candidate);
         bool TransformObjectsWorld(const std::vector<std::string>& ids, const DirectX::XMFLOAT4X4& delta);
-        std::string NewId(size_t& nextCounter) const;
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
         /// <summary>削除した個体の物理状態と補間履歴を、実行所有者からまとめて除去します。</summary>
@@ -425,10 +455,13 @@ namespace SceneRuntime
         bool InterpolatedLocalTransform(const ScenePlacement& placement, DirectX::XMFLOAT4X4& transform,
                                         DirectX::XMFLOAT4X4& rotation) const;
         size_t renderVersion_ = 0;
+        SceneChangeSet changes_;
         mutable size_t preparedRenderVersion_ = static_cast<size_t>(-1);
         mutable std::vector<DirectX::XMFLOAT4X4> renderMatrices_;
         Microsoft::WRL::ComPtr<ID3D12Device> materialDevice_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> materialQueue_;
+        std::function<bool(WorldState::ReadView, const SceneChangeSet&, const ScriptUiCommands&, std::string&)>
+            prepareFrame_;
         bool modelsReady_ = false;
         std::shared_ptr<Engine::ShadowMap> shadow_, localShadow_;
         std::filesystem::path meshShader_;

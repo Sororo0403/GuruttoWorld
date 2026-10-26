@@ -1,5 +1,10 @@
 #pragma once
-#include <SceneRuntime/Scene/SceneWorld.h>
+#include <SceneRuntime/Rendering/RenderPacket.h>
+#include <SceneRuntime/Rendering/RenderTelemetry.h>
+#include <Engine/Graphics/Models/Object3D.h>
+#include <Engine/Graphics/Camera.h>
+#include <Engine/Graphics/Renderers/ModelRenderer.h>
+#include <Engine/Graphics/Renderers/OcclusionRenderer.h>
 #include <SceneRuntime/Ui/SceneUi.h>
 #include <cmath>
 #include <cstring>
@@ -13,8 +18,9 @@ namespace SceneRuntime::RenderPlan
         bool instancing = false;
         float distance = 0;
         bool occlusion = false;
+        std::shared_ptr<const RenderSkin> skin;
     };
-    /// <summary>Visible の処理を実行します。</summary>
+    /// <summary>対象の表示条件を評価します。</summary>
     bool Visible(const ScenePlacement& placement, const UiState& state);
     /// <summary>カメラ距離でLODを選び、保存した個体からそのフレームの描画項目を作ります。</summary>
     std::vector<Item> Items(
@@ -28,7 +34,7 @@ namespace SceneRuntime::RenderPlan
     /// <summary>点光源の六面とスポット円錐を32面の局所影アトラスへ描画します。</summary>
     bool LocalShadows(ID3D12GraphicsCommandList* commands, Engine::DirectionalLight& lighting,
                       const std::vector<Item>& items, Engine::ShadowMap& atlas, MeshTelemetry& telemetry);
-    /// <summary>GatherInstances の処理を実行します。</summary>
+    /// <summary>描画対象のインスタンスを収集します。</summary>
     void GatherInstances(const std::vector<Item>& items, size_t index, std::vector<bool>& drawn,
                          std::vector<DirectX::XMFLOAT4X4>& instances);
     /// <summary>不透明個体の互換グループをGPUインスタンシングで描画します。</summary>

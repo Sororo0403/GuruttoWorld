@@ -5,6 +5,12 @@
     <Filter Include="src\Architecture" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Architecture\CompleteChangeCaptureValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Architecture\ChangeCaptureValidation.h">
+      <Filter>src\Architecture</Filter>
+    </ClInclude>
     <ClCompile Include="src\Architecture\ArchitectureAuditFixValidation.cpp">
       <Filter>src\Architecture</Filter>
     </ClCompile>

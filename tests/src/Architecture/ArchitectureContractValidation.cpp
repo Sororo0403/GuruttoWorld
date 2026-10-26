@@ -13,6 +13,7 @@
 #include "EditTransactionContractValidation.h"
 #include "SessionDesignContractValidation.h"
 #include "ExtensibilityContractValidation.h"
+#include "ChangeCaptureValidation.h"
 #include <iostream>
 #include <set>
 #include <stdexcept>
@@ -26,7 +27,7 @@ namespace
     unsigned int failures = 0, gaps = 0;
     void Contract(const std::string& id, bool ok);
 
-    bool CountModuleRegistration(void* context, const char*, const ScriptDefinition*)
+    bool CountModuleRegistration(void* context, const char*, const ScriptCallbacks*)
     {
         ++*static_cast<unsigned int*>(context);
         return true;
@@ -290,6 +291,7 @@ int main(int argc, char** argv)
         std::filesystem::create_directories(root / "Assets/Prefabs");
         std::filesystem::create_directories(root / "Assets/Scenes");
         ComponentContractValidation::Run(Contract);
+        ChangeCaptureValidation::Run(root / "change-capture", Contract);
         AssetReferenceContractValidation::Run(root / "asset-contracts", Contract);
         SchemaContractValidation::Run(root / "schema-contracts", Contract);
         MigrationContractValidation::Run(root / "migration-contracts", Contract);
@@ -304,7 +306,7 @@ int main(int argc, char** argv)
         Projects(root);
         if (!modulePath.empty())
             NativeModule(modulePath);
-        const auto fixture = std::filesystem::path("Content/Templates/MinimalGame");
+        const auto fixture = std::filesystem::path("Tools/GameProject/Templates/MinimalGame");
         const auto project = ProjectSettings::Load(fixture);
         const auto minimal = SceneLayout::Load(fixture / project.startupScene);
         Contract("minimal-game", minimal.objects.empty() && project.title == "Minimal game");

@@ -64,13 +64,16 @@ namespace ScriptUiValidation
                 limited.SetUiText("overflow", "");
             });
         ScriptModuleAbi abi;
-        Require(abi.version == 14 && abi.engineBuild == Engine::BuildIdentity() &&
+        Require(abi.version == 15 && abi.engineBuild == Engine::BuildIdentity() &&
                     abi.contextBytes == sizeof(ScriptContext) && abi.sceneBytes == sizeof(ScriptScene) &&
-                    abi.definitionBytes == sizeof(ScriptDefinition),
+                    abi.callbacksBytes == sizeof(ScriptCallbacks),
                 "module ABI describes engine identity, context content root, ScriptScene and callback layouts");
         auto incompatible = abi;
         ++incompatible.sceneBytes;
         Require(incompatible != abi, "module ABI rejects ScriptScene layout mismatches");
+        incompatible = abi;
+        ++incompatible.callbacksBytes;
+        Require(incompatible != abi, "module ABI rejects callback layout mismatches");
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
@@ -204,20 +207,25 @@ namespace ScriptUiValidation
                                                   error),
                     "resource-failure fixture disables fixed callbacks");
             bool rejectResources = true;
-            const auto prepareUi = environment.World().UiPreparation();
-            environment.World().SetUiPreparation(
-                [&](const SceneLayout& candidate, const ScriptUiCommands& commands, std::string& diagnostic)
+            const auto prepareUi = environment.World().FramePreparation();
+            environment.World().SetFramePreparation(
+                [&](WorldState::ReadView candidate, const SceneChangeSet& changes, const ScriptUiCommands& commands,
+                    std::string& diagnostic)
                 {
                     if (!rejectResources)
-                        return prepareUi(candidate, commands, diagnostic);
-                    auto invalid = candidate;
+                        return prepareUi(candidate, changes, commands, diagnostic);
+                    auto invalid = candidate.ExportLayout();
                     const auto field = std::find_if(invalid.objects.begin(), invalid.objects.end(),
                                                     [](const auto& object)
                                                     {
                                                         return object.id == "input";
                                                     });
                     field->image->texture = "Assets/Textures/ValidationMissingUiTexture.png";
-                    return prepareUi(invalid, commands, diagnostic);
+                    WorldState invalidWorld(WorldDefinition::Compile(invalid));
+                    auto invalidChanges = changes;
+                    invalidChanges.components.push_back(
+                        {field->id, field->image->id, "image", SceneChangeKind::Modified});
+                    return prepareUi(invalidWorld.Read(), invalidChanges, commands, diagnostic);
                 });
             const auto beforeLayout = environment.World().Layout().Serialize();
             const auto beforeClock = environment.MotionSeconds();
@@ -233,7 +241,7 @@ namespace ScriptUiValidation
                         environment.Ui().strings.at("name").empty() && environment.Ui().Value("gain") == .125f,
                     "next accepted frame resumes from unchanged numeric and typed Script state");
             Require(pixel() != updated, "accepted transactional UI resources replace the previous rendered text");
-            environment.World().SetUiPreparation(prepareUi);
+            environment.World().SetFramePreparation(prepareUi);
             Require(renderer.WaitForIdle(), "Script UI resources finish before destruction");
         }
         Require(ScriptRegistry::InstallModule("ValidationUiCommandOwner", {}, error),

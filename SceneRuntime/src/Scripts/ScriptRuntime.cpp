@@ -1,12 +1,16 @@
 #include <Engine/Core/Validation.h>
 #include <Engine/Core/Utf8.h>
 #include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <SceneRuntime/Scripts/RuntimeScripts.h>
+#include <Engine/Assets/ContentContext.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>
+#include <SceneRuntime/Scene/SceneTransforms.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Profiler.h>
 #include <algorithm>
 #include <cmath>
 #include <set>
+#include <unordered_map>
 #include <stdexcept>
 
 namespace
@@ -57,10 +61,13 @@ namespace
             if (target->parentId != context.object.parentId)
                 throw std::runtime_error("FollowTarget requires the same parent as its target");
             const auto& offset = std::get<ScriptValue::Object>(context.Data("offset")->value);
+            auto transform = *context.scene->Read().Transform(context.object.id);
             const auto position = target->position;
             const char* axes[] = {"x", "y", "z"};
             for (size_t axis = 0; axis < 3; ++axis)
-                context.object.position[axis] = position[axis] + std::get<float>(offset.at(axes[axis]).value);
+                transform.position[axis] = position[axis] + std::get<float>(offset.at(axes[axis]).value);
+            if (!context.SetLocalTransform(transform).succeeded)
+                throw std::runtime_error("FollowTarget produced an invalid transform");
         };
         return follow;
     }
@@ -189,8 +196,75 @@ namespace
 namespace SceneRuntime
 {
 
+    WorldReadView ScriptScene::Read() const noexcept
+    {
+        if (runtimeRead_)
+            return *runtimeRead_;
+        return WorldReadView(layout_);
+    }
+
+    SceneEditResult ScriptContext::SetLocalTransform(const LocalTransform& transform)
+    {
+        return SceneTransformEdit::Apply(object, transform);
+    }
+
+    SceneEditResult ScriptContext::SetComponents(const ScenePlacement& components)
+    {
+        if (!scene)
+            return {};
+        auto candidate = scene->ComponentsFor(object.id);
+        const auto before = candidate;
+        candidate.CopyComponents(components);
+        SceneEditResult result{true, {}};
+        result.changes.RecordObject(before, candidate);
+        if (!result.changes.Empty())
+            scene->SetComponents(object.id, candidate);
+        return result;
+    }
+
+    void ScriptContext::SetParent(std::string parent)
+    {
+        if (!scene)
+            throw std::runtime_error("Parent changes require an active script phase");
+        scene->SetParent(object.id, std::move(parent));
+    }
+
+    ScenePlacement ScriptScene::ComponentsFor(const std::string& id) const
+    {
+        if (runtime_)
+        {
+            const auto entity = runtime_->Find(id);
+            if (!entity)
+                throw std::runtime_error("Component owner missing: " + id);
+            auto candidate = runtime_->LegacyComponents(*entity);
+            if (const auto found = components_.find(id); found != components_.end())
+                candidate.CopyComponents(found->second);
+            return candidate;
+        }
+        const auto* object = Find(id);
+        if (!object)
+            throw std::runtime_error("Component owner missing: " + id);
+        auto candidate = *object;
+        if (const auto found = components_.find(id); found != components_.end())
+            candidate.CopyComponents(found->second);
+        return candidate;
+    }
+
+    void ScriptScene::SetParent(std::string id, std::string parent)
+    {
+        parents_.insert_or_assign(std::move(id), std::move(parent));
+    }
+
     const ScenePlacement* ScriptScene::Find(const std::string& id) const
     {
+        if (runtime_)
+        {
+            if (runtimeOwner_ && runtimeOwner_->id == id)
+                return runtimeOwner_;
+            const auto entity = runtime_->Find(id);
+            auto object = entity ? runtime_->Read().Object(*entity) : std::nullopt;
+            return object ? &runtimeObjects_.insert_or_assign(id, std::move(*object)).first->second : nullptr;
+        }
         const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
                                         [&](const auto& item)
                                         {
@@ -201,6 +275,12 @@ namespace SceneRuntime
     std::vector<std::string> ScriptScene::FindByName(const std::string& name) const
     {
         std::vector<std::string> result;
+        if (runtime_)
+        {
+            for (const auto entity : runtime_->FindByName(name))
+                result.push_back(*runtime_->Read().ObjectId(entity));
+            return result;
+        }
         for (const auto& item : layout_.objects)
             if (item.name == name)
                 result.push_back(item.id);
@@ -208,6 +288,8 @@ namespace SceneRuntime
     }
     std::string ScriptScene::Spawn(ScenePlacement object)
     {
+        if (runtime_)
+            return runtime_->Spawn(std::move(object));
         if (spawned_.size() >= 4096)
             throw std::runtime_error("Script spawn limit exceeded");
         if (reservedIds_.empty())
@@ -238,6 +320,13 @@ namespace SceneRuntime
     }
     std::string ScriptScene::Instantiate(const std::string& id, const std::array<float, 3>& position)
     {
+        if (runtime_)
+        {
+            const auto entity = runtime_->Find(id);
+            if (!entity)
+                throw std::runtime_error("Instantiate source missing: " + id);
+            return runtime_->Instantiate(*entity, position);
+        }
         const auto* source = Find(id);
         if (!source)
             throw std::runtime_error("Instantiate source missing: " + id);
@@ -268,6 +357,12 @@ namespace SceneRuntime
     }
     void ScriptScene::Destroy(const std::string& id)
     {
+        if (runtime_)
+        {
+            if (const auto entity = runtime_->Find(id))
+                runtime_->Destroy(*entity);
+            return;
+        }
         destroyed_.insert(id);
     }
     void ScriptScene::SetComponents(const std::string& id, const ScenePlacement& components)
@@ -341,6 +436,8 @@ namespace SceneRuntime
     }
     void ScriptScene::Commit()
     {
+        if (runtime_)
+            throw std::logic_error("Only the runtime session may commit a script phase");
         if (uiCommands.values.size() + uiCommands.texts.size() > 256)
             throw std::runtime_error("Too many UI commands");
         for (const auto& [key, value] : uiCommands.values)
@@ -356,6 +453,33 @@ namespace SceneRuntime
             }
         for (auto& item : spawned_)
             layout_.objects.push_back(std::move(item));
+        if (!parents_.empty())
+        {
+            std::vector<DirectX::XMFLOAT4X4> matrices;
+            std::string error;
+            if (!SceneTransforms::Resolve(layout_, matrices, error))
+                throw std::runtime_error(error);
+            std::unordered_map<std::string, size_t> indices;
+            for (size_t index = 0; index < layout_.objects.size(); ++index)
+                indices.emplace(layout_.objects[index].id, index);
+            for (const auto& [id, parent] : parents_)
+            {
+                const auto found = indices.find(id), target = indices.find(parent);
+                if (found == indices.end() || (!parent.empty() && target == indices.end()))
+                    throw std::runtime_error("Parent change references a missing object");
+                auto local = matrices[found->second];
+                if (!parent.empty() && !SceneTransforms::WorldToLocal(local, matrices[target->second], local))
+                    throw std::runtime_error("Parent change cannot preserve the world transform");
+                auto& object = layout_.objects[found->second];
+                ScenePlacement candidate;
+                if (!SceneTransforms::ReadTransform(local, object, candidate))
+                    throw std::runtime_error("Parent change introduces an unsupported transform");
+                object.position = candidate.position;
+                object.rotation = candidate.rotation;
+                object.scale = candidate.scale;
+                object.parentId = parent;
+            }
+        }
         DestroyQueuedObjects();
         PruneAnimatorCommands();
         if (destroyed_.contains(layout_.settings.mainCamera))
@@ -382,6 +506,8 @@ namespace SceneRuntime
                                                       const std::array<float, 3>& direction, float distance,
                                                       unsigned int mask, bool triggers, const std::string& ignore) const
     {
+        if (runtime_)
+            return runtime_->Raycast(origin, direction, distance, mask, triggers, ignore);
         return physics_ ? physics_->Raycast(origin, direction, distance, mask, triggers, ignore) : std::nullopt;
     }
     void ScriptScene::PlayAudio(const std::string& object)
@@ -723,25 +849,27 @@ namespace SceneRuntime
             }
         }
     }
-    void ScriptRuntime::Pause(SceneLayout& layout, bool paused) noexcept
+    bool ScriptRuntime::Pause(SceneLayout& layout, bool paused) noexcept
     {
         if (paused_ == paused)
-            return;
-        paused_ = paused;
-        for (auto& [key, instance] : instances_)
+            return true;
+        try
         {
-            static_cast<void>(key);
-            try
+            auto candidate = layout;
+            auto runtime = *this;
+            runtime.paused_ = paused;
+            for (auto& [key, instance] : runtime.instances_)
             {
-                const auto definition = Definitions().find(instance.behaviour);
-                if (definition == Definitions().end() || !definition->second.pause)
+                static_cast<void>(key);
+                const auto definition = runtime.Definitions().find(instance.behaviour);
+                if (definition == runtime.Definitions().end() || !definition->second.pause)
                     continue;
-                const auto owner = std::find_if(layout.objects.begin(), layout.objects.end(),
+                const auto owner = std::find_if(candidate.objects.begin(), candidate.objects.end(),
                                                 [&](const auto& object)
                                                 {
                                                     return object.id == instance.owner;
                                                 });
-                if (owner == layout.objects.end())
+                if (owner == candidate.objects.end())
                     continue;
                 ScriptContext context{*owner, instance.parameters, instance.state};
                 context.content = content_;
@@ -750,11 +878,52 @@ namespace SceneRuntime
                 context.dataState = &instance.dataState;
                 definition->second.pause(context, paused);
             }
-            catch (...)
-            {
-                Engine::Log::Warning("Script pause callback failed");
-            }
+            std::string error;
+            if (!ValidateForPlay(candidate, error, &runtime.Definitions()))
+                throw std::runtime_error(error);
+            layout = std::move(candidate);
+            *this = std::move(runtime);
+            return true;
         }
+        catch (...)
+        {
+            Engine::Log::Warning("Script pause callback failed; previous state retained");
+            return false;
+        }
+    }
+
+    SceneChangeSet ScriptRuntime::ChangesSince(const ScriptRuntime& previous) const
+    {
+        SceneChangeSet changes;
+        if (paused_ != previous.paused_)
+            changes.fields.push_back({{}, {}, "runtime.paused"});
+        if (uiCommands_.values != previous.uiCommands_.values)
+            changes.fields.push_back({{}, {}, "runtime.ui.values"});
+        if (uiCommands_.texts != previous.uiCommands_.texts)
+            changes.fields.push_back({{}, {}, "runtime.ui.texts"});
+        if (animatorParameters_ != previous.animatorParameters_)
+            changes.fields.push_back({{}, {}, "runtime.animatorParameters"});
+        if (ikTargets_ != previous.ikTargets_)
+            changes.fields.push_back({{}, {}, "runtime.ikTargets"});
+        if (rootMotions_ != previous.rootMotions_)
+            changes.fields.push_back({{}, {}, "runtime.rootMotion"});
+        for (const auto& [key, instance] : instances_)
+        {
+            const auto found = previous.instances_.find(key);
+            if (found == previous.instances_.end() || found->second.behaviour != instance.behaviour)
+                changes.fields.push_back({key.first, key.second, "runtime.instance"});
+            if (found == previous.instances_.end() || instance.state != found->second.state)
+                changes.fields.push_back({key.first, key.second, "runtime.state"});
+            if (found == previous.instances_.end() || instance.dataState != found->second.dataState)
+                changes.fields.push_back({key.first, key.second, "runtime.dataState"});
+        }
+        for (const auto& [key, instance] : previous.instances_)
+        {
+            static_cast<void>(instance);
+            if (!instances_.contains(key))
+                changes.fields.push_back({key.first, key.second, "runtime.instance"});
+        }
+        return changes;
     }
     ScriptRuntime::Instance& ScriptRuntime::GetInstance(ScenePlacement& object, const ScriptComponent& script,
                                                         const ScriptDefinition& definition, const TickContext& tick)

@@ -1,5 +1,6 @@
 #include "ArchitectureAuditFixValidation.h"
 #include "ReauditFixValidation.h"
+#include "ChangeCaptureValidation.h"
 #include "../../../Editor/src/Playback/GameSession.h"
 #include "../../../Editor/src/Documents/SceneDocument.h"
 #include "../../../Editor/src/Documents/MaterialDocument.h"
@@ -220,10 +221,10 @@ namespace
                 for (const int mode : {1, 2, 3, 4})
                 {
                     *failure = mode;
-                    const auto prepare = environment.World().UiPreparation();
+                    const auto prepare = environment.World().FramePreparation();
                     if (mode >= 3)
-                        environment.World().SetUiPreparation(
-                            [mode](const auto&, const auto&, std::string& diagnostic)
+                        environment.World().SetFramePreparation(
+                            [mode](const auto&, const auto&, const auto&, std::string& diagnostic)
                             {
                                 if (mode == 4)
                                     throw std::runtime_error("injected transition preparation exception");
@@ -232,7 +233,7 @@ namespace
                             });
                     Require(!environment.LoadScene("Assets/Scenes/Incoming.json", additive, error),
                             "Start and post-start resources must succeed before transition");
-                    environment.World().SetUiPreparation(prepare);
+                    environment.World().SetFramePreparation(prepare);
                     Require(environment.World().Layout().Serialize() == before && environment.Ui().values == ui &&
                                 environment.SceneRevision() == revision && environment.MotionSeconds() == clock &&
                                 environment.Scenes().Entries().size() == 1 && persistent->active == 1 &&
@@ -339,7 +340,7 @@ namespace
             });
         const auto before = session.Runtime()->World().Layout().Serialize();
         const auto ui = session.Runtime()->Ui().values;
-        const auto prepare = session.Runtime()->World().UiPreparation();
+        const auto prepare = session.Runtime()->World().FramePreparation();
         Engine::InputActions actions;
         Engine::InputSnapshot snapshot;
         snapshot.active = true;
@@ -348,8 +349,8 @@ namespace
         {
             *failure = mode;
             if (mode == 3)
-                session.Runtime()->World().SetUiPreparation(
-                    [](const auto&, const auto&, std::string& diagnostic)
+                session.Runtime()->World().SetFramePreparation(
+                    [](const auto&, const auto&, const auto&, std::string& diagnostic)
                     {
                         diagnostic = "injected frame UI failure";
                         return false;
@@ -361,7 +362,7 @@ namespace
                         session.State().Elapsed() == 0 && session.Runtime()->MotionSeconds() == 0 &&
                         session.Runtime()->Ui().values == ui && victim->active == 1 && victim->stops == 0 && audio == 0,
                     "failed frame restores all phases, lifecycle, UI, audio and clocks");
-            session.Runtime()->World().SetUiPreparation(prepare);
+            session.Runtime()->World().SetFramePreparation(prepare);
         }
         *failure = 0;
         session.PrepareInput(actions, true, 1.0 / 120, &snapshot);
@@ -389,7 +390,7 @@ namespace
     void ValidateProceduralCache(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root)
     {
         Engine::ModelManager models;
-        Require(models.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), root / "Shaders/Mesh.hlsl"),
+        Require(models.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), root / "Engine/Shaders/Mesh.hlsl"),
                 "procedural cache initialization");
         int generated = 0;
         const auto generate = [&]()
@@ -430,7 +431,7 @@ namespace
         terrainScene.objects = {terrain};
         SceneWorld world;
         std::string error;
-        Require(world.Initialize(renderer, root, terrainScene, root / "Shaders/Mesh.hlsl", &error), error);
+        Require(world.Initialize(renderer, root, terrainScene, root / "Engine/Shaders/Mesh.hlsl", &error), error);
         Engine::Camera camera;
         camera.SetPosition({0, 2, -4});
         Require(renderer.Render({0, 0, 0, 1},
@@ -452,7 +453,8 @@ namespace ArchitectureAuditFixValidation
                           (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         std::filesystem::create_directories(root / "Assets/Scenes");
         std::filesystem::create_directories(root / "Assets/Materials");
-        std::filesystem::copy("Content/Shaders", root / "Shaders", std::filesystem::copy_options::recursive);
+        std::filesystem::create_directories(root / "Engine");
+        std::filesystem::copy("Engine/Shaders", root / "Engine/Shaders", std::filesystem::copy_options::recursive);
         SceneLayout{}.Save(root / "Assets/Scenes/Empty.json");
         ValidateProjectConflict(root);
         ValidateDocumentSave(root);
@@ -462,6 +464,11 @@ namespace ArchitectureAuditFixValidation
                 "audit regression renderer");
         ValidateSceneTransition(renderer, root);
         ValidateFrame(renderer, root);
+        ChangeCaptureValidation::Runtime(renderer, root,
+                                         [](const std::string& id, bool ok)
+                                         {
+                                             Require(ok, id);
+                                         });
         ValidateProceduralCache(renderer, root);
         ReauditFixValidation::Lifecycle(renderer, root);
         ReauditFixValidation::Save(root);

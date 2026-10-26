@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\Rendering" />
+    <Filter Include="include\SceneRuntime\Rendering" />
+    <Filter Include="src\Scene" />
+    <Filter Include="include\SceneRuntime\Scene" />
+    <Filter Include="src\Scripts" />
+    <Filter Include="include\SceneRuntime\Scripts" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Rendering\RenderPacket.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Rendering\RenderPacket.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\RenderTelemetry.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+    <ClCompile Include="src\Scene\WorldDefinition.cpp"><Filter>src\Scene</Filter></ClCompile>
+    <ClCompile Include="src\Scene\WorldState.cpp"><Filter>src\Scene</Filter></ClCompile>
+    <ClCompile Include="src\Scene\WorldStateReadAdapter.cpp"><Filter>src\Scene</Filter></ClCompile>
+    <ClCompile Include="src\Scene\RuntimeSession.cpp"><Filter>src\Scene</Filter></ClCompile>
+    <ClCompile Include="src\Scene\RuntimePipeline.cpp"><Filter>src\Scene</Filter></ClCompile>
+    <ClCompile Include="src\Scripts\RuntimeScripts.cpp"><Filter>src\Scripts</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Scene\EntityHandle.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\WorldDefinition.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\WorldState.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\WorldStateReadAdapter.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\RuntimeSession.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\RuntimePipeline.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\RuntimeScripts.h"><Filter>include\SceneRuntime\Scripts</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scripts\ScriptSignals.h"><Filter>include\SceneRuntime\Scripts</Filter></ClInclude>
+  </ItemGroup>
+</Project>

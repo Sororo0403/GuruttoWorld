@@ -40,6 +40,7 @@
     <ClCompile Include="src\Animation\Animator.cpp">
       <Filter>src\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="src\Animation\RuntimeAnimation.cpp"><Filter>src\Animation</Filter></ClCompile>
     <ClCompile Include="src\Physics\Ragdoll.cpp">
       <Filter>src\Physics</Filter>
     </ClCompile>
@@ -52,6 +53,8 @@
     <ClCompile Include="src\Gameplay\Navigation.cpp">
       <Filter>src\Gameplay</Filter>
     </ClCompile>
+    <ClCompile Include="src\Gameplay\RuntimeNavigation.cpp"><Filter>src\Gameplay</Filter></ClCompile>
+    <ClCompile Include="src\Scene\RuntimeSimulation.cpp"><Filter>src\Scene</Filter></ClCompile>
     <ClCompile Include="src\Ui\SceneUi.cpp">
       <Filter>src\Ui</Filter>
     </ClCompile>
@@ -76,6 +79,7 @@
     <ClCompile Include="src\Animation\BlendTreePose.cpp">
       <Filter>src\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="src\Scene\SceneWorldRuntime.cpp"><Filter>src\Scene</Filter></ClCompile>
     <ClCompile Include="src\Scene\SceneTransactions.cpp">
       <Filter>src\Scene</Filter>
     </ClCompile>
@@ -85,9 +89,13 @@
     <ClCompile Include="src\Physics\PhysicsWorld.cpp">
       <Filter>src\Physics</Filter>
     </ClCompile>
+    <ClCompile Include="src\Physics\PhysicsFrame.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Physics\RuntimePhysics.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Physics\RuntimeRagdoll.cpp"><Filter>src\Physics</Filter></ClCompile>
     <ClCompile Include="src\Scripts\ScriptRuntime.cpp">
       <Filter>src\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="src\Scripts\LegacyScriptAdapter.cpp"><Filter>src\Scripts</Filter></ClCompile>
     <ClCompile Include="src\Scripts\ScriptModule.cpp">
       <Filter>src\Scripts</Filter>
     </ClCompile>
@@ -295,9 +303,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Audio\AudioCommand.cpp">
-      <Filter>src\Audio</Filter>
-    </ClCompile>
     <ClCompile Include="src\Gameplay\GamePlayback.cpp">
       <Filter>src\Gameplay</Filter>
     </ClCompile>
@@ -319,6 +324,11 @@
     <ClCompile Include="src\Rendering\MaterialTextureCache.cpp">
       <Filter>src\Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="src\Rendering\RuntimePresentationData.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClInclude Include="src\Rendering\RuntimePresentationData.h"><Filter>src\Rendering</Filter></ClInclude>
+    <ClCompile Include="src\Rendering\RenderScene.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Rendering\RenderScene.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+    <ClInclude Include="src\Rendering\SceneRenderResources.h"><Filter>src\Rendering</Filter></ClInclude>
     <ClCompile Include="src\Rendering\SceneRenderPlan.cpp">
       <Filter>src\Rendering</Filter>
     </ClCompile>
@@ -328,11 +338,28 @@
     <ClCompile Include="src\Scene\SceneCollection.cpp">
       <Filter>src\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="src\Scripts\ScriptSchemaFiles.cpp">
-      <Filter>src\Scripts</Filter>
-    </ClCompile>
     <ClCompile Include="src\Ui\SceneCanvas.cpp">
       <Filter>src\Ui</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Physics\PhysicsJoints.cpp">
+      <Filter>src\Physics</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Physics\PhysicsFrame.h"><Filter>src\Physics</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Physics\RuntimePhysics.h"><Filter>include\SceneRuntime\Physics</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Physics\RuntimeRagdoll.h"><Filter>include\SceneRuntime\Physics</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\Animation\RuntimeAnimation.h"><Filter>include\SceneRuntime\Animation</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\Scripts\LegacyScriptAdapter.h"><Filter>include\SceneRuntime\Scripts</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\Gameplay\RuntimeNavigation.h"><Filter>include\SceneRuntime\Gameplay</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\RuntimeSimulation.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
   </ItemGroup>
 </Project>

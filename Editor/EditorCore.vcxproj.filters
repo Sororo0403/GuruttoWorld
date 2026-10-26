@@ -53,7 +53,7 @@
     <ClCompile Include="src\Assets\AssetManagementPanel.cpp">
       <Filter>src\Assets</Filter>
     </ClCompile>
-    <ClCompile Include="src\Assets\AssetPreview.cpp">
+    <ClCompile Include="src\Assets\AssetPreviewState.cpp">
       <Filter>src\Assets</Filter>
     </ClCompile>
     <ClCompile Include="src\Assets\AudioPreview.cpp">
@@ -81,6 +81,9 @@
       <Filter>src\Documents</Filter>
     </ClCompile>
     <ClCompile Include="src\Documents\SceneDocument.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\SceneDocumentProjection.cpp">
       <Filter>src\Documents</Filter>
     </ClCompile>
     <ClCompile Include="src\Documents\SceneRecovery.cpp">

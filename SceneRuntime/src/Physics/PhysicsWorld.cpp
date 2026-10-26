@@ -29,6 +29,8 @@
 #include <Jolt/Physics/StateRecorderImpl.h>
 #pragma warning(pop)
 #include "PhysicsJoints.h"
+#include "PhysicsFrame.h"
+#include <SceneRuntime/Scene/RuntimeSession.h>
 #include <cmath>
 #include <mutex>
 #include <set>
@@ -75,7 +77,7 @@ namespace
             throw std::runtime_error("Cannot read collider GLB dependencies");
         return Engine::Json::parse(json);
     }
-    QueryFiles QueryGeometryFiles(const SceneLayout& layout, const std::filesystem::path& root)
+    QueryFiles QueryGeometryFiles(const PhysicsFrame& layout, const std::filesystem::path& root)
     {
         QueryFiles files;
         for (const auto& object : layout.objects)
@@ -188,7 +190,7 @@ namespace
             return a == 1 || b == 1;
         }
     };
-    bool Related(const SceneLayout& scene, size_t a, size_t b)
+    bool Related(const PhysicsFrame& scene, size_t a, size_t b)
     {
         const auto ancestor = [&](size_t child, size_t parent)
         {
@@ -218,8 +220,8 @@ namespace
     };
     Pose ReadPose(const Matrix& matrix)
     {
-        ScenePlacement reference, pose;
-        if (!SceneTransforms::ReadTransform(matrix, reference, pose))
+        PhysicsObject reference, pose;
+        if (!PhysicsTransforms::ReadTransform(matrix, reference, pose))
             throw std::runtime_error("Physics requires a transform without inherited shear");
         DirectX::XMVECTOR scale, rotation, position;
         if (!DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&matrix)))
@@ -245,7 +247,7 @@ namespace
             throw std::runtime_error(result.GetError().c_str());
         return result.Get();
     }
-    std::vector<Engine::MeshData> ColliderMeshes(const ScenePlacement& object, const std::filesystem::path& root)
+    std::vector<Engine::MeshData> ColliderMeshes(const PhysicsObject& object, const std::filesystem::path& root)
     {
         const auto& c = *object.boxCollider;
         if (c.shape == "terrain")
@@ -268,7 +270,7 @@ namespace
             throw std::runtime_error("Collider model cannot be loaded");
         return meshes;
     }
-    JPH::RefConst<JPH::Shape> Shape(const ScenePlacement& object, const Pose& pose, const std::filesystem::path& root)
+    JPH::RefConst<JPH::Shape> Shape(const PhysicsObject& object, const Pose& pose, const std::filesystem::path& root)
     {
         const auto& c = *object.boxCollider;
         JPH::RefConst<JPH::Shape> shape;
@@ -316,11 +318,11 @@ namespace
         return Checked(
             JPH::RotatedTranslatedShapeSettings(V(c.center) * V(pose.scale), JPH::Quat::sIdentity(), shape).Create());
     }
-    bool PhysicsController(const ScenePlacement& object)
+    bool PhysicsController(const PhysicsObject& object)
     {
         return object.playerController && object.playerController->enabled && object.playerController->usePhysics;
     }
-    Pose ColliderPose(const ScenePlacement& object, const Matrix& matrix, bool& baked)
+    Pose ColliderPose(const PhysicsObject& object, const Matrix& matrix, bool& baked)
     {
         try
         {
@@ -361,7 +363,7 @@ namespace
             return false;
         return true;
     }
-    JPH::RefConst<JPH::Shape> BakedShape(const ScenePlacement& object, const Matrix& matrix,
+    JPH::RefConst<JPH::Shape> BakedShape(const PhysicsObject& object, const Matrix& matrix,
                                          const std::filesystem::path& root)
     {
         const auto& c = *object.boxCollider;
@@ -403,7 +405,7 @@ namespace
         }
         return Checked(JPH::ConvexHullShapeSettings(points, 0).Create());
     }
-    template <class Component> bool Enabled(const std::optional<Component>& component)
+    template <class Component> bool Enabled(const Component& component)
     {
         return component && component->enabled;
     }
@@ -413,7 +415,7 @@ namespace
         std::array<float, 3> position, rotation, scale;
     };
 
-    void ValidateControllers(const SceneLayout& layout)
+    void ValidateControllers(const PhysicsFrame& layout)
     {
         for (const auto& object : layout.objects)
             if (object.playerController)
@@ -430,7 +432,7 @@ namespace
             }
     }
 
-    std::vector<TransformBackup> CaptureTransforms(const SceneLayout& layout)
+    std::vector<TransformBackup> CaptureTransforms(const PhysicsFrame& layout)
     {
         std::vector<TransformBackup> transforms;
         transforms.reserve(layout.objects.size());
@@ -443,7 +445,7 @@ namespace
         return transforms;
     }
 
-    void RestoreTransforms(SceneLayout& layout, const std::vector<TransformBackup>& transforms)
+    void RestoreTransforms(PhysicsFrame& layout, const std::vector<TransformBackup>& transforms)
     {
         for (const auto& transform : transforms)
         {
@@ -454,7 +456,7 @@ namespace
         }
     }
 
-    size_t ObjectDepth(const SceneLayout& before, size_t index)
+    size_t ObjectDepth(const PhysicsFrame& before, size_t index)
     {
         size_t count = 0;
         auto parent = before.objects.at(index).parentId;
@@ -494,12 +496,12 @@ namespace SceneRuntime
         JPH::TempAllocatorImpl temporary{16 * 1024 * 1024};
         JPH::JobSystemSingleThreaded jobs{JPH::cMaxPhysicsJobs};
         JPH::PhysicsSystem system;
-        SceneLayout definition;
+        PhysicsFrame definition;
         std::map<std::string, Entry> entries;
         std::map<JPH::uint32, size_t> bodyObjects;
         std::vector<JPH::Ref<JPH::Constraint>> constraints;
         std::set<Contact> contacts;
-        explicit Impl(const SceneLayout& layout) : definition(layout)
+        explicit Impl(const PhysicsFrame& layout) : definition(layout)
         {
             system.Init(8192, 0, 32768, 32768, layers, broadFilter, pairFilter);
             system.SetGravity({layout.settings.gravity[0], layout.settings.gravity[1], layout.settings.gravity[2]});
@@ -565,7 +567,7 @@ namespace SceneRuntime
                        (actor == SIZE_MAX || world.Allowed(actor, found->second));
             }
         };
-        void CreateCharacter(Entry& entry, const ScenePlacement& object, const JPH::RefConst<JPH::Shape>& shape,
+        void CreateCharacter(Entry& entry, const PhysicsObject& object, const JPH::RefConst<JPH::Shape>& shape,
                              const ScenePhysics::States& states, bool body)
         {
             if (body || object.boxCollider->isTrigger ||
@@ -586,7 +588,7 @@ namespace SceneRuntime
                 entry.character->SetLinearVelocity({0, state->second.verticalSpeed, 0});
         }
 
-        void CreateBody(Entry& entry, const ScenePlacement& object, const JPH::RefConst<JPH::Shape>& shape,
+        void CreateBody(Entry& entry, const PhysicsObject& object, const JPH::RefConst<JPH::Shape>& shape,
                         const Impl* old, bool controller, bool body)
         {
             const auto motion =
@@ -619,6 +621,8 @@ namespace SceneRuntime
                 {
                     const auto found = old->entries.find(object.id);
                     if (found != old->entries.end() &&
+                        old->definition.objects[found->second.index].bodyInstance == object.bodyInstance &&
+                        old->definition.objects[found->second.index].entity == object.entity &&
                         old->definition.objects[found->second.index].rigidBody == object.rigidBody)
                     {
                         settings.mLinearVelocity = old->system.GetBodyInterface().GetLinearVelocity(found->second.body);
@@ -679,7 +683,7 @@ namespace SceneRuntime
                 contacts = old->contacts;
         }
         using EntryIterator = std::map<std::string, Entry>::const_iterator;
-        void ValidateJointBodies(const ScenePlacement& object, EntryIterator owner, EntryIterator target) const
+        void ValidateJointBodies(const PhysicsObject& object, EntryIterator owner, EntryIterator target) const
         {
             const auto& joint = *object.joint;
             if (owner == entries.end() || owner->second.character || !object.rigidBody || !object.rigidBody->enabled ||
@@ -727,10 +731,10 @@ namespace SceneRuntime
                 constraints.push_back(std::move(constraint));
             }
         }
-        static bool MatchesController(const std::optional<PlayerControllerComponent>& a,
-                                      const std::optional<PlayerControllerComponent>& b)
+        static bool MatchesController(const PhysicsValue<PlayerControllerComponent>& a,
+                                      const PhysicsValue<PlayerControllerComponent>& b)
         {
-            if (a.has_value() != b.has_value())
+            if (a.HasValue() != b.HasValue())
                 return false;
             if (!a)
                 return true;
@@ -738,15 +742,18 @@ namespace SceneRuntime
             return a->id == b->id && a->enabled == b->enabled && a->usePhysics == b->usePhysics &&
                    a->maxSlopeDegrees == b->maxSlopeDegrees;
         }
-        static bool MatchesDefinition(const ScenePlacement& a, const ScenePlacement& b)
+        static bool MatchesDefinition(const PhysicsObject& a, const PhysicsObject& b)
         {
             if (a.boxCollider && a.boxCollider->shape == "mesh" && a.Model() != b.Model())
                 return false;
-            return !(a.id != b.id || a.parentId != b.parentId || a.boxCollider != b.boxCollider ||
-                     a.rigidBody != b.rigidBody || !MatchesController(a.playerController, b.playerController) ||
-                     a.terrain != b.terrain || a.tilemap != b.tilemap || a.joint != b.joint);
+            return !(a.entity != b.entity || a.colliderInstance != b.colliderInstance ||
+                     a.bodyInstance != b.bodyInstance || a.controllerInstance != b.controllerInstance ||
+                     a.jointInstance != b.jointInstance || a.id != b.id || a.parentId != b.parentId ||
+                     a.boxCollider != b.boxCollider || a.rigidBody != b.rigidBody ||
+                     !MatchesController(a.playerController, b.playerController) || a.terrain != b.terrain ||
+                     a.tilemap != b.tilemap || a.joint != b.joint);
         }
-        bool MatchesShape(const ScenePlacement& a, const Matrix& matrix) const
+        bool MatchesShape(const PhysicsObject& a, const Matrix& matrix) const
         {
             const auto& entry = entries.at(a.id);
             // 変更されない構築時の行列は、すでに形状の検証を通過しています。
@@ -767,7 +774,7 @@ namespace SceneRuntime
                     return false;
             return true;
         }
-        bool Matches(const SceneLayout& layout, const std::vector<Matrix>& matrices) const
+        bool Matches(const PhysicsFrame& layout, const std::vector<Matrix>& matrices) const
         {
             if (layout.settings.gravity != definition.settings.gravity)
                 return false;
@@ -787,7 +794,7 @@ namespace SceneRuntime
             }
             return true;
         }
-        void SynchronizeQueries(const SceneLayout& layout, const std::vector<Matrix>& matrices)
+        void SynchronizeQueries(const PhysicsFrame& layout, const std::vector<Matrix>& matrices)
         {
             for (auto& [id, entry] : entries)
             {
@@ -850,14 +857,14 @@ namespace SceneRuntime
                     events.push_back({std::get<0>(pair), std::get<1>(pair), "Exit", std::get<2>(pair)});
             contacts = std::move(current);
         }
-        bool ConstrainActor(const SceneLayout& candidate, SceneLayout& resolved, const std::vector<Matrix>& start,
+        bool ConstrainActor(const PhysicsFrame& candidate, PhysicsFrame& resolved, const std::vector<Matrix>& start,
                             std::vector<Matrix>& desired, size_t index, const std::filesystem::path& root,
                             std::string& error)
         {
             const auto& object = candidate.objects.at(index);
             if (object.boxCollider->shape == "mesh" && !object.boxCollider->convex)
                 throw std::runtime_error("Root motion requires a convex moving collider");
-            if (!SceneTransforms::Resolve(resolved, desired, error))
+            if (!PhysicsTransforms::Resolve(resolved, desired, error))
                 return false;
             const auto from = ReadPose(start.at(index)), to = ReadPose(desired.at(index));
             const auto shape = Shape(object, from, root);
@@ -891,7 +898,7 @@ namespace SceneRuntime
             if (!object.parentId.empty())
             {
                 std::vector<Matrix> parents;
-                if (!SceneTransforms::Resolve(resolved, parents, error))
+                if (!PhysicsTransforms::Resolve(resolved, parents, error))
                     return false;
                 const auto parent = std::find_if(resolved.objects.begin(), resolved.objects.end(),
                                                  [&](const auto& item)
@@ -899,11 +906,11 @@ namespace SceneRuntime
                                                      return item.id == object.parentId;
                                                  });
                 if (parent == resolved.objects.end() ||
-                    !SceneTransforms::WorldToLocal(local, parents[size_t(parent - resolved.objects.begin())], local))
+                    !PhysicsTransforms::WorldToLocal(local, parents[size_t(parent - resolved.objects.begin())], local))
                     throw std::runtime_error("Root collision parent conversion failed");
             }
-            ScenePlacement placement;
-            if (!SceneTransforms::ReadTransform(local, object, placement))
+            PhysicsObject placement;
+            if (!PhysicsTransforms::ReadTransform(local, object, placement))
                 throw std::runtime_error("Root collision transform cannot be represented");
             auto& result = resolved.objects[index];
             result.position = placement.position;
@@ -970,7 +977,7 @@ namespace SceneRuntime
             int step;
             bool jump;
         };
-        static void AdvanceKinematicPose(const ScenePlacement& object, float seconds, Pose& pose)
+        static void AdvanceKinematicPose(const PhysicsObject& object, float seconds, Pose& pose)
         {
             const auto& body = object.rigidBody;
             if (body && body->enabled)
@@ -982,11 +989,11 @@ namespace SceneRuntime
                         JPH::Quat::sRotation(angular.Normalized(), angular.Length() * seconds) * pose.rotation;
             }
         }
-        void SynchronizeBody(Entry& entry, const Matrix& matrix, const ScenePlacement& object, float seconds)
+        void SynchronizeBody(Entry& entry, const Matrix& matrix, const PhysicsObject& object, float seconds)
         {
             auto& bodies = system.GetBodyInterface();
             const bool moved = entry.baked ? !JPH::Vec3(matrix._41, matrix._42, matrix._43).IsClose(entry.pose.position)
-                                           : !SceneTransforms::Matches(WorldMatrix(entry.pose), matrix);
+                                           : !PhysicsTransforms::Matches(WorldMatrix(entry.pose), matrix);
             auto pose = entry.pose;
             const bool kinematic = !entry.character && bodies.GetMotionType(entry.body) == JPH::EMotionType::Kinematic;
             if (moved || kinematic)
@@ -1010,7 +1017,7 @@ namespace SceneRuntime
             else if (moved)
                 bodies.SetPositionAndRotation(entry.body, pose.position, pose.rotation, JPH::EActivation::Activate);
         }
-        void SynchronizeBodies(const SceneLayout& layout, const std::vector<Matrix>& matrices, float seconds,
+        void SynchronizeBodies(const PhysicsFrame& layout, const std::vector<Matrix>& matrices, float seconds,
                                const std::map<std::string, std::array<float, 3>>& impulses)
         {
             auto& bodies = system.GetBodyInterface();
@@ -1023,8 +1030,8 @@ namespace SceneRuntime
             }
         }
 
-        static DirectX::XMMATRIX ControllerParent(const SceneLayout& layout, const std::vector<Matrix>& matrices,
-                                                  const ScenePlacement& object)
+        static DirectX::XMMATRIX ControllerParent(const PhysicsFrame& layout, const std::vector<Matrix>& matrices,
+                                                  const PhysicsObject& object)
         {
             auto parent = DirectX::XMMatrixIdentity();
             if (!object.parentId.empty())
@@ -1038,12 +1045,12 @@ namespace SceneRuntime
             }
             return parent;
         }
-        static float ControllerSpeed(const ScenePlacement& object, const PlayerControllerComponent& controller)
+        static float ControllerSpeed(const PhysicsObject& object, const PlayerControllerComponent& controller)
         {
             return object.animator && object.animator->enabled && object.animator->rootMotion ? 0.0f
                                                                                               : controller.moveSpeed;
         }
-        void UpdateCharacter(const SceneLayout& layout, ScenePhysics::States& states,
+        void UpdateCharacter(const PhysicsFrame& layout, ScenePhysics::States& states,
                              const std::vector<Matrix>& matrices, const std::string& id, Entry& entry,
                              const CharacterStepInput& input)
         {
@@ -1085,7 +1092,7 @@ namespace SceneRuntime
             state.grounded = character.GetGroundState() == JPH::CharacterBase::EGroundState::OnGround;
         }
 
-        std::map<std::string, Matrix> PhysicalMatrices(const SceneLayout& layout)
+        std::map<std::string, Matrix> PhysicalMatrices(const PhysicsFrame& layout)
         {
             auto& bodies = system.GetBodyInterface();
             std::map<std::string, Matrix> physical;
@@ -1100,7 +1107,7 @@ namespace SceneRuntime
             }
             return physical;
         }
-        void ApplyPhysicsTransforms(SceneLayout& layout)
+        void ApplyPhysicsTransforms(PhysicsFrame& layout)
         {
             const auto physical = PhysicalMatrices(layout);
             std::map<std::string, Matrix> resolved;
@@ -1116,7 +1123,7 @@ namespace SceneRuntime
                                                     return item.id == id;
                                                 });
                 Matrix local{};
-                if (found == layout.objects.end() || !SceneTransforms::Compose(*found, local))
+                if (found == layout.objects.end() || !PhysicsTransforms::Compose(*found, local))
                     throw std::runtime_error("Invalid physics parent transform");
                 if (!found->parentId.empty())
                 {
@@ -1130,17 +1137,17 @@ namespace SceneRuntime
                 {
                     Matrix local = physical.at(object.id);
                     if (!object.parentId.empty() &&
-                        !SceneTransforms::WorldToLocal(local, world(world, object.parentId), local))
+                        !PhysicsTransforms::WorldToLocal(local, world(world, object.parentId), local))
                         throw std::runtime_error("Physics parent conversion failed");
-                    ScenePlacement placement;
-                    if (!SceneTransforms::ReadTransform(local, object, placement))
+                    PhysicsObject placement;
+                    if (!PhysicsTransforms::ReadTransform(local, object, placement))
                         throw std::runtime_error("Physics cannot save inherited shear");
                     object.position = placement.position;
                     object.rotation = placement.rotation;
                     object.scale = placement.scale;
                 }
         }
-        void Step(SceneLayout& layout, ScenePhysics::States& states, const std::vector<Matrix>& matrices,
+        void Step(PhysicsFrame& layout, ScenePhysics::States& states, const std::vector<Matrix>& matrices,
                   const StepInput& input, const std::map<std::string, std::array<float, 3>>& impulses,
                   std::vector<PhysicsContactEvent>& events)
         {
@@ -1179,12 +1186,14 @@ namespace SceneRuntime
         std::map<std::string, Pose> poses;
         std::set<Contact> contacts;
         std::map<std::string, std::array<float, 3>> impulses;
+        std::map<std::string, ComponentInstanceHandle> impulseOwners;
         std::vector<PhysicsContactEvent> events;
     };
     PhysicsWorld::Transaction::Transaction(PhysicsWorld& world) : world_(&world), state_(std::make_unique<State>())
     {
         state_->world = world.impl_;
         state_->impulses = world.impulses_;
+        state_->impulseOwners = world.impulseOwners_;
         state_->events = world.events_;
         if (!state_->world)
             return;
@@ -1209,6 +1218,7 @@ namespace SceneRuntime
             return;
         world_->impl_ = state_->world;
         world_->impulses_ = std::move(state_->impulses);
+        world_->impulseOwners_.swap(state_->impulseOwners);
         world_->events_ = std::move(state_->events);
         if (!state_->world)
             return;
@@ -1244,11 +1254,12 @@ namespace SceneRuntime
         impl_.reset();
         rootQueries_.reset();
         impulses_.clear();
+        impulseOwners_.clear();
         events_.clear();
     }
-    bool PhysicsWorld::ConstrainRootMotion(const SceneLayout& before, SceneLayout& candidate,
-                                           const std::vector<size_t>& actors, const std::filesystem::path& root,
-                                           std::string& error) const
+    bool PhysicsWorld::ConstrainFrame(const PhysicsFrame& before, PhysicsFrame& candidate,
+                                      const std::vector<size_t>& actors, const std::filesystem::path& root,
+                                      std::string& error) const
     {
         Engine::CpuScope scope("Root collision queries");
         try
@@ -1264,7 +1275,8 @@ namespace SceneRuntime
                 return true;
             }
             std::vector<Matrix> start, desired;
-            if (!SceneTransforms::Resolve(before, start, error) || !SceneTransforms::Resolve(candidate, desired, error))
+            if (!PhysicsTransforms::Resolve(before, start, error) ||
+                !PhysicsTransforms::Resolve(candidate, desired, error))
                 return false;
             if (!rootQueries_ || rootQueryRoot_ != root || !QueryFilesMatch(rootQueryFiles_) ||
                 !rootQueries_->Matches(before, start))
@@ -1306,7 +1318,8 @@ namespace SceneRuntime
     {
         if (!Finite(impulse) || (!impulses_.contains(id) && impulses_.size() >= 4096))
             return false;
-        auto value = impulses_[id];
+        const auto found = impulses_.find(id);
+        auto value = found == impulses_.end() ? std::array<float, 3>{} : found->second;
         for (size_t i = 0; i < 3; ++i)
             value[i] += impulse[i];
         if (!Finite(value) || std::any_of(value.begin(), value.end(),
@@ -1318,8 +1331,81 @@ namespace SceneRuntime
         impulses_[id] = value;
         return true;
     }
-    bool PhysicsWorld::Advance(SceneLayout& layout, ScenePhysics::States& states, double seconds, float horizontal,
-                               float vertical, bool jump, const std::filesystem::path& root, std::string& error)
+    bool PhysicsWorld::AddImpulse(WorldState::ReadView view, EntityHandle entity, const std::array<float, 3>& impulse)
+    {
+        const auto body = view.ComponentLease<RigidBodyComponent>(entity);
+        const auto instance = view.Instance<RigidBodyComponent>(entity);
+        if (!body || !body->enabled || body->motion != "dynamic" || !instance || !Finite(impulse))
+            return false;
+        const auto id = *view.ObjectId(entity);
+        const auto previous = impulseOwners_.find(id);
+        auto value = previous != impulseOwners_.end() && previous->second == *instance && impulses_.contains(id)
+                         ? impulses_.at(id)
+                         : std::array<float, 3>{};
+        for (size_t axis = 0; axis < 3; ++axis)
+            value[axis] += impulse[axis];
+        if (!Finite(value) ||
+            std::any_of(value.begin(), value.end(),
+                        [](float number)
+                        {
+                            return std::abs(number) > 1000000;
+                        }) ||
+            (!impulses_.contains(id) && impulses_.size() >= 4096))
+            return false;
+        std::map<std::string, std::array<float, 3>> stagedValues{{id, value}};
+        std::map<std::string, ComponentInstanceHandle> stagedOwners{{id, *instance}};
+        if (const auto found = impulses_.find(id); found != impulses_.end())
+            found->second = value;
+        else
+            impulses_.insert(stagedValues.extract(stagedValues.begin()));
+        if (previous != impulseOwners_.end())
+            previous->second = *instance;
+        else
+            impulseOwners_.insert(stagedOwners.extract(stagedOwners.begin()));
+        return true;
+    }
+    bool PhysicsWorld::PrepareScene(WorldState::ReadView view, const ScenePhysics::States& states,
+                                    const std::filesystem::path& root, std::string& error)
+    {
+        try
+        {
+            std::erase_if(impulseOwners_,
+                          [&](const auto& entry)
+                          {
+                              if (view.Alive(entry.second))
+                                  return false;
+                              impulses_.erase(entry.first);
+                              return true;
+                          });
+            if (!impl_ && view.With<BoxColliderComponent>().empty())
+            {
+                error.clear();
+                return true;
+            }
+            const auto frame = PhysicsFrame::Capture(view);
+            std::vector<Matrix> matrices;
+            if (!PhysicsTransforms::Resolve(frame, matrices, error))
+                return false;
+            if (!impl_ || !impl_->Matches(frame, matrices))
+            {
+                auto replacement = std::make_shared<Impl>(frame);
+                replacement->Build(matrices, root, impl_.get(), states);
+                impl_.swap(replacement);
+            }
+            else
+                impl_->SynchronizeQueries(frame, matrices);
+            error.clear();
+            return true;
+        }
+        catch (const std::exception& failure)
+        {
+            error = failure.what();
+            return false;
+        }
+    }
+    bool PhysicsWorld::AdvanceFrame(PhysicsFrame& layout, ScenePhysics::States& states, double seconds,
+                                    float horizontal, float vertical, bool jump, const std::filesystem::path& root,
+                                    std::string& error, const SceneLayout* legacyValidation)
     {
         if (!std::isfinite(seconds) || seconds <= 0 || !std::isfinite(horizontal) || !std::isfinite(vertical))
         {
@@ -1328,7 +1414,7 @@ namespace SceneRuntime
         }
         Engine::CpuScope advanceScope("Physics advance");
         std::vector<Matrix> matrices;
-        if (!SceneTransforms::Resolve(layout, matrices, error))
+        if (!PhysicsTransforms::Resolve(layout, matrices, error))
             return false;
         std::vector<TransformBackup> transforms;
         Impl::AdvanceBackup backup;
@@ -1344,7 +1430,8 @@ namespace SceneRuntime
             if (!activeWorld || !activeWorld->Matches(layout, matrices))
             {
                 Engine::CpuScope rebuildScope("Physics world rebuild");
-                static_cast<void>(layout.Serialize());
+                if (legacyValidation)
+                    static_cast<void>(legacyValidation->Serialize());
                 replacement = std::make_unique<Impl>(layout);
                 replacement->Build(matrices, root, impl_.get(), states);
                 activeWorld = replacement.get();
@@ -1360,13 +1447,14 @@ namespace SceneRuntime
                        {static_cast<float>(std::min(seconds, 0.1)), std::clamp(horizontal, -1.0f, 1.0f),
                         std::clamp(vertical, -1.0f, 1.0f), jump},
                        impulses_, events);
-            if (!SceneTransforms::Resolve(layout, matrices, error))
+            if (!PhysicsTransforms::Resolve(layout, matrices, error))
                 throw std::runtime_error(error);
             if (replacement)
                 impl_ = std::move(replacement);
             states = std::move(candidateStates);
             events_ = std::move(events);
             impulses_.clear();
+            impulseOwners_.clear();
             error.clear();
             return true;
         }
@@ -1405,5 +1493,104 @@ namespace SceneRuntime
         return PhysicsRayHit{object.id, distance * hit.mFraction, A(JPH::Vec3(position)),
                              A(lock.GetBody().GetWorldSpaceSurfaceNormal(hit.mSubShapeID2, position)),
                              object.boxCollider->isTrigger};
+    }
+
+    bool PhysicsWorld::Advance(SceneLayout& layout, ScenePhysics::States& states, double seconds, float horizontal,
+                               float vertical, bool jump, const std::filesystem::path& root, std::string& error)
+    {
+        auto frame = PhysicsFrame::Capture(layout);
+        if (!AdvanceFrame(frame, states, seconds, horizontal, vertical, jump, root, error, &layout))
+            return false;
+        for (size_t index = 0; index < frame.objects.size(); ++index)
+        {
+            layout.objects[index].position = frame.objects[index].position;
+            layout.objects[index].rotation = frame.objects[index].rotation;
+            layout.objects[index].scale = frame.objects[index].scale;
+        }
+        return true;
+    }
+    bool PhysicsWorld::Advance(WorldState::Transaction& transaction, ScenePhysics::States& states, double seconds,
+                               float horizontal, float vertical, bool jump, const std::filesystem::path& root,
+                               std::string& error, const std::map<std::string, bool>& rootMotions)
+    {
+        auto frame = PhysicsFrame::Capture(transaction.Read(), rootMotions);
+        auto rollback = BeginTransaction();
+        auto candidateStates = states;
+        if (std::any_of(frame.objects.begin(), frame.objects.end(),
+                        [](const auto& object)
+                        {
+                            return object.playerController && object.playerController->enabled &&
+                                   !object.playerController->usePhysics;
+                        }))
+        {
+            if (!ScenePhysics::AdvanceFrame(frame, candidateStates, seconds, horizontal, vertical, jump))
+            {
+                error = "Runtime player movement failed";
+                return false;
+            }
+        }
+        if (!AdvanceFrame(frame, candidateStates, seconds, horizontal, vertical, jump, root, error))
+            return false;
+        for (const auto& object : frame.objects)
+        {
+            const LocalTransform value{object.position, object.rotation, object.scale};
+            if (transaction.Read().Transform(object.entity) != value &&
+                !transaction.SetLocalTransform(object.entity, value, error).succeeded)
+                return false;
+        }
+        states.swap(candidateStates);
+        rollback.Commit();
+        return true;
+    }
+    bool PhysicsWorld::ConstrainRootMotion(WorldState::Transaction& transaction,
+                                           const std::vector<RuntimePose>& previous, const std::filesystem::path& root,
+                                           std::string& error) const
+    {
+        auto candidate = PhysicsFrame::Capture(transaction.Read());
+        auto before = candidate;
+        std::vector<size_t> actors;
+        for (const auto& pose : previous)
+        {
+            const auto found = std::find_if(before.objects.begin(), before.objects.end(),
+                                            [&](const auto& item)
+                                            {
+                                                return item.entity == pose.entity;
+                                            });
+            if (found == before.objects.end())
+            {
+                error = "Root motion owner is stale";
+                return false;
+            }
+            found->position = pose.transform.position;
+            found->rotation = pose.transform.rotation;
+            found->scale = pose.transform.scale;
+            actors.push_back(static_cast<size_t>(found - before.objects.begin()));
+        }
+        if (!ConstrainFrame(before, candidate, actors, root, error))
+            return false;
+        for (const auto index : actors)
+        {
+            const auto& actor = candidate.objects[index];
+            if (!transaction.SetLocalTransform(actor.entity, {actor.position, actor.rotation, actor.scale}, error)
+                     .succeeded)
+                return false;
+        }
+        return true;
+    }
+    bool PhysicsWorld::ConstrainRootMotion(const SceneLayout& before, SceneLayout& candidate,
+                                           const std::vector<size_t>& actors, const std::filesystem::path& root,
+                                           std::string& error) const
+    {
+        const auto start = PhysicsFrame::Capture(before);
+        auto frame = PhysicsFrame::Capture(candidate);
+        if (!ConstrainFrame(start, frame, actors, root, error))
+            return false;
+        for (size_t index = 0; index < frame.objects.size(); ++index)
+        {
+            candidate.objects[index].position = frame.objects[index].position;
+            candidate.objects[index].rotation = frame.objects[index].rotation;
+            candidate.objects[index].scale = frame.objects[index].scale;
+        }
+        return true;
     }
 }

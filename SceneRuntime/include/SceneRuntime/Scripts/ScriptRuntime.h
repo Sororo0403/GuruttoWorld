@@ -56,7 +56,14 @@ namespace SceneRuntime
         /// <summary>外側の更新成功後に開始処理を確定し、予約した終了処理を一度だけ呼びます。</summary>
         void CommitStarts() noexcept;
         /// <summary>実行中のスクリプトへ一時停止と再開を通知します。</summary>
-        void Pause(SceneLayout& layout, bool paused) noexcept;
+        bool Pause(SceneLayout& layout, bool paused) noexcept;
+        /// <summary>現在のPause状態を取得します。</summary>
+        bool Paused() const noexcept
+        {
+            return paused_;
+        }
+        /// <summary>指定した保存点から変化したScript実行インスタンスと状態フィールドを取得します。</summary>
+        SceneChangeSet ChangesSince(const ScriptRuntime& previous) const;
         /// <summary>開始済みの処理を終了し、実行状態と予約を破棄します。終了コールバックの例外はログへ記録します。</summary>
         void Stop(SceneLayout& layout) noexcept;
         /// <summary>取り除かれた個体の終了処理を旧配置で実行し、残る個体の実行状態を維持します。</summary>

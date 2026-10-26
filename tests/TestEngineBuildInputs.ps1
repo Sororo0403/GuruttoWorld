@@ -28,4 +28,11 @@ Write-Input 'SceneRuntime/include/SceneRuntime/NewApi.h' 'new api'
 if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 4) { throw 'New SDK source is absent from canonical inputs.' }
 Write-Input 'SceneRuntime/SceneStorage.vcxproj' 'storage source ownership'
 if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 5) { throw 'Storage project is absent from canonical inputs.' }
+Write-Input 'Tools/ProjectTool/ScriptBuild.cpp' 'native build orchestration'
+Write-Input 'Tools/ProjectTool/ProjectTool.vcxproj' 'native tool project'
+if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 7) { throw 'Native project tool is absent from canonical inputs.' }
+Write-Input 'Engine/EngineCore.vcxproj' 'CPU core source ownership'
+if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 8) { throw 'CPU core project is absent from canonical inputs.' }
+Write-Input 'SceneRuntime/SceneRuntimeCore.vcxproj' 'runtime CPU source ownership'
+if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 9) { throw 'Runtime CPU project is absent from canonical inputs.' }
 Write-Output 'PASS: canonical SDK inputs include vendor headers, dependency pins and optional native sources without output cycles'

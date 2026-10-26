@@ -37,6 +37,8 @@
   <ItemGroup>
     <ClCompile Include="src\Architecture\ArchitectureContractValidation.cpp" />
     <ClInclude Include="src\Architecture\ComponentContractValidation.h" />
+    <ClInclude Include="src\Architecture\ChangeCaptureValidation.h" />
+    <ClInclude Include="src\Architecture\CompleteChangeCaptureValidation.h" />
     <ClInclude Include="src\Assets\AssetReferenceContractValidation.h" />
     <ClInclude Include="src\Scripts\SchemaContractValidation.h" />
     <ClInclude Include="src\Architecture\MigrationContractValidation.h" />

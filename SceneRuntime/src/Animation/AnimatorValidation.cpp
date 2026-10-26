@@ -83,6 +83,19 @@ namespace
 }
 namespace SceneRuntime
 {
+    void Animator::ValidateIkTarget(const AnimatorIkTarget& target)
+    {
+        if (!Engine::InRange(target.weight, 0, 1))
+            throw std::runtime_error("Invalid IK target weight");
+        for (const auto& point : {target.target, target.hint})
+            if (std::ranges::any_of(point,
+                                    [](float value)
+                                    {
+                                        return !Engine::InRange(value, -1000000, 1000000);
+                                    }))
+                throw std::runtime_error("Invalid IK target point");
+    }
+
     void Animator::ValidateParameters(const std::map<std::string, float>& parameters)
     {
         if (parameters.size() > 64)

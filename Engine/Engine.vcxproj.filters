@@ -556,13 +556,7 @@
     <ClCompile Include="src\Animation\SkinMatrix.cpp">
       <Filter>src\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="src\Animation\SkinMatrix.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
     <ClCompile Include="src\Assets\AssetFileRevision.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\AssetPath.cpp">
       <Filter>src\Assets</Filter>
     </ClCompile>
     <ClCompile Include="src\Assets\AssetReferenceResolver.cpp">
@@ -589,20 +583,8 @@
     <ClCompile Include="src\Core\FileSaveLock.cpp">
       <Filter>src\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\Json.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\Profiler.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\Utf8.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\Graphics\DirectX12\GpuRetirement.cpp">
       <Filter>src\Graphics\DirectX12</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\Materials\PostEffectSettings.cpp">
-      <Filter>src\Graphics\Materials</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\Renderers\OcclusionRenderer.cpp">
       <Filter>src\Graphics\Renderers</Filter>

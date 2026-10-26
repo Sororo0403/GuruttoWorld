@@ -356,10 +356,11 @@ namespace Engine
 
     auto AssetDatabase::ReferenceId(const std::filesystem::path& path) const -> std::string
     {
-        const auto saved = index_->metadata.find(Text(path));
+        const auto canonical = Resolve(path);
+        const auto saved = index_->metadata.find(Text(canonical));
         if (snapshot_)
             return saved == index_->metadata.end() ? std::string{} : saved->second.id;
-        const auto raw = FileContents::Read(context_->Resolve(Sidecar(root_ / path)));
+        const auto raw = FileContents::Read(context_->Resolve(Sidecar(root_ / canonical)));
         return raw ? ParseMetadata(*raw).id : std::string{};
     }
 

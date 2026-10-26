@@ -1,7 +1,13 @@
 #include "SceneDocument.h"
+#include <Engine/Core/FileContents.h>
 
 namespace Editor
 {
+    std::optional<std::string> SceneDocument::ReadSource(const std::filesystem::path& path)
+    {
+        return Engine::FileContents::Read(path);
+    }
+
     auto SceneDocument::operator=(const SceneDocument& other) -> SceneDocument&
     {
         if (this == &other)
@@ -35,12 +41,9 @@ namespace Editor
         return candidate;
     }
 
-    auto SceneDocument::Apply(SceneRuntime::SceneWorld& world, const std::filesystem::path& root,
-                              OpenCandidate candidate, std::string& error) -> bool
+    bool SceneDocument::Apply(OpenCandidate candidate, std::string& error)
     {
-        const bool success = candidate.create_ ? world.ReplaceLayout(std::move(candidate.layout_), root, error)
-                                               : world.ReloadLayout(root, std::move(candidate.layout_), error, true);
-        if (!success)
+        if (!data_->Edit(SceneRuntime::ReplaceDocumentEdit{std::move(candidate.layout_)}, error).succeeded)
             return false;
         path_.swap(candidate.path_);
         savedSource_.swap(candidate.source_);
@@ -49,16 +52,15 @@ namespace Editor
         return true;
     }
 
-    auto SceneDocument::Open(SceneRuntime::SceneWorld& world, const std::filesystem::path& root,
-                             const std::filesystem::path& path, std::string& error) -> bool
+    bool SceneDocument::Open(const std::filesystem::path& path, std::string& error)
     {
         try
         {
-            return Apply(world, root, PrepareOpen(path), error);
+            return Apply(PrepareOpen(path), error);
         }
-        catch (const std::exception& exception)
+        catch (const std::exception& failure)
         {
-            error = exception.what();
+            error = failure.what();
             return false;
         }
     }
@@ -128,21 +130,4 @@ namespace Editor
         return target;
     }
 
-    auto SceneDocument::Apply(SceneRuntime::SceneWorld& world, const std::filesystem::path& root, std::string& error)
-        -> bool
-    {
-        if (!Ready())
-            return false;
-        auto request = std::move(*request_);
-        Cancel();
-        try
-        {
-            return Apply(world, root, PrepareOpen(std::move(request.path), request.create), error);
-        }
-        catch (const std::exception& exception)
-        {
-            error = exception.what();
-            return false;
-        }
-    }
 }

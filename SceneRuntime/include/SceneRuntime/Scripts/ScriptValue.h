@@ -24,6 +24,8 @@ namespace SceneRuntime
 
         /// <summary>データの深さ・総要素数・値を検証します。不正な値は例外で拒否します。</summary>
         void Validate(size_t depth, size_t& remaining) const;
+        /// <summary>構造を複製せず、通常のScriptValueと同じ深さ・要素数・名前の規則で検証します。</summary>
+        static void ValidateObject(const Object& object, size_t depth, size_t& remaining);
 
         /// <summary>配列・構造を再帰的に辿り、型付き個体参照だけを走査します。</summary>
         template <class Visitor> void VisitObjectReferences(Visitor&& visitor)

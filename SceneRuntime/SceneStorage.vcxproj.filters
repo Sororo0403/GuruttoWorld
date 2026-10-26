@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="src\Project" />
+    <Filter Include="src\Scripts" />
+    <ClCompile Include="src\Scripts\ScriptSchemaFiles.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\ProjectSettings.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
     <Filter Include="include" />
     <Filter Include="include\SceneRuntime" />
     <Filter Include="include\SceneRuntime\Scripts" />

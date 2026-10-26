@@ -3,6 +3,7 @@
   <ItemGroup>
     <Filter Include="include" />
     <Filter Include="include\SceneRuntime" />
+    <Filter Include="include\SceneRuntime\Scene" />
     <Filter Include="include\SceneRuntime\Rendering" />
     <Filter Include="include\SceneRuntime\Scripts" />
     <Filter Include="include\SceneRuntime\Ui" />
@@ -20,6 +21,24 @@
     <ClCompile Include="src\Scripts\ScriptSchema.cpp">
       <Filter>src\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="src\Scene\SceneEdits.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneEdits.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneEditTarget.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClCompile Include="src\Scene\SceneChanges.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneChanges.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SceneRuntime\Scene\WorldReadView.h">
+      <Filter>include\SceneRuntime\Scene</Filter>
+    </ClInclude>
     <ClCompile Include="src\Scripts\ScriptBuiltinSchemas.cpp">
       <Filter>src\Scripts</Filter>
     </ClCompile>
@@ -119,9 +138,6 @@
     <ClCompile Include="src\Physics\JointComponent.cpp">
       <Filter>src\Physics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Project\ProjectSettings.cpp">
-      <Filter>src\Project</Filter>
-    </ClCompile>
     <ClCompile Include="src\Rendering\MaterialAssetFormat.cpp">
       <Filter>src\Rendering</Filter>
     </ClCompile>
@@ -140,5 +156,13 @@
     <ClCompile Include="src\Ui\UiControlJson.cpp">
       <Filter>src\Ui</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Scripts\ScriptValue.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Audio\AudioCommand.cpp"><Filter>src\Audio</Filter></ClCompile>
   </ItemGroup>
 </Project>

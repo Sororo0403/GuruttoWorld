@@ -115,11 +115,21 @@ namespace Engine
         ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
+        frameActive_ = true;
     }
 
+    void ImGuiLayer::CancelFrame()
+    {
+        if (!frameActive_)
+            return;
+        ImGui::SetCurrentContext(context_);
+        ImGui::EndFrame();
+        frameActive_ = false;
+    }
     void ImGuiLayer::Render(ID3D12GraphicsCommandList* commands)
     {
         ImGui::Render();
+        frameActive_ = false;
         ID3D12DescriptorHeap* heaps[] = {descriptorHeap_.Get()};
         commands->SetDescriptorHeaps(1, heaps);
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commands);

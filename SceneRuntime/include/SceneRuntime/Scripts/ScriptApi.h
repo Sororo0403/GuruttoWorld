@@ -1,9 +1,10 @@
 #pragma once
 #include <SceneRuntime/Scene/SceneLayout.h>
+#include <SceneRuntime/Scene/WorldReadView.h>
 #include <SceneRuntime/Scene/ObjectReferenceDomain.h>
 #include <SceneRuntime/Scripts/ScriptSchema.h>
+#include <SceneRuntime/Scripts/ScriptSignals.h>
 #include <SceneRuntime/Audio/AudioCommand.h>
-#include <Engine/Assets/ContentContext.h>
 #include <SceneRuntime/Physics/PhysicsTypes.h>
 #include <functional>
 #include <map>
@@ -11,33 +12,16 @@
 #include <cstdint>
 #include <memory>
 
+namespace Engine
+{
+    class ContentContext;
+}
+
 namespace SceneRuntime
 {
     class PhysicsWorld;
+    class RuntimeScriptScene;
 
-    enum class ScriptPhase
-    {
-        Update,
-        FixedUpdate,
-        LateUpdate
-    };
-    struct SceneCommand
-    {
-        std::string scene;
-        bool additive = false, unload = false;
-    };
-    struct ScriptUiCommands
-    {
-        std::map<std::string, float> values;
-        std::map<std::string, std::string> texts;
-    };
-    struct ScriptEvent
-    {
-        std::string name, sender, target;
-        float value = 0;
-        std::optional<AnimatorEventOccurrence> animation;
-        std::string text;
-    };
     // 構造変更は各更新段階のコールバックを終えてから候補へ反映します。オブジェクトへの参照はコールバックの外へ持ち越さないでください。
     class ScriptScene final
     {
@@ -50,6 +34,8 @@ namespace SceneRuntime
         }
         /// <summary>IDから現在のオブジェクトを参照します。参照はコールバック中だけ有効です。</summary>
         const ScenePlacement* Find(const std::string& id) const;
+        /// <summary>コールバック中の候補を読み取るビューを取得します。段階をまたいで保持しないでください。</summary>
+        WorldReadView Read() const noexcept;
         /// <summary>指定したメンバーに対応する型付きコンポーネントを取得します。</summary>
         template <class T> const T* GetComponent(const std::string& id, std::optional<T> ScenePlacement::* member) const
         {
@@ -66,6 +52,8 @@ namespace SceneRuntime
         void Destroy(const std::string& id);
         /// <summary>コンポーネント構成の置き換えを、現在の更新段階の終了時へ予約します。</summary>
         void SetComponents(const std::string& id, const ScenePlacement& components);
+        /// <summary>段階の終了時にワールド姿勢を保って親を変更します。構造の不正は確定前に拒否します。</summary>
+        void SetParent(std::string id, std::string parent);
         /// <summary>宛先付きイベントを次のスクリプト更新へ予約します。</summary>
         void Emit(ScriptEvent event);
         /// <summary>成功したフレームで UI の数値バインディングを設定します。</summary>
@@ -113,6 +101,14 @@ namespace SceneRuntime
         std::map<std::string, std::optional<bool>> rootMotions;
 
     private:
+        friend struct ScriptContext;
+        friend class LegacyScriptAdapter;
+        RuntimeScriptScene* runtime_ = nullptr;
+        ScenePlacement* runtimeOwner_ = nullptr;
+        std::optional<WorldReadView> runtimeRead_;
+        mutable std::map<std::string, ScenePlacement> runtimeObjects_;
+        /// <summary>同じ段階で予約済みのコンポーネント変更を含む値を取得します。</summary>
+        ScenePlacement ComponentsFor(const std::string& id) const;
         /// <summary>削除したAnimatorに対する更新要求を破棄します。</summary>
         void PruneAnimatorCommands();
         /// <summary>削除予約に対象の子孫を含め、候補のオブジェクト配列からまとめて取り除きます。</summary>
@@ -126,6 +122,7 @@ namespace SceneRuntime
         std::vector<ScenePlacement> spawned_;
         std::set<std::string> destroyed_;
         std::map<std::string, ScenePlacement> components_;
+        std::map<std::string, std::string> parents_;
     };
     struct ScriptContext
     {
@@ -165,6 +162,20 @@ namespace SceneRuntime
         bool Pressed(const std::string& name) const;
         /// <summary>数値パラメーターを取得します。名前が存在しない場合は fallback を返します。</summary>
         float Value(const std::string& name, float fallback = 0) const;
+        /// <summary>所有個体の姿勢を候補へ反映し、未確定の変更結果を返します。通知の公開は外側の成功後です。</summary>
+        SceneEditResult SetLocalTransform(const LocalTransform& transform);
+        /// <summary>所有個体のコンポーネント変更を段階末へ予約し、未確定の変更結果を返します。</summary>
+        SceneEditResult SetComponents(const ScenePlacement& components);
+        /// <summary>一つの型付きコンポーネント変更を段階末へ予約します。</summary>
+        template <class T>
+        SceneEditResult SetComponent(std::optional<T> ScenePlacement::* member, std::optional<T> component)
+        {
+            auto candidate = scene ? scene->ComponentsFor(object.id) : object;
+            candidate.*member = std::move(component);
+            return SetComponents(candidate);
+        }
+        /// <summary>所有個体の親変更を段階末へ予約します。</summary>
+        void SetParent(std::string parent);
     };
     struct ScriptStopContext
     {
@@ -182,7 +193,7 @@ namespace SceneRuntime
         std::filesystem::path contentRoot;
         std::shared_ptr<const Engine::ContentContext> content;
     };
-    struct ScriptDefinition : ScriptSchema
+    struct ScriptCallbacks
     {
         std::function<void(ScriptContext&)> start, update;
         /// <summary>副作用を起こさず候補所有者だけを変更します。失敗時は候補ごと破棄します。</summary>
@@ -193,5 +204,8 @@ namespace SceneRuntime
         std::function<void(ScriptContext&)> fixedUpdate, lateUpdate;
         /// <summary>ホストの一時停止・フォーカス変更を外部資源へ反映します。</summary>
         std::function<void(ScriptContext&, bool)> pause;
+    };
+    struct ScriptDefinition : ScriptSchema, ScriptCallbacks
+    {
     };
 }

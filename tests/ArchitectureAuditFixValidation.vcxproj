@@ -37,6 +37,8 @@
   <ItemGroup>
     <ClCompile Include="src\Architecture\ArchitectureAuditFixValidation.cpp" />
     <ClInclude Include="src\Architecture\ArchitectureAuditFixValidation.h" />
+    <ClInclude Include="src\Architecture\ChangeCaptureValidation.h" />
+    <ClInclude Include="src\Architecture\CompleteChangeCaptureValidation.h" />
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
     <ProjectReference Include="..\Engine\Engine.vcxproj" />
   </ItemGroup>

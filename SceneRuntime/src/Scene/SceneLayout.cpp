@@ -603,3 +603,32 @@ namespace SceneRuntime
         meshRenderer->model = std::move(path);
     }
 }
+
+namespace SceneRuntime
+{
+    void SceneLayout::Swap(SceneLayout& other) noexcept
+    {
+        objects.swap(other.objects);
+        assetReferences.swap(other.assetReferences);
+        prefabSlots.swap(other.prefabSlots);
+        sceneObjects.swap(other.sceneObjects);
+        std::swap(settings.gravity, other.settings.gravity);
+        std::swap(settings.fixedStep, other.settings.fixedStep);
+        std::swap(settings.maximumFixedSteps, other.settings.maximumFixedSteps);
+        std::swap(settings.shadowResolution, other.settings.shadowResolution);
+        std::swap(settings.localShadowResolution, other.settings.localShadowResolution);
+        std::swap(settings.sceneRenderScale, other.settings.sceneRenderScale);
+        std::swap(settings.gameRenderScale, other.settings.gameRenderScale);
+        std::swap(settings.sceneRealtime, other.settings.sceneRealtime);
+        std::swap(settings.gameRealtime, other.settings.gameRealtime);
+        std::swap(settings.background, other.settings.background);
+        std::swap(settings.fog, other.settings.fog);
+        std::swap(settings.postEffects, other.settings.postEffects);
+        settings.skyShader.swap(other.settings.skyShader);
+        settings.oceanShader.swap(other.settings.oceanShader);
+        settings.particleShader.swap(other.settings.particleShader);
+        settings.postShader.swap(other.settings.postShader);
+        settings.playerInputs.swap(other.settings.playerInputs);
+        settings.mainCamera.swap(other.settings.mainCamera);
+    }
+}

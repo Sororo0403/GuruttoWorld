@@ -21,13 +21,15 @@ namespace Engine
     }
     void ModelRenderer::DrawShadow(ID3D12GraphicsCommandList* commands, const DirectX::XMFLOAT4X4& world,
                                    const ShadowMap& shadow, const Material* material,
-                                   std::span<const std::shared_ptr<const Material>> slots) const
+                                   std::span<const std::shared_ptr<const Material>> slots,
+                                   std::span<const std::vector<SkinMatrix>> palettes) const
     {
         for (size_t index = 0; index < meshes_.size(); ++index)
             if (MatchesMaterialPass(MaterialForSlot(index, material, slots), MaterialPass::Opaque))
-                meshes_[index]->DrawShadow(commands, world, shadow,
-                                           rig_ ? std::span<const SkinMatrix>(palettes_[index])
-                                                : std::span<const SkinMatrix>{});
+                meshes_[index]->DrawShadow(
+                    commands, world, shadow,
+                    rig_ ? std::span<const SkinMatrix>(palettes.empty() ? palettes_[index] : palettes[index])
+                         : std::span<const SkinMatrix>{});
     }
     bool ModelRenderer::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue,
                                    const std::filesystem::path& modelPath, const std::filesystem::path& shaderPath)
@@ -289,7 +291,7 @@ namespace Engine
                              const std::array<float, 3>& cameraPosition, const UvTransform& uvTransform,
                              const Material* material, const ModelDrawOptions& options) const
     {
-        const auto& [slots, pass, instances] = options;
+        const auto& [slots, pass, instances, palettes] = options;
         for (size_t index = 0; index < meshes_.size(); ++index)
         {
             const auto* selected = MaterialForSlot(index, material, slots);
@@ -297,7 +299,9 @@ namespace Engine
                 continue;
             meshes_[index]->Draw(
                 commands, world, viewProjection, light, cameraPosition, selected ? selected->uv : uvTransform, selected,
-                {rig_ ? std::span<const SkinMatrix>(palettes_[index]) : std::span<const SkinMatrix>{}, instances});
+                {rig_ ? std::span<const SkinMatrix>(palettes.empty() ? palettes_[index] : palettes[index])
+                      : std::span<const SkinMatrix>{},
+                 instances});
         }
     }
     bool ModelRenderer::IntersectRay(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance) const

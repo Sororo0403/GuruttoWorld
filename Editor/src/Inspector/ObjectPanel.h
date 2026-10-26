@@ -1,5 +1,6 @@
 #pragma once
 #include "../Editing/EditState.h"
+#include <SceneRuntime/Scene/SceneWorld.h>
 #include "../Editing/HierarchyRows.h"
 #include "ComponentPanel.h"
 #include <imgui.h>

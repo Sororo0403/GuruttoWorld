@@ -1,5 +1,6 @@
 #pragma once
-#include <SceneRuntime/Scene/SceneWorld.h>
+#include <SceneRuntime/Scene/SceneEditTarget.h>
+#include <SceneRuntime/Scene/Prefab.h>
 #include <optional>
 #include <algorithm>
 #include "SelectionSet.h"
@@ -107,36 +108,37 @@ namespace Editor
         /// <summary>再読み込み後の状態を更新します。</summary>
         void Reloaded();
         /// <summary>ローカル変換を設定します。</summary>
-        bool SetLocalTransform(SceneRuntime::SceneWorld& world, const std::string& id,
+        bool SetLocalTransform(SceneRuntime::SceneEditTarget& world, const std::string& id,
                                const std::array<float, 3>& position, const std::array<float, 3>& rotation,
                                const std::array<float, 3>& scale);
         /// <summary>選択対象をワールド空間で平行移動します。</summary>
-        bool TranslateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& delta);
+        bool TranslateSelectionWorld(SceneRuntime::SceneEditTarget& world, const std::array<float, 3>& delta);
         /// <summary>選択対象をワールド空間で回転します。</summary>
-        bool RotateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& pivot,
+        bool RotateSelectionWorld(SceneRuntime::SceneEditTarget& world, const std::array<float, 3>& pivot,
                                   const DirectX::XMFLOAT4X4& rotation);
         /// <summary>選択対象をワールド空間で拡縮します。</summary>
-        bool ScaleSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& pivot,
+        bool ScaleSelectionWorld(SceneRuntime::SceneEditTarget& world, const std::array<float, 3>& pivot,
                                  const DirectX::XMFLOAT4X4& axes, const std::array<float, 3>& factors);
         /// <summary>親の参照を設定します。</summary>
-        bool SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId,
+        bool SetParent(SceneRuntime::SceneEditTarget& world, const std::string& id, std::string parentId,
                        std::string& error);
         /// <summary>複数の配置の親の参照を設定します。</summary>
-        bool SetParents(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids, const std::string& parent,
-                        std::string& error);
+        bool SetParents(SceneRuntime::SceneEditTarget& world, const std::vector<std::string>& ids,
+                        const std::string& parent, std::string& error);
         /// <summary>対象の名前と関連する参照を更新します。</summary>
-        bool Rename(SceneRuntime::SceneWorld& world, const std::string& id, std::string name);
+        bool Rename(SceneRuntime::SceneEditTarget& world, const std::string& id, std::string name);
         /// <summary>選択対象の複製を要求します。</summary>
         ObjectRequest DuplicateSelectionRequest() const;
         /// <summary>指定した配置と参照を複製します。</summary>
-        bool DuplicateObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids,
+        bool DuplicateObjects(SceneRuntime::SceneEditTarget& world, const std::vector<std::string>& ids,
                               const std::array<float, 3>& offset, std::string& error);
         /// <summary>選択対象の削除を要求します。</summary>
         ObjectRequest DeleteSelectionRequest() const;
         /// <summary>指定した配置と参照を削除します。</summary>
-        bool DeleteObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids, std::string& error);
+        bool DeleteObjects(SceneRuntime::SceneEditTarget& world, const std::vector<std::string>& ids,
+                           std::string& error);
         /// <summary>変換を初期状態へ戻します。</summary>
-        bool ResetTransform(SceneRuntime::SceneWorld& world, const std::string& id);
+        bool ResetTransform(SceneRuntime::SceneEditTarget& world, const std::string& id);
         bool InvalidTransform() const
         {
             return invalidTransform_;
@@ -153,9 +155,6 @@ namespace Editor
         std::optional<ObjectRequest> TakeRequest();
 
     private:
-        /// <summary>変換の編集を履歴へ記録します。</summary>
-        void TrackTransformChange(const SceneRuntime::SceneWorld& world,
-                                  const std::vector<SceneRuntime::ScenePlacement>& before);
         std::filesystem::path inspectedAsset_;
         SelectionSet selection_;
         std::string interaction_;

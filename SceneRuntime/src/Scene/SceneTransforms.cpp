@@ -70,8 +70,8 @@ namespace
                            });
     }
     // 既存の反転の符号を保持し、インスペクターの値に最も近い等価なオイラー角を選びます。
-    bool ReadSrt(const DirectX::XMFLOAT4X4& matrix, const SceneRuntime::ScenePlacement& reference,
-                 SceneRuntime::ScenePlacement& output)
+    template <class Transform>
+    bool ReadSrt(const DirectX::XMFLOAT4X4& matrix, const Transform& reference, Transform& output)
     {
         auto result = reference;
         float r[3][3]{};
@@ -205,6 +205,10 @@ namespace SceneRuntime
     }
     bool SceneTransforms::Compose(const ScenePlacement& placement, DirectX::XMFLOAT4X4& output)
     {
+        return Compose(LocalTransform{placement.position, placement.rotation, placement.scale}, output);
+    }
+    bool SceneTransforms::Compose(const LocalTransform& placement, DirectX::XMFLOAT4X4& output)
+    {
         if (!std::all_of(placement.scale.begin(), placement.scale.end(),
                          [](float value)
                          {
@@ -239,6 +243,19 @@ namespace SceneRuntime
     }
     bool SceneTransforms::ReadTransform(const DirectX::XMFLOAT4X4& matrix, const ScenePlacement& reference,
                                         ScenePlacement& output)
+    {
+        LocalTransform value;
+        if (!ReadTransform(matrix, LocalTransform{reference.position, reference.rotation, reference.scale}, value))
+            return false;
+        auto candidate = reference;
+        candidate.position = value.position;
+        candidate.rotation = value.rotation;
+        candidate.scale = value.scale;
+        output = std::move(candidate);
+        return true;
+    }
+    bool SceneTransforms::ReadTransform(const DirectX::XMFLOAT4X4& matrix, const LocalTransform& reference,
+                                        LocalTransform& output)
     {
         if (!IsUsable(matrix))
             return false;

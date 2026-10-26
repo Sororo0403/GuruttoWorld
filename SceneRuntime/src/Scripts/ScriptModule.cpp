@@ -1,4 +1,5 @@
 #include <SceneRuntime/Scripts/ScriptModule.h>
+#include <Engine/Assets/ContentContext.h>
 #include <SceneRuntime/Scripts/ScriptRuntime.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/AssetDatabase.h>
@@ -28,14 +29,16 @@ namespace
         std::map<std::string, SceneRuntime::ScriptDefinition> definitions;
         std::string error;
     };
-    bool CollectScript(void* context, const char* name, const SceneRuntime::ScriptDefinition* definition)
+    bool CollectScript(void* context, const char* name, const SceneRuntime::ScriptCallbacks* callbacks)
     {
         auto& pending = *static_cast<PendingModule*>(context);
         try
         {
-            if (!name || !definition || pending.definitions.size() >= 256)
+            if (!name || !callbacks || pending.definitions.size() >= 256)
                 throw std::runtime_error("Invalid script module entry");
-            if (!pending.definitions.emplace(name, *definition).second)
+            SceneRuntime::ScriptDefinition definition;
+            static_cast<SceneRuntime::ScriptCallbacks&>(definition) = *callbacks;
+            if (!pending.definitions.emplace(name, std::move(definition)).second)
                 throw std::runtime_error("Duplicate script module behaviour");
             return true;
         }
@@ -139,22 +142,22 @@ namespace SceneRuntime
         return "Release";
 #endif
     }
-    static void ValidateModuleSchemas(const std::map<std::string, ScriptDefinition>& definitions,
-                                      const std::map<std::string, ScriptSchema>& schemas)
+    static void ApplyModuleSchemas(std::map<std::string, ScriptDefinition>& definitions,
+                                   const std::map<std::string, ScriptSchema>& schemas)
     {
-        for (const auto& [name, definition] : definitions)
+        for (auto& [name, definition] : definitions)
         {
             const auto declared = schemas.find(name);
             if (declared == schemas.end())
                 throw std::runtime_error("Script schema declaration is missing: " + name);
-            if (declared->second != static_cast<const ScriptSchema&>(definition))
-                throw std::runtime_error("Script schema differs from the compiled module; rebuild scripts: " + name);
+            static_cast<ScriptSchema&>(definition) = declared->second;
         }
     }
     bool ScriptModule::Reload(const std::filesystem::path& content, std::string& error)
     {
         try
         {
+            const auto schemas = ScriptSchema::LoadProject(content);
             const auto folder = content / "Assets/Scripts/Bin" / Configuration();
             const auto owner = Engine::AssetDatabase::Text(std::filesystem::weakly_canonical(content));
             const auto manifestPath = folder / "module.json";
@@ -191,8 +194,7 @@ namespace SceneRuntime
             if (!entry(&abi, &pending, CollectScript))
                 throw std::runtime_error(pending.error.empty() ? "Script module ABI or registration mismatch"
                                                                : pending.error);
-            const auto schemas = ScriptSchema::LoadProject(content);
-            ValidateModuleSchemas(pending.definitions, schemas);
+            ApplyModuleSchemas(pending.definitions, schemas);
             const auto contentRoot = std::filesystem::weakly_canonical(content);
             for (auto& [name, definition] : pending.definitions)
             {
@@ -222,25 +224,20 @@ namespace SceneRuntime
             const auto path = content / "Assets/Scripts" / (name + ".cpp");
             std::filesystem::create_directories(path.parent_path());
             const auto schemaPath = path.parent_path() / (name + ".schema.json");
-            const auto generatedPath = path.parent_path() / (name + ".generated.h");
-            if (std::filesystem::exists(path) || std::filesystem::exists(schemaPath) ||
-                std::filesystem::exists(generatedPath))
+            if (std::filesystem::exists(path) || std::filesystem::exists(schemaPath))
                 throw std::runtime_error("Script source or declaration already exists");
             const std::string source =
-                "#include <SceneRuntime/Scripts/ScriptModuleApi.h>\r\n#include \"" + name +
-                ".generated.h\"\r\n\r\n"
+                "#include <SceneRuntime/Scripts/ScriptModuleApi.h>\r\n\r\n"
                 "bool Register_" +
                 name +
-                "(void* context,SceneRuntime::RegisterModuleScript add)\r\n{\r\n"
-                "    auto script=SceneRuntime::GeneratedSchemas::" +
-                name +
-                "Schema();\r\n"
-                "    script.update=[](SceneRuntime::ScriptContext& c)\r\n    {\r\n"
-                "        if (std::get<bool>(c.Data(\"active\")->value))\r\n"
-                "            c.object.position[0]+=c.Value(\"speed\",2)*static_cast<float>(c.seconds);\r\n"
+                "(void* context, SceneRuntime::RegisterModuleScript add)\r\n{\r\n"
+                "    SceneRuntime::ScriptCallbacks script;\r\n"
+                "    script.update = [](SceneRuntime::ScriptContext& c)\r\n    {\r\n"
+                "        if (const auto* active = c.Data(\"active\"); active && std::get<bool>(active->value))\r\n"
+                "            c.object.position[0] += c.Value(\"speed\") * static_cast<float>(c.seconds);\r\n"
                 "    };\r\n"
-                "    return add(context,\"" +
-                name + "\",&script);\r\n}\r\n";
+                "    return add(context, \"" +
+                name + "\", &script);\r\n}\r\n";
             const Engine::Json schema{
                 {"version", 1},
                 {"scripts",

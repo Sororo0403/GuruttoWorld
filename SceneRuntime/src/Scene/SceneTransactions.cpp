@@ -1,7 +1,9 @@
 #include <SceneRuntime/Scene/SceneWorld.h>
+#include "SceneWorldRuntime.h"
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Profiler.h>
 #include <cmath>
+#include <algorithm>
 
 namespace
 {
@@ -15,7 +17,7 @@ namespace SceneRuntime
 {
     bool SceneWorld::CanMutateScene(std::string* error) const
     {
-        if (!execution_ || !execution_->values.frameUpdating)
+        if (!preparingChanges_ && (!execution_ || !execution_->values.frameUpdating))
             return true;
         if (error)
             *error = "Scene mutation is unavailable during frame preparation";
@@ -33,14 +35,22 @@ namespace SceneRuntime
     bool SceneWorld::PrepareRuntimeCallbacks(const SceneLayout& layout, const ScriptRuntime& runtime,
                                              std::string& error) const
     {
+        ChangePreparation preparing(preparingChanges_);
         return (!prepareRuntime_ || prepareRuntime_(layout, error)) &&
                (!prepareUi_ || prepareUi_(layout, runtime.UiCommands(), error));
     }
     bool SceneWorld::ReplaceRuntimeLayout(SceneLayout layout, const std::filesystem::path& assetsRoot,
                                           std::string& error)
     {
+        if (runtime_)
+        {
+            if (!CheckSessionRoot(assetsRoot, error))
+                return false;
+            return EditSession(ReplaceDocumentEdit{std::move(layout)}, error, true);
+        }
         if (!CanMutateScene(&error))
             return false;
+        ChangePreparation preparing(preparingChanges_);
         try
         {
             if (!execution_ ||
@@ -66,9 +76,13 @@ namespace SceneRuntime
                 candidate.localShadow = prepared.localShadow;
             if (!ScriptRuntime::ValidateForPlay(candidate.layout, error, &execution_->values.scripts.Definitions()))
                 return false;
+            auto changes = changes_;
+            changes.Merge(SceneChangeSet::Compare(layout_, candidate.layout));
+            changes.Merge(runtime.ChangesSince(execution_->values.scripts));
             CommitLayout(std::move(candidate), true);
             runtime.CommitStarts();
             execution_->values.scripts = std::move(runtime);
+            changes_.Swap(changes);
             error.clear();
             return true;
         }
@@ -124,6 +138,8 @@ namespace SceneRuntime
     bool SceneWorld::ExecuteUpdate(double seconds, float horizontal, float vertical, bool jump, bool movement,
                                    bool components)
     {
+        if (runtime_)
+            return UpdateSession(seconds, horizontal, vertical, jump, movement, components);
         if (!execution_ || execution_->values.frameUpdating || !ValidUpdateInput(seconds, horizontal, vertical))
             return false;
         try
@@ -155,13 +171,43 @@ namespace SceneRuntime
                 Engine::Log::Warning(error);
                 return false;
             }
+            auto changes = changes_;
+            changes.Merge(SceneChangeSet::Compare(layout_, prepared.layout));
+            changes.Merge(execution_->values.scripts.ChangesSince(transaction.saved.scripts));
+            for (const auto& frame : frames)
+                changes.fields.push_back({frame.id, {}, "runtime.animator"});
+            bool physicsChanged = movement && std::any_of(layout_.objects.begin(), layout_.objects.end(),
+                                                          [](const auto& object)
+                                                          {
+                                                              return object.rigidBody || object.boxCollider ||
+                                                                     object.playerController || object.ragdoll;
+                                                          });
+            const bool mayChangePhysics =
+                physicsChanged || std::any_of(impulses.begin(), impulses.end(),
+                                              [](const auto& entry)
+                                              {
+                                                  return entry.second != std::array<float, 3>{};
+                                              });
+            SceneFieldChange physicsChange{{}, {}, "runtime.physics"};
+            const bool recordedPhysics = mayChangePhysics && std::any_of(changes.fields.begin(), changes.fields.end(),
+                                                                         [&](const auto& field)
+                                                                         {
+                                                                             return field == physicsChange;
+                                                                         });
+            if (mayChangePhysics && !recordedPhysics)
+                changes.fields.reserve(changes.fields.size() + 1);
             {
                 Engine::CpuScope timing("Frame commit");
                 CommitLayout(std::move(prepared), true);
                 CommitAnimatorFrames(frames);
                 for (const auto& [id, impulse] : impulses)
-                    execution_->physicsWorld.AddImpulse(id, impulse);
+                    physicsChanged |=
+                        execution_->physicsWorld.AddImpulse(id, impulse) && impulse != std::array<float, 3>{};
+                // 保存用の姿勢が同値でも変わる実行値を、確保済みの通知へ反映します。
+                if (physicsChanged && !recordedPhysics)
+                    changes.fields.push_back(std::move(physicsChange));
                 transaction.Commit();
+                changes_.Swap(changes);
             }
             return true;
         }

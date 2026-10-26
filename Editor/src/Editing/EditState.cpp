@@ -41,75 +41,58 @@ namespace Editor
         interaction_.clear();
     }
 
-    auto EditState::SetLocalTransform(SceneRuntime::SceneWorld& world, const std::string& id,
+    auto EditState::SetLocalTransform(SceneRuntime::SceneEditTarget& world, const std::string& id,
                                       const std::array<float, 3>& position, const std::array<float, 3>& rotation,
                                       const std::array<float, 3>& scale) -> bool
     {
-        const auto& objects = world.Layout().objects;
-        const auto found = std::find_if(objects.begin(), objects.end(),
-                                        [&](const auto& object)
-                                        {
-                                            return object.id == id;
-                                        });
-        const bool changed = found != objects.end() &&
-                             (found->position != position || found->rotation != rotation || found->scale != scale);
-        invalidTransform_ = !world.SetLocalTransform(id, position, rotation, scale);
-        if (!invalidTransform_ && changed)
+        std::string error;
+        const auto result = world.Edit(SceneRuntime::TransformEdit{id, {position, rotation, scale}}, error);
+        invalidTransform_ = !result.succeeded;
+        if (result.succeeded && !result.changes.Empty())
             changed_ = true;
-        return !invalidTransform_;
+        return result.succeeded;
     }
 
-    auto EditState::TranslateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& delta) -> bool
+    auto EditState::TranslateSelectionWorld(SceneRuntime::SceneEditTarget& world, const std::array<float, 3>& delta)
+        -> bool
     {
-        const auto& before = world.Layout().objects;
-        std::vector<std::array<float, 3>> previous(before.size());
-        std::transform(before.begin(), before.end(), previous.begin(),
-                       [](const auto& object)
-                       {
-                           return object.position;
-                       });
-        invalidTransform_ = !world.TranslateObjectsWorld(SelectedIds(), delta);
-        const auto& after = world.Layout().objects;
-        if (!invalidTransform_ && !std::equal(previous.begin(), previous.end(), after.begin(),
-                                              [](const auto& position, const auto& object)
-                                              {
-                                                  return position == object.position;
-                                              }))
+        std::string error;
+        const auto result = world.Edit(SceneRuntime::TranslationEdit{SelectedIds(), delta}, error);
+        invalidTransform_ = !result.succeeded;
+        if (result.succeeded && !result.changes.Empty())
             changed_ = true;
-        return !invalidTransform_;
+        return result.succeeded;
     }
 
-    auto EditState::RotateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& pivot,
+    auto EditState::RotateSelectionWorld(SceneRuntime::SceneEditTarget& world, const std::array<float, 3>& pivot,
                                          const DirectX::XMFLOAT4X4& rotation) -> bool
     {
-        const auto before = world.Layout().objects;
-        invalidTransform_ = !world.RotateObjectsWorld(SelectedIds(), pivot, rotation);
-        TrackTransformChange(world, before);
-        return !invalidTransform_;
+        std::string error;
+        const auto result = world.Edit(SceneRuntime::RotationEdit{SelectedIds(), pivot, rotation}, error);
+        invalidTransform_ = !result.succeeded;
+        if (result.succeeded && !result.changes.Empty())
+            changed_ = true;
+        return result.succeeded;
     }
 
-    auto EditState::ScaleSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& pivot,
+    auto EditState::ScaleSelectionWorld(SceneRuntime::SceneEditTarget& world, const std::array<float, 3>& pivot,
                                         const DirectX::XMFLOAT4X4& axes, const std::array<float, 3>& factors) -> bool
     {
-        const auto before = world.Layout().objects;
-        invalidTransform_ = !world.ScaleObjectsWorld(SelectedIds(), pivot, axes, factors);
-        TrackTransformChange(world, before);
-        return !invalidTransform_;
+        std::string error;
+        const auto result = world.Edit(SceneRuntime::ScaleEdit{SelectedIds(), pivot, axes, factors}, error);
+        invalidTransform_ = !result.succeeded;
+        if (result.succeeded && !result.changes.Empty())
+            changed_ = true;
+        return result.succeeded;
     }
 
-    auto EditState::SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId,
+    auto EditState::SetParent(SceneRuntime::SceneEditTarget& world, const std::string& id, std::string parentId,
                               std::string& error) -> bool
     {
-        const auto& objects = world.Layout().objects;
-        const auto found = std::find_if(objects.begin(), objects.end(),
-                                        [&](const auto& object)
-                                        {
-                                            return object.id == id;
-                                        });
-        const bool changed = found != objects.end() && found->parentId != parentId;
-        if (!world.SetParent(id, std::move(parentId), error))
+        const auto result = world.Edit(SceneRuntime::ParentEdit{{id}, parentId}, error);
+        if (!result.succeeded)
             return false;
-        if (changed)
+        if (!result.changes.Empty())
         {
             changed_ = true;
             SetInteraction("command/reparent/" + id);
@@ -117,18 +100,13 @@ namespace Editor
         return true;
     }
 
-    auto EditState::SetParents(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids,
+    auto EditState::SetParents(SceneRuntime::SceneEditTarget& world, const std::vector<std::string>& ids,
                                const std::string& parent, std::string& error) -> bool
     {
-        const auto changed = std::any_of(world.Layout().objects.begin(), world.Layout().objects.end(),
-                                         [&](const auto& object)
-                                         {
-                                             return std::find(ids.begin(), ids.end(), object.id) != ids.end() &&
-                                                    object.parentId != parent;
-                                         });
-        if (!world.SetParents(ids, parent, error))
+        const auto result = world.Edit(SceneRuntime::ParentEdit{ids, parent}, error);
+        if (!result.succeeded)
             return false;
-        if (changed)
+        if (!result.changes.Empty())
         {
             changed_ = true;
             SetInteraction("command/reparent/selection");
@@ -136,20 +114,13 @@ namespace Editor
         return true;
     }
 
-    auto EditState::Rename(SceneRuntime::SceneWorld& world, const std::string& id, std::string name) -> bool
+    auto EditState::Rename(SceneRuntime::SceneEditTarget& world, const std::string& id, std::string name) -> bool
     {
-        const auto& objects = world.Layout().objects;
-        const auto found = std::find_if(objects.begin(), objects.end(),
-                                        [&](const auto& object)
-                                        {
-                                            return object.id == id;
-                                        });
-        const bool changed = found != objects.end() && found->name != name;
-        if (!world.RenameObject(id, std::move(name)))
-            return false;
-        if (changed)
+        std::string error;
+        const auto result = world.Edit(SceneRuntime::NameEdit{id, std::move(name)}, error);
+        if (result.succeeded && !result.changes.Empty())
             changed_ = true;
-        return true;
+        return result.succeeded;
     }
 
     auto EditState::DuplicateSelectionRequest() const -> ObjectRequest
@@ -160,12 +131,16 @@ namespace Editor
         return request;
     }
 
-    auto EditState::DuplicateObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids,
+    auto EditState::DuplicateObjects(SceneRuntime::SceneEditTarget& world, const std::vector<std::string>& ids,
                                      const std::array<float, 3>& offset, std::string& error) -> bool
     {
-        std::vector<std::string> created;
-        if (!world.DuplicateObjects(ids, offset, created, error))
+        const auto result = world.Edit(SceneRuntime::DuplicateEdit{ids, offset}, error);
+        if (!result.succeeded)
             return false;
+        std::vector<std::string> created;
+        for (const auto& change : result.changes.objects)
+            if (change.kind == SceneRuntime::SceneChangeKind::Added)
+                created.push_back(change.objectId);
         selection_.Restore(created, created.back());
         changed_ = true;
         invalidTransform_ = false;
@@ -180,10 +155,10 @@ namespace Editor
         return request;
     }
 
-    auto EditState::DeleteObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids,
+    auto EditState::DeleteObjects(SceneRuntime::SceneEditTarget& world, const std::vector<std::string>& ids,
                                   std::string& error) -> bool
     {
-        if (!world.RemoveObjects(ids, error))
+        if (!world.Edit(SceneRuntime::RemoveObjectsEdit{ids}, error).succeeded)
             return false;
         auto remaining = SelectedIds();
         auto primary = SelectedId();
@@ -200,7 +175,7 @@ namespace Editor
         return true;
     }
 
-    auto EditState::ResetTransform(SceneRuntime::SceneWorld& world, const std::string& id) -> bool
+    auto EditState::ResetTransform(SceneRuntime::SceneEditTarget& world, const std::string& id) -> bool
     {
         if (!SetLocalTransform(world, id, {0, 0, 0}, {0, 0, 0}, {1, 1, 1}))
             return false;
@@ -237,17 +212,4 @@ namespace Editor
         return request;
     }
 
-    auto EditState::TrackTransformChange(const SceneRuntime::SceneWorld& world,
-                                         const std::vector<SceneRuntime::ScenePlacement>& before) -> void
-    {
-        const auto& after = world.Layout().objects;
-        if (!invalidTransform_ && !std::equal(before.begin(), before.end(), after.begin(),
-                                              [](const auto& previous, const auto& current)
-                                              {
-                                                  return previous.position == current.position &&
-                                                         previous.rotation == current.rotation &&
-                                                         previous.scale == current.scale;
-                                              }))
-            changed_ = true;
-    }
 }

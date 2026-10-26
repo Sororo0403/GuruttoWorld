@@ -1,5 +1,5 @@
 #include <SceneRuntime/Physics/ScenePhysics.h>
-#include <SceneRuntime/Scene/SceneTransforms.h>
+#include "PhysicsFrame.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -35,7 +35,7 @@ namespace
         }
         return result;
     }
-    bool Related(const SceneLayout& layout, size_t first, size_t second)
+    bool Related(const PhysicsFrame& layout, size_t first, size_t second)
     {
         const auto ancestor = [&](size_t child, size_t parent)
         {
@@ -66,7 +66,7 @@ namespace
                 overlap = false;
         return overlap;
     }
-    bool SweepCollider(const SceneLayout& layout, size_t index, size_t other)
+    bool SweepCollider(const PhysicsFrame& layout, size_t index, size_t other)
     {
         const auto& collider = layout.objects[other].boxCollider;
         if (!collider || !collider->enabled || collider->isTrigger || Related(layout, index, other))
@@ -77,7 +77,7 @@ namespace
         return true;
     }
 
-    float Sweep(const SceneLayout& layout, const std::vector<Matrix>& matrices, size_t index, size_t axis,
+    float Sweep(const PhysicsFrame& layout, const std::vector<Matrix>& matrices, size_t index, size_t axis,
                 float distance)
     {
         const auto& object = layout.objects[index];
@@ -100,7 +100,7 @@ namespace
         }
         return distance;
     }
-    DirectX::XMMATRIX Parent(const SceneLayout& layout, const std::vector<Matrix>& matrices, size_t index)
+    DirectX::XMMATRIX Parent(const PhysicsFrame& layout, const std::vector<Matrix>& matrices, size_t index)
     {
         const auto& id = layout.objects[index].parentId;
         if (id.empty())
@@ -112,7 +112,7 @@ namespace
                                         });
         return DirectX::XMLoadFloat4x4(&matrices[static_cast<size_t>(found - layout.objects.begin())]);
     }
-    bool Move(SceneLayout& layout, std::vector<Matrix>& matrices, size_t index, size_t axis, float distance)
+    bool Move(PhysicsFrame& layout, std::vector<Matrix>& matrices, size_t index, size_t axis, float distance)
     {
         if (distance == 0)
             return true;
@@ -127,14 +127,14 @@ namespace
         position[1] += local.y;
         position[2] += local.z;
         std::string error;
-        return SceneTransforms::Resolve(layout, matrices, error);
+        return PhysicsTransforms::Resolve(layout, matrices, error);
     }
     struct PlayerInput
     {
         float horizontal, vertical, length, tick;
         bool jump;
     };
-    bool MoveController(SceneLayout& layout, std::vector<Matrix>& matrices, size_t index,
+    bool MoveController(PhysicsFrame& layout, std::vector<Matrix>& matrices, size_t index,
                         const PlayerControllerComponent& controller, const PlayerInput& input)
     {
         const auto& [horizontal, vertical, length, tick, jump] = input;
@@ -158,11 +158,11 @@ namespace
             return false;
         return true;
     }
-    bool UsesAdvancedPhysics(const std::optional<PlayerControllerComponent>& controller)
+    bool UsesAdvancedPhysics(const PhysicsValue<PlayerControllerComponent>& controller)
     {
         return controller && controller->enabled && controller->usePhysics;
     }
-    bool AdvancePlayer(SceneLayout& layout, ScenePhysics::States& states, std::vector<Matrix>& matrices, size_t index,
+    bool AdvancePlayer(PhysicsFrame& layout, ScenePhysics::States& states, std::vector<Matrix>& matrices, size_t index,
                        int step, const PlayerInput& input)
     {
         const auto& [horizontal, vertical, length, tick, jump] = input;
@@ -206,14 +206,14 @@ namespace
 }
 namespace SceneRuntime
 {
-    bool ScenePhysics::Advance(SceneLayout& layout, States& states, double seconds, float horizontal, float vertical,
-                               bool jump)
+    bool ScenePhysics::AdvanceFrame(PhysicsFrame& layout, States& states, double seconds, float horizontal,
+                                    float vertical, bool jump)
     {
         if (!std::isfinite(seconds) || seconds <= 0 || !std::isfinite(horizontal) || !std::isfinite(vertical))
             return false;
         std::vector<Matrix> matrices;
         std::string error;
-        if (!SceneTransforms::Resolve(layout, matrices, error))
+        if (!PhysicsTransforms::Resolve(layout, matrices, error))
             return false;
         horizontal = std::clamp(horizontal, -1.0f, 1.0f);
         vertical = std::clamp(vertical, -1.0f, 1.0f);
@@ -227,6 +227,23 @@ namespace SceneRuntime
                 if (!AdvancePlayer(layout, states, matrices, index, step, {horizontal, vertical, length, tick, jump}))
                     return false;
             }
+        return true;
+    }
+
+    bool ScenePhysics::Advance(SceneLayout& layout, States& states, double seconds, float horizontal, float vertical,
+                               bool jump)
+    {
+        auto frame = PhysicsFrame::Capture(layout);
+        auto candidateStates = states;
+        if (!AdvanceFrame(frame, candidateStates, seconds, horizontal, vertical, jump))
+            return false;
+        for (size_t index = 0; index < frame.objects.size(); ++index)
+        {
+            layout.objects[index].position = frame.objects[index].position;
+            layout.objects[index].rotation = frame.objects[index].rotation;
+            layout.objects[index].scale = frame.objects[index].scale;
+        }
+        states.swap(candidateStates);
         return true;
     }
 }
