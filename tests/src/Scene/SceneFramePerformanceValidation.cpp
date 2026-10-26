@@ -3,6 +3,7 @@
 #include <Engine/Platform/Window.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Core/Profiler.h>
+#include <Engine/Core/Log.h>
 #include "../Support/AllocationProbe.h"
 #include <chrono>
 #include <fstream>
@@ -132,6 +133,9 @@ int main(int argc, char** argv)
                             {"adapterLuidHigh", adapter.HighPart},
                             {"adapterLuidLow", adapter.LowPart},
                             {"scenarios", Engine::Json::array()}};
+        for (const auto& entry : Engine::Log::Recent())
+            if (entry.text.find("DirectX 12 GPU:") != std::string::npos)
+                result["adapterDescription"] = entry.text;
         for (const auto count : {size_t{0}, size_t{1000}, size_t{5000}, size_t{10000}})
             result["scenarios"].push_back(Measure(renderer, root, count, false, false));
         result["scenarios"].push_back(Measure(renderer, root, 1000, true, false));

@@ -1,4 +1,5 @@
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <SceneRuntime/Scripts/RuntimeScripts.h>
+#include "../Support/AllocationProbe.h"
 #include <Engine/Core/Json.h>
 #include <Engine/Core/Profiler.h>
 #include <chrono>
@@ -51,25 +52,48 @@ namespace
         auto layout = Fixture(count, scripted);
         const auto inputHash = Hash(layout.Serialize());
         const auto inputObjects = layout.objects.size();
-        ScriptRuntime runtime;
+        WorldState world(WorldDefinition::Compile(layout));
+        RuntimeScripts runtime;
         std::string error;
-        std::vector<double> samples;
+        std::vector<double> samples, allocations, bytes;
         for (size_t frame = 0; frame < 72; ++frame)
         {
             Engine::CpuProfiler::Take();
-            const auto start = std::chrono::steady_clock::now();
-            if (!runtime.Update(layout, 1.0 / 60.0, error))
-                throw std::runtime_error(error);
-            const auto elapsed =
-                std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+            double elapsed;
+            TestSupport::AllocationCounts memory;
+            {
+                TestSupport::AllocationProbe probe;
+                const auto start = std::chrono::steady_clock::now();
+                {
+                    auto transaction = world.BeginTransaction();
+                    auto candidate = runtime.BeginFrame(transaction);
+                    if (!candidate.Run(ScriptPhase::Update, 1.0 / 60.0, error) || !candidate.Prepare(error) ||
+                        !transaction.Prepare(error))
+                        throw std::runtime_error(error);
+                    if (!transaction.Commit() || !candidate.Commit())
+                        throw std::runtime_error("Runtime measurement publication failed");
+                    candidate.FinishCallbacks();
+                }
+                world.TakeChanges();
+                elapsed = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+                memory = probe.Counts();
+            }
             if (frame >= 8)
+            {
                 samples.push_back(elapsed);
+                allocations.push_back(static_cast<double>(memory.count));
+                bytes.push_back(static_cast<double>(memory.bytes));
+            }
         }
+        layout = world.Read().ExportLayout();
+        runtime.Stop(world);
         if (layout.objects.size() != inputObjects)
             throw std::runtime_error("Runtime measurement changed fixture structure");
         if (!scripted && Hash(layout.Serialize()) != inputHash)
             throw std::runtime_error("Static CPU fixture changed during update");
         std::sort(samples.begin(), samples.end());
+        std::sort(allocations.begin(), allocations.end());
+        std::sort(bytes.begin(), bytes.end());
         const auto percentile = [&](double fraction)
         {
             return samples[static_cast<size_t>((samples.size() - 1) * fraction)];
@@ -82,7 +106,9 @@ namespace
                             {"measuredFrames", samples.size()},
                             {"medianMs", percentile(.5)},
                             {"p95Ms", percentile(.95)},
-                            {"p99Ms", percentile(.99)}};
+                            {"p99Ms", percentile(.99)},
+                            {"medianAllocations", allocations[(allocations.size() - 1) / 2]},
+                            {"medianAllocatedBytes", bytes[(bytes.size() - 1) / 2]}};
         std::cout << result.dump() << '\n';
         return result;
     }
@@ -92,7 +118,7 @@ int main(int argc, char** argv)
 {
     try
     {
-        Engine::Json results{{"path", "legacy ScriptRuntime::Update(SceneLayout&)"},
+        Engine::Json results{{"path", "RuntimeScripts::Frame + WorldState::Transaction"},
                              {"stepSeconds", 1.0 / 60.0},
                              {"scenarios", Engine::Json::array()}};
         for (const auto count : {size_t{0}, size_t{1000}, size_t{5000}, size_t{10000}})
