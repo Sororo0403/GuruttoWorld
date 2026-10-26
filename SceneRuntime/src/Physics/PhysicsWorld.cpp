@@ -2,7 +2,7 @@
 #include <Engine/Core/Profiler.h>
 #include <SceneRuntime/Scene/SceneTransforms.h>
 #include <SceneRuntime/Gameplay/GenreGeometry.h>
-#include <Engine/Graphics/Models/ModelLoader.h>
+#include <Engine/Graphics/Models/ModelAssets.h>
 #include <Engine/Core/Log.h>
 #pragma warning(push, 0)
 #include <Jolt/Jolt.h>
@@ -42,66 +42,25 @@
 #include <fstream>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/AssetDatabase.h>
+#include <Engine/Assets/ModelImportInputs.h>
 #include <cctype>
 
 namespace
 {
     using namespace SceneRuntime;
     using Matrix = DirectX::XMFLOAT4X4;
-    using QueryFiles = std::map<std::filesystem::path, std::optional<Engine::AssetFileRevision>>;
-    std::optional<Engine::AssetFileRevision> QueryFileStamp(const std::filesystem::path& path)
-    {
-        return std::filesystem::exists(path) ? std::optional{Engine::AssetFileRevision::Capture(path)} : std::nullopt;
-    }
-    Engine::Json GeometryDocument(const std::filesystem::path& path)
-    {
-        auto extension = path.extension().string();
-        std::transform(extension.begin(), extension.end(), extension.begin(),
-                       [](unsigned char c)
-                       {
-                           return static_cast<char>(std::tolower(c));
-                       });
-        std::ifstream input(path, std::ios::binary);
-        if (extension == ".gltf")
-            return Engine::Json::parse(input);
-        if (extension != ".glb")
-            return Engine::Json::object();
-        std::array<std::uint32_t, 5> header{};
-        input.read(reinterpret_cast<char*>(header.data()), sizeof(header));
-        if (!input || header[0] != 0x46546c67 || header[1] != 2 || header[4] != 0x4e4f534a ||
-            header[3] > std::filesystem::file_size(path) - sizeof(header))
-            throw std::runtime_error("Invalid collider GLB JSON chunk");
-        std::string json(header[3], '\0');
-        input.read(json.data(), static_cast<std::streamsize>(json.size()));
-        if (!input)
-            throw std::runtime_error("Cannot read collider GLB dependencies");
-        return Engine::Json::parse(json);
-    }
+    using QueryFiles = std::vector<Engine::ArtifactSources>;
     QueryFiles QueryGeometryFiles(const PhysicsFrame& layout, const std::filesystem::path& root)
     {
         QueryFiles files;
         for (const auto& object : layout.objects)
-        {
-            if (!object.boxCollider || !object.boxCollider->enabled || object.boxCollider->shape != "mesh" ||
-                object.terrain || object.tilemap)
-                continue;
-            const auto path = root / (object.boxCollider->model.empty() ? object.Model() : object.boxCollider->model);
-            files[path] = QueryFileStamp(path);
-            auto metadata = path;
-            metadata += ".meta";
-            files[metadata] = QueryFileStamp(metadata);
-            const auto document = GeometryDocument(path);
-            if (!document.contains("buffers"))
-                continue;
-            for (const auto& buffer : document.at("buffers"))
+            if (object.boxCollider && object.boxCollider->enabled && object.boxCollider->shape == "mesh" &&
+                !object.terrain && !object.tilemap)
             {
-                const auto uri = buffer.value("uri", std::string{});
-                if (uri.empty() || uri.starts_with("data:"))
-                    continue;
-                const auto dependency = path.parent_path() / Engine::AssetDatabase::Path(uri);
-                files[dependency] = QueryFileStamp(dependency);
+                const auto path =
+                    root / (object.boxCollider->model.empty() ? object.Model() : object.boxCollider->model);
+                files.push_back(Engine::ModelImportInputs::Capture(path, "collision-mesh").sources);
             }
-        }
         return files;
     }
     bool QueryFilesMatch(const QueryFiles& files)
@@ -109,7 +68,7 @@ namespace
         return std::all_of(files.begin(), files.end(),
                            [](const auto& file)
                            {
-                               return QueryFileStamp(file.first) == file.second;
+                               return file.Unchanged();
                            });
     }
     JPH::Vec3 V(const std::array<float, 3>& p)
@@ -265,10 +224,11 @@ namespace
         const auto model = c.model.empty() ? object.Model() : c.model;
         if (model.empty())
             throw std::runtime_error("Mesh collider requires a model");
-        std::vector<Engine::MeshData> meshes;
-        if (!Engine::ModelLoader::Load(root / model, meshes))
-            throw std::runtime_error("Collider model cannot be loaded");
-        return meshes;
+        std::string error;
+        const auto meshes = Engine::ModelAssets::Load(root / model, error);
+        if (!meshes)
+            throw std::runtime_error(error);
+        return *meshes;
     }
     JPH::RefConst<JPH::Shape> Shape(const PhysicsObject& object, const Pose& pose, const std::filesystem::path& root)
     {
@@ -673,10 +633,13 @@ namespace SceneRuntime
                                   return object.boxCollider && object.boxCollider->enabled;
                               }) > 8192)
                 throw std::runtime_error("Physics body limit exceeded");
+            const auto inputs = QueryGeometryFiles(definition, root);
             for (size_t i = 0; i < definition.objects.size(); ++i)
             {
                 BuildEntry(i, matrices, root, old, states);
             }
+            if (!QueryFilesMatch(inputs))
+                throw std::runtime_error("Collider model changed during import");
             system.OptimizeBroadPhase();
             BuildJoints(matrices);
             if (old)
@@ -1191,6 +1154,7 @@ namespace SceneRuntime
     };
     PhysicsWorld::Transaction::Transaction(PhysicsWorld& world) : world_(&world), state_(std::make_unique<State>())
     {
+        Engine::CpuScope scope("Physics rollback snapshot");
         state_->world = world.impl_;
         state_->impulses = world.impulses_;
         state_->impulseOwners = world.impulseOwners_;
@@ -1283,8 +1247,10 @@ namespace SceneRuntime
             {
                 Engine::CpuScope rebuild("Root collision world rebuild");
                 auto replacement = std::make_shared<Impl>(before);
-                replacement->Build(start, root, nullptr, {});
                 auto files = QueryGeometryFiles(before, root);
+                replacement->Build(start, root, nullptr, {});
+                if (!QueryFilesMatch(files))
+                    throw std::runtime_error("Root collider model changed during import");
                 rootQueries_ = std::move(replacement);
                 rootQueryRoot_ = root;
                 rootQueryFiles_ = std::move(files);
@@ -1365,7 +1331,7 @@ namespace SceneRuntime
         return true;
     }
     bool PhysicsWorld::PrepareScene(WorldState::ReadView view, const ScenePhysics::States& states,
-                                    const std::filesystem::path& root, std::string& error)
+                                    const std::filesystem::path& root, std::string& error, bool reloadAssets)
     {
         try
         {
@@ -1386,7 +1352,7 @@ namespace SceneRuntime
             std::vector<Matrix> matrices;
             if (!PhysicsTransforms::Resolve(frame, matrices, error))
                 return false;
-            if (!impl_ || !impl_->Matches(frame, matrices))
+            if (reloadAssets || !impl_ || !impl_->Matches(frame, matrices))
             {
                 auto replacement = std::make_shared<Impl>(frame);
                 replacement->Build(matrices, root, impl_.get(), states);
@@ -1405,7 +1371,7 @@ namespace SceneRuntime
     }
     bool PhysicsWorld::AdvanceFrame(PhysicsFrame& layout, ScenePhysics::States& states, double seconds,
                                     float horizontal, float vertical, bool jump, const std::filesystem::path& root,
-                                    std::string& error, const SceneLayout* legacyValidation)
+                                    std::string& error, const SceneLayout* legacyValidation, bool hasSavepoint)
     {
         if (!std::isfinite(seconds) || seconds <= 0 || !std::isfinite(horizontal) || !std::isfinite(vertical))
         {
@@ -1424,7 +1390,8 @@ namespace SceneRuntime
             ValidateControllers(layout);
             auto candidateStates = states;
             // Step が書き換えるのは物理配置だけなので、全コンポーネントを複製せずに該当フィールドだけを保存します。
-            transforms = CaptureTransforms(layout);
+            if (!hasSavepoint)
+                transforms = CaptureTransforms(layout);
             std::unique_ptr<Impl> replacement;
             auto* activeWorld = impl_.get();
             if (!activeWorld || !activeWorld->Matches(layout, matrices))
@@ -1437,7 +1404,7 @@ namespace SceneRuntime
                 activeWorld = replacement.get();
             }
             auto& world = *activeWorld;
-            if (!replacement)
+            if (!replacement && !hasSavepoint)
             {
                 world.SaveAdvance(backup);
                 saved = true;
@@ -1513,9 +1480,23 @@ namespace SceneRuntime
                                float horizontal, float vertical, bool jump, const std::filesystem::path& root,
                                std::string& error, const std::map<std::string, bool>& rootMotions)
     {
-        auto frame = PhysicsFrame::Capture(transaction.Read(), rootMotions);
         auto rollback = BeginTransaction();
         auto candidateStates = states;
+        if (!AdvanceCandidate(transaction, candidateStates, seconds, horizontal, vertical, jump, root, error,
+                              rootMotions, rollback))
+            return false;
+        states.swap(candidateStates);
+        rollback.Commit();
+        return true;
+    }
+    bool PhysicsWorld::AdvanceCandidate(WorldState::Transaction& transaction, ScenePhysics::States& states,
+                                        double seconds, float horizontal, float vertical, bool jump,
+                                        const std::filesystem::path& root, std::string& error,
+                                        const std::map<std::string, bool>& rootMotions, const Transaction& savepoint)
+    {
+        if (savepoint.world_ != this || !savepoint.state_)
+            throw std::logic_error("Missing physics transaction savepoint");
+        auto frame = PhysicsFrame::Capture(transaction.Read(), rootMotions);
         if (std::any_of(frame.objects.begin(), frame.objects.end(),
                         [](const auto& object)
                         {
@@ -1523,13 +1504,13 @@ namespace SceneRuntime
                                    !object.playerController->usePhysics;
                         }))
         {
-            if (!ScenePhysics::AdvanceFrame(frame, candidateStates, seconds, horizontal, vertical, jump))
+            if (!ScenePhysics::AdvanceFrame(frame, states, seconds, horizontal, vertical, jump))
             {
                 error = "Runtime player movement failed";
                 return false;
             }
         }
-        if (!AdvanceFrame(frame, candidateStates, seconds, horizontal, vertical, jump, root, error))
+        if (!AdvanceFrame(frame, states, seconds, horizontal, vertical, jump, root, error, nullptr, true))
             return false;
         for (const auto& object : frame.objects)
         {
@@ -1538,8 +1519,6 @@ namespace SceneRuntime
                 !transaction.SetLocalTransform(object.entity, value, error).succeeded)
                 return false;
         }
-        states.swap(candidateStates);
-        rollback.Commit();
         return true;
     }
     bool PhysicsWorld::ConstrainRootMotion(WorldState::Transaction& transaction,

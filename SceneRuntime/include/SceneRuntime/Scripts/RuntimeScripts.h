@@ -86,6 +86,8 @@ namespace SceneRuntime
         static bool Register(std::string name, RuntimeScriptDefinition definition);
         /// <summary>セッションが保持する不変の定義世代を取得します。</summary>
         static std::shared_ptr<const RuntimeScriptDefinitions> Capture();
+        /// <summary>登録とモジュール交換に成功した定義世代を取得します。</summary>
+        static std::uint64_t Revision();
         /// <summary>モジュール単位の定義を一括交換し、失敗時は旧登録を保持します。</summary>
         static bool InstallModule(const std::string& owner, RuntimeScriptDefinitions definitions, std::string& error);
     };
@@ -253,6 +255,9 @@ namespace SceneRuntime
 
         private:
             friend class RuntimeScripts;
+            friend class LegacyScriptAdapter;
+            /// <summary>互換検証が次の段階へ渡すため、候補の予約イベントを借用します。</summary>
+            const std::vector<ScriptEvent>& PendingEvents() const noexcept;
             /// <summary>Worldの候補と一緒に進める実行状態の候補を作ります。</summary>
             Frame(RuntimeScripts& owner, WorldState::Transaction& transaction,
                   const std::map<std::string, float>& input, const std::map<std::string, bool>& pressed,

@@ -2,7 +2,7 @@
 #include <SceneRuntime/Physics/PhysicsTypes.h>
 #include <SceneRuntime/Physics/ScenePhysics.h>
 #include <memory>
-#include <Engine/Assets/AssetFileRevision.h>
+#include <Engine/Assets/AssetArtifact.h>
 #include <SceneRuntime/Scene/WorldState.h>
 
 namespace SceneRuntime
@@ -52,7 +52,7 @@ namespace SceneRuntime
         bool AddImpulse(WorldState::ReadView view, EntityHandle entity, const std::array<float, 3>& impulse);
         /// <summary>段階末の実行値を問い合わせ用ワールドへ反映し、失われた世代の予約を破棄します。</summary>
         bool PrepareScene(WorldState::ReadView view, const ScenePhysics::States& states,
-                          const std::filesystem::path& root, std::string& error);
+                          const std::filesystem::path& root, std::string& error, bool reloadAssets = false);
         /// <summary>ルート移動を独立した再利用可能な衝突ワールドで制限します。物理時計・速度・接触履歴は変更しません。</summary>
         bool ConstrainRootMotion(const SceneLayout& before, SceneLayout& candidate, const std::vector<size_t>& actors,
                                  const std::filesystem::path& root, std::string& error) const;
@@ -72,10 +72,16 @@ namespace SceneRuntime
         void Reset();
 
     private:
+        friend class RuntimePhysics;
+        /// <summary>外側の保存点を使って固定更新を進め、同じ物理状態の重複保存を避けます。</summary>
+        bool AdvanceCandidate(WorldState::Transaction& transaction, ScenePhysics::States& states, double seconds,
+                              float horizontal, float vertical, bool jump, const std::filesystem::path& root,
+                              std::string& error, const std::map<std::string, bool>& rootMotions,
+                              const Transaction& savepoint);
         /// <summary>物理専用の不変入力と数値姿勢を使用してstepを進めます。</summary>
         bool AdvanceFrame(PhysicsFrame& frame, ScenePhysics::States& states, double seconds, float horizontal,
                           float vertical, bool jump, const std::filesystem::path& root, std::string& error,
-                          const SceneLayout* legacyValidation = nullptr);
+                          const SceneLayout* legacyValidation = nullptr, bool hasSavepoint = false);
         /// <summary>物理専用の数値姿勢でルート移動の衝突を解決します。</summary>
         bool ConstrainFrame(const PhysicsFrame& before, PhysicsFrame& candidate, const std::vector<size_t>& actors,
                             const std::filesystem::path& root, std::string& error) const;
@@ -83,7 +89,7 @@ namespace SceneRuntime
         std::shared_ptr<Impl> impl_;
         mutable std::shared_ptr<Impl> rootQueries_;
         mutable std::filesystem::path rootQueryRoot_;
-        mutable std::map<std::filesystem::path, std::optional<Engine::AssetFileRevision>> rootQueryFiles_;
+        mutable std::vector<Engine::ArtifactSources> rootQueryFiles_;
         std::map<std::string, std::array<float, 3>> impulses_;
         std::map<std::string, ComponentInstanceHandle> impulseOwners_;
         std::vector<PhysicsContactEvent> events_;

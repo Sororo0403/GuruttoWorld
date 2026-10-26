@@ -464,6 +464,53 @@ namespace
         }
     }
 
+    void ValidateDefinitionPreparation()
+    {
+        ScenePlacement actor;
+        actor.id = "actor";
+        actor.meshRenderer.emplace();
+        actor.meshRenderer->model = "Assets/Models/Original.gltf";
+        SceneLayout source;
+        source.objects = {actor};
+        WorldState world(WorldDefinition::Compile(source));
+        const auto entity = *world.Read().Resolve(actor.id);
+        size_t calls = 0;
+        bool fail = true;
+        world.SetDefinitionPreparation(
+            [&](SceneLayout& candidate)
+            {
+                ++calls;
+                if (fail)
+                    throw std::runtime_error("injected catalog failure");
+                candidate.objects[0].meshRenderer->model = "Assets/Models/Canonical.gltf";
+            });
+        auto mesh = actor.meshRenderer;
+        mesh->model = "Assets/Models/Alias.gltf";
+        std::string error;
+        {
+            auto tx = world.BeginTransaction();
+            Require(!tx.SetComponent(entity, mesh, error).succeeded &&
+                        tx.Read().Component<MeshRendererComponent>(entity)->model == actor.meshRenderer->model,
+                    "runtime-resource-definition-failure-keeps-candidate-unchanged");
+        }
+        fail = false;
+        {
+            auto tx = world.BeginTransaction();
+            Require(tx.SetComponent(entity, mesh, error).succeeded && tx.Prepare(error) && tx.Commit() &&
+                        world.Read().Component<MeshRendererComponent>(entity)->model ==
+                            "Assets/Models/Canonical.gltf" &&
+                        world.Read().Alive(entity),
+                    "runtime-resource-definition-resolves-before-publication-with-stable-handle");
+        }
+        const auto resolved = calls;
+        {
+            auto tx = world.BeginTransaction();
+            Require(tx.SetLocalTransform(entity, {{1, 0, 0}, {}, {1, 1, 1}}, error).succeeded && tx.Prepare(error) &&
+                        tx.Commit() && calls == resolved,
+                    "runtime-steady-numeric-frame-does-not-call-asset-catalog");
+        }
+    }
+
 }
 
 int main()
@@ -483,6 +530,7 @@ int main()
         ValidateDirtyTransforms();
         ValidatePlacementPublication();
         ValidateVelocityWrites();
+        ValidateDefinitionPreparation();
         std::cout << "World state contracts: " << contracts << ", failures: 0\n";
         return 0;
     }

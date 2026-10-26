@@ -3,6 +3,7 @@
 #include <SceneRuntime/Scene/SceneEdits.h>
 #include <SceneRuntime/Scene/EntityHandle.h>
 #include <span>
+#include <functional>
 
 namespace SceneRuntime
 {
@@ -137,6 +138,8 @@ namespace SceneRuntime
             }
             /// <summary>構造変更の時だけ保存型の候補を作り、新しい定義と実行値をまとめて準備します。</summary>
             SceneEditResult ApplyStructure(const SceneEdit& edit, std::string& error);
+            /// <summary>今回の取引で複製した個体の元の実行世代を取得します。確定後の永続状態には残しません。</summary>
+            std::optional<EntityHandle> DuplicateSource(EntityHandle entity) const;
             /// <summary>親子行列と公開通知を準備します。失敗時は未確定候補を破棄できます。</summary>
             bool Prepare(std::string& error);
             /// <summary>準備済み候補の差分だけを取得します。以前の未取得通知は含みません。</summary>
@@ -166,6 +169,8 @@ namespace SceneRuntime
         ReadView Read() const noexcept;
         /// <summary>全体の保存データを複製せず、空の書き込み候補を作ります。</summary>
         Transaction BeginTransaction();
+        /// <summary>構造・アセット参照を変える候補だけに、ホストの定義解決を適用します。公開中の値は渡しません。</summary>
+        void SetDefinitionPreparation(std::function<void(SceneLayout&)> prepare);
         /// <summary>成功した取引の未取得通知を一度だけ取得します。準備中は既存通知を保持します。</summary>
         SceneChangeSet TakeChanges() noexcept;
 

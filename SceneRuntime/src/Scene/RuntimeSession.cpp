@@ -74,7 +74,7 @@ namespace SceneRuntime
     bool RuntimeSession::Execute(double seconds, const RuntimeInput& input, bool advancePhysics, const SceneEdit* edit,
                                  std::optional<bool> paused, bool startOnly, std::string& error, bool components,
                                  const RuntimeScriptEffects* effects, bool startAfterEdit,
-                                 const std::map<std::string, float>* clocks)
+                                 const std::map<std::string, float>* clocks, bool reloadAssets)
     {
         if (impl_->active)
         {
@@ -119,7 +119,9 @@ namespace SceneRuntime
             auto system = impl_->system ? impl_->system->Begin(transaction) : nullptr;
             if (impl_->system && !system)
                 throw std::runtime_error("Runtime system did not create a candidate");
-            const bool starting = (!edit && !paused && !effects && components) || startAfterEdit;
+            if (reloadAssets && system && !system->ReloadAssets(error))
+                return false;
+            const bool starting = (!reloadAssets && !edit && !paused && !effects && components) || startAfterEdit;
             auto remaining = impl_->fixedSeconds;
             auto pressed = impl_->pressed;
             auto jump = impl_->jump;
@@ -143,7 +145,7 @@ namespace SceneRuntime
                     if (!frame.Pause(*paused, error))
                         return false;
                 }
-                else if ((starting || (edit && impl_->started)) && !frame.Start(error))
+                else if (!reloadAssets && (starting || (edit && impl_->started)) && !frame.Start(error))
                     return false;
             }
             else
@@ -302,6 +304,10 @@ namespace SceneRuntime
         }
         return Execute(0, {}, false, nullptr, {}, true, error, false, nullptr, false, &clocks);
     }
+    bool RuntimeSession::ReloadAssets(std::string& error, const SceneEdit* edit)
+    {
+        return Execute(0, {}, false, edit, {}, true, error, false, nullptr, false, nullptr, true);
+    }
     bool RuntimeSession::Validate(std::string& error) const
     {
         return impl_->scripts.Validate(Read(), error);
@@ -334,6 +340,12 @@ namespace SceneRuntime
             return false;
         }
         return impl_->scripts.QueueEvent(std::move(event), error);
+    }
+    void RuntimeSession::SetDefinitionPreparation(std::function<void(SceneLayout&)> prepare)
+    {
+        if (impl_->active)
+            throw std::logic_error("Cannot replace active definition preparation");
+        impl_->world.SetDefinitionPreparation(std::move(prepare));
     }
     void RuntimeSession::SetSystem(std::unique_ptr<RuntimeSystem> system)
     {

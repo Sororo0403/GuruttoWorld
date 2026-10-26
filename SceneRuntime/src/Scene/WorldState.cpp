@@ -361,6 +361,7 @@ namespace SceneRuntime
         std::uint64_t id = 0;
         size_t nextId = 1;
         std::unique_ptr<Data> structure;
+        std::vector<std::pair<EntityHandle, EntityHandle>> duplicates;
         std::unordered_map<std::uint32_t, LocalTransform> transforms;
         std::unordered_map<ComponentKey, RuntimeComponentValue, ComponentHash> components;
         PreparedPages pages;
@@ -385,6 +386,7 @@ namespace SceneRuntime
         std::vector<std::uint32_t> chainScratch;
         SceneChangeSet changes;
         Pending* active = nullptr;
+        std::function<void(SceneLayout&)> prepareDefinition;
 
         const Data& Select(std::uint64_t transaction) const
         {
@@ -870,7 +872,8 @@ namespace SceneRuntime
             }
             SceneEditResult result{true, {}};
             result.changes.RecordObject(before, after);
-            if (StructuralValueChange(beforeValue, value))
+            if (StructuralValueChange(beforeValue, value) ||
+                (owner_->impl_->prepareDefinition && !result.changes.resources.empty()))
             {
                 auto object = *Read().Object(entity);
                 std::visit(
@@ -894,6 +897,16 @@ namespace SceneRuntime
         }
     }
 
+    std::optional<EntityHandle> WorldState::Transaction::DuplicateSource(EntityHandle entity) const
+    {
+        if (!Read().Alive(entity))
+            return {};
+        for (auto entry = pending_->duplicates.rbegin(); entry != pending_->duplicates.rend(); ++entry)
+            if (entry->second == entity)
+                return entry->first;
+        return {};
+    }
+
     SceneEditResult WorldState::Transaction::ApplyStructure(const SceneEdit& edit, std::string& error)
     {
         try
@@ -905,11 +918,31 @@ namespace SceneRuntime
             SceneEditResult result{true, plan->changes};
             if (result.changes.Empty())
                 return result;
-            auto definition = WorldDefinition::Compile(std::move(plan->layout));
             auto& impl = *owner_->impl_;
+            if (impl.prepareDefinition)
+            {
+                impl.prepareDefinition(plan->layout);
+                result.changes = SceneChangeSet::Compare(before, plan->layout);
+            }
+            auto definition = WorldDefinition::Compile(std::move(plan->layout));
             auto structure =
                 BuildData(std::move(definition), &impl.Select(pending_->id), impl.world, impl.nextGeneration);
+            auto duplicates = pending_->duplicates;
+            for (const auto& [sourceId, targetId] : plan->duplicates)
+            {
+                const auto target = structure->ids.find(targetId);
+                if (target == structure->ids.end())
+                    continue;
+                auto source = Read().Resolve(sourceId);
+                if (!source)
+                    if (const auto published = impl.data->ids.find(sourceId); published != impl.data->ids.end())
+                        source = published->second;
+                if (!source || *source == target->second || Read().Resolve(targetId))
+                    throw std::runtime_error("Invalid runtime duplication provenance");
+                duplicates.emplace_back(*source, target->second);
+            }
             pending_->structure.swap(structure);
+            pending_->duplicates.swap(duplicates);
             pending_->transforms.clear();
             pending_->components.clear();
             pending_->pages.clear();
@@ -1043,6 +1076,13 @@ namespace SceneRuntime
             error = failure.what();
             return false;
         }
+    }
+
+    void WorldState::SetDefinitionPreparation(std::function<void(SceneLayout&)> prepare)
+    {
+        if (impl_->active)
+            throw std::logic_error("Cannot replace active definition preparation");
+        impl_->prepareDefinition = std::move(prepare);
     }
 
     const SceneChangeSet& WorldState::Transaction::Changes() const noexcept

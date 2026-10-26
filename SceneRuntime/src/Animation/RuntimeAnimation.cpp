@@ -1,4 +1,6 @@
 #include <SceneRuntime/Animation/RuntimeAnimation.h>
+#include <Engine/Animation/SkeletonAssets.h>
+#include <Engine/Core/Profiler.h>
 #include <SceneRuntime/Physics/RuntimeRagdoll.h>
 #include <SceneRuntime/Scene/SceneTransforms.h>
 #include <algorithm>
@@ -64,7 +66,7 @@ namespace SceneRuntime
                     entry = std::make_shared<Entry>(*entry);
                 return const_cast<Entry&>(*entry);
             }
-            void Reconcile()
+            void Reconcile(bool reload = false)
             {
                 const auto view = transaction.Read();
                 std::set<std::uint64_t> activeKeys;
@@ -79,7 +81,7 @@ namespace SceneRuntime
                     activeKeys.insert(key);
                     const auto previous = entries.find(key);
                     if (previous != entries.end() && previous->second->instance == instance &&
-                        previous->second->model == mesh->model && *previous->second->component == *component)
+                        previous->second->model == mesh->model && *previous->second->component == *component && !reload)
                         continue;
                     auto entry = std::make_shared<Entry>();
                     entry->instance = instance;
@@ -87,14 +89,45 @@ namespace SceneRuntime
                     entry->model = mesh->model;
                     std::string error;
                     entry->rig = owner.services.load ? owner.services.load(owner.root / mesh->model, error)
-                                                     : Engine::Skeleton::Load(owner.root / mesh->model, error);
+                                                     : Engine::SkeletonAssets::Load(owner.root / mesh->model, error);
                     if (!entry->rig)
                         throw std::runtime_error(error.empty() ? "Animator skeleton missing" : error);
+                    if (previous != entries.end() && previous->second->instance == instance &&
+                        previous->second->model == mesh->model && previous->second->rig == entry->rig &&
+                        *previous->second->component == *component)
+                        continue;
+                    if (previous != entries.end() && previous->second->instance == instance)
+                    {
+                        entry->state.parameterOverrides = previous->second->state.parameterOverrides;
+                        entry->state.ikOverrides = previous->second->state.ikOverrides;
+                        entry->state.rootMotionOverride = previous->second->state.rootMotionOverride;
+                    }
+                    const bool sameArtifact = previous != entries.end() && previous->second->instance == instance &&
+                                              *previous->second->component == *component &&
+                                              Engine::SkeletonAssets::SameArtifact(previous->second->rig, entry->rig);
+                    std::shared_ptr<const Entry> inherited;
+                    if (!sameArtifact && previous == entries.end())
+                        if (const auto source = transaction.DuplicateSource(entity))
+                            for (const auto& [sourceKey, candidate] : entries)
+                            {
+                                static_cast<void>(sourceKey);
+                                if (candidate->instance.entity == *source && *candidate->component == *component &&
+                                    Engine::SkeletonAssets::SameArtifact(candidate->rig, entry->rig))
+                                {
+                                    inherited = candidate;
+                                    break;
+                                }
+                            }
+                    if (sameArtifact)
+                        entry->state = previous->second->state;
+                    else if (inherited)
+                        entry->state = inherited->state;
                     Animator::Validate(*component, entry->rig.get());
                     RuntimeRagdoll::Validate(view, entity, *entry->rig);
                     const auto matrix = *view.WorldMatrix(entity);
-                    Animator::Advance(*component, entry->state, *entry->rig, 0, {}, &matrix);
-                    entry->version = 1;
+                    if (!sameArtifact && !inherited)
+                        Animator::Advance(*component, entry->state, *entry->rig, 0, {}, &matrix);
+                    entry->version = sameArtifact ? previous->second->version : inherited ? inherited->version : 1;
                     entries.insert_or_assign(key, std::move(entry));
                     writable.insert(key);
                     changed = true;
@@ -151,6 +184,9 @@ namespace SceneRuntime
             void Evaluate(double seconds, const RuntimeScriptEffects& effects)
             {
                 Reconcile();
+                std::optional<Engine::CpuScope> timing;
+                if (!entries.empty())
+                    timing.emplace("Animator evaluation");
                 std::vector<RuntimePose> roots;
                 for (const auto& [key, value] : entries)
                 {
@@ -222,6 +258,11 @@ namespace SceneRuntime
                     entry.state.pose = Animator::Constrain(*entry.component, entry.state, *entry.rig, &matrix);
                 }
             }
+            bool ReloadAssets(std::string&) override
+            {
+                Reconcile(true);
+                return true;
+            }
             bool BeforeUpdate(double seconds, const RuntimeInput& values, std::string&) override
             {
                 input = values;
@@ -282,7 +323,14 @@ namespace SceneRuntime
                     auto& entry = Write(key);
                     Overrides(entry, effects);
                     const auto matrix = *transaction.Read().WorldMatrix(entry.instance.entity);
-                    entry.state.pose = Animator::Constrain(*entry.component, entry.state, *entry.rig, &matrix);
+                    const auto view = transaction.Read();
+                    const auto ragdoll = view.ComponentLease<RagdollComponent>(entry.instance.entity);
+                    if (ragdoll && ragdoll->enabled && ragdoll->active && !ragdoll->bones.empty())
+                        entry.state.pose = RuntimeRagdoll::Pose(view, entry.instance.entity, *entry.rig,
+                                                                entry.state.basePose.empty() ? entry.state.pose
+                                                                                             : entry.state.basePose);
+                    else
+                        entry.state.pose = Animator::Constrain(*entry.component, entry.state, *entry.rig, &matrix);
                     ++entry.version;
                     changed = true;
                 }

@@ -305,6 +305,7 @@ namespace
                     Translate(object, edit.offset, matrices);
                 }
                 object.id = copies.at(original);
+                plan.duplicates.emplace_back(original, object.id);
                 object.name += " copy";
                 for (auto& [name, members] : plan.layout.sceneObjects)
                 {
@@ -353,6 +354,7 @@ namespace
         void Apply(const ReplaceDocumentEdit& edit)
         {
             plan.layout = edit.value;
+            plan.duplicates = edit.duplicates;
         }
     };
 }

@@ -32,7 +32,7 @@ namespace SceneRuntime
             size_t impulses = 0;
             RuntimePhysicalHistory history;
             float fixedStep = 0;
-            bool stepped = false, impulsed = false;
+            bool stepped = false, impulsed = false, reloaded = false;
             Candidate(Impl& value, WorldState::Transaction& tx)
                 : owner(value), transaction(tx), rollback(value.physics.BeginTransaction()), states(value.states),
                   controllers(value.controllers), roots(value.roots), history(value.history)
@@ -93,8 +93,8 @@ namespace SceneRuntime
                 std::map<std::string, bool> rootMotions;
                 for (const auto& [id, overrideValue] : roots)
                     rootMotions.emplace(id, overrideValue.enabled);
-                if (!owner.physics.Advance(transaction, states, seconds, input.horizontal, input.vertical, input.jump,
-                                           owner.root, error, rootMotions))
+                if (!owner.physics.AdvanceCandidate(transaction, states, seconds, input.horizontal, input.vertical,
+                                                    input.jump, owner.root, error, rootMotions, rollback))
                     return false;
                 for (const auto& contact : owner.physics.Events())
                 {
@@ -109,6 +109,11 @@ namespace SceneRuntime
             bool Update(double, const RuntimeScriptEffects&, std::string&) override
             {
                 return true;
+            }
+            bool ReloadAssets(std::string& error) override
+            {
+                reloaded = true;
+                return owner.physics.PrepareScene(transaction.Read(), states, owner.root, error, true);
             }
             bool Prepare(const SceneChangeSet&, const RuntimeScriptEffects& effects, std::string& error) override
             {
@@ -187,7 +192,7 @@ namespace SceneRuntime
             SceneChangeSet Changes() const override
             {
                 SceneChangeSet changes;
-                if (stepped || impulsed)
+                if (stepped || impulsed || reloaded)
                     changes.fields.push_back({{}, {}, "runtime.physics"});
                 return changes;
             }

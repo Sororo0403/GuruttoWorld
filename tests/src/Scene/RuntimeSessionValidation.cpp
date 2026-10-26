@@ -312,6 +312,41 @@ namespace
                 "session-property-animation-rejects-nonfinite-clock-without-partial-publication");
         Require(session.Start(error) && starts == 1, "session-property-animation-keeps-explicit-script-start");
     }
+    void ValidateUninvokedCandidate()
+    {
+        int updates = 0, stops = 0;
+        auto definitions = std::make_shared<RuntimeScriptDefinitions>();
+        auto& script = (*definitions)["NoStartCallback"];
+        script.update = [&](RuntimeScriptContext& context)
+        {
+            ++updates;
+            context.state["ticks"] += 1;
+        };
+        script.stop = [&](const RuntimeScriptStopContext&)
+        {
+            ++stops;
+        };
+        SceneLayout layout;
+        ScenePlacement object;
+        object.id = "owner";
+        object.scripts.push_back({"script", true, "NoStartCallback", {}});
+        layout.objects.push_back(object);
+        RuntimeSession session(WorldDefinition::Compile(layout), definitions);
+        auto system = std::make_unique<System>();
+        auto* observer = system.get();
+        observer->failPrepare = true;
+        session.SetSystem(std::move(system));
+        std::string error;
+        Require(!session.Start(error) && updates == 0 && stops == 0 && session.TakeChanges().Empty(),
+                "session-failed-resource-preparation-does-not-stop-uninvoked-candidate");
+        Require(!session.Tick(.01, {}, false, error) && updates == 1 && stops == 1,
+                "session-failed-first-update-cleans-invoked-candidate-without-start-hook");
+        observer->failPrepare = false;
+        Require(session.Start(error) && updates == 1 && stops == 1,
+                "session-retry-publishes-uninvoked-instance-without-extra-stop");
+        Require(session.Edit(RemoveObjectsEdit{{"owner"}}, error) && stops == 2,
+                "session-published-instance-stops-once-even-without-start-hook");
+    }
     void ValidateDefaultClock()
     {
         SceneLayout layout;
@@ -328,6 +363,7 @@ int main()
         Validate();
         ValidateLifecycle();
         ValidateDefaultClock();
+        ValidateUninvokedCandidate();
         ValidateHostOperations();
         ValidatePropertyAnimation();
         std::cout << "Runtime session contracts: " << contracts << ", failures: 0\n";

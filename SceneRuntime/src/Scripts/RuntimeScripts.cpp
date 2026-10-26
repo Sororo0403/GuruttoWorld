@@ -149,6 +149,7 @@ namespace
         std::mutex mutex;
         RuntimeScriptDefinitions definitions = Builtins();
         std::map<std::string, std::set<std::string>> owners;
+        std::uint64_t revision = 0;
     };
     Registry& Registrations()
     {
@@ -193,6 +194,7 @@ namespace SceneRuntime
         RuntimeScriptQueries& queries;
         std::vector<std::pair<EntityHandle, RuntimeComponentValue>> values;
         std::optional<SceneLayout> structure;
+        std::vector<std::pair<std::string, std::string>> duplicates;
         size_t nextId = 1;
         std::set<std::string> retiredIds;
 
@@ -215,6 +217,7 @@ namespace SceneRuntime
                                  }))
                     retiredIds.insert(object.id);
             nextId = plan->nextId;
+            duplicates.insert(duplicates.end(), plan->duplicates.begin(), plan->duplicates.end());
             structure = plan->layout;
             return std::move(*plan);
         }
@@ -255,9 +258,12 @@ namespace SceneRuntime
                         retired.push_back(id);
                 if (!retired.empty() && !transaction.ApplyStructure(RemoveObjectsEdit{retired}, error).succeeded)
                     throw std::runtime_error(error);
-                if (!transaction.ApplyStructure(ReplaceDocumentEdit{std::move(*structure)}, error).succeeded)
+                if (!transaction
+                         .ApplyStructure(ReplaceDocumentEdit{std::move(*structure), std::move(duplicates)}, error)
+                         .succeeded)
                     throw std::runtime_error(error);
                 structure.reset();
+                duplicates.clear();
                 retiredIds.clear();
             }
         }
@@ -648,7 +654,10 @@ namespace SceneRuntime
             definition.Validate(name);
             auto& registry = Registrations();
             std::lock_guard lock(registry.mutex);
-            return registry.definitions.emplace(std::move(name), std::move(definition)).second;
+            const bool added = registry.definitions.emplace(std::move(name), std::move(definition)).second;
+            if (added)
+                ++registry.revision;
+            return added;
         }
         catch (...)
         {
@@ -673,6 +682,12 @@ namespace SceneRuntime
         std::lock_guard lock(registry.mutex);
         return std::make_shared<const RuntimeScriptDefinitions>(registry.definitions);
     }
+    std::uint64_t RuntimeScriptRegistry::Revision()
+    {
+        auto& registry = Registrations();
+        std::lock_guard lock(registry.mutex);
+        return registry.revision;
+    }
     bool RuntimeScriptRegistry::InstallModule(const std::string& owner, RuntimeScriptDefinitions definitions,
                                               std::string& error)
     {
@@ -696,6 +711,7 @@ namespace SceneRuntime
             }
             registry.definitions.swap(next);
             registry.owners.swap(owners);
+            ++registry.revision;
             error.clear();
             return true;
         }
@@ -721,7 +737,7 @@ namespace SceneRuntime
         Impl& owner;
         WorldState::Transaction& transaction;
         Instances instances;
-        std::set<std::uint64_t> writable;
+        std::set<std::uint64_t> writable, uninvoked;
         std::map<std::string, float> input;
         std::map<std::string, bool> pressed;
         std::vector<ScriptEvent> events;
@@ -776,11 +792,18 @@ namespace SceneRuntime
                      instance.data, instance.dataState, owner.root, owner.content},
                     &owner.definitions->at(instance.behavior)};
         }
+        void MarkInvoked(std::uint64_t key, const Instance& instance)
+        {
+            // 未公開でコールバック未実行の候補は、失敗時の停止対象にしません。
+            if (uninvoked.erase(key))
+                rollbacks.push_back(Snapshot(instance));
+        }
         void Retire(std::uint64_t key, RuntimeScriptScene& scene)
         {
             auto& instance = Write(key);
             const auto& definition = owner.definitions->at(instance.behavior);
-            if (definition.prepareStop)
+            const bool neverInvoked = uninvoked.erase(key) != 0;
+            if (!neverInvoked && definition.prepareStop)
             {
                 auto context = Context(instance, scene, ScriptPhase::Update, 0);
                 ScenePlacement removed;
@@ -793,7 +816,8 @@ namespace SceneRuntime
                 if (context.retiredOwner_)
                     instance.retiredOwner = std::make_shared<const ScenePlacement>(std::move(removed));
             }
-            stops.push_back(Snapshot(instance));
+            if (!neverInvoked)
+                stops.push_back(Snapshot(instance));
             instances.erase(key);
             writable.erase(key);
         }
@@ -814,7 +838,7 @@ namespace SceneRuntime
         {
             Check(!failed && !prepared && !committed && std::isfinite(seconds) && seconds >= 0,
                   "Invalid script phase state");
-            RuntimeScriptScene::Impl sceneState{transaction, effects, events, queries, {}, {}, 1, {}};
+            RuntimeScriptScene::Impl sceneState{transaction, effects, events, queries, {}, {}, {}, 1, {}};
             RuntimeScriptScene scene(sceneState);
             std::vector<ScriptEvent> incoming;
             if (!startOnly && !pauseValue && phase == ScriptPhase::Update)
@@ -848,6 +872,8 @@ namespace SceneRuntime
                         instance->componentId = script.id;
                         instances.emplace(key, std::move(instance));
                         writable.insert(key);
+                        if (definition.stop)
+                            uninvoked.insert(key);
                     }
                     auto& instance = Write(key);
                     instance.parameters = script.parameters;
@@ -869,15 +895,21 @@ namespace SceneRuntime
                             Finish(Snapshot(instance));
                             throw;
                         }
-                        if (definition.stop)
-                            rollbacks.push_back(Snapshot(instance));
+                        if (definition.start)
+                            MarkInvoked(key, instance);
                         if (paused && definition.pause)
+                        {
+                            MarkInvoked(key, instance);
                             definition.pause(context, true);
+                        }
                     }
                     if (pauseValue)
                     {
                         if (definition.pause)
+                        {
+                            MarkInvoked(key, instance);
                             definition.pause(context, *pauseValue);
+                        }
                     }
                     else if (!startOnly && !paused)
                     {
@@ -886,6 +918,7 @@ namespace SceneRuntime
                                 if (event.target.empty() || event.target == *view.ObjectId(entity))
                                 {
                                     context.event = &event;
+                                    MarkInvoked(key, instance);
                                     definition.onEvent(context);
                                 }
                         context.event = nullptr;
@@ -893,7 +926,10 @@ namespace SceneRuntime
                                                : phase == ScriptPhase::FixedUpdate ? definition.fixedUpdate
                                                                                    : definition.lateUpdate;
                         if (callback)
+                        {
+                            MarkInvoked(key, instance);
                             callback(context);
+                        }
                     }
                     size_t remaining = 4096;
                     ScriptValue::ValidateObject(instance.dataState, 0, remaining);
@@ -1285,7 +1321,7 @@ namespace SceneRuntime
             Check(!pending_->prepared && !pending_->failed && !pending_->committed,
                   "Cannot queue an event to a prepared frame");
             RuntimeScriptScene::Impl sceneState{
-                pending_->transaction, pending_->effects, pending_->events, pending_->queries, {}, {}, 1, {}};
+                pending_->transaction, pending_->effects, pending_->events, pending_->queries, {}, {}, {}, 1, {}};
             RuntimeScriptScene scene(sceneState);
             scene.Emit(std::move(event));
             error.clear();
@@ -1323,6 +1359,10 @@ namespace SceneRuntime
         pending_->finished = true;
         for (const auto& stopped : pending_->stops)
             Finish(stopped);
+    }
+    const std::vector<ScriptEvent>& RuntimeScripts::Frame::PendingEvents() const noexcept
+    {
+        return pending_->events;
     }
     const RuntimeScriptEffects& RuntimeScripts::Frame::Effects() const noexcept
     {
@@ -1434,7 +1474,7 @@ namespace SceneRuntime
             Check(!pending_->prepared && !pending_->committed && !pending_->failed,
                   "Cannot add prepared runtime effects");
             RuntimeScriptScene::Impl target{
-                pending_->transaction, pending_->effects, pending_->events, pending_->queries, {}, {}, 1, {}};
+                pending_->transaction, pending_->effects, pending_->events, pending_->queries, {}, {}, {}, 1, {}};
             RuntimeScriptScene scene(target);
             for (const auto& command : effects.scenes)
                 if (command.unload)
@@ -1507,7 +1547,7 @@ namespace SceneRuntime
             auto frame = BeginFrame(transaction);
             auto& pending = *frame.pending_;
             RuntimeScriptScene::Impl sceneState{
-                transaction, pending.effects, pending.events, pending.queries, {}, {}, 1, {}};
+                transaction, pending.effects, pending.events, pending.queries, {}, {}, {}, 1, {}};
             RuntimeScriptScene scene(sceneState);
             std::vector<std::uint64_t> keys;
             for (const auto& [key, instance] : pending.instances)

@@ -39,6 +39,13 @@ namespace
                     return false;
             return true;
         }
+        bool ReloadAssets(std::string& error) override
+        {
+            for (const auto& frame : frames)
+                if (!frame->ReloadAssets(error))
+                    return false;
+            return true;
+        }
         void SetInterpolation(double value) override
         {
             for (const auto& frame : frames)

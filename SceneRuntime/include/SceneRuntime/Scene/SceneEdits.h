@@ -66,6 +66,8 @@ namespace SceneRuntime
     struct ReplaceDocumentEdit
     {
         SceneLayout value;
+        // 複製元と複製先の保存ID。実行状態の準備にだけ使い、保存データには含めません。
+        std::vector<std::pair<std::string, std::string>> duplicates;
     };
     using SceneEdit = std::variant<TransformEdit, WorldTransformEdit, TranslationEdit, RotationEdit, ScaleEdit,
                                    ParentEdit, NameEdit, ComponentsEdit, SettingsEdit, AddObjectEdit, DuplicateEdit,
@@ -77,6 +79,8 @@ namespace SceneRuntime
         SceneChangeSet changes;
         std::vector<std::string> createdIds;
         size_t nextId = 1;
+        // 複製元と複製先の保存ID。実行状態の準備にだけ使い、保存データには含めません。
+        std::vector<std::pair<std::string, std::string>> duplicates;
     };
 
     /// <summary>描画・実行・ファイル読込を使わず、保存データの編集候補を準備します。</summary>

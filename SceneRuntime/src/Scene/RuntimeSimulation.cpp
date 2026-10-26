@@ -1,11 +1,22 @@
 #include <SceneRuntime/Scene/RuntimeSimulation.h>
 #include <SceneRuntime/Gameplay/RuntimeNavigation.h>
+#include <Engine/Assets/AssetDatabase.h>
 
 namespace SceneRuntime
 {
-    RuntimeSimulation RuntimeSimulation::Create(const std::filesystem::path& root)
+    RuntimeSimulation RuntimeSimulation::Create(const std::filesystem::path& root,
+                                                std::shared_ptr<const Engine::ContentContext> content)
     {
         RuntimeSimulation result;
+        if (content)
+        {
+            content->RequireRoot(root);
+            result.definitionPreparation = [content](SceneLayout& layout)
+            {
+                content->RequireConfiguration();
+                layout.ResolveAssets(Engine::AssetDatabase(content, true));
+            };
+        }
         auto physics = std::make_unique<RuntimePhysics>(root);
         result.physics = physics.get();
         RuntimeAnimationServices services;
@@ -24,6 +35,11 @@ namespace SceneRuntime
         result.systems.push_back(std::move(animation));
         result.systems.push_back(std::move(physics));
         return result;
+    }
+    void RuntimeSimulation::Attach(RuntimeSession& session)
+    {
+        session.SetDefinitionPreparation(std::move(definitionPreparation));
+        session.SetSystem(Pipeline());
     }
     std::unique_ptr<RuntimePipeline> RuntimeSimulation::Pipeline()
     {

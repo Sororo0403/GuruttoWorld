@@ -42,6 +42,11 @@ namespace SceneRuntime
             {
                 return true;
             }
+            /// <summary>CPU成果物を候補で再取得します。失敗時は従来の実行世代を保持します。</summary>
+            virtual bool ReloadAssets(std::string&)
+            {
+                return true;
+            }
             /// <summary>未公開の固定時計を、表示抽出の補間比率へ渡します。</summary>
             virtual void SetInterpolation(double) {}
             /// <summary>表示・UI・外部資源の公開候補を準備します。失敗しても公開状態は保持します。</summary>
@@ -95,6 +100,8 @@ namespace SceneRuntime
         bool ApplyEffects(const RuntimeScriptEffects& effects, std::string& error);
         /// <summary>時計を進めず、保存された演出トラックの値と表示準備を一括確定します。</summary>
         bool Animate(const std::map<std::string, float>& clocks, std::string& error);
+        /// <summary>時計とScriptを進めず、CPU成果物と表示資源の再取得を同じ取引で確定します。</summary>
+        bool ReloadAssets(std::string& error, const SceneEdit* edit = nullptr);
         /// <summary>保持している定義世代で、現在のScript構成を検証します。</summary>
         bool Validate(std::string& error) const;
         /// <summary>現在の構成に指定した実行段階が存在するかを返します。</summary>
@@ -109,6 +116,8 @@ namespace SceneRuntime
         bool Pause(bool paused, std::string& error);
         /// <summary>未実行のイベントを次の可変更新へ予約します。</summary>
         bool QueueEvent(ScriptEvent event, std::string& error);
+        /// <summary>構造と参照を変更する候補に、ホストが固定したアセット解決を適用します。</summary>
+        void SetDefinitionPreparation(std::function<void(SceneLayout&)> prepare);
         /// <summary>次の取引を開始する前に、物理・表示の参加先を設定します。</summary>
         void SetSystem(std::unique_ptr<RuntimeSystem> system);
         /// <summary>このセッションが使用する内容世代と素材ルートを固定します。</summary>
@@ -130,7 +139,7 @@ namespace SceneRuntime
         bool Execute(double seconds, const RuntimeInput& input, bool advancePhysics, const SceneEdit* edit,
                      std::optional<bool> paused, bool startOnly, std::string& error, bool components = true,
                      const RuntimeScriptEffects* effects = nullptr, bool startAfterEdit = false,
-                     const std::map<std::string, float>* clocks = nullptr);
+                     const std::map<std::string, float>* clocks = nullptr, bool reloadAssets = false);
         std::unique_ptr<Impl> impl_;
     };
 }

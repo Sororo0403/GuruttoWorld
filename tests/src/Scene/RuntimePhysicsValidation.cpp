@@ -96,6 +96,17 @@ namespace
             Require(first.Tick(step, {}, true, error) && reference.Tick(step, {}, true, error),
                     "typed-physics-fixed-tick");
         Require(first.Read().Transform(actor)->position[1] < 3, "typed-physics-applies-gravity-to-runtime-values");
+        Engine::CpuProfiler::Take();
+        Require(first.Tick(step * 3, {}, true, error) && reference.Tick(step * 3, {}, true, error),
+                "typed-physics-multiple-fixed-steps-share-outer-transaction");
+        const auto scopes = Engine::CpuProfiler::Take();
+        const auto snapshots = std::find_if(scopes.begin(), scopes.end(),
+                                            [](const auto& scope)
+                                            {
+                                                return scope.name == "Physics rollback snapshot";
+                                            });
+        Require(snapshots != scopes.end() && snapshots->calls == 2,
+                "typed-physics-captures-once-per-session-transaction");
         const auto before = first.Read().Transform(actor);
         const auto ticks = first.FixedTicks();
         first.TakeChanges();
@@ -107,6 +118,18 @@ namespace
         Require(first.Tick(step, {}, true, error) && reference.Tick(step, {}, true, error) &&
                     first.Read().Transform(actor) == reference.Read().Transform(expected),
                 "typed-physics-retry-matches-uninterrupted-world");
+        const auto reloadPose = first.Read().Transform(actor);
+        const auto reloadTicks = first.FixedTicks();
+        first.TakeChanges();
+        output->fail = true;
+        Require(!first.ReloadAssets(error) && first.Read().Transform(actor) == reloadPose &&
+                    first.FixedTicks() == reloadTicks && first.TakeChanges().Empty(),
+                "typed-physics-reload-failure-keeps-world-clock-and-notices");
+        output->fail = false;
+        Require(first.ReloadAssets(error) && first.Read().Transform(actor) == reloadPose &&
+                    first.Tick(step, {}, true, error) && reference.Tick(step, {}, true, error) &&
+                    first.Read().Transform(actor) == reference.Read().Transform(expected),
+                "typed-physics-reload-preserves-dynamic-momentum");
         bool exported = false;
         for (const auto& sample : Engine::CpuProfiler::Take())
             exported |= sample.name == "Runtime authoring export";
