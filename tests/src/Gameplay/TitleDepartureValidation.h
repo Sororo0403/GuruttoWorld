@@ -1,4 +1,7 @@
 #pragma once
+#include <SceneRuntime/Gameplay/TitleController.h>
+#include <SceneRuntime/Gameplay/TitleController.h>
+#include <SceneRuntime/Scene/SceneCamera.h>
 #include "../../../Editor/src/Playback/GameSession.h"
 #include "GamePlaybackCapture.h"
 #include <SceneRuntime/Project/ProjectSettings.h>
@@ -45,7 +48,7 @@ namespace TitleDepartureValidation
                 tick();
             const auto cameraPose = [&]
             {
-                const auto* camera = SceneRuntime::SceneView::CameraObject(session.Runtime()->World().Layout());
+                const auto* camera = SceneRuntime::SceneCamera::Find(session.Runtime()->World().Layout());
                 DirectX::XMFLOAT4X4 matrix;
                 require(camera && session.Runtime()->World().WorldMatrix(camera->id, matrix),
                         "departure camera world transform exists");
@@ -57,14 +60,16 @@ namespace TitleDepartureValidation
             auto displaced = cameraPose();
             displaced.position[0] += 1;
             displaced.position[1] += .5f;
-            const auto* actualCamera = SceneRuntime::SceneView::CameraObject(session.Runtime()->World().Layout());
+            const auto* actualCamera = SceneRuntime::SceneCamera::Find(session.Runtime()->World().Layout());
             require(actualCamera && session.Runtime()->World().SetWorldTransform(actualCamera->id, displaced.position,
                                                                                  displaced.rotation, displaced.scale),
                     "unfinished selection camera pose fixture accepted");
             const auto before = cameraPose();
             SceneRuntime::UiEvent event;
             event.event = quit ? "menu:2" : "menu:0";
-            require(session.Title().Activate(event, session.Runtime()->Ui()), "departure confirmation accepted");
+            require(static_cast<SceneRuntime::TitleController&>(session.Playback().Feature())
+                        .Activate(event, session.Runtime()->Ui()),
+                    "departure confirmation accepted");
             require(!tick(), "confirmation does not close or load immediately");
             require(session.Runtime()->Ui().Value("screen") == 3 &&
                         session.Runtime()->Ui().Value("departureKind") == (quit ? 1 : 0),

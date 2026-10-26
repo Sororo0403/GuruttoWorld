@@ -1,3 +1,4 @@
+#include <LegacyScripts/ScriptRuntime.h>
 #include "ChangeCaptureValidation.h"
 #include <SceneRuntime/Scripts/ScriptModule.h>
 #include <Engine/Core/FileContents.h>
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
             contract("capture-dll-rejects-old-abi",
                      entry &&
                          !entry(&previousAbi, &registrations,
-                                [](void* count, const char*, const SceneRuntime::ScriptCallbacks*)
+                                [](void* count, const char*, const SceneRuntime::RuntimeScriptDefinition*)
                                 {
                                     ++*static_cast<unsigned int*>(count);
                                     return true;

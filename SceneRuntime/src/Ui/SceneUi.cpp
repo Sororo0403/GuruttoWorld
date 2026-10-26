@@ -2,6 +2,7 @@
 #include <iterator>
 #include <Engine/Graphics/ShaderCompiler.h>
 #include <SceneRuntime/Ui/SceneUi.h>
+#include "UiVisualFunctions.h"
 #include <SceneRuntime/Ui/SceneCanvas.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <winrt/base.h>
@@ -98,64 +99,7 @@ namespace
 }
 namespace SceneRuntime
 {
-    namespace
-    {
-        bool HasControlBackground(const ScenePlacement& p)
-        {
-            return (p.slider && p.slider->enabled) || (p.toggle && p.toggle->enabled) ||
-                   (p.inputField && p.inputField->enabled);
-        }
-        ScenePlacement ControlVisual(const ScenePlacement& source, const UiState& state)
-        {
-            auto p = source;
-            if (HasControlBackground(p))
-            {
-                if (!p.image)
-                {
-                    p.image.emplace();
-                    p.image->color = {.16f, .18f, .22f, 1};
-                }
-            }
-            if (p.inputField && p.inputField->enabled)
-            {
-                if (!p.text)
-                {
-                    p.text.emplace();
-                    p.text->fontSize = 24;
-                }
-                p.text->text = SceneUi::InputText(p, state);
-                if (state.focused == p.id)
-                    p.image->color = {.2f, .25f, .35f, 1};
-            }
-            if (p.toggle && p.toggle->enabled)
-            {
-                const auto& c = *p.toggle;
-                if (state.Value(c.binding.empty() ? p.id : c.binding, c.value ? 1.0f : 0.0f) != 0)
-                    p.image->color = c.checkedColor;
-            }
-            return p;
-        }
-        void SetClip(Engine::SpriteDrawParameters& draw, const UiRect& rect)
-        {
-            std::copy(rect.clip.begin(), rect.clip.end(), draw.pixelConstants.begin() + 16);
-        }
-        UiRect SliderFill(const ScenePlacement& p, const UiRect& rect, const UiState& state)
-        {
-            auto filled = rect;
-            const auto& c = *p.slider;
-            const float ratio = std::clamp((state.Value(c.binding.empty() ? p.id : c.binding, c.value) - c.minimum) /
-                                               (c.maximum - c.minimum),
-                                           0.0f, 1.0f);
-            const size_t axis = c.vertical ? 1 : 0;
-            filled.size[axis] *= ratio;
-            const float delta = (filled.size[axis] - rect.size[axis]) * .5f;
-            filled.position[0] +=
-                (axis == 0 ? std::cos(rect.rotation) : -std::sin(rect.rotation)) * delta - delta * (axis == 0 ? 1 : 0);
-            filled.position[1] +=
-                (axis == 0 ? std::sin(rect.rotation) : std::cos(rect.rotation)) * delta - delta * (axis == 1 ? 1 : 0);
-            return filled;
-        }
-    }
+    using namespace UiVisualDetail;
     std::string SceneUi::Shortcut(const SceneLayout& layout, const std::string& key, unsigned int width,
                                   unsigned int height, const UiState& state)
     {
@@ -383,6 +327,10 @@ namespace SceneRuntime
     {
         auto& [inspected, uiRevision, sceneRevision, preparedRoot, generation, pending, cacheChanged, cache, cacheClock,
                retirement] = candidate;
+        auto drawResources = std::make_shared<UiDrawResources>();
+        for (const auto& [key, value] : pending)
+            drawResources->parts.emplace(key, UiDrawResource{value.sprite, value.sceneSprite});
+        drawResources_ = std::move(drawResources);
         retirement_ = std::move(retirement);
         resources_.swap(pending);
         if (cacheChanged)

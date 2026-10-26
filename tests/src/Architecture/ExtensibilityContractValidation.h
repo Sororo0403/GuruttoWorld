@@ -1,5 +1,5 @@
 #pragma once
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scripts/ScriptModule.h>
 #include <Engine/Core/FileContents.h>
 #include "../../../Editor/src/Project/ProjectCatalog.h"
@@ -93,7 +93,7 @@ namespace ExtensibilityContractValidation
         std::string error;
         contract("schema-source-template-single-authority",
                  ScriptModule::CreateSource(root, "DeclaredMover", created, error) &&
-                     Engine::FileContents::Read(created)->find("SceneRuntime::ScriptCallbacks script") !=
+                     Engine::FileContents::Read(created)->find("SceneRuntime::RuntimeScriptDefinition script") !=
                          std::string::npos &&
                      Engine::FileContents::Read(created)->find(".generated.h") == std::string::npos &&
                      Engine::FileContents::Read(created)->find("dataFields") == std::string::npos &&

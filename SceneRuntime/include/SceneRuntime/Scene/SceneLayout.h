@@ -155,13 +155,6 @@ namespace SceneRuntime
         std::string parentId; // 空の場合はルートです。位置・回転・スケールは常に親を基準とします。
     };
 
-    struct FogSettings
-    {
-        bool enabled = false;
-        std::array<float, 3> color{0.76f, 0.84f, 0.85f};
-        float start = 24, end = 155, strength = 0.72f;
-        bool operator==(const FogSettings&) const = default;
-    };
     struct SceneSettings
     {
         std::array<float, 3> gravity{0, -20, 0};

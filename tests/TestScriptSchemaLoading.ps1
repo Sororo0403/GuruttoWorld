@@ -29,13 +29,15 @@ $taskSource = @'
 #include <SceneRuntime/Scripts/ScriptModuleApi.h>
 bool Register_Movement(void* context, SceneRuntime::RegisterModuleScript add)
 {
-    SceneRuntime::ScriptCallbacks movement;
-    movement.update = [](SceneRuntime::ScriptContext& c)
+    SceneRuntime::RuntimeScriptDefinition movement;
+    movement.update = [](SceneRuntime::RuntimeScriptContext& c)
     {
-        c.object.position[0] += c.Value("speed") * static_cast<float>(c.seconds);
+        auto transform = *c.Read().Transform(c.entity);
+        transform.position[0] += c.Value("speed") * static_cast<float>(c.seconds);
+        if (!c.SetLocalTransform(transform).succeeded) throw std::runtime_error("Invalid native transform");
     };
-    SceneRuntime::ScriptCallbacks empty;
-    empty.update = [](SceneRuntime::ScriptContext&) {};
+    SceneRuntime::RuntimeScriptDefinition empty;
+    empty.update = [](SceneRuntime::RuntimeScriptContext&) {};
     return add(context, "Derived", &movement) && add(context, "LongSchema", &empty) && add(context, "Script", &empty);
 }
 '@

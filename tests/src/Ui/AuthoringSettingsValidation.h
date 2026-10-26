@@ -2,7 +2,7 @@
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneLayout.h>
 #include <SceneRuntime/Rendering/MaterialAsset.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Project/GameSettings.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>
 #include "../../../Editor/src/Ui/TitlePreview.h"

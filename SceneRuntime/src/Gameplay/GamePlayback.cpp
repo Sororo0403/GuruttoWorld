@@ -1,10 +1,13 @@
 #include <SceneRuntime/Gameplay/GamePlayback.h>
+#include <SceneRuntime/Project/GameSettings.h>
 
 namespace SceneRuntime
 {
     auto GamePlayback::Initialize(SceneEnvironment& environment, const std::filesystem::path& root,
-                                  const std::filesystem::path& settingsPath, bool playIntro) -> void
+                                  const std::filesystem::path& settingsPath, bool playIntro,
+                                  std::unique_ptr<PlaybackFeature> feature) -> void
     {
+        feature_ = feature ? std::move(feature) : std::make_unique<PlaybackFeature>();
         root_ = root;
         settingsPath_ = settingsPath.empty() ? GameSettings::UserPath(*environment.Content()) : settingsPath;
         playIntro_ = playIntro;
@@ -14,7 +17,7 @@ namespace SceneRuntime
         if (!environment.StartAudio(root, error))
             Engine::Log::Warning(error);
         environment.Ui().values["volumeGain"] = GameSettings::Load(settingsPath_).Gain();
-        title_.ApplyAnimation(environment);
+        feature_->ApplyAnimation(environment);
     }
 
     auto GamePlayback::PrepareInput(SceneEnvironment& environment, const Engine::InputActions& actions,
@@ -24,8 +27,8 @@ namespace SceneRuntime
         if (revision_ != environment.SceneRevision())
             Refresh(environment);
         const bool input = acceptsInput && environment.Ui().focused.empty();
-        auto command = title_.Update(actions, input, seconds, environment.Ui(), snapshot);
-        const bool gameplay = input && !title_.Active();
+        auto command = feature_->Update(actions, input, seconds, environment.Ui(), snapshot);
+        const bool gameplay = input && !feature_->Active();
         environment.SetInputActions(gameplay ? actions.Values() : std::map<std::string, float>{},
                                     gameplay ? actions.PressedValues() : std::map<std::string, bool>{});
         const auto& mapping = environment.World().Layout().settings.playerInputs;
@@ -47,13 +50,13 @@ namespace SceneRuntime
         }
         if (revision_ != environment.SceneRevision())
             Refresh(environment);
-        title_.ApplyAnimation(environment);
-        title_.UpdateAudio(environment, seconds, active);
-        title_.PreparePresentation(environment, seconds, active);
-        if (!environment.Update(seconds, title_.BackgroundMotion(), active))
+        feature_->ApplyAnimation(environment);
+        feature_->UpdateAudio(environment, seconds, active);
+        feature_->PreparePresentation(environment, seconds, active);
+        if (!environment.Update(seconds, feature_->BackgroundMotion(), active))
         {
             pending_.reset();
-            static_cast<void>(title_.TakeCommand());
+            static_cast<void>(feature_->TakeCommand());
             return std::nullopt;
         }
         lastUpdateSucceeded_ = true;
@@ -61,8 +64,8 @@ namespace SceneRuntime
         if (revision_ != environment.SceneRevision())
             Refresh(environment);
         else
-            title_.ApplyPresentation(environment);
-        if (auto command = title_.TakeCommand())
+            feature_->ApplyPresentation(environment);
+        if (auto command = feature_->TakeCommand())
             pending_ = std::move(command);
         auto result = std::move(pending_);
         pending_.reset();
@@ -82,7 +85,7 @@ namespace SceneRuntime
 
     auto GamePlayback::Suspend(SceneEnvironment& environment) -> void
     {
-        title_.Suspend();
+        feature_->Suspend();
         environment.DiscardPendingInput();
         environment.UpdateAudio(false);
     }
@@ -105,7 +108,7 @@ namespace SceneRuntime
         input.down = pointerReady_ && down;
         pointerDown_ = down;
         pointerReady_ = true;
-        if (title_.BlocksPointer())
+        if (feature_->BlocksPointer())
         {
             state.hovered.clear();
             state.pressed.clear();
@@ -113,12 +116,12 @@ namespace SceneRuntime
         }
         const auto hovered = SceneUi::Hit(environment.World().Layout(), width, height, input.x, input.y, state);
         if (hovered != state.hovered)
-            title_.SelectHovered(environment.World().Layout(), hovered, state);
+            feature_->SelectHovered(environment.World().Layout(), hovered, state);
         const auto event = environment.UiPointer(width, height, input.x, input.y, input.down, input.pressed,
                                                  input.released, input.wheel);
-        if (!title_.Activate(event, state) && (event.action == "loadScene" || event.action == "quit"))
+        if (!feature_->Activate(event, state) && (event.action == "loadScene" || event.action == "quit"))
             pending_ = event;
-        if (auto command = title_.TakeCommand())
+        if (auto command = feature_->TakeCommand())
             pending_ = std::move(command);
         return {};
     }
@@ -126,7 +129,7 @@ namespace SceneRuntime
     auto GamePlayback::Shortcut(SceneEnvironment& environment, const Engine::InputActions& actions, unsigned int width,
                                 unsigned int height, bool active) -> UiEvent
     {
-        if (!active || title_.Active() || !environment.Ui().focused.empty())
+        if (!active || feature_->Active() || !environment.Ui().focused.empty())
             return {};
         for (const auto& [name, binding] : actions.GetBindings())
         {
@@ -151,11 +154,8 @@ namespace SceneRuntime
         pending_.reset();
         pointerReady_ = pointerDown_ = false;
         revision_ = environment.SceneRevision();
-        const auto* canvas = TitleBindings::MenuCanvas(environment.World().Layout());
-        const bool intro = canvas && canvas->canvas->menu && !canvas->canvas->menu->settingsScreen && playIntro_ &&
-                           environment.FirstTitleVisit(canvas->name);
-        title_.Initialize(environment.World().Layout(), environment.Ui(), settingsPath_, intro);
+        feature_->Initialize(environment, settingsPath_, playIntro_);
         environment.Ui().values["volumeGain"] = GameSettings::Load(settingsPath_).Gain();
-        title_.ApplyAnimation(environment);
+        feature_->ApplyAnimation(environment);
     }
 }

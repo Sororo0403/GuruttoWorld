@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/SceneMigration.h>
 #include "../../../Editor/src/Documents/SceneSnapshotCache.h"
 #include "../../../Editor/src/Editing/EditHistory.h"

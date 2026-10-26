@@ -1,3 +1,4 @@
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../../../Editor/src/Documents/SceneDocument.h"
 #include "../../../Editor/src/Inspector/ComponentEditResources.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>

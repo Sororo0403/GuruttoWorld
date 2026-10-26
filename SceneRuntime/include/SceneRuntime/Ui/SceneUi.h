@@ -1,5 +1,7 @@
 #pragma once
 #include <SceneRuntime/Ui/UiState.h>
+#include <SceneRuntime/Ui/UiGeometry.h>
+#include <SceneRuntime/Ui/UiRendering.h>
 #include <Engine/Assets/ContentContext.h>
 #include <SceneRuntime/Scene/SceneLayout.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
@@ -13,14 +15,6 @@ namespace Engine
 namespace SceneRuntime
 {
     class SceneWorld;
-    struct UiRect
-    {
-        std::array<float, 2> position{}, size{};
-        float rotation = 0, opacity = 1, scale = 1;
-        bool visible = true;
-        std::array<float, 4> clip{-100000, -100000, 100000, 100000};
-        bool Contains(float x, float y) const;
-    };
     struct UiEvent
     {
         std::string object, action, target, sound, event;
@@ -45,6 +39,11 @@ namespace SceneRuntime
                   const UiState& state = {}) const;
         void DrawScene(ID3D12GraphicsCommandList*, const SceneWorld&, const Engine::Camera&,
                        const UiState& state = {}) const;
+        /// <summary>描画専用の不変な資源世代を取得します。</summary>
+        std::shared_ptr<const UiDrawResources> RenderResources() const noexcept
+        {
+            return drawResources_;
+        }
         static UiState Defaults(const SceneLayout&);
         /// <summary>シーン切り替えの初期状態へ、保持したUIの実行値を引き継ぎます。</summary>
         static UiState SceneState(const SceneLayout& previousLayout, const SceneLayout& layout, const UiState& previous,
@@ -115,6 +114,7 @@ namespace SceneRuntime
         std::size_t contextGeneration_ = 0;
         std::shared_ptr<Engine::GpuRetirement> retirement_;
         std::map<std::string, Resource> resources_;
+        std::shared_ptr<const UiDrawResources> drawResources_;
         // 表示中の資源とは別に、再表示する文字だけを上限付きで保持します。
         std::map<std::string, CachedText> textCache_;
         std::size_t textCacheClock_ = 0;

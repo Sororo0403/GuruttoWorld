@@ -10,9 +10,9 @@
 #include <optional>
 #include <SceneRuntime/Rendering/RenderTelemetry.h>
 #include <unordered_map>
-#include <SceneRuntime/Physics/ScenePhysics.h>
-#include <SceneRuntime/Scene/SceneExecutionState.h>
-#include <SceneRuntime/Physics/PhysicsWorld.h>
+#include <SceneRuntime/Physics/PhysicsTypes.h>
+#include <SceneRuntime/Scripts/ScriptSignals.h>
+#include <SceneRuntime/Audio/AudioCommand.h>
 #include <Engine/Graphics/Renderers/OcclusionRenderer.h>
 
 namespace Engine
@@ -48,7 +48,7 @@ namespace SceneRuntime
         /// <summary>修復可能な編集用の投影かを返します。</summary>
         bool IsDocumentView() const
         {
-            return !execution_;
+            return !runtimeOwner_;
         }
         /// <summary>この実行セッションの定義集合で、現在のスクリプトを検証します。</summary>
         bool ValidateScripts(std::string& error) const;
@@ -246,6 +246,7 @@ namespace SceneRuntime
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
 
     private:
+        friend class ScenePresentation;
         class ChangePreparation final
         {
         public:
@@ -328,8 +329,6 @@ namespace SceneRuntime
         /// <summary>資源に変更がない候補を共有し、配置とAnimatorの整合性を確認します。</summary>
         static bool PrepareCachedLayout(SceneLayout layout, const LayoutView& baseline, PreparedLayout& result,
                                         std::string& error);
-        /// <summary>描画とUIの候補を順に準備します。</summary>
-        bool PrepareRuntimeCallbacks(const SceneLayout& layout, const ScriptRuntime& runtime, std::string& error) const;
         /// <summary>複製先専用のAnimator資源と姿勢を作ります。</summary>
         void DuplicateAnimator(size_t index, const std::string& id, Engine::Object3D& object,
                                std::map<std::string, std::shared_ptr<Engine::ModelRenderer>>& animated,
@@ -346,26 +345,12 @@ namespace SceneRuntime
         };
         /// <summary>固定更新と可変更新を一つの候補・物理取引で準備し、一度だけ確定します。</summary>
         bool ExecuteUpdate(double seconds, float horizontal, float vertical, bool jump, bool movement, bool components);
-        /// <summary>共有する未確定候補へ固定更新と入力の繰越を適用します。</summary>
-        bool PrepareMovement(SceneLayout& candidate, double seconds, float horizontal, float vertical, bool jump);
-        /// <summary>未確定候補へ可変更新を適用し、描画投影と通知を準備します。</summary>
-        bool PrepareComponents(SceneLayout candidate, double seconds, PreparedLayout& prepared,
-                               std::vector<AnimatorFrame>& frames,
-                               std::map<std::string, std::array<float, 3>>& impulses, std::string& error);
-        /// <summary>セッションに固定したスクリプト定義で候補を検証します。</summary>
-        bool ValidateScriptsCandidate(const SceneLayout& candidate, std::string& error) const;
         Engine::Object3D BuildLayoutObject(const ScenePlacement& placement, const SceneLayout& layout,
                                            const DirectX::XMFLOAT4X4& matrix, PreparedLayout& prepared,
                                            const LayoutView& baseline, bool preserveExecution);
         void InitializeAnimatorObject(Engine::Object3D& object, const ScenePlacement& placement,
                                       const SceneLayout& layout, const DirectX::XMFLOAT4X4& matrix,
                                       PreparedLayout& prepared, const LayoutView& baseline, bool preserveExecution);
-        static void ApplyAnimatorOverrides(const std::string& id, const ScriptRuntime& scripts, AnimatorState& state);
-        std::map<std::string, float> AnimatorInputs(const SceneLayout& layout, const std::string& id) const;
-        static void AdvanceAnimatorFrame(const SceneLayout& layout, const ScenePlacement& placement,
-                                         AnimatorFrame& frame, double seconds,
-                                         const std::map<std::string, float>& parameters,
-                                         const DirectX::XMFLOAT4X4& matrix);
         /// <summary>配置・モデル・初期Animatorを候補へ構築し、現在のシーンを保持します。</summary>
         bool PrepareLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,
                            bool preserveExecution, PreparedLayout& result, const PreparedLayout* previous = nullptr);
@@ -374,34 +359,8 @@ namespace SceneRuntime
                                  std::string& error);
         /// <summary>現在の実行リソースと状態を更新候補へ参照共有します。</summary>
         PreparedLayout RuntimeLayout() const;
-        /// <summary>固定コールバック・物理・衝突イベントを候補へ進めます。</summary>
-        bool FixedTick(SceneLayout& layout, ScenePhysics::States& states, ScriptRuntime& scripts, float horizontal,
-                       float vertical, bool jump, const std::map<std::string, bool>& pressed, std::string& error);
-        /// <summary>接触イベントを指定した実行状態へ予約します。</summary>
-        bool QueueContacts(const SceneLayout& layout, ScriptRuntime& scripts, std::string& error) const;
         /// <summary>準備した配置とリソースをシーンへ反映します。</summary>
         void CommitLayout(PreparedLayout&& prepared, bool preserveExecution);
-        bool PrepareRootMotion(PreparedLayout& prepared, std::vector<AnimatorFrame>& frames, std::string& error) const;
-        /// <summary>全個体の姿勢とイベントを検証し、スクリプトの候補キューへ予約します。</summary>
-        bool PrepareAnimators(const SceneLayout& layout, double seconds,
-                              const std::map<std::string, std::shared_ptr<Engine::ModelRenderer>>& models,
-                              const std::map<std::string, AnimatorState>& states, ScriptRuntime& scripts,
-                              std::vector<AnimatorFrame>& result, std::string& error) const;
-        std::map<std::string, bool> FixedRootOverrides(SceneLayout& layout, const ScriptRuntime& scripts) const;
-        bool SynchronizeRagdolls(SceneLayout& layout, std::string& error) const;
-        static std::map<std::string, std::array<bool, 3>> DisableRagdollOwners(SceneLayout& layout,
-                                                                               ScenePhysics::States& states);
-        bool AdvanceLegacyPlayers(SceneLayout& layout, ScenePhysics::States& states, float horizontal, float vertical,
-                                  bool jump) const;
-        static void RestoreRagdollOwners(SceneLayout& layout,
-                                         const std::map<std::string, std::array<bool, 3>>& ragdollOwnerEnabled);
-        static void RotateComponents(SceneLayout& candidate, double seconds);
-        bool UpdateLateComponents(double seconds, PreparedLayout& prepared, ScriptRuntime& runtime,
-                                  std::vector<AnimatorFrame>& frames,
-                                  std::map<std::string, std::array<float, 3>>& impulses, std::string& error);
-        static bool ApplyRootDelta(ScenePlacement& placement, const AnimatorFrame& frame);
-        static void ConstrainRootFrames(PreparedLayout& prepared, std::vector<AnimatorFrame>& frames,
-                                        const std::vector<DirectX::XMFLOAT4X4>& matrices);
         Engine::Object3D BuildAddedObject(const ScenePlacement& placement, const SceneLayout& validation,
                                           const DirectX::XMFLOAT4X4& matrix, const std::filesystem::path& assetsRoot,
                                           PreparedLayout& prepared);
@@ -409,7 +368,6 @@ namespace SceneRuntime
                                      const SceneLayout& validation, const DirectX::XMFLOAT4X4& matrix,
                                      const std::shared_ptr<const Engine::ModelRenderer>& model,
                                      PreparedLayout& prepared);
-        void CommitAnimatorFrames(std::vector<AnimatorFrame>& frames);
         static bool SameRenderResources(const SceneLayout& layout, const SceneLayout& before);
         static void ValidateAnimatorModels(const PreparedLayout& candidate);
         struct ResourceChanges
@@ -440,15 +398,14 @@ namespace SceneRuntime
         bool TransformObjectsWorld(const std::vector<std::string>& ids, const DirectX::XMFLOAT4X4& delta);
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
-        /// <summary>削除した個体の物理状態と補間履歴を、実行所有者からまとめて除去します。</summary>
-        void ForgetExecutionObject(const std::string& id);
         std::map<std::string, std::shared_ptr<Engine::ModelRenderer>> animatedModels_;
         std::map<std::string, AnimatorState> animatorStates_;
-        std::unique_ptr<SceneExecutionState> execution_;
-        struct FrameTransaction;
-        using PhysicalPose = SceneExecutionState::PhysicalPose;
-        /// <summary>移動体の確定したローカル姿勢だけを保存します。</summary>
-        static std::map<std::string, PhysicalPose> PhysicalPoses(const SceneLayout& layout);
+        bool runtimeOwner_ = true;
+        struct PhysicalPose
+        {
+            std::array<float, 3> position{}, rotation{}, scale{1, 1, 1};
+            std::string parent;
+        };
         /// <summary>補間の行列を描画用に解決し、テレポートは即座に反映します。</summary>
         bool PrepareRenderTransforms() const;
         /// <summary>同じ補間条件で描画用のローカル配置と回転を準備します。</summary>

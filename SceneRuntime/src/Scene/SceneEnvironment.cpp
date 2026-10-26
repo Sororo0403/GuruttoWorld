@@ -1,7 +1,8 @@
+#include <SceneRuntime/Scene/SceneCamera.h>
 #include "../Rendering/RuntimePresentationData.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <SceneRuntime/Scene/Prefab.h>
-#include <SceneRuntime/Gameplay/TitleBindings.h>
+#include <SceneRuntime/Scene/SceneMenu.h>
 #include <iterator>
 #include <SceneRuntime/Gameplay/Navigation.h>
 #include <Engine/Core/Log.h>
@@ -211,7 +212,7 @@ namespace SceneRuntime
     }
     void SceneEnvironment::SetTransitionState(float progress)
     {
-        if (const auto* menu = TitleBindings::Configuration(world_.Layout()))
+        if (const auto* menu = SceneMenu::Configuration(world_.Layout()))
         {
             const auto defaults = uiState_.values;
             for (const auto& binding : menu->bindings)
@@ -223,10 +224,10 @@ namespace SceneRuntime
     }
     void SceneEnvironment::AnimateCameraFocus(float elapsed)
     {
-        const auto* camera = SceneView::CameraObject(world_.Layout());
+        const auto* camera = SceneCamera::Find(world_.Layout());
         const auto position = camera ? camera->position : std::array<float, 3>{};
         const auto rotation = camera ? camera->rotation : std::array<float, 3>{};
-        const auto* menu = TitleBindings::Configuration(world_.Layout());
+        const auto* menu = SceneMenu::Configuration(world_.Layout());
         const float requested = uiState_.Value(menu ? menu->focusState : "cameraFocus");
         if (requested != focusRequested_)
         {
@@ -246,7 +247,7 @@ namespace SceneRuntime
     }
     void SceneEnvironment::ApplyCameraFocus(const MenuConfiguration* menu)
     {
-        const auto* camera = SceneView::CameraObject(world_.Layout());
+        const auto* camera = SceneCamera::Find(world_.Layout());
         if (!camera || !camera->animation || !camera->animation->enabled)
             return;
         if (!menu)
@@ -287,19 +288,16 @@ namespace SceneRuntime
     std::array<float, 3> SceneEnvironment::CameraPosition() const
     {
         Engine::Camera camera;
-        return SceneView::Camera(world_, 16.0f / 9.0f, seconds_, camera) ? camera.GetPosition()
-                                                                         : std::array<float, 3>{};
+        const auto packet = world_.RenderSnapshot();
+        return packet && SceneView::Camera(*packet, 16.0f / 9.0f, seconds_, camera) ? camera.GetPosition()
+                                                                                    : std::array<float, 3>{};
     }
     std::array<float, 4> SceneEnvironment::Particle(unsigned int index) const
     {
-        const auto& objects = world_.Layout().objects;
-        const auto found = std::find_if(objects.begin(), objects.end(),
-                                        [](const auto& placement)
-                                        {
-                                            return placement.particleEmitter && placement.particleEmitter->enabled;
-                                        });
-        return found == objects.end() ? std::array<float, 4>{}
-                                      : ScenePresentation::Particle(world_, *found, index, seconds_);
+        const auto packet = world_.RenderSnapshot();
+        return packet && !packet->particles.empty()
+                   ? RenderPresentation::Particle(packet->particles.front(), index, seconds_)
+                   : std::array<float, 4>{};
     }
     void SceneEnvironment::QueueAudio(AudioCommand command)
     {
@@ -418,8 +416,8 @@ namespace SceneRuntime
             }
         } restore{uiPreparationOverride_, previousOverride};
         uiPreparationOverride_ = &candidateUi;
-        const auto* previousMenu = TitleBindings::MenuCanvas(world_.Layout());
-        const auto* nextMenu = TitleBindings::MenuCanvas(layout);
+        const auto* previousMenu = SceneMenu::Canvas(world_.Layout());
+        const auto* nextMenu = SceneMenu::Canvas(layout);
         const bool menuChanged =
             (previousMenu == nullptr) != (nextMenu == nullptr) ||
             (previousMenu && nextMenu &&

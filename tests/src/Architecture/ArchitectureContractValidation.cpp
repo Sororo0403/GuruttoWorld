@@ -1,6 +1,6 @@
 #include <SceneRuntime/Scene/Prefab.h>
 #include <SceneRuntime/Scene/SceneAssetReferences.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include <SceneRuntime/Project/ProjectSettings.h>
 #include <Engine/Assets/AssetDatabase.h>
@@ -27,7 +27,7 @@ namespace
     unsigned int failures = 0, gaps = 0;
     void Contract(const std::string& id, bool ok);
 
-    bool CountModuleRegistration(void* context, const char*, const ScriptCallbacks*)
+    bool CountModuleRegistration(void* context, const char*, const RuntimeScriptDefinition*)
     {
         ++*static_cast<unsigned int*>(context);
         return true;

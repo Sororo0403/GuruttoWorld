@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <Engine/Core/Profiler.h>

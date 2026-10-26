@@ -1,5 +1,5 @@
 #pragma once
-#include <SceneRuntime/Rendering/SceneView.h>
+#include <SceneRuntime/Rendering/RenderPresentation.h>
 #include <SceneRuntime/Ui/SceneUi.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
 #include <Engine/Graphics/Renderers/ParticleRenderer.h>
@@ -7,21 +7,13 @@
 
 namespace SceneRuntime
 {
-    struct SceneDrawOptions
-    {
-        const Engine::Camera* sceneCamera = nullptr;
-        double seconds = 0;
-        bool motionEnabled = true;
-        const UiState* uiState = nullptr;
-        bool showSceneUi = true;
-        bool showGameUi = true;
-    };
     class ScenePresentation final
     {
     public:
         /// <summary>固定した参照情報とデバイスを保持します。機能別の資源はPrepareで準備します。</summary>
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
                         std::string& error, std::shared_ptr<const Engine::ContentContext> context = {});
+        /// <summary>所有中の表示世代を描画adapterへ渡します。失敗時は未送信フレームを中止します。</summary>
         void Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width, unsigned int height,
                   const SceneDrawOptions& options = {}) const;
         /// <summary>使用する機能の描画資源とUIを描画前に準備します。明示的な再読込ではシェーダーも検査します。</summary>
@@ -49,17 +41,10 @@ namespace SceneRuntime
         {
             ui_ = std::move(previous);
         }
-        void DrawUi(ID3D12GraphicsCommandList* commands, const SceneLayout& layout, unsigned int width,
-                    unsigned int height, const UiState& state = {}) const
-        {
-            ui_.Draw(commands, layout, width, height, state);
-        }
-        static std::array<float, 4> Particle(const SceneWorld& world, const ScenePlacement& placement,
-                                             unsigned int index, double seconds);
+        /// <summary>表示世代と準備済みの描画資源を、確保せずにまとめて取得します。</summary>
+        PresentationPacket Capture(std::shared_ptr<const RenderPacket> packet) const noexcept;
 
     private:
-        bool BeginPostEffects(ID3D12GraphicsCommandList* commands, const SceneLayout& layout, unsigned int width,
-                              unsigned int height, Engine::PostEffectRenderer*& post) const;
         /// <summary>有効化したシーンにだけポストエフェクトのパイプラインを準備します。</summary>
         bool PrepareEffects(const SceneLayout& layout, std::string& error) const;
         /// <summary>標準の空と粒子の資源を必要時だけ準備します。</summary>
@@ -70,9 +55,9 @@ namespace SceneRuntime
         bool PrepareCustomEffects(const SceneLayout& layout, bool particles, std::string& error) const;
         /// <summary>標準の海とポストエフェクトを準備します。</summary>
         bool PrepareDefaultEffects(const SceneLayout& layout, bool ocean, std::string& error) const;
-        /// <summary>シーンとゲームのUI表示条件に従って重ね描きします。</summary>
-        void DrawOverlay(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width,
-                         unsigned int height, const SceneDrawOptions& options) const;
+        /// <summary>既定・独自の準備済み資源が変わった場合だけ、表示世代の共有参照を更新します。</summary>
+        void RefreshResources() const;
+        mutable std::shared_ptr<const PresentationResources> resources_;
         std::shared_ptr<const Engine::ContentContext> context_;
         Microsoft::WRL::ComPtr<ID3D12Device> device_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_;
@@ -81,17 +66,13 @@ namespace SceneRuntime
         mutable std::map<std::filesystem::path, std::shared_ptr<Engine::SpriteRenderer>> customSky_, customOcean_;
         mutable std::map<std::filesystem::path, std::shared_ptr<Engine::ParticleRenderer>> customParticles_;
         mutable std::map<std::filesystem::path, std::shared_ptr<Engine::PostEffectRenderer>> customPost_;
-        mutable Engine::SpriteRenderer ocean_;
+        mutable std::shared_ptr<Engine::SpriteRenderer> ocean_;
         mutable bool oceanReady_ = false;
         std::filesystem::path postShader_;
-        mutable Engine::PostEffectRenderer postEffects_;
-        void DrawSky(ID3D12GraphicsCommandList* commands, const SceneLayout& layout, unsigned int width,
-                     unsigned int height, double seconds, const Engine::Camera* camera = nullptr) const;
-        void DrawParticles(ID3D12GraphicsCommandList* commands, const SceneWorld& world, const Engine::Camera& camera,
-                           double seconds) const;
+        mutable std::shared_ptr<Engine::PostEffectRenderer> postEffects_;
         SceneUi ui_;
         mutable bool skyReady_ = false, particlesReady_ = false;
-        mutable Engine::SpriteRenderer sky_;
-        mutable Engine::ParticleRenderer particles_;
+        mutable std::shared_ptr<Engine::SpriteRenderer> sky_;
+        mutable std::shared_ptr<Engine::ParticleRenderer> particles_;
     };
 }

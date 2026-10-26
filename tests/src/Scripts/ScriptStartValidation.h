@@ -1,5 +1,5 @@
 #pragma once
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <memory>
 #include <stdexcept>

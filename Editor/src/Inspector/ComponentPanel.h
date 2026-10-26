@@ -1,6 +1,6 @@
 #pragma once
 #include "../Editing/EditState.h"
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <SceneRuntime/Scripts/ScriptSchema.h>
 #include "../Project/ProjectCatalog.h"
 
 namespace Editor

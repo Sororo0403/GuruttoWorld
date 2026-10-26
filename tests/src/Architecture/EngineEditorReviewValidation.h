@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Assets/ModelImportCacheValidation.h"
 #include "../Scene/TransformResolutionCacheValidation.h"
 #include "../Rendering/PipelineReuseValidation.h"

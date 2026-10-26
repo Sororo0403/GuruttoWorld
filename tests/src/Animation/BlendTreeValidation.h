@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include "../Rendering/EnvironmentValidation.h"
 #include "../../../Editor/src/Playback/GameSession.h"

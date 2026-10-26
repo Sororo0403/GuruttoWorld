@@ -5,7 +5,7 @@
 #include <Engine/Graphics/Camera.h>
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
 #include <Engine/Graphics/Renderers/OcclusionRenderer.h>
-#include <SceneRuntime/Ui/SceneUi.h>
+#include <SceneRuntime/Ui/UiState.h>
 #include <cmath>
 #include <cstring>
 #include <span>
@@ -20,13 +20,6 @@ namespace SceneRuntime::RenderPlan
         bool occlusion = false;
         std::shared_ptr<const RenderSkin> skin;
     };
-    /// <summary>対象の表示条件を評価します。</summary>
-    bool Visible(const ScenePlacement& placement, const UiState& state);
-    /// <summary>カメラ距離でLODを選び、保存した個体からそのフレームの描画項目を作ります。</summary>
-    std::vector<Item> Items(
-        const SceneLayout& layout, const std::vector<Engine::Object3D>& objects,
-        const std::map<std::string, std::vector<std::shared_ptr<const Engine::ModelRenderer>>>& levels,
-        const Engine::Camera& camera, const UiState& state, std::span<const DirectX::XMFLOAT4X4> renderMatrices = {});
     /// <summary>同じモデル・マテリアル・巻き順を持つ静的個体だけをまとめます。</summary>
     bool Compatible(const Item& first, const Item& second);
     /// <summary>実際の描画呼び出し数と全個体の三角形数を集計します。</summary>

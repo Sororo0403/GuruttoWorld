@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/Gameplay/TitleController.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <SceneRuntime/Gameplay/GamePlayback.h>
 #include <SceneRuntime/Rendering/ScenePresentation.h>

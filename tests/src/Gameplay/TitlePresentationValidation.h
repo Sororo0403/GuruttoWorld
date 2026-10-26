@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/Scene/SceneCamera.h>
 #include "../Support/RegressionTiming.h"
 #include "../Rendering/EnvironmentValidation.h"
 #include <SceneRuntime/Ui/SceneUi.h>
@@ -125,7 +126,7 @@ namespace TitlePresentationValidation
             Require(scene.Ui().Value("transition") >= progress, "authored departure reaches requested progress");
             if (progress == 1)
             {
-                const auto* camera = SceneRuntime::SceneView::CameraObject(scene.World().Layout());
+                const auto* camera = SceneRuntime::SceneCamera::Find(scene.World().Layout());
                 DirectX::XMFLOAT4X4 actual{}, target{};
                 Require(camera && scene.World().WorldMatrix(camera->id, actual) &&
                             scene.World().WorldMatrix(departureTarget, target),

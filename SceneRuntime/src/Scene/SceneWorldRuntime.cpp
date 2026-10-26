@@ -1,5 +1,5 @@
 #include "SceneWorldRuntime.h"
-#include <SceneRuntime/Scripts/LegacyScriptAdapter.h>
+
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Profiler.h>
 #include "../Rendering/SceneRenderResources.h"
@@ -7,8 +7,9 @@
 
 namespace SceneRuntime
 {
-    SceneWorld::RuntimeData::RuntimeData(std::shared_ptr<const WorldDefinition> definition)
-        : session(std::move(definition), LegacyScriptAdapter::Capture())
+    SceneWorld::RuntimeData::RuntimeData(std::shared_ptr<const WorldDefinition> definition,
+                                         std::shared_ptr<const RuntimeScriptDefinitions> scripts)
+        : definitions(std::move(scripts)), session(std::move(definition), definitions)
     {
     }
     class SceneWorld::RuntimeProjection final : public RuntimeSystem
@@ -225,7 +226,7 @@ namespace SceneRuntime
             }
             bool CanUseValues(const SceneChangeSet& changes) const
             {
-                if (data.reset || !world.assetIndex_ || world.assetsRoot_ != data.root ||
+                if (data.reset || data.reloading || !world.assetIndex_ || world.assetsRoot_ != data.root ||
                     transaction.Read().Definition() != data.session.Read().Definition() || changes.structureChanged ||
                     !changes.resources.empty() || world.prepareRuntime_ || world.prepareUi_)
                     return false;
@@ -344,6 +345,8 @@ namespace SceneRuntime
                 publication.Merge(changes);
                 if (data.reset)
                     publication.fields.push_back({{}, {}, "runtime.reset"});
+                if (data.reloading)
+                    publication.fields.push_back({{}, {}, "resources.reload"});
                 if (!data.skipHostPreparation && world.prepareFrame_ &&
                     !world.prepareFrame_(transaction.Read(), changes, effects.ui, error))
                     return false;
@@ -363,7 +366,22 @@ namespace SceneRuntime
                 else
                 {
                     auto layout = transaction.Read().ExportLayout();
-                    if (world.assetIndex_ && world.assetsRoot_ == data.root)
+                    if (data.reloading)
+                    {
+                        auto& source = *data.reloading;
+                        prepared.layout = source.layout_;
+                        prepared.assetsRoot = source.assetsRoot_;
+                        prepared.assets = source.assetIndex_;
+                        prepared.materials = source.materials_;
+                        prepared.objects = source.objects_;
+                        prepared.animated = source.animatedModels_;
+                        prepared.states = source.animatorStates_;
+                        prepared.lods = source.lodModels_;
+                        prepared.diagnostics = source.resourceDiagnostics_;
+                        prepared.shadow = source.shadow_;
+                        prepared.localShadow = source.localShadow_;
+                    }
+                    else if (world.assetIndex_ && world.assetsRoot_ == data.root)
                     {
                         if (!world.PrepareScriptLayout(std::move(layout), nullptr, prepared, error))
                             return false;
@@ -393,6 +411,8 @@ namespace SceneRuntime
                     AnimatorFrame frame;
                     frame.id = id;
                     frame.model = model->second;
+                    if (frame.model->Rig() != skin.rig)
+                        throw std::runtime_error("CPU and GPU skeleton artifact generations differ");
                     if (!frame.model->PreparePose(skin.state->pose, frame.pose))
                         throw std::runtime_error("Runtime skin pose invalid");
                     frame.applyPose = true;
@@ -469,8 +489,14 @@ namespace SceneRuntime
                     world.shadow_.swap(prepared.shadow);
                     world.localShadow_.swap(prepared.localShadow);
                 }
-                world.execution_->values.previousPhysical.swap(previousPhysical);
-                world.execution_->values.currentPhysical.swap(currentPhysical);
+                if (data.reloading)
+                {
+                    world.models_.Swap(data.reloading->models_);
+                    world.modelsReady_ = data.reloading->modelsReady_;
+                    world.meshShader_.swap(data.reloading->meshShader_);
+                }
+                data.previousPhysical.swap(previousPhysical);
+                data.currentPhysical.swap(currentPhysical);
                 for (auto& pose : poses)
                     if (!pose.model->ApplyPreparedPose(std::move(pose.pose)))
                         std::terminate();
@@ -569,16 +595,22 @@ namespace SceneRuntime
         ChangePreparation preparing(preparingChanges_);
         try
         {
-            auto candidate = std::make_unique<RuntimeData>(WorldDefinition::Compile(layout));
+            if (context_)
+                context_->RequireRoot(root);
+            // 同一値の初回Editでも、保存IDの解決を飛ばさず不変定義へ固定します。
+            layout.ResolveAssets(
+                Engine::AssetDatabase(context_ ? context_ : Engine::ContentContext::Capture(root), true));
+            auto definitions = runtime_ ? runtime_->definitions : RuntimeScriptRegistry::Capture();
+            auto candidate = std::make_unique<RuntimeData>(WorldDefinition::Compile(layout), std::move(definitions));
             candidate->root = context_ ? context_->Root() : root;
             candidate->reset = true;
             candidate->skipHostPreparation = !start;
             candidate->session.SetContent(context_, candidate->root);
-            auto simulation = RuntimeSimulation::Create(candidate->root);
+            auto simulation = RuntimeSimulation::Create(candidate->root, context_);
             candidate->physics = simulation.physics;
             candidate->animation = simulation.animation;
             simulation.systems.push_back(std::make_unique<RuntimeProjection>(*this, *candidate));
-            candidate->session.SetSystem(simulation.Pipeline());
+            simulation.Attach(candidate->session);
             const bool ready = start ? candidate->session.Start(error)
                                      : candidate->session.Edit(ReplaceDocumentEdit{std::move(layout)}, error);
             if (!ready)
@@ -587,9 +619,9 @@ namespace SceneRuntime
             candidate->skipHostPreparation = false;
             runtime_.swap(candidate);
             animationScratch_.reset();
-            execution_->values.previousPhysical.clear();
-            execution_->values.currentPhysical.clear();
-            execution_->values.fixedSeconds = 0;
+            runtime_->previousPhysical.clear();
+            runtime_->currentPhysical.clear();
+            runtime_->fixedSeconds = 0;
             DrainSession();
             error.clear();
             return true;
@@ -645,7 +677,7 @@ namespace SceneRuntime
     {
         runtime_->session.DrainEffects(runtime_->drained);
         runtime_->session.TakeChanges();
-        execution_->values.fixedSeconds = runtime_->session.Interpolation() * FixedStep();
+        runtime_->fixedSeconds = runtime_->session.Interpolation() * FixedStep();
     }
     bool SceneWorld::UpdateSession(double seconds, float horizontal, float vertical, bool jump, bool movement,
                                    bool components)
@@ -689,22 +721,31 @@ namespace SceneRuntime
     }
     bool SceneWorld::ValidateScripts(std::string& error) const
     {
-        return runtime_ ? runtime_->session.Validate(error)
-                        : execution_ &&
-                              ScriptRuntime::ValidateForPlay(layout_, error, &execution_->values.scripts.Definitions());
+        if (runtime_)
+            return runtime_->session.Validate(error);
+        if (!runtimeOwner_)
+        {
+            error = "Editing document has no runtime session";
+            return false;
+        }
+        WorldState candidate(WorldDefinition::Compile(layout_));
+        return RuntimeScripts(RuntimeScriptRegistry::Capture()).Validate(candidate.Read(), error);
     }
     bool SceneWorld::HasScriptPhase(ScriptPhase phase) const
     {
-        return runtime_
-                   ? runtime_->session.HasPhase(phase)
-                   : execution_ && ScriptRuntime::HasPhase(layout_, phase, &execution_->values.scripts.Definitions());
+        if (runtime_)
+            return runtime_->session.HasPhase(phase);
+        if (!runtimeOwner_)
+            return false;
+        WorldState candidate(WorldDefinition::Compile(layout_));
+        return RuntimeScripts(RuntimeScriptRegistry::Capture()).HasPhase(candidate.Read(), phase);
     }
     std::vector<SceneCommand> SceneWorld::TakeSceneCommands()
     {
         if (!CanMutateScene())
             return {};
         if (!runtime_)
-            return execution_ ? execution_->values.scripts.TakeSceneCommands() : std::vector<SceneCommand>{};
+            return {};
         std::vector<SceneCommand> result;
         result.swap(runtime_->effects.scenes);
         return result;
@@ -714,7 +755,7 @@ namespace SceneRuntime
         if (!CanMutateScene())
             return {};
         if (!runtime_)
-            return execution_ ? execution_->values.scripts.TakeUiCommands() : ScriptUiCommands{};
+            return {};
         ScriptUiCommands result;
         result.values.swap(runtime_->effects.ui.values);
         result.texts.swap(runtime_->effects.ui.texts);
@@ -725,7 +766,7 @@ namespace SceneRuntime
         if (!CanMutateScene())
             return {};
         if (!runtime_)
-            return execution_ ? execution_->values.scripts.TakeAudioCommands() : std::vector<AudioCommand>{};
+            return {};
         std::vector<AudioCommand> result;
         result.swap(runtime_->effects.audio);
         return result;
@@ -741,7 +782,6 @@ namespace SceneRuntime
             return queries.raycast ? queries.raycast(origin, direction, distance, mask, triggers, ignore)
                                    : std::nullopt;
         }
-        return execution_ ? execution_->physicsWorld.Raycast(origin, direction, distance, mask, triggers, ignore)
-                          : std::nullopt;
+        return {};
     }
 }

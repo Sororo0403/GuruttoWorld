@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <unordered_set>
 
 namespace
 {
@@ -89,6 +90,20 @@ namespace SceneRuntime
             result->sceneResources = resources.Scene();
             result->frame = frame;
             result->device = device;
+            const auto& settings = view.Definition()->Source().settings;
+            result->settings = {settings.mainCamera,     settings.fog,       settings.postEffects,
+                                settings.background,     settings.skyShader, settings.oceanShader,
+                                settings.particleShader, settings.postShader};
+            if (view.With<MeshRendererComponent>().empty() && view.With<TerrainComponent>().empty() &&
+                view.With<TilemapComponent>().empty() && view.With<CameraComponent>().empty() &&
+                view.With<DirectionalLightComponent>().empty() && view.With<PointLightComponent>().empty() &&
+                view.With<SpotLightComponent>().empty() && view.With<SkyComponent>().empty() &&
+                view.With<ParticleEmitterComponent>().empty() && view.With<CanvasComponent>().empty() &&
+                view.With<RectTransformComponent>().empty())
+            {
+                error.clear();
+                return result;
+            }
             const auto entities = view.Entities();
             size_t slots = 0;
             for (const auto entity : entities)
@@ -141,6 +156,46 @@ namespace SceneRuntime
                     visited[owner.slot] = 2;
                 }
             }
+            std::unordered_set<std::uint32_t> uiOwners;
+            const auto includeUi = [&](EntityHandle entity)
+            {
+                while (entity && uiOwners.insert(entity.slot).second)
+                    entity = view.Parent(entity).value_or(EntityHandle{});
+            };
+            for (const auto entity : view.With<CanvasComponent>())
+                includeUi(entity);
+            for (const auto entity : view.With<RectTransformComponent>())
+                includeUi(entity);
+            if (!uiOwners.empty())
+            {
+                auto ui = std::make_shared<UiPacket>();
+                for (const auto entity : entities)
+                {
+                    if (!uiOwners.contains(entity.slot))
+                        continue;
+                    UiNode node;
+                    node.id = *view.ObjectId(entity);
+                    if (const auto parent = view.Parent(entity))
+                        node.parentId = *view.ObjectId(*parent);
+                    node.matrix = matrices[entity.slot];
+                    if (const auto canvas = view.ComponentLease<CanvasComponent>(entity))
+                        node.canvas = UiCanvas{canvas->enabled, canvas->referenceSize, canvas->scaleWithScreen,
+                                               canvas->stateDefaults};
+                    node.rectTransform = view.Component<RectTransformComponent>(entity);
+                    node.image = view.Component<ImageComponent>(entity);
+                    node.text = view.Component<TextComponent>(entity);
+                    node.button = view.Component<ButtonComponent>(entity);
+                    node.inputField = view.Component<InputFieldComponent>(entity);
+                    node.slider = view.Component<SliderComponent>(entity);
+                    node.toggle = view.Component<ToggleComponent>(entity);
+                    node.scrollView = view.Component<ScrollViewComponent>(entity);
+                    node.mask = view.Component<MaskComponent>(entity);
+                    node.layoutGroup = view.Component<LayoutGroupComponent>(entity);
+                    node.animation = view.Component<AnimationComponent>(entity);
+                    ui->objects.push_back(std::move(node));
+                }
+                result->ui = std::move(ui);
+            }
             const auto append = [&](auto& target, auto component, EntityHandle entity)
             {
                 if (component && component->enabled)
@@ -150,9 +205,17 @@ namespace SceneRuntime
             for (const auto entity : entities)
             {
                 append(result->cameras, view.ComponentLease<CameraComponent>(entity), entity);
+                append(result->cameraSways, view.ComponentLease<CameraSwayComponent>(entity), entity);
+                append(result->skies, view.ComponentLease<SkyComponent>(entity), entity);
+                append(result->particles, view.ComponentLease<ParticleEmitterComponent>(entity), entity);
                 append(result->directionalLights, view.ComponentLease<DirectionalLightComponent>(entity), entity);
+                const auto pointCount = result->pointLights.size(), spotCount = result->spotLights.size();
                 append(result->pointLights, view.ComponentLease<PointLightComponent>(entity), entity);
                 append(result->spotLights, view.ComponentLease<SpotLightComponent>(entity), entity);
+                if (result->pointLights.size() != pointCount)
+                    result->localLights.push_back({false, pointCount});
+                if (result->spotLights.size() != spotCount)
+                    result->localLights.push_back({true, spotCount});
                 const auto mesh = view.ComponentLease<MeshRendererComponent>(entity);
                 const auto terrain = view.ComponentLease<TerrainComponent>(entity);
                 const auto tilemap = view.ComponentLease<TilemapComponent>(entity);

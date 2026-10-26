@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
+#include <SceneRuntime/Gameplay/PlaybackFeature.h>
 
 namespace Player
 {
@@ -12,7 +13,8 @@ namespace Player
         /// <summary>
         /// アセットの基準フォルダと、診断時だけ背景でもシミュレーションする設定を保持します。
         /// </summary>
-        explicit SceneFactory(std::filesystem::path root, bool simulateInactive = false);
+        explicit SceneFactory(std::filesystem::path root, bool simulateInactive = false,
+                              SceneRuntime::PlaybackFeatureFactory feature = {});
         /// <summary>
         /// アプリ固有の識別子から具体的なシーンを生成します。
         /// </summary>
@@ -28,6 +30,7 @@ namespace Player
     private:
         std::filesystem::path root_;
         bool simulateInactive_ = false;
+        SceneRuntime::PlaybackFeatureFactory feature_;
         std::shared_ptr<SceneRuntime::SceneEnvironment> environment_ =
             std::make_shared<SceneRuntime::SceneEnvironment>();
     };

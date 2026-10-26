@@ -3,7 +3,7 @@
 #include <SceneRuntime/Scene/SceneMigration.h>
 #include "../../../Editor/src/Documents/SceneSnapshotCache.h"
 #include <SceneRuntime/Scene/SceneCollection.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Core/Profiler.h>

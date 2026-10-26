@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include "BlendTreeValidation.h"
 #include "SkinningValidation.h"
@@ -361,8 +362,12 @@ namespace AnimationEventValidation
         fixed.animator->events.clear();
         Require(topology.SetComponents(fixed.id, fixed, content, error) && topology.UpdateComponents(.1),
                 "structural update succeeds after event capacity repair");
-        Require(topology.Layout().objects.back().id == "runtime-1" && topology.Layout().objects[17].position[0] == 1,
-                "failed topology update preserves ID reservation and Script state");
+        // 新SDKは共通SceneEditsのobject-N規則を使い、失敗した取引の番号を消費しません。
+        const auto reservationDiagnostic =
+            "failed topology update preserves ID reservation and Script state: " + topology.Layout().objects.back().id +
+            "/" + std::to_string(topology.Layout().objects[17].position[0]);
+        Require(topology.Layout().objects.back().id == "object-1" && topology.Layout().objects[17].position[0] == 1,
+                reservationDiagnostic.c_str());
         auto malformed = scene;
         malformed.objects.push_back(source);
         SceneWorld atomic;

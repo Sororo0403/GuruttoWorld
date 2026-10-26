@@ -181,14 +181,14 @@ namespace LocalLightValidation
         Editor::GameSession session;
         Require(session.Play(renderer, root, layout, error), "local light scene enters Editor play");
         auto* environment = session.Runtime();
-        const auto before = SceneRuntime::SceneView::Light(environment->World());
+        const auto before = SceneRuntime::SceneView::Light(*environment->World().RenderSnapshot());
         Require(before.intensity == 0 && before.localLights.size() == 3,
                 "local lights collected without enabled directional light");
         const auto& spot = before.localLights.back();
         Require(std::abs(spot.position[1] - 6) < .001f && spot.direction[1] < -.2f && spot.direction[2] > .9f,
                 "spot inherits parent camera position and rotation");
         Require(session.Update(.25, true), "scripted local light advances in play");
-        const auto after = SceneRuntime::SceneView::Light(environment->World());
+        const auto after = SceneRuntime::SceneView::Light(*environment->World().RenderSnapshot());
         Require(after.localLights[0].position[1] != before.localLights[0].position[1],
                 "runtime scripts move local light source");
         Require(renderer.Render({0, 0, 0, 1},

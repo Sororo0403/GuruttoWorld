@@ -27,10 +27,6 @@ namespace Editor
         {
             return runtime_.get();
         }
-        TitlePreview& Title()
-        {
-            return playback_.Title();
-        }
         SceneRuntime::GamePlayback& Playback()
         {
             return playback_;

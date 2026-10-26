@@ -1,5 +1,6 @@
 #pragma once
 #include <SceneRuntime/Rendering/ScenePresentation.h>
+#include <SceneRuntime/Scene/SceneWorld.h>
 #include <SceneRuntime/Audio/SceneAudio.h>
 #include <SceneRuntime/Scene/SceneCollection.h>
 
@@ -46,9 +47,9 @@ namespace SceneRuntime
         {
             return activeSceneName_;
         }
-        bool FirstTitleVisit(const std::string& key)
+        bool FirstFeatureVisit(const std::string& feature, const std::string& key)
         {
-            return visitedTitles_.insert(key).second;
+            return visitedFeatures_.emplace(feature, key).second;
         }
         bool Initialized() const
         {
@@ -187,7 +188,7 @@ namespace SceneRuntime
         bool RequiresFixedUpdate(const SceneLayout& layout) const;
         uint64_t sceneRevision_ = 0;
         std::string activeSceneName_;
-        std::set<std::string> visitedTitles_;
+        std::set<std::pair<std::string, std::string>> visitedFeatures_;
         SceneCollection scenes_;
         std::vector<SceneCommand> uiSceneCommands_;
         std::vector<SceneCommandResult> sceneCommandResults_;

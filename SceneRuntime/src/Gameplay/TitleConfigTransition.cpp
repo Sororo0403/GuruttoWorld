@@ -1,3 +1,4 @@
+#include <SceneRuntime/Scene/SceneCamera.h>
 #include <SceneRuntime/Gameplay/TitleConfigTransition.h>
 #include <SceneRuntime/Gameplay/TitleMenu.h>
 
@@ -75,7 +76,7 @@ namespace SceneRuntime
     {
         if (!configuration_.enabled || !active || !std::isfinite(seconds) || seconds <= 0)
             return;
-        const auto* camera = SceneView::CameraObject(environment.World().Layout());
+        const auto* camera = SceneCamera::Find(environment.World().Layout());
         if (!camera)
         {
             Fail(environment, "Config transition camera is missing");

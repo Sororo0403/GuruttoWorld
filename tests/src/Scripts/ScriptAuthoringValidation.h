@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../../../Editor/src/Project/ScriptAuthoringPanel.h"
 #include <thread>
 #include <chrono>

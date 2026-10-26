@@ -1,8 +1,9 @@
 #pragma once
-#include <SceneRuntime/Scripts/ScriptApi.h>
+#include <LegacyScripts/ScriptApi.h>
 
 namespace SceneRuntime
 {
+    struct RuntimeScriptDefinition;
     using ScriptDefinitions = std::map<std::string, ScriptDefinition>;
 
     class ScriptRegistry final
@@ -10,6 +11,8 @@ namespace SceneRuntime
     public:
         /// <summary>再生前にメインスレッドで登録します。名前の重複や不正なメタデータは拒否します。</summary>
         static bool Register(std::string name, ScriptDefinition definition);
+        /// <summary>実SDKの処理は型付き実行へ直接登録し、旧fixtureには読取用の変換だけを公開します。</summary>
+        static bool RegisterModern(std::string name, RuntimeScriptDefinition definition);
         /// <summary>再生前にモジュール所有の処理を一括置換します。失敗時は既存の登録を保持します。</summary>
         static bool InstallModule(const std::string& owner, std::map<std::string, ScriptDefinition> definitions,
                                   std::string& error);
@@ -32,6 +35,11 @@ namespace SceneRuntime
         const ScriptDefinitions& Definitions() const
         {
             return definitions_ ? *definitions_ : ScriptRegistry::Definitions();
+        }
+        /// <summary>この所有者が固定した登録とDLLの世代を、実行adapterへ共有します。</summary>
+        std::shared_ptr<const ScriptDefinitions> DefinitionSnapshot() const
+        {
+            return definitions_ ? definitions_ : ScriptRegistry::Capture();
         }
         /// <summary>全ライフサイクルのコールバックへ所有者の参照情報を渡します。</summary>
         void SetContentContext(std::shared_ptr<const Engine::ContentContext> content);

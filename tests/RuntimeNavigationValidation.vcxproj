@@ -38,8 +38,8 @@
     <ClCompile Include="src\Scene\RuntimeNavigationValidation.cpp" />
     <ClCompile Include="src\Support\AllocationProbe.cpp" />
     <ClInclude Include="src\Support\AllocationProbe.h" />
-    <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
-    <ProjectReference Include="..\Engine\Engine.vcxproj" />
+    <ProjectReference Include="..\SceneRuntime\SceneSimulation.vcxproj" />
+    <ProjectReference Include="..\Engine\EngineAssets.vcxproj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

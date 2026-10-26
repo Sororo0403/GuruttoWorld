@@ -1,6 +1,8 @@
 #pragma once
+#include <SceneRuntime/Scene/SceneCamera.h>
 #include "TestGameContent.h"
 #include <SceneRuntime/Rendering/SceneView.h>
+#include <SceneRuntime/Scene/SceneLayout.h>
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
@@ -10,7 +12,7 @@ namespace AuthoredViewFixture
     inline SceneRuntime::ScenePlacement Camera()
     {
         const auto layout = SceneRuntime::SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/TitleStreet.json");
-        const auto* placement = SceneRuntime::SceneView::CameraObject(layout);
+        const auto* placement = SceneRuntime::SceneCamera::Find(layout);
         if (!placement)
             throw std::runtime_error("title fixture requires an authored camera");
         return *placement;

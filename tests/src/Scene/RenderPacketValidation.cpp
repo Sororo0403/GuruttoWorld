@@ -68,6 +68,12 @@ namespace
         lamp.position = {0, 4, 0};
         lamp.pointLight = PointLightComponent{};
         lamp.camera = CameraComponent{};
+        lamp.cameraSway.emplace();
+        lamp.spotLight.emplace();
+        lamp.sky.emplace();
+        lamp.particleEmitter.emplace();
+        layout.settings.mainCamera = lamp.id;
+        layout.settings.fog.enabled = true;
         layout.objects = {child, hidden, parent, lamp};
         auto world = std::make_unique<WorldState>(WorldDefinition::Compile(layout));
         std::string error;
@@ -81,6 +87,11 @@ namespace
         Require(first->cameras.size() == 1 && first->pointLights.size() == 1 &&
                     first->pointLights.front().matrix._42 == 4,
                 "packet-captures-camera-and-light-transforms");
+        Require(first->cameraSways.size() == 1 && first->skies.size() == 1 && first->particles.size() == 1 &&
+                    first->settings.mainCamera == lamp.id && first->settings.fog.enabled,
+                "packet-captures-camera-sway-environment-and-view-settings");
+        Require(first->localLights.size() == 2 && !first->localLights[0].spot && first->localLights[1].spot,
+                "packet-preserves-local-light-and-shadow-atlas-order");
         const auto entity = *world->Read().Resolve("child");
         {
             auto tx = world->BeginTransaction();
@@ -188,12 +199,54 @@ namespace
         Require(packet && packet->objects.front().matrix._41 == 1,
                 "packet-component-generation-prevents-old-history-reuse");
     }
+    void ValidateUi()
+    {
+        Resolver resolver;
+        SceneLayout layout;
+        ScenePlacement parent, canvas, image, unrelated;
+        parent.id = "parent";
+        parent.position = {3, 0, 0};
+        canvas.id = "canvas";
+        canvas.parentId = parent.id;
+        canvas.canvas.emplace();
+        image.id = "image";
+        image.parentId = canvas.id;
+        image.rectTransform.emplace();
+        image.image.emplace();
+        image.image->color = {1, 0, 0, 1};
+        image.animation.emplace();
+        unrelated.id = "unrelated";
+        unrelated.material.emplace();
+        layout.objects = {image, unrelated, canvas, parent};
+        auto world = std::make_unique<WorldState>(WorldDefinition::Compile(layout));
+        std::string error;
+        const auto packet = RenderExtractor::Extract(world->Read(), resolver, 1, 1, {}, 0, error);
+        Require(packet && packet->objects.empty() && packet->ui && packet->ui->objects.size() == 3 &&
+                    packet->ui->objects.front().id == image.id && packet->ui->objects.front().animation,
+                "packet-extracts-ui-and-ancestors-without-unrelated-components");
+        Require(packet->ui->objects[1].canvas && packet->ui->objects[1].matrix._41 == 3,
+                "packet-resolves-canvas-pose-through-non-ui-ancestor");
+        {
+            auto tx = world->BeginTransaction();
+            const auto entity = *tx.Read().Resolve(image.id);
+            auto changed = *tx.Read().Component<ImageComponent>(entity);
+            changed.color = {0, 1, 0, 1};
+            Require(tx.SetComponent(entity, std::optional{changed}, error).succeeded && tx.Prepare(error) &&
+                        tx.Commit() && packet->ui->objects.front().image->color == image.image->color,
+                    "packet-ui-keeps-old-component-values-after-commit");
+        }
+        world.reset();
+        Require(packet->ui->objects.front().animation && packet->ui->objects.front().image->color[0] == 1,
+                "packet-ui-outlives-runtime-owner");
+    }
+
 }
 int main()
 {
     try
     {
         Validate();
+        ValidateUi();
         ValidateInterpolation();
         std::cout << "Render packet contracts: " << contracts << ", failures: 0\n";
         return 0;

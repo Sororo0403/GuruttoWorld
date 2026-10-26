@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scripts/ScriptSchema.h>
 #include <SceneRuntime/Scene/ComponentFieldSchema.h>

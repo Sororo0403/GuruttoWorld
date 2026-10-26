@@ -312,6 +312,7 @@ namespace ProjectTool
         auto nativeRoot = Utf8(enginePath);
         std::replace(nativeRoot.begin(), nativeRoot.end(), '/', '\\');
         const auto escapedRoot = XmlEscape(nativeRoot + "\\");
+        const auto titleFeature = descriptor.value("titleFeature", false) ? "true" : "false";
         const auto projectText =
             "<Project DefaultTargets=\"Build\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">\r\n"
             "  <!-- WP1.project.json から生成します。 -->\r\n"
@@ -327,6 +328,9 @@ namespace ProjectTool
             "    <WP1Root>" +
             escapedRoot +
             "</WP1Root>\r\n"
+            "    <EnableTitleFeature>" +
+            std::string(titleFeature) +
+            "</EnableTitleFeature>\r\n"
             "  </PropertyGroup>\r\n"
             "  <Import Project=\"$(WP1Root)Engine\\build\\GameProject.targets\" />\r\n"
             "</Project>\r\n";
@@ -341,9 +345,14 @@ namespace ProjectTool
                                    "  <Project Path=\"" +
                                    name + ".vcxproj\" />\r\n";
         for (const auto* reference : {"Player/Player.vcxproj", "Engine/Engine.vcxproj", "Engine/EngineCore.vcxproj",
+                                      "Engine/EngineAssets.vcxproj", "Engine/EnginePlatform.vcxproj",
                                       "SceneRuntime/SceneRuntime.vcxproj", "SceneRuntime/SceneData.vcxproj",
+                                      "SceneRuntime/SceneRendering.vcxproj", "SceneRuntime/SceneSimulation.vcxproj",
                                       "SceneRuntime/SceneStorage.vcxproj", "SceneRuntime/SceneRuntimeCore.vcxproj"})
             solutionText += "  <Project Path=\"" + XmlEscape(ForwardPath(enginePath / reference)) + "\" />\r\n";
+        if (descriptor.value("titleFeature", false))
+            solutionText += "  <Project Path=\"" +
+                            XmlEscape(ForwardPath(enginePath / "SceneRuntime/SceneTitle.vcxproj")) + "\" />\r\n";
         solutionText += "</Solution>\r\n";
         RejectLinks(root / (name + ".vcxproj"));
         RejectLinks(root / (name + ".slnx"));

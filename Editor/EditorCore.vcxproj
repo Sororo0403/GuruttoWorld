@@ -38,6 +38,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.vcxproj" />
+    <ProjectReference Include="..\SceneRuntime\SceneTitle.vcxproj" />
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

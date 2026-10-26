@@ -1,11 +1,14 @@
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path $PSScriptRoot -Parent
 $taskProjects = @{}
-foreach ($name in @('SceneData', 'SceneStorage', 'SceneRuntimeCore', 'SceneRuntime')) {
+foreach ($name in @('SceneData', 'SceneStorage', 'SceneRuntimeCore', 'SceneRendering', 'SceneSimulation', 'SceneRuntime', 'SceneTitle')) {
     $path = Join-Path $taskRoot "SceneRuntime/$name.vcxproj"
     $taskProjects[$name] = [xml](Get-Content -LiteralPath $path -Raw)
 }
 $taskProjects.EngineCore = [xml](Get-Content -LiteralPath (Join-Path $taskRoot 'Engine/EngineCore.vcxproj') -Raw)
+$taskProjects.EngineAssets = [xml](Get-Content -LiteralPath (Join-Path $taskRoot 'Engine/EngineAssets.vcxproj') -Raw)
+$taskProjects.EnginePlatform = [xml](Get-Content -LiteralPath (Join-Path $taskRoot 'Engine/EnginePlatform.vcxproj') -Raw)
+$taskProjects.Engine = [xml](Get-Content -LiteralPath (Join-Path $taskRoot 'Engine/Engine.vcxproj') -Raw)
 $taskDataReferences = @($taskProjects.SceneData.SelectNodes('//*[local-name()="ProjectReference"]') |
     ForEach-Object { [IO.Path]::GetFileName($_.Include) })
 if (($taskDataReferences -join ',') -ne 'EngineCore.vcxproj' -or
@@ -14,8 +17,8 @@ if (($taskDataReferences -join ',') -ne 'EngineCore.vcxproj' -or
 }
 $taskStorageReferences = @($taskProjects.SceneStorage.SelectNodes('//*[local-name()="ProjectReference"]') |
     ForEach-Object { [IO.Path]::GetFileName($_.Include) } | Sort-Object)
-if (($taskStorageReferences -join ',') -ne 'Engine.vcxproj,SceneData.vcxproj') {
-    throw 'SceneStorage may reference only Engine and SceneData.'
+if (($taskStorageReferences -join ',') -ne 'EngineAssets.vcxproj,SceneData.vcxproj') {
+    throw 'SceneStorage may reference only CPU EngineAssets and SceneData.'
 }
 $taskOwners = @{}
 $taskRuntimeReferences = @($taskProjects.SceneRuntimeCore.SelectNodes('//*[local-name()="ProjectReference"]') |
@@ -25,8 +28,10 @@ if (($taskRuntimeReferences -join ',') -ne 'SceneData.vcxproj') {
 }
 foreach ($name in $taskProjects.Keys) {
     foreach ($source in $taskProjects[$name].SelectNodes('//*[local-name()="ClCompile"][@Include]')) {
-        if ($taskOwners.ContainsKey($source.Include)) { throw "Duplicate source ownership: $($source.Include)" }
-        $taskOwners[$source.Include] = $name
+        $folder = if ($name -like 'Engine*') { 'Engine' } else { 'SceneRuntime' }
+        $sourcePath = [IO.Path]::GetFullPath((Join-Path $taskRoot "$folder/$($source.Include)"))
+        if ($taskOwners.ContainsKey($sourcePath)) { throw "Duplicate source ownership: $sourcePath" }
+        $taskOwners[$sourcePath] = $name
     }
 }
 $taskVisited = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -62,3 +67,81 @@ while ($taskPending.Count) {
     }
 }
 Write-Output "PASS: SceneData $($taskVisited.Count) source/header dependencies, project directions and unique source ownership"
+
+$taskRenderReferences = @($taskProjects.SceneRendering.SelectNodes('//*[local-name()="ProjectReference"]') |
+    ForEach-Object { [IO.Path]::GetFileName($_.Include) })
+if ((($taskRenderReferences | Sort-Object) -join ',') -ne 'Engine.vcxproj,SceneData.vcxproj') {
+    throw 'SceneRendering must depend only on GPU Engine facilities and the packet contract.'
+}
+$taskRenderVisited = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$taskRenderPending = [Collections.Generic.Queue[string]]::new()
+foreach ($source in $taskProjects.SceneRendering.SelectNodes('//*[local-name()="ClCompile"][@Include]')) {
+    $taskRenderPending.Enqueue((Join-Path $taskRoot "SceneRuntime/$($source.Include)"))
+}
+while ($taskRenderPending.Count) {
+    $path = [IO.Path]::GetFullPath($taskRenderPending.Dequeue())
+    if (!$taskRenderVisited.Add($path)) { continue }
+    foreach ($include in [regex]::Matches((Get-Content -LiteralPath $path -Raw), '(?m)^\s*#include\s*[<"]([^>"]+)[>"]')) {
+        $name = $include.Groups[1].Value.Replace('\', '/')
+        if ($name -match '^SceneRuntime/(?:[^/]+/)*(SceneWorld|SceneLayout|SceneEnvironment|WorldState|WorldDefinition|RuntimeSession|RuntimeScripts|ScriptRuntime|ScriptApi|PhysicsWorld)\.h$') {
+            throw "Rendering includes mutable world or authoring dependency $name from $path"
+        }
+        foreach ($candidate in @((Join-Path (Split-Path $path -Parent) $name),
+                (Join-Path $taskRoot "SceneRuntime/include/$name"), (Join-Path $taskRoot "Engine/include/$name"))) {
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $taskRenderPending.Enqueue($candidate)
+                break
+            }
+        }
+    }
+}
+Write-Output "PASS: SceneRendering $($taskRenderVisited.Count) source/header dependencies exclude authoring, mutable world and Script APIs"
+
+foreach ($entry in @(@('EnginePlatform', 'EngineCore.vcxproj'),
+        @('EngineAssets', 'EngineCore.vcxproj,EnginePlatform.vcxproj'),
+        @('SceneSimulation', 'EngineAssets.vcxproj,SceneRuntimeCore.vcxproj,SceneStorage.vcxproj'))) {
+    $references = @($taskProjects[$entry[0]].SelectNodes('//*[local-name()="ProjectReference"]') |
+        ForEach-Object { [IO.Path]::GetFileName($_.Include) } | Sort-Object)
+    if (($references -join ',') -ne $entry[1]) { throw "Unexpected CPU dependencies for $($entry[0])" }
+}
+$taskCpuPending = [Collections.Generic.Queue[string]]::new()
+$taskCpuVisited = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($name in @('EnginePlatform', 'EngineAssets', 'SceneSimulation', 'SceneStorage')) {
+    $folder = if ($name -like 'Engine*') { 'Engine' } else { 'SceneRuntime' }
+    foreach ($source in $taskProjects[$name].SelectNodes('//*[local-name()="ClCompile"][@Include]')) {
+        $taskCpuPending.Enqueue((Join-Path $taskRoot "$folder/$($source.Include)"))
+    }
+}
+while ($taskCpuPending.Count) {
+    $path = [IO.Path]::GetFullPath($taskCpuPending.Dequeue())
+    if (!$taskCpuVisited.Add($path)) { continue }
+    foreach ($include in [regex]::Matches((Get-Content -LiteralPath $path -Raw), '(?m)^\s*#include\s*[<"]([^>"]+)[>"]')) {
+        $name = $include.Groups[1].Value.Replace('\', '/')
+        if ($name -match '^(SceneRuntime/(?:[^/]+/)*(SceneWorld|SceneEnvironment|SceneUi|ScenePresentation|RenderScene|RenderPresentation)\.h|Engine/Graphics/(DirectX12|Renderers|Resources)/|d3d12\.h)') {
+            throw "CPU subsystem includes rendering dependency $name from $path"
+        }
+        foreach ($candidate in @((Join-Path (Split-Path $path -Parent) $name),
+                (Join-Path $taskRoot "SceneRuntime/include/$name"), (Join-Path $taskRoot "Engine/include/$name"))) {
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $taskCpuPending.Enqueue($candidate)
+                break
+            }
+        }
+    }
+}
+Write-Output "PASS: CPU assets/platform/storage/simulation $($taskCpuVisited.Count) source/header dependencies exclude rendering"
+
+# 共通再生と配布SDKは、任意のTitle実装・テスト用の旧Script APIを参照しません。
+foreach ($name in @('SceneRuntime', 'SceneSimulation', 'SceneRuntimeCore')) {
+    foreach ($source in $taskProjects[$name].SelectNodes('//*[local-name()="ClCompile"][@Include]')) {
+        $path = Join-Path $taskRoot "SceneRuntime/$($source.Include)"
+        $text = Get-Content -LiteralPath $path -Raw
+        if ($text -match 'LegacyScripts/|Scripts/(ScriptRuntime|ScriptApi|LegacyScriptAdapter)\.h|Gameplay/Title(?:Bindings|Controller|Menu|Ui)\.h') {
+            throw "Common runtime includes retired or optional API: $path"
+        }
+    }
+}
+if (Select-String -LiteralPath (Join-Path $taskRoot 'SceneRuntime/include/SceneRuntime/Gameplay/GamePlayback.h') -Pattern 'TitleController|TitleBindings') {
+    throw 'Common playback owns an optional Title implementation.'
+}
+Write-Output 'PASS: optional Title and test-only legacy Script APIs are absent from common runtime sources'

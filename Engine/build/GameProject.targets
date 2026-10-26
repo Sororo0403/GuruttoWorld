@@ -144,6 +144,7 @@
     <ProjectReference Include="$(WP1Root)Player\Player.vcxproj" />
     <ProjectReference Include="$(WP1Root)Engine\Engine.vcxproj" />
     <ProjectReference Include="$(WP1Root)SceneRuntime\SceneRuntime.vcxproj" />
+    <ProjectReference Include="$(WP1Root)SceneRuntime\SceneTitle.vcxproj" Condition="'$(EnableTitleFeature)' == 'true'" />
   </ItemGroup>
   <Target Name="RequireGameEntryPoint" BeforeTargets="PrepareForBuild">
     <Error Condition="!Exists('$(GameProjectRoot)src\main.cpp')" Text="The game must own src/main.cpp." />

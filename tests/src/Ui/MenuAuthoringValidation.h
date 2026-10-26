@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/Gameplay/TitleController.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Gameplay/TitleBindings.h>
 #include <SceneRuntime/Gameplay/TitleUi.h>

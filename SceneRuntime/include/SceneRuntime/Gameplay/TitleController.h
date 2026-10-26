@@ -1,5 +1,6 @@
 #pragma once
 #include <SceneRuntime/Gameplay/TitleBindings.h>
+#include <SceneRuntime/Gameplay/PlaybackFeature.h>
 #include <SceneRuntime/Gameplay/TitleUi.h>
 #include <Engine/Input/InputActions.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
@@ -8,9 +9,12 @@
 
 namespace SceneRuntime
 {
-    class TitleController final
+    class TitleController final : public PlaybackFeature
     {
     public:
+        /// <summary>明示的に選択されたタイトル機能をMenu設定から準備します。</summary>
+        void Initialize(SceneEnvironment& environment, const std::filesystem::path& settingsPath,
+                        bool playIntro) override;
         /// <summary>初期化します。</summary>
         void Initialize(const SceneRuntime::SceneLayout& layout, SceneRuntime::UiState& state,
                         const std::filesystem::path& settingsPath = {}, bool playIntro = false);

@@ -1,3 +1,4 @@
+#include <Engine/Assets/AssetArtifact.h>
 #include <Player/Player.h>
 #include "Scenes/SceneFactory.h"
 #include <Engine/Scenes/SceneManager.h>
@@ -11,6 +12,7 @@ namespace Player
 {
     int Run(const Options& options)
     {
+        Engine::AssetImportScope imports;
         std::wstring executable(32768, L'\0');
         const DWORD length = GetModuleFileNameW(nullptr, executable.data(), static_cast<DWORD>(executable.size()));
         if (length == 0 || length >= executable.size())
@@ -31,7 +33,7 @@ namespace Player
                         MB_OK | MB_ICONERROR);
             return 1;
         }
-        SceneFactory factory(root, options.simulateInactive);
+        SceneFactory factory(root, options.simulateInactive, options.playbackFeature);
         Engine::SceneManager scenes(factory);
         scenes.RequestChange(options.scene.empty() ? project.startupScene : options.scene);
         Engine::ApplicationSettings settings;

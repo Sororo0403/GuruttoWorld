@@ -1,4 +1,5 @@
 #pragma once
+#include <SceneRuntime/Physics/PhysicsWorld.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Gameplay/Navigation.h>
 #include <SceneRuntime/Gameplay/GenreGeometry.h>

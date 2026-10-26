@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <memory>
 #include <string>
 
 namespace Engine
@@ -12,6 +13,7 @@ namespace Engine
 namespace SceneRuntime
 {
     class SceneEnvironment;
+    class PlaybackFeature;
 }
 namespace Player
 {
@@ -33,6 +35,7 @@ namespace Player
         std::string scene;
         bool simulateInactive = false;
         Hooks hooks;
+        std::function<std::unique_ptr<SceneRuntime::PlaybackFeature>()> playbackFeature;
     };
 
     /// <summary>実行ファイルに同梱したプロジェクトを読み、ゲーム側のフックと共通の更新・描画ループを実行します。</summary>

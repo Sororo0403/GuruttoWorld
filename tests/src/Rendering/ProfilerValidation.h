@@ -30,6 +30,16 @@ namespace ProfilerValidation
         const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto scene = SceneRuntime::SceneLayout::Load(content / "Assets/Scenes/RootMotionPlayground.json", content);
         scene.settings.postEffects.enabled = true;
+        // 空のUIパスを省く描画経路でも、実際に描くUIの計測を検証します。
+        SceneRuntime::ScenePlacement canvas, image;
+        canvas.id = "profiler-canvas";
+        canvas.canvas.emplace();
+        image.id = "profiler-image";
+        image.parentId = canvas.id;
+        image.rectTransform.emplace();
+        image.image.emplace();
+        scene.objects.push_back(canvas);
+        scene.objects.push_back(image);
         SceneRuntime::SceneEnvironment environment;
         std::string error;
         if (!environment.Initialize(renderer, content, scene, error))
@@ -52,7 +62,7 @@ namespace ProfilerValidation
                                  return s.name == name && s.calls > 0 && std::isfinite(s.milliseconds) &&
                                         s.milliseconds >= 0;
                              }))
-                throw std::runtime_error("GPU pass sample missing");
+                throw std::runtime_error(std::string("GPU pass sample missing: ") + name);
         if (std::none_of(detailed.cpuScopes.begin(), detailed.cpuScopes.end(),
                          [](const auto& s)
                          {

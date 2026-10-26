@@ -1,5 +1,5 @@
 #pragma once
-#include <SceneRuntime/Scripts/ScriptApi.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scripts/RuntimeScripts.h>
 
 namespace SceneRuntime
@@ -9,9 +9,15 @@ namespace SceneRuntime
     {
     public:
         /// <summary>現在の登録とDLLの世代を固定し、新SDKの組込動作と統合します。</summary>
-        static std::shared_ptr<const RuntimeScriptDefinitions> Capture();
+        static std::shared_ptr<const RuntimeScriptDefinitions> Capture(
+            std::shared_ptr<const ScriptDefinitions> definitions = {});
+
+        /// <summary>移行前の回帰fixtureから、新しいゲームコールバックを検証します。配布対象には含めません。</summary>
+        static ScriptCallbacks Adapt(const RuntimeScriptDefinition& definition);
 
     private:
+        /// <summary>テスト内の保存候補を一時的な型付きWorldへ投影します。</summary>
+        static void InvokeModern(const std::function<void(RuntimeScriptContext&)>& callback, ScriptContext& context);
         enum class Callback
         {
             Start,

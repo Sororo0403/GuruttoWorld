@@ -1,3 +1,4 @@
+#include <SceneRuntime/Scene/SceneWorld.h>
 #include "LightmapPanel.h"
 
 namespace Editor

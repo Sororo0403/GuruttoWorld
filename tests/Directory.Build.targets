@@ -1,0 +1,11 @@
+<Project>
+  <ItemDefinitionGroup>
+    <ClCompile><AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)src\Support;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'ArchitectureAuditFixValidation' Or '$(MSBuildProjectName)' == 'ArchitectureContractValidation' Or '$(MSBuildProjectName)' == 'ArchitectureStructureValidation' Or '$(MSBuildProjectName)' == 'AuditCoreValidation' Or '$(MSBuildProjectName)' == 'ChangeCaptureValidation' Or '$(MSBuildProjectName)' == 'GamePlaybackFocusedValidation' Or '$(MSBuildProjectName)' == 'GpuPacketValidation' Or '$(MSBuildProjectName)' == 'LegacyScriptAdapterValidation' Or '$(MSBuildProjectName)' == 'ParkAdventureValidation' Or '$(MSBuildProjectName)' == 'ReviewRegressionValidation' Or '$(MSBuildProjectName)' == 'SceneExecutionProfile' Or '$(MSBuildProjectName)' == 'ScriptSchemaModuleValidation' Or '$(MSBuildProjectName)' == 'StreetArrivalValidation' Or '$(MSBuildProjectName)' == 'SunriseStreetValidation'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)LegacyScriptValidationSupport.vcxproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'ArchitectureAuditFixValidation' Or '$(MSBuildProjectName)' == 'GamePlaybackFocusedValidation' Or '$(MSBuildProjectName)' == 'ReviewRegressionValidation' Or '$(MSBuildProjectName)' == 'SunriseStreetValidation'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\SceneRuntime\SceneTitle.vcxproj" />
+  </ItemGroup>
+</Project>

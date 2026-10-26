@@ -6,7 +6,7 @@
 #include <imgui.h>
 #include <array>
 #include <algorithm>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <SceneRuntime/Scripts/ScriptSchema.h>
 
 namespace Editor
 {

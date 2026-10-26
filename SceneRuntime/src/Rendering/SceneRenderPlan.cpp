@@ -2,46 +2,6 @@
 
 namespace SceneRuntime::RenderPlan
 {
-    bool Visible(const ScenePlacement& placement, const UiState& state)
-    {
-        return placement.meshRenderer
-                   ? placement.meshRenderer->enabled && state.Matches(placement.meshRenderer->visibleWhen)
-                   : (placement.terrain && placement.terrain->enabled) ||
-                         (placement.tilemap && placement.tilemap->enabled);
-    }
-
-    std::vector<Item> Items(
-        const SceneLayout& layout, const std::vector<Engine::Object3D>& objects,
-        const std::map<std::string, std::vector<std::shared_ptr<const Engine::ModelRenderer>>>& levels,
-        const Engine::Camera& camera, const UiState& state, std::span<const DirectX::XMFLOAT4X4> renderMatrices)
-    {
-        std::vector<Item> result;
-        result.reserve(objects.size());
-        const auto& eye = camera.GetPosition();
-        for (size_t index = 0; index < objects.size(); ++index)
-        {
-            const auto& placement = layout.objects[index];
-            if (!objects[index].GetModel())
-                continue;
-            const bool visible = Visible(placement, state);
-            if (!visible)
-                continue;
-            const auto& world = renderMatrices.empty() ? objects[index].GetWorldMatrix() : renderMatrices[index];
-            Item item{objects[index], placement.meshRenderer && placement.meshRenderer->instancing,
-                      std::hypot(world._41 - eye[0], world._42 - eye[1], world._43 - eye[2])};
-            if (!renderMatrices.empty() && std::memcmp(&world, &item.object.GetWorldMatrix(), sizeof(world)) != 0)
-                item.object.SetWorldMatrix(world);
-            item.occlusion = placement.meshRenderer && placement.meshRenderer->occlusionCulling;
-            const auto found = levels.find(placement.id);
-            if (placement.meshRenderer && found != levels.end())
-                for (size_t level = 0; level < placement.meshRenderer->lods.size(); ++level)
-                    if (item.distance >= placement.meshRenderer->lods[level].distance)
-                        item.object.SetModel(found->second.at(level));
-            result.push_back(std::move(item));
-        }
-        return result;
-    }
-
     bool Compatible(const Item& first, const Item& second)
     {
         return first.instancing && second.instancing && !first.occlusion && !second.occlusion &&

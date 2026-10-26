@@ -1,4 +1,6 @@
 #pragma once
+#include <SceneRuntime/Gameplay/TitleController.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/RegressionTiming.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include "../../../Editor/src/Playback/GameSession.h"
@@ -208,7 +210,7 @@ namespace TitleConfigTransitionValidation
         actions.SetBindings(SceneRuntime::ProjectSettings::Load(root).inputActions);
         tick();
         require(session.Runtime()->ActiveSceneName() == "Assets/Scenes/PhysicsPlayground.json" &&
-                    !session.Title().Active(),
+                    !static_cast<SceneRuntime::TitleController&>(session.Playback().Feature()).Active(),
                 "internal script replacement refreshes title controller same frame");
         require(renderer.WaitForIdle(), "replacement GPU complete");
         session.Stop();
@@ -238,7 +240,8 @@ namespace TitleConfigTransitionValidation
                 tick();
             SceneRuntime::UiEvent event;
             event.event = eventName;
-            session.Title().Activate(event, session.Runtime()->Ui());
+            static_cast<SceneRuntime::TitleController&>(session.Playback().Feature())
+                .Activate(event, session.Runtime()->Ui());
             for (int i = 0; i < 8; ++i)
             {
                 tick();

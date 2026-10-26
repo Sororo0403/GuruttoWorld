@@ -3,6 +3,7 @@
 namespace SceneRuntime
 {
     class ScriptRuntime;
+    class PhysicsWorld;
 }
 
 template <class Type>
@@ -14,7 +15,7 @@ static_assert(!CompleteType<SceneRuntime::PhysicsWorld>);
 
 bool Register_IdentityProbe(void* context, SceneRuntime::RegisterModuleScript add)
 {
-    SceneRuntime::ScriptCallbacks definition;
-    definition.update = [](SceneRuntime::ScriptContext&) {};
+    SceneRuntime::RuntimeScriptDefinition definition;
+    definition.update = [](SceneRuntime::RuntimeScriptContext&) {};
     return add(context, "IdentityProbe", &definition);
 }

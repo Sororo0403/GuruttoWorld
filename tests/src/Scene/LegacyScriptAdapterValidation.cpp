@@ -1,5 +1,5 @@
-#include <SceneRuntime/Scripts/LegacyScriptAdapter.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/LegacyScriptAdapter.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/RuntimeSession.h>
 #include <Engine/Core/Profiler.h>
 #include <iostream>

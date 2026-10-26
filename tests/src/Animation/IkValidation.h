@@ -1,7 +1,7 @@
 #pragma once
 #include <Engine/Animation/TwoBoneIk.h>
 #include <SceneRuntime/Animation/Animator.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../../../SceneRuntime/src/Animation/AnimatorJson.h"
 #include <cmath>
 #include <limits>

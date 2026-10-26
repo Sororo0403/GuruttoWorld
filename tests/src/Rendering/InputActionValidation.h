@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include <Engine/Input/InputActions.h>
 #include "../Ui/UiValidation.h"
 #include <stdexcept>

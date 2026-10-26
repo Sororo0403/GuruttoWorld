@@ -1,6 +1,6 @@
 #pragma once
 #include <SceneRuntime/Scripts/ScriptModule.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <Engine/Core/FileContents.h>
 #include <Engine/Core/Json.h>
 

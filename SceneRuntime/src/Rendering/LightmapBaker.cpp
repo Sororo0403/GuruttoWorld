@@ -1,4 +1,6 @@
 #include <SceneRuntime/Rendering/LightmapBaker.h>
+#include <SceneRuntime/Scene/SceneWorld.h>
+#include <Engine/Graphics/Models/ModelAssets.h>
 
 namespace SceneRuntime
 {
@@ -15,16 +17,20 @@ namespace SceneRuntime
                                         });
         if (found == objects.end() || !found->meshRenderer || found->animator)
             throw std::runtime_error("Lightmap baking needs a static MeshRenderer");
-        std::vector<Engine::MeshData> meshes;
-        if (!Engine::ModelLoader::Load(root / found->Model(), meshes))
-            throw std::runtime_error("Cannot load lightmap source geometry");
+        std::string error;
+        const auto meshes = Engine::ModelAssets::Load(root / found->Model(), error);
+        if (!meshes)
+            throw std::runtime_error(error);
         DirectX::XMFLOAT4X4 transform;
         if (!world.WorldMatrix(id, transform))
             throw std::runtime_error("Cannot resolve lightmap transform");
-        const auto lighting = SceneView::Light(world);
+        const auto packet = world.RenderSnapshot();
+        if (!packet)
+            throw std::runtime_error("Lightmap view is not prepared");
+        const auto lighting = SceneView::Light(*packet);
         std::vector<unsigned char> pixels(static_cast<size_t>(resolution) * resolution * 4, 0);
         bool covered = false;
-        for (const auto& mesh : meshes)
+        for (const auto& mesh : *meshes)
             for (size_t index = 0; index + 2 < mesh.indices.size(); index += 3)
             {
                 const std::array<Engine::MeshVertex, 3> triangle{mesh.vertices.at(mesh.indices[index]),

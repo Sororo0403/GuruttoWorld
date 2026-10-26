@@ -1,7 +1,10 @@
 #pragma once
 #include <SceneRuntime/Scene/EntityHandle.h>
+#include <SceneRuntime/Ui/UiPacket.h>
 #include <SceneRuntime/Rendering/EnvironmentComponents.h>
 #include <DirectXMath.h>
+#include <Engine/Graphics/Materials/PostEffectSettings.h>
+#include <filesystem>
 #include <Engine/Animation/SkinMatrix.h>
 #include <optional>
 #include <string>
@@ -61,14 +64,33 @@ namespace SceneRuntime
         DirectX::XMFLOAT4X4 matrix{}, rotation{};
         T settings;
     };
+    struct RenderViewSettings
+    {
+        std::string mainCamera;
+        FogSettings fog;
+        Engine::PostEffectSettings postEffects;
+        std::array<float, 4> background{};
+        std::filesystem::path skyShader, oceanShader, particleShader, postShader;
+    };
+    struct RenderLocalLight
+    {
+        bool spot = false;
+        std::size_t index = 0;
+    };
     struct RenderPacket
     {
         std::uint64_t frame = 0, device = 0;
+        RenderViewSettings settings;
+        std::shared_ptr<const UiPacket> ui;
         std::shared_ptr<const RenderResource> sceneResources;
         std::vector<RenderObject> objects;
         std::vector<RenderNode<CameraComponent>> cameras;
+        std::vector<RenderNode<CameraSwayComponent>> cameraSways;
+        std::vector<RenderNode<SkyComponent>> skies;
+        std::vector<RenderNode<ParticleEmitterComponent>> particles;
         std::vector<RenderNode<DirectionalLightComponent>> directionalLights;
         std::vector<RenderNode<PointLightComponent>> pointLights;
         std::vector<RenderNode<SpotLightComponent>> spotLights;
+        std::vector<RenderLocalLight> localLights;
     };
 }

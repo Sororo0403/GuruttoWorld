@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\Rendering\RenderPresentation.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Rendering\RenderPresentation.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+    <Filter Include="src\Ui" /><Filter Include="include\SceneRuntime\Ui" />
+    <ClCompile Include="src\Ui\UiRendering.cpp"><Filter>src\Ui</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Ui\UiRendering.h"><Filter>include\SceneRuntime\Ui</Filter></ClInclude>
+    <ClInclude Include="src\Ui\UiVisualFunctions.h"><Filter>src\Ui</Filter></ClInclude><Filter Include="src\Rendering" /><Filter Include="include\SceneRuntime\Rendering" /></ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Rendering\SceneView.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneView.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+    <ClCompile Include="src\Rendering\RenderScene.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClCompile Include="src\Rendering\SceneRenderPlan.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClInclude Include="src\Rendering\SceneRenderPlan.h"><Filter>src\Rendering</Filter></ClInclude>
+    <ClInclude Include="src\Rendering\SceneRenderResources.h"><Filter>src\Rendering</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\RenderScene.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+  </ItemGroup>
+</Project>

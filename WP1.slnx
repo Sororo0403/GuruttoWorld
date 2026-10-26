@@ -9,8 +9,13 @@
   <Project Path="Tools/ProjectTool/ProjectTool.vcxproj" />
   <Project Path="Engine/Engine.vcxproj" Id="689a4162-50df-480e-93d1-6e6453148017" />
   <Project Path="Engine/EngineCore.vcxproj" />
+  <Project Path="Engine/EngineAssets.vcxproj" />
+  <Project Path="Engine/EnginePlatform.vcxproj" />
   <Project Path="SceneRuntime/SceneRuntime.vcxproj" Id="d402069a-f7e5-4d62-a98d-6f5436d7513d" />
   <Project Path="SceneRuntime/SceneData.vcxproj" />
+  <Project Path="SceneRuntime/SceneRendering.vcxproj" />
+  <Project Path="SceneRuntime/SceneTitle.vcxproj" />
+  <Project Path="SceneRuntime/SceneSimulation.vcxproj" />
   <Project Path="SceneRuntime/SceneRuntimeCore.vcxproj" />
   <Project Path="SceneRuntime/SceneStorage.vcxproj" />
   <Project Path="Editor/EditorCore.vcxproj" />

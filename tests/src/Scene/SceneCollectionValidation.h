@@ -1,9 +1,11 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include "../../../Editor/src/Editing/EditHistory.h"
 #include <stdexcept>
+#include <iostream>
 #include "../Architecture/FollowupStateValidation.h"
 
 namespace SceneCollectionValidation
@@ -196,6 +198,10 @@ namespace SceneCollectionValidation
         environment.Update(1.0 / 60, true, true);
         Require(environment.World().Layout().objects[0].position[2] == 3,
                 "persistent script state survives single switch");
+        if (environment.World().Layout().objects[2].position[2] != 1 || *stopped != 1)
+            std::cerr << "Single reload: entity=" << environment.World().Layout().objects[2].id
+                      << " ticks=" << environment.World().Layout().objects[2].position[2] << " stopped=" << *stopped
+                      << '\n';
         Require(
             environment.World().Layout().objects[2].position[2] == 1 && *stopped == 1,
             "same-ID single reload creates a new Script instance and stops the previous nonpersistent instance exactly once");

@@ -1,6 +1,7 @@
 #include <Engine/Core/Validation.h>
 #include <Engine/Core/Utf8.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
+#include <LegacyScripts/LegacyScriptAdapter.h>
 #include <SceneRuntime/Scripts/RuntimeScripts.h>
 #include <Engine/Assets/ContentContext.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>
@@ -621,10 +622,28 @@ namespace SceneRuntime
         }
         return true;
     }
+    bool ScriptRegistry::RegisterModern(std::string name, RuntimeScriptDefinition definition)
+    {
+        ScriptDefinition legacy;
+        static_cast<ScriptSchema&>(legacy) = definition;
+        static_cast<ScriptCallbacks&>(legacy) = LegacyScriptAdapter::Adapt(definition);
+        if (!ValidDefinition(name, legacy) || Registry().contains(name) ||
+            !RuntimeScriptRegistry::Register(name, std::move(definition)))
+            return false;
+        Registry().emplace(std::move(name), std::move(legacy));
+        ++RegistryRevision();
+        return true;
+    }
     bool ScriptRegistry::Register(std::string name, ScriptDefinition definition)
     {
-        if (!ValidDefinition(name, definition) || !Registry().emplace(std::move(name), std::move(definition)).second)
+        if (!ValidDefinition(name, definition) || Registry().contains(name))
             return false;
+        auto legacy = std::make_shared<ScriptDefinitions>();
+        legacy->emplace(name, definition);
+        auto converted = LegacyScriptAdapter::Capture(legacy);
+        if (!RuntimeScriptRegistry::Register(name, converted->at(name)))
+            return false;
+        Registry().emplace(std::move(name), std::move(definition));
         ++RegistryRevision();
         return true;
     }
@@ -652,7 +671,16 @@ namespace SceneRuntime
                 names.insert(name);
                 candidate.emplace(name, std::move(definition));
             }
-            candidateOwners[owner] = std::move(names);
+            candidateOwners[owner] = names;
+            auto legacy = std::make_shared<ScriptDefinitions>();
+            for (const auto& name : names)
+                legacy->emplace(name, candidate.at(name));
+            auto converted = LegacyScriptAdapter::Capture(legacy);
+            RuntimeScriptDefinitions modern;
+            for (const auto& name : names)
+                modern.emplace(name, converted->at(name));
+            if (!RuntimeScriptRegistry::InstallModule(owner, std::move(modern), error))
+                return false;
             Registry().swap(candidate);
             owners.swap(candidateOwners);
             ++RegistryRevision();
@@ -667,11 +695,29 @@ namespace SceneRuntime
     }
     const std::map<std::string, ScriptDefinition>& ScriptRegistry::Definitions()
     {
-        return Registry();
+        static ScriptDefinitions combined;
+        static std::uint64_t cachedRevision = static_cast<std::uint64_t>(-1);
+        const auto revision = Revision();
+        if (cachedRevision != revision)
+        {
+            auto next = Registry();
+            const auto modern = RuntimeScriptRegistry::Capture();
+            for (const auto& [name, definition] : *modern)
+                if (!next.contains(name))
+                {
+                    ScriptDefinition converted;
+                    static_cast<ScriptSchema&>(converted) = definition;
+                    static_cast<ScriptCallbacks&>(converted) = LegacyScriptAdapter::Adapt(definition);
+                    next.emplace(name, std::move(converted));
+                }
+            combined.swap(next);
+            cachedRevision = revision;
+        }
+        return combined;
     }
     std::uint64_t ScriptRegistry::Revision()
     {
-        return RegistryRevision();
+        return RegistryRevision() + RuntimeScriptRegistry::Revision();
     }
     float ScriptContext::Input(const std::string& name) const
     {
@@ -689,7 +735,7 @@ namespace SceneRuntime
     }
     std::shared_ptr<const ScriptDefinitions> ScriptRegistry::Capture()
     {
-        return std::make_shared<const ScriptDefinitions>(Registry());
+        return std::make_shared<const ScriptDefinitions>(Definitions());
     }
     bool ScriptRuntime::HasPhase(const SceneLayout& layout, ScriptPhase phase, const ScriptDefinitions* definitions)
     {

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\Animation" />
+    <Filter Include="src\Gameplay" />
+    <Filter Include="src\Physics" />
+    <Filter Include="src\Scene" />
+    <Filter Include="src\Scripts" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Animation\Animator.cpp"><Filter>src\Animation</Filter></ClCompile>
+    <ClCompile Include="src\Animation\BlendTreePose.cpp"><Filter>src\Animation</Filter></ClCompile>
+    <ClCompile Include="src\Animation\RuntimeAnimation.cpp"><Filter>src\Animation</Filter></ClCompile>
+    <ClCompile Include="src\Physics\Ragdoll.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Gameplay\GenreGeometry.cpp"><Filter>src\Gameplay</Filter></ClCompile>
+    <ClCompile Include="src\Gameplay\Navigation.cpp"><Filter>src\Gameplay</Filter></ClCompile>
+    <ClCompile Include="src\Gameplay\RuntimeNavigation.cpp"><Filter>src\Gameplay</Filter></ClCompile>
+    <ClCompile Include="src\Scene\RuntimeSimulation.cpp"><Filter>src\Scene</Filter></ClCompile>
+    <ClCompile Include="src\Gameplay\NavigationMesh.cpp"><Filter>src\Gameplay</Filter></ClCompile>
+    <ClCompile Include="src\Physics\PhysicsJoints.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Physics\ScenePhysics.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Physics\PhysicsWorld.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Physics\PhysicsFrame.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Physics\RuntimePhysics.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Physics\RuntimeRagdoll.cpp"><Filter>src\Physics</Filter></ClCompile>
+    <ClCompile Include="src\Scripts\ScriptModule.cpp"><Filter>src\Scripts</Filter></ClCompile>
+  </ItemGroup>
+</Project>

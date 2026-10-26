@@ -5,6 +5,13 @@
 
 namespace SceneRuntime
 {
+    struct FogSettings
+    {
+        bool enabled = false;
+        std::array<float, 3> color{0.76f, 0.84f, 0.85f};
+        float start = 24, end = 155, strength = 0.72f;
+        bool operator==(const FogSettings&) const = default;
+    };
     struct CameraComponent
     {
         std::string id = "camera";

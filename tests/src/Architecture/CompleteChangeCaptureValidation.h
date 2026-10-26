@@ -1,4 +1,6 @@
 #pragma once
+#include <SceneRuntime/Physics/PhysicsWorld.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 
 namespace CompleteChangeCaptureValidation

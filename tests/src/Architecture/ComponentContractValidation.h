@@ -1,7 +1,7 @@
 #pragma once
 #include <SceneRuntime/Scene/SceneCollection.h>
 #include <SceneRuntime/Scene/Prefab.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <unordered_map>
 #include "../../../SceneRuntime/src/Scene/SceneComponentJson.h"
 

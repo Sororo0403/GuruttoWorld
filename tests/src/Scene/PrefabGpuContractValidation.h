@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/Prefab.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>

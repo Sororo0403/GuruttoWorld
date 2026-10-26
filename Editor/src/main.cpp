@@ -1,3 +1,8 @@
+#include <Engine/Assets/AssetArtifact.h>
+#include <SceneRuntime/Scene/SceneCamera.h>
+#include <Engine/Animation/SkeletonAssets.h>
+#include <Engine/Graphics/Models/ModelAssets.h>
+#include <Engine/Assets/TextureAssets.h>
 #include "Viewport/CameraPanel.h"
 #include "Inspector/ObjectPanel.h"
 #include "Project/ProjectPanel.h"
@@ -387,8 +392,12 @@ namespace
             {
                 if (!uiTexture.Begin(commands, {.12f, .12f, .14f, 1}))
                     return false;
-                presentation->DrawUi(commands, world.Layout(), uiTexture.GetWidth(), uiTexture.GetHeight(),
-                                     uiEditorPanel.PreviewState());
+                const auto frame = presentation->Capture(world.RenderSnapshot());
+                if (frame.scene && frame.scene->ui)
+                    success =
+                        SceneRuntime::UiRendering::Draw(commands, *frame.scene->ui, frame.ui, uiTexture.GetWidth(),
+                                                        uiTexture.GetHeight(), uiEditorPanel.PreviewState()) &&
+                        success;
                 success = uiTexture.End(commands) && success;
             }
             return success;
@@ -759,13 +768,110 @@ namespace
         bool ApplyAssets(Engine::DirectX12Renderer& renderer)
         {
             assetChanges.Poll(root, seconds);
-            assetReloadRequested = projectPanel.TakeAssetReloadRequest() || assetReloadRequested;
+            const bool requested = projectPanel.TakeAssetReloadRequest();
+            assetReloadRequested = requested || assetReloadRequested;
             projectPanel.SetReloadPending(assetReloadRequested || assetChanges.Pending(), assetChanges.Error());
             if (!CanReloadAssets())
                 return true;
             const bool changed = assetChanges.TakeReady(true);
             if (!assetReloadRequested && !changed)
                 return true;
+            try
+            {
+                if (!assetImportPending || changed || requested)
+                {
+                    assetImports.clear();
+                    modelImports.clear();
+                    textureImports.clear();
+                    auto layout = world.Layout();
+                    layout.ResolveAssets(Engine::AssetDatabase(context, true));
+                    const auto queue = [&](const std::filesystem::path& model, bool collision = false)
+                    {
+                        if (model.empty())
+                            return;
+                        auto extension = model.extension().string();
+                        std::transform(extension.begin(), extension.end(), extension.begin(),
+                                       [](unsigned char c)
+                                       {
+                                           return static_cast<char>(std::tolower(c));
+                                       });
+                        if (!collision && (extension == ".gltf" || extension == ".glb"))
+                            assetImports.push_back(Engine::SkeletonAssets::Request(root / model));
+                        else
+                            modelImports.push_back(Engine::ModelAssets::Request(root / model));
+                    };
+                    for (const auto& object : layout.objects)
+                    {
+                        if (object.meshRenderer)
+                        {
+                            queue(object.meshRenderer->model);
+                            for (const auto& lod : object.meshRenderer->lods)
+                                queue(lod.model);
+                        }
+                        if (object.boxCollider && object.boxCollider->shape == "mesh")
+                            queue(object.boxCollider->model.empty() ? object.Model() : object.boxCollider->model, true);
+                    }
+                    const std::set<std::string> imageExtensions{".png", ".jpg",  ".jpeg", ".bmp", ".gif",
+                                                                ".tif", ".tiff", ".ico",  ".dds"};
+                    for (auto& object : layout.objects)
+                        object.VisitAssetReferences(
+                            [&](const auto& asset)
+                            {
+                                const auto file = std::filesystem::path(asset);
+                                auto extension = file.extension().string();
+                                std::transform(extension.begin(), extension.end(), extension.begin(),
+                                               [](unsigned char c)
+                                               {
+                                                   return static_cast<char>(std::tolower(c));
+                                               });
+                                if (imageExtensions.contains(extension))
+                                    textureImports.push_back(Engine::TextureAssets::Request(root / file));
+                            });
+                    assetImportPending = true;
+                }
+                assetReloadRequested = true;
+                if (std::any_of(assetImports.begin(), assetImports.end(),
+                                [](const auto& request)
+                                {
+                                    return !request.Ready();
+                                }) ||
+                    std::any_of(modelImports.begin(), modelImports.end(),
+                                [](const auto& request)
+                                {
+                                    return !request.Ready();
+                                }))
+                    return true;
+                if (std::any_of(textureImports.begin(), textureImports.end(),
+                                [](const auto& request)
+                                {
+                                    return !request.Ready();
+                                }))
+                    return true;
+                for (const auto& request : textureImports)
+                    if (!request.Publish(fileStatus))
+                        throw std::runtime_error(fileStatus);
+                for (const auto& request : modelImports)
+                    if (!request.Publish(fileStatus))
+                        throw std::runtime_error(fileStatus);
+                for (const auto& request : assetImports)
+                    if (!request.Publish(fileStatus))
+                        throw std::runtime_error(fileStatus);
+            }
+            catch (const std::exception& failure)
+            {
+                assetImports.clear();
+                modelImports.clear();
+                textureImports.clear();
+                assetImportPending = false;
+                assetReloadRequested = false;
+                fileStatus = failure.what();
+                LogResult(false);
+                return true;
+            }
+            assetImports.clear();
+            modelImports.clear();
+            textureImports.clear();
+            assetImportPending = false;
             assetReloadRequested = false;
             if (!renderer.WaitForIdle())
                 return false;
@@ -1507,7 +1613,7 @@ namespace
                 ImGui::TextWrapped("シーン：%s", Editor::ProjectCatalog::Text(document.Path().filename()).c_str());
                 ImGui::Text("オブジェクト数：%zu", world.Layout().objects.size());
                 ImGui::Text("ゲーム：%s / %.2f秒", gameSession.State().Label(), gameSession.State().Elapsed());
-                if (!SceneRuntime::SceneView::CameraObject(world.Layout()) &&
+                if (!SceneRuntime::SceneCamera::Find(world.Layout()) &&
                     std::any_of(world.Layout().objects.begin(), world.Layout().objects.end(),
                                 [](const auto& p)
                                 {
@@ -1971,7 +2077,10 @@ namespace
         Editor::ScriptAuthoringPanel scriptPanel;
         Editor::ProfilerPanel profilerPanel;
         Editor::AssetChanges assetChanges;
-        bool assetReloadRequested = false;
+        bool assetReloadRequested = false, assetImportPending = false;
+        std::vector<Engine::SkeletonAssetRequest> assetImports;
+        std::vector<Engine::ModelAssetRequest> modelImports;
+        std::vector<Engine::TextureAssetRequest> textureImports;
         Editor::TransformGizmo gizmo;
         Editor::IkSceneHandles ikHandles;
         Editor::EditHistory history;
@@ -2028,6 +2137,7 @@ static void ReadEditorArguments(int count, wchar_t** arguments, std::filesystem:
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
+    Engine::AssetImportScope imports;
     bool validateProject = false;
     try
     {

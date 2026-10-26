@@ -41,7 +41,7 @@
     <ClCompile Include="..\Editor\src\Documents\FileTransaction.cpp" />
     <ProjectReference Include="..\SceneRuntime\SceneStorage.vcxproj" />
     <ProjectReference Include="..\SceneRuntime\SceneData.vcxproj" />
-    <ProjectReference Include="..\Engine\Engine.vcxproj" />
+    <ProjectReference Include="..\Engine\EngineAssets.vcxproj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

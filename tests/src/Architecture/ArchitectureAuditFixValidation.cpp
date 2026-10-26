@@ -1,3 +1,4 @@
+#include <LegacyScripts/ScriptRuntime.h>
 #include "ArchitectureAuditFixValidation.h"
 #include "ReauditFixValidation.h"
 #include "ChangeCaptureValidation.h"

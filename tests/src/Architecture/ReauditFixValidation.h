@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include "../../../Editor/src/Documents/FileTransaction.h"
 #include "../../../Editor/src/Documents/SceneDocument.h"

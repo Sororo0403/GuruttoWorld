@@ -1,6 +1,6 @@
 #pragma once
 #include "../Support/TestGameContent.h"
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <Engine/Core/Json.h>
 #include <SceneRuntime/Scene/Prefab.h>
 #include <limits>

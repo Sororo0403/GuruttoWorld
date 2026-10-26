@@ -1,5 +1,5 @@
 #pragma once
-#include <SceneRuntime/Gameplay/TitleController.h>
+#include <SceneRuntime/Gameplay/PlaybackFeature.h>
 #include <Engine/Core/Log.h>
 
 namespace SceneRuntime
@@ -13,13 +13,15 @@ namespace SceneRuntime
         {
             return settingsPath_;
         }
-        TitleController& Title()
+        /// <summary>明示的に選択した機能を取得します。</summary>
+        PlaybackFeature& Feature()
         {
-            return title_;
+            return *feature_;
         }
         /// <summary>初期化します。</summary>
         void Initialize(SceneEnvironment& environment, const std::filesystem::path& root,
-                        const std::filesystem::path& settingsPath = {}, bool playIntro = true);
+                        const std::filesystem::path& settingsPath = {}, bool playIntro = true,
+                        std::unique_ptr<PlaybackFeature> feature = {});
         /// <summary>入力と移動予約を準備し、物理更新は成功判定を共有するUpdateまで遅らせます。</summary>
         std::optional<UiEvent> PrepareInput(SceneEnvironment& environment, const Engine::InputActions& actions,
                                             bool acceptsInput, double seconds,
@@ -48,7 +50,7 @@ namespace SceneRuntime
         uint64_t revision_ = 0;
         bool playIntro_ = true;
         std::optional<UiEvent> pending_;
-        TitleController title_;
+        std::unique_ptr<PlaybackFeature> feature_ = std::make_unique<PlaybackFeature>();
         bool pointerReady_ = false, pointerDown_ = false;
     };
 }

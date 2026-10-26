@@ -1,3 +1,5 @@
+#include <SceneRuntime/Gameplay/TitleController.h>
+#include <SceneRuntime/Rendering/RenderPresentation.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Rendering/SceneView.h>
 #include <Engine/Graphics/Resources/RenderFrameContext.h>
@@ -770,9 +772,16 @@ namespace
                   world.Layout().objects[2].parentId == "child",
               "delete only parent, promoting direct children while retaining grandchild hierarchy and pose");
         history.Observe({world.Layout().Serialize(), "grandchild", {"child", "grandchild"}}, {});
-        Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json), root, error) &&
-                  world.Layout().Serialize() == original,
-              "Undo restores parent deletion with exact local transforms");
+        const bool undoRestored =
+            world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(false).json), root, error);
+        const auto undoJson = world.Layout().Serialize();
+        if (!undoRestored || undoJson != original)
+        {
+            std::ofstream("generated/tests/inherited-undo-before.json") << original;
+            std::ofstream("generated/tests/inherited-undo-after.json") << undoJson;
+            std::cerr << "Inherited Undo diagnostic: " << error << std::endl;
+        }
+        Check(undoRestored && undoJson == original, "Undo restores parent deletion with exact local transforms");
         history.Applied(false);
         Check(world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(history.Target(true).json), root, error) &&
                   world.WorldMatrix("grandchild", actual) &&
@@ -929,6 +938,27 @@ namespace
               "failed model creation cancels ID allocation");
         Check(world.DuplicateObject(child.id, {0, 0, 0}, created, error) && created == "object-" + std::to_string(next),
               "next successful creation reuses ID reserved by failed operation");
+        const auto expectedAdded = "object-" + std::to_string(next + 1);
+        const auto added = world.Edit(SceneRuntime::AddObjectEdit{SceneRuntime::ScenePlacement{}}, error);
+        Check(added.succeeded && world.Read().Object(expectedAdded).has_value() &&
+                  std::any_of(added.changes.objects.begin(), added.changes.objects.end(),
+                              [&](const auto& value)
+                              {
+                                  return value.objectId == expectedAdded &&
+                                         value.kind == SceneRuntime::SceneChangeKind::Added;
+                              }),
+              "generic add reports the ID actually published after prior creation and removal");
+        Check(world.RemoveObjects({expectedAdded}, error), "generic allocation fixture removes new object");
+        const auto expectedCopy = "object-" + std::to_string(next + 2);
+        const auto duplicated = world.Edit(SceneRuntime::DuplicateEdit{{child.id}, {0, 0, 0}}, error);
+        Check(duplicated.succeeded && world.Read().Object(expectedCopy).has_value() &&
+                  std::any_of(duplicated.changes.objects.begin(), duplicated.changes.objects.end(),
+                              [&](const auto& value)
+                              {
+                                  return value.objectId == expectedCopy &&
+                                         value.kind == SceneRuntime::SceneChangeKind::Added;
+                              }),
+              "generic duplicate shares the host ID reservation and matching change records");
         Check(world.ReplaceLayout(initial, root, error), "transaction fixture restored");
     }
 
@@ -2363,17 +2393,19 @@ namespace
         Check(world.Initialize(renderer, root, layout, root / "Shaders/Mesh.hlsl", &error),
               "scene camera fixture initializes");
         Engine::Camera view;
-        Check(SceneRuntime::SceneView::Camera(world, 16.0f / 9.0f, 0, view), "main camera resolves");
+        Check(SceneRuntime::SceneView::Camera(*world.RenderSnapshot(), 16.0f / 9.0f, 0, view), "main camera resolves");
         Check(std::abs(view.GetPosition()[0] - 11) < 0.0001f && view.GetPosition()[1] == 4 &&
                   std::abs(view.GetPosition()[2] - 5) < 0.0001f,
               "parent scale and rotation affect camera position once");
-        const auto particle0 = SceneRuntime::ScenePresentation::Particle(world, camera, 0, 0);
-        const auto particleHalf = SceneRuntime::ScenePresentation::Particle(world, camera, 0, 6);
+        const auto packet = world.RenderSnapshot();
+        Check(!packet->particles.empty(), "particle emitter extracted");
+        const auto particle0 = SceneRuntime::RenderPresentation::Particle(packet->particles.front(), 0, 0);
+        const auto particleHalf = SceneRuntime::RenderPresentation::Particle(packet->particles.front(), 0, 6);
         Check(std::abs(particle0[0] - 11) < 0.0001f && particle0[1] == 4 &&
                   std::abs(particleHalf[1] - 8.5f) < 0.0001f &&
                   std::abs(particleHalf[3] - camera.particleEmitter->color[3]) < 0.0001f,
               "particle spawn and travel use full inherited transform and authored opacity");
-        const auto light = SceneRuntime::SceneView::Light(world);
+        const auto light = SceneRuntime::SceneView::Light(*world.RenderSnapshot());
         Check(std::abs(light.direction[0] - 1) < 0.0001f && std::abs(light.direction[2]) < 0.0001f &&
                   light.color == camera.directionalLight->color && light.intensity == 2,
               "light direction inherits rotations and retains authored color");
@@ -2412,7 +2444,7 @@ namespace
         invalid.objects[1].cameraSway->period[0] = 0;
         reject(invalid);
         Check(world.SetLocalTransform(camera.id, camera.position, {0.1f, 0.2f, 0.7f}, camera.scale) &&
-                  SceneRuntime::SceneView::Camera(world, 1, 0, view),
+                  SceneRuntime::SceneView::Camera(*world.RenderSnapshot(), 1, 0, view),
               "camera accepts inherited roll and pitch");
         DirectX::XMFLOAT4X4 orientation, viewFrame;
         Check(world.WorldRotation(camera.id, orientation), "camera rotation frame resolves");
@@ -2425,12 +2457,12 @@ namespace
         auto disabled = camera;
         disabled.camera->enabled = false;
         Check(world.SetComponents(camera.id, disabled, root, error) &&
-                  !SceneRuntime::SceneView::Camera(world, 1, 0, view),
+                  !SceneRuntime::SceneView::Camera(*world.RenderSnapshot(), 1, 0, view),
               "disabled explicit camera does not silently switch to another viewpoint");
         Check(world.SetComponents(camera.id, camera, root, error),
               "camera restored without replacing object resources");
         Check(world.RemoveObjects({camera.id}, error) && world.Layout().settings.mainCamera.empty() &&
-                  !SceneRuntime::SceneView::Camera(world, 1, 0, view),
+                  !SceneRuntime::SceneView::Camera(*world.RenderSnapshot(), 1, 0, view),
               "deleting main camera clears dangling reference");
     }
 
@@ -5526,6 +5558,17 @@ int main(int argc, char** argv)
             CheckGpuMessages(renderer.GetDevice());
             std::cout
                 << "PASS: Script IK targets, world-space endpoints, GPU oracle, Inspector and App/Editor playback\n";
+            return 0;
+        }
+        if (GetEnvironmentVariableW(L"WP1_INHERITED_ONLY", nullptr, 0))
+        {
+            Engine::Window window;
+            Engine::DirectX12Renderer renderer;
+            Check(window.Create(L"Hidden inherited transforms", 64, 32) && renderer.Initialize(window.GetHandle()),
+                  "inherited transform renderer");
+            ValidateInheritedRendering(renderer, std::filesystem::absolute(WP1_TEST_GAME_ROOT));
+            CheckGpuMessages(renderer.GetDevice());
+            std::cout << "PASS: inherited rendering, mirrored hierarchy, parent deletion and exact Undo/Redo\n";
             return 0;
         }
         if (GetEnvironmentVariableW(L"WP1_PROFILER_ONLY", nullptr, 0))

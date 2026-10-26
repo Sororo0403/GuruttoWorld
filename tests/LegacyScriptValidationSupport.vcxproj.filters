@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src" />
+    <Filter Include="src\Support" />
+    <Filter Include="src\Support\LegacyScripts" />
+    <ClInclude Include="src\Support\LegacyScripts\ScriptApi.h"><Filter>src\Support\LegacyScripts</Filter></ClInclude>
+    <ClInclude Include="src\Support\LegacyScripts\ScriptRuntime.h"><Filter>src\Support\LegacyScripts</Filter></ClInclude>
+    <ClInclude Include="src\Support\LegacyScripts\LegacyScriptAdapter.h"><Filter>src\Support\LegacyScripts</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Support\LegacyScripts\ScriptRuntime.cpp"><Filter>src\Support\LegacyScripts</Filter></ClCompile>
+    <ClCompile Include="src\Support\LegacyScripts\LegacyScriptAdapter.cpp"><Filter>src\Support\LegacyScripts</Filter></ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Physics/Ragdoll.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>

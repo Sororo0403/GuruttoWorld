@@ -3,7 +3,7 @@
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <SceneRuntime/Scene/SceneCollection.h>
 #include <SceneRuntime/Scene/SceneAssetReferences.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Project/GameSettings.h>
 #include <Engine/Core/FileContents.h>
 

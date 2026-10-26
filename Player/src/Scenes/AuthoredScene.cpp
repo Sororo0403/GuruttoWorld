@@ -20,7 +20,7 @@ namespace Player
             Engine::Log::Error(error);
             return false;
         }
-        playback_.Initialize(environment_, root_, settingsPath_, playIntro_);
+        playback_.Initialize(environment_, root_, settingsPath_, playIntro_, feature_ ? feature_() : nullptr);
         if (!environment_.StartScripts(error))
         {
             Engine::Log::Error(error);

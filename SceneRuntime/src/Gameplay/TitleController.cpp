@@ -1,7 +1,17 @@
+#include <SceneRuntime/Scene/SceneCamera.h>
 #include <SceneRuntime/Gameplay/TitleController.h>
 
 namespace SceneRuntime
 {
+    void TitleController::Initialize(SceneEnvironment& environment, const std::filesystem::path& settingsPath,
+                                     bool playIntro)
+    {
+        const auto* canvas = TitleBindings::MenuCanvas(environment.World().Layout());
+        const bool intro = canvas && canvas->canvas->menu && !canvas->canvas->menu->settingsScreen && playIntro &&
+                           environment.FirstFeatureVisit("title", canvas->name);
+        Initialize(environment.World().Layout(), environment.Ui(), settingsPath, intro);
+    }
+
     auto TitleController::Initialize(const SceneRuntime::SceneLayout& layout, SceneRuntime::UiState& state,
                                      const std::filesystem::path& settingsPath, bool playIntro) -> void
     {
@@ -60,7 +70,7 @@ namespace SceneRuntime
         SyncDeparture(environment.Ui());
         if (!active || !Departing() || departureFrom_)
             return;
-        const auto* camera = SceneView::CameraObject(environment.World().Layout());
+        const auto* camera = SceneCamera::Find(environment.World().Layout());
         ScenePlacement pose;
         DirectX::XMFLOAT4X4 matrix;
         if (camera && environment.World().WorldMatrix(camera->id, matrix) &&
@@ -72,7 +82,7 @@ namespace SceneRuntime
     {
         if (Departing() && departureFrom_)
         {
-            const auto* camera = SceneView::CameraObject(environment.World().Layout());
+            const auto* camera = SceneCamera::Find(environment.World().Layout());
             ScenePlacement target;
             DirectX::XMFLOAT4X4 matrix;
             if (camera && environment.World().WorldMatrix(menu_->SelectedEntry()->transitionCameraTarget, matrix) &&

@@ -1,6 +1,6 @@
 #pragma once
 #include "../Support/TestGameContent.h"
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include "../../../Editor/src/Playback/GameSession.h"
 #include <memory>

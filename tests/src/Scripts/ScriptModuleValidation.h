@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scripts/ScriptModule.h>
 #include <Engine/Core/Json.h>
@@ -58,7 +59,7 @@ namespace ScriptModuleValidation
         const std::string before(std::istreambuf_iterator<char>(input), {});
         input.close();
         Require(before.find("Register_TestMover") != std::string::npos &&
-                    before.find("SceneRuntime::ScriptCallbacks script") != std::string::npos &&
+                    before.find("SceneRuntime::RuntimeScriptDefinition script") != std::string::npos &&
                     before.find(".generated.h") == std::string::npos &&
                     std::filesystem::exists(created.parent_path() / "TestMover.schema.json"),
                 "script template contains host registration and public fields");
@@ -116,7 +117,7 @@ namespace ScriptModuleValidation
     }
     inline bool unexpectedRegistration = false;
     /// <summary>ABI不一致の拒否より先に登録が呼ばれた場合を記録します。</summary>
-    inline bool RejectUnexpectedRegistration(void*, const char*, const SceneRuntime::ScriptCallbacks*)
+    inline bool RejectUnexpectedRegistration(void*, const char*, const SceneRuntime::RuntimeScriptDefinition*)
     {
         unexpectedRegistration = true;
         return false;

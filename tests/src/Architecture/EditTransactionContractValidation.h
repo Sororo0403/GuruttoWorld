@@ -1,7 +1,7 @@
 #pragma once
 #include "../../../Editor/src/Documents/PrefabEditPlan.h"
 #include "../../../Editor/src/Editing/EditHistory.h"
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 
 namespace EditTransactionContractValidation
 {

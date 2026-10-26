@@ -1,3 +1,4 @@
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Core/Profiler.h>

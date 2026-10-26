@@ -1,6 +1,6 @@
 #include <SceneRuntime/Scripts/ScriptModule.h>
 #include <Engine/Assets/ContentContext.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <SceneRuntime/Scripts/RuntimeScripts.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Assets/AssetDatabase.h>
 #include <Windows.h>
@@ -26,18 +26,18 @@ namespace
     struct PendingModule
     {
         std::shared_ptr<ModuleLifetime> lifetime;
-        std::map<std::string, SceneRuntime::ScriptDefinition> definitions;
+        std::map<std::string, SceneRuntime::RuntimeScriptDefinition> definitions;
         std::string error;
     };
-    bool CollectScript(void* context, const char* name, const SceneRuntime::ScriptCallbacks* callbacks)
+    bool CollectScript(void* context, const char* name, const SceneRuntime::RuntimeScriptDefinition* callbacks)
     {
         auto& pending = *static_cast<PendingModule*>(context);
         try
         {
             if (!name || !callbacks || pending.definitions.size() >= 256)
                 throw std::runtime_error("Invalid script module entry");
-            SceneRuntime::ScriptDefinition definition;
-            static_cast<SceneRuntime::ScriptCallbacks&>(definition) = *callbacks;
+            SceneRuntime::RuntimeScriptDefinition definition;
+            definition = *callbacks;
             if (!pending.definitions.emplace(name, std::move(definition)).second)
                 throw std::runtime_error("Duplicate script module behaviour");
             return true;
@@ -74,16 +74,17 @@ namespace
             callback(context);
         }
     };
-    void RetainModule(SceneRuntime::ScriptDefinition& definition, const std::shared_ptr<ModuleLifetime>& lifetime,
-                      const std::filesystem::path& contentRoot)
+    void RetainModule(SceneRuntime::RuntimeScriptDefinition& definition,
+                      const std::shared_ptr<ModuleLifetime>& lifetime, const std::filesystem::path& contentRoot)
     {
         for (auto* callback : {&definition.start, &definition.update, &definition.prepareStop, &definition.onEvent,
                                &definition.fixedUpdate, &definition.lateUpdate})
             if (*callback)
-                *callback = ModuleCallback<SceneRuntime::ScriptContext>{lifetime, contentRoot, std::move(*callback)};
+                *callback =
+                    ModuleCallback<SceneRuntime::RuntimeScriptContext>{lifetime, contentRoot, std::move(*callback)};
         if (definition.stop)
-            definition.stop = ModuleCallback<const SceneRuntime::ScriptStopContext>{lifetime, contentRoot,
-                                                                                    std::move(definition.stop)};
+            definition.stop = ModuleCallback<const SceneRuntime::RuntimeScriptStopContext>{lifetime, contentRoot,
+                                                                                           std::move(definition.stop)};
         if (definition.pause)
         {
             // 関数オブジェクトの破棄が終わるまで、そのコードを持つ DLL を保持します。
@@ -93,8 +94,8 @@ namespace
                 // cppcheck-suppress unusedStructMember
                 std::shared_ptr<ModuleLifetime> lifetime;
                 std::filesystem::path contentRoot;
-                std::function<void(SceneRuntime::ScriptContext&, bool)> callback;
-                void operator()(SceneRuntime::ScriptContext& context, bool paused) const
+                std::function<void(SceneRuntime::RuntimeScriptContext&, bool)> callback;
+                void operator()(SceneRuntime::RuntimeScriptContext& context, bool paused) const
                 {
                     if (context.content)
                         context.content->RequireRoot(contentRoot);
@@ -142,7 +143,7 @@ namespace SceneRuntime
         return "Release";
 #endif
     }
-    static void ApplyModuleSchemas(std::map<std::string, ScriptDefinition>& definitions,
+    static void ApplyModuleSchemas(std::map<std::string, RuntimeScriptDefinition>& definitions,
                                    const std::map<std::string, ScriptSchema>& schemas)
     {
         for (auto& [name, definition] : definitions)
@@ -162,7 +163,7 @@ namespace SceneRuntime
             const auto owner = Engine::AssetDatabase::Text(std::filesystem::weakly_canonical(content));
             const auto manifestPath = folder / "module.json";
             if (!std::filesystem::exists(manifestPath))
-                return ScriptRegistry::InstallModule(owner, {}, error);
+                return RuntimeScriptRegistry::InstallModule(owner, {}, error);
             std::ifstream stream(manifestPath);
             const auto manifest = Engine::Json::parse(stream);
             if (manifest.at("version").get<unsigned int>() != 1 ||
@@ -170,7 +171,7 @@ namespace SceneRuntime
                 throw std::runtime_error("Script module manifest configuration mismatch");
             const auto filename = manifest.at("file").get<std::string>();
             if (filename.empty())
-                return ScriptRegistry::InstallModule(owner, {}, error);
+                return RuntimeScriptRegistry::InstallModule(owner, {}, error);
             if (!ModuleFilename(filename))
                 throw std::runtime_error("Invalid script module filename");
             PendingModule pending;
@@ -201,7 +202,7 @@ namespace SceneRuntime
                 static_cast<void>(name);
                 RetainModule(definition, pending.lifetime, contentRoot);
             }
-            return ScriptRegistry::InstallModule(owner, std::move(pending.definitions), error);
+            return RuntimeScriptRegistry::InstallModule(owner, std::move(pending.definitions), error);
         }
         catch (const std::exception& exception)
         {
@@ -231,10 +232,15 @@ namespace SceneRuntime
                 "bool Register_" +
                 name +
                 "(void* context, SceneRuntime::RegisterModuleScript add)\r\n{\r\n"
-                "    SceneRuntime::ScriptCallbacks script;\r\n"
-                "    script.update = [](SceneRuntime::ScriptContext& c)\r\n    {\r\n"
+                "    SceneRuntime::RuntimeScriptDefinition script;\r\n"
+                "    script.update = [](SceneRuntime::RuntimeScriptContext& c)\r\n    {\r\n"
                 "        if (const auto* active = c.Data(\"active\"); active && std::get<bool>(active->value))\r\n"
-                "            c.object.position[0] += c.Value(\"speed\") * static_cast<float>(c.seconds);\r\n"
+                "        {\r\n"
+                "            auto pose = *c.Read().Transform(c.entity);\r\n"
+                "            pose.position[0] += c.Value(\"speed\") * static_cast<float>(c.seconds);\r\n"
+                "            if (!c.SetLocalTransform(pose).succeeded)\r\n"
+                "                throw std::runtime_error(\"Invalid script transform\");\r\n"
+                "        }\r\n"
                 "    };\r\n"
                 "    return add(context, \"" +
                 name + "\", &script);\r\n}\r\n";

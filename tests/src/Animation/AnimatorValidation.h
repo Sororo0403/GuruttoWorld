@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Animation/Animator.h>
 #include <SceneRuntime/Scene/SceneLayout.h>

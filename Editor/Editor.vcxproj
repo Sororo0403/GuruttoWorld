@@ -210,6 +210,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="EditorCore.vcxproj" />
+    <ProjectReference Include="..\SceneRuntime\SceneTitle.vcxproj" />
     <ClCompile Include="src\Assets\AssetPreview.cpp" />
   </ItemGroup>
 </Project>

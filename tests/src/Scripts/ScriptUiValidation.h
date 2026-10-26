@@ -1,4 +1,5 @@
 #pragma once
+#include <LegacyScripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include "../Rendering/EnvironmentValidation.h"
@@ -64,9 +65,11 @@ namespace ScriptUiValidation
                 limited.SetUiText("overflow", "");
             });
         ScriptModuleAbi abi;
-        Require(abi.version == 15 && abi.engineBuild == Engine::BuildIdentity() &&
-                    abi.contextBytes == sizeof(ScriptContext) && abi.sceneBytes == sizeof(ScriptScene) &&
-                    abi.callbacksBytes == sizeof(ScriptCallbacks),
+        Require(abi.version == 18 && abi.engineBuild == Engine::BuildIdentity() &&
+                    abi.contextBytes == sizeof(RuntimeScriptContext) && abi.sceneBytes == sizeof(RuntimeScriptScene) &&
+                    abi.callbacksBytes == sizeof(RuntimeScriptDefinition) && abi.entityBytes == sizeof(EntityHandle) &&
+                    abi.instanceBytes == sizeof(ComponentInstanceHandle) &&
+                    abi.stopBytes == sizeof(RuntimeScriptStopContext),
                 "module ABI describes engine identity, context content root, ScriptScene and callback layouts");
         auto incompatible = abi;
         ++incompatible.sceneBytes;

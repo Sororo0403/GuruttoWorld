@@ -23,7 +23,8 @@ namespace Editor
                 if (!candidate->Initialize(renderer, context, layout, error))
                     return false;
                 SceneRuntime::GamePlayback candidatePlayback;
-                candidatePlayback.Initialize(*candidate, root, settingsPath);
+                candidatePlayback.Initialize(*candidate, root, settingsPath, true,
+                                             std::make_unique<SceneRuntime::TitleController>());
                 if (!candidate->StartScripts(error))
                     return false;
                 auto candidateSettings = candidatePlayback.SettingsPath();
@@ -76,7 +77,8 @@ namespace Editor
             if (!candidate->Initialize(renderer, root, layout, error))
                 return false;
             SceneRuntime::GamePlayback candidatePlayback;
-            candidatePlayback.Initialize(*candidate, root, settingsPath_);
+            candidatePlayback.Initialize(*candidate, root, settingsPath_, true,
+                                         std::make_unique<SceneRuntime::TitleController>());
             if (!candidate->StartScripts(error))
                 return false;
             if (state_.CanStep())

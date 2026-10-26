@@ -25,44 +25,20 @@
     <Filter Include="src\Ui" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Gameplay\TitleMenu.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Gameplay\TitleUi.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
     <ClCompile Include="src\Project\GameSettings.cpp">
       <Filter>src\Project</Filter>
     </ClCompile>
     <ClCompile Include="src\Project\ProjectUserSettings.cpp">
       <Filter>src\Project</Filter>
     </ClCompile>
-    <ClCompile Include="src\Animation\Animator.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Animation\RuntimeAnimation.cpp"><Filter>src\Animation</Filter></ClCompile>
-    <ClCompile Include="src\Physics\Ragdoll.cpp">
-      <Filter>src\Physics</Filter>
-    </ClCompile>
     <ClCompile Include="src\Audio\SceneAudio.cpp">
       <Filter>src\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="src\Gameplay\GenreGeometry.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Gameplay\Navigation.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Gameplay\RuntimeNavigation.cpp"><Filter>src\Gameplay</Filter></ClCompile>
-    <ClCompile Include="src\Scene\RuntimeSimulation.cpp"><Filter>src\Scene</Filter></ClCompile>
     <ClCompile Include="src\Ui\SceneUi.cpp">
       <Filter>src\Ui</Filter>
     </ClCompile>
     <ClCompile Include="src\Ui\UiLayout.cpp">
       <Filter>src\Ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Rendering\SceneView.cpp">
-      <Filter>src\Rendering</Filter>
     </ClCompile>
     <ClCompile Include="src\Rendering\ScenePresentation.cpp">
       <Filter>src\Rendering</Filter>
@@ -76,35 +52,10 @@
     <ClCompile Include="src\Scene\SceneWorld.cpp">
       <Filter>src\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="src\Animation\BlendTreePose.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
     <ClCompile Include="src\Scene\SceneWorldRuntime.cpp"><Filter>src\Scene</Filter></ClCompile>
     <ClCompile Include="src\Scene\SceneTransactions.cpp">
       <Filter>src\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="src\Physics\ScenePhysics.cpp">
-      <Filter>src\Physics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Physics\PhysicsWorld.cpp">
-      <Filter>src\Physics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Physics\PhysicsFrame.cpp"><Filter>src\Physics</Filter></ClCompile>
-    <ClCompile Include="src\Physics\RuntimePhysics.cpp"><Filter>src\Physics</Filter></ClCompile>
-    <ClCompile Include="src\Physics\RuntimeRagdoll.cpp"><Filter>src\Physics</Filter></ClCompile>
-    <ClCompile Include="src\Scripts\ScriptRuntime.cpp">
-      <Filter>src\Scripts</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scripts\LegacyScriptAdapter.cpp"><Filter>src\Scripts</Filter></ClCompile>
-    <ClCompile Include="src\Scripts\ScriptModule.cpp">
-      <Filter>src\Scripts</Filter>
-    </ClCompile>
-    <ClInclude Include="include\SceneRuntime\Scripts\ScriptApi.h">
-      <Filter>include\SceneRuntime\Scripts</Filter>
-    </ClInclude>
-    <ClInclude Include="include\SceneRuntime\Scene\SceneExecutionState.h">
-      <Filter>include\SceneRuntime\Scene</Filter>
-    </ClInclude>
     <ClInclude Include="include\SceneRuntime\Rendering\SceneResourceChanges.h">
       <Filter>include\SceneRuntime\Rendering</Filter>
     </ClInclude>
@@ -219,9 +170,6 @@
     <ClInclude Include="include\SceneRuntime\Scene\Prefab.h">
       <Filter>include\SceneRuntime\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="include\SceneRuntime\Scripts\ScriptRuntime.h">
-      <Filter>include\SceneRuntime\Scripts</Filter>
-    </ClInclude>
     <ClInclude Include="include\SceneRuntime\Scripts\ScriptValue.h">
       <Filter>include\SceneRuntime\Scripts</Filter>
     </ClInclude>
@@ -290,9 +238,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Gameplay\NavigationMesh.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
     <ClInclude Include="src\Gameplay\NavigationMesh.h">
       <Filter>src\Gameplay</Filter>
     </ClInclude>
@@ -306,15 +251,6 @@
     <ClCompile Include="src\Gameplay\GamePlayback.cpp">
       <Filter>src\Gameplay</Filter>
     </ClCompile>
-    <ClCompile Include="src\Gameplay\TitleBindings.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Gameplay\TitleConfigTransition.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Gameplay\TitleController.cpp">
-      <Filter>src\Gameplay</Filter>
-    </ClCompile>
     <ClCompile Include="src\Rendering\LightmapBaker.cpp">
       <Filter>src\Rendering</Filter>
     </ClCompile>
@@ -326,12 +262,8 @@
     </ClCompile>
     <ClCompile Include="src\Rendering\RuntimePresentationData.cpp"><Filter>src\Rendering</Filter></ClCompile>
     <ClInclude Include="src\Rendering\RuntimePresentationData.h"><Filter>src\Rendering</Filter></ClInclude>
-    <ClCompile Include="src\Rendering\RenderScene.cpp"><Filter>src\Rendering</Filter></ClCompile>
     <ClInclude Include="include\SceneRuntime\Rendering\RenderScene.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
     <ClInclude Include="src\Rendering\SceneRenderResources.h"><Filter>src\Rendering</Filter></ClInclude>
-    <ClCompile Include="src\Rendering\SceneRenderPlan.cpp">
-      <Filter>src\Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="src\Rendering\SceneResourceChanges.cpp">
       <Filter>src\Rendering</Filter>
     </ClCompile>
@@ -343,9 +275,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Physics\PhysicsJoints.cpp">
-      <Filter>src\Physics</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Physics\PhysicsFrame.h"><Filter>src\Physics</Filter></ClInclude>
@@ -356,10 +285,13 @@
     <ClInclude Include="include\SceneRuntime\Animation\RuntimeAnimation.h"><Filter>include\SceneRuntime\Animation</Filter></ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\SceneRuntime\Scripts\LegacyScriptAdapter.h"><Filter>include\SceneRuntime\Scripts</Filter></ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\SceneRuntime\Gameplay\RuntimeNavigation.h"><Filter>include\SceneRuntime\Gameplay</Filter></ClInclude>
     <ClInclude Include="include\SceneRuntime\Scene\RuntimeSimulation.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Scene\SceneWorldRuntime.h"><Filter>src\Scene</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Gameplay\PlaybackFeature.h"><Filter>include\SceneRuntime\Gameplay</Filter></ClInclude>
   </ItemGroup>
 </Project>

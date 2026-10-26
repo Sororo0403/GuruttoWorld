@@ -1,5 +1,5 @@
 #include <SceneRuntime/Scripts/ScriptModule.h>
-#include <SceneRuntime/Scripts/ScriptRuntime.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include <Engine/Core/FileContents.h>
 #if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 #include "ScriptAuthoringValidation.h"
