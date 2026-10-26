@@ -1,116 +1,70 @@
 #include <Engine/Audio/WaveData.h>
+#include <Engine/Audio/AudioDecoder.h>
 #include <Engine/Core/Log.h>
+#include <mfapi.h>
 
-#include <cstdint>
-#include <cstring>
-#include <fstream>
-#include <utility>
+#pragma comment(lib, "ole32.lib")
 
 namespace
 {
-    std::uint32_t Read32(const unsigned char* bytes)
+    class DecoderSession final
     {
-        return bytes[0] | (std::uint32_t(bytes[1]) << 8) | (std::uint32_t(bytes[2]) << 16) |
-               (std::uint32_t(bytes[3]) << 24);
-    }
-
-    WORD Read16(const unsigned char* bytes)
-    {
-        return static_cast<WORD>(bytes[0] | (unsigned(bytes[1]) << 8));
-    }
-
-    bool Reject()
-    {
-        Engine::Log::Error("Invalid or unsupported WAV file (PCM mono/stereo, 8/16/24/32 bit required).");
-        return false;
-    }
-
-    bool ReadPcmFormat(const unsigned char* data, WAVEFORMATEX& f)
-    {
-        f.wFormatTag = Read16(data);
-        f.nChannels = Read16(data + 2);
-        f.nSamplesPerSec = Read32(data + 4);
-        f.nAvgBytesPerSec = Read32(data + 8);
-        f.nBlockAlign = Read16(data + 12);
-        f.wBitsPerSample = Read16(data + 14);
-        if (f.wFormatTag != WAVE_FORMAT_PCM || (f.nChannels != 1 && f.nChannels != 2) ||
-            (f.wBitsPerSample != 8 && f.wBitsPerSample != 16 && f.wBitsPerSample != 24 && f.wBitsPerSample != 32) ||
-            f.nSamplesPerSec < 8000 || f.nSamplesPerSec > 192000 ||
-            f.nBlockAlign != f.nChannels * (f.wBitsPerSample / 8) ||
-            f.nAvgBytesPerSec != f.nSamplesPerSec * f.nBlockAlign)
+    public:
+        DecoderSession()
         {
-            return Reject();
-        }
-        return true;
-    }
-
-    bool ReadChunks(const std::vector<unsigned char>& bytes, std::uint64_t end, Engine::WaveData& wave)
-    {
-        Engine::WaveData loaded;
-        bool hasFormat = false, hasData = false;
-        for (std::uint64_t offset = 12; offset < end;)
-        {
-            if (end - offset < 8)
-                return Reject();
-            const auto* chunk = bytes.data() + static_cast<size_t>(offset);
-            const std::uint32_t size = Read32(chunk + 4);
-            const std::uint64_t next = offset + 8 + size + (size & 1);
-            if (next > end)
-                return Reject();
-            const auto* data = chunk + 8;
-            if (std::memcmp(chunk, "fmt ", 4) == 0)
+            const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+            if (FAILED(com) && com != RPC_E_CHANGED_MODE)
             {
-                if (hasFormat || size < 16)
-                    return Reject();
-                if (!ReadPcmFormat(data, loaded.format))
-                    return false;
-                hasFormat = true;
+                Engine::Log::Error("Cannot initialize COM for WAV decoding.");
+                return;
             }
-            else if (std::memcmp(chunk, "data", 4) == 0)
+            ownsCom_ = SUCCEEDED(com);
+            ready_ = SUCCEEDED(MFStartup(MF_VERSION));
+            if (!ready_)
             {
-                if (hasData || size == 0)
-                    return Reject();
-                loaded.samples.assign(data, data + size);
-                hasData = true;
+                Engine::Log::Error("Cannot initialize Media Foundation for WAV decoding.");
             }
-            offset = next;
         }
-        if (!hasFormat || !hasData || loaded.samples.size() % loaded.format.nBlockAlign != 0)
+
+        ~DecoderSession()
         {
-            return Reject();
+            if (ready_)
+            {
+                MFShutdown();
+            }
+            if (ownsCom_)
+            {
+                CoUninitialize();
+            }
         }
-        wave = std::move(loaded);
-        return true;
-    }
+
+        DecoderSession(const DecoderSession&) = delete;
+        DecoderSession& operator=(const DecoderSession&) = delete;
+
+        bool Ready() const
+        {
+            return ready_;
+        }
+
+    private:
+        bool ownsCom_ = false;
+        bool ready_ = false;
+    };
 }
 
 namespace Engine
 {
     bool LoadWaveFile(const std::filesystem::path& path, WaveData& wave)
     {
-        std::ifstream file(path, std::ios::binary | std::ios::ate);
-        if (!file)
+        std::error_code error;
+        const auto size = std::filesystem::file_size(path, error);
+        if (error || size > 64 * 1024 * 1024)
         {
-            Log::Error("Cannot open WAV file.");
+            Log::Error("Cannot read WAV file or source exceeds 64 MiB.");
             return false;
         }
-        const auto length = file.tellg();
-        if (length < 12 || length > 64 * 1024 * 1024)
-        {
-            return Reject();
-        }
-        std::vector<unsigned char> bytes(static_cast<size_t>(length));
-        file.seekg(0);
-        if (!file.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size())) ||
-            std::memcmp(bytes.data(), "RIFF", 4) != 0 || std::memcmp(bytes.data() + 8, "WAVE", 4) != 0)
-        {
-            return Reject();
-        }
-        const std::uint64_t end = std::uint64_t(Read32(bytes.data() + 4)) + 8;
-        if (end < 12 || end > bytes.size())
-        {
-            return Reject();
-        }
-        return ReadChunks(bytes, end, wave);
+        // 互換用の入口では初期化不要の契約を保ち、呼び出し元の COM と MF の所有権を変えません。
+        DecoderSession session;
+        return session.Ready() && DecodeAudioFile(path, wave);
     }
 }

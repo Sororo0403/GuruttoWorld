@@ -1,0 +1,11 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectToolRoot>$(MSBuildThisFileDirectory)..\..\</ProjectToolRoot>
+    <ProjectToolConfiguration Condition="'$(ProjectToolConfiguration)' == ''">$(Configuration)</ProjectToolConfiguration>
+    <ProjectToolExecutable Condition="'$(ProjectToolExecutable)' == ''">$(ProjectToolRoot)generated\outputs\x64\$(ProjectToolConfiguration)\ProjectTool\ProjectTool.exe</ProjectToolExecutable>
+  </PropertyGroup>
+  <Target Name="EnsureProjectTool" Condition="'$(DesignTimeBuild)' != 'true'">
+    <MSBuild Condition="'$(SkipProjectToolBuild)' != 'true'" Projects="$(ProjectToolRoot)Tools\ProjectTool\ProjectTool.vcxproj" Targets="Build" Properties="Configuration=$(ProjectToolConfiguration);Platform=x64" RemoveProperties="OutDir;IntDir;TargetName;GameProjectRoot;GameContentRoot;GameName;WP1Root;SolutionDir;SolutionPath" BuildInParallel="false" />
+    <Error Condition="!Exists('$(ProjectToolExecutable)')" Text="ProjectTool.exe is missing. Build Tools/ProjectTool/ProjectTool.vcxproj first." />
+  </Target>
+</Project>

@@ -25,81 +25,19 @@ namespace Engine
         /// <summary>同一フレームの異なる照明を別領域へ記録し、使用中のGPUデータを保持します。</summary>
         LocalLightView Prepare(ID3D12Device* device, ID3D12GraphicsCommandList* commands,
                                std::span<const LocalLight> lights, const ShadowMap* shadows = nullptr,
-                               std::array<float, 2> environment = {})
-        {
-            RenderFrameContext context;
-            if (!ValidRequest(device, commands, lights, environment, context))
-                return {};
-            auto& frame = frames_[context.slot];
-            if (frame.serial != context.serial)
-            {
-                frame.serial = context.serial;
-                frame.used = 0;
-            }
-            for (size_t index = 0; index < frame.used; ++index)
-                if (!shadows && !frame.entries[index]->shadowed && frame.entries[index]->environment == environment &&
-                    std::ranges::equal(frame.entries[index]->lights, lights))
-                    return frame.entries[index]->View();
-            if (frame.used >= 1024)
-                return {};
-            if (frame.used == frame.entries.size())
-            {
-                auto entry = std::make_unique<Entry>();
-                if (!entry->Initialize(device))
-                    return {};
-                frame.entries.push_back(std::move(entry));
-            }
-            auto& entry = *frame.entries[frame.used];
-            if (!Upload(entry, lights, shadows, environment))
-                return {};
-            ++frame.used;
-            return entry.View();
-        }
+                               std::array<float, 2> environment = {});
 
     private:
+        /// <summary>資源の準備に必要な入力条件を検証します。</summary>
         static bool ValidRequest(const ID3D12Device* device, ID3D12GraphicsCommandList* commands,
                                  std::span<const LocalLight> lights, std::array<float, 2> environment,
-                                 RenderFrameContext& context)
-        {
-            if (!device || (lights.empty() && environment[0] <= 0) || lights.size() > Capacity ||
-                !RenderFrameContext::Current(commands, context))
-                return false;
-            if (!Engine::InRange(environment[0], 0, 100) || !Engine::InRange(environment[1], 0, 32))
-                return false;
-            if (!std::ranges::all_of(lights, Valid))
-                return false;
-            return true;
-        }
+                                 RenderFrameContext& context);
         /// <summary>GPU照明計算で不正な値やゼロの到達距離を使わないよう検証します。</summary>
-        static bool Valid(const LocalLight& light)
-        {
-            const auto finite = [](float value)
-            {
-                return std::isfinite(value);
-            };
-            const auto color = [](float value)
-            {
-                return Engine::InRange(value, 0, 1);
-            };
-            return std::ranges::all_of(light.position, finite) && std::ranges::all_of(light.direction, finite) &&
-                   std::ranges::all_of(light.color, color) && finite(light.intensity) && light.intensity >= 0 &&
-                   finite(light.range) && light.range > 0 && (light.spot == 0 || light.spot == 1) &&
-                   ValidShadow(light) && ValidCone(light);
-        }
-        static bool ValidCone(const LocalLight& light)
-        {
-            return light.spot == 0 ||
-                   (std::isfinite(light.innerCosine) && std::isfinite(light.outerCosine) && light.innerCosine <= 1 &&
-                    light.outerCosine >= -1 && light.innerCosine > light.outerCosine);
-        }
+        static bool Valid(const LocalLight& light);
+        /// <summary>スポット光の角度範囲を検証します。</summary>
+        static bool ValidCone(const LocalLight& light);
         /// <summary>局所影のアトラス範囲と面数を検証します。</summary>
-        static bool ValidShadow(const LocalLight& light)
-        {
-            return std::isfinite(light.shadowFirst) && light.shadowFirst >= -1 &&
-                   light.shadowFirst < ShadowMap::LocalFaces && std::floor(light.shadowFirst) == light.shadowFirst &&
-                   (light.shadowCount == 0 || light.shadowCount == 1 || light.shadowCount == 6) &&
-                   (light.shadowFirst < 0 || light.shadowFirst + light.shadowCount <= ShadowMap::LocalFaces);
-        }
+        static bool ValidShadow(const LocalLight& light);
         struct Packet
         {
             std::array<float, 4> header{};
@@ -115,36 +53,7 @@ namespace Engine
             bool shadowed = false;
             std::array<float, 2> environment{};
             /// <summary>フレーム枠に属するアップロード領域と不変のSRVを作成します。</summary>
-            bool Initialize(ID3D12Device* device)
-            {
-                D3D12_HEAP_PROPERTIES heap{};
-                heap.Type = D3D12_HEAP_TYPE_UPLOAD;
-                D3D12_RESOURCE_DESC description{};
-                description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-                description.Width = sizeof(Packet);
-                description.Height = 1;
-                description.DepthOrArraySize = 1;
-                description.MipLevels = 1;
-                description.SampleDesc.Count = 1;
-                description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-                if (FAILED(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
-                                                           D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                                                           IID_PPV_ARGS(&resource))))
-                    return false;
-                D3D12_DESCRIPTOR_HEAP_DESC descriptors{};
-                descriptors.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-                descriptors.NumDescriptors = 1;
-                if (FAILED(device->CreateDescriptorHeap(&descriptors, IID_PPV_ARGS(&descriptor))))
-                    return false;
-                D3D12_SHADER_RESOURCE_VIEW_DESC view{};
-                view.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-                view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-                view.Buffer.NumElements = 1 + static_cast<UINT>(Capacity) * 4 + ShadowMap::LocalFaces * 4;
-                view.Buffer.StructureByteStride = 16;
-                device->CreateShaderResourceView(resource.Get(), &view,
-                                                 descriptor->GetCPUDescriptorHandleForHeapStart());
-                return true;
-            }
+            bool Initialize(ID3D12Device* device);
             /// <summary>寿命を保持した照明領域のビューを返します。</summary>
             LocalLightView View() const
             {
@@ -157,28 +66,9 @@ namespace Engine
             size_t used = 0;
             std::vector<std::unique_ptr<Entry>> entries;
         };
+        /// <summary>準備済みのデータをGPUへ転送します。</summary>
         static bool Upload(Entry& entry, std::span<const LocalLight> lights, const ShadowMap* shadows,
-                           std::array<float, 2> environment)
-        {
-            Packet packet;
-            packet.header[0] = static_cast<float>(lights.size());
-            packet.header[1] = environment[0];
-            packet.header[2] = environment[1];
-            std::copy(lights.begin(), lights.end(), packet.lights.begin());
-            if (shadows)
-                packet.matrices = shadows->LocalMatrices();
-            void* data = nullptr;
-            const D3D12_RANGE read{0, 0};
-            if (FAILED(entry.resource->Map(0, &read, &data)))
-                return false;
-            std::memcpy(data, &packet, sizeof(packet));
-            const D3D12_RANGE written{0, sizeof(packet)};
-            entry.resource->Unmap(0, &written);
-            entry.lights.assign(lights.begin(), lights.end());
-            entry.shadowed = shadows != nullptr;
-            entry.environment = environment;
-            return true;
-        }
+                           std::array<float, 2> environment);
         std::array<Frame, RenderFrameContext::SlotCount> frames_;
     };
 }

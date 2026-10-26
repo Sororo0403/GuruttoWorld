@@ -5,22 +5,10 @@
 namespace Engine
 {
     using Json = nlohmann::json;
-    inline double JsonNumber(const Json& value)
-    {
-        if (!value.is_number())
-            throw std::runtime_error("JSON value must be a number");
-        return value.get<double>();
-    }
-    inline const Json& JsonArray(const Json& value)
-    {
-        if (!value.is_array())
-            throw std::runtime_error("JSON value must be an array");
-        return value;
-    }
-    inline const Json& JsonObject(const Json& value)
-    {
-        if (!value.is_object())
-            throw std::runtime_error("JSON value must be an object");
-        return value;
-    }
+    /// <summary>数値型を検証して値を取得します。</summary>
+    double JsonNumber(const Json& value);
+    /// <summary>配列型を検証して参照を取得します。</summary>
+    const Json& JsonArray(const Json& value);
+    /// <summary>オブジェクト型を検証して参照を取得します。</summary>
+    const Json& JsonObject(const Json& value);
 }

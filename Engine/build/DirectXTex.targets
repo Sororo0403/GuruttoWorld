@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <DirectXTexConfiguration Condition="'$(Configuration)'=='Debug'">Debug</DirectXTexConfiguration>
+    <DirectXTexConfiguration Condition="'$(Configuration)'!='Debug'">Release</DirectXTexConfiguration>
+    <DirectXTexRoot>$(MSBuildThisFileDirectory)..\..\generated\</DirectXTexRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <DirectXTexDependencySources Include="$(DirectXTexRoot)dependencies\directxtex-src\**\*.h;$(DirectXTexRoot)dependencies\directxtex-src\**\*.cpp;$(DirectXTexRoot)dependencies\directxtex-src\**\*.inl" />
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(DirectXTexRoot)dependencies\directxtex-src\DirectXTex;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>$(DirectXTexRoot)outputs\directxtex\$(DirectXTexConfiguration)\DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
+  <Target Name="CheckDirectXTexFiles" BeforeTargets="BuildDirectXTex" Condition="!Exists('$(DirectXTexRoot)outputs\directxtex\$(DirectXTexConfiguration)\DirectXTex.lib') Or !Exists('$(DirectXTexRoot)dependencies\directxtex-src\DirectXTex\DirectXTex.h')">
+    <Delete Files="$(DirectXTexRoot)intermediate\directxtex\$(DirectXTexConfiguration).ready" />
+  </Target>
+  <Target Name="BuildDirectXTex" BeforeTargets="ClCompile"
+          Inputs="$(MSBuildThisFileDirectory)..\..\scripts\BuildDirectXTex.ps1;$(MSBuildThisFileFullPath);@(DirectXTexDependencySources)"
+          Outputs="$(DirectXTexRoot)intermediate\directxtex\$(DirectXTexConfiguration).ready">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\scripts\BuildDirectXTex.ps1&quot; -Configuration $(DirectXTexConfiguration)" />
+  </Target>
+</Project>

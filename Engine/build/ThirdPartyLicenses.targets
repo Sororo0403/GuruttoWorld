@@ -1,0 +1,29 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="CopyThirdPartyLicenses">
+    <ItemGroup>
+      <ThirdPartyLicense Include="$(MSBuildThisFileDirectory)..\externals\assimp\LICENSE.txt">
+        <OutputName>LICENSE.txt</OutputName>
+      </ThirdPartyLicense>
+      <ThirdPartyLicense Include="$(MSBuildThisFileDirectory)..\externals\assimp\zlib-LICENSE.txt">
+        <OutputName>zlib-LICENSE.txt</OutputName>
+      </ThirdPartyLicense>
+      <ThirdPartyLicense Include="$(MSBuildThisFileDirectory)..\externals\nlohmann\LICENSE.MIT">
+        <OutputName>nlohmann-json-LICENSE.txt</OutputName>
+      </ThirdPartyLicense>
+      <ThirdPartyLicense Include="$(MSBuildThisFileDirectory)..\externals\imgui\LICENSE.txt">
+        <OutputName>DearImGui-LICENSE.txt</OutputName>
+      </ThirdPartyLicense>
+      <ThirdPartyLicense Include="$(MSBuildThisFileDirectory)..\..\generated\dependencies\jolt-src\LICENSE">
+        <OutputName>Jolt-LICENSE.txt</OutputName>
+      </ThirdPartyLicense>
+      <ThirdPartyLicense Include="$(MSBuildThisFileDirectory)..\externals\directxtex\LICENSE.txt">
+        <OutputName>DirectXTex-LICENSE.txt</OutputName>
+      </ThirdPartyLicense>
+      <ThirdPartyLicense Include="$(MSBuildThisFileDirectory)..\externals\recast\LICENSE.txt">
+        <OutputName>RecastNavigation-LICENSE.txt</OutputName>
+      </ThirdPartyLicense>
+    </ItemGroup>
+    <!-- コピー元が欠けている場合は失敗させ、不完全な配布物を作らない。 -->
+    <Copy SourceFiles="@(ThirdPartyLicense)" DestinationFiles="@(ThirdPartyLicense->'$(OutDir)Licenses\%(OutputName)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

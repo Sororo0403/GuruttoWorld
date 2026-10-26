@@ -1,0 +1,18 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <WP1Root Condition="'$(WP1Root)' == ''">$(MSBuildThisFileDirectory)..\..\</WP1Root>
+    <GameWorkRoot Condition="'$(GameProjectRoot)' == ''">$(WP1Root)</GameWorkRoot>
+    <GameWorkRoot Condition="'$(GameProjectRoot)' != ''">$(GameProjectRoot)</GameWorkRoot>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)ThirdPartyLicenses.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)ProjectTool.targets" />
+  <Target Name="CopyGameContent" AfterTargets="Build" DependsOnTargets="CopyThirdPartyLicenses;EnsureProjectTool">
+    <Exec Command="&quot;$(ProjectToolExecutable)&quot; sync-content --content &quot;$(GameContentRoot).&quot; --destination &quot;$(OutDir).&quot; --engine &quot;$(WP1Root).&quot;" />
+  </Target>
+  <Target Name="BuildGameScripts" AfterTargets="CopyGameContent" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipGameScripts)' != 'true'">
+    <PropertyGroup>
+      <ScriptOutputContent>$([System.IO.Path]::GetFullPath('$(OutDir).'))</ScriptOutputContent>
+    </PropertyGroup>
+    <Exec Command="&quot;$(ProjectToolExecutable)&quot; build-scripts --configuration &quot;$(Configuration)&quot; --content &quot;$(GameContentRoot).&quot; --output-content &quot;$(ScriptOutputContent)&quot; --work-root &quot;$(GameWorkRoot).&quot; --engine &quot;$(WP1Root).&quot;" />
+  </Target>
+</Project>

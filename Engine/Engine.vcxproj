@@ -119,6 +119,7 @@
     <ClCompile Include="src\Core\DiagnosticPaths.cpp" />
     <ClCompile Include="src\Core\Log.cpp" />
     <ClCompile Include="src\Assets\AssetDatabase.cpp" />
+    <ClCompile Include="src\Assets\TextureImport.cpp" />
     <ClCompile Include="src\Core\CrashHandler.cpp" />
     <ClCompile Include="src\Platform\Window.cpp" />
     <ClCompile Include="src\Graphics\DirectX12\DirectX12Renderer.cpp" />
@@ -196,6 +197,7 @@
     <None Include="externals\imgui\README.wp1.md" />
   </ItemGroup>
   <Import Project="build\Assimp.targets" />
+  <Import Project="build\DirectXTex.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
@@ -309,4 +311,69 @@
   <Target Name="GenerateEngineIdentity" BeforeTargets="ClCompile" Condition="'$(DesignTimeBuild)' != 'true'">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\GenerateEngineIdentity.ps1&quot; -Configuration $(Configuration)" />
   </Target>
+  <ItemGroup>
+    <None Include="Shaders\Common\ColorSpace.hlsli" />
+    <None Include="Shaders\Common\ColorSpace.hlsli.meta" />
+    <None Include="Shaders\Common\UvTransform.hlsli" />
+    <None Include="Shaders\Common\UvTransform.hlsli.meta" />
+    <None Include="Shaders\GlowParticle.hlsl" />
+    <None Include="Shaders\GlowParticle.hlsl.meta" />
+    <None Include="Shaders\Mesh.hlsl" />
+    <None Include="Shaders\Mesh.hlsl.meta" />
+    <None Include="Shaders\Ocean\Atmosphere.hlsli" />
+    <None Include="Shaders\Ocean\Atmosphere.hlsli.meta" />
+    <None Include="Shaders\Ocean\Clouds.hlsli" />
+    <None Include="Shaders\Ocean\Clouds.hlsli.meta" />
+    <None Include="Shaders\Ocean\Waves.hlsli" />
+    <None Include="Shaders\Ocean\Waves.hlsli.meta" />
+    <None Include="Shaders\OceanSunset.hlsl" />
+    <None Include="Shaders\OceanSunset.hlsl.meta" />
+    <None Include="Shaders\Particle.hlsl" />
+    <None Include="Shaders\Particle.hlsl.meta" />
+    <None Include="Shaders\PostEffects.hlsl" />
+    <None Include="Shaders\PostEffects.hlsl.meta" />
+    <None Include="Shaders\SceneUi.hlsl" />
+    <None Include="Shaders\SceneUi.hlsl.meta" />
+    <None Include="Shaders\Sky.hlsl" />
+    <None Include="Shaders\Sky.hlsl.meta" />
+    <None Include="Shaders\Sprite.hlsl" />
+    <None Include="Shaders\Sprite.hlsl.meta" />
+    <None Include="Shaders\Ui.hlsl" />
+    <None Include="Shaders\Ui.hlsl.meta" />
+    <None Include="build\Application.manifest" />
+    <None Include="build\Content.targets" />
+    <None Include="build\ThirdPartyLicenses.targets" />
+    <None Include="build\GameProject.targets" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="build\DirectXTex.targets" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Animation\SkinMatrix.cpp" />
+    <ClCompile Include="src\Animation\SkinMatrix.cpp" />
+    <ClCompile Include="src\Assets\AssetFileRevision.cpp" />
+    <ClCompile Include="src\Assets\AssetPath.cpp" />
+    <ClCompile Include="src\Assets\AssetReferenceResolver.cpp" />
+    <ClCompile Include="src\Assets\AssetSourceStamp.cpp" />
+    <ClCompile Include="src\Assets\ContentContext.cpp" />
+    <ClCompile Include="src\Assets\ContentFiles.cpp" />
+    <ClCompile Include="src\Core\FileContents.cpp" />
+    <ClCompile Include="src\Core\FileJournal.cpp" />
+    <ClCompile Include="src\Core\FileReplacement.cpp" />
+    <ClCompile Include="src\Core\FileSaveLock.cpp" />
+    <ClCompile Include="src\Core\Json.cpp" />
+    <ClCompile Include="src\Core\Profiler.cpp" />
+    <ClCompile Include="src\Core\Utf8.cpp" />
+    <ClCompile Include="src\Graphics\DirectX12\GpuRetirement.cpp" />
+    <ClCompile Include="src\Graphics\Materials\PostEffectSettings.cpp" />
+    <ClCompile Include="src\Graphics\Renderers\OcclusionRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Resources\ConstantBuffer.cpp" />
+    <ClCompile Include="src\Graphics\Resources\GpuProfiler.cpp" />
+    <ClCompile Include="src\Graphics\Resources\LocalLightBuffer.cpp" />
+    <ClCompile Include="src\Graphics\Resources\RenderFrameContext.cpp" />
+    <ClCompile Include="src\Graphics\Resources\RenderTargetBinding.cpp" />
+    <ClCompile Include="src\Graphics\Resources\SkinPaletteBuffer.cpp" />
+    <ClCompile Include="src\Input\InputActions.cpp" />
+    <ClCompile Include="src\Projects\ProjectContext.cpp" />
+  </ItemGroup>
 </Project>

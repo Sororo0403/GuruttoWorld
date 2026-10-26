@@ -437,4 +437,199 @@
   <ItemGroup>
     <ClInclude Include="include\Engine\Core\Utf8.h"><Filter>include\Engine\Core</Filter></ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders" />
+    <Filter Include="Shaders\Common" />
+    <Filter Include="Shaders\Ocean" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Common\ColorSpace.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="Shaders\Common\ColorSpace.hlsli.meta">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="Shaders\Common\UvTransform.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="Shaders\Common\UvTransform.hlsli.meta">
+      <Filter>Shaders\Common</Filter>
+    </None>
+    <None Include="Shaders\GlowParticle.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\GlowParticle.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Mesh.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Mesh.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Ocean\Atmosphere.hlsli">
+      <Filter>Shaders\Ocean</Filter>
+    </None>
+    <None Include="Shaders\Ocean\Atmosphere.hlsli.meta">
+      <Filter>Shaders\Ocean</Filter>
+    </None>
+    <None Include="Shaders\Ocean\Clouds.hlsli">
+      <Filter>Shaders\Ocean</Filter>
+    </None>
+    <None Include="Shaders\Ocean\Clouds.hlsli.meta">
+      <Filter>Shaders\Ocean</Filter>
+    </None>
+    <None Include="Shaders\Ocean\Waves.hlsli">
+      <Filter>Shaders\Ocean</Filter>
+    </None>
+    <None Include="Shaders\Ocean\Waves.hlsli.meta">
+      <Filter>Shaders\Ocean</Filter>
+    </None>
+    <None Include="Shaders\OceanSunset.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\OceanSunset.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Particle.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Particle.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\PostEffects.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\PostEffects.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\SceneUi.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\SceneUi.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Sky.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Sky.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Sprite.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Sprite.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Ui.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Ui.hlsl.meta">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="build\Application.manifest">
+      <Filter>build</Filter>
+    </None>
+    <None Include="build\Content.targets">
+      <Filter>build</Filter>
+    </None>
+    <None Include="build\ThirdPartyLicenses.targets">
+      <Filter>build</Filter>
+    </None>
+    <None Include="build\GameProject.targets">
+      <Filter>build</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Assets\TextureImport.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="build\DirectXTex.targets">
+      <Filter>build</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src\Animation" />
+    <Filter Include="src\Projects" />
+    <ClCompile Include="src\Animation\SkinMatrix.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\SkinMatrix.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetFileRevision.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetPath.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetReferenceResolver.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetSourceStamp.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\ContentContext.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\ContentFiles.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\FileContents.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\FileJournal.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\FileReplacement.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\FileSaveLock.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Json.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Profiler.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Utf8.cpp">
+      <Filter>src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\DirectX12\GpuRetirement.cpp">
+      <Filter>src\Graphics\DirectX12</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Materials\PostEffectSettings.cpp">
+      <Filter>src\Graphics\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Renderers\OcclusionRenderer.cpp">
+      <Filter>src\Graphics\Renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\ConstantBuffer.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\GpuProfiler.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\LocalLightBuffer.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\RenderFrameContext.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\RenderTargetBinding.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Resources\SkinPaletteBuffer.cpp">
+      <Filter>src\Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input\InputActions.cpp">
+      <Filter>src\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Projects\ProjectContext.cpp">
+      <Filter>src\Projects</Filter>
+    </ClCompile>
+  </ItemGroup>
 </Project>

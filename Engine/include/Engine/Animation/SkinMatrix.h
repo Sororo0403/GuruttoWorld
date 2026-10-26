@@ -7,18 +7,8 @@
 
 namespace Engine
 {
-    inline bool FiniteMatrix(const DirectX::XMFLOAT4X4& matrix)
-    {
-        return std::all_of(std::begin(matrix.m), std::end(matrix.m),
-                           [](const auto& row)
-                           {
-                               return std::all_of(std::begin(row), std::end(row),
-                                                  [](float entry)
-                                                  {
-                                                      return std::isfinite(entry);
-                                                  });
-                           });
-    }
+    /// <summary>行列の全成分が有限値かを確認します。</summary>
+    bool FiniteMatrix(const DirectX::XMFLOAT4X4& matrix);
     struct SkinMatrix
     {
         DirectX::XMFLOAT4X4 position{}, normal{};

@@ -15,12 +15,7 @@ namespace Engine
             commands->SetPrivateData(Key, sizeof(*this), this);
         }
         /// <summary>出力先の切替に影響されない現在のフレーム枠を取得します。</summary>
-        static bool Current(ID3D12GraphicsCommandList* commands, RenderFrameContext& result)
-        {
-            UINT bytes = sizeof(result);
-            return commands && SUCCEEDED(commands->GetPrivateData(Key, &bytes, &result)) && bytes == sizeof(result) &&
-                   result.slot < SlotCount;
-        }
+        static bool Current(ID3D12GraphicsCommandList* commands, RenderFrameContext& result);
         inline static constexpr GUID Key{0xa848e282, 0x5891, 0x487a, {0x9f, 0xa7, 0x85, 0xc3, 0xed, 0x67, 0x73, 0x10}};
     };
 }

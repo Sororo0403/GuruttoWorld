@@ -221,7 +221,7 @@ namespace Engine
     {
         revision.clear();
         std::error_code error;
-        auto sourcePath = std::filesystem::weakly_canonical(path, error);
+        auto sourcePath = std::filesystem::weakly_canonical(ContentFiles::Resolve(path), error);
         if (error) return false;
         if(!std::filesystem::is_regular_file(ContentFiles::Resolve(sourcePath)))
         {
@@ -355,18 +355,35 @@ namespace Engine
     {
         struct Restore { ~Restore() { exportingCache = false; } } restore;
         exportingCache = true;
-        for (const auto& file : std::filesystem::directory_iterator(shaders))
+        // ゲーム独自シェーダーと標準リソースは別々に事前コンパイルします。
+        for (const auto& directory : {shaders, shaders.parent_path() / "Engine/Shaders"})
         {
-            if (file.path().extension() != ".hlsl") continue;
-            std::string source;
-            if (!GetShaderRevision(file.path(), source)) { error = "Cannot preprocess shader source"; return false; }
-            for (const auto& [entry, target] : {std::pair{"VSMain", "vs_5_0"}, {"PSMain", "ps_5_0"},
-                {"VSShadow", "vs_5_0"}, {"VSBounds", "vs_5_0"}})
+            if (!std::filesystem::is_directory(directory))
+                continue;
+            for (const auto& file : std::filesystem::directory_iterator(directory))
             {
-                if (!std::regex_search(source, std::regex(std::string("\\b") + entry + "\\s*\\("))) continue;
-                Microsoft::WRL::ComPtr<ID3DBlob> shader;
-                if (!CompileShader(file.path(), entry, target, shader))
-                { error = "Shader cache preparation failed: " + Utf8Path(file.path()) + " / " + entry; return false; }
+                if (file.path().extension() != ".hlsl")
+                    continue;
+                std::string source;
+                if (!GetShaderRevision(file.path(), source))
+                {
+                    error = "Cannot preprocess shader source";
+                    return false;
+                }
+                for (const auto& [entry, target] : {std::pair{"VSMain", "vs_5_0"},
+                                                    {"PSMain", "ps_5_0"},
+                                                    {"VSShadow", "vs_5_0"},
+                                                    {"VSBounds", "vs_5_0"}})
+                {
+                    if (!std::regex_search(source, std::regex(std::string("\\b") + entry + "\\s*\\(")))
+                        continue;
+                    Microsoft::WRL::ComPtr<ID3DBlob> shader;
+                    if (!CompileShader(file.path(), entry, target, shader))
+                    {
+                        error = "Shader cache preparation failed: " + Utf8Path(file.path()) + " / " + entry;
+                        return false;
+                    }
+                }
             }
         }
         return true;

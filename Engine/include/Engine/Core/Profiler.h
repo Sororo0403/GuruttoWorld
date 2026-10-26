@@ -20,24 +20,10 @@ namespace Engine
         }
 
     public:
-        static void Add(const char* name, double milliseconds)
-        {
-            auto& samples = Samples();
-            if (samples.size() >= 128 && !samples.contains(name))
-                return;
-            auto& sample = samples[name];
-            sample.name = name;
-            sample.milliseconds += milliseconds;
-            ++sample.calls;
-        }
-        static std::vector<ProfileSample> Take()
-        {
-            std::vector<ProfileSample> result;
-            for (auto& [name, sample] : Samples())
-                result.push_back(std::move(sample));
-            Samples().clear();
-            return result;
-        }
+        /// <summary>新しい対象を追加します。</summary>
+        static void Add(const char* name, double milliseconds);
+        /// <summary>蓄積した結果を取得して消去します。</summary>
+        static std::vector<ProfileSample> Take();
     };
     class CpuScope final
     {
@@ -48,17 +34,7 @@ namespace Engine
         explicit CpuScope(const char* name) : name_(name) {}
         CpuScope(const CpuScope&) = delete;
         CpuScope& operator=(const CpuScope&) = delete;
-        ~CpuScope() noexcept
-        {
-            try
-            {
-                CpuProfiler::Add(
-                    name_,
-                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_).count());
-            }
-            catch (...)
-            {
-            }
-        }
+        /// <summary>計測区間の処理時間を記録します。</summary>
+        ~CpuScope() noexcept;
     };
 }

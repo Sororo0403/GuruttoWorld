@@ -11,6 +11,8 @@
 #include <mutex>
 #include <tuple>
 
+#pragma comment(lib, "d3d12.lib")
+
 namespace
 {
     using Microsoft::WRL::ComPtr;
