@@ -1,5 +1,6 @@
 #include <Engine/Graphics/ShaderCompiler.h>
 #include <Engine/Assets/AssetDatabase.h>
+#include <Engine/Assets/AssetArtifact.h>
 #include <Engine/Core/Log.h>
 #include <Engine/Core/Profiler.h>
 #include <format>
@@ -29,9 +30,9 @@ namespace
         return {reinterpret_cast<const char*>(bytes.data()), bytes.size()};
     }
 
-    bool Read(const std::filesystem::path& path, std::string& bytes)
+    bool ReadPhysical(const std::filesystem::path& path, std::string& bytes)
     {
-        std::ifstream file(Engine::ContentFiles::Resolve(path), std::ios::binary);
+        std::ifstream file(path, std::ios::binary);
         if (!file)
             return false;
         bytes.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
@@ -40,31 +41,31 @@ namespace
 
     std::string Digest(const std::string& bytes)
     {
-        BCRYPT_ALG_HANDLE algorithm{};
-        BCRYPT_HASH_HANDLE hash{};
-        std::array<unsigned char, 32> result{};
-        if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0)
+        return Engine::ArtifactHash::Bytes(bytes);
+    }
+    Engine::ArtifactDescriptor ShaderDescriptor(const std::filesystem::path& path, const std::string& revision,
+                                                const char* entry, const char* target, UINT flags,
+                                                const std::string& compiler)
+    {
+        if (compiler.empty())
             return {};
-        const auto created = BCryptCreateHash(algorithm, &hash, nullptr, 0, nullptr, 0, 0);
-        const auto hashed = created < 0
-                                ? created
-                                : BCryptHashData(hash, reinterpret_cast<PUCHAR>(const_cast<char*>(bytes.data())),
-                                                 static_cast<ULONG>(bytes.size()), 0);
-        const auto finished =
-            hashed < 0 ? hashed : BCryptFinishHash(hash, result.data(), static_cast<ULONG>(result.size()), 0);
-        if (hash)
-            BCryptDestroyHash(hash);
-        BCryptCloseAlgorithmProvider(algorithm, 0);
-        if (finished < 0)
-            return {};
-        constexpr char hex[] = "0123456789abcdef";
-        std::string text;
-        for (const auto value : result)
-        {
-            text += hex[value >> 4];
-            text += hex[value & 15];
-        }
-        return text;
+        Engine::ArtifactDescriptor descriptor;
+        descriptor.kind = "shader-bytecode";
+        const auto identity = Engine::AssetDatabase::Read(path).id;
+        descriptor.assetId = (identity.empty() ? Utf8Path(path.filename()) : identity) + "/" + entry + "/" + target;
+        descriptor.sourceRevision = Digest(revision);
+        descriptor.importerVersion = "WP1-D3DCompile/v2";
+        descriptor.settings = Engine::Json{{"entry", entry}, {"target", target}, {"flags", flags}}.dump();
+        descriptor.platform = "windows-x64";
+        descriptor.compiler = compiler;
+        return descriptor;
+    }
+
+    std::string ShaderKey(const std::filesystem::path& path, const std::string& revision, const char* entry,
+                          const char* target, UINT flags, const std::string& compiler)
+    {
+        return compiler.empty() ? std::string{}
+                                : ShaderDescriptor(path, revision, entry, target, flags, compiler).Key();
     }
 
     std::string CompilerIdentity()
@@ -78,8 +79,9 @@ namespace
             std::vector<wchar_t> path(32768);
             const auto length = GetModuleFileNameW(module, path.data(), static_cast<DWORD>(path.size()));
             std::string bytes;
-            return length && length < path.size() && Read(std::filesystem::path(path.data()), bytes) ? Digest(bytes)
-                                                                                                     : std::string{};
+            return length && length < path.size() && ReadPhysical(std::filesystem::path(path.data()), bytes)
+                       ? Digest(bytes)
+                       : std::string{};
         }();
         return identity;
     }
@@ -112,53 +114,22 @@ namespace
     bool LoadBytecode(const std::filesystem::path& directory, const std::string& key,
                       Microsoft::WRL::ComPtr<ID3DBlob>& shader)
     {
-        if (directory.empty() || key.empty())
+        if (directory.empty())
             return false;
-        std::error_code error;
-        const auto file = directory / (key + ".bin");
-        const auto size = std::filesystem::file_size(file, error);
-        if (error || size < 140 || size > 16 * 1024 * 1024)
+        const auto artifact = Engine::ArtifactStore(directory).Read(key);
+        if (!artifact || artifact->bytes.size() < 4 || artifact->bytes.substr(0, 4) != "DXBC")
             return false;
-        std::string bytes;
-        if (!Read(file, bytes) || bytes.substr(0, 8) != "WP1SHD01" || bytes.substr(8, 64) != key)
+        if (FAILED(D3DCreateBlob(artifact->bytes.size(), &shader)))
             return false;
-        const auto payload = bytes.substr(136);
-        if (bytes.substr(72, 64) != Digest(payload) || payload.substr(0, 4) != "DXBC")
-            return false;
-        if (FAILED(D3DCreateBlob(payload.size(), &shader)))
-            return false;
-        memcpy(shader->GetBufferPointer(), payload.data(), payload.size());
+        memcpy(shader->GetBufferPointer(), artifact->bytes.data(), artifact->bytes.size());
         return true;
     }
-
     bool SaveBytecode(const std::filesystem::path& directory, const std::string& key, ID3DBlob* shader)
-    try
     {
         if (directory.empty() || key.empty() || !shader)
             return false;
-        const std::string bytes(static_cast<const char*>(shader->GetBufferPointer()), shader->GetBufferSize());
-        std::error_code error;
-        std::filesystem::create_directories(directory, error);
-        if (error)
-            return false;
-        const auto temporary = directory / (key + "-" + std::to_string(GetCurrentProcessId()) + ".tmp");
-        std::ofstream file(temporary, std::ios::binary | std::ios::trunc);
-        file << "WP1SHD01" << key << Digest(bytes);
-        file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-        file.close();
-        if (!file)
-            return false;
-        const auto destination = directory / (key + ".bin");
-        if (!MoveFileExW(temporary.c_str(), destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-        {
-            std::filesystem::remove(temporary, error);
-            return false;
-        }
-        return true;
-    }
-    catch (...)
-    {
-        return false;
+        return Engine::ArtifactStore(directory).Write(
+            {key, std::string(static_cast<const char*>(shader->GetBufferPointer()), shader->GetBufferSize())});
     }
 
     thread_local bool exportingCache = false;
@@ -207,8 +178,13 @@ namespace
                     base / std::filesystem::path(std::u8string(reinterpret_cast<const char8_t*>(name))), error);
                 if (error)
                     return E_FAIL;
+                const auto logical = path;
+                path = std::filesystem::weakly_canonical(Engine::ContentFiles::Resolve(path), error);
+                if (error)
+                    return E_FAIL;
+                usedAlias |= path != logical;
                 auto content = std::make_unique<std::string>();
-                if (!Read(path, *content))
+                if (!ReadPhysical(path, *content))
                 {
                     const auto root = Engine::AssetDatabase::Root(source_);
                     const auto relative = path.lexically_relative(root);
@@ -216,8 +192,9 @@ namespace
                         return E_FAIL;
                     if (!assets_)
                         assets_.emplace(root);
-                    path = std::filesystem::weakly_canonical(root / assets_->Resolve(relative), error);
-                    if (error || !Read(path, *content))
+                    path = std::filesystem::weakly_canonical(
+                        Engine::ContentFiles::Resolve(root / assets_->Resolve(relative)), error);
+                    if (error || !ReadPhysical(path, *content))
                         return E_FAIL;
                     usedAlias = true;
                 }
@@ -259,7 +236,7 @@ namespace Engine
         for (const auto& [dependency, previous] : dependencies)
         {
             std::string current;
-            if (!Read(dependency, current) || current != previous)
+            if (!ReadPhysical(dependency, current) || current != previous)
             {
                 unchanged = false;
                 break;
@@ -268,7 +245,8 @@ namespace Engine
         return unchanged;
     }
 
-    bool GetShaderRevision(const std::filesystem::path& path, std::string& revision)
+    static bool GetShaderSource(const std::filesystem::path& path, std::string& revision,
+                                std::map<std::filesystem::path, std::string>* dependencies)
     try
     {
         revision.clear();
@@ -282,7 +260,8 @@ namespace Engine
             const auto relative = sourcePath.lexically_relative(root);
             if (root.empty() || !AssetDatabase::Valid(relative))
                 return false;
-            sourcePath = std::filesystem::weakly_canonical(root / AssetDatabase(root).Resolve(relative), error);
+            sourcePath = std::filesystem::weakly_canonical(
+                ContentFiles::Resolve(root / AssetDatabase(root).Resolve(relative)), error);
             if (error || !std::filesystem::is_regular_file(ContentFiles::Resolve(sourcePath)))
                 return false;
         }
@@ -300,12 +279,14 @@ namespace Engine
             if (unchanged)
             {
                 revision = found->second.revision;
+                if (dependencies)
+                    *dependencies = found->second.dependencies;
                 return true;
             }
             cache.erase(found);
         }
         std::string bytes;
-        if (!Read(sourcePath, bytes))
+        if (!ReadPhysical(sourcePath, bytes))
             return false;
         Microsoft::WRL::ComPtr<ID3DBlob> expanded, errors;
         const auto name = Utf8Path(sourcePath.filename());
@@ -320,6 +301,10 @@ namespace Engine
         // D3DPreprocess はファイル名だけのソース名も作業ディレクトリ基準で展開するため、移動可能な表記へ正規化します。
         revision = PortableRevision(revision);
         includes.dependencies[sourcePath] = std::move(bytes);
+        if (!DependenciesUnchanged(includes.dependencies))
+            return false;
+        if (dependencies)
+            *dependencies = includes.dependencies;
         if (cache.size() >= 64)
             cache.clear();
         // 別名で解決した include はキャッシュせず、メタデータの変更や旧パスの再作成を次回も検出します。
@@ -332,6 +317,11 @@ namespace Engine
     {
         revision.clear();
         return false;
+    }
+
+    bool GetShaderRevision(const std::filesystem::path& path, std::string& revision)
+    {
+        return GetShaderSource(path, revision, nullptr);
     }
 
     static bool CompileBytecode(const std::filesystem::path& path, const std::string& revision, const char* entry,
@@ -353,17 +343,35 @@ namespace Engine
         return true;
     }
     static bool ExportCachedShader(const std::filesystem::path& path, const std::string& revision, const char* entry,
-                                   const char* target, UINT flags, ID3DBlob* shader)
+                                   const char* target, UINT flags, ID3DBlob* shader,
+                                   const std::map<std::filesystem::path, std::string>& inputs)
     {
         if (exportingCache)
         {
             const auto compiler = CompilerIdentity();
-            const auto persistentKey = compiler.empty()
-                                           ? std::string{}
-                                           : Digest("WP1SHD01\n" + compiler + "\n" + entry + "\n" + target + "\n" +
-                                                    std::to_string(flags) + "\n" + revision);
-            if (!SaveBytecode(PackagedCache(path), persistentKey, shader))
+            const auto persistentKey = ShaderKey(path, revision, entry, target, flags, compiler);
+            const auto directory = PackagedCache(path);
+            if (!SaveBytecode(directory, persistentKey, shader))
                 return false;
+            const auto descriptor = ShaderDescriptor(path, revision, entry, target, flags, compiler);
+            auto sources = Engine::Json::array();
+            for (const auto& [input, bytes] : inputs)
+                sources.push_back(
+                    {{"path", Utf8Path(input.lexically_relative(directory.parent_path()))}, {"sha256", Digest(bytes)}});
+            const Engine::Json recipe{
+                {"version", 1},
+                {"key", persistentKey},
+                {"kind", descriptor.kind},
+                {"assetId", descriptor.assetId},
+                {"sourceRevision", descriptor.sourceRevision},
+                {"importerVersion", descriptor.importerVersion},
+                {"settings", descriptor.settings},
+                {"platform", descriptor.platform},
+                {"compiler", descriptor.compiler},
+                {"inputs", sources},
+                {"outputRevision",
+                 Digest(std::string(static_cast<const char*>(shader->GetBufferPointer()), shader->GetBufferSize()))}};
+            FileContents::Write(directory / (persistentKey + ".recipe.json"), recipe.dump(2));
         }
         return true;
     }
@@ -388,8 +396,16 @@ namespace Engine
         flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
         std::string revision;
-        if (!GetShaderRevision(path, revision))
+        std::map<std::filesystem::path, std::string> inputs;
+        if (!GetShaderSource(path, revision, &inputs))
             return false;
+        const auto complete = [&]
+        {
+            if (DependenciesUnchanged(inputs))
+                return true;
+            shader.Reset();
+            return false;
+        };
         using Key = std::tuple<std::string, std::string, std::string, UINT>;
         static std::mutex mutex;
         static std::map<Key, Microsoft::WRL::ComPtr<ID3DBlob>> cache;
@@ -398,14 +414,12 @@ namespace Engine
         if (const auto found = cache.find(key); found != cache.end())
         {
             shader = found->second;
-            if (!ExportCachedShader(path, revision, entry, target, flags, shader.Get()))
+            if (!ExportCachedShader(path, revision, entry, target, flags, shader.Get(), inputs))
                 return false;
-            return true;
+            return complete();
         }
         const auto compiler = CompilerIdentity();
-        const auto persistentKey = compiler.empty() ? std::string{}
-                                                    : Digest("WP1SHD01\n" + compiler + "\n" + entry + "\n" + target +
-                                                             "\n" + std::to_string(flags) + "\n" + revision);
+        const auto persistentKey = ShaderKey(path, revision, entry, target, flags, compiler);
         const auto packaged = PackagedCache(path);
         const auto local = LocalCache();
         bool loaded{};
@@ -415,23 +429,23 @@ namespace Engine
         }
         if (loaded)
         {
-            if (exportingCache && !SaveBytecode(packaged, persistentKey, shader.Get()))
+            if (!ExportCachedShader(path, revision, entry, target, flags, shader.Get(), inputs))
                 return false;
             RememberShader(cache, std::move(key), shader);
-            return true;
+            return complete();
         }
         if (!CompileBytecode(path, revision, entry, target, flags, shader))
             return false;
         if (exportingCache)
         {
-            if (!SaveBytecode(packaged, persistentKey, shader.Get()))
+            if (!ExportCachedShader(path, revision, entry, target, flags, shader.Get(), inputs))
                 return false;
         }
         else
             SaveBytecode(local, persistentKey, shader.Get());
         // バイトコードはデバイスを所有しません。編集でシェーダーの版が増えても、キャッシュ件数を制限します。
         RememberShader(cache, std::move(key), shader);
-        return true;
+        return complete();
     }
     catch (...)
     {

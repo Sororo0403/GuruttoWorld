@@ -16,12 +16,12 @@ namespace Engine
         }
         // 保存準備でも区切りを揃え、候補と確定後で同じ保存結果になるようにします。
         path = AssetDatabase::Path(AssetDatabase::Text(path));
-        const auto current = index_.ReferenceId(path);
         if (!resolve_ && !id.empty())
         {
+            // 未解決の保存候補では既存IDを保持し、曖昧になった旧パスを再選択しません。
             captured_[AssetDatabase::Text(path)] = id;
         }
-        else if (!current.empty())
+        else if (const auto current = index_.ReferenceId(path); !current.empty())
         {
             captured_[AssetDatabase::Text(path)] = current;
         }

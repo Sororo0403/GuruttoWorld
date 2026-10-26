@@ -32,10 +32,10 @@
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..\Engine\externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..\Engine\externals;$(MSBuildThisFileDirectory)..\..\Engine\include;$(MSBuildThisFileDirectory)..\..\SceneRuntime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary Condition="'$(Configuration)' == 'Debug'">MultiThreadedDebug</RuntimeLibrary>
-      <RuntimeLibrary Condition="'$(Configuration)' != 'Debug'">MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)' == 'Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)' != 'Debug'">MultiThreadedDLL</RuntimeLibrary>
       <Optimization Condition="'$(Configuration)' == 'Debug'">Disabled</Optimization>
       <Optimization Condition="'$(Configuration)' != 'Debug'">MaxSpeed</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -58,5 +58,6 @@
     <ClInclude Include="ScriptBuild.h" />
     <ClInclude Include="PackageBuild.h" />
   </ItemGroup>
+  <ItemGroup><ProjectReference Include="..\..\Engine\EngineAssets.vcxproj" /></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

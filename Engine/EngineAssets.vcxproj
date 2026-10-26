@@ -1,0 +1,71 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64"><Configuration>Debug</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64"><Configuration>Development</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals"><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Debug'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <OutDir>$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\EngineAssets\</OutDir>
+    <IntDir>$(MSBuildThisFileDirectory)..\generated\intermediate\$(Platform)\$(Configuration)\EngineAssets\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'!='Debug'">MultiThreadedDLL</RuntimeLibrary>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <Optimization Condition="'$(Configuration)'!='Debug'">MaxSpeed</Optimization>
+      <DebugInformationFormat Condition="'$(Configuration)'!='Release'">ProgramDatabase</DebugInformationFormat>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Development'">NDEBUG;ENGINE_DEVELOPMENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\ShaderCompiler.cpp" />
+    <ClCompile Include="src\Assets\AssetImportCache.cpp" />
+    <ClCompile Include="src\Graphics\Models\ModelAssets.cpp" />
+    <ClInclude Include="src\Assets\AssetImportCache.h" />
+    <ClInclude Include="src\Assets\CpuAssetBinary.h" />
+    <ClCompile Include="src\Assets\AssetArtifact.cpp" />
+    <ClCompile Include="src\Assets\ModelImportInputs.cpp" />
+    <ClCompile Include="src\Animation\SkeletonAssets.cpp" />
+    <ClCompile Include="src\Assets\AssetDatabase.cpp" />
+    <ClCompile Include="src\Assets\TextureAssets.cpp" />
+    <ClCompile Include="src\Assets\TextureImport.cpp" />
+    <ClCompile Include="src\Assets\AssetFileRevision.cpp" />
+    <ClCompile Include="src\Assets\AssetReferenceResolver.cpp" />
+    <ClCompile Include="src\Assets\AssetSourceStamp.cpp" />
+    <ClCompile Include="src\Assets\ContentContext.cpp" />
+    <ClCompile Include="src\Assets\ContentFiles.cpp" />
+    <ClCompile Include="src\Graphics\Models\ModelLoader.cpp" />
+    <ClCompile Include="src\Animation\SkeletonLoader.cpp" />
+    <ProjectReference Include="EnginePlatform.vcxproj" />
+    <ProjectReference Include="EngineCore.vcxproj" />
+  </ItemGroup>
+  <Import Project="build\Assimp.targets" />
+  <Import Project="build\DirectXTex.targets" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <ClInclude Include="include\Engine\Assets\AssetArtifact.h" />
+    <ClInclude Include="include\Engine\Assets\ModelImportInputs.h" />
+    <ClInclude Include="include\Engine\Animation\SkeletonAssets.h" />
+    <ClInclude Include="include\Engine\Graphics\Models\ModelAssets.h" />
+    <ClInclude Include="include\Engine\Assets\TextureAssets.h" />
+  </ItemGroup>
+</Project>

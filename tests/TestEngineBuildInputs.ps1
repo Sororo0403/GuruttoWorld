@@ -35,4 +35,12 @@ Write-Input 'Engine/EngineCore.vcxproj' 'CPU core source ownership'
 if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 8) { throw 'CPU core project is absent from canonical inputs.' }
 Write-Input 'SceneRuntime/SceneRuntimeCore.vcxproj' 'runtime CPU source ownership'
 if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 9) { throw 'Runtime CPU project is absent from canonical inputs.' }
+Write-Input 'Engine/EngineAssets.vcxproj' 'CPU artifact source ownership'
+Write-Input 'SceneRuntime/SceneRendering.vcxproj' 'packet rendering source ownership'
+if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 11) { throw 'Asset or rendering project is absent from canonical inputs.' }
+Write-Input 'Engine/EnginePlatform.vcxproj' 'CPU platform source ownership'
+Write-Input 'SceneRuntime/SceneSimulation.vcxproj' 'CPU simulation source ownership'
+if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 13) { throw 'Platform or simulation project is absent from canonical inputs.' }
+Write-Input 'SceneRuntime/SceneTitle.vcxproj' 'Optional Title source ownership'
+if (@(Get-EngineBuildInputFiles -Root $taskFixture).Count -ne 14) { throw 'Optional Title project is absent from canonical inputs.' }
 Write-Output 'PASS: canonical SDK inputs include vendor headers, dependency pins and optional native sources without output cycles'

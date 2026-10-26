@@ -20,7 +20,7 @@ function Get-EngineBuildInputFiles {
             $_.Extension -in @('.h', '.hpp', '.inl', '.c', '.cpp', '.targets', '.props')
         })
     }
-    foreach ($relative in @('Engine/Engine.vcxproj', 'Engine/EngineCore.vcxproj', 'SceneRuntime/SceneRuntimeCore.vcxproj', 'SceneRuntime/SceneRuntime.vcxproj', 'SceneRuntime/SceneData.vcxproj', 'SceneRuntime/SceneStorage.vcxproj',
+    foreach ($relative in @('Engine/Engine.vcxproj', 'Engine/EngineCore.vcxproj', 'Engine/EngineAssets.vcxproj', 'Engine/EnginePlatform.vcxproj', 'SceneRuntime/SceneRuntimeCore.vcxproj', 'SceneRuntime/SceneRuntime.vcxproj', 'SceneRuntime/SceneData.vcxproj', 'SceneRuntime/SceneRendering.vcxproj', 'SceneRuntime/SceneTitle.vcxproj', 'SceneRuntime/SceneSimulation.vcxproj', 'SceneRuntime/SceneStorage.vcxproj',
         'Tools/ProjectTool/ProjectTool.vcxproj', 'scripts/GenerateEngineIdentity.ps1', 'scripts/EngineBuildInputs.ps1',
         'scripts/BuildAssimp.ps1', 'scripts/BuildJolt.ps1', 'scripts/BuildDirectXTex.ps1', 'scripts/BuildRecast.ps1')) {
         $path = Join-Path $Root $relative

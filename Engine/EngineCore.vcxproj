@@ -38,10 +38,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Json.cpp" />
+    <ClCompile Include="src\Core\BuildIdentity.cpp" />
+    <ClCompile Include="src\Animation\RootMotion.cpp" />
+    <ClCompile Include="src\Animation\TwoBoneIk.cpp" />
+    <ClCompile Include="src\Animation\Skeleton.cpp" />
+    <ClCompile Include="src\Animation\SkinMatrix.cpp" />
+
     <ClCompile Include="src\Core\Utf8.cpp" />
     <ClCompile Include="src\Core\Profiler.cpp" />
     <ClCompile Include="src\Assets\AssetPath.cpp" />
     <ClCompile Include="src\Graphics\Materials\PostEffectSettings.cpp" />
   </ItemGroup>
+  <ItemDefinitionGroup>
+    <ClCompile><AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\generated\build-identity\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+  </ItemDefinitionGroup>
+  <Target Name="GenerateEngineIdentity" BeforeTargets="ClCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\GenerateEngineIdentity.ps1&quot; -Configuration $(Configuration)" />
+  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

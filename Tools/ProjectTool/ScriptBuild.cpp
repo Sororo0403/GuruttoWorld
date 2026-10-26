@@ -90,11 +90,14 @@ namespace ProjectTool
                 }
             }
             for (const auto* relative :
-                 {"Engine/Engine.vcxproj", "Engine/EngineCore.vcxproj", "SceneRuntime/SceneRuntime.vcxproj",
-                  "SceneRuntime/SceneData.vcxproj", "SceneRuntime/SceneStorage.vcxproj",
-                  "SceneRuntime/SceneRuntimeCore.vcxproj", "Tools/ProjectTool/ProjectTool.vcxproj",
-                  "scripts/GenerateEngineIdentity.ps1", "scripts/EngineBuildInputs.ps1", "scripts/BuildAssimp.ps1",
-                  "scripts/BuildJolt.ps1", "scripts/BuildDirectXTex.ps1", "scripts/BuildRecast.ps1"})
+                 {"Engine/Engine.vcxproj", "Engine/EngineCore.vcxproj", "Engine/EngineAssets.vcxproj",
+                  "Engine/EnginePlatform.vcxproj", "SceneRuntime/SceneRuntime.vcxproj",
+                  "SceneRuntime/SceneData.vcxproj", "SceneRuntime/SceneRendering.vcxproj",
+                  "SceneRuntime/SceneTitle.vcxproj", "SceneRuntime/SceneSimulation.vcxproj",
+                  "SceneRuntime/SceneStorage.vcxproj", "SceneRuntime/SceneRuntimeCore.vcxproj",
+                  "Tools/ProjectTool/ProjectTool.vcxproj", "scripts/GenerateEngineIdentity.ps1",
+                  "scripts/EngineBuildInputs.ps1", "scripts/BuildAssimp.ps1", "scripts/BuildJolt.ps1",
+                  "scripts/BuildDirectXTex.ps1", "scripts/BuildRecast.ps1"})
             {
                 const auto path = root / relative;
                 if (std::filesystem::is_regular_file(path))
@@ -138,7 +141,8 @@ namespace ProjectTool
         }
 
         std::string ScriptProject(const Options& options, const Path& workspace, const std::vector<Path>& sources,
-                                  const Path& engineLibrary, const Path& sceneLibrary, const Path& coreLibrary)
+                                  const Path& engineLibrary, const Path& sceneLibrary, const Path& coreLibrary,
+                                  const Path& assetsLibrary, const Path& platformLibrary)
         {
             const bool debug = options.configuration == "Debug";
             std::string definitions = debug ? "_DEBUG;_WINDOWS" : "NDEBUG;_WINDOWS";
@@ -180,7 +184,8 @@ namespace ProjectTool
                    "<AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>"
                    "<WarningLevel>Level4</WarningLevel><TreatWarningAsError>true</TreatWarningAsError></ClCompile>"
                    "<Link><AdditionalDependencies>"
-                << escaped(sceneLibrary) << ";" << escaped(engineLibrary) << ";" << escaped(coreLibrary)
+                << escaped(sceneLibrary) << ";" << escaped(engineLibrary) << ";" << escaped(coreLibrary) << ";"
+                << escaped(assetsLibrary) << ";" << escaped(platformLibrary)
                 << ";%(AdditionalDependencies)</AdditionalDependencies><GenerateDebugInformation>true</GenerateDebugInformation>"
                    "<TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors></Link></ItemDefinitionGroup>\r\n"
                    "  <ItemGroup><ClCompile Include=\""
@@ -314,6 +319,10 @@ namespace ProjectTool
                     options.engine / "generated/outputs/x64" / options.configuration / "SceneRuntime/SceneRuntime.lib";
                 const auto coreLibrary =
                     options.engine / "generated/outputs/x64" / options.configuration / "EngineCore/EngineCore.lib";
+                const auto assetsLibrary =
+                    options.engine / "generated/outputs/x64" / options.configuration / "EngineAssets/EngineAssets.lib";
+                const auto platformLibrary = options.engine / "generated/outputs/x64" / options.configuration /
+                                             "EnginePlatform/EnginePlatform.lib";
                 const auto msbuild = FindMsbuild();
                 if (RunProcess(
                         msbuild,
@@ -322,12 +331,13 @@ namespace ProjectTool
                 {
                     throw std::runtime_error("Native SDK dependency build failed; the previous module was retained.");
                 }
-                const auto nativeBefore = CaptureHashes({engineLibrary, sceneLibrary, coreLibrary});
+                const auto nativeBefore =
+                    CaptureHashes({engineLibrary, sceneLibrary, coreLibrary, assetsLibrary, platformLibrary});
                 const auto sdkBefore = CaptureHashes(SdkInputs(options.engine));
                 WriteText(workspace / "ScriptModule.cpp", AggregateSource(sources));
                 const auto projectPath = workspace / "GameScripts.vcxproj";
-                WriteText(projectPath,
-                          ScriptProject(options, workspace, sources, engineLibrary, sceneLibrary, coreLibrary));
+                WriteText(projectPath, ScriptProject(options, workspace, sources, engineLibrary, sceneLibrary,
+                                                     coreLibrary, assetsLibrary, platformLibrary));
                 Progress(options, true, 1, "C++ゲーム処理をコンパイル中");
                 if (RunProcess(msbuild, BuildArguments(projectPath, options.configuration), options.engine, logPath) !=
                     0)
@@ -339,7 +349,8 @@ namespace ProjectTool
                     throw std::runtime_error(
                         "Script sources changed during compilation; the previous module was retained.");
                 }
-                if (nativeBefore != CaptureHashes({engineLibrary, sceneLibrary, coreLibrary}))
+                if (nativeBefore !=
+                    CaptureHashes({engineLibrary, sceneLibrary, coreLibrary, assetsLibrary, platformLibrary}))
                 {
                     throw std::runtime_error(
                         "Native SDK libraries changed during script compilation; the previous module was retained.");

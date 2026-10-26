@@ -1,11 +1,10 @@
 #include <Engine/Core/Profiler.h>
 #include <Engine/Graphics/Resources/Texture2D.h>
 #include <Engine/Core/Log.h>
-#include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Graphics/DirectX12/GpuSynchronization.h>
 #include <Engine/Graphics/DirectX12/GpuRetirement.h>
 
-#include <wincodec.h>
+#include <Engine/Assets/TextureAssets.h>
 #include <cstring>
 #include <format>
 #include <limits>
@@ -15,115 +14,10 @@
 #include <mutex>
 #include <optional>
 #include <tuple>
-#include <bcrypt.h>
-
-#pragma comment(lib, "Windowscodecs.lib")
-#pragma comment(lib, "Ole32.lib")
-#pragma comment(lib, "Bcrypt.lib")
 
 namespace
 {
     using Microsoft::WRL::ComPtr;
-
-    struct PreparedTexture
-    {
-        std::vector<unsigned char> source;
-        std::vector<Engine::TextureLevel> levels;
-        size_t bytes = 0;
-        bool sourceInBase = false;
-    };
-
-    std::optional<std::array<unsigned char, 32>> PixelDigest(const std::vector<unsigned char>& pixels)
-    {
-        BCRYPT_ALG_HANDLE algorithm{};
-        BCRYPT_HASH_HANDLE hash{};
-        std::array<unsigned char, 32> digest{};
-        if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0)
-            return {};
-        const auto created = BCryptCreateHash(algorithm, &hash, nullptr, 0, nullptr, 0, 0);
-        const auto hashed =
-            created < 0 ? created
-                        : BCryptHashData(hash, const_cast<PUCHAR>(pixels.data()), static_cast<ULONG>(pixels.size()), 0);
-        const auto finished =
-            hashed < 0 ? hashed : BCryptFinishHash(hash, digest.data(), static_cast<ULONG>(digest.size()), 0);
-        if (hash)
-            BCryptDestroyHash(hash);
-        BCryptCloseAlgorithmProvider(algorithm, 0);
-        return finished < 0 ? std::nullopt : std::optional{digest};
-    }
-
-    std::shared_ptr<const PreparedTexture> PrepareTexture(Engine::TextureLevel source,
-                                                          const Engine::TextureImportSettings& settings)
-    {
-        settings.Validate();
-        constexpr size_t Budget = 192 * 1024 * 1024;
-        using Key = std::tuple<UINT, UINT, bool, bool, unsigned int, std::string, std::array<unsigned char, 32>>;
-        struct Entry
-        {
-            std::shared_ptr<const PreparedTexture> texture;
-            uint64_t used = 0;
-        };
-        static std::mutex mutex;
-        static std::map<Key, Entry> entries;
-        static size_t bytes = 0;
-        static uint64_t sequence = 0;
-        const bool transformed = settings.mipmaps || std::max(source.width, source.height) > settings.maxSize ||
-                                 Engine::TextureImport::Compressed(settings, source);
-        const auto digest = transformed && source.pixels.size() <= Budget ? PixelDigest(source.pixels) : std::nullopt;
-        const auto key = std::make_tuple(source.width, source.height, settings.mipmaps, settings.srgb, settings.maxSize,
-                                         settings.compression, digest.value_or(std::array<unsigned char, 32>{}));
-        if (digest)
-        {
-            std::lock_guard lock(mutex);
-            const auto found = entries.find(key);
-            // ダイジェストだけで同一と判断せず、元の全画素も照合します。
-            if (found != entries.end() &&
-                (found->second.texture->sourceInBase ? found->second.texture->levels.front().pixels
-                                                     : found->second.texture->source) == source.pixels)
-            {
-                found->second.used = ++sequence;
-                Engine::CpuProfiler::Add("Texture mip cache hit", 0);
-                return found->second.texture;
-            }
-        }
-        auto prepared = std::make_shared<PreparedTexture>();
-        // 基底ミップが入力のままなら、その画素を照合にも使って二重保持を避けます。
-        prepared->sourceInBase = std::max(source.width, source.height) <= settings.maxSize &&
-                                 !Engine::TextureImport::Compressed(settings, source);
-        if (digest && !prepared->sourceInBase)
-            prepared->source = source.pixels;
-        {
-            Engine::CpuScope build("Texture mip build");
-            prepared->levels = Engine::TextureImport::Build(std::move(source), settings);
-        }
-        prepared->bytes = prepared->source.size();
-        for (const auto& level : prepared->levels)
-            prepared->bytes += level.pixels.size();
-        if (digest && prepared->bytes <= Budget)
-        {
-            std::lock_guard lock(mutex);
-            if (const auto old = entries.find(key); old != entries.end())
-            {
-                bytes -= old->second.texture->bytes;
-                entries.erase(old);
-            }
-            while (!entries.empty() && (entries.size() >= 128 || bytes + prepared->bytes > Budget))
-            {
-                const auto oldest = std::min_element(entries.begin(), entries.end(),
-                                                     [](const auto& a, const auto& b)
-                                                     {
-                                                         return a.second.used < b.second.used;
-                                                     });
-                bytes -= oldest->second.texture->bytes;
-                entries.erase(oldest);
-            }
-            bytes += prepared->bytes;
-            entries.emplace(key, Entry{prepared, ++sequence});
-        }
-        else
-            std::vector<unsigned char>().swap(prepared->source);
-        return prepared;
-    }
 
     bool Check(HRESULT result, const char* operation)
     {
@@ -170,17 +64,7 @@ namespace
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         commands->ResourceBarrier(1, &barrier);
     }
-    struct ComApartment
-    {
-        HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-        ~ComApartment()
-        {
-            if (SUCCEEDED(result))
-            {
-                CoUninitialize();
-            }
-        }
-    };
+
 }
 
 namespace Engine
@@ -188,28 +72,24 @@ namespace Engine
     bool Texture2D::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue, const std::filesystem::path& path)
     {
         Engine::CpuScope timing("Texture initialization");
-        if (resource_ || device == nullptr || queue == nullptr ||
-            queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT)
-        {
+        if (resource_ || !device || !queue || queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT)
             return false;
-        }
-        ImageData image;
-        if (path.empty())
-        {
-            image = {1, 1, {255, 255, 255, 255}};
-        }
-        else if (!LoadImage(path, image))
-        {
-            return false;
-        }
         try
         {
-            return InitializePixels(device, queue, image.width, image.height, std::move(image.pixels),
-                                    path.empty() ? TextureImportSettings{} : AssetDatabase::Read(path).texture);
+            if (path.empty())
+                return InitializePixels(device, queue, 1, 1, {255, 255, 255, 255});
+            std::string error;
+            const auto prepared = TextureAssets::Load(path, error);
+            if (!prepared)
+            {
+                Log::Error(error);
+                return false;
+            }
+            return InitializePrepared(device, queue, *prepared, false);
         }
-        catch (const std::exception& error)
+        catch (const std::exception& failure)
         {
-            Log::Error(error.what());
+            Log::Error(failure.what());
             return false;
         }
     }
@@ -221,21 +101,32 @@ namespace Engine
         Engine::CpuScope timing("Texture import and upload");
         if (resource_ || !ValidPixelUpload(device, queue, width, height, pixels))
             return false;
-        std::shared_ptr<const PreparedTexture> prepared;
+        std::shared_ptr<const TextureAssetData> prepared;
         try
         {
             Engine::CpuScope mipTiming("Texture mip preparation");
-            prepared = PrepareTexture({width, height, std::move(pixels)}, settings);
+            prepared = TextureAssets::PreparePixels({width, height, std::move(pixels)}, settings);
         }
         catch (const std::exception& error)
         {
             Log::Error(error.what());
             return false;
         }
-        const auto& levels = prepared->levels;
+        return InitializePrepared(device, queue, *prepared, deferUpload);
+    }
+    bool Texture2D::InitializePrepared(ID3D12Device* device, ID3D12CommandQueue* queue,
+                                       const TextureAssetData& prepared, bool deferUpload)
+    {
+        if (resource_ || !device || !queue || queue->GetDesc().Type != D3D12_COMMAND_LIST_TYPE_DIRECT ||
+            prepared.levels.empty())
+            return false;
+        ComPtr<ID3D12Device> queueDevice;
+        if (FAILED(queue->GetDevice(IID_PPV_ARGS(&queueDevice))) || queueDevice.Get() != device)
+            return false;
+        const auto& levels = prepared.levels;
         ComPtr<ID3D12Resource> upload;
         std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(levels.size());
-        if (!CreateResource(device, levels, TextureImport::Compressed(settings, levels.front())) ||
+        if (!CreateResource(device, levels, prepared.compressed) ||
             !CreateUploadBuffer(device, levels, upload, footprints) || !CreateShaderResourceView(device) ||
             !UploadAndWait(device, queue, upload.Get(), footprints, deferUpload))
         {
@@ -245,52 +136,6 @@ namespace Engine
             return false;
         }
         return true;
-    }
-
-    bool Texture2D::LoadImage(const std::filesystem::path& path, ImageData& image)
-    {
-        Engine::CpuScope timing("Texture decode");
-        ComApartment apartment;
-        if (apartment.result != RPC_E_CHANGED_MODE && !Check(apartment.result, "Initialize WIC COM apartment"))
-        {
-            return false;
-        }
-        ComPtr<IWICImagingFactory> factory;
-        ComPtr<IWICBitmapDecoder> decoder;
-        ComPtr<IWICBitmapFrameDecode> frame;
-        ComPtr<IWICFormatConverter> converter;
-        if (!Check(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory)),
-                   "Create WIC factory") ||
-            !Check(factory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad,
-                                                      &decoder),
-                   "Open texture image") ||
-            !Check(decoder->GetFrame(0, &frame), "Decode texture frame") ||
-            !Check(frame->GetSize(&image.width, &image.height), "Get texture size"))
-        {
-            return false;
-        }
-        if (image.width == 0 || image.height == 0 || image.width > D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION ||
-            image.height > D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION)
-        {
-            Log::Error("Unsupported texture dimensions.");
-            return false;
-        }
-        const UINT64 size = static_cast<UINT64>(image.width) * image.height * 4;
-        if (size > (std::numeric_limits<UINT>::max)())
-        {
-            Log::Error("Texture pixel data is too large.");
-            return false;
-        }
-        if (!Check(factory->CreateFormatConverter(&converter), "Create WIC converter") ||
-            !Check(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, nullptr,
-                                         0.0, WICBitmapPaletteTypeCustom),
-                   "Convert texture to RGBA8"))
-        {
-            return false;
-        }
-        image.pixels.resize(static_cast<size_t>(size));
-        return Check(converter->CopyPixels(nullptr, image.width * 4, static_cast<UINT>(size), image.pixels.data()),
-                     "Read texture pixels");
     }
 
     bool Texture2D::CreateResource(ID3D12Device* device, const std::vector<TextureLevel>& levels, bool compressed)

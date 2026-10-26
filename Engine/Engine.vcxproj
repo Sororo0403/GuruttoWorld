@@ -116,17 +116,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp" />
-    <ClCompile Include="src\Core\DiagnosticPaths.cpp" />
-    <ClCompile Include="src\Core\Log.cpp" />
-    <ClCompile Include="src\Assets\AssetDatabase.cpp" />
-    <ClCompile Include="src\Assets\TextureImport.cpp" />
-    <ClCompile Include="src\Core\CrashHandler.cpp" />
     <ClCompile Include="src\Platform\Window.cpp" />
     <ClCompile Include="src\Graphics\DirectX12\DirectX12Renderer.cpp" />
     <ClCompile Include="src\Graphics\Renderers\TriangleRenderer.cpp" />
     <ClCompile Include="src\Graphics\Resources\Texture2D.cpp" />
     <ClCompile Include="src\Graphics\Resources\DepthBuffer.cpp" />
-    <ClCompile Include="src\Graphics\ShaderCompiler.cpp" />
     <ClCompile Include="src\Graphics\Renderers\SpriteRenderer.cpp" />
     <ClCompile Include="src\Graphics\Renderers\SphereRenderer.cpp" />
     <ClCompile Include="src\Graphics\Resources\IndexedMeshBuffer.cpp" />
@@ -145,7 +139,6 @@
     <ClInclude Include="include\Engine\Core\FileReplacement.h" />
     <ClInclude Include="include\Engine\Core\FileJournal.h" />
     <ClInclude Include="include\Engine\Core\FileSaveLock.h" />
-    <ClCompile Include="src\Core\BuildIdentity.cpp" />
     <ClInclude Include="include\Engine\Projects\ProjectContext.h" />
     <ClInclude Include="include\Engine\Platform\Window.h" />
     <ClInclude Include="include\Engine\Graphics\DirectX12\DirectX12Renderer.h" />
@@ -196,22 +189,17 @@
     <None Include="externals\imgui\LICENSE.txt" />
     <None Include="externals\imgui\README.wp1.md" />
   </ItemGroup>
-  <Import Project="build\Assimp.targets" />
-  <Import Project="build\DirectXTex.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="src\Graphics\Renderers\MeshRenderer.cpp" />
     <ClInclude Include="include\Engine\Graphics\Renderers\MeshRenderer.h" />
-    <ClCompile Include="src\Graphics\Models\ModelLoader.cpp" />
     <ClInclude Include="include\Engine\Graphics\Models\ModelLoader.h" />
     <ClCompile Include="src\Graphics\Renderers\ModelRenderer.cpp" />
     <ClInclude Include="include\Engine\Animation\Skeleton.h" />
     <ClInclude Include="include\Engine\Animation\TwoBoneIk.h" />
     <ClInclude Include="include\Engine\Animation\RootMotion.h" />
-    <ClCompile Include="src\Animation\RootMotion.cpp" />
-    <ClCompile Include="src\Animation\TwoBoneIk.cpp" />
     <ClInclude Include="include\Engine\Assets\AssetDatabase.h" />
     <ClInclude Include="include\Engine\Assets\AssetPath.h" />
     <ClInclude Include="include\Engine\Core\Utf8.h" />
@@ -220,8 +208,6 @@
     <ClInclude Include="include\Engine\Assets\TextureImport.h" />
     <ClInclude Include="include\Engine\Core\Profiler.h" />
     <ClInclude Include="include\Engine\Graphics\Resources\GpuProfiler.h" />
-    <ClCompile Include="src\Animation\Skeleton.cpp" />
-    <ClCompile Include="src\Animation\SkeletonLoader.cpp" />
     <ClInclude Include="include\Engine\Graphics\Renderers\ModelRenderer.h" />
     <ClInclude Include="include\Engine\Graphics\Models\MeshData.h" />
   </ItemGroup>
@@ -308,9 +294,6 @@
       <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\generated\build-identity\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
-  <Target Name="GenerateEngineIdentity" BeforeTargets="ClCompile" Condition="'$(DesignTimeBuild)' != 'true'">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\scripts\GenerateEngineIdentity.ps1&quot; -Configuration $(Configuration)" />
-  </Target>
   <ItemGroup>
     <None Include="Shaders\Common\ColorSpace.hlsli" />
     <None Include="Shaders\Common\ColorSpace.hlsli.meta" />
@@ -349,16 +332,6 @@
     <None Include="build\DirectXTex.targets" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Animation\SkinMatrix.cpp" />
-    <ClCompile Include="src\Assets\AssetFileRevision.cpp" />
-    <ClCompile Include="src\Assets\AssetReferenceResolver.cpp" />
-    <ClCompile Include="src\Assets\AssetSourceStamp.cpp" />
-    <ClCompile Include="src\Assets\ContentContext.cpp" />
-    <ClCompile Include="src\Assets\ContentFiles.cpp" />
-    <ClCompile Include="src\Core\FileContents.cpp" />
-    <ClCompile Include="src\Core\FileJournal.cpp" />
-    <ClCompile Include="src\Core\FileReplacement.cpp" />
-    <ClCompile Include="src\Core\FileSaveLock.cpp" />
     <ClCompile Include="src\Graphics\DirectX12\GpuRetirement.cpp" />
     <ClCompile Include="src\Graphics\Renderers\OcclusionRenderer.cpp" />
     <ClCompile Include="src\Graphics\Resources\ConstantBuffer.cpp" />
@@ -368,9 +341,10 @@
     <ClCompile Include="src\Graphics\Resources\RenderTargetBinding.cpp" />
     <ClCompile Include="src\Graphics\Resources\SkinPaletteBuffer.cpp" />
     <ClCompile Include="src\Input\InputActions.cpp" />
-    <ClCompile Include="src\Projects\ProjectContext.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="EngineCore.vcxproj" />
+    <ProjectReference Include="EngineAssets.vcxproj" />
+    <ProjectReference Include="EnginePlatform.vcxproj" />
   </ItemGroup>
 </Project>

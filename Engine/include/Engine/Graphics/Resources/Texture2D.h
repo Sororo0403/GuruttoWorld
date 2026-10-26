@@ -12,6 +12,7 @@
 namespace Engine
 {
     class GpuRetirement;
+    struct TextureAssetData;
     class Texture2D final
     {
     public:
@@ -85,20 +86,9 @@ namespace Engine
         }
 
     private:
-        struct ImageData
-        {
-            UINT width = 0;
-            UINT height = 0;
-            std::vector<unsigned char> pixels;
-        };
-
-        /// <summary>
-        /// WIC を使用して画像の先頭フレームを RGBA8 に変換します。
-        /// </summary>
-        /// <param name="path">画像ファイルのパス。</param>
-        /// <param name="image">幅、高さ、画素データの出力先。</param>
-        /// <returns>読み込みと変換に成功した場合は true。</returns>
-        bool LoadImage(const std::filesystem::path& path, ImageData& image);
+        /// <summary>準備済みのCPUミップ群を検証し、描画資源だけを生成します。</summary>
+        bool InitializePrepared(ID3D12Device* device, ID3D12CommandQueue* queue, const TextureAssetData& prepared,
+                                bool deferUpload);
 
         /// <summary>
         /// DEFAULT ヒープにコピー先状態のテクスチャを生成します。

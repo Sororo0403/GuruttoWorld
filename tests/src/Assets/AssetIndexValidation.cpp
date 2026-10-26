@@ -158,6 +158,12 @@ int main()
         Require(Engine::AssetDatabase(fixture / "Other", true).ReferenceId("Assets/Textures/Test.png") == third &&
                     recovered.ReferenceId("Assets/Textures/Test.png") == second,
                 "project isolation failed");
+        Engine::AssetDatabase::ReleaseIndexCache();
+        std::filesystem::rename(game, fixture / "MovedGame");
+        Require(Engine::AssetDatabase(fixture / "MovedGame", true).ReferenceId("Assets/Textures/Test.png") == second,
+                "released index watches must not block whole project relocation");
+        Require(recovered.ReferenceId("Assets/Textures/Test.png") == second,
+                "released cache must preserve previously captured immutable indexes");
         std::cout
             << "PASS: shared asset index, external edits, immutable snapshots, failure recovery, concurrent reads, "
                "shared layers, directory recreation and project isolation\n";

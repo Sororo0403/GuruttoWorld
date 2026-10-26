@@ -100,6 +100,11 @@ namespace Engine
         static std::map<std::vector<std::filesystem::path>, Entry, LayerOrder> entries;
         static std::uint64_t sequence = 0;
         const std::lock_guard lock(mutex);
+        if (!context)
+        {
+            entries.clear();
+            return {};
+        }
         const std::vector<std::filesystem::path> layers{context->Root(), context->ShaderRoot()};
         if (!entries.contains(layers) && entries.size() >= 64)
         {
@@ -128,6 +133,11 @@ namespace Engine
                                        });
         }
         return entry.index;
+    }
+
+    void AssetDatabase::ReleaseIndexCache()
+    {
+        AcquireIndex({});
     }
 
     std::shared_ptr<const AssetDatabase::Index> AssetDatabase::BuildIndex(const ContentContext& context)

@@ -99,15 +99,6 @@
     <ClCompile Include="src\Core\Application.cpp">
       <Filter>src\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Assets\AssetDatabase.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\Log.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\CrashHandler.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\Platform\Window.cpp">
       <Filter>src\Platform</Filter>
     </ClCompile>
@@ -122,9 +113,6 @@
     </ClCompile>
     <ClCompile Include="src\Graphics\Resources\DepthBuffer.cpp">
       <Filter>src\Graphics\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\ShaderCompiler.cpp">
-      <Filter>src\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\Renderers\SpriteRenderer.cpp">
       <Filter>src\Graphics\Renderers</Filter>
@@ -246,9 +234,6 @@
     <ClInclude Include="include\Engine\Graphics\Renderers\MeshRenderer.h">
       <Filter>include\Engine\Graphics\Renderers</Filter>
     </ClInclude>
-    <ClCompile Include="src\Graphics\Models\ModelLoader.cpp">
-      <Filter>src\Graphics\Models</Filter>
-    </ClCompile>
     <ClInclude Include="include\Engine\Graphics\Models\ModelLoader.h">
       <Filter>include\Engine\Graphics\Models</Filter>
     </ClInclude>
@@ -383,9 +368,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Core\DiagnosticPaths.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
     <ClInclude Include="include\Engine\Core\DiagnosticPaths.h">
       <Filter>include\Engine\Core</Filter>
     </ClInclude>
@@ -424,7 +406,6 @@
     <ClInclude Include="include\Engine\Core\FileContents.h">
       <Filter>include\Engine\Core</Filter>
     </ClInclude>
-    <ClCompile Include="src\Core\BuildIdentity.cpp"><Filter>src\Core</Filter></ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include\Engine\Projects" />
@@ -541,9 +522,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Assets\TextureImport.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="build\DirectXTex.targets">
@@ -553,36 +531,6 @@
   <ItemGroup>
     <Filter Include="src\Animation" />
     <Filter Include="src\Projects" />
-    <ClCompile Include="src\Animation\SkinMatrix.cpp">
-      <Filter>src\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\AssetFileRevision.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\AssetReferenceResolver.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\AssetSourceStamp.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\ContentContext.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\ContentFiles.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\FileContents.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\FileJournal.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\FileReplacement.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\FileSaveLock.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\Graphics\DirectX12\GpuRetirement.cpp">
       <Filter>src\Graphics\DirectX12</Filter>
     </ClCompile>
@@ -610,8 +558,8 @@
     <ClCompile Include="src\Input\InputActions.cpp">
       <Filter>src\Input</Filter>
     </ClCompile>
-    <ClCompile Include="src\Projects\ProjectContext.cpp">
-      <Filter>src\Projects</Filter>
-    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Graphics\Resources\RenderTexture.cpp"><Filter>src\Graphics\Resources</Filter></ClCompile>
   </ItemGroup>
 </Project>

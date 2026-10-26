@@ -260,8 +260,24 @@ namespace Engine
             return false;
         }
         Log::Info(std::format("OBJ loaded: {} meshes.", loaded.size()));
+        // 読み取り途中の変更を、GPU資源の新しい世代として公開しない。
+        try
+        {
+            const auto current = AssetDatabase::Read(path);
+            if (!io->cacheable || !Unchanged(io->dependencies) || current.id != settings.id ||
+                current.scale != settings.scale || current.flipV != settings.flipV)
+            {
+                Log::Error("Model source or import settings changed during import");
+                return false;
+            }
+        }
+        catch (const std::exception& failure)
+        {
+            Log::Error(failure.what());
+            return false;
+        }
         // インポート中にも変更がなかった結果だけを、CPU メッシュとして共有します。
-        if (io->cacheable && Unchanged(io->dependencies))
+        if (io->cacheable)
         {
             auto entry = std::make_shared<ImportedModel>();
             entry->scale = settings.scale;

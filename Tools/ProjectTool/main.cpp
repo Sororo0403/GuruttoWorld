@@ -1,3 +1,4 @@
+#include <Engine/Assets/AssetArtifact.h>
 #include "ToolCommon.h"
 #include "ProjectFiles.h"
 #include "ScriptBuild.h"
@@ -44,6 +45,7 @@ namespace
 
 int wmain(int argc, wchar_t** argv)
 {
+    Engine::AssetImportScope imports;
     try
     {
         using namespace ProjectTool;

@@ -52,6 +52,8 @@ namespace Engine
         std::shared_ptr<const ContentContext> context_;
 
     public:
+        /// <summary>再利用用の索引とフォルダー監視を解放します。取得済みの不変索引は有効で、次回の取得で監視を作り直します。</summary>
+        static void ReleaseIndexCache();
         /// <summary>索引が使用する固定した素材層を取得します。</summary>
         const std::shared_ptr<const ContentContext>& Content() const
         {
