@@ -1,3 +1,4 @@
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 // 製品の実装を直接コンパイルし、実際に生成する音声をテストで検査します。
 #include WP1_TEST_SUNRISE_SCRIPT

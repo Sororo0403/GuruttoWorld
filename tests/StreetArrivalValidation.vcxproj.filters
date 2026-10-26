@@ -6,6 +6,7 @@
     <Filter Include="References\ExternalGame\Assets" />
     <Filter Include="References\ExternalGame\Assets\Scripts" />
     <Filter Include="src" />
+    <Filter Include="src\Support" />
     <Filter Include="src\Gameplay" />
   </ItemGroup>
   <ItemGroup>
@@ -21,5 +22,8 @@
     <ClCompile Include="$(TestGameRoot)\Assets\Scripts\StreetJourney.cpp">
       <Filter>References\ExternalGame\Assets\Scripts</Filter>
     </ClCompile>
+    <ClInclude Include="src\Support\ModernScriptHarness.h">
+      <Filter>src\Support</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

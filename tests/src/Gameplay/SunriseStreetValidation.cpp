@@ -1,3 +1,8 @@
+#include "../Support/ModernScriptHarness.h"
+#include <SceneRuntime/Physics/PhysicsWorld.h>
+#include <SceneRuntime/Gameplay/TitleController.h>
+#include <LegacyScripts/LegacyScriptAdapter.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <Engine/Core/Json.h>
@@ -15,6 +20,7 @@
 #include <stdexcept>
 bool Register_SunriseStreet(void*, SceneRuntime::RegisterModuleScript);
 bool Register_StreetJourney(void*, SceneRuntime::RegisterModuleScript);
+bool Register_StreetArrival(void*, SceneRuntime::RegisterModuleScript);
 void ValidateSunriseSound();
 namespace
 {
@@ -61,12 +67,11 @@ namespace
                 "Public camera distance changes framing");
         Require(sample("lead", 2).rotation != sample("lead", 7).rotation, "Public camera lead changes aim");
     }
-    bool Register(void*, const char* name, const ScriptCallbacks* callbacks)
+    bool Register(void*, const char* name, const RuntimeScriptDefinition* callbacks)
     {
-        ScriptDefinition definition;
-        static_cast<ScriptCallbacks&>(definition) = *callbacks;
+        RuntimeScriptDefinition definition = *callbacks;
         static_cast<ScriptSchema&>(definition) = ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT).at(name);
-        return ScriptRegistry::Register(name, std::move(definition));
+        return ScriptRegistry::RegisterModern(name, std::move(definition));
     }
     ScenePlacement& Find(SceneLayout& layout, const std::string& id)
     {
@@ -101,7 +106,7 @@ namespace
         SceneLayout layout, validated;
         PhysicsWorld physics;
         ScenePhysics::States states;
-        ScriptRuntime scripts;
+        TestSupport::ModernScriptHarness scripts;
         UiState ui;
         int frames = 0;
         bool inspectStreet = false;
@@ -111,6 +116,7 @@ namespace
         explicit Simulation(const std::string& path = WP1_TEST_GAME_ROOT "/Assets/Scenes/SunriseStreet.json")
         {
             layout = SceneLayout::Load(path);
+            scripts.SetContentContext(Engine::ContentContext::Capture(WP1_TEST_GAME_ROOT));
             inspectStreet = path.find("StreetJourney.json") != std::string::npos;
             if (inspectStreet && GetEnvironmentVariableA("WP1_JOURNEY_FIXED_VIEW", nullptr, 0))
                 for (auto& script : Find(layout, "park-camera").scripts)
@@ -141,13 +147,7 @@ namespace
             // 最後に確定した更新段階と比較して検証します。
             const auto tickScripts = [&](ScriptPhase phase)
             {
-                auto candidate = layout;
-                auto runtime = scripts;
-                Require(runtime.UpdateCandidate(candidate, dt, error, input, pressed, &physics, phase, &validated),
-                        error);
-                runtime.CommitStarts();
-                layout = std::move(candidate);
-                scripts = std::move(runtime);
+                Require(scripts.UpdateCandidate(layout, dt, error, input, pressed, &physics, phase, &validated), error);
                 validated = layout;
             };
             tickScripts(ScriptPhase::FixedUpdate);
@@ -196,6 +196,8 @@ namespace
             for (const auto& [key, value] : scripts.TakeUiCommands().values)
                 ui.values[key] = value;
             ++frames;
+            if (frames % 600 == 0)
+                std::cout << "Simulation progress: " << frames << " frames\n";
         }
         void Walk(float x, float z, bool attack = true)
         {
@@ -866,8 +868,9 @@ namespace
         SceneEnvironment scene;
         Require(scene.Initialize(renderer, root, root / "Assets/Scenes/TitleStreet.json", error), error);
         GamePlayback playback;
-        playback.Initialize(scene, root, std::filesystem::absolute("generated/journey/settings.json"), false);
-        playback.Title().Activate(scene.Click("world-start"), scene.Ui());
+        playback.Initialize(scene, root, std::filesystem::absolute("generated/journey/settings.json"), false,
+                            std::make_unique<TitleController>());
+        static_cast<TitleController&>(playback.Feature()).Activate(scene.Click("world-start"), scene.Ui());
         Engine::InputActions none;
         for (int i = 0; i < 330; ++i)
         {
@@ -952,6 +955,7 @@ int main()
         Engine::Log::Initialize("generated/sunrise/validation.log");
         Require(Register_SunriseStreet(nullptr, Register), "Scripts register");
         Require(Register_StreetJourney(nullptr, Register), "Street scripts register");
+        Require(Register_StreetArrival(nullptr, Register), "Arrival scripts register");
         CameraControls();
         if (GetEnvironmentVariableA("WP1_SOUND_LIFECYCLE_ONLY", nullptr, 0))
         {

@@ -1,3 +1,7 @@
+#include "../Support/ModernScriptHarness.h"
+#include <SceneRuntime/Physics/PhysicsWorld.h>
+#include <LegacyScripts/LegacyScriptAdapter.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include "../Rendering/ShaderCacheValidation.h"
 #include "ParkResourceValidation.h"
@@ -31,12 +35,11 @@ namespace
         if (!condition)
             throw std::runtime_error(message);
     }
-    bool Register(void*, const char* name, const ScriptCallbacks* callbacks)
+    bool Register(void*, const char* name, const RuntimeScriptDefinition* callbacks)
     {
-        ScriptDefinition definition;
-        static_cast<ScriptCallbacks&>(definition) = *callbacks;
+        RuntimeScriptDefinition definition = *callbacks;
         static_cast<ScriptSchema&>(definition) = ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT).at(name);
-        return ScriptRegistry::Register(name, std::move(definition));
+        return ScriptRegistry::RegisterModern(name, std::move(definition));
     }
     ScenePlacement& Find(SceneLayout& layout, const std::string& id)
     {
@@ -192,11 +195,12 @@ namespace
         SceneLayout layout = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/ParkAdventure.json");
         PhysicsWorld physics;
         ScenePhysics::States states;
-        ScriptRuntime scripts;
+        TestSupport::ModernScriptHarness scripts;
         UiState ui;
         int frames = 0;
         Simulation()
         {
+            scripts.SetContentContext(Engine::ContentContext::Capture(WP1_TEST_GAME_ROOT));
             // プレイに必要な形状とスクリプトをすべて保持し、衝突判定のない背景だけを CPU 再生から除外します。
             std::erase_if(layout.objects,
                           [](const auto& item)

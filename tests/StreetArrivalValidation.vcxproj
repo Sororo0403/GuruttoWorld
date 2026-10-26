@@ -92,6 +92,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Support\ModernScriptHarness.h" />
     <ClCompile Include="src\Gameplay\StreetArrivalValidation.cpp" />
     <ClCompile Include="$(TestGameRoot)\Assets\Scripts\StreetArrival.cpp" />
     <ClCompile Include="$(TestGameRoot)\Assets\Scripts\SunriseStreet.cpp" />

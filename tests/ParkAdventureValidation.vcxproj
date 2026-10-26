@@ -92,6 +92,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Support\ModernScriptHarness.h" />
     <ClInclude Include="src\Gameplay\ParkResourceValidation.h" />
     <ClInclude Include="src\Scene\LayoutDeltaValidation.h" />
     <ClInclude Include="src\Rendering\ShaderCacheValidation.h" />

@@ -1,3 +1,6 @@
+#include "../Support/ModernScriptHarness.h"
+#include <LegacyScripts/LegacyScriptAdapter.h>
+#include <LegacyScripts/ScriptRuntime.h>
 #include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>
@@ -22,10 +25,11 @@ namespace
         using namespace SceneRuntime;
         ScriptDefinition definition;
         Require(Register_StreetArrival(&definition,
-                                       [](void* target, const char* name, const ScriptCallbacks* source)
+                                       [](void* target, const char* name, const RuntimeScriptDefinition* source)
                                        {
                                            auto& definition = *static_cast<ScriptDefinition*>(target);
-                                           static_cast<ScriptCallbacks&>(definition) = *source;
+                                           static_cast<ScriptCallbacks&>(definition) =
+                                               SceneRuntime::LegacyScriptAdapter::Adapt(*source);
                                            static_cast<ScriptSchema&>(definition) =
                                                ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT).at(name);
                                            return true;
@@ -94,12 +98,11 @@ namespace
     void ValidateGameplayContinues()
     {
         using namespace SceneRuntime;
-        const auto add = [](void*, const char* name, const ScriptCallbacks* callbacks)
+        const auto add = [](void*, const char* name, const RuntimeScriptDefinition* callbacks)
         {
-            ScriptDefinition definition;
-            static_cast<ScriptCallbacks&>(definition) = *callbacks;
+            RuntimeScriptDefinition definition = *callbacks;
             static_cast<ScriptSchema&>(definition) = ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT).at(name);
-            return ScriptRegistry::Register(name, std::move(definition));
+            return ScriptRegistry::RegisterModern(name, std::move(definition));
         };
         Require(Register_SunriseStreet(nullptr, add) && Register_StreetJourney(nullptr, add) &&
                     Register_StreetArrival(nullptr, add),
@@ -118,7 +121,8 @@ namespace
         };
         PhysicsWorld physics;
         ScenePhysics::States states;
-        ScriptRuntime scripts;
+        TestSupport::ModernScriptHarness scripts;
+        scripts.SetContentContext(Engine::ContentContext::Capture(WP1_TEST_GAME_ROOT));
         std::string error;
         float musicGain = 0;
         size_t nearReplies = 0, farReplies = 0;

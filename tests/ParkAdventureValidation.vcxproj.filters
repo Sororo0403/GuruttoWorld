@@ -6,6 +6,7 @@
     <Filter Include="References\ExternalGame\Assets" />
     <Filter Include="References\ExternalGame\Assets\Scripts" />
     <Filter Include="src" />
+    <Filter Include="src\Support" />
     <Filter Include="src\Gameplay" />
     <Filter Include="src\Rendering" />
     <Filter Include="src\Scene" />
@@ -28,6 +29,9 @@
     </ClInclude>
     <ClInclude Include="src\Rendering\SpriteResourceValidation.h">
       <Filter>src\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\ModernScriptHarness.h">
+      <Filter>src\Support</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

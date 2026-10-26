@@ -156,7 +156,7 @@ int main()
         Require(Capture(renderer, scene, "motion-stopped", 1280, 720) == second,
                 "Disabled motion keeps ray-rendered image fixed");
         Engine::Camera camera;
-        Require(SceneView::Camera(scene.World(), 16.0f / 9.0f, 9, camera), "Authored camera");
+        Require(SceneView::Camera(*scene.World().RenderSnapshot(), 16.0f / 9.0f, 9, camera), "Authored camera");
         Require(camera.SetRotation(0, 0), "Editor camera rotation");
         const auto turned = Capture(renderer, scene, "editor-north", 640, 360, &camera);
         const auto baseline = Capture(renderer, scene, "game-small", 640, 360);

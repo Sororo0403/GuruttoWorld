@@ -92,6 +92,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Support\ModernScriptHarness.h" />
     <ClInclude Include="src\Gameplay\ParkResourceValidation.h" />
     <ClInclude Include="src\Scene\LayoutDeltaValidation.h" />
     <ClInclude Include="src\Rendering\ShaderCacheValidation.h" />
@@ -99,6 +100,7 @@
     <ClCompile Include="src\Gameplay\SunriseStreetValidation.cpp" />
     <ClCompile Include="src\Gameplay\SunriseSoundValidation.cpp" />
     <ClCompile Include="$(TestGameRoot)\Assets\Scripts\StreetJourney.cpp" />
+    <ClCompile Include="$(TestGameRoot)\Assets\Scripts\StreetArrival.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">
