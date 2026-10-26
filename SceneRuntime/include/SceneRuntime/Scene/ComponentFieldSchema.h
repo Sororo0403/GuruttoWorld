@@ -24,16 +24,6 @@ namespace SceneRuntime
                                                         0, 89},
         ComponentScalarField<PlayerControllerComponent>{"stepHeight", &PlayerControllerComponent::stepHeight, 0, 10}};
     /// <summary>PlayerControllerのフィールドに対応する共通の制約を取得します。</summary>
-    inline const ComponentScalarField<PlayerControllerComponent>& PlayerControllerField(
-        float PlayerControllerComponent::* const member)
-    {
-        const auto found = std::find_if(PlayerControllerScalarFields.begin(), PlayerControllerScalarFields.end(),
-                                        [member](const auto& field)
-                                        {
-                                            return field.member == member;
-                                        });
-        if (found != PlayerControllerScalarFields.end())
-            return *found;
-        throw std::runtime_error("PlayerController scalar field is not declared");
-    }
+    const ComponentScalarField<PlayerControllerComponent>& PlayerControllerField(
+        float PlayerControllerComponent::* const member);
 }

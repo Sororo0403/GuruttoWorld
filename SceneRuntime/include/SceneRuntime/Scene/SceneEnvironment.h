@@ -32,16 +32,7 @@ namespace SceneRuntime
             return world_.Content();
         }
         /// <summary>公開前の開始処理を確定し、失敗時のUIと音声予約を破棄します。</summary>
-        bool StartScripts(std::string& error)
-        {
-            if (!world_.StartScripts(error))
-            {
-                DiscardPreparedUi();
-                return false;
-            }
-            ApplyUiCommands(world_.TakeUiCommands());
-            return true;
-        }
+        bool StartScripts(std::string& error);
         const SceneWorld& World() const
         {
             return world_;
@@ -148,13 +139,7 @@ namespace SceneRuntime
             world_.SetInputActions(std::move(values), std::move(pressed));
         }
         /// <summary>未処理の入力を破棄し、Pause・フォーカス復帰で再実行されないようにします。</summary>
-        void DiscardPendingInput()
-        {
-            world_.DiscardPendingInput();
-            DiscardPreparedUi();
-            physicsAttempted_ = false;
-            movement_.reset();
-        }
+        void DiscardPendingInput();
         /// <summary>実行中の個体のAnimatorパラメーターを上書きします。</summary>
         bool SetAnimatorParameter(const std::string& id, const std::string& name, float value)
         {

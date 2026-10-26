@@ -132,45 +132,18 @@ namespace SceneRuntime
                 });
         }
         /// <summary>コンポーネント ID の存在を確認します。必須の Transform は予約 ID "transform" で参照します。</summary>
-        bool HasComponentId(const std::string& componentId) const
-        {
-            bool found = componentId == "transform";
-            VisitComponents(
-                [&](const auto& component)
-                {
-                    found = found || component.id == componentId;
-                });
-            return found;
-        }
+        bool HasComponentId(const std::string& componentId) const;
         /// <summary>永続化指定と全コンポーネントを比較します。</summary>
-        bool SameComponents(const ScenePlacement& other) const
-        {
-#define ENGINE_SCENE_COMPARE(Type, member, references, assets, order)                                                  \
-    if (!(member == other.member))                                                                                     \
-        return false;
-            ENGINE_SCENE_COMPONENTS(ENGINE_SCENE_COMPARE, ENGINE_SCENE_COMPARE)
-#undef ENGINE_SCENE_COMPARE
-            return persistent == other.persistent;
-        }
+        bool SameComponents(const ScenePlacement& other) const;
         /// <summary>個体の識別子・階層・姿勢を維持して全コンポーネントをコピーします。</summary>
-        void CopyComponents(const ScenePlacement& other)
-        {
-            persistent = other.persistent;
-#define ENGINE_SCENE_COPY(Type, member, references, assets, order) member = other.member;
-            ENGINE_SCENE_COMPONENTS(ENGINE_SCENE_COPY, ENGINE_SCENE_COPY)
-#undef ENGINE_SCENE_COPY
-        }
+        void CopyComponents(const ScenePlacement& other);
         const std::filesystem::path& Model() const
         {
             static const std::filesystem::path empty;
             return meshRenderer ? meshRenderer->model : empty;
         }
-        void SetModel(std::filesystem::path path)
-        {
-            if (!meshRenderer)
-                meshRenderer.emplace();
-            meshRenderer->model = std::move(path);
-        }
+        /// <summary>モデルの参照を設定します。</summary>
+        void SetModel(std::filesystem::path path);
         const std::filesystem::path& Material() const
         {
             static const std::filesystem::path empty;

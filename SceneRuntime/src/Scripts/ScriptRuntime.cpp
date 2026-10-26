@@ -1172,3 +1172,34 @@ namespace SceneRuntime
         }
     }
 }
+
+namespace SceneRuntime
+{
+    auto ScriptRuntime::SetContentContext(std::shared_ptr<const Engine::ContentContext> content) -> void
+    {
+        content_ = std::move(content);
+        if (!definitions_)
+            definitions_ = ScriptRegistry::Capture();
+    }
+
+    auto ScriptRuntime::TakeSceneCommands() -> std::vector<SceneCommand>
+    {
+        auto commands = std::move(sceneCommands_);
+        sceneCommands_.clear();
+        return commands;
+    }
+
+    auto ScriptRuntime::TakeUiCommands() -> ScriptUiCommands
+    {
+        auto commands = std::move(uiCommands_);
+        uiCommands_ = {};
+        return commands;
+    }
+
+    auto ScriptRuntime::TakeAudioCommands() -> std::vector<AudioCommand>
+    {
+        auto commands = std::move(audioCommands_);
+        audioCommands_.clear();
+        return commands;
+    }
+}

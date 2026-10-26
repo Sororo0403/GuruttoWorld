@@ -564,3 +564,42 @@ namespace SceneRuntime
     }
 
 }
+
+namespace SceneRuntime
+{
+    auto ScenePlacement::HasComponentId(const std::string& componentId) const -> bool
+    {
+        bool found = componentId == "transform";
+        VisitComponents(
+            [&](const auto& component)
+            {
+                found = found || component.id == componentId;
+            });
+        return found;
+    }
+
+    auto ScenePlacement::SameComponents(const ScenePlacement& other) const -> bool
+    {
+#define ENGINE_SCENE_COMPARE(Type, member, references, assets, order)                                                  \
+    if (!(member == other.member))                                                                                     \
+        return false;
+        ENGINE_SCENE_COMPONENTS(ENGINE_SCENE_COMPARE, ENGINE_SCENE_COMPARE)
+#undef ENGINE_SCENE_COMPARE
+        return persistent == other.persistent;
+    }
+
+    auto ScenePlacement::CopyComponents(const ScenePlacement& other) -> void
+    {
+        persistent = other.persistent;
+#define ENGINE_SCENE_COPY(Type, member, references, assets, order) member = other.member;
+        ENGINE_SCENE_COMPONENTS(ENGINE_SCENE_COPY, ENGINE_SCENE_COPY)
+#undef ENGINE_SCENE_COPY
+    }
+
+    auto ScenePlacement::SetModel(std::filesystem::path path) -> void
+    {
+        if (!meshRenderer)
+            meshRenderer.emplace();
+        meshRenderer->model = std::move(path);
+    }
+}

@@ -53,13 +53,7 @@ namespace SceneRuntime
     {
     public:
         /// <summary>初回だけ登場演出を有効にします。</summary>
-        explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false, bool twoItems = false)
-            : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton)
-        {
-            if (twoItems)
-                items_.pop_back();
-            LoadSettings({});
-        }
+        explicit TitleMenu(bool playIntro = false, bool pressAnyButton = false, bool twoItems = false);
         /// <summary>ポインターの選択を反映します。設定中・開始中は変更しません。</summary>
         void SelectUi(TitleMenuItem item);
         bool UsesPressAnyButton() const
@@ -103,12 +97,8 @@ namespace SceneRuntime
         {
             return pendingTarget_;
         }
-        bool TakeAssignments(std::string& result)
-        {
-            result = std::move(assignments_);
-            assignments_.clear();
-            return !result.empty();
-        }
+        /// <summary>保留中の割り当てを取得して消去します。</summary>
+        bool TakeAssignments(std::string& result);
         /// <summary>ホストから受け取った保存済み設定を、メニューの保存値と編集値へ反映します。</summary>
         void LoadSettings(const GameSettings& settings);
         /// <summary>
@@ -151,16 +141,7 @@ namespace SceneRuntime
             return cue_;
         }
         /// <summary>保存結果を反映し、成功時だけ編集値を保存済みとして保持して設定画面を閉じます。</summary>
-        void CompleteSave(bool success)
-        {
-            cue_ = success ? TitleMenuCue::Confirm : TitleMenuCue::Error;
-            saveFailed_ = !success;
-            if (success)
-            {
-                saved_ = draft_;
-                settingsOpen_ = false;
-            }
-        }
+        void CompleteSave(bool success);
         /// <summary>保存に失敗したか返します。</summary>
         bool SaveFailed() const
         {

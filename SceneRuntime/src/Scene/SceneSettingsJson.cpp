@@ -100,14 +100,15 @@ namespace
                 const auto text = object.at(key).get<std::string>();
                 *target = std::filesystem::path(std::u8string(text.begin(), text.end()));
                 const auto& path = *target;
-                if (!path.empty() &&
-                    (path.is_absolute() || path.has_root_name() || !path.generic_u8string().starts_with(u8"Shaders/") ||
-                     path.extension() != ".hlsl" ||
-                     std::any_of(path.begin(), path.end(),
-                                 [](const auto& part)
-                                 {
-                                     return part == "..";
-                                 })))
+                if (!path.empty() && (path.is_absolute() || path.has_root_name() ||
+                                      (!path.generic_u8string().starts_with(u8"Shaders/") &&
+                                       !path.generic_u8string().starts_with(u8"Engine/Shaders/")) ||
+                                      path.extension() != ".hlsl" ||
+                                      std::any_of(path.begin(), path.end(),
+                                                  [](const auto& part)
+                                                  {
+                                                      return part == "..";
+                                                  })))
                     throw std::runtime_error("Invalid scene shader path");
             }
     }

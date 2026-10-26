@@ -133,6 +133,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <Import Project="build\Jolt.targets" />
+  <Import Project="build\Recast.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
@@ -163,6 +164,8 @@
     <ClCompile Include="src\Audio\SceneAudio.cpp" />
     <ClCompile Include="src\Gameplay\GenreGeometry.cpp" />
     <ClCompile Include="src\Gameplay\Navigation.cpp" />
+    <ClCompile Include="src\Gameplay\NavigationMesh.cpp" />
+    <ClInclude Include="src\Gameplay\NavigationMesh.h" />
     <ClInclude Include="include\SceneRuntime\Gameplay\Navigation.h" />
     <ClInclude Include="src\Gameplay\GenreJson.h" />
     <ClInclude Include="include\SceneRuntime\Gameplay\GenreComponents.h" />
@@ -236,4 +239,25 @@
       <AdditionalDependencies>$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\SceneStorage\SceneStorage.lib;$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\SceneData\SceneData.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="build\Recast.targets" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Audio\AudioCommand.cpp" />
+    <ClCompile Include="src\Gameplay\GamePlayback.cpp" />
+    <ClCompile Include="src\Gameplay\TitleBindings.cpp" />
+    <ClCompile Include="src\Gameplay\TitleConfigTransition.cpp" />
+    <ClCompile Include="src\Gameplay\TitleController.cpp" />
+    <ClCompile Include="src\Rendering\LightmapBaker.cpp" />
+    <ClCompile Include="src\Rendering\MaterialAsset.cpp" />
+    <ClCompile Include="src\Rendering\MaterialTextureCache.cpp" />
+    <ClCompile Include="src\Rendering\SceneRenderPlan.cpp" />
+    <ClCompile Include="src\Rendering\SceneResourceChanges.cpp" />
+    <ClCompile Include="src\Scene\SceneCollection.cpp" />
+    <ClCompile Include="src\Scripts\ScriptSchemaFiles.cpp" />
+    <ClCompile Include="src\Ui\SceneCanvas.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Physics\PhysicsJoints.cpp" />
+  </ItemGroup>
 </Project>

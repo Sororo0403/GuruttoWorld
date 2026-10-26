@@ -108,4 +108,37 @@
       <Filter>include\SceneRuntime\Scripts</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src\Project" />
+    <ClCompile Include="src\Animation\BlendTreeValidation.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\MenuConfiguration.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Physics\JointComponent.cpp">
+      <Filter>src\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\ProjectSettings.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\MaterialAssetFormat.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\ComponentFieldSchema.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\ObjectReferenceDomain.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\PrefabMerge.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneDocumentData.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiControlJson.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+  </ItemGroup>
 </Project>

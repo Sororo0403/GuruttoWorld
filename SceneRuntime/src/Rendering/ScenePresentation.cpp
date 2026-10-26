@@ -38,9 +38,9 @@ namespace SceneRuntime
             return false;
         root_ = context_->Root();
         device_ = renderer.GetDevice();
-        postShader_ = context_->Resolve(root_ / "Shaders/PostEffects.hlsl");
+        postShader_ = context_->Resolve(root_ / "Engine/Shaders/PostEffects.hlsl");
         queue_ = renderer.GetCommandQueue();
-        oceanShader_ = context_->Resolve(root_ / "Shaders/OceanSunset.hlsl");
+        oceanShader_ = context_->Resolve(root_ / "Engine/Shaders/OceanSunset.hlsl");
         error.clear();
         return true;
     }
@@ -203,7 +203,7 @@ namespace SceneRuntime
             if (!context_->CheckConfiguration(error))
                 return false;
             if (!sky_.Initialize(device_.Get(), queue_.Get(), environmentTexture_,
-                                 context_->Resolve(root_ / "Shaders/Sky.hlsl")))
+                                 context_->Resolve(root_ / "Engine/Shaders/Sky.hlsl")))
             {
                 error = "Sky pipeline could not be initialized";
                 return false;
@@ -215,7 +215,7 @@ namespace SceneRuntime
             if (!context_->CheckConfiguration(error))
                 return false;
             if (!particles_.Initialize(device_.Get(), queue_.Get(), environmentTexture_,
-                                       context_->Resolve(root_ / "Shaders/GlowParticle.hlsl")))
+                                       context_->Resolve(root_ / "Engine/Shaders/GlowParticle.hlsl")))
             {
                 error = "Particle pipeline could not be initialized";
                 return false;

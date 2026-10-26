@@ -2845,3 +2845,98 @@ namespace SceneRuntime
         return true;
     }
 }
+
+namespace SceneRuntime
+{
+    SceneWorld::SceneWorld(std::shared_ptr<SceneDocumentData> document)
+        : document_(document ? std::move(document) : throw std::invalid_argument("Document is null")),
+          context_(document_->Content()), layout_(document_->layout_)
+    {
+        if (document_->view_)
+            throw std::runtime_error("Document already has an editing projection");
+        document_->view_ = this;
+    }
+
+    auto SceneWorld::SetContentContext(std::shared_ptr<const Engine::ContentContext> context) -> void
+    {
+        if (!CanMutateScene())
+            return;
+        if (!context || (context_ && context_ != context))
+            throw std::runtime_error("Content context is already owned");
+        context_ = std::move(context);
+        document_->context_ = context_;
+    }
+
+    ~SceneWorld::SceneWorld()
+    {
+        if (execution_)
+            execution_->values.scripts.Stop(layout_);
+        else if (document_->view_ == this)
+            document_->view_ = nullptr;
+    }
+
+    auto SceneWorld::PauseScripts(bool paused) -> void
+    {
+        if (!CanMutateScene())
+            return;
+        if (execution_)
+            execution_->values.scripts.Pause(layout_, paused);
+    }
+
+    auto SceneWorld::DiscardAudioCommands() -> void
+    {
+        if (!CanMutateScene())
+            return;
+        if (execution_)
+            execution_->values.scripts.DiscardAudioCommands();
+    }
+
+    auto SceneWorld::DiscardUiCommands() -> void
+    {
+        if (!CanMutateScene())
+            return;
+        if (execution_)
+            execution_->values.scripts.DiscardUiCommands();
+    }
+
+    auto SceneWorld::SetRuntimePreparation(std::function<bool(const SceneLayout&, std::string&)> prepare) -> void
+    {
+        if (!CanMutateScene())
+            return;
+        prepareRuntime_ = std::move(prepare);
+    }
+
+    auto SceneWorld::SetUiPreparation(
+        std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)> prepare) -> void
+    {
+        if (!CanMutateScene())
+            return;
+        prepareUi_ = std::move(prepare);
+    }
+
+    auto SceneWorld::SetInputActions(std::map<std::string, float> values, std::map<std::string, bool> pressed) -> void
+    {
+        if (!CanMutateScene())
+            return;
+        if (!execution_)
+            return;
+        execution_->values.inputValues = std::move(values);
+        execution_->values.inputPressed = std::move(pressed);
+    }
+
+    auto SceneWorld::DiscardPendingInput() -> void
+    {
+        if (!CanMutateScene())
+            return;
+        if (!execution_)
+            return;
+        execution_->values.fixedPressed.clear();
+        execution_->values.fixedJump = false;
+        execution_->values.inputValues.clear();
+        execution_->values.inputPressed.clear();
+        if (execution_)
+            execution_->values.scripts.DiscardUiCommands();
+        if (execution_)
+            execution_->values.scripts.DiscardAudioCommands();
+    }
+}

@@ -23,18 +23,7 @@ namespace SceneRuntime
         bool operator==(const ScriptValue&) const = default;
 
         /// <summary>データの深さ・総要素数・値を検証します。不正な値は例外で拒否します。</summary>
-        void Validate(size_t depth, size_t& remaining) const
-        {
-            if (depth > 8 || remaining == 0)
-                throw std::runtime_error("Script data exceeds nesting or element limit");
-            --remaining;
-            std::visit(
-                [&](const auto& item)
-                {
-                    ValidateItem(item, depth, remaining);
-                },
-                value);
-        }
+        void Validate(size_t depth, size_t& remaining) const;
 
         /// <summary>配列・構造を再帰的に辿り、型付き個体参照だけを走査します。</summary>
         template <class Visitor> void VisitObjectReferences(Visitor&& visitor)
@@ -96,24 +85,8 @@ namespace SceneRuntime
                 throw std::runtime_error("Invalid script object reference");
         }
         /// <summary>配列の要素数と子データを検証します。</summary>
-        static void ValidateItem(const Array& item, size_t depth, size_t& remaining)
-        {
-            if (item.size() > 256)
-                throw std::runtime_error("Script data array is too large");
-            for (const auto& child : item)
-                child.Validate(depth + 1, remaining);
-        }
+        static void ValidateItem(const Array& item, size_t depth, size_t& remaining);
         /// <summary>構造のフィールド名と子データを検証します。</summary>
-        static void ValidateItem(const Object& item, size_t depth, size_t& remaining)
-        {
-            if (item.size() > 64)
-                throw std::runtime_error("Script data object is too large");
-            for (const auto& [name, child] : item)
-            {
-                if (name.empty() || name.size() > 128 || name.find('\0') != std::string::npos)
-                    throw std::runtime_error("Invalid script data field name");
-                child.Validate(depth + 1, remaining);
-            }
-        }
+        static void ValidateItem(const Object& item, size_t depth, size_t& remaining);
     };
 }

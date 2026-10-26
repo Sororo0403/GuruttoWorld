@@ -385,3 +385,32 @@ namespace SceneRuntime
         return TitleMenuAction::None;
     }
 }
+
+namespace SceneRuntime
+{
+    TitleMenu::TitleMenu(bool playIntro, bool pressAnyButton, bool twoItems)
+        : introSeconds_(playIntro ? 0.0f : 0.65f), pressAnyButton_(pressAnyButton)
+    {
+        if (twoItems)
+            items_.pop_back();
+        LoadSettings({});
+    }
+
+    auto TitleMenu::TakeAssignments(std::string& result) -> bool
+    {
+        result = std::move(assignments_);
+        assignments_.clear();
+        return !result.empty();
+    }
+
+    auto TitleMenu::CompleteSave(bool success) -> void
+    {
+        cue_ = success ? TitleMenuCue::Confirm : TitleMenuCue::Error;
+        saveFailed_ = !success;
+        if (success)
+        {
+            saved_ = draft_;
+            settingsOpen_ = false;
+        }
+    }
+}

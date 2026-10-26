@@ -256,12 +256,12 @@ namespace SceneRuntime
         auto sprite = std::make_shared<Engine::SpriteRenderer>();
         if (!(prototype ? sprite->InitializeShared(*prototype, texture)
                         : sprite->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture,
-                                             content_->Resolve(root / "Shaders/Ui.hlsl"))))
+                                             content_->Resolve(root / "Engine/Shaders/Ui.hlsl"))))
             throw std::runtime_error("Cannot create UI renderer");
         auto sceneSprite = std::make_shared<Engine::SpriteRenderer>();
         if (!(scenePrototype ? sceneSprite->InitializeShared(*scenePrototype, texture)
                              : sceneSprite->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture,
-                                                       content_->Resolve(root / "Shaders/SceneUi.hlsl"), true)))
+                                                       content_->Resolve(root / "Engine/Shaders/SceneUi.hlsl"), true)))
             throw std::runtime_error("Cannot create Scene Canvas renderer");
         pending.emplace(
             key, Resource{generation, signature, std::move(sprite), std::move(sceneSprite), text ? TextBytes(p) : 0});
@@ -283,8 +283,8 @@ namespace SceneRuntime
         if (inspected)
         {
             content_->RequireConfiguration();
-            if (!Engine::GetShaderRevision(content_->Resolve(root / "Shaders/Ui.hlsl"), uiRevision) ||
-                !Engine::GetShaderRevision(content_->Resolve(root / "Shaders/SceneUi.hlsl"), sceneRevision))
+            if (!Engine::GetShaderRevision(content_->Resolve(root / "Engine/Shaders/Ui.hlsl"), uiRevision) ||
+                !Engine::GetShaderRevision(content_->Resolve(root / "Engine/Shaders/SceneUi.hlsl"), sceneRevision))
                 throw std::runtime_error("Cannot inspect UI shaders");
             if (contextChanged || generation == 0 || uiRevision != uiRevision_ || sceneRevision != sceneRevision_)
                 ++generation;

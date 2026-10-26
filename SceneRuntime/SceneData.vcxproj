@@ -69,4 +69,19 @@
     <ClInclude Include="include\SceneRuntime\Scripts\ScriptValueJson.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <ClCompile Include="src\Animation\BlendTreeValidation.cpp" />
+    <ClCompile Include="src\Gameplay\MenuConfiguration.cpp" />
+    <ClCompile Include="src\Physics\JointComponent.cpp" />
+    <ClCompile Include="src\Project\ProjectSettings.cpp" />
+    <ClCompile Include="src\Rendering\MaterialAssetFormat.cpp" />
+    <ClCompile Include="src\Scene\ComponentFieldSchema.cpp" />
+    <ClCompile Include="src\Scene\ObjectReferenceDomain.cpp" />
+    <ClCompile Include="src\Scene\PrefabMerge.cpp" />
+    <ClCompile Include="src\Scene\SceneDocumentData.cpp" />
+    <ClCompile Include="src\Ui\UiControlJson.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Engine\Engine.vcxproj" />
+  </ItemGroup>
 </Project>

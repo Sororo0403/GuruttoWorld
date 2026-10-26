@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="build" />
     <Filter Include="include" />
     <Filter Include="include\SceneRuntime" />
     <Filter Include="include\SceneRuntime\Animation" />
@@ -279,5 +280,59 @@
     <ClInclude Include="include\SceneRuntime\Scene\SceneWorld.h">
       <Filter>include\SceneRuntime\Scene</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Gameplay\NavigationMesh.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClInclude Include="src\Gameplay\NavigationMesh.h">
+      <Filter>src\Gameplay</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="build\Recast.targets">
+      <Filter>build</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Audio\AudioCommand.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\GamePlayback.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\TitleBindings.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\TitleConfigTransition.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\TitleController.cpp">
+      <Filter>src\Gameplay</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\LightmapBaker.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\MaterialAsset.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\MaterialTextureCache.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\SceneRenderPlan.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Rendering\SceneResourceChanges.cpp">
+      <Filter>src\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\SceneCollection.cpp">
+      <Filter>src\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scripts\ScriptSchemaFiles.cpp">
+      <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\SceneCanvas.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -34,12 +34,7 @@ namespace SceneRuntime
             return definitions_ ? *definitions_ : ScriptRegistry::Definitions();
         }
         /// <summary>全ライフサイクルのコールバックへ所有者の参照情報を渡します。</summary>
-        void SetContentContext(std::shared_ptr<const Engine::ContentContext> content)
-        {
-            content_ = std::move(content);
-            if (!definitions_)
-                definitions_ = ScriptRegistry::Capture();
-        }
+        void SetContentContext(std::shared_ptr<const Engine::ContentContext> content);
         /// <summary>有効なスクリプトの登録と保存値を、開始処理を呼ばずに検証します。</summary>
         static bool ValidateForPlay(const SceneLayout& layout, std::string& error,
                                     const ScriptDefinitions* definitions = nullptr);
@@ -69,26 +64,11 @@ namespace SceneRuntime
         /// <summary>遷移で消える処理を候補から外し、終了処理は外側の確定まで予約します。</summary>
         void PrepareTransition(const SceneLayout& previous, SceneLayout& next);
         /// <summary>成功したフレームで予約されたシーン操作を取得します。</summary>
-        std::vector<SceneCommand> TakeSceneCommands()
-        {
-            auto commands = std::move(sceneCommands_);
-            sceneCommands_.clear();
-            return commands;
-        }
+        std::vector<SceneCommand> TakeSceneCommands();
         /// <summary>成功したFixed・Update・LateUpdateが予約したUI変更を一度だけ取得します。</summary>
-        ScriptUiCommands TakeUiCommands()
-        {
-            auto commands = std::move(uiCommands_);
-            uiCommands_ = {};
-            return commands;
-        }
+        ScriptUiCommands TakeUiCommands();
         /// <summary>成功した更新の音声指示を一度だけ取り出します。</summary>
-        std::vector<AudioCommand> TakeAudioCommands()
-        {
-            auto commands = std::move(audioCommands_);
-            audioCommands_.clear();
-            return commands;
-        }
+        std::vector<AudioCommand> TakeAudioCommands();
         /// <summary>失敗または中断した更新の音声指示を破棄します。</summary>
         void DiscardAudioCommands()
         {

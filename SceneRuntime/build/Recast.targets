@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <RecastConfiguration Condition="'$(Configuration)'=='Debug'">Debug</RecastConfiguration>
+    <RecastConfiguration Condition="'$(Configuration)'!='Debug'">Release</RecastConfiguration>
+    <RecastRoot>$(MSBuildThisFileDirectory)..\..\generated\</RecastRoot>
+    <RecastPostfix Condition="'$(Configuration)'=='Debug'">-d</RecastPostfix>
+  </PropertyGroup>
+  <ItemGroup>
+    <RecastDependencySources Include="$(RecastRoot)dependencies\recast-src\**\*.h;$(RecastRoot)dependencies\recast-src\**\*.cpp;$(RecastRoot)dependencies\recast-src\**\*.inl" />
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(RecastRoot)dependencies\recast-src\Recast\Include;$(RecastRoot)dependencies\recast-src\Detour\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>$(RecastRoot)outputs\recast\$(RecastConfiguration)\Recast$(RecastPostfix).lib;$(RecastRoot)outputs\recast\$(RecastConfiguration)\Detour$(RecastPostfix).lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
+  <Target Name="CheckRecastFiles" BeforeTargets="BuildRecast" Condition="!Exists('$(RecastRoot)outputs\recast\$(RecastConfiguration)\Recast$(RecastPostfix).lib') Or !Exists('$(RecastRoot)outputs\recast\$(RecastConfiguration)\Detour$(RecastPostfix).lib') Or !Exists('$(RecastRoot)dependencies\recast-src\Recast\Include\Recast.h')">
+    <Delete Files="$(RecastRoot)intermediate\recast\$(RecastConfiguration).ready" />
+  </Target>
+  <Target Name="BuildRecast" BeforeTargets="ClCompile"
+          Inputs="$(MSBuildThisFileDirectory)..\..\scripts\BuildRecast.ps1;$(MSBuildThisFileFullPath);@(RecastDependencySources)"
+          Outputs="$(RecastRoot)intermediate\recast\$(RecastConfiguration).ready">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\scripts\BuildRecast.ps1&quot; -Configuration $(RecastConfiguration)" />
+  </Target>
+</Project>

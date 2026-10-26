@@ -38,24 +38,9 @@ namespace SceneRuntime
         {
         }
         /// <summary>外部ドキュメントの描画投影を作成します。実行状態は所有しません。</summary>
-        explicit SceneWorld(std::shared_ptr<SceneDocumentData> document)
-            : document_(document ? std::move(document) : throw std::invalid_argument("Document is null")),
-              context_(document_->Content()), layout_(document_->layout_)
-        {
-            if (document_->view_)
-                throw std::runtime_error("Document already has an editing projection");
-            document_->view_ = this;
-        }
+        explicit SceneWorld(std::shared_ptr<SceneDocumentData> document);
         /// <summary>初期化前に所有者の固定した参照情報を受け取ります。</summary>
-        void SetContentContext(std::shared_ptr<const Engine::ContentContext> context)
-        {
-            if (!CanMutateScene())
-                return;
-            if (!context || (context_ && context_ != context))
-                throw std::runtime_error("Content context is already owned");
-            context_ = std::move(context);
-            document_->context_ = context_;
-        }
+        void SetContentContext(std::shared_ptr<const Engine::ContentContext> context);
         /// <summary>このワールドが使用する固定した参照情報を取得します。</summary>
         const std::shared_ptr<const Engine::ContentContext>& Content() const
         {
@@ -63,13 +48,7 @@ namespace SceneRuntime
         }
         /// <summary>実行用ではスクリプトを停止し、編集用ではドキュメントから投影先の参照を外します。</summary>
         /// <remarks>描画資源が GPU から参照されていないことを、呼び出し側で確認してから破棄してください。</remarks>
-        ~SceneWorld()
-        {
-            if (execution_)
-                execution_->values.scripts.Stop(layout_);
-            else if (document_->view_ == this)
-                document_->view_ = nullptr;
-        }
+        ~SceneWorld();
         /// <summary>修復可能な編集用の投影かを返します。</summary>
         bool IsDocumentView() const
         {
@@ -129,13 +108,7 @@ namespace SceneRuntime
             return layout_;
         }
         /// <summary>スクリプトが所有する音声などの外部資源を一時停止・再開します。</summary>
-        void PauseScripts(bool paused)
-        {
-            if (!CanMutateScene())
-                return;
-            if (execution_)
-                execution_->values.scripts.Pause(layout_, paused);
-        }
+        void PauseScripts(bool paused);
         /// <summary>親基準の位置・回転・スケールを配置と描画へ一括反映します。回転はラジアンで指定し、失敗時は変更しません。</summary>
         bool SetLocalTransform(std::string_view id, const std::array<float, 3>& position,
                                const std::array<float, 3>& rotation, const std::array<float, 3>& scale);
@@ -191,35 +164,13 @@ namespace SceneRuntime
                                                   : std::vector<AudioCommand>{};
         }
         /// <summary>失敗または中断したフレームの音声指示を破棄します。</summary>
-        void DiscardAudioCommands()
-        {
-            if (!CanMutateScene())
-                return;
-            if (execution_)
-                execution_->values.scripts.DiscardAudioCommands();
-        }
+        void DiscardAudioCommands();
         /// <summary>失敗フレームの未適用スクリプト UI変更を破棄します。</summary>
-        void DiscardUiCommands()
-        {
-            if (!CanMutateScene())
-                return;
-            if (execution_)
-                execution_->values.scripts.DiscardUiCommands();
-        }
+        void DiscardUiCommands();
         /// <summary>実行候補の確定前に外側の資源を準備する処理を登録します。準備中のWorld変更は禁止し、失敗時は候補を反映しません。</summary>
-        void SetRuntimePreparation(std::function<bool(const SceneLayout&, std::string&)> prepare)
-        {
-            if (!CanMutateScene())
-                return;
-            prepareRuntime_ = std::move(prepare);
-        }
+        void SetRuntimePreparation(std::function<bool(const SceneLayout&, std::string&)> prepare);
         /// <summary>スクリプトと姿勢の確定前にUI変更の描画資源を候補へ準備します。</summary>
-        void SetUiPreparation(std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)> prepare)
-        {
-            if (!CanMutateScene())
-                return;
-            prepareUi_ = std::move(prepare);
-        }
+        void SetUiPreparation(std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)> prepare);
         /// <summary>現在のUI候補準備を取得し、検証処理を追加して委譲できます。</summary>
         const std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)>& UiPreparation() const
         {
@@ -240,31 +191,10 @@ namespace SceneRuntime
         bool SetAnimatorParameter(const std::string& id, const std::string& name, float value);
         /// <summary>個体のパラメーター上書きを解除し、入力または保存値を使用します。</summary>
         bool ClearAnimatorParameter(const std::string& id, const std::string& name);
-        void SetInputActions(std::map<std::string, float> values, std::map<std::string, bool> pressed)
-        {
-            if (!CanMutateScene())
-                return;
-            if (!execution_)
-                return;
-            execution_->values.inputValues = std::move(values);
-            execution_->values.inputPressed = std::move(pressed);
-        }
+        /// <summary>入力アクションの状態を設定します。</summary>
+        void SetInputActions(std::map<std::string, float> values, std::map<std::string, bool> pressed);
         /// <summary>フォーカス喪失や一時停止で未処理の固定更新入力を破棄します。</summary>
-        void DiscardPendingInput()
-        {
-            if (!CanMutateScene())
-                return;
-            if (!execution_)
-                return;
-            execution_->values.fixedPressed.clear();
-            execution_->values.fixedJump = false;
-            execution_->values.inputValues.clear();
-            execution_->values.inputPressed.clear();
-            if (execution_)
-                execution_->values.scripts.DiscardUiCommands();
-            if (execution_)
-                execution_->values.scripts.DiscardAudioCommands();
-        }
+        void DiscardPendingInput();
         /// <summary>蓄積した秒数を固定刻みで進め、スクリプト・物理・移動を反映します。移動入力は親のローカル XZ 平面を基準にします。</summary>
         bool MovePlayers(double seconds, float horizontal, float vertical, bool jump = false);
         /// <summary>動的剛体へ次回の物理更新で加えるワールド空間のインパルスを予約します。</summary>

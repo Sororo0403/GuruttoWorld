@@ -69,7 +69,7 @@ namespace SceneRuntime
             world_.Content()->RequireRoot(root);
             const auto& contentRoot = world_.Content()->Root();
             if (!presentation_.Initialize(renderer, contentRoot, error, world_.Content()) ||
-                !world_.Initialize(renderer, contentRoot, std::move(layout), contentRoot / "Shaders/Mesh.hlsl",
+                !world_.Initialize(renderer, contentRoot, std::move(layout), contentRoot / "Engine/Shaders/Mesh.hlsl",
                                    &error) ||
                 !world_.ValidateScripts(error) || !presentation_.Prepare(renderer, contentRoot, world_.Layout(), error))
                 return false;
@@ -553,5 +553,27 @@ namespace SceneRuntime
     {
         presentation_.Draw(commands, world_, width, height,
                            {sceneCamera, seconds_, motionEnabled_, &uiState_, showSceneUi});
+    }
+}
+
+namespace SceneRuntime
+{
+    auto SceneEnvironment::StartScripts(std::string& error) -> bool
+    {
+        if (!world_.StartScripts(error))
+        {
+            DiscardPreparedUi();
+            return false;
+        }
+        ApplyUiCommands(world_.TakeUiCommands());
+        return true;
+    }
+
+    auto SceneEnvironment::DiscardPendingInput() -> void
+    {
+        world_.DiscardPendingInput();
+        DiscardPreparedUi();
+        physicsAttempted_ = false;
+        movement_.reset();
     }
 }
