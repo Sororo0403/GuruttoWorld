@@ -47,7 +47,7 @@
 
 namespace
 {
-    std::filesystem::path ContentRoot()
+    std::filesystem::path EditorResourceRoot()
     {
         std::wstring executable(32768, L'\0');
         const auto length = GetModuleFileNameW(nullptr, executable.data(), static_cast<DWORD>(executable.size()));
@@ -55,15 +55,15 @@ namespace
             return {};
         executable.resize(length);
         auto directory = std::filesystem::path(executable).parent_path();
-        // 開発時は元のContentを使い、将来の保存先もビルド出力のコピーにしません。
+        // フォントはゲーム素材とは分離したEditor専用リソースから読み込みます。
         for (auto parent = directory; !parent.empty(); parent = parent.parent_path())
         {
-            if (std::filesystem::is_directory(parent / "Content/Assets/Fonts"))
-                return parent / "Content";
+            if (std::filesystem::is_directory(parent / "Editor/Resources/Fonts"))
+                return parent / "Editor/Resources";
             if (parent == parent.parent_path())
                 break;
         }
-        return directory; // 配布時はEditorに同梱されたContentを読みます。
+        return directory / "Editor/Resources";
     }
 
     std::filesystem::path DefaultGameRoot()
@@ -235,6 +235,8 @@ namespace
         {
             buildPanel.Poll(root);
             scriptPanel.Poll(root, gameSession.State().IsEditing());
+            if (scriptPanel.TakeReloaded())
+                projectPanel.Scan(root);
             if (!ApplyPendingChanges(renderer) || !PrepareSceneTexture(renderer) || !PrepareGameTexture(renderer) ||
                 !PrepareUiTexture(renderer))
                 return false;
@@ -662,7 +664,8 @@ namespace
         // 編集投影を準備し、取得済みのシーンと保存基準を同じ操作で受理します。
         bool InitializeDocument(Engine::DirectX12Renderer& renderer)
         {
-            if (!world.Initialize(renderer, root, SceneRuntime::SceneLayout{}, root / "Shaders/Mesh.hlsl", &fileStatus))
+            if (!world.Initialize(renderer, root, SceneRuntime::SceneLayout{}, root / "Engine/Shaders/Mesh.hlsl",
+                                  &fileStatus))
                 return false;
             return document.Apply(world, root, fileStatus);
         }
@@ -671,7 +674,7 @@ namespace
         {
             if (!initialized)
             {
-                if (!Editor::EditorFonts::Initialize(ContentRoot(), fileStatus))
+                if (!Editor::EditorFonts::Initialize(EditorResourceRoot(), fileStatus))
                 {
                     LogResult(false);
                     return false;
@@ -781,7 +784,7 @@ namespace
             const bool success = Editor::ValidateProjectShaders(root, fileStatus) &&
                                  candidate->Initialize(renderer, root, fileStatus, context) &&
                                  candidate->Prepare(renderer, root, resolved, fileStatus) &&
-                                 world.ReloadAssets(renderer, root, root / "Shaders/Mesh.hlsl", fileStatus);
+                                 world.ReloadAssets(renderer, root, root / "Engine/Shaders/Mesh.hlsl", fileStatus);
             if (success)
             {
                 presentation = std::move(candidate);

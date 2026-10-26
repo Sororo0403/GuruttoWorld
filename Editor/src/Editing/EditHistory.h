@@ -19,113 +19,23 @@ namespace Editor
             std::string selection;
             std::vector<std::string> selections{};
         };
-        void Reset(State state)
-        {
-            states_ = {std::move(state)};
-            files_ = {std::vector<FileChange>{}};
-            states_.reserve(102);
-            files_.reserve(102);
-            cursor_ = 0;
-            pending_.reset();
-            interaction_.clear();
-            saved_ = states_[0].json;
-        }
-        void Observe(State state, std::string_view interaction)
-        {
-            if (states_.empty())
-            {
-                Reset(std::move(state));
-                return;
-            }
-            if (!interaction.empty() && interaction_ != interaction)
-                Commit();
-            interaction_ = interaction;
-            pending_ = std::move(state);
-            if (interaction.empty())
-                Commit();
-        }
+        /// <summary>状態を初期値へ戻します。</summary>
+        void Reset(State state);
+        /// <summary>素材の変更を監視対象へ追加します。</summary>
+        void Observe(State state, std::string_view interaction);
         /// <summary>
         /// 編集のないフレームでは、シーンの JSON 全体をコピーせずに選択状態を更新します。
         /// </summary>
         void Observe(const std::string& json, const std::string& selection, const std::vector<std::string>& selections,
-                     std::string_view interaction)
-        {
-            if (states_.empty())
-            {
-                Reset({json, selection, selections});
-                return;
-            }
-            if (!interaction.empty() && interaction_ != interaction)
-                Commit();
-            interaction_ = interaction;
-            auto& current = pending_ ? *pending_ : states_[cursor_];
-            if (current.json == json)
-            {
-                current.selection = selection;
-                current.selections = selections;
-            }
-            else
-                pending_ = State{json, selection, selections};
-            if (interaction.empty())
-                Commit();
-        }
-        void Commit()
-        {
-            interaction_.clear();
-            if (!pending_)
-                return;
-            if (pending_->json != states_[cursor_].json)
-            {
-                states_.resize(cursor_ + 1);
-                files_.resize(cursor_ + 1);
-                states_.push_back(std::move(*pending_));
-                files_.emplace_back();
-                if (states_.size() > 101)
-                {
-                    states_.erase(states_.begin());
-                    files_.erase(files_.begin());
-                    files_.front().clear();
-                }
-                cursor_ = states_.size() - 1;
-            }
-            else
-            {
-                states_[cursor_].selection = pending_->selection;
-                states_[cursor_].selections = pending_->selections;
-            }
-            pending_.reset();
-        }
+                     std::string_view interaction);
+        /// <summary>準備済みの変更を確定します。</summary>
+        void Commit();
         bool CanUndo() const
         {
             return cursor_ > 0;
         }
         /// <summary>シーンと素材の一つの編集を、通常の連続操作とは分けて履歴へ確定します。</summary>
-        void RecordTransaction(State before, State after, std::vector<FileChange> files)
-        {
-            Observe(std::move(before), "");
-            Commit();
-            const bool changed = std::any_of(files.begin(), files.end(),
-                                             [](const auto& file)
-                                             {
-                                                 return file.before != file.after;
-                                             });
-            if (!changed && after.json == states_[cursor_].json)
-            {
-                Observe(std::move(after), "");
-                return;
-            }
-            states_.resize(cursor_ + 1);
-            files_.resize(cursor_ + 1);
-            states_.push_back(std::move(after));
-            files_.push_back(std::move(files));
-            if (states_.size() > 101)
-            {
-                states_.erase(states_.begin());
-                files_.erase(files_.begin());
-                files_.front().clear();
-            }
-            cursor_ = states_.size() - 1;
-        }
+        void RecordTransaction(State before, State after, std::vector<FileChange> files);
         /// <summary>UndoまたはRedoでシーンと一緒に適用する素材の変更を返します。</summary>
         const std::vector<FileChange>& TargetFiles(bool redo) const
         {
@@ -139,15 +49,8 @@ namespace Editor
         {
             return states_.at(redo ? cursor_ + 1 : cursor_ - 1);
         }
-        void Applied(bool redo)
-        {
-            if (redo)
-                ++cursor_;
-            else
-                --cursor_;
-            pending_.reset();
-            interaction_.clear();
-        }
+        /// <summary>適用済みの状態を記録します。</summary>
+        void Applied(bool redo);
         void Saved(const std::string& json)
         {
             Commit();

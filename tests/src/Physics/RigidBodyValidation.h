@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Physics/PhysicsWorld.h>
 #include <Engine/Core/Json.h>
 #include <Engine/Core/Profiler.h>
@@ -52,7 +53,7 @@ namespace RigidBodyValidation
     inline void ControllerUpdates()
     {
         using namespace SceneRuntime;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto layout = Layout(true);
         ScenePhysics::States states;
         PhysicsWorld world;
@@ -133,7 +134,7 @@ namespace RigidBodyValidation
     inline void PartialTransformRollback()
     {
         using namespace SceneRuntime;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto layout = Layout();
         layout.objects[1].rigidBody->velocity = {1, 0, 0};
         ScenePlacement parent;
@@ -168,7 +169,7 @@ namespace RigidBodyValidation
         using namespace SceneRuntime;
         ControllerUpdates();
         PartialTransformRollback();
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto layout = Layout();
         std::string error;
         ScenePhysics::States states;
@@ -355,7 +356,7 @@ namespace RigidBodyValidation
             Require(ScriptRegistry::Register("ValidationPhysicsEvents", script), "physics event script registers");
             registered = true;
         }
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto layout = SceneLayout::Load(root / "Assets/Scenes/RigidBodyPlayground.json", root);
         const auto floor = std::find_if(layout.objects.begin(), layout.objects.end(),
                                         [](const auto& item)

@@ -1,3 +1,4 @@
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scripts/ScriptModuleApi.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>
 #include <cmath>
@@ -21,9 +22,12 @@ namespace
         using namespace SceneRuntime;
         ScriptDefinition definition;
         Require(Register_StreetArrival(&definition,
-                                       [](void* target, const char*, const ScriptDefinition* source)
+                                       [](void* target, const char* name, const ScriptCallbacks* source)
                                        {
-                                           *static_cast<ScriptDefinition*>(target) = *source;
+                                           auto& definition = *static_cast<ScriptDefinition*>(target);
+                                           static_cast<ScriptCallbacks&>(definition) = *source;
+                                           static_cast<ScriptSchema&>(definition) =
+                                               ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT).at(name);
                                            return true;
                                        }),
                 "arrival registers");
@@ -90,14 +94,17 @@ namespace
     void ValidateGameplayContinues()
     {
         using namespace SceneRuntime;
-        const auto add = [](void*, const char* name, const ScriptDefinition* definition)
+        const auto add = [](void*, const char* name, const ScriptCallbacks* callbacks)
         {
-            return ScriptRegistry::Register(name, *definition);
+            ScriptDefinition definition;
+            static_cast<ScriptCallbacks&>(definition) = *callbacks;
+            static_cast<ScriptSchema&>(definition) = ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT).at(name);
+            return ScriptRegistry::Register(name, std::move(definition));
         };
         Require(Register_SunriseStreet(nullptr, add) && Register_StreetJourney(nullptr, add) &&
                     Register_StreetArrival(nullptr, add),
                 "gameplay scripts register");
-        auto layout = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/StreetJourney.json");
+        auto layout = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/StreetJourney.json");
         for (auto& object : layout.objects)
             for (auto& script : object.scripts)
                 if (script.behaviour == "SunriseSound")
@@ -122,8 +129,7 @@ namespace
             const std::map<std::string, bool> pressed{{"Cancel", cancel}};
             Require(scripts.Update(layout, Step, error, input, pressed, &physics, ScriptPhase::FixedUpdate),
                     error.c_str());
-            Require(physics.Advance(layout, states, Step, 0, forward, false, "Games/GuruttoWorld", error),
-                    error.c_str());
+            Require(physics.Advance(layout, states, Step, 0, forward, false, WP1_TEST_GAME_ROOT, error), error.c_str());
             Require(scripts.Update(layout, Step, error, input, pressed, &physics), error.c_str());
             Require(scripts.Update(layout, Step, error, input, pressed, &physics, ScriptPhase::LateUpdate),
                     error.c_str());

@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "../Rendering/RenderingFeaturesValidation.h"
 #include <SceneRuntime/Rendering/MaterialAsset.h>
 #include "../Rendering/EnvironmentValidation.h"
@@ -164,7 +165,7 @@ namespace MaterialValidation
         data.indices = {0, 1, 2};
         Engine::MeshRenderer mesh;
         Require(mesh.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), data,
-                                std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),
+                                std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl")),
                 "material mesh fixture initializes");
         Engine::DirectionalLight light;
         light.enabled = false;
@@ -194,7 +195,7 @@ namespace MaterialValidation
         }
         auto slotModel = std::make_shared<Engine::ModelRenderer>();
         Require(slotModel->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), slotRoot / "Slots.obj",
-                                      std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")) &&
+                                      std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl")) &&
                     slotModel->MeshCount() == 2,
                 "two-mesh material-slot fixture initializes");
         auto fallback = std::make_shared<Engine::Material>();
@@ -340,7 +341,7 @@ namespace MaterialValidation
         data.vertices[1].uv = {.5f, 0};
         data.vertices[2].uv = {1, 1};
         Require(mappedMesh.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), data,
-                                      std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),
+                                      std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl")),
                 "normal mapped mesh initializes");
         auto normalImage = std::make_shared<Engine::Texture2D>();
         Require(
@@ -378,7 +379,7 @@ namespace MaterialValidation
         Require(unlit[0] >= 127 && unlit[0] <= 128 && unlit[1] == unlit[0] && unlit[2] == unlit[0] && unlit[3] == 255,
                 "normal flag does not accidentally enable disabled lighting");
         Require(renderer.WaitForIdle(), "material GPU complete before resource release");
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         const auto layout =
             SceneRuntime::SceneLayout::Load(content / "Assets/Scenes/RenderingPlayground.json", content);
         const auto saved = layout.Serialize();

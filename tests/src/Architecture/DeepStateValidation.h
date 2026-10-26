@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneMigration.h>
 #include "../../../Editor/src/Documents/SceneSnapshotCache.h"
 #include <SceneRuntime/Scene/SceneCollection.h>
@@ -155,7 +156,7 @@ namespace DeepStateValidation
     inline void GeometryFiles()
     {
         using namespace SceneRuntime;
-        std::ifstream input("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf");
+        std::ifstream input(WP1_TEST_GAME_ROOT "/Assets/Models/AnimatedBox.gltf");
         auto document = Engine::Json::parse(input);
         const auto uri = document.at("buffers").at(0).at("uri").get<std::string>();
         const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneLayout.h>
 #include <SceneRuntime/Rendering/MaterialAsset.h>
 #include <SceneRuntime/Scripts/ScriptRuntime.h>
@@ -8,7 +9,7 @@
 #include "../../../Editor/src/Inspector/ScriptDataPanel.h"
 #include "../Architecture/DeepStateValidation.h"
 #include "../Architecture/FollowupStateValidation.h"
-#include "../Assets/SharedContentValidation.h"
+#include "../Assets/EngineResourceValidation.h"
 #include "../Assets/ProjectUserSettingsValidation.h"
 #include <fstream>
 #include <iostream>
@@ -406,7 +407,7 @@ namespace AuthoringSettingsValidation
         AnimationRegistry();
         ScriptPurposeWidgets();
         RegisteredParameterDefaults();
-        for (const auto& entry : std::filesystem::directory_iterator("Games/GuruttoWorld/Assets/Scenes"))
+        for (const auto& entry : std::filesystem::directory_iterator(WP1_TEST_GAME_ROOT "/Assets/Scenes"))
         {
             if (entry.path().extension() != ".json")
                 continue;
@@ -418,11 +419,11 @@ namespace AuthoringSettingsValidation
                             (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         std::cout << "Authoring output: " << output.generic_string() << '\n';
         std::filesystem::create_directories(output);
-        SharedContentValidation::Run(std::filesystem::absolute(output / "shared-content"));
+        EngineResourceValidation::Run(std::filesystem::absolute(output / "engine-resources"));
         ProjectUserSettingsValidation::Run(
             std::filesystem::temp_directory_path() /
             ("settings-" + std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64())));
-        auto scene = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/OceanSunset.json");
+        auto scene = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/OceanSunset.json");
         scene.settings.gravity = {2, -9.81f, 1};
         scene.settings.fixedStep = .02f;
         scene.settings.maximumFixedSteps = 8;
@@ -502,7 +503,7 @@ namespace AuthoringSettingsValidation
         material.shader = "Shaders/Mesh.hlsl";
         const auto materialRoot = output / "material";
         std::filesystem::create_directories(materialRoot / "Shaders");
-        std::filesystem::copy_file("Content/Shaders/Mesh.hlsl", materialRoot / material.shader,
+        std::filesystem::copy_file("Engine/Shaders/Mesh.hlsl", materialRoot / material.shader,
                                    std::filesystem::copy_options::overwrite_existing);
         material.Save(materialRoot, "Assets/Materials/Shader.mat");
         Require(MaterialAsset::Load(materialRoot, "Assets/Materials/Shader.mat").shader == material.shader,
@@ -538,11 +539,11 @@ namespace AuthoringSettingsValidation
         physical.settings.gravity = {0, 0, 0};
         PhysicsWorld physics;
         ScenePhysics::States states;
-        Require(physics.Advance(physical, states, .05, 0, 0, false, "Games/GuruttoWorld", error),
+        Require(physics.Advance(physical, states, .05, 0, 0, false, WP1_TEST_GAME_ROOT, error),
                 "Zero gravity physics failed");
         Require(std::abs(physical.objects[0].position[1] - 3) < .001f, "World gravity setting was ignored");
         physical.settings.gravity = {0, -10, 0};
-        Require(physics.Advance(physical, states, .05, 0, 0, false, "Games/GuruttoWorld", error),
+        Require(physics.Advance(physical, states, .05, 0, 0, false, WP1_TEST_GAME_ROOT, error),
                 "Changed world gravity physics failed");
         Require(physical.objects[0].position[1] < 3, "Changed world gravity was not applied");
     }

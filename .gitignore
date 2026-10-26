@@ -404,23 +404,15 @@ FodyWeavers.xsd
 /generated/
 
 # OBJ model assets are source data, not compiler outputs.
-!App/Assets/Models/**/*.obj
-!Content/Assets/Models/**/*.obj
 
 # Asset IDs and import settings are source data.
-!Content/**/*.meta
+!Engine/Shaders/**/*.meta
+!Tools/GameProject/Templates/**/*.meta
 
 # Script modules are rebuilt from tracked C++ sources for each configuration.
-/Content/Assets/Scripts/Bin/
-
-# Independent game project source assets and generated files.
-!Games/**/Assets/Models/**/*.obj
-!Games/**/*.meta
-/Games/*/generated/
-/Games/*/Assets/Scripts/Bin/
+/Tools/GameProject/Templates/**/Assets/Scripts/Bin/
 
 # ローカルの個人設定と一時資料
-/Games/generated/
 /.slide-build/
 /.chart-data-*/
 /output/

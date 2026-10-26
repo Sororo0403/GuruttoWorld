@@ -1,69 +1,131 @@
-#include <SceneRuntime/Scripts/ScriptModuleApi.h>
-#include <SceneRuntime/Scripts/ScriptValueJson.h>
+#include <SceneRuntime/Scripts/ScriptModule.h>
+#include <SceneRuntime/Scripts/ScriptRuntime.h>
 #include <Engine/Core/FileContents.h>
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
+#include "ScriptAuthoringValidation.h"
+#endif
+#include <cmath>
 #include <iostream>
+#include <type_traits>
 
 namespace
 {
-    bool Collect(void* target, const char* name, const SceneRuntime::ScriptDefinition* definition)
+    using namespace SceneRuntime;
+
+    void Require(bool condition, const std::string& message)
     {
-        auto& scripts = *static_cast<Engine::Json*>(target);
-        if (!name || !definition || scripts.contains(name))
-            return false;
-        scripts[name] = definition->Serialize();
-        return true;
+        if (!condition)
+            throw std::runtime_error(message);
     }
+
+    float Run(const std::shared_ptr<const ScriptDefinitions>& definitions, bool savedValue = false)
+    {
+        ScenePlacement object;
+        object.id = "mover";
+        ScriptComponent script;
+        script.id = "movement";
+        script.behaviour = "Derived";
+        if (savedValue)
+            script.parameters["speed"] = 8;
+        object.scripts.push_back(script);
+        SceneLayout scene;
+        scene.objects.push_back(object);
+        ScriptRuntime runtime(definitions);
+        std::string error;
+        for (int tick = 0; tick < 5; ++tick)
+        {
+            const bool updated = runtime.Update(scene, .1, error);
+            Require(updated, "Callback execution failed: " + error);
+        }
+        runtime.Stop(scene);
+        return scene.objects[0].position[0];
+    }
+
+    struct RestoreFile
+    {
+        std::filesystem::path path;
+        std::string text;
+        ~RestoreFile()
+        {
+            try
+            {
+                Engine::FileContents::Write(path, text);
+            }
+            catch (...)
+            {
+            }
+        }
+    };
 }
 
 int wmain(int count, wchar_t** arguments)
 {
     try
     {
-        if (count != 4 && count != 5)
-            throw std::runtime_error("Usage: --export|--compare module.dll snapshot.json [project]");
-        const bool compare = std::wstring_view(arguments[1]) == L"--compare";
-        const bool validate = std::wstring_view(arguments[1]) == L"--validate";
-        if (!compare && !validate && std::wstring_view(arguments[1]) != L"--export")
-            throw std::runtime_error("Invalid mode");
-        struct Module
+        static_assert(!std::is_base_of_v<ScriptSchema, ScriptCallbacks>);
+        if (count != 2)
+            throw std::runtime_error(
+                "Usage: ScriptSchemaModuleValidation <project> (or --watcher in Debug/Development)");
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
+        if (std::wstring_view(arguments[1]) == L"--watcher")
         {
-            HMODULE handle;
-            ~Module()
-            {
-                if (handle)
-                    FreeLibrary(handle);
-            }
-        } module{LoadLibraryExW(std::filesystem::absolute(arguments[2]).c_str(), nullptr,
-                                LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)};
-        if (!module.handle)
-            throw std::runtime_error("Cannot load game module");
-        const auto entry =
-            reinterpret_cast<SceneRuntime::RegisterScriptModule>(GetProcAddress(module.handle, "Wp1RegisterScripts"));
-        if (!entry)
-            throw std::runtime_error("Missing script registration");
-        const SceneRuntime::ScriptModuleAbi abi;
-        auto scripts = Engine::Json::object();
-        if (!entry(&abi, &scripts, Collect))
-            throw std::runtime_error("Incompatible game module or duplicate registration");
-        const Engine::Json snapshot{{"version", 1}, {"scripts", scripts}};
-        const auto path = std::filesystem::path(arguments[3]);
-        if (!compare && !validate)
-            Engine::FileContents::Write(path, snapshot.dump(2) + "\n", false);
-        else if (compare)
-        {
-            const auto before = Engine::FileContents::Read(path);
-            if (!before || Engine::Json::parse(*before) != snapshot)
-                throw std::runtime_error("Game script metadata changed during migration");
+            ScriptAuthoringValidation::Run();
+            std::cout << "PASS: script source and JSON change watching\n";
+            return 0;
         }
-        if (validate || count == 5)
+#endif
+        const auto root = std::filesystem::absolute(arguments[1]);
+        std::string error;
+        const bool loaded = ScriptModule::Reload(root, error);
+        Require(loaded, "Direct JSON loading failed: " + error);
+        const auto declared = ScriptSchema::LoadProject(root);
+        for (const auto* name : {"Derived", "LongSchema", "Script"})
+            Require(static_cast<const ScriptSchema&>(ScriptRegistry::Definitions().at(name)) == declared.at(name),
+                    std::string("Host metadata differs from JSON: ") + name);
+        const auto& longFields = ScriptRegistry::Definitions().at("LongSchema").dataFields;
+        Require(longFields.size() == 32 && std::get<std::string>(longFields.at("field0").value).size() == 3072,
+                "Large UTF-8 defaults were not loaded intact");
+        const auto original = ScriptRegistry::Capture();
+        Require(std::abs(Run(original) - 2) < 1e-5, "Inherited JSON defaults did not reach the callback");
+
+        const auto schemaPath = root / "Assets/Scripts/Derived.schema.json";
+        const RestoreFile restore{schemaPath, *Engine::FileContents::Read(schemaPath)};
+        auto changed = Engine::Json::parse(restore.text);
+        changed["scripts"]["Derived"]["parameters"]["speed"]["initial"] = 6;
+        Engine::FileContents::Write(schemaPath, changed.dump());
+        const bool reloaded = ScriptModule::Reload(root, error);
+        Require(reloaded, "JSON-only reload failed: " + error);
+        const auto updated = ScriptRegistry::Capture();
+        Require(std::abs(Run(updated) - 3) < 1e-5 && std::abs(Run(original) - 2) < 1e-5,
+                "JSON reload did not update defaults or changed an existing session snapshot");
+        Require(std::abs(Run(updated, true) - 4) < 1e-5, "JSON reload overwrote saved scene parameters");
+
+        const auto revision = ScriptRegistry::Revision();
+        const auto rejects = [&](const std::string& source)
         {
-            const auto declared = SceneRuntime::ScriptSchema::LoadProject(arguments[validate ? 3 : 4]);
-            for (const auto& [name, schema] : scripts.items())
-                if (!declared.contains(name) || declared.at(name).Serialize() != schema)
-                    throw std::runtime_error("Declared schema differs from native metadata: " + name);
-        }
-        std::cout << "PASS: " << scripts.size() << " native script schemas preserve metadata"
-                  << (validate || count == 5 ? " and match declarations" : "") << '\n';
+            Engine::FileContents::Write(schemaPath, source);
+            Require(!ScriptModule::Reload(root, error) && !error.empty() && ScriptRegistry::Revision() == revision &&
+                        ScriptRegistry::Definitions().at("Derived").fields.at("speed").initial == 6,
+                    "Invalid declaration changed the active module");
+        };
+        rejects("{");
+        auto invalid = changed;
+        invalid["scripts"]["Derived"]["parameters"]["speed"]["maximum"] = 1;
+        rejects(invalid.dump());
+        invalid = changed;
+        invalid["scripts"]["Derived"]["extends"] = "Absent";
+        rejects(invalid.dump());
+        invalid = changed;
+        invalid["scripts"]["Derived"]["extends"] = "Derived";
+        rejects(invalid.dump());
+        invalid = changed;
+        invalid["scripts"]["Base"] = Engine::Json::object();
+        rejects(invalid.dump());
+        rejects(Engine::Json{{"version", 1}, {"scripts", Engine::Json::object()}}.dump());
+        Require(std::abs(Run(ScriptRegistry::Capture()) - 3) < 1e-5,
+                "Preserved callbacks could not execute after a rejected reload");
+        std::cout << "PASS: direct host JSON loading, cross-file inheritance, UTF-8 defaults, JSON-only reload, "
+                     "session snapshots, saved values and atomic rejection\n";
         return 0;
     }
     catch (const std::exception& failure)

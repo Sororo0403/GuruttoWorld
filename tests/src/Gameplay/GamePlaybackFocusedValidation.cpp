@@ -1,3 +1,4 @@
+#include "../Support/TestGameContent.h"
 #include "GamePlaybackParityValidation.h"
 #include "TitleConfigTransitionValidation.h"
 #include "TitleDepartureValidation.h"
@@ -17,7 +18,7 @@ int main(int argc, char** argv)
         Engine::DirectX12Renderer renderer;
         if (!window.Create(L"Playback parity validation", 1280, 720) || !renderer.Initialize(window.GetHandle()))
             throw std::runtime_error("renderer initialization failed");
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         if (argc == 2 && std::string_view(argv[1]) == "--departure-only")
         {
             // 一致検証では、共通ホストの更新と出発処理の検証より前に、元のスクリプトモジュールを読み込みます。

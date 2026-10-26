@@ -28,9 +28,9 @@ namespace SessionDesignContractValidation
         FileContents::Write(descriptor, Engine::Json{{"engineRoot", (root / "missing-engine").generic_string()},
                                                      {"projectId", std::string(32, 'd')}}
                                             .dump());
-        contract("context-frozen-layers", context->Resolve("Shaders/Mesh.hlsl") == shader &&
-                                              std::filesystem::is_regular_file(shader) &&
-                                              context->Layers().size() == 2);
+        contract("context-frozen-layers",
+                 context->Resolve("Shaders/Mesh.hlsl") == shader && std::filesystem::is_regular_file(shader) &&
+                     context->ShaderRoot() == Engine::ProjectContext::SourceEngineRoot() / "Engine/Shaders");
         std::string declarationError;
         contract("context-declaration-change-guard", !context->CheckConfiguration(declarationError) &&
                                                          declarationError.find("reopen") != std::string::npos);
@@ -48,7 +48,7 @@ namespace SessionDesignContractValidation
         contract("context-rejects-root-mixing", wrongRoot);
         const auto index = Engine::AssetDatabase(context, true);
         contract("context-index-keeps-layers",
-                 index.Resolve("Shaders/Mesh.hlsl") == std::filesystem::path("Shaders/Mesh.hlsl") &&
+                 index.Resolve("Shaders/Mesh.hlsl") == std::filesystem::path("Engine/Shaders/Mesh.hlsl") &&
                      !index.ReferenceId("Shaders/Mesh.hlsl").empty());
 
         SceneLayout missing;

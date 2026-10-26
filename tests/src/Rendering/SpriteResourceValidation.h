@@ -47,26 +47,21 @@ namespace SpriteResourceValidation
         std::filesystem::create_directories(folder);
         const auto shader = folder / "ChangedUi.hlsl";
         const auto content = Engine::ContentContext::Capture(root);
-        // 実体のない共有シェーダーも、製品と同じ優先順位で検証用の配置へ集約します。
-        for (const auto& layer : content->Layers())
+        // 標準シェーダーの相対includeを保った、編集専用のコピーを使います。
+        const auto shaders = content->ShaderRoot();
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(shaders))
         {
-            const auto shaders = layer / "Shaders";
-            if (!std::filesystem::is_directory(shaders))
+            const auto relative = entry.path().lexically_relative(shaders);
+            if (!entry.is_regular_file() || relative.generic_string().starts_with("Compiled/"))
                 continue;
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(shaders))
-            {
-                const auto relative = entry.path().lexically_relative(shaders);
-                if (!entry.is_regular_file() || relative.generic_string().starts_with("Compiled/"))
-                    continue;
-                const auto target = folder / relative;
-                std::filesystem::create_directories(target.parent_path());
-                std::filesystem::copy_file(entry.path(), target, std::filesystem::copy_options::overwrite_existing);
-            }
+            const auto target = folder / relative;
+            std::filesystem::create_directories(target.parent_path());
+            std::filesystem::copy_file(entry.path(), target, std::filesystem::copy_options::overwrite_existing);
         }
         std::ifstream input(folder / "Ui.hlsl", std::ios::binary);
-        require(bool(input), "layered sprite shader opens");
+        require(bool(input), "engine sprite shader opens");
         const std::string source((std::istreambuf_iterator<char>(input)), {});
-        require(!source.empty(), "layered sprite shader is not empty");
+        require(!source.empty(), "engine sprite shader is not empty");
         const auto write = [&](const std::string& text)
         {
             std::ofstream output(shader, std::ios::binary);

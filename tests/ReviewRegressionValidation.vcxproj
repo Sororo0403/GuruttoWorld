@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="GameContent.props" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -12,7 +13,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <!-- この回帰群のゲーム素材は、共通ビルドの既定値ではなく明示的な検証用入力です。 -->
-    <GameContentRoot Condition="'$(GameContentRoot)' == ''">$(MSBuildThisFileDirectory)..\Games\GuruttoWorld\</GameContentRoot>
+    <GameContentRoot Condition="'$(GameContentRoot)' == ''">$(TestGameRoot)\</GameContentRoot>
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{D38A4CA9-D313-4A03-9FFB-A4D3500A2333}</ProjectGuid>
@@ -114,27 +115,8 @@
     <ClCompile Include="..\Engine\externals\imgui\imgui_widgets.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'!='Release'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\Editor\src\Shell\EditorFonts.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\Editor\src\Assets\AssetPreview.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\Editor\src\Inspector\ComponentPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\Editor\src\Ui\UiComponentPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\Editor\src\Inspector\EnvironmentPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\Editor\src\Inspector\ObjectPanel.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\Editor\src\Ui\UiCanvasPanel.cpp" />
-    <ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp" />
-    <ClCompile Include="..\App\src\Scenes\SceneFactory.cpp" />
+    <ClCompile Include="..\Player\src\Scenes\AuthoredScene.cpp" />
+    <ClCompile Include="..\Player\src\Scenes\SceneFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">
@@ -143,7 +125,7 @@
   </ItemGroup>
   <ItemDefinitionGroup>
     <Manifest>
-      <AdditionalManifestFiles>$(MSBuildThisFileDirectory)..\Content\Application.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>$(MSBuildThisFileDirectory)..\Engine\build\Application.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
@@ -157,12 +139,12 @@
       <Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}  </Project>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="..\Content\Content.targets" />
+  <Import Project="..\Engine\build\Content.targets" />
   <Target Name="CopyTestAppContent" AfterTargets="Build">
     <ItemGroup>
-      <TestAppTextures Include="$(MSBuildThisFileDirectory)..\App\Assets\Textures\**\*" />
-      <TestAppAudio Include="$(MSBuildThisFileDirectory)..\App\Assets\Audio\**\*" />
-      <TestAppShaders Include="$(MSBuildThisFileDirectory)..\App\Shaders\**\*" />
+      <TestAppTextures Include="$(MSBuildThisFileDirectory)fixtures\Player\Assets\Textures\**\*" />
+      <TestAppAudio Include="$(MSBuildThisFileDirectory)fixtures\Player\Assets\Audio\**\*" />
+      <TestAppShaders Include="$(MSBuildThisFileDirectory)fixtures\Player\Shaders\**\*" />
     </ItemGroup>
     <Copy SourceFiles="@(TestAppTextures)" DestinationFiles="@(TestAppTextures-&gt;'$(OutDir)Assets\Textures\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(TestAppAudio)" DestinationFiles="@(TestAppAudio-&gt;'$(OutDir)Assets\Audio\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
@@ -172,5 +154,11 @@
     <ClInclude Include="src\Gameplay\GamePlaybackParityValidation.h" />
     <ClInclude Include="src\Scene\PrefabGpuContractValidation.h" />
     <ClInclude Include="src\Rendering\OptionalFeaturesValidation.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Editor\EditorCore.vcxproj" />
+    <ClCompile Include="..\Editor\src\Assets\AssetPreview.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
 </Project>

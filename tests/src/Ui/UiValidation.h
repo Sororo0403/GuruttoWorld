@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <Engine/Core/Profiler.h>
 #include <SceneRuntime/Ui/SceneUi.h>
 #include "UiControlValidation.h"
@@ -6,7 +7,7 @@
 #include <chrono>
 #include <thread>
 #include <SceneRuntime/Audio/SceneAudio.h>
-#include "../../../App/src/Scenes/AuthoredScene.h"
+#include "../../../Player/src/Scenes/AuthoredScene.h"
 #include "../Rendering/EnvironmentValidation.h"
 #include "../../../Editor/src/Project/ProjectCatalog.h"
 #include "../../../Editor/src/Editing/FocusSelection.h"
@@ -52,7 +53,7 @@ namespace UiValidation
     inline void SchemaAndLayout()
     {
         UiControlValidation::SchemaAndInput();
-        auto authored = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/Game.json");
+        auto authored = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/Game.json");
         const auto authoredRoundtrip = SceneLayout::Parse(authored.Serialize());
         Require(authoredRoundtrip.objects.size() == authored.objects.size(),
                 "Game scene survives editor serialization");
@@ -165,7 +166,7 @@ namespace UiValidation
             rejected = true;
         }
         Require(rejected, "button scene target stays inside scenes");
-        const auto title = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
+        const auto title = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/TitleStreet.json");
         Require(std::count_if(title.objects.begin(), title.objects.end(),
                               [](const auto& p)
                               {
@@ -234,7 +235,8 @@ namespace UiValidation
             const auto staged = std::filesystem::path("generated/park/ui-warm-validation") /
                                 (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
             std::filesystem::create_directories(staged);
-            std::filesystem::copy(root / "Shaders", staged / "Shaders",
+            std::filesystem::create_directories(staged / "Engine");
+            std::filesystem::copy(Engine::ContentContext::Capture(root)->ShaderRoot(), staged / "Engine/Shaders",
                                   std::filesystem::copy_options::recursive |
                                       std::filesystem::copy_options::overwrite_existing);
             auto warmLayout = Layout();
@@ -246,7 +248,7 @@ namespace UiValidation
                 throw std::runtime_error("warm UI initializes shader context: " + warmError);
             Require(warm.Prepare(renderer, std::filesystem::absolute(staged), warmLayout, warmError, {}, false),
                     "relative and absolute roots share the same UI context");
-            std::ofstream broken(staged / "Shaders/Ui.hlsl", std::ios::binary);
+            std::ofstream broken(staged / "Engine/Shaders/Ui.hlsl", std::ios::binary);
             broken << "invalid shader";
             broken.close();
             warmLayout.objects[1].text->text = "runtime change";
@@ -545,11 +547,11 @@ namespace UiValidation
         Require(pixel() == std::array<unsigned char, 4>{0, 0, 0, 255}, "removed UI resource is no longer drawn");
         Require(renderer.WaitForIdle(), "UI GPU work completes before resources are destroyed");
         EditingAndAudio(renderer, root);
-        App::AuthoredScene appScene(root, "Assets/Scenes/UiAudioDemo.json");
+        Player::AuthoredScene appScene(root, "Assets/Scenes/UiAudioDemo.json");
         Require(appScene.Initialize(renderer), "App initializes an authored UI scene");
         Require(appScene.Draw(renderer) != Engine::RenderResult::Failed && renderer.WaitForIdle(),
                 "App renders authored UI through the shared runtime");
-        App::AuthoredScene game(root, "Assets/Scenes/Game.json");
+        Player::AuthoredScene game(root, "Assets/Scenes/Game.json");
         Require(game.Initialize(renderer), "App loads editor-authored Game scene");
         Require(game.Draw(renderer) != Engine::RenderResult::Failed && renderer.WaitForIdle(),
                 "authored Game meshes, particles, images and UI render together");

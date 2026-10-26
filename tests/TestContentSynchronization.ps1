@@ -1,12 +1,15 @@
-param([string]$WorkRoot)
+param(
+    [string]$WorkRoot,
+    [ValidateSet('Debug', 'Development', 'Release')][string[]]$Configurations = @('Debug', 'Development', 'Release')
+)
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
+. (Join-Path $PSScriptRoot 'ProjectToolTestSupport.ps1')
 if (!$WorkRoot) { $WorkRoot = Join-Path $repoRoot 'generated/tests' }
 $testRoot = Join-Path ([IO.Path]::GetFullPath($WorkRoot)) ('content sync-' + [Guid]::NewGuid().ToString('N'))
 $content = Join-Path $testRoot 'Game'
 $fallback = Join-Path $testRoot 'Player'
-$shell = Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 $installation = & $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -property installationPath
 if (!$installation) { throw 'MSBuild is required.' }
@@ -24,9 +27,9 @@ function Assert-File([string]$Path, [string]$Expected) {
 }
 
 function Invoke-ContentCopy([string]$Configuration, [string]$Output) {
-    & $msbuild (Join-Path $repoRoot 'Content/Content.targets') '/t:CopySharedContent' `
-        "/p:Configuration=$Configuration" '/p:SkipGameScripts=true' `
-        "/p:GameContentRoot=$content/" "/p:FallbackContentRoot=$fallback" "/p:OutDir=$Output/" `
+    & $msbuild (Join-Path $repoRoot 'Engine/build/Content.targets') '/t:CopyGameContent' `
+        "/p:Configuration=$Configuration" '/p:SkipGameScripts=true' '/p:PreferredToolArchitecture=x64' `
+        "/p:GameContentRoot=$content/" "/p:OutDir=$Output/" `
         '/nr:false' '/v:minimal' '/nologo'
     if ($LASTEXITCODE -ne 0) { throw "Content copy failed: $Configuration" }
 }
@@ -39,7 +42,7 @@ $licenses = @{
     'Jolt-LICENSE.txt' = 'generated/dependencies/jolt-src/LICENSE'
 }
 
-foreach ($configuration in @('Debug', 'Development', 'Release')) {
+foreach ($configuration in $Configurations) {
     $output = Join-Path $testRoot $configuration
     New-Item -ItemType Directory -Path (Join-Path $content 'Shaders'), (Join-Path $fallback 'Shaders') -Force | Out-Null
     $metadata = '{"id":"12345678123456781234567812345678","version":1}'
@@ -60,7 +63,9 @@ foreach ($configuration in @('Debug', 'Development', 'Release')) {
 
     Invoke-ContentCopy $configuration $output
     Assert-File (Join-Path $output 'Assets/Shared.txt') 'game'
-    Assert-File (Join-Path $output 'Assets/Player.txt') 'player'
+    if (Test-Path -LiteralPath (Join-Path $output 'Assets/Player.txt')) { throw 'Build copied another owner assets.' }
+    if (!(Test-Path -LiteralPath (Join-Path $output 'Engine/Shaders/Mesh.hlsl'))) { throw 'Engine shaders are missing.' }
+    if (Test-Path -LiteralPath (Join-Path $output 'Assets/Fonts')) { throw 'Player contains Editor fonts.' }
     foreach ($relative in @('Assets/Legacy.json', 'Assets/Legacy.json.meta', 'Assets/Unsaved.json.tmp', 'Assets/Scripts/Bin/Source.dll')) {
         if (Test-Path -LiteralPath (Join-Path $output $relative)) { throw "Unexpected copied file: $relative" }
     }
@@ -109,7 +114,7 @@ $protected = Join-Path $content 'Assets/Shared.txt'
 foreach ($unsafeOutput in @($content, (Join-Path $content 'Assets/Output'))) {
     try {
         $ErrorActionPreference = 'Continue'
-        & $shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts/SyncBuildContent.ps1') `
+        & (Get-ProjectTool) sync-content -Engine $repoRoot `
             -Content $content -Destination $unsafeOutput *> (Join-Path $testRoot 'overlap.log')
         $overlapExit = $LASTEXITCODE
     } finally {
@@ -119,16 +124,30 @@ foreach ($unsafeOutput in @($content, (Join-Path $content 'Assets/Output'))) {
     Assert-File $protected 'game'
 }
 
+# Windowsで同じ場所を表すUnicodeの大小文字も、重複出力として拒否します。
+$unicodeContent = Join-Path $testRoot ('Unicode' + [char]0x00c4)
+$unicodeOutput = Join-Path $testRoot ('Unicode' + [char]0x00e4)
+$unicodeProtected = Join-Path $unicodeContent 'Assets/Keep.txt'
+Write-Fixture $unicodeProtected 'protected source'
+try {
+    $ErrorActionPreference = 'Continue'
+    & (Get-ProjectTool) sync-content -Engine $repoRoot -Content $unicodeContent -Destination $unicodeOutput `
+        *> (Join-Path $testRoot 'unicode-overlap.log')
+    $unicodeExit = $LASTEXITCODE
+} finally { $ErrorActionPreference = 'Stop' }
+if ($unicodeExit -eq 0) { throw 'Unicode case alias of the source was accepted as output.' }
+Assert-File $unicodeProtected 'protected source'
+
 # ライセンス不足を無視する条件が再導入されないよう、欠損したコピー元で検査する。
 $licenseFixture = Join-Path $testRoot 'missing-license'
-$licenseTargets = Join-Path $licenseFixture 'Content/ThirdPartyLicenses.targets'
+$licenseTargets = Join-Path $licenseFixture 'Engine/build/ThirdPartyLicenses.targets'
 New-Item -ItemType Directory -Path (Split-Path $licenseTargets -Parent) -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $repoRoot 'Content/ThirdPartyLicenses.targets') -Destination $licenseTargets
+Copy-Item -LiteralPath (Join-Path $repoRoot 'Engine/build/ThirdPartyLicenses.targets') -Destination $licenseTargets
 foreach ($name in $licenses.Keys) {
     if ($name -eq 'nlohmann-json-LICENSE.txt') { continue }
     Write-Fixture (Join-Path $licenseFixture $licenses[$name]) 'test license'
 }
-& $msbuild $licenseTargets '/t:CopyThirdPartyLicenses' "/p:OutDir=$licenseFixture/output/" `
+& $msbuild $licenseTargets '/t:CopyThirdPartyLicenses' "/p:OutDir=$licenseFixture/output/" '/p:PreferredToolArchitecture=x64' `
     '/nr:false' '/v:minimal' '/nologo' *> (Join-Path $testRoot 'missing-license.log')
 if ($LASTEXITCODE -eq 0) { throw 'Missing third-party license was accepted.' }
-Write-Output 'PASS: rename/delete synchronization, legacy cleanup, DLL preservation, source protection and licenses in all 3 configurations'
+Write-Output "PASS: rename/delete synchronization, legacy cleanup, DLL preservation, source protection and licenses: $($Configurations -join ', ')"

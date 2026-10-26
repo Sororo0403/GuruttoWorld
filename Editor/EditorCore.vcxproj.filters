@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="externals\ImGuizmo" />
+    <Filter Include="src\Animation" />
+    <Filter Include="src\Assets" />
+    <Filter Include="src\Documents" />
+    <Filter Include="src\Editing" />
+    <Filter Include="src\Inspector" />
+    <Filter Include="src\Playback" />
+    <Filter Include="src\Project" />
+    <Filter Include="src\Shell" />
+    <Filter Include="src\Ui" />
+    <Filter Include="src\Viewport" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">
+      <Filter>externals\ImGuizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimationEventPanel.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimationPanel.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimationTimeline.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimatorPanel.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\BlendTreePanel.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\IkPanel.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\RagdollPanel.cpp">
+      <Filter>src\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetChanges.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetDependencies.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetFileChanges.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetInfo.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetManagementPanel.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetPreview.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AudioPreview.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\ModelDrop.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\SkeletonPreview.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\DocumentSave.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\FileTransaction.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\MaterialDocument.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\PrefabEditPlan.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\SaveAsPanel.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\SceneDocument.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\SceneRecovery.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Documents\SceneSnapshotCache.cpp">
+      <Filter>src\Documents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Editing\EditHistory.cpp">
+      <Filter>src\Editing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Editing\EditState.cpp">
+      <Filter>src\Editing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Editing\FocusSelection.cpp">
+      <Filter>src\Editing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Editing\HierarchyRows.cpp">
+      <Filter>src\Editing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Editing\SceneSelection.cpp">
+      <Filter>src\Editing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Editing\SelectionSet.cpp">
+      <Filter>src\Editing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\AudioComponentPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\ComponentEditResources.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\ComponentPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\EnvironmentPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\GenreComponentPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\JointPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\LightmapPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\MaterialPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\MaterialWorkflow.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\MultiComponentPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\ObjectPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\PhysicsPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\PrefabPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Inspector\ScriptDataPanel.cpp">
+      <Filter>src\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Playback\GamePointerCapture.cpp">
+      <Filter>src\Playback</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Playback\GameSession.cpp">
+      <Filter>src\Playback</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Playback\PlayState.cpp">
+      <Filter>src\Playback</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\BuildPanel.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\GameProject.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\InputBindingsPanel.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\ProjectCatalog.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\ProjectPanel.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\ProjectSettingsPanel.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Project\ScriptAuthoringPanel.cpp">
+      <Filter>src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shell\ConsoleFilter.cpp">
+      <Filter>src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shell\ConsolePanel.cpp">
+      <Filter>src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shell\EditorFonts.cpp">
+      <Filter>src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shell\EditorLanguage.cpp">
+      <Filter>src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shell\PanelLayout.cpp">
+      <Filter>src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shell\ProfilerPanel.cpp">
+      <Filter>src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shell\SceneSettingsPanel.cpp">
+      <Filter>src\Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\MenuPanel.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiCanvasPanel.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiCanvasTransform.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiComponentPanel.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiControlPanel.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiEditorPanel.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Ui\UiLayoutTools.cpp">
+      <Filter>src\Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\CameraPanel.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\ComponentGuideGeometry.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\GizmoTransform.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\IkHandleTransform.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\IkSceneHandles.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\ScenePanel.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\SceneViewport.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Viewport\TransformGizmo.cpp">
+      <Filter>src\Viewport</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

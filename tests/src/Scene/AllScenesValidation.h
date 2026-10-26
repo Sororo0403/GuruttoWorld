@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Platform/Window.h>
@@ -38,7 +39,7 @@ namespace AllScenesValidation
     }
     inline void Run()
     {
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         const auto output = std::filesystem::absolute("generated/tests/all-scenes");
         std::filesystem::create_directories(output);
         std::vector<std::filesystem::path> paths;

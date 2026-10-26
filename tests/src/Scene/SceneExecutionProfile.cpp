@@ -36,7 +36,7 @@ namespace
         }
         SceneRuntime::SceneWorld world;
         std::string error;
-        if (!world.Initialize(renderer, root, std::move(layout), root / "Shaders/Mesh.hlsl", &error))
+        if (!world.Initialize(renderer, root, std::move(layout), root / "Engine/Shaders/Mesh.hlsl", &error))
             throw std::runtime_error(error);
         if (!world.StartScripts(error))
             throw std::runtime_error(error);
@@ -79,7 +79,8 @@ int main()
         const auto root = std::filesystem::absolute("generated/tests/scene-execution-profile") /
                           (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         std::filesystem::create_directories(root);
-        std::filesystem::copy("Content/Shaders", root / "Shaders", std::filesystem::copy_options::recursive);
+        std::filesystem::create_directories(root / "Engine");
+        std::filesystem::copy("Engine/Shaders", root / "Engine/Shaders", std::filesystem::copy_options::recursive);
         Engine::Window window;
         Engine::DirectX12Renderer renderer;
         if (!window.Create(L"Scene execution profile", 64, 64) || !renderer.Initialize(window.GetHandle()))

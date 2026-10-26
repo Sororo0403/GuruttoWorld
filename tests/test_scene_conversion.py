@@ -86,8 +86,8 @@ class SceneConversionTests(unittest.TestCase):
             self.assertEqual(json.loads(second.read_text(encoding="utf-8"))["version"], 2)
 
     def test_version_four_keeps_environment_and_local_coordinates(self):
-        scene = json.loads(Path("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json").read_text(encoding="utf-8"))
-        self.assertEqual(scene["version"], 4)
+        scene = json.loads((Path(__file__).resolve().parents[1] / "Tools/GameProject/Templates/MinimalGame/Assets/Scenes/Main.json").read_text(encoding="utf-8"))
+        self.assertGreaterEqual(scene["version"], 4)
         self.assertEqual(conversion.convert(scene), scene)
 
     def test_version5_preserves_prefab_scope(self):

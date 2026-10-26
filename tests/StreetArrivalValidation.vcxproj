@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="GameContent.props" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -15,7 +16,7 @@
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{065DD5CB-FCE5-49E1-843A-DF6D18BA772A}</ProjectGuid>
     <RootNamespace>StreetArrivalValidation</RootNamespace>
-    <GameContentRoot>$(MSBuildThisFileDirectory)..\Games\GuruttoWorld\</GameContentRoot>
+    <GameContentRoot>$(TestGameRoot)\</GameContentRoot>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -92,9 +93,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Gameplay\StreetArrivalValidation.cpp" />
-    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\StreetArrival.cpp" />
-    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\SunriseStreet.cpp" />
-    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\StreetJourney.cpp" />
+    <ClCompile Include="$(TestGameRoot)\Assets\Scripts\StreetArrival.cpp" />
+    <ClCompile Include="$(TestGameRoot)\Assets\Scripts\SunriseStreet.cpp" />
+    <ClCompile Include="$(TestGameRoot)\Assets\Scripts\StreetJourney.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">
@@ -103,7 +104,6 @@
   </ItemGroup>
   <ItemGroup><ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj"><Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}</Project></ProjectReference></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Import Project="..\Content\ScriptSchemas.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

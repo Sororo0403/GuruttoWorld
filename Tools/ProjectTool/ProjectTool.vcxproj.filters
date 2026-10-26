@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ToolCommon.cpp" />
+    <ClCompile Include="ProjectFiles.cpp" />
+    <ClCompile Include="ScriptBuild.cpp" />
+    <ClCompile Include="PackageBuild.cpp" />
+    <ClInclude Include="ToolCommon.h" />
+    <ClInclude Include="ProjectFiles.h" />
+    <ClInclude Include="ScriptBuild.h" />
+    <ClInclude Include="PackageBuild.h" />
+  </ItemGroup>
+</Project>

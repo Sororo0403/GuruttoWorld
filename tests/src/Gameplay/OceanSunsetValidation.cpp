@@ -1,3 +1,4 @@
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <Engine/Graphics/Resources/RenderTexture.h>
@@ -90,7 +91,7 @@ int main()
     try
     {
         using namespace SceneRuntime;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         const auto authored = SceneLayout::Load(root / "Assets/Scenes/OceanSunset.json");
         authored.Validate();
         Require(SceneLayout::Parse(authored.Serialize()).Serialize() == authored.Serialize(), "Ocean roundtrip");

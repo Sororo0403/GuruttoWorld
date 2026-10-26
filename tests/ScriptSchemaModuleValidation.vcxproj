@@ -1,4 +1,5 @@
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="GameContent.props" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64"><Configuration>Debug</Configuration><Platform>x64</Platform></ProjectConfiguration>
     <ProjectConfiguration Include="Development|x64"><Configuration>Development</Configuration><Platform>x64</Platform></ProjectConfiguration>
@@ -28,7 +29,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Development'">NDEBUG;ENGINE_DEVELOPMENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link><SubSystem>Console</SubSystem><TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors></Link>
@@ -38,10 +39,18 @@
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
     <ProjectReference Include="..\Engine\Engine.vcxproj" />
   </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Development'">
+    <ClCompile Include="..\Editor\src\Project\BuildPanel.cpp" />
+    <ClCompile Include="..\Editor\src\Project\ScriptAuthoringPanel.cpp" />
+  </ItemGroup>
   <ItemDefinitionGroup>
     <Manifest>
-      <AdditionalManifestFiles>$(MSBuildThisFileDirectory)..\Content\Application.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>$(MSBuildThisFileDirectory)..\Engine\build\Application.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="..\Engine\build\ProjectTool.targets" />
+  <Target Name="CopyProjectToolForSchemaValidation" AfterTargets="Build" DependsOnTargets="EnsureProjectTool">
+    <Copy SourceFiles="$(ProjectToolExecutable)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

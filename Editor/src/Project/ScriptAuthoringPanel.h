@@ -16,68 +16,16 @@ namespace Editor
         std::filesystem::path selected_;
         std::string status_;
         ULONGLONG nextScan_ = 0, changedAt_ = 0;
-        bool initialized_ = false, needsBuild_ = false, needsInstall_ = false, ready_ = true, buildFailed_ = false;
-        static bool GeneratedSchemaHeader(const std::filesystem::path& path)
-        {
-            const auto name = path.filename().string();
-            return name.ends_with(".generated.h") &&
-                   std::filesystem::exists(path.parent_path() / (name.substr(0, name.size() - 12) + ".schema.json"));
-        }
-        /// <summary>処理ソースと補助ヘッダーの変更を確認します。</summary>
-        static Inventory Scan(const std::filesystem::path& content)
-        {
-            Inventory result;
-            const auto folder = content / "Assets/Scripts";
-            if (!std::filesystem::exists(folder))
-                return result;
-            for (const auto& file : std::filesystem::recursive_directory_iterator(folder))
-            {
-                if (!file.is_regular_file())
-                    continue;
-                if (GeneratedSchemaHeader(file.path()))
-                    continue;
-                const auto extension = file.path().extension();
-                if (extension == ".cpp" || extension == ".h" || extension == ".hpp" ||
-                    file.path().filename().string().ends_with(".schema.json"))
-                    result[file.path()] = AssetRevision::Capture(file.path());
-            }
-            return result;
-        }
+        bool initialized_ = false, needsBuild_ = false, needsInstall_ = false, ready_ = true, buildFailed_ = false,
+             installFailed_ = false, reloaded_ = false;
+        /// <summary>JSONの変更と再コンパイルが必要なソース変更を分けます。</summary>
+        static Inventory Sources(const Inventory& inventory);
+        /// <summary>処理ソース・補助ヘッダーとJSON宣言の変更を確認します。</summary>
+        static Inventory Scan(const std::filesystem::path& content);
         /// <summary>変更の安定確認と初回コンパイルを予約します。</summary>
-        void Observe(const std::filesystem::path& content, ULONGLONG now)
-        {
-            if (now < nextScan_)
-                return;
-            nextScan_ = now + 500;
-            auto current = Scan(content);
-            if (initialized_ && current == inventory_)
-                return;
-            needsBuild_ = initialized_ || !current.empty() ||
-                          std::filesystem::exists(content / "Assets/Scripts/Bin" /
-                                                  SceneRuntime::ScriptModule::Configuration() / "module.json");
-            ready_ = !needsBuild_;
-            initialized_ = true;
-            inventory_ = std::move(current);
-            changedAt_ = now;
-        }
+        void Observe(const std::filesystem::path& content, ULONGLONG now);
         /// <summary>ソースの選択と外部エディターでの編集を表示します。</summary>
-        void DrawSources()
-        {
-            for (const auto& [path, stamp] : inventory_)
-            {
-                static_cast<void>(stamp);
-                const bool editable = path.extension() == ".cpp" || path.filename().string().ends_with(".schema.json");
-                if (editable &&
-                    ImGui::Selectable(Engine::AssetDatabase::Text(path.filename()).c_str(), path == selected_))
-                    selected_ = path;
-            }
-            if (!selected_.empty() && ImGui::Button("ソースを開く###Open source"))
-            {
-                if (reinterpret_cast<INT_PTR>(
-                        ShellExecuteW(nullptr, L"open", selected_.c_str(), nullptr, nullptr, SW_SHOWNORMAL)) <= 32)
-                    status_ = "ソースを開けませんでした。ファイルの関連付けを確認してください。";
-            }
-        }
+        void DrawSources();
 
     public:
         bool open = false;
@@ -88,83 +36,13 @@ namespace Editor
         }
         bool Failed() const
         {
-            return buildFailed_;
+            return buildFailed_ || installFailed_;
         }
+        /// <summary>定義の再読み込み成功を一度だけ通知し、Inspectorの宣言更新につなげます。</summary>
+        bool TakeReloaded();
         /// <summary>変更が安定したソースをコンパイルし、停止中に結果を読み込みます。</summary>
-        void Poll(const std::filesystem::path& content, bool editing)
-        {
-            build_.Poll(content);
-            if (const auto completed = build_.TakeCompleted())
-            {
-                buildFailed_ = !*completed;
-                if (*completed)
-                    needsInstall_ = true;
-                else
-                {
-                    needsInstall_ = false;
-                    ready_ = false;
-                    build_.open = true;
-                    status_ = "最新のゲーム処理のコンパイルに失敗しました。診断を確認して修正してください。";
-                }
-            }
-            try
-            {
-                const auto now = GetTickCount64();
-                Observe(content, now);
-                if (needsBuild_ && !build_.Running() && now - changedAt_ >= 1000)
-                {
-                    build_.Start(content);
-                    needsInstall_ = false;
-                    needsBuild_ = false;
-                    ready_ = false;
-                    buildFailed_ = false;
-                }
-                if (needsInstall_ && editing && !build_.Running() && !needsBuild_)
-                {
-                    ready_ = SceneRuntime::ScriptModule::Reload(content, status_);
-                    needsInstall_ = false;
-                    if (ready_)
-                        status_ = "ゲーム処理を再読み込みしました。Inspectorの追加メニューから選択できます。";
-                }
-            }
-            catch (const std::exception& error)
-            {
-                status_ = error.what();
-                ready_ = false;
-                needsBuild_ = false;
-            }
-        }
+        void Poll(const std::filesystem::path& content, bool editing);
         /// <summary>処理の作成、ソース編集、コンパイル診断を表示します。</summary>
-        void Draw(const std::filesystem::path& content)
-        {
-            const bool shown = open;
-            if (shown && ImGui::Begin("C++ゲーム処理###Script authoring", &open))
-            {
-                ImGui::InputText("処理名（英数字・_）###Script name", name_.data(), name_.size());
-                if (ImGui::Button("処理を作成###Create script"))
-                {
-                    if (SceneRuntime::ScriptModule::CreateSource(content, name_.data(), selected_, status_))
-                    {
-                        status_ = "処理ソースを作成しました。保存した変更は自動でコンパイルされます。";
-                        nextScan_ = 0;
-                    }
-                }
-                ImGui::Separator();
-                DrawSources();
-                if (ImGui::Button("コンパイルと診断###Compiler diagnostics"))
-                    build_.open = true;
-                if (build_.Running())
-                    ImGui::TextUnformatted("コンパイル中です。");
-                if (needsInstall_)
-                    ImGui::TextUnformatted("再生を停止すると新しい処理を読み込みます。");
-                if (!status_.empty())
-                    ImGui::TextWrapped("%s", status_.c_str());
-                ImGui::TextUnformatted(
-                    "Start / Update / FixedUpdate / LateUpdate / Event / Stopと公開データをC++で定義できます。");
-            }
-            if (shown)
-                ImGui::End();
-            build_.Draw(content, true);
-        }
+        void Draw(const std::filesystem::path& content);
     };
 }

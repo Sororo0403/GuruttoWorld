@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <Engine/Core/Profiler.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
@@ -84,7 +85,7 @@ namespace ParkResourceValidation
     inline void RotationInterpolation(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         ScenePlacement actor;
         actor.id = "rotation-parent";
         actor.position = {0, 5, 0};
@@ -145,7 +146,7 @@ namespace ParkResourceValidation
     inline void Run(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto layout = SceneLayout::Load(root / "Assets/Scenes/ParkAdventure.json", root);
         for (auto& object : layout.objects)
         {

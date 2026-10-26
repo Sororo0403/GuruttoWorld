@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include "../../../Editor/src/Editing/EditHistory.h"
@@ -131,14 +132,10 @@ namespace SceneCollectionValidation
         using namespace SceneRuntime;
         const auto root = std::filesystem::absolute("generated/tests/scene-collection");
         std::filesystem::create_directories(root / "Assets/Scenes");
-        std::filesystem::create_directories(root / "Shaders");
-        for (const auto& [relative, source] : Engine::ContentFiles::List("Games/GuruttoWorld"))
-            if (relative.generic_string().starts_with("Shaders/"))
-            {
-                const auto target = root / relative;
-                std::filesystem::create_directories(target.parent_path());
-                std::filesystem::copy_file(source, target, std::filesystem::copy_options::overwrite_existing);
-            }
+        std::filesystem::create_directories(root / "Engine");
+        std::filesystem::copy(
+            Engine::ContentContext::Capture(WP1_TEST_GAME_ROOT)->ShaderRoot(), root / "Engine/Shaders",
+            std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
         auto stopped = std::make_shared<int>(0);
         ScriptDefinition definition;
         definition.update = [](ScriptContext& c)

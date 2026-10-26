@@ -28,30 +28,8 @@ namespace Editor
         {
             return conflict_;
         }
-        void AssetMoved(const std::filesystem::path& source, const std::filesystem::path& destination)
-        {
-            const auto remap = [&](SceneRuntime::MaterialAsset& asset)
-            {
-                if (asset.texture == source)
-                    asset.texture = destination;
-                if (asset.normalTexture == source)
-                    asset.normalTexture = destination;
-                if (asset.environmentTexture == source)
-                    asset.environmentTexture = destination;
-                if (asset.lightmap == source)
-                    asset.lightmap = destination;
-                if (asset.shader == source)
-                    asset.shader = destination;
-            };
-            remap(asset_);
-            for (auto& state : history_)
-                remap(state);
-            if (pending_)
-                remap(*pending_);
-            for (const char* key : {"texture", "normalTexture", "environmentTexture", "lightmap", "shader"})
-                if (savedValues_.contains(key) && savedValues_[key] == Text(source))
-                    savedValues_[key] = Text(destination);
-        }
+        /// <summary>素材移動後の参照を更新します。</summary>
+        void AssetMoved(const std::filesystem::path& source, const std::filesystem::path& destination);
         bool CanUndo() const
         {
             return loaded_ && (cursor_ > 0 || (!history_.empty() && Values(asset_) != Values(history_[cursor_])));
@@ -60,89 +38,21 @@ namespace Editor
         {
             return loaded_ && cursor_ + 1 < history_.size() && Values(asset_) == Values(history_[cursor_]);
         }
-        void Observe(std::string_view interaction)
-        {
-            if (!loaded_)
-                return;
-            if (!interaction.empty() && interaction_ != interaction && pending_)
-                Commit();
-            interaction_ = interaction;
-            pending_ = asset_;
-            if (interaction.empty())
-                Commit();
-        }
-        bool Undo(bool redo = false)
-        {
-            Commit();
-            if (redo ? !CanRedo() : !CanUndo())
-                return false;
-            if (redo)
-                ++cursor_;
-            else
-                --cursor_;
-            asset_ = history_[cursor_];
-            return true;
-        }
-        void Refresh(const std::filesystem::path& root, const std::filesystem::path& path, bool force = false)
-        {
-            const auto now = std::chrono::steady_clock::now();
-            if (!force && loaded_ && now < nextCheck_)
-                return;
-            nextCheck_ = now + std::chrono::milliseconds(500);
-            const auto source = Read(root / path);
-            if (loaded_ && source == savedSource_)
-            {
-                conflict_ = false;
-                return;
-            }
-            if (Dirty())
-            {
-                conflict_ = true;
-                return;
-            }
-            Reload(root, path);
-        }
-        void Reload(const std::filesystem::path& root, const std::filesystem::path& path)
-        {
-            const auto source = Read(root / path);
-            auto candidate = SceneRuntime::MaterialAsset::Load(root, path);
-            const auto values = Values(candidate);
-            asset_ = std::move(candidate);
-            savedValues_ = values;
-            savedSource_ = source;
-            loaded_ = true;
-            conflict_ = false;
-            history_ = {asset_};
-            cursor_ = 0;
-            pending_.reset();
-            interaction_.clear();
-        }
+        /// <summary>素材の変更を監視対象へ追加します。</summary>
+        void Observe(std::string_view interaction);
+        /// <summary>履歴に従って変更を戻し、または再適用します。</summary>
+        bool Undo(bool redo = false);
+        /// <summary>現在の素材から依存情報を更新します。</summary>
+        void Refresh(const std::filesystem::path& root, const std::filesystem::path& path, bool force = false);
+        /// <summary>保存内容を再読み込みします。</summary>
+        void Reload(const std::filesystem::path& root, const std::filesystem::path& path);
         /// <summary>競合を検査してMaterialを保存し、成功後に保存基準を更新します。</summary>
         void Save(const std::filesystem::path& root, const std::filesystem::path& path)
         {
             DocumentSave::Apply({PrepareSave(root, path)});
         }
         /// <summary>履歴を確定して競合を検査し、保存基準は一括保存の成功まで保持します。</summary>
-        DocumentSavePlan PrepareSave(const std::filesystem::path& root, const std::filesystem::path& path)
-        {
-            if (!loaded_)
-                throw std::runtime_error("読み込みに成功していないMaterialは保存できません。");
-            pending_ = asset_;
-            Commit();
-            auto file = FileTransaction::Prepare(root / path, asset_.SerializeForSave(root, path));
-            if (file.before != savedSource_)
-            {
-                conflict_ = true;
-                throw std::runtime_error("Materialが外部で変更されています。編集を保持したまま保存を中止しました。");
-            }
-            auto accept = [this, source = file.after, values = Values(asset_)]() mutable noexcept
-            {
-                savedSource_.swap(source);
-                savedValues_.swap(values);
-                conflict_ = false;
-            };
-            return {std::move(file), std::move(accept)};
-        }
+        DocumentSavePlan PrepareSave(const std::filesystem::path& root, const std::filesystem::path& path);
 
     private:
         static std::string Text(const std::filesystem::path& path)
@@ -150,52 +60,14 @@ namespace Editor
             const auto bytes = path.generic_u8string();
             return {bytes.begin(), bytes.end()};
         }
-        void Commit()
-        {
-            interaction_.clear();
-            if (!loaded_)
-                return;
-            if (!pending_)
-                pending_ = asset_;
-            if (history_.empty())
-            {
-                history_.push_back(asset_);
-                cursor_ = 0;
-            }
-            if (Values(*pending_) != Values(history_[cursor_]))
-            {
-                history_.resize(cursor_ + 1);
-                history_.push_back(std::move(*pending_));
-                if (history_.size() > 101)
-                    history_.erase(history_.begin());
-                cursor_ = history_.size() - 1;
-            }
-            pending_.reset();
-        }
+        /// <summary>準備済みの変更を確定します。</summary>
+        void Commit();
         static std::optional<std::string> Read(const std::filesystem::path& path)
         {
             return Engine::FileContents::Read(path);
         }
-        static Engine::Json Values(const SceneRuntime::MaterialAsset& asset)
-        {
-            const auto& v = asset.values;
-            return {{"shader", Text(asset.shader)},
-                    {"color", v.color},
-                    {"roughness", v.roughness},
-                    {"metallic", v.metallic},
-                    {"shaderParameters", v.shaderParameters},
-                    {"transparent", v.transparent},
-                    {"physicallyBased", v.physicallyBased},
-                    {"normalFlipY", v.normalFlipY},
-                    {"scale", v.uv.scale},
-                    {"rotation", v.uv.rotation},
-                    {"translation", v.uv.translation},
-                    {"texture", Text(asset.texture)},
-                    {"normalTexture", Text(asset.normalTexture)},
-                    {"environmentTexture", Text(asset.environmentTexture)},
-                    {"environmentIntensity", v.environmentIntensity},
-                    {"lightmap", Text(asset.lightmap)}};
-        }
+        /// <summary>保存する値の範囲を検証します。</summary>
+        static Engine::Json Values(const SceneRuntime::MaterialAsset& asset);
         SceneRuntime::MaterialAsset asset_;
         Engine::Json savedValues_;
         std::optional<std::string> savedSource_;

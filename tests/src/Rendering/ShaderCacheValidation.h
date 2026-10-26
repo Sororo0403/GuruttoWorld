@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <Engine/Graphics/ShaderCompiler.h>
 #include <Engine/Graphics/Renderers/MeshResources.h>
 #include <filesystem>
@@ -90,7 +91,7 @@ inline bool ValidateShaderCache(ID3D12Device* device, ID3D12CommandQueue* queue,
         return false;
 
     Engine::MeshResources one, two, separateQueue;
-    const auto meshShader = std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl");
+    const auto meshShader = std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl");
     if (!require(one.Initialize(device, meshShader, queue) && two.Initialize(device, meshShader, queue),
                  "mesh resource initializes") ||
         !require(one.GetRootSignature() == two.GetRootSignature(), "mesh root signature shared"))

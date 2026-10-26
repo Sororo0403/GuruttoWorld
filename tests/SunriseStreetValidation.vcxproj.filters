@@ -2,10 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="References" />
-    <Filter Include="References\Games" />
-    <Filter Include="References\Games\GuruttoWorld" />
-    <Filter Include="References\Games\GuruttoWorld\Assets" />
-    <Filter Include="References\Games\GuruttoWorld\Assets\Scripts" />
+    <Filter Include="References\ExternalGame" />
+    <Filter Include="References\ExternalGame\Assets" />
+    <Filter Include="References\ExternalGame\Assets\Scripts" />
     <Filter Include="src" />
     <Filter Include="src\Gameplay" />
     <Filter Include="src\Rendering" />
@@ -18,8 +17,8 @@
     <ClCompile Include="src\Gameplay\SunriseSoundValidation.cpp">
       <Filter>src\Gameplay</Filter>
     </ClCompile>
-    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\StreetJourney.cpp">
-      <Filter>References\Games\GuruttoWorld\Assets\Scripts</Filter>
+    <ClCompile Include="$(TestGameRoot)\Assets\Scripts\StreetJourney.cpp">
+      <Filter>References\ExternalGame\Assets\Scripts</Filter>
     </ClCompile>
     <ClInclude Include="src\Gameplay\ParkResourceValidation.h">
       <Filter>src\Gameplay</Filter>

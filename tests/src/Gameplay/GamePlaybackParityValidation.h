@@ -1,7 +1,7 @@
 #pragma once
 #include "../Support/RegressionTiming.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
-#include "../../../App/src/Scenes/AuthoredScene.h"
+#include "../../../Player/src/Scenes/AuthoredScene.h"
 #include "../../../Editor/src/Playback/GameSession.h"
 #include <SceneRuntime/Project/ProjectSettings.h>
 #include <SceneRuntime/Scripts/ScriptModule.h>
@@ -35,8 +35,8 @@ namespace GamePlaybackParityValidation
                 comparisons{"parity compare"}, logs{"parity logs"};
             const auto initializeStarted = std::chrono::steady_clock::now();
             auto playerWorld = std::make_shared<SceneRuntime::SceneEnvironment>();
-            auto player =
-                std::make_unique<App::AuthoredScene>(root, scene, playerWorld, false, true, directory / "player.json");
+            auto player = std::make_unique<Player::AuthoredScene>(root, scene, playerWorld, false, true,
+                                                                  directory / "player.json");
             require(player->Initialize(renderer), "parity player initializes");
             std::string startTarget;
             if (const auto* configuration = SceneRuntime::TitleBindings::Configuration(playerWorld->World().Layout()))

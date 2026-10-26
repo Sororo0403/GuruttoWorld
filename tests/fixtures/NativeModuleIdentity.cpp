@@ -14,7 +14,7 @@ static_assert(!CompleteType<SceneRuntime::PhysicsWorld>);
 
 bool Register_IdentityProbe(void* context, SceneRuntime::RegisterModuleScript add)
 {
-    SceneRuntime::ScriptDefinition definition;
+    SceneRuntime::ScriptCallbacks definition;
     definition.update = [](SceneRuntime::ScriptContext&) {};
     return add(context, "IdentityProbe", &definition);
 }

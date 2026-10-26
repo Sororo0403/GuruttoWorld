@@ -1,3 +1,4 @@
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/Prefab.h>
 #include <SceneRuntime/Scripts/ScriptSchema.h>
 #include <SceneRuntime/Scene/SceneAssetReferences.h>
@@ -95,7 +96,8 @@ namespace
     void ValidateRoundtrip()
     {
         size_t files = 0;
-        for (const auto& folder : {"Games/GuruttoWorld/Assets/Scenes", "Games/GuruttoWorld/Assets/Prefabs"})
+        for (const auto& folder : {"Tools/GameProject/Templates/MinimalGame/Assets/Scenes",
+                                   WP1_TEST_GAME_ROOT "/Assets/Scenes", WP1_TEST_GAME_ROOT "/Assets/Prefabs"})
         {
             if (!std::filesystem::exists(folder))
                 continue;

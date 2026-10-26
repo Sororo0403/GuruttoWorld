@@ -1,3 +1,4 @@
+#include "../Support/TestGameContent.h"
 #include <Engine/Graphics/Camera.h>
 #include <Engine/Graphics/Models/Object3D.h>
 #include <Engine/Graphics/Models/ParticleSystem.h>
@@ -62,11 +63,11 @@ int main()
         Check(SUCCEEDED(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue))), "queue");
         Engine::TextureManager textures;
         Check(textures.Initialize(device.Get(), queue.Get()), "textures");
-        auto checker = textures.Load("App/Assets/Textures/Checker.png");
+        auto checker = textures.Load("tests/fixtures/Player/Assets/Textures/Checker.png");
         auto white = textures.Load({});
         Check(checker && white && checker != white, "different textures");
         Engine::ParticleSystem particles;
-        const auto shader = std::filesystem::path("Games/GuruttoWorld/Shaders/Particle.hlsl");
+        const auto shader = std::filesystem::path(WP1_TEST_GAME_ROOT "/Shaders/Particle.hlsl");
         Check(particles.CreateGroup("Checker", device.Get(), queue.Get(), checker, shader), "checker group");
         Check(particles.CreateGroup("Glow", device.Get(), queue.Get(), white, shader), "glow group");
         Check(!particles.CreateGroup("Glow", device.Get(), queue.Get(), white, shader), "duplicate group rejected");

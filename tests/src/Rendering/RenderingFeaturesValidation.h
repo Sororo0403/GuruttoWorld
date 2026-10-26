@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "EnvironmentValidation.h"
 #include "../../../SceneRuntime/src/Rendering/SceneRenderPlan.h"
 #include <Engine/Graphics/Renderers/OcclusionRenderer.h>
@@ -11,7 +12,7 @@ namespace RenderingFeaturesValidation
     /// <summary>インスタンス行列と現フレームの遮蔽結果がGPU描画へ反映されることを確認します。</summary>
     inline void Rendering(Engine::DirectX12Renderer& renderer)
     {
-        const auto shader = std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl");
+        const auto shader = std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl");
         Engine::MeshData data;
         data.vertices = {{{-1, -1, .1f}, {0, 0, -1}}, {{0, 1, .1f}, {0, 0, -1}}, {{1, -1, .1f}, {0, 0, -1}}};
         data.indices = {0, 1, 2};

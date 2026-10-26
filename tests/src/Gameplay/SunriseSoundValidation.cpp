@@ -1,5 +1,6 @@
+#include "../Support/TestGameContent.h"
 // 製品の実装を直接コンパイルし、実際に生成する音声をテストで検査します。
-#include "../../../Games/GuruttoWorld/Assets/Scripts/SunriseStreet.cpp"
+#include WP1_TEST_SUNRISE_SCRIPT
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include "../../../Editor/src/Playback/GameSession.h"
 #include <stdexcept>
@@ -51,7 +52,7 @@ void ValidateSunriseSound()
             "sound test renderer");
     layout.objects = {sound};
     Editor::GameSession session;
-    const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+    const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
     require(session.Play(renderer, root, layout, error), "sound session starts");
     session.Update(.016, true);
     require(bank.users == 1 && bank.ready && bank.audio.OutputVolume() > 0, "renamed sound initializes independently");

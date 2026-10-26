@@ -96,7 +96,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <Manifest>
-      <AdditionalManifestFiles>$(MSBuildThisFileDirectory)..\Content\Application.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>$(MSBuildThisFileDirectory)..\Engine\build\Application.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
@@ -106,20 +106,13 @@
     <ClCompile Include="src\main.cpp">
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="src\Shell\EditorFonts.cpp" />
     <ClInclude Include="src\Shell\EditorFonts.h" />
     <ClInclude Include="src\Inspector\ComponentWidgets.h" />
     <ClInclude Include="src\Shell\EditorLanguage.h" />
-    <ClCompile Include="src\Viewport\CameraPanel.cpp" />
-    <ClCompile Include="src\Inspector\ObjectPanel.cpp" />
-    <ClCompile Include="src\Inspector\ComponentPanel.cpp" />
-    <ClCompile Include="src\Inspector\EnvironmentPanel.cpp" />
-    <ClCompile Include="src\Ui\UiCanvasPanel.cpp" />
     <ClInclude Include="src\Ui\UiCanvasPanel.h" />
     <ClInclude Include="src\Assets\AudioPreview.h" />
     <ClInclude Include="src\Inspector\AudioComponentPanel.h" />
     <ClInclude Include="src\Inspector\GenreComponentPanel.h" />
-    <ClCompile Include="src\Ui\UiComponentPanel.cpp" />
     <ClInclude Include="src\Ui\UiComponentPanel.h" />
     <ClInclude Include="src\Ui\UiControlPanel.h" />
     <ClInclude Include="src\Animation\RagdollPanel.h" />
@@ -135,8 +128,6 @@
     <ClInclude Include="src\Project\BuildPanel.h" />
     <ClInclude Include="src\Shell\ProfilerPanel.h" />
     <ClInclude Include="src\Inspector\ComponentPanel.h" />
-    <ClCompile Include="src\Project\ProjectPanel.cpp" />
-    <ClCompile Include="src\Assets\AssetPreview.cpp" />
     <ClInclude Include="src\Assets\AssetPreview.h" />
     <ClInclude Include="src\Project\ProjectPanel.h" />
     <ClInclude Include="src\Project\ProjectCatalog.h" />
@@ -145,8 +136,6 @@
     <ClInclude Include="src\Assets\AssetRevision.h" />
     <ClInclude Include="src\Assets\SkeletonPreview.h" />
     <ClInclude Include="src\Assets\ModelDrop.h" />
-    <ClCompile Include="src\Editing\SceneSelection.cpp" />
-    <ClCompile Include="src\Viewport\TransformGizmo.cpp" />
     <ClInclude Include="src\Viewport\TransformGizmo.h" />
     <ClInclude Include="src\Viewport\GizmoTransform.h" />
     <ClInclude Include="src\Editing\EditHistory.h" />
@@ -177,10 +166,6 @@
     <ClInclude Include="src\Animation\IkPanel.h" />
     <ClInclude Include="src\Editing\FocusSelection.h" />
     <ClInclude Include="src\Shell\PanelLayout.h" />
-    <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
     <ClInclude Include="externals\ImGuizmo\ImGuizmo.h" />
     <None Include="externals\ImGuizmo\LICENSE" />
     <ClInclude Include="src\Editing\SceneSelection.h" />
@@ -199,10 +184,32 @@
   </ItemGroup>
   <PropertyGroup>
     <SkipGameScripts>true</SkipGameScripts>
-    <GameContentRoot>$(MSBuildThisFileDirectory)..\Content\</GameContentRoot>
   </PropertyGroup>
-  <Import Project="..\Content\Content.targets" />
+  <Import Project="..\Engine\build\ThirdPartyLicenses.targets" />
+  <Import Project="..\Engine\build\ProjectTool.targets" />
+  <Target Name="CopyProjectTool" AfterTargets="Build" DependsOnTargets="EnsureProjectTool">
+    <Copy SourceFiles="$(ProjectToolExecutable)" DestinationFiles="$(OutDir)ProjectTool.exe" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyEditorResources" AfterTargets="Build" DependsOnTargets="CopyThirdPartyLicenses">
+    <ItemGroup>
+      <EditorResource Include="$(MSBuildThisFileDirectory)Resources\**\*" />
+      <EngineShader Include="$(MSBuildThisFileDirectory)..\Engine\Shaders\**\*" Exclude="$(MSBuildThisFileDirectory)..\Engine\Shaders\Compiled\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EditorResource)" DestinationFiles="@(EditorResource->'$(OutDir)Editor\Resources\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(EngineShader)" DestinationFiles="@(EngineShader->'$(OutDir)Engine\Shaders\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
   <Target Name="CopyImGuizmoLicense" AfterTargets="Build">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)externals\ImGuizmo\LICENSE" DestinationFiles="$(OutDir)Licenses\ImGuizmo.txt" SkipUnchangedFiles="true" />
   </Target>
+  <ItemGroup>
+    <None Include="Resources\Fonts\FiraMono\FiraMono-Regular.ttf" />
+    <None Include="Resources\Fonts\FiraMono\LICENSE.txt" />
+    <None Include="Resources\Fonts\MPlus1p\MPLUS1p-Regular.ttf" />
+    <None Include="Resources\Fonts\MPlus1p\OFL.txt" />
+    <None Include="Resources\Fonts\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="EditorCore.vcxproj" />
+    <ClCompile Include="src\Assets\AssetPreview.cpp" />
+  </ItemGroup>
 </Project>

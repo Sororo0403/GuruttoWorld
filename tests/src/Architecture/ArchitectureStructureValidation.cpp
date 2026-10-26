@@ -170,7 +170,7 @@ namespace
         layout.objects.push_back(actor);
         SceneWorld world;
         std::string error;
-        Require(world.Initialize(renderer, root, layout, root / "Shaders/Mesh.hlsl", &error) &&
+        Require(world.Initialize(renderer, root, layout, root / "Engine/Shaders/Mesh.hlsl", &error) &&
                     world.StartScripts(error),
                 error.c_str());
         size_t preparations = 0;
@@ -230,7 +230,8 @@ namespace
 
     void ValidateSceneCommands(const std::filesystem::path& root)
     {
-        std::filesystem::copy("Content/Shaders", root / "Shaders", std::filesystem::copy_options::recursive);
+        std::filesystem::create_directories(root / "Engine");
+        std::filesystem::copy("Engine/Shaders", root / "Engine/Shaders", std::filesystem::copy_options::recursive);
         SceneRuntime::SceneLayout{}.Save(root / "Assets/Scenes/Incoming.json");
         Engine::Window window;
         Engine::DirectX12Renderer renderer;

@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <algorithm>
@@ -26,7 +27,7 @@ namespace ProfilerValidation
         if (child == scopes.end() || child->calls != 2 || child->milliseconds < 0 ||
             !Engine::CpuProfiler::Take().empty())
             throw std::runtime_error("CPU scopes aggregation/reset failed");
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto scene = SceneRuntime::SceneLayout::Load(content / "Assets/Scenes/RootMotionPlayground.json", content);
         scene.settings.postEffects.enabled = true;
         SceneRuntime::SceneEnvironment environment;

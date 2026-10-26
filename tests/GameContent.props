@@ -1,0 +1,12 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <TestGameRoot Condition="'$(TestGameRoot)' == ''">$(MSBuildThisFileDirectory)..\..\GuruttoWorld</TestGameRoot>
+    <TestGameRoot>$([System.IO.Path]::GetFullPath('$(TestGameRoot)'))</TestGameRoot>
+    <TestGameRootCpp>$(TestGameRoot.Replace('\', '/').TrimEnd('/'))</TestGameRootCpp>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>WP1_TEST_GAME_ROOT="$(TestGameRootCpp)";WP1_TEST_SUNRISE_SCRIPT="$(TestGameRootCpp)/Assets/Scripts/SunriseStreet.cpp";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>

@@ -42,8 +42,8 @@ namespace Editor
                 error = "ImGuiフレームの開始前にフォントを初期化してください";
                 return false;
             }
-            const auto latin = root / "Assets/Fonts/FiraMono/FiraMono-Regular.ttf";
-            const auto japanese = root / "Assets/Fonts/MPlus1p/MPLUS1p-Regular.ttf";
+            const auto latin = root / "Fonts/FiraMono/FiraMono-Regular.ttf";
+            const auto japanese = root / "Fonts/MPlus1p/MPLUS1p-Regular.ttf";
             for (const auto& path : {latin, japanese})
                 if (!std::filesystem::is_regular_file(path))
                 {

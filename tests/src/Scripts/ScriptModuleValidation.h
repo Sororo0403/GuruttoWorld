@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scripts/ScriptModule.h>
 #include <Engine/Core/Json.h>
 #include <SceneRuntime/Project/ProjectSettings.h>
@@ -57,7 +58,8 @@ namespace ScriptModuleValidation
         const std::string before(std::istreambuf_iterator<char>(input), {});
         input.close();
         Require(before.find("Register_TestMover") != std::string::npos &&
-                    before.find("TestMoverSchema") != std::string::npos &&
+                    before.find("SceneRuntime::ScriptCallbacks script") != std::string::npos &&
+                    before.find(".generated.h") == std::string::npos &&
                     std::filesystem::exists(created.parent_path() / "TestMover.schema.json"),
                 "script template contains host registration and public fields");
         Require(!ScriptModule::CreateSource(root, "TestMover", created, error), "script source never overwritten");
@@ -69,17 +71,20 @@ namespace ScriptModuleValidation
         std::filesystem::create_directories(Root());
         std::filesystem::path created;
         std::string error;
-        // 固定の検証フォルダーに前のSDKのシェーダーが残っていても、現在の共有素材で再現します。
-        const auto shaders = Engine::ProjectContext::SourceEngineRoot() / "Content/Shaders";
+        // 固定の検証フォルダーに前のSDKのシェーダーが残っていても、現在の標準シェーダーで再現します。
+        const auto shaders = Engine::ProjectContext::SourceEngineRoot() / "Engine/Shaders";
         for (const auto& file : std::filesystem::recursive_directory_iterator(shaders))
         {
             if (!file.is_regular_file() ||
                 file.path().lexically_relative(shaders).generic_string().starts_with("Compiled/"))
                 continue;
-            const auto target = Root() / "Shaders" / file.path().lexically_relative(shaders);
+            const auto target = Root() / "Engine/Shaders" / file.path().lexically_relative(shaders);
+            // 旧配置の検証用コピーを残して、同じIDを二重に登録しません。
+            std::filesystem::remove(Root() / "Shaders" / file.path().lexically_relative(shaders));
             std::filesystem::create_directories(target.parent_path());
             std::filesystem::copy_file(file.path(), target, std::filesystem::copy_options::overwrite_existing);
         }
+        // 旧方式の生成ヘッダーも除き、以前の検証結果から生成物への依存を持ち込みません。
         for (const auto* filename :
              {"ValidationNativeMover.cpp", "ValidationNativeMover.schema.json", "ValidationNativeMover.generated.h"})
             std::filesystem::remove(Root() / "Assets/Scripts" / filename);
@@ -111,7 +116,7 @@ namespace ScriptModuleValidation
     }
     inline bool unexpectedRegistration = false;
     /// <summary>ABI不一致の拒否より先に登録が呼ばれた場合を記録します。</summary>
-    inline bool RejectUnexpectedRegistration(void*, const char*, const SceneRuntime::ScriptDefinition*)
+    inline bool RejectUnexpectedRegistration(void*, const char*, const SceneRuntime::ScriptCallbacks*)
     {
         unexpectedRegistration = true;
         return false;
@@ -129,10 +134,17 @@ namespace ScriptModuleValidation
         auto changedSchema = Engine::Json::parse(schemaBefore);
         changedSchema["scripts"]["ValidationNativeMover"]["parameters"]["speed"]["initial"] = 3;
         Engine::FileContents::Write(schemaPath, changedSchema.dump());
-        const bool schemaRejected = !ScriptModule::Reload(Root(), error) &&
-                                    ScriptRegistry::Definitions().at("ValidationNativeMover").fields == old.fields;
+        Require(ScriptModule::Reload(Root(), error) &&
+                    ScriptRegistry::Definitions().at("ValidationNativeMover").fields.at("speed").initial == 3 &&
+                    old.fields.at("speed").initial == 2,
+                "JSON changes reload without rebuilding the DLL and preserve captured definitions");
+        changedSchema["scripts"]["ValidationNativeMover"]["parameters"]["speed"]["maximum"] = 1;
+        Engine::FileContents::Write(schemaPath, changedSchema.dump());
+        const bool schemaRejected =
+            !ScriptModule::Reload(Root(), error) &&
+            ScriptRegistry::Definitions().at("ValidationNativeMover").fields.at("speed").initial == 3;
         Engine::FileContents::Write(schemaPath, schemaBefore);
-        Require(schemaRejected, "schema mismatch preserves previously installed module definitions");
+        Require(schemaRejected, "invalid JSON schema preserves previously installed module definitions");
 
         ScenePlacement object;
         object.id = "native";
@@ -149,6 +161,8 @@ namespace ScriptModuleValidation
         Require(session.Stop(), "native script runtime stops before reload");
         Require(ScriptModule::Reload(Root(), error), "native module can be reloaded without original DLL lock");
         std::map<std::string, float> parameters, state;
+        for (const auto& [name, field] : old.fields)
+            parameters[name] = field.initial;
         ScriptContext context{object, parameters, state, 0.1};
         context.data = &old.dataFields;
         old.update(context);
@@ -196,7 +210,7 @@ namespace ScriptModuleValidation
         Require(ScriptRegistry::InstallModule(Engine::AssetDatabase::Text(std::filesystem::weakly_canonical(Root())),
                                               {}, error),
                 "native test module unloads from registry");
-        const auto gameRoot = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto gameRoot = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         Require(ScriptModule::Reload(gameRoot, error), "native game sound module loads");
         const auto previousDirectory = std::filesystem::current_path();
         struct RestoreDirectory

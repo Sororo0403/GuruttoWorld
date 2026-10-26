@@ -13,10 +13,11 @@ $encoding = [Text.UTF8Encoding]::new($false)
 $before = (Get-FileHash -LiteralPath $sourceSettings).Hash
 $beforeMetadata = (Get-FileHash -LiteralPath "$sourceSettings.meta").Hash
 $ids = @()
-. (Join-Path $repo 'scripts/BuildContentSnapshot.ps1')
+. (Join-Path $PSScriptRoot 'ProjectToolTestSupport.ps1')
 foreach ($name in @('FirstGame', 'SecondGame')) {
     $project = Join-Path $fixture $name
-    & (Join-Path $repo 'scripts/NewGameProject.ps1') -Destination $project -Name $name -TemplateContent $template
+    & (Get-ProjectTool) new-project -Engine $repo -Destination $project -Name $name -TemplateContent $template
+    if ($LASTEXITCODE -ne 0) { throw 'Project creation failed.' }
     $settings = Get-Content -LiteralPath (Join-Path $project 'Assets/Project.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     $metadata = Get-Content -LiteralPath (Join-Path $project 'Assets/Project.json.meta') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($settings.title -ne 'Same title' -or $settings.importLegacySettings -ne $false) {
@@ -40,7 +41,8 @@ if ((Get-FileHash -LiteralPath $sourceSettings).Hash -ne $before -or
 # 古いテンプレートにプロジェクトのメタデータがなくても、新規ゲームには固定IDを付与する。
 Remove-Item -LiteralPath "$sourceSettings.meta"
 $project = Join-Path $fixture 'NoMetadataGame'
-& (Join-Path $repo 'scripts/NewGameProject.ps1') -Destination $project -Name NoMetadataGame -TemplateContent $template
+& (Get-ProjectTool) new-project -Engine $repo -Destination $project -Name NoMetadataGame -TemplateContent $template
+if ($LASTEXITCODE -ne 0) { throw 'Project creation without template metadata failed.' }
 $metadata = Get-Content -LiteralPath (Join-Path $project 'Assets/Project.json.meta') -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($metadata.id -notmatch '^[a-f0-9]{32}$') { throw 'The new game has no valid settings ID.' }
 Write-Output 'PASS: distinct cloned-game IDs, explicit migration policy, stable package identity and unchanged templates.'

@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scripts/ScriptRuntime.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include "../../../Editor/src/Playback/GameSession.h"
@@ -178,7 +179,7 @@ namespace ScriptPhaseValidation
             Require(ScriptRegistry::Register("ValidationFixedDriver", driver), "runtime fixed driver registers");
             registered = true;
         }
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         const auto scene = Layout();
         const auto saved = scene.Serialize();
         std::string error;

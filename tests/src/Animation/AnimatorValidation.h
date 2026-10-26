@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Animation/Animator.h>
 #include <SceneRuntime/Scene/SceneLayout.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
@@ -24,7 +25,7 @@ namespace AnimatorValidation
     /// <summary>既存名と自動補完名が衝突するglTFを生成し、全クリップを名前で参照できることを確認します。</summary>
     inline void ClipNames()
     {
-        std::ifstream source("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf");
+        std::ifstream source(WP1_TEST_GAME_ROOT "/Assets/Models/AnimatedBox.gltf");
         const auto original = Engine::Json::parse(source);
         const auto directory = std::filesystem::absolute("generated/tests/skeletal-clip-names/Assets/Models");
         std::filesystem::create_directories(directory);
@@ -73,7 +74,7 @@ namespace AnimatorValidation
         using namespace SceneRuntime;
         std::string error;
         const auto rig =
-            Skeleton::Load(std::filesystem::absolute("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf"), error);
+            Skeleton::Load(std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Assets/Models/AnimatedBox.gltf"), error);
         Require(rig && rig->clips.size() == 3 && !rig->meshes.empty(), "glTF skeleton and clips import");
         const auto rest = Skeleton::Sample(*rig, "", 0, true);
         const auto bent = Skeleton::Sample(*rig, "Walk", 0.5, false);
@@ -121,7 +122,7 @@ namespace AnimatorValidation
             rejected = true;
         }
         Require(rejected, "unknown clips rejected");
-        const auto scene = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/AnimatorPlayground.json");
+        const auto scene = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/AnimatorPlayground.json");
         const auto restored = SceneLayout::Parse(scene.Serialize());
         Require(restored.objects.back().animator == scene.objects.back().animator, "Animator schema roundtrip");
     }
@@ -139,7 +140,7 @@ namespace AnimatorValidation
             }
         };
         Require(ScriptRegistry::Register("ValidationAnimatorMaterialDelta", change), "material delta script registers");
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto layout = SceneLayout::Load(root / "Assets/Scenes/AnimatorPlayground.json");
         std::string error;
         auto player = std::find_if(layout.objects.begin(), layout.objects.end(),
@@ -188,7 +189,7 @@ namespace AnimatorValidation
             const auto path =
                 std::filesystem::absolute("generated/tests/skeletal-clip-names/Assets/Models/Collisions.gltf");
             Require(model.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), path,
-                                     std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),
+                                     std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl")),
                     "renamed clips prepare GPU model");
             DirectX::XMFLOAT4X4 display, identity;
             DirectX::XMStoreFloat4x4(&display,
@@ -219,7 +220,7 @@ namespace AnimatorValidation
         SkinningValidation::Rendering(renderer);
         SkinningValidation::Model(renderer);
         using namespace SceneRuntime;
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto scene = SceneLayout::Load(content / "Assets/Scenes/AnimatorPlayground.json");
         std::string error;
         SceneWorld world;

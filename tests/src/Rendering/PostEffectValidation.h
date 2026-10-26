@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "EnvironmentValidation.h"
 #include "../../../Editor/src/Playback/GameSession.h"
 #include "../../../Editor/src/Editing/EditHistory.h"
@@ -125,7 +126,7 @@ namespace PostEffectValidation
         data.indices = {0, 1, 2};
         Engine::MeshRenderer mesh;
         Require(mesh.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), data,
-                                std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),
+                                std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl")),
                 "HDR mesh initializes");
         DirectX::XMFLOAT4X4 identity;
         DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
@@ -155,7 +156,7 @@ namespace PostEffectValidation
                 "HDR white fixture initializes");
         Engine::SpriteRenderer sprite;
         Require(sprite.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), white,
-                                  std::filesystem::absolute("Games/GuruttoWorld/Shaders/Sprite.hlsl")),
+                                  std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Sprite.hlsl")),
                 "HDR sprite initializes");
         Engine::SpriteDrawParameters parameters;
         parameters.size = {64, 32};
@@ -168,7 +169,7 @@ namespace PostEffectValidation
         Require(std::abs(gray[0] - .214041f) < .001f, "sprite converts authored sRGB into linear HDR");
         Engine::ParticleRenderer particles;
         Require(particles.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), white,
-                                     std::filesystem::absolute("Games/GuruttoWorld/Shaders/GlowParticle.hlsl")),
+                                     std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/GlowParticle.hlsl")),
                 "HDR particles initialize");
         DirectX::XMFLOAT4X4 particleMatrix;
         DirectX::XMStoreFloat4x4(&particleMatrix, DirectX::XMMatrixScaling(2, 2, 1));
@@ -184,7 +185,7 @@ namespace PostEffectValidation
         Require(!post.Initialize(renderer.GetDevice(), "generated/tests/missing-post-shader.hlsl") && !post.Ready(),
                 "post pipeline failure is retryable");
         Require(post.Initialize(renderer.GetDevice(),
-                                std::filesystem::absolute("Games/GuruttoWorld/Shaders/PostEffects.hlsl")),
+                                std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/PostEffects.hlsl")),
                 "post pipeline initializes");
         Engine::PostEffectSettings settings;
         settings.enabled = true;
@@ -291,7 +292,7 @@ namespace PostEffectValidation
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         auto layout = EnvironmentValidation::Layout();
         layout.objects[0].sky->horizon = {.5f, .5f, .5f};

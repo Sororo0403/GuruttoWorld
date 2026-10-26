@@ -1,9 +1,10 @@
 #pragma once
-#include "../../../App/src/Scenes/TitleBindings.h"
-#include "../../../App/src/Scenes/TitleUi.h"
-#include "../../../App/src/Scenes/SceneFactory.h"
-#include "../../../App/src/Scenes/AuthoredScene.h"
-#include "../../../App/src/Scenes/AuthoredScene.h"
+#include "../Support/TestGameContent.h"
+#include <SceneRuntime/Gameplay/TitleBindings.h>
+#include <SceneRuntime/Gameplay/TitleUi.h>
+#include "../../../Player/src/Scenes/SceneFactory.h"
+#include "../../../Player/src/Scenes/AuthoredScene.h"
+#include "../../../Player/src/Scenes/AuthoredScene.h"
 #include "../../../Editor/src/Editing/EditHistory.h"
 #include "../../../Editor/src/Ui/TitlePreview.h"
 #include <SceneRuntime/Project/ProjectSettings.h>
@@ -44,7 +45,7 @@ namespace MenuAuthoringValidation
             if (!ok)
                 throw std::runtime_error(message);
         };
-        auto layout = SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/TitleStreet.json");
+        auto layout = SceneRuntime::SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/TitleStreet.json");
         auto canvas = std::find_if(layout.objects.begin(), layout.objects.end(),
                                    [](const auto& o)
                                    {
@@ -85,7 +86,8 @@ namespace MenuAuthoringValidation
         }
         const auto serialized = layout.Serialize();
         const auto restored = SceneRuntime::SceneLayout::Parse(serialized);
-        check(*App::TitleBindings::Configuration(restored) == config, "all menu fields survive scene round trip");
+        check(*SceneRuntime::TitleBindings::Configuration(restored) == config,
+              "all menu fields survive scene round trip");
         Editor::EditHistory history;
         history.Reset({serialized, canvas->id});
         canvas->canvas->menu->cues[0] = "EditedCue";
@@ -94,14 +96,15 @@ namespace MenuAuthoringValidation
         check(history.CanUndo(), "menu inspector changes enter scene history");
         const auto undo = SceneRuntime::SceneLayout::Parse(history.Target(false).json);
         history.Applied(false);
-        check(*App::TitleBindings::Configuration(undo) == config, "Undo restores menu configuration");
+        check(*SceneRuntime::TitleBindings::Configuration(undo) == config, "Undo restores menu configuration");
         const auto redo = SceneRuntime::SceneLayout::Parse(history.Target(true).json);
         history.Applied(true);
-        check(App::TitleBindings::Configuration(redo)->cues[0] == "EditedCue", "Redo restores edited cue");
+        check(SceneRuntime::TitleBindings::Configuration(redo)->cues[0] == "EditedCue", "Redo restores edited cue");
         canvas->canvas->menu = config;
-        App::TitleMenu menu;
+        SceneRuntime::TitleMenu menu;
         menu.Configure(config);
-        check(menu.GetSelected() == static_cast<App::TitleMenuItem>(10), "arbitrary menu index selects first entry");
+        check(menu.GetSelected() == static_cast<SceneRuntime::TitleMenuItem>(10),
+              "arbitrary menu index selects first entry");
         menu.ActivateUi("menu:10");
         std::string assignments;
         check(menu.TakeAssignments(assignments) && assignments == "custom=2", "custom menu state action");
@@ -109,18 +112,19 @@ namespace MenuAuthoringValidation
         check(menu.IsSettingsOpen(), "authored settings action is independent of index");
         menu.ActivateUi("settings:0");
         check(menu.SettingValues().at("gamma") == 2.25f, "custom setting has authored initial and step");
-        auto output = App::TitleUi::State(menu);
+        auto output = SceneRuntime::TitleUi::State(menu);
         check(output.Value("gammaOut") == 5.5f && output.Value("focus") == 5, "custom state outputs and camera focus");
         menu.ActivateUi("settings:1");
         check(std::abs(menu.GetSettings().Gain() - .275f) < .0001f, "authored volume range retains fractional gain");
-        check(menu.ActivateUi("settings:3") == App::TitleMenuAction::SaveSettings, "fourth settings row saves");
+        check(menu.ActivateUi("settings:3") == SceneRuntime::TitleMenuAction::SaveSettings,
+              "fourth settings row saves");
         const auto fixtureRoot = std::filesystem::path("generated/tests/menu-authoring") /
                                  (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
         const auto path = fixtureRoot / "menu-settings.json";
         check(menu.GetSettings().Save(path), "save custom settings");
-        App::TitleMenu reload;
+        SceneRuntime::TitleMenu reload;
         reload.Configure(config);
-        reload.LoadSettings(App::GameSettings::Load(path));
+        reload.LoadSettings(SceneRuntime::GameSettings::Load(path));
         check(reload.SettingValues() == menu.SettingValues() && std::abs(reload.GetSettings().Gain() - .275f) < .0001f,
               "custom settings survive disk reload");
         menu.CompleteSave(false);
@@ -128,18 +132,18 @@ namespace MenuAuthoringValidation
         menu.ActivateUi("back");
         check(menu.SettingValues().at("gamma") == 2, "cancel restores custom settings");
         menu.ActivateUi("menu:21");
-        App::TitleMenuInput empty;
+        SceneRuntime::TitleMenuInput empty;
         empty.active = true;
-        App::TitleMenuAction action = App::TitleMenuAction::None;
+        SceneRuntime::TitleMenuAction action = SceneRuntime::TitleMenuAction::None;
         for (int i = 0; i < 6; ++i)
         {
             const auto current = menu.Update(empty, .1);
-            if (current != App::TitleMenuAction::None)
+            if (current != SceneRuntime::TitleMenuAction::None)
                 action = current;
         }
-        check(action == App::TitleMenuAction::Start && menu.PendingTarget() == "Assets/Scenes/Game.json",
+        check(action == SceneRuntime::TitleMenuAction::Start && menu.PendingTarget() == "Assets/Scenes/Game.json",
               "arbitrary item transitions to its own authored target");
-        check(menu.Update(empty, .1) == App::TitleMenuAction::None, "custom transition emits once");
+        check(menu.Update(empty, .1) == SceneRuntime::TitleMenuAction::None, "custom transition emits once");
         for (int axis : {3, 4, 5, 6})
         {
             Engine::InputActions actions;
@@ -155,15 +159,15 @@ namespace MenuAuthoringValidation
             else
                 snapshot.triggers[axis - 5] = 1;
             actions.Update(snapshot);
-            const auto input = App::TitleBindings::Input(config, actions, true);
-            check((input.keyboardButtons & App::MenuConfirm) != 0 && input.anyButtonPressed,
+            const auto input = SceneRuntime::TitleBindings::Input(config, actions, true);
+            check((input.keyboardButtons & SceneRuntime::MenuConfirm) != 0 && input.anyButtonPressed,
                   "shared title input accepts authored right stick and trigger");
-            App::TitleMenu controller;
+            SceneRuntime::TitleMenu controller;
             controller.Configure(config);
-            controller.SelectUi(static_cast<App::TitleMenuItem>(21));
+            controller.SelectUi(static_cast<SceneRuntime::TitleMenuItem>(21));
             controller.Update(empty);
             controller.Update(input);
-            check(controller.GetCue() == App::TitleMenuCue::Confirm, "mapped analog input activates menu");
+            check(controller.GetCue() == SceneRuntime::TitleMenuCue::Confirm, "mapped analog input activates menu");
         }
         Engine::InputActions mouse;
         Engine::InputBinding binding;
@@ -174,9 +178,10 @@ namespace MenuAuthoringValidation
         mouse.Update(snapshot);
         snapshot.mouseButtons = 2;
         mouse.Update(snapshot);
-        check(App::TitleBindings::Input(config, mouse, true).keyboardButtons & App::MenuConfirm,
+        check(SceneRuntime::TitleBindings::Input(config, mouse, true).keyboardButtons & SceneRuntime::MenuConfirm,
               "shared title input accepts mouse action");
-        check(!App::TitleBindings::Input(config, mouse, false).keyboardButtons, "inactive menu ignores mouse action");
+        check(!SceneRuntime::TitleBindings::Input(config, mouse, false).keyboardButtons,
+              "inactive menu ignores mouse action");
         auto invalid = Engine::Json::parse(serialized);
         for (auto& object : invalid["objects"])
             for (auto& component : object["components"])
@@ -206,10 +211,10 @@ namespace MenuAuthoringValidation
         const auto root = std::filesystem::absolute(fixtureRoot / "project");
         std::filesystem::create_directories(root / "Assets/Scenes");
         layout.Save(root / "Assets/Scenes/RenamedTitle.json");
-        App::SceneFactory factory(root);
+        Player::SceneFactory factory(root);
         auto scene = factory.Create("Assets/Scenes/RenamedTitle.json");
-        check(dynamic_cast<App::AuthoredScene*>(scene.get()), "renamed menu uses the shared authored runtime");
-        const auto normal = SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/Game.json");
+        check(dynamic_cast<Player::AuthoredScene*>(scene.get()), "renamed menu uses the shared authored runtime");
+        const auto normal = SceneRuntime::SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/Game.json");
         normal.Save(root / "Assets/Scenes/CustomGameplay.json");
         SceneRuntime::ProjectSettings project;
         project.title = "Independent menu fixture";
@@ -217,7 +222,7 @@ namespace MenuAuthoringValidation
         project.sceneAliases = {{"EngineDemo", "Assets/Scenes/CustomGameplay.json"}};
         project.Save(root);
         scene = factory.Create("EngineDemo");
-        check(dynamic_cast<App::AuthoredScene*>(scene.get()), "legacy name resolves through project configuration");
+        check(dynamic_cast<Player::AuthoredScene*>(scene.get()), "legacy name resolves through project configuration");
         check(!factory.Create("Game"), "unconfigured game aliases do not open sample scenes");
     }
 }

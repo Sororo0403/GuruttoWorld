@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "../Rendering/EnvironmentValidation.h"
 #include <Engine/Graphics/Renderers/ModelRenderer.h>
 #include <Engine/Animation/Skeleton.h>
@@ -67,7 +68,7 @@ namespace SkinningValidation
     {
         using namespace Engine;
         using namespace DirectX;
-        const auto shader = std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl");
+        const auto shader = std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl");
         SkeletonData rig;
         rig.nodes = {{"mesh", -1, {}}, {"first", -1, {}}, {"second", -1, {}}};
         rig.importScale = .7f;
@@ -191,8 +192,8 @@ namespace SkinningValidation
         using namespace DirectX;
         ModelRenderer model;
         Require(model.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(),
-                                 std::filesystem::absolute("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf"),
-                                 std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),
+                                 std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Assets/Models/AnimatedBox.gltf"),
+                                 std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl")),
                 "GPU animated model initializes");
         const auto copy = model.AnimatedCopy(renderer.GetDevice(), renderer.GetCommandQueue());
         Require(copy && copy->GeometryResource(0) == model.GeometryResource(0),
@@ -248,7 +249,7 @@ namespace SkinningValidation
             auto mesh = std::make_unique<MeshRenderer>();
             Require(mesh->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(),
                                      Skeleton::Skin(*model.Rig(), source, matrices),
-                                     std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),
+                                     std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl")),
                     "model CPU comparison initializes");
             bakedMeshes.push_back(std::move(mesh));
         }

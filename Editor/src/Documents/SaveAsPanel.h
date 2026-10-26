@@ -14,15 +14,8 @@ namespace Editor
         {
             return requested_;
         }
-        void Request(const std::filesystem::path& current)
-        {
-            const auto name = ProjectCatalog::Text(current.filename());
-            filename_.fill(0);
-            std::copy_n(name.data(), std::min(name.size(), filename_.size() - 1), filename_.data());
-            requested_ = true;
-            target_.reset();
-            error_.clear();
-        }
+        /// <summary>変更の要求を登録します。</summary>
+        void Request(const std::filesystem::path& current);
         template <class Save> void Draw(const std::filesystem::path& root, Save save, const std::string& status)
         {
             if (requested_)

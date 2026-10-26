@@ -38,107 +38,14 @@ namespace Editor
             const auto utf8 = path.generic_u8string();
             return {utf8.begin(), utf8.end()};
         }
-        bool Scan(const std::filesystem::path& root)
-        {
-            try
-            {
-                Engine::FileSaveLock saveLock(root);
-                if (saveLock.Outermost())
-                    Engine::FileJournal::RecoverLocked(root);
-                auto schemas = SceneRuntime::ScriptSchema::Builtins();
-                for (auto& [name, schema] : SceneRuntime::ScriptSchema::LoadProject(root))
-                    if (!schemas.emplace(name, std::move(schema)).second)
-                        throw std::runtime_error("Project cannot replace a builtin script schema: " + name);
-                std::vector<ProjectAsset> assets;
-                std::set<std::filesystem::path> folders{"Assets"};
-                ScanFolder(root, "Assets", assets, folders);
-                if (std::filesystem::is_directory(root / "Shaders"))
-                    ScanFolder(root, "Shaders", assets, folders);
-                for (const auto& [relative, source] : Engine::ContentFiles::List(root))
-                {
-                    if (!Engine::ContentFiles::IsShared(root / relative))
-                        continue;
-                    const auto kind = Kind(relative);
-                    if (!kind)
-                        continue;
-                    Engine::AssetDatabase::Ensure(root / relative);
-                    assets.push_back({relative, *kind});
-                    for (auto parent = relative.parent_path(); !parent.empty(); parent = parent.parent_path())
-                        folders.insert(parent);
-                }
-                std::sort(assets.begin(), assets.end(),
-                          [](const auto& a, const auto& b)
-                          {
-                              return a.path < b.path;
-                          });
-                static_cast<void>(Engine::AssetDatabase(root));
-                schemas_ = std::move(schemas);
-                root_ = root;
-                assets_ = std::move(assets);
-                folders_ = {folders.begin(), folders.end()};
-                children_.clear();
-                for (const auto& folder : folders_)
-                    children_[folder.parent_path()].push_back(folder);
-                error_.clear();
-                ++revision_;
-                return true;
-            }
-            catch (const std::exception& error)
-            {
-                error_ = error.what();
-                return false;
-            }
-        }
-        static std::optional<AssetKind> Kind(const std::filesystem::path& path)
-        {
-            const auto extension = Lower(Text(path.extension()));
-            if (extension == ".mat" && Text(path).starts_with("Assets/Materials/"))
-                return AssetKind::Material;
-            if (extension == ".prefab" && Text(path).starts_with("Assets/Prefabs/"))
-                return AssetKind::Prefab;
-            if (extension == ".obj" || extension == ".gltf" || extension == ".glb")
-                return AssetKind::Model;
-            if (extension == ".json" && Text(path).starts_with("Assets/Scenes/"))
-                return AssetKind::Scene;
-            if (HasExtension(extension, {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".dds"}))
-                return AssetKind::Texture;
-            if (HasExtension(extension, {".wav", ".mp3", ".aac", ".m4a", ".ogg", ".flac"}))
-                return AssetKind::Audio;
-            if (HasExtension(extension, {".hlsl", ".hlsli"}))
-                return AssetKind::Shader;
-            if (HasExtension(extension, {".ttf", ".otf"}))
-                return AssetKind::Font;
-            return std::nullopt;
-        }
-        static const char* Label(AssetKind kind)
-        {
-            switch (kind)
-            {
-            case AssetKind::Model:
-                return "モデル";
-            case AssetKind::Scene:
-                return "シーン";
-            case AssetKind::Texture:
-                return "画像";
-            case AssetKind::Audio:
-                return "音声";
-            case AssetKind::Shader:
-                return "シェーダー";
-            case AssetKind::Font:
-                return "フォント";
-            case AssetKind::Prefab:
-                return "Prefab";
-            case AssetKind::Material:
-                return "Material";
-            }
-            return "アセット";
-        }
-        static bool Matches(const ProjectAsset& asset, const std::filesystem::path& folder, const std::string& search)
-        {
-            if (search.empty())
-                return asset.path.parent_path() == folder;
-            return Lower(Text(asset.path)).find(Lower(search)) != std::string::npos;
-        }
+        /// <summary>素材とメタデータを走査します。</summary>
+        bool Scan(const std::filesystem::path& root);
+        /// <summary>対象の種類を判定します。</summary>
+        static std::optional<AssetKind> Kind(const std::filesystem::path& path);
+        /// <summary>現在の状態の表示名を返します。</summary>
+        static const char* Label(AssetKind kind);
+        /// <summary>指定した条件との一致を確認します。</summary>
+        static bool Matches(const ProjectAsset& asset, const std::filesystem::path& folder, const std::string& search);
         /// <summary>DLLのロード状態に依存しない宣言済みスクリプトのスキーマを取得します。</summary>
         const std::map<std::string, SceneRuntime::ScriptSchema>& ScriptSchemas() const
         {
@@ -161,12 +68,8 @@ namespace Editor
         {
             return folders_;
         }
-        const std::vector<std::filesystem::path>& Children(const std::filesystem::path& folder) const
-        {
-            static const std::vector<std::filesystem::path> empty;
-            const auto found = children_.find(folder);
-            return found == children_.end() ? empty : found->second;
-        }
+        /// <summary>子要素を処理します。</summary>
+        const std::vector<std::filesystem::path>& Children(const std::filesystem::path& folder) const;
         const std::string& Error() const
         {
             return error_;
@@ -178,40 +81,11 @@ namespace Editor
         {
             return std::find(supported.begin(), supported.end(), extension) != supported.end();
         }
+        /// <summary>指定フォルダー内の素材を走査します。</summary>
         static void ScanFolder(const std::filesystem::path& root, const std::filesystem::path& folder,
-                               std::vector<ProjectAsset>& assets, std::set<std::filesystem::path>& folders)
-        {
-            folders.insert(folder);
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(root / folder))
-            {
-                if (Engine::FileSaveLock::IsJournalPath(entry.path().lexically_relative(root)))
-                    continue;
-                if (entry.is_directory())
-                {
-                    folders.insert(entry.path().lexically_relative(root));
-                    continue;
-                }
-                if (!entry.is_regular_file())
-                    continue;
-                const auto relative = entry.path().lexically_relative(root);
-                const auto kind = Kind(relative);
-                if (!kind)
-                    continue;
-                Engine::AssetDatabase::Ensure(entry.path());
-                assets.push_back({relative, *kind});
-                for (auto parent = relative.parent_path(); !parent.empty(); parent = parent.parent_path())
-                    folders.insert(parent);
-            }
-        }
-        static std::string Lower(std::string value)
-        {
-            std::transform(value.begin(), value.end(), value.begin(),
-                           [](unsigned char c)
-                           {
-                               return static_cast<char>(std::tolower(c));
-                           });
-            return value;
-        }
+                               std::vector<ProjectAsset>& assets, std::set<std::filesystem::path>& folders);
+        /// <summary>文字列を小文字へ変換します。</summary>
+        static std::string Lower(std::string value);
         std::map<std::string, SceneRuntime::ScriptSchema> schemas_;
         std::filesystem::path root_;
         std::vector<ProjectAsset> assets_;

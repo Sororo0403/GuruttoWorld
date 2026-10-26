@@ -1,0 +1,126 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64"><Configuration>Debug</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64"><Configuration>Development</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals"><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Debug'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <OutDir>$(MSBuildThisFileDirectory)..\generated\outputs\$(Platform)\$(Configuration)\EditorCore\</OutDir>
+    <IntDir>$(MSBuildThisFileDirectory)..\generated\intermediate\$(Platform)\$(Configuration)\EditorCore\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'!='Debug'">MultiThreadedDLL</RuntimeLibrary>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat Condition="'$(Configuration)'!='Release'">ProgramDatabase</DebugInformationFormat>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Development'">NDEBUG;ENGINE_DEVELOPMENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\SceneRuntime\include;$(MSBuildThisFileDirectory)..\Engine\externals\imgui;$(MSBuildThisFileDirectory)externals\ImGuizmo;$(MSBuildThisFileDirectory)..\Engine\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Engine\Engine.vcxproj" />
+    <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimationEventPanel.cpp" />
+    <ClCompile Include="src\Animation\AnimationPanel.cpp" />
+    <ClCompile Include="src\Animation\AnimationTimeline.cpp" />
+    <ClCompile Include="src\Animation\AnimatorPanel.cpp" />
+    <ClCompile Include="src\Animation\BlendTreePanel.cpp" />
+    <ClCompile Include="src\Animation\IkPanel.cpp" />
+    <ClCompile Include="src\Animation\RagdollPanel.cpp" />
+    <ClCompile Include="src\Assets\AssetChanges.cpp" />
+    <ClCompile Include="src\Assets\AssetDependencies.cpp" />
+    <ClCompile Include="src\Assets\AssetFileChanges.cpp" />
+    <ClCompile Include="src\Assets\AssetInfo.cpp" />
+    <ClCompile Include="src\Assets\AssetManagementPanel.cpp" />
+    <ClCompile Include="src\Assets\AssetPreview.cpp" />
+    <ClCompile Include="src\Assets\AudioPreview.cpp" />
+    <ClCompile Include="src\Assets\ModelDrop.cpp" />
+    <ClCompile Include="src\Assets\SkeletonPreview.cpp" />
+    <ClCompile Include="src\Documents\DocumentSave.cpp" />
+    <ClCompile Include="src\Documents\FileTransaction.cpp" />
+    <ClCompile Include="src\Documents\MaterialDocument.cpp" />
+    <ClCompile Include="src\Documents\PrefabEditPlan.cpp" />
+    <ClCompile Include="src\Documents\SaveAsPanel.cpp" />
+    <ClCompile Include="src\Documents\SceneDocument.cpp" />
+    <ClCompile Include="src\Documents\SceneRecovery.cpp" />
+    <ClCompile Include="src\Documents\SceneSnapshotCache.cpp" />
+    <ClCompile Include="src\Editing\EditHistory.cpp" />
+    <ClCompile Include="src\Editing\EditState.cpp" />
+    <ClCompile Include="src\Editing\FocusSelection.cpp" />
+    <ClCompile Include="src\Editing\HierarchyRows.cpp" />
+    <ClCompile Include="src\Editing\SceneSelection.cpp" />
+    <ClCompile Include="src\Editing\SelectionSet.cpp" />
+    <ClCompile Include="src\Inspector\AudioComponentPanel.cpp" />
+    <ClCompile Include="src\Inspector\ComponentEditResources.cpp" />
+    <ClCompile Include="src\Inspector\ComponentPanel.cpp" />
+    <ClCompile Include="src\Inspector\EnvironmentPanel.cpp" />
+    <ClCompile Include="src\Inspector\GenreComponentPanel.cpp" />
+    <ClCompile Include="src\Inspector\JointPanel.cpp" />
+    <ClCompile Include="src\Inspector\LightmapPanel.cpp" />
+    <ClCompile Include="src\Inspector\MaterialPanel.cpp" />
+    <ClCompile Include="src\Inspector\MaterialWorkflow.cpp" />
+    <ClCompile Include="src\Inspector\MultiComponentPanel.cpp" />
+    <ClCompile Include="src\Inspector\ObjectPanel.cpp" />
+    <ClCompile Include="src\Inspector\PhysicsPanel.cpp" />
+    <ClCompile Include="src\Inspector\PrefabPanel.cpp" />
+    <ClCompile Include="src\Inspector\ScriptDataPanel.cpp" />
+    <ClCompile Include="src\Playback\GamePointerCapture.cpp" />
+    <ClCompile Include="src\Playback\GameSession.cpp" />
+    <ClCompile Include="src\Playback\PlayState.cpp" />
+    <ClCompile Include="src\Project\BuildPanel.cpp" />
+    <ClCompile Include="src\Project\GameProject.cpp" />
+    <ClCompile Include="src\Project\InputBindingsPanel.cpp" />
+    <ClCompile Include="src\Project\ProjectCatalog.cpp" />
+    <ClCompile Include="src\Project\ProjectPanel.cpp" />
+    <ClCompile Include="src\Project\ProjectSettingsPanel.cpp" />
+    <ClCompile Include="src\Project\ScriptAuthoringPanel.cpp" />
+    <ClCompile Include="src\Shell\ConsoleFilter.cpp" />
+    <ClCompile Include="src\Shell\ConsolePanel.cpp" />
+    <ClCompile Include="src\Shell\EditorFonts.cpp" />
+    <ClCompile Include="src\Shell\EditorLanguage.cpp" />
+    <ClCompile Include="src\Shell\PanelLayout.cpp" />
+    <ClCompile Include="src\Shell\ProfilerPanel.cpp" />
+    <ClCompile Include="src\Shell\SceneSettingsPanel.cpp" />
+    <ClCompile Include="src\Ui\MenuPanel.cpp" />
+    <ClCompile Include="src\Ui\UiCanvasPanel.cpp" />
+    <ClCompile Include="src\Ui\UiCanvasTransform.cpp" />
+    <ClCompile Include="src\Ui\UiComponentPanel.cpp" />
+    <ClCompile Include="src\Ui\UiControlPanel.cpp" />
+    <ClCompile Include="src\Ui\UiEditorPanel.cpp" />
+    <ClCompile Include="src\Ui\UiLayoutTools.cpp" />
+    <ClCompile Include="src\Viewport\CameraPanel.cpp" />
+    <ClCompile Include="src\Viewport\ComponentGuideGeometry.cpp" />
+    <ClCompile Include="src\Viewport\GizmoTransform.cpp" />
+    <ClCompile Include="src\Viewport\IkHandleTransform.cpp" />
+    <ClCompile Include="src\Viewport\IkSceneHandles.cpp" />
+    <ClCompile Include="src\Viewport\ScenePanel.cpp" />
+    <ClCompile Include="src\Viewport\SceneViewport.cpp" />
+    <ClCompile Include="src\Viewport\TransformGizmo.cpp" />
+  </ItemGroup>
+</Project>

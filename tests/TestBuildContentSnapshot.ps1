@@ -1,5 +1,6 @@
 $ErrorActionPreference='Stop'
-. (Join-Path $PSScriptRoot '../scripts/BuildContentSnapshot.ps1')
+. (Join-Path $PSScriptRoot 'ProjectToolTestSupport.ps1')
+. (Join-Path $PSScriptRoot 'SnapshotTestSupport.ps1')
 $testRoot=Join-Path (Split-Path $PSScriptRoot -Parent) ('generated/tests/build-snapshot-'+[Guid]::NewGuid().ToString('N'))
 $source=Join-Path $testRoot 'Content'
 $destination=Join-Path $testRoot 'Package'
@@ -18,13 +19,6 @@ if(!(Test-Path -LiteralPath (Join-Path $destination 'Assets/Scripts/Game.cpp')))
 if(Test-Path -LiteralPath (Join-Path $destination 'Assets/Scripts/Bin')) {throw 'Snapshot included stale compiled script modules.'}
 Set-Content -LiteralPath $scene -Value 'later edit'
 if((Get-Content -LiteralPath (Join-Path $destination 'Assets/Scenes/Main.json') -Raw).Trim() -ne 'original') {throw 'Snapshot changed with live Content.'}
-# 独立したテスト用データのコピー直後に、元データへの編集を挿入します。
-function Copy-Item {
-    param([string]$LiteralPath,[string]$Destination)
-    Microsoft.PowerShell.Management\Copy-Item -LiteralPath $LiteralPath -Destination $Destination
-    if($LiteralPath -like '*.json') {Set-Content -LiteralPath $LiteralPath -Value 'concurrent edit'}
-}
-$failed=$false
-try {Copy-BuildContentSnapshot -Content $source -Destination (Join-Path $testRoot 'Interrupted')} catch {$failed=$true}
-if(!$failed) {throw 'Concurrent source edit was not detected.'}
+Assert-SnapshotConcurrentChange -Content $source -Destination (Join-Path $testRoot 'Interrupted') `
+    -MutatedFile $scene -TriggerRelative 'Assets/Scenes/Main.json'
 Write-Output 'PASS: immutable Content snapshot, temporary-save exclusion and concurrent-edit rejection'

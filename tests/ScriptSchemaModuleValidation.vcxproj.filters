@@ -3,10 +3,19 @@
   <ItemGroup>
     <Filter Include="src" />
     <Filter Include="src\Scripts" />
+    <Filter Include="Editor" />
+    <Filter Include="Editor\src" />
+    <Filter Include="Editor\src\Project" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Scripts\ScriptSchemaModuleValidation.cpp">
       <Filter>src\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Project\BuildPanel.cpp">
+      <Filter>Editor\src\Project</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Editor\src\Project\ScriptAuthoringPanel.cpp">
+      <Filter>Editor\src\Project</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

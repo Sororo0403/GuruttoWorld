@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "BlendTreeValidation.h"
 #include "SkinningValidation.h"
 #include "../../../Editor/src/Animation/AnimationEventPanel.h"
@@ -146,7 +147,7 @@ namespace AnimationEventValidation
         }
         Require(rejected && state.current.empty() && state.time == 0 && state.eventsAtStart,
                 "event overflow preserves complete Animator state");
-        const auto scene = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/AnimationEventPlayground.json");
+        const auto scene = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/AnimationEventPlayground.json");
         const auto restored = SceneLayout::Parse(scene.Serialize());
         for (size_t index = 0; index < scene.objects.size(); ++index)
             Require(scene.objects[index].animator == restored.objects[index].animator,
@@ -204,7 +205,7 @@ namespace AnimationEventValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         auto scene = SceneLayout::Load(content / "Assets/Scenes/AnimationEventPlayground.json", content);
         SceneWorld world;

@@ -15,16 +15,8 @@ namespace Editor
     class AssetPreview final
     {
     public:
-        void Request(const ProjectAsset& asset)
-        {
-            if (selected_ != asset.path)
-            {
-                selected_ = asset.path;
-                kind_ = asset.kind;
-                requested_ = true;
-            }
-            visible_ = asset.kind == AssetKind::Model;
-        }
+        /// <summary>変更の要求を登録します。</summary>
+        void Request(const ProjectAsset& asset);
         bool Ready() const
         {
             return loaded_ == selected_ && !loaded_.empty();

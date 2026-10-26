@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "SkinningValidation.h"
 #include "../../../Editor/src/Playback/GameSession.h"
 #include "../../../Editor/src/Animation/IkPanel.h"
@@ -15,7 +16,7 @@ namespace IkPlaybackValidation
         using namespace Engine;
         using namespace SceneRuntime;
         using namespace DirectX;
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         const auto root = std::filesystem::absolute("generated/tests/imported-ik-handles");
         const std::filesystem::path path = "Assets/Models/Imported.gltf";
         std::filesystem::create_directories((root / path).parent_path());
@@ -141,7 +142,7 @@ namespace IkPlaybackValidation
         using namespace Engine;
         using namespace SceneRuntime;
         using namespace DirectX;
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         const auto scene = SceneLayout::Load(content / "Assets/Scenes/IkPlayground.json", content);
         const auto authored = scene.Serialize();

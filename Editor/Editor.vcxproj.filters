@@ -19,42 +19,6 @@
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Shell\EditorFonts.cpp">
-      <Filter>src\Shell</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Viewport\CameraPanel.cpp">
-      <Filter>src\Viewport</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Inspector\ObjectPanel.cpp">
-      <Filter>src\Inspector</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Inspector\ComponentPanel.cpp">
-      <Filter>src\Inspector</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Inspector\EnvironmentPanel.cpp">
-      <Filter>src\Inspector</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Ui\UiCanvasPanel.cpp">
-      <Filter>src\Ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Ui\UiComponentPanel.cpp">
-      <Filter>src\Ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Project\ProjectPanel.cpp">
-      <Filter>src\Project</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\AssetPreview.cpp">
-      <Filter>src\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Editing\SceneSelection.cpp">
-      <Filter>src\Editing</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Viewport\TransformGizmo.cpp">
-      <Filter>src\Viewport</Filter>
-    </ClCompile>
-    <ClCompile Include="externals\ImGuizmo\ImGuizmo.cpp">
-      <Filter>externals\ImGuizmo</Filter>
-    </ClCompile>
     <ClInclude Include="src\Shell\EditorFonts.h">
       <Filter>src\Shell</Filter>
     </ClInclude>
@@ -256,5 +220,33 @@
     <ClInclude Include="src\Viewport\CameraPanel.h">
       <Filter>src\Viewport</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Resources" />
+    <Filter Include="Resources\Fonts" />
+    <Filter Include="Resources\Fonts\FiraMono" />
+    <Filter Include="Resources\Fonts\MPlus1p" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Fonts\FiraMono\FiraMono-Regular.ttf">
+      <Filter>Resources\Fonts\FiraMono</Filter>
+    </None>
+    <None Include="Resources\Fonts\FiraMono\LICENSE.txt">
+      <Filter>Resources\Fonts\FiraMono</Filter>
+    </None>
+    <None Include="Resources\Fonts\MPlus1p\MPLUS1p-Regular.ttf">
+      <Filter>Resources\Fonts\MPlus1p</Filter>
+    </None>
+    <None Include="Resources\Fonts\MPlus1p\OFL.txt">
+      <Filter>Resources\Fonts\MPlus1p</Filter>
+    </None>
+    <None Include="Resources\Fonts\README.md">
+      <Filter>Resources\Fonts</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Assets\AssetPreview.cpp">
+      <Filter>src\Assets</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -17,11 +17,11 @@ namespace PipelineReuseValidation
                 throw std::runtime_error("pipeline reuse validation failed");
         };
         const auto shader = root / "pipeline-reuse.hlsl";
-        const auto original = Engine::FileContents::Read("Content/Shaders/Mesh.hlsl");
+        const auto original = Engine::FileContents::Read("Engine/Shaders/Mesh.hlsl");
         require(original.has_value());
         // include の相対位置を維持した専用ディレクトリで、他の検証素材を変更しません。
         std::filesystem::create_directories(root);
-        std::filesystem::copy("Content/Shaders", root,
+        std::filesystem::copy("Engine/Shaders", root,
                               std::filesystem::copy_options::recursive |
                                   std::filesystem::copy_options::overwrite_existing);
         Engine::FileContents::Write(shader, *original);

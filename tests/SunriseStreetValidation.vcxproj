@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="GameContent.props" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -11,6 +12,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <GameContentRoot Condition="'$(GameContentRoot)' == ''">$(TestGameRoot)\</GameContentRoot>
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{390970BC-F59A-46DB-B9CC-BA4620A79831}</ProjectGuid>
@@ -96,7 +98,7 @@
     <ClInclude Include="src\Rendering\SpriteResourceValidation.h" />
     <ClCompile Include="src\Gameplay\SunriseStreetValidation.cpp" />
     <ClCompile Include="src\Gameplay\SunriseSoundValidation.cpp" />
-    <ClCompile Include="..\Games\GuruttoWorld\Assets\Scripts\StreetJourney.cpp" />
+    <ClCompile Include="$(TestGameRoot)\Assets\Scripts\StreetJourney.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Engine\Engine.vcxproj">
@@ -105,7 +107,9 @@
   </ItemGroup>
   <ItemGroup><ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj"><Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}</Project></ProjectReference></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Import Project="..\Content\ScriptSchemas.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Editor\EditorCore.vcxproj" />
+  </ItemGroup>
 </Project>

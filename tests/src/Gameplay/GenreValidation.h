@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Gameplay/Navigation.h>
 #include <SceneRuntime/Gameplay/GenreGeometry.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
@@ -85,7 +86,7 @@ namespace GenreValidation
         }
         Require(rejected, "invalid atlas tile rejected");
     }
-    /// <summary>障害物・傾斜Bake、A*経路、親座標と固定時間Agentを確認します。</summary>
+    /// <summary>障害物・傾斜の Recast Bake、Detour 経路、親座標と固定時間 Agent を確認します。</summary>
     inline void NavigationPaths()
     {
         auto layout = Layout();
@@ -99,7 +100,7 @@ namespace GenreValidation
         Require(SceneRuntime::Navigation::Bake(layout, layout.objects[0], error), "obstacle navmesh bake");
         Require(!layout.objects[0].navMesh->walkable[5], "obstacle cell blocks navigation");
         const auto path = SceneRuntime::Navigation::Path(layout, "ground", {.5f, 0, 1.5f}, {3.5f, 0, 1.5f});
-        Require(path.size() > 4, "A star detours around obstacle");
+        Require(path.size() >= 2, "Detour finds a complete path around the obstacle");
         for (const auto& point : path)
             Require(!(point[0] > 1 && point[0] < 2 && point[2] > 1 && point[2] < 2), "path avoids blocked cell");
         SceneRuntime::ScenePlacement parent;
@@ -178,7 +179,7 @@ namespace GenreValidation
         agent.navAgent->destination = {3.5f, 5, .5f};
         layout.objects.push_back(agent);
         SceneRuntime::SceneEnvironment scene;
-        Require(scene.Initialize(renderer, "Games/GuruttoWorld", layout, error), "procedural scene GPU resources");
+        Require(scene.Initialize(renderer, WP1_TEST_GAME_ROOT, layout, error), "procedural scene GPU resources");
         const auto pick = scene.World().PickRay({2, 5, 2}, {0, -1, 0});
         Require(pick == "ground", "procedural terrain triangle picking");
         scene.Update(1.0 / 30, true, true);
@@ -191,7 +192,7 @@ namespace GenreValidation
                 "SceneEnvironment stops NavAgent at the projected destination before rendering");
         SceneRuntime::PhysicsWorld physics;
         SceneRuntime::ScenePhysics::States states;
-        Require(physics.Advance(layout, states, 1.0 / 60, 0, 0, false, "Games/GuruttoWorld", error),
+        Require(physics.Advance(layout, states, 1.0 / 60, 0, 0, false, WP1_TEST_GAME_ROOT, error),
                 "Jolt heightfield collider build");
         const auto hit = physics.Raycast({2, 5, 2}, {0, -1, 0}, 10);
         Require(hit && hit->object == "ground" && std::abs(hit->position[1]) < .01f,

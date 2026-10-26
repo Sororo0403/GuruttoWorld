@@ -2,6 +2,7 @@
 #include "../Shell/PanelLayout.h"
 #include <imgui.h>
 
+#if defined(_DEBUG) || defined(ENGINE_DEVELOPMENT)
 namespace Editor
 {
     void CameraPanel::CancelDrag() noexcept
@@ -76,3 +77,4 @@ namespace Editor
         }
     }
 }
+#endif

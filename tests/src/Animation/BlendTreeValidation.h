@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "../Rendering/EnvironmentValidation.h"
 #include "../../../Editor/src/Playback/GameSession.h"
 #include "../../../Editor/src/Animation/BlendTreePanel.h"
@@ -291,12 +292,12 @@ namespace BlendTreeValidation
         Animator::Advance(animator, state, rig, .1, {{"x", .25f}});
         Require(state.current == "Jump" && state.blendElapsed > 0 && state.blendElapsed < state.blendDuration,
                 "tree transitions retain crossfade and exit time");
-        const auto layout = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/BlendTreePlayground.json");
+        const auto layout = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/BlendTreePlayground.json");
         const auto restored = SceneLayout::Parse(layout.Serialize());
         for (size_t object = 0; object < layout.objects.size(); ++object)
             Require(layout.objects[object].animator == restored.objects[object].animator,
                     "all Blend Tree definitions roundtrip scene JSON");
-        const auto original = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/AnimatorPlayground.json");
+        const auto original = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/AnimatorPlayground.json");
         Require(original.objects.back().animator->blendTrees.empty() &&
                     original.objects.back().animator->states.front().blendTree.empty(),
                 "legacy Animator format remains compatible");
@@ -337,7 +338,7 @@ namespace BlendTreeValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto scene = SceneLayout::Load(content / "Assets/Scenes/BlendTreePlayground.json", content);
         std::string error;
         SceneWorld world;

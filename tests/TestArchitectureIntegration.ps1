@@ -11,7 +11,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path $PSScriptRoot -Parent
-. (Join-Path $taskRoot 'scripts/ProjectContext.ps1')
+. (Join-Path $PSScriptRoot 'ProjectToolTestSupport.ps1')
 $taskContext = Get-ProjectContext -Project $Project -RequireEngineRoot $taskRoot
 if (!$taskContext.generatedProjects) { throw '検証用の生成プロジェクトを指定してください。' }
 $taskAdditional = @($AdditionalProjects | ForEach-Object { Get-ProjectContext -Project $_ -RequireEngineRoot $taskRoot })

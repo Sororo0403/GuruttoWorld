@@ -1,11 +1,12 @@
 param(
     [string[]]$Paths = @(),
     [string]$ClangFormat = 'clang-format',
-    [switch]$Fix
+    [switch]$Fix,
+    [string]$RepositoryRoot = (Split-Path $PSScriptRoot -Parent)
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path $PSScriptRoot -Parent
+$repoRoot = [IO.Path]::GetFullPath($RepositoryRoot).TrimEnd('\', '/')
 $requiredVersion = '22.1.3'
 
 Push-Location $repoRoot
@@ -25,11 +26,11 @@ try {
     }
 
     # Git 管理下の自作 C++ だけを対象にし、外部コードと生成物を除外します。
-    $tracked = @(& git -c core.quotepath=false ls-files -- Engine App Editor SceneRuntime Games tests Tools)
+    $tracked = @(& git -c core.quotepath=false ls-files -- Engine Player Editor SceneRuntime Assets src tests Tools)
     if ($LASTEXITCODE -ne 0) { throw 'Git 管理ファイルの取得に失敗しました。' }
     # 明示指定では新規の管理予定ファイルも確認し、既定の一括対象は従来どおり管理済みに限定します。
     if ($Paths.Count -gt 0) {
-        $tracked += @(& git -c core.quotepath=false ls-files --others --exclude-standard -- Engine App Editor SceneRuntime Games tests Tools)
+        $tracked += @(& git -c core.quotepath=false ls-files --others --exclude-standard -- Engine Player Editor SceneRuntime Assets src tests Tools)
         if ($LASTEXITCODE -ne 0) { throw '新規ファイルの取得に失敗しました。' }
     }
     $eligible = @($tracked | Where-Object {

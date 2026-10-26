@@ -41,7 +41,7 @@ namespace PrefabGpuContractValidation
         const auto scenePath = root / "Assets/Scenes/Legacy.json";
         scene.Save(scenePath);
         const auto before = SceneLayout::Load(scenePath, root).Serialize();
-        const auto shader = std::filesystem::absolute("Content/Shaders/Mesh.hlsl");
+        const auto shader = std::filesystem::absolute("Engine/Shaders/Mesh.hlsl");
         std::string error;
         SceneWorld strict;
         require(!strict.Initialize(renderer, root, scenePath, shader, &error) &&

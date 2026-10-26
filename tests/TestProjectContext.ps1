@@ -2,11 +2,12 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path $PSScriptRoot -Parent
-. (Join-Path $taskRoot 'scripts/ProjectContext.ps1')
+. (Join-Path $PSScriptRoot 'ProjectToolTestSupport.ps1')
 . (Join-Path $taskRoot 'scripts/FileHash.ps1')
 $taskFolder = Join-Path $taskRoot ('generated/tests/project-context-' + [Guid]::NewGuid().ToString('N'))
 $taskGame = Join-Path $taskFolder 'Original Game'
-& (Join-Path $taskRoot 'scripts/NewGameProject.ps1') -Destination $taskGame -Name Minimal
+& (Get-ProjectTool) new-project -Engine $taskRoot -Destination $taskGame -Name Minimal
+if ($LASTEXITCODE -ne 0) { throw 'Project creation failed.' }
 $taskContext = Get-ProjectContext -Project $taskGame -RequireEngineRoot $taskRoot
 $taskIdentity = $taskContext.projectId
 if (!$taskContext.generatedProjects -or $taskIdentity -cnotmatch '^[a-f0-9]{32}$') { throw 'Generated project has no stable identity.' }
@@ -33,7 +34,6 @@ Sync-GeneratedGameProject -Context $taskContext
 if ($taskContext.projectId -cne $taskIdentity) { throw 'Relocation changed project identity.' }
 [xml]$taskProjectXml = Get-Content -LiteralPath (Join-Path $taskMoved 'Minimal.vcxproj') -Raw
 if ($taskProjectXml.Project.PropertyGroup.WP1Root.TrimEnd('\') -cne $taskRoot.TrimEnd('\')) { throw 'Generated project uses a stale engine reference.' }
-. (Join-Path $taskRoot 'scripts/BuildContentSnapshot.ps1')
 $taskChangedMetadata = Join-Path $taskMoved 'Assets/Project.json.meta'
 $taskMetadata.id = '11111111111111111111111111111111'
 [IO.File]::WriteAllText($taskChangedMetadata, ($taskMetadata | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
@@ -48,7 +48,8 @@ Copy-BuildContentSnapshot -Content $taskSnapshot -Destination $taskResnapshot
 $taskRuntime = Get-Content -LiteralPath (Join-Path $taskResnapshot 'WP1.runtime.json') -Raw | ConvertFrom-Json
 if ($taskRuntime.projectId -cne $taskIdentity) { throw 'Runtime project identity was lost during repackaging.' }
 $taskSynchronized = Join-Path $taskFolder 'Synchronized'
-& (Join-Path $taskRoot 'scripts/SyncBuildContent.ps1') -Content $taskMoved -Destination $taskSynchronized
+& (Get-ProjectTool) sync-content -Engine $taskRoot -Content $taskMoved -Destination $taskSynchronized
+if ($LASTEXITCODE -ne 0) { throw 'Content synchronization failed.' }
 $taskRuntime = Get-Content -LiteralPath (Join-Path $taskSynchronized 'WP1.runtime.json') -Raw | ConvertFrom-Json
 if ($taskRuntime.projectId -cne $taskIdentity) { throw 'Player content synchronization lost project identity.' }
 
@@ -72,7 +73,15 @@ foreach ($taskMutation in @('wrong-host', 'bad-version', 'bad-contract', 'bad-na
         [IO.File]::WriteAllText($taskDescriptorPath, $taskOriginal, [Text.UTF8Encoding]::new($false))
     }
 }
-$taskContext = Get-ProjectContext -Project (Join-Path $taskRoot 'Games/GuruttoWorld') -RequireEngineRoot $taskRoot
+# 手書きプロジェクトの保護は、外部ゲームに依存しない独立した素材で検証します。
+$taskLegacy = Join-Path $taskFolder 'Legacy Game'
+& (Get-ProjectTool) new-project -Engine $taskRoot -Destination $taskLegacy -Name Legacy
+if ($LASTEXITCODE -ne 0) { throw 'Legacy fixture creation failed.' }
+$taskLegacyPath = Join-Path $taskLegacy 'WP1.project.json'
+$taskLegacyDescriptor = Get-Content -LiteralPath $taskLegacyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$taskLegacyDescriptor.PSObject.Properties.Remove('generatedProjects')
+[IO.File]::WriteAllText($taskLegacyPath, ($taskLegacyDescriptor | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+$taskContext = Get-ProjectContext -Project $taskLegacy -RequireEngineRoot $taskRoot
 if ($taskContext.generatedProjects) { throw 'Legacy hand-maintained project was marked generated.' }
 $taskRejected = $false
 try { Sync-GeneratedGameProject -Context $taskContext } catch { $taskRejected = $true }

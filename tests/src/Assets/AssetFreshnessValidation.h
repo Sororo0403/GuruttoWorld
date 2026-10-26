@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "../../../Editor/src/Assets/AssetChanges.h"
 #include "../../../Editor/src/Assets/AssetDependencies.h"
 #include "../../../Editor/src/Assets/SkeletonPreview.h"
@@ -52,7 +53,7 @@ namespace AssetFreshnessValidation
         require(Editor::AssetChanges::Capture(root) == beforeScene, "scene JSON remains outside resource reload");
 
         const auto rigPath = root / "Assets/Models/Preview.gltf";
-        const auto original = *Engine::FileContents::Read("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf");
+        const auto original = *Engine::FileContents::Read(WP1_TEST_GAME_ROOT "/Assets/Models/AnimatedBox.gltf");
         Engine::FileContents::Write(rigPath, original);
         const auto rigTime = std::filesystem::last_write_time(rigPath);
         Editor::SkeletonPreview preview;

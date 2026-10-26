@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>
 #include <SceneRuntime/Scene/SceneEnvironment.h>
@@ -100,7 +101,7 @@ namespace JointValidation
         layout.objects[0].rigidBody->planar = true;
         SceneRuntime::SceneEnvironment environment;
         std::string error;
-        Require(environment.Initialize(renderer, std::filesystem::absolute("Games/GuruttoWorld"), layout, error),
+        Require(environment.Initialize(renderer, std::filesystem::absolute(WP1_TEST_GAME_ROOT), layout, error),
                 "2D environment initializes");
         for (int tick = 0; tick < 60; ++tick)
             environment.Update(1.0 / 60, true, true);

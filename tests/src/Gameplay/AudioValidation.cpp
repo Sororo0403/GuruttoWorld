@@ -118,7 +118,7 @@ namespace
     void EncodeAac(const std::filesystem::path& path)
     {
         Engine::WaveData wave;
-        Check(Engine::LoadWaveFile("App/Assets/Audio/Sample.wav", wave), "source WAV");
+        Check(Engine::LoadWaveFile("tests/fixtures/Player/Assets/Audio/Sample.wav", wave), "source WAV");
         ComPtr<IMFSinkWriter> writer;
         ComPtr<IMFMediaType> compressed, pcm;
         Hr(MFCreateSinkWriterFromURL(path.c_str(), nullptr, nullptr, &writer));
@@ -202,7 +202,7 @@ int main()
         Check(!Engine::DecodeAudioFile(invalid, decoded) && decoded.samples == before,
               "failed decode preserves output");
         Check(audio.Load(invalid) == 0 && audio.Load(folder / "missing.mp3") == 0, "invalid files rejected");
-        const auto wav = audio.Load("App/Assets/Audio/Sample.wav");
+        const auto wav = audio.Load("tests/fixtures/Player/Assets/Audio/Sample.wav");
         const auto aac = audio.Load(compressed);
         Check(wav != 0 && aac != 0 && wav != aac, "load WAV and AAC");
         Check(audio.GetVolume(wav) == 1.0f && audio.GetVolume(0) == 0.0f, "initial and invalid volume");

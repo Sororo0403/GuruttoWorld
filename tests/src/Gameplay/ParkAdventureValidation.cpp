@@ -1,3 +1,4 @@
+#include "../Support/TestGameContent.h"
 #include "../Rendering/ShaderCacheValidation.h"
 #include "ParkResourceValidation.h"
 #include "../Scene/LayoutDeltaValidation.h"
@@ -30,9 +31,12 @@ namespace
         if (!condition)
             throw std::runtime_error(message);
     }
-    bool Register(void*, const char* name, const ScriptDefinition* definition)
+    bool Register(void*, const char* name, const ScriptCallbacks* callbacks)
     {
-        return ScriptRegistry::Register(name, *definition);
+        ScriptDefinition definition;
+        static_cast<ScriptCallbacks&>(definition) = *callbacks;
+        static_cast<ScriptSchema&>(definition) = ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT).at(name);
+        return ScriptRegistry::Register(name, std::move(definition));
     }
     ScenePlacement& Find(SceneLayout& layout, const std::string& id)
     {
@@ -56,7 +60,7 @@ namespace
     }
     void ValidationParity()
     {
-        const auto valid = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/ParkAdventure.json");
+        const auto valid = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/ParkAdventure.json");
         valid.Validate();
         for (int variant = 0; variant < 7; ++variant)
         {
@@ -108,7 +112,7 @@ namespace
     }
     void EditableRules()
     {
-        auto layout = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/ParkAdventure.json");
+        auto layout = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/ParkAdventure.json");
         auto& player = Find(layout, "park-player");
         auto& script = player.scripts.front();
         script.parameters["maxHp"] = 7;
@@ -185,7 +189,7 @@ namespace
     }
     struct Simulation
     {
-        SceneLayout layout = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/ParkAdventure.json");
+        SceneLayout layout = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/ParkAdventure.json");
         PhysicsWorld physics;
         ScenePhysics::States states;
         ScriptRuntime scripts;
@@ -213,7 +217,7 @@ namespace
             const std::map<std::string, bool> pressed{{"Jump", jump}, {"Attack", attack}};
             std::string error;
             Require(scripts.Update(layout, dt, error, input, pressed, &physics, ScriptPhase::FixedUpdate), error);
-            Require(physics.Advance(layout, states, dt, x, z, jump, "Games/GuruttoWorld", error), error);
+            Require(physics.Advance(layout, states, dt, x, z, jump, WP1_TEST_GAME_ROOT, error), error);
             Require(scripts.Update(layout, dt, error, input, pressed, &physics), error);
             Require(scripts.Update(layout, dt, error, input, pressed, &physics, ScriptPhase::LateUpdate), error);
             for (const auto& [key, value] : scripts.TakeUiCommands().values)
@@ -248,7 +252,7 @@ namespace
     void Playthrough()
     {
         Simulation sim;
-        const auto authored = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/ParkAdventure.json").Serialize();
+        const auto authored = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/ParkAdventure.json").Serialize();
         for (int tick = 0; tick < 60; ++tick)
             sim.Tick();
         std::cout << "Float and landing verified\n" << std::flush;
@@ -317,7 +321,7 @@ namespace
             if (object.name == "ParkEnemy")
                 throw std::runtime_error("Patrol survived replay: " + object.id);
         Require(Find(sim.layout, "park-camera").position[2] > 55, "Camera follows into final section");
-        Require(SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/ParkAdventure.json").Serialize() == authored,
+        Require(SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/ParkAdventure.json").Serialize() == authored,
                 "Play does not change authored scene");
         const auto remaining = std::count_if(sim.layout.objects.begin(), sim.layout.objects.end(),
                                              [](const auto& p)
@@ -404,7 +408,7 @@ namespace
                 "Update trace renderer");
         SceneEnvironment scene;
         std::string error;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         Require(scene.Initialize(renderer, root, root / "Assets/Scenes/ParkAdventure.json", error), error);
         const auto tick = [&]
         {
@@ -451,7 +455,7 @@ namespace
         Engine::DirectX12Renderer renderer;
         Require(window.Create(L"Park stutter trace", 1280, 720) && renderer.Initialize(window.GetHandle()),
                 "Trace renderer initializes");
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::filesystem::create_directories("generated/park");
         std::ofstream output("generated/park/stutter.csv");
         output
@@ -573,7 +577,7 @@ namespace
                 "Renderer initializes");
         SceneEnvironment scene;
         std::string error;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         Require(scene.Initialize(renderer, root, root / "Assets/Scenes/ParkAdventure.json", error), error);
         const auto begin = std::chrono::steady_clock::now();
         for (int frame = 0; frame < 40; ++frame)
@@ -607,13 +611,13 @@ int main()
         if (GetEnvironmentVariableA("WP1_ALL_SCENES_ONLY", nullptr, 0))
         {
             std::string error;
-            if (!SceneRuntime::ScriptModule::Reload(std::filesystem::absolute("Games/GuruttoWorld"), error))
+            if (!SceneRuntime::ScriptModule::Reload(std::filesystem::absolute(WP1_TEST_GAME_ROOT), error))
                 throw std::runtime_error("All scenes game module loads: " + error);
             AllScenesValidation::Run();
             return 0;
         }
         Require(Register_ParkAdventure(nullptr, Register), "Game scripts register");
-        std::ifstream schemaFile("Games/GuruttoWorld/Assets/Scripts/ParkScriptSchema.schema.json");
+        std::ifstream schemaFile(WP1_TEST_GAME_ROOT "/Assets/Scripts/ParkScriptSchema.schema.json");
         const auto schema = Engine::Json::parse(schemaFile);
         for (const auto& [name, source] : schema.at("scripts").items())
         {
@@ -652,7 +656,7 @@ int main()
         }
         for (const char* name : {"Entrance", "Terraces", "Canal", "SwitchGarden", "Vista"})
         {
-            const auto prefab = SceneLayout::Load(std::filesystem::path("Games/GuruttoWorld/Assets/Prefabs/Park") /
+            const auto prefab = SceneLayout::Load(std::filesystem::path(WP1_TEST_GAME_ROOT "/Assets/Prefabs/Park") /
                                                   (std::string(name) + ".prefab"));
             Require(Prefab::Extract(prefab, "module").objects.size() == prefab.objects.size(),
                     "Reusable module hierarchy");
@@ -667,7 +671,7 @@ int main()
                     "Resource renderer initializes");
             Require(ValidateShaderCache(renderer.GetDevice(), renderer.GetCommandQueue(), error), error);
             SpriteResourceValidation::Run(renderer.GetDevice(), renderer.GetCommandQueue(),
-                                          std::filesystem::current_path() / "Games/GuruttoWorld");
+                                          std::filesystem::current_path() / WP1_TEST_GAME_ROOT);
             ParkResourceValidation::Run(renderer);
             std::cout << "PASS: pipeline sharing, resource deltas and rollback\n";
             return 0;

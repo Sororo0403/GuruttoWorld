@@ -19,7 +19,7 @@ namespace OptionalFeaturesValidation
         };
         const auto root = std::filesystem::absolute("generated/tests/optional-features") /
                           (std::to_string(GetCurrentProcessId()) + "-" + std::to_string(GetTickCount64()));
-        const auto shaders = Engine::ProjectContext::SourceEngineRoot() / "Content/Shaders";
+        const auto shaders = Engine::ProjectContext::SourceEngineRoot() / "Engine/Shaders";
         std::filesystem::create_directories(root / "Assets/Scenes");
         const std::set<std::string> optional{"Sky.hlsl",         "GlowParticle.hlsl", "OceanSunset.hlsl",
                                              "PostEffects.hlsl", "Ui.hlsl",           "SceneUi.hlsl"};
@@ -33,7 +33,7 @@ namespace OptionalFeaturesValidation
             const auto relative = entry.path().lexically_relative(shaders);
             if (relative.generic_string().starts_with("Compiled/") || optional.contains(name.filename().string()))
                 continue;
-            const auto target = root / "Shaders" / relative;
+            const auto target = root / "Engine/Shaders" / relative;
             std::filesystem::create_directories(target.parent_path());
             std::filesystem::copy_file(entry.path(), target);
         }
@@ -41,11 +41,11 @@ namespace OptionalFeaturesValidation
         std::string error;
         const auto relativeRoot = root.lexically_relative(std::filesystem::current_path());
         SceneWorld relativeWorld;
-        require(
-            relativeWorld.Initialize(renderer, relativeRoot, SceneLayout{}, relativeRoot / "Shaders/Mesh.hlsl", &error),
-            "Working-directory shader paths resolve once: " + error);
+        require(relativeWorld.Initialize(renderer, relativeRoot, SceneLayout{},
+                                         relativeRoot / "Engine/Shaders/Mesh.hlsl", &error),
+                "Working-directory shader paths resolve once: " + error);
         MaterialAsset material;
-        material.shader = "Shaders/Mesh.hlsl";
+        material.shader = "Engine/Shaders/Mesh.hlsl";
         require(material.Prepare(renderer.GetDevice(), renderer.GetCommandQueue(), relativeRoot,
                                  Engine::ContentContext::Capture(root)) != nullptr,
                 "Material shader paths stay relative to their content owner");
@@ -56,8 +56,8 @@ namespace OptionalFeaturesValidation
                     !environment.Ui().values.contains("selected"),
                 "Empty game creates no menu state");
         require(environment.Update(.016, true, true), "Empty game advances");
-        require(!std::filesystem::exists(root / "Shaders/Sky.hlsl") &&
-                    !std::filesystem::exists(root / "Shaders/Ui.hlsl"),
+        require(!std::filesystem::exists(root / "Engine/Shaders/Sky.hlsl") &&
+                    !std::filesystem::exists(root / "Engine/Shaders/Ui.hlsl"),
                 "Optional shaders remain absent");
         SceneLayout sky;
         ScenePlacement object;
@@ -69,10 +69,10 @@ namespace OptionalFeaturesValidation
         require(!environment.LoadScene("Assets/Scenes/Sky.json", false, error) &&
                     environment.World().Layout().Serialize() == empty,
                 "Missing enabled feature rejects only its scene transition");
-        std::filesystem::copy_file(shaders / "Sky.hlsl", root / "Shaders/Sky.hlsl");
+        std::filesystem::copy_file(shaders / "Sky.hlsl", root / "Engine/Shaders/Sky.hlsl");
         require(environment.LoadScene("Assets/Scenes/Sky.json", false, error),
                 "Adding only the sky pipeline enables sky: " + error);
-        require(!std::filesystem::exists(root / "Shaders/GlowParticle.hlsl"), "Sky does not require particles");
+        require(!std::filesystem::exists(root / "Engine/Shaders/GlowParticle.hlsl"), "Sky does not require particles");
         SceneLayout particles = environment.World().Layout();
         object = {};
         object.id = "particles";

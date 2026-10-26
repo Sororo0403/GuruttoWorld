@@ -3,14 +3,14 @@
   <ItemGroup>
     <Filter Include="References" />
     <Filter Include="References\App" />
-    <Filter Include="References\App\src" />
-    <Filter Include="References\App\src\Scenes" />
+    <Filter Include="References\Player\src" />
+    <Filter Include="References\Player\src\Scenes" />
     <Filter Include="src" />
     <Filter Include="src\Gameplay" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp">
-      <Filter>References\App\src\Scenes</Filter>
+    <ClCompile Include="..\Player\src\Scenes\AuthoredScene.cpp">
+      <Filter>References\Player\src\Scenes</Filter>
     </ClCompile>
     <ClCompile Include="src\Gameplay\GamePlaybackFocusedValidation.cpp">
       <Filter>src\Gameplay</Filter>

@@ -54,7 +54,7 @@ namespace Editor
         }
         auto candidate = std::make_shared<Engine::ModelRenderer>();
         if (!candidate->Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), root / selected_,
-                                   root / "Shaders/Mesh.hlsl"))
+                                   root / "Engine/Shaders/Mesh.hlsl"))
             return false;
         if (!target_.GetResource() && !target_.Resize(renderer, 512, 512))
             return false;

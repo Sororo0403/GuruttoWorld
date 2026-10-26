@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include "../../../Editor/src/Editing/EditState.h"
 #include "../../../Editor/src/Editing/EditHistory.h"
@@ -192,7 +193,7 @@ namespace EnvironmentValidation
     }
     inline void Run(Engine::DirectX12Renderer& renderer)
     {
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         const auto root = std::filesystem::absolute("generated/tests/environment");
         std::filesystem::create_directories(root / "Assets/Models");
         auto layout = Layout();

@@ -38,13 +38,16 @@ namespace EditorFontValidation
         Require(!Editor::EditorFonts::Initialize(root / "missing-fonts", error) && !error.empty() &&
                     io.Fonts->Fonts.Size == count,
                 "missing editor fonts fail before changing atlas");
-        Require(Editor::EditorFonts::Initialize(root, error), "editor fonts load");
+        Require(Editor::EditorFonts::Initialize(Engine::ProjectContext::SourceEngineRoot() / "Editor/Resources", error),
+                "editor fonts load");
         auto* font = io.FontDefault;
         Require(font && std::strcmp(font->GetDebugName(), "Editor Fira Mono") == 0 && font->Sources.Size == 2,
                 "Fira Mono and Japanese merge into the default font");
         const int loadedCount = io.Fonts->Fonts.Size;
-        Require(Editor::EditorFonts::Initialize(root, error) && io.Fonts->Fonts.Size == loadedCount,
-                "editor font initialization is idempotent");
+        Require(
+            Editor::EditorFonts::Initialize(Engine::ProjectContext::SourceEngineRoot() / "Editor/Resources", error) &&
+                io.Fonts->Fonts.Size == loadedCount,
+            "editor font initialization is idempotent");
         for (const ImWchar c : {ImWchar(0x3042), ImWchar(0x30a2), ImWchar(0x65e5), ImWchar(0x672c), ImWchar(0x8a9e),
                                 ImWchar(0x8907), ImWchar(0xff76)})
             Require(font->IsGlyphInFont(c), "Japanese glyph exists without fallback");

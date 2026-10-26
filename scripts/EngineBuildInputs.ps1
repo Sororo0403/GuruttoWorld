@@ -5,7 +5,7 @@ function Get-EngineBuildInputFiles {
     )
 
     $folders = @('Engine/include', 'Engine/src', 'Engine/build', 'Engine/externals',
-        'SceneRuntime/include', 'SceneRuntime/src', 'SceneRuntime/build')
+        'SceneRuntime/include', 'SceneRuntime/src', 'SceneRuntime/build', 'Tools/ProjectTool')
     if ($IncludeDependencies) {
         $folders += @('generated/dependencies/jolt-src/Jolt', 'generated/dependencies/assimp-src/include',
             'generated/dependencies/assimp-src/code', 'generated/dependencies/assimp-src/contrib')
@@ -19,8 +19,8 @@ function Get-EngineBuildInputFiles {
         })
     }
     foreach ($relative in @('Engine/Engine.vcxproj', 'SceneRuntime/SceneRuntime.vcxproj', 'SceneRuntime/SceneData.vcxproj', 'SceneRuntime/SceneStorage.vcxproj',
-        'scripts/BuildScripts.ps1', 'scripts/GenerateEngineIdentity.ps1', 'scripts/EngineBuildInputs.ps1',
-        'scripts/ScriptBuildSession.ps1', 'scripts/BuildAssimp.ps1', 'scripts/BuildJolt.ps1')) {
+        'Tools/ProjectTool/ProjectTool.vcxproj', 'scripts/GenerateEngineIdentity.ps1', 'scripts/EngineBuildInputs.ps1',
+        'scripts/BuildAssimp.ps1', 'scripts/BuildJolt.ps1')) {
         $path = Join-Path $Root $relative
         if (Test-Path -LiteralPath $path -PathType Leaf) { $files += Get-Item -LiteralPath $path }
     }

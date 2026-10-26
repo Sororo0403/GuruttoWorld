@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Audio/SceneAudio.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <Engine/Core/Json.h>
@@ -217,7 +218,7 @@ namespace AudioFeatureValidation
                 "audio world matrix renderer initializes");
         SceneRuntime::SceneWorld world;
         Require(world.Initialize(renderer, std::filesystem::absolute(root), layout,
-                                 std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl"), &error),
+                                 std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl"), &error),
                 "audio cached world initializes");
         static_cast<void>(Engine::CpuProfiler::Take());
         scene.Update(world.Layout(), {}, true, &world);

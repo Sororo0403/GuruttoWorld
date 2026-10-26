@@ -1,3 +1,4 @@
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
 #include <Engine/Core/Json.h>
 #include <SceneRuntime/Scripts/ScriptModuleApi.h>
@@ -60,9 +61,12 @@ namespace
                 "Public camera distance changes framing");
         Require(sample("lead", 2).rotation != sample("lead", 7).rotation, "Public camera lead changes aim");
     }
-    bool Register(void*, const char* name, const ScriptDefinition* definition)
+    bool Register(void*, const char* name, const ScriptCallbacks* callbacks)
     {
-        return ScriptRegistry::Register(name, *definition);
+        ScriptDefinition definition;
+        static_cast<ScriptCallbacks&>(definition) = *callbacks;
+        static_cast<ScriptSchema&>(definition) = ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT).at(name);
+        return ScriptRegistry::Register(name, std::move(definition));
     }
     ScenePlacement& Find(SceneLayout& layout, const std::string& id)
     {
@@ -104,7 +108,7 @@ namespace
         float lastYaw = 0;
         std::array<float, 3> lastPlayer{};
         float minYaw = 10, maxYaw = -10, minFov = 180, maxFov = 0;
-        explicit Simulation(const std::string& path = "Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json")
+        explicit Simulation(const std::string& path = WP1_TEST_GAME_ROOT "/Assets/Scenes/SunriseStreet.json")
         {
             layout = SceneLayout::Load(path);
             inspectStreet = path.find("StreetJourney.json") != std::string::npos;
@@ -147,7 +151,7 @@ namespace
                 validated = layout;
             };
             tickScripts(ScriptPhase::FixedUpdate);
-            Require(physics.Advance(layout, states, dt, x, z, jump, "Games/GuruttoWorld", error), error);
+            Require(physics.Advance(layout, states, dt, x, z, jump, WP1_TEST_GAME_ROOT, error), error);
             tickScripts(ScriptPhase::Update);
             tickScripts(ScriptPhase::LateUpdate);
             if (inspectStreet)
@@ -228,7 +232,7 @@ namespace
     void Playthrough()
     {
         Simulation s;
-        const auto authored = SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json").Serialize();
+        const auto authored = SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/SunriseStreet.json").Serialize();
         for (int i = 0; i < 60; ++i)
             s.Tick();
         Require(s.states.at("park-player").grounded, "Grounded on street");
@@ -314,7 +318,7 @@ namespace
         const auto& stats = Find(s.layout, "park-stats");
         Require(stats.text && stats.text->text.find("発見 2/2") != std::string::npos,
                 "Both optional spaces discovered");
-        Require(SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/SunriseStreet.json").Serialize() == authored,
+        Require(SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/SunriseStreet.json").Serialize() == authored,
                 "Play preserves saved scene");
         std::string error;
         s.scripts.TakeSceneCommands();
@@ -363,7 +367,7 @@ namespace
     }
     void BlockPlaythrough()
     {
-        Simulation s("Games/GuruttoWorld/Assets/Scenes/SunriseBlock.json");
+        Simulation s(WP1_TEST_GAME_ROOT "/Assets/Scenes/SunriseBlock.json");
         for (int i = 0; i < 60; ++i)
             s.Tick();
         Require(s.states.at("park-player").grounded, "Block entrance grounded");
@@ -440,7 +444,7 @@ namespace
     }
     void PlazaExploration()
     {
-        Simulation s("Games/GuruttoWorld/Assets/Scenes/SunriseBlock.json");
+        Simulation s(WP1_TEST_GAME_ROOT "/Assets/Scenes/SunriseBlock.json");
         for (int i = 0; i < 60; ++i)
             s.Tick();
         const auto inFrame = [&](std::array<float, 3> point, float margin)
@@ -619,7 +623,7 @@ namespace
         Engine::DirectX12Renderer renderer;
         Require(window.Create(L"Sunrise street validation", 1280, 720) && renderer.Initialize(window.GetHandle()),
                 "Renderer");
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         for (const auto& [name, pose] :
              std::vector<std::pair<std::string, std::array<float, 3>>>{{"entrance", {0, 1.05f, 6}},
@@ -679,7 +683,7 @@ namespace
         Engine::DirectX12Renderer renderer;
         Require(window.Create(L"Sunrise block validation", 1280, 720) && renderer.Initialize(window.GetHandle()),
                 "Block renderer");
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         for (const auto& [name, pose] :
              std::vector<std::pair<std::string, std::array<float, 3>>>{{"block-entrance", {0, 1.05f, 1}},
@@ -710,7 +714,7 @@ namespace
         std::array<char, 32768> path{};
         const auto size = GetEnvironmentVariableA("WP1_JOURNEY_CONTENT", path.data(), static_cast<DWORD>(path.size()));
         Require(size < path.size(), "Journey content path fits buffer");
-        return size ? std::filesystem::path(path.data()) : std::filesystem::path("Games/GuruttoWorld");
+        return size ? std::filesystem::path(path.data()) : std::filesystem::path(WP1_TEST_GAME_ROOT);
     }
     void JourneyPlaythrough()
     {

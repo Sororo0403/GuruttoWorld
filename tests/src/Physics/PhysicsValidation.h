@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Physics/ScenePhysics.h>
 #include <SceneRuntime/Scene/SceneTransforms.h>
 #include <Engine/Core/Json.h>
@@ -103,7 +104,7 @@ namespace PhysicsValidation
     {
         using namespace SceneRuntime;
         const auto playground =
-            SceneRuntime::SceneLayout::Load("Games/GuruttoWorld/Assets/Scenes/PhysicsPlayground.json");
+            SceneRuntime::SceneLayout::Load(WP1_TEST_GAME_ROOT "/Assets/Scenes/PhysicsPlayground.json");
         Require(SceneRuntime::SceneLayout::Parse(playground.Serialize()).objects.back().playerController->useGravity,
                 "physics playground is valid");
         auto layout = Layout();

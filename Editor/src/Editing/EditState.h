@@ -59,13 +59,8 @@ namespace Editor
         {
             return interaction_;
         }
-        void ObjectChanged(std::string id)
-        {
-            inspectedAsset_.clear();
-            selection_.Select(std::move(id));
-            changed_ = true;
-            invalidTransform_ = false;
-        }
+        /// <summary>配置の変更を通知します。</summary>
+        void ObjectChanged(std::string id);
         void InspectAsset(std::filesystem::path path)
         {
             inspectedAsset_ = std::move(path);
@@ -90,25 +85,13 @@ namespace Editor
         {
             return SelectedIds().size() == 1;
         }
-        void RestoreSelection(const std::vector<std::string>& ids, const std::string& primary)
-        {
-            inspectedAsset_.clear();
-            selection_.Restore(ids, primary);
-            invalidTransform_ = false;
-        }
+        /// <summary>保存した選択状態を復元します。</summary>
+        void RestoreSelection(const std::vector<std::string>& ids, const std::string& primary);
+        /// <summary>指定範囲の対象を選択します。</summary>
         void SelectRange(const std::vector<std::string>& visible, const std::string& anchor, const std::string& clicked,
-                         bool additive)
-        {
-            inspectedAsset_.clear();
-            selection_.Range(visible, anchor, clicked, additive);
-            invalidTransform_ = false;
-        }
-        void Select(std::string id, bool additive = false)
-        {
-            inspectedAsset_.clear();
-            selection_.Select(std::move(id), additive);
-            invalidTransform_ = false;
-        }
+                         bool additive);
+        /// <summary>指定した対象を選択します。</summary>
+        void Select(std::string id, bool additive = false);
         bool HasChanges() const
         {
             return changed_;
@@ -121,215 +104,58 @@ namespace Editor
         {
             changed_ = false;
         }
-        void Reloaded()
-        {
-            inspectedAsset_.clear();
-            selection_.Select({});
-            changed_ = false;
-            invalidTransform_ = false;
-            interaction_.clear();
-        }
+        /// <summary>再読み込み後の状態を更新します。</summary>
+        void Reloaded();
+        /// <summary>ローカル変換を設定します。</summary>
         bool SetLocalTransform(SceneRuntime::SceneWorld& world, const std::string& id,
                                const std::array<float, 3>& position, const std::array<float, 3>& rotation,
-                               const std::array<float, 3>& scale)
-        {
-            const auto& objects = world.Layout().objects;
-            const auto found = std::find_if(objects.begin(), objects.end(),
-                                            [&](const auto& object)
-                                            {
-                                                return object.id == id;
-                                            });
-            const bool changed = found != objects.end() &&
-                                 (found->position != position || found->rotation != rotation || found->scale != scale);
-            invalidTransform_ = !world.SetLocalTransform(id, position, rotation, scale);
-            if (!invalidTransform_ && changed)
-                changed_ = true;
-            return !invalidTransform_;
-        }
-        bool TranslateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& delta)
-        {
-            const auto& before = world.Layout().objects;
-            std::vector<std::array<float, 3>> previous(before.size());
-            std::transform(before.begin(), before.end(), previous.begin(),
-                           [](const auto& object)
-                           {
-                               return object.position;
-                           });
-            invalidTransform_ = !world.TranslateObjectsWorld(SelectedIds(), delta);
-            const auto& after = world.Layout().objects;
-            if (!invalidTransform_ && !std::equal(previous.begin(), previous.end(), after.begin(),
-                                                  [](const auto& position, const auto& object)
-                                                  {
-                                                      return position == object.position;
-                                                  }))
-                changed_ = true;
-            return !invalidTransform_;
-        }
+                               const std::array<float, 3>& scale);
+        /// <summary>選択対象をワールド空間で平行移動します。</summary>
+        bool TranslateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& delta);
+        /// <summary>選択対象をワールド空間で回転します。</summary>
         bool RotateSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& pivot,
-                                  const DirectX::XMFLOAT4X4& rotation)
-        {
-            const auto before = world.Layout().objects;
-            invalidTransform_ = !world.RotateObjectsWorld(SelectedIds(), pivot, rotation);
-            TrackTransformChange(world, before);
-            return !invalidTransform_;
-        }
+                                  const DirectX::XMFLOAT4X4& rotation);
+        /// <summary>選択対象をワールド空間で拡縮します。</summary>
         bool ScaleSelectionWorld(SceneRuntime::SceneWorld& world, const std::array<float, 3>& pivot,
-                                 const DirectX::XMFLOAT4X4& axes, const std::array<float, 3>& factors)
-        {
-            const auto before = world.Layout().objects;
-            invalidTransform_ = !world.ScaleObjectsWorld(SelectedIds(), pivot, axes, factors);
-            TrackTransformChange(world, before);
-            return !invalidTransform_;
-        }
-        bool SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId, std::string& error)
-        {
-            const auto& objects = world.Layout().objects;
-            const auto found = std::find_if(objects.begin(), objects.end(),
-                                            [&](const auto& object)
-                                            {
-                                                return object.id == id;
-                                            });
-            const bool changed = found != objects.end() && found->parentId != parentId;
-            if (!world.SetParent(id, std::move(parentId), error))
-                return false;
-            if (changed)
-            {
-                changed_ = true;
-                SetInteraction("command/reparent/" + id);
-            }
-            return true;
-        }
+                                 const DirectX::XMFLOAT4X4& axes, const std::array<float, 3>& factors);
+        /// <summary>親の参照を設定します。</summary>
+        bool SetParent(SceneRuntime::SceneWorld& world, const std::string& id, std::string parentId,
+                       std::string& error);
+        /// <summary>複数の配置の親の参照を設定します。</summary>
         bool SetParents(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids, const std::string& parent,
-                        std::string& error)
-        {
-            const auto changed = std::any_of(world.Layout().objects.begin(), world.Layout().objects.end(),
-                                             [&](const auto& object)
-                                             {
-                                                 return std::find(ids.begin(), ids.end(), object.id) != ids.end() &&
-                                                        object.parentId != parent;
-                                             });
-            if (!world.SetParents(ids, parent, error))
-                return false;
-            if (changed)
-            {
-                changed_ = true;
-                SetInteraction("command/reparent/selection");
-            }
-            return true;
-        }
-        bool Rename(SceneRuntime::SceneWorld& world, const std::string& id, std::string name)
-        {
-            const auto& objects = world.Layout().objects;
-            const auto found = std::find_if(objects.begin(), objects.end(),
-                                            [&](const auto& object)
-                                            {
-                                                return object.id == id;
-                                            });
-            const bool changed = found != objects.end() && found->name != name;
-            if (!world.RenameObject(id, std::move(name)))
-                return false;
-            if (changed)
-                changed_ = true;
-            return true;
-        }
-        ObjectRequest DuplicateSelectionRequest() const
-        {
-            ObjectRequest request;
-            request.action = ObjectAction::Duplicate;
-            request.ids = SelectedIds();
-            return request;
-        }
+                        std::string& error);
+        /// <summary>対象の名前と関連する参照を更新します。</summary>
+        bool Rename(SceneRuntime::SceneWorld& world, const std::string& id, std::string name);
+        /// <summary>選択対象の複製を要求します。</summary>
+        ObjectRequest DuplicateSelectionRequest() const;
+        /// <summary>指定した配置と参照を複製します。</summary>
         bool DuplicateObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids,
-                              const std::array<float, 3>& offset, std::string& error)
-        {
-            std::vector<std::string> created;
-            if (!world.DuplicateObjects(ids, offset, created, error))
-                return false;
-            selection_.Restore(created, created.back());
-            changed_ = true;
-            invalidTransform_ = false;
-            return true;
-        }
-        ObjectRequest DeleteSelectionRequest() const
-        {
-            ObjectRequest request;
-            request.action = ObjectAction::Delete;
-            request.ids = SelectedIds();
-            return request;
-        }
-        bool DeleteObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids, std::string& error)
-        {
-            if (!world.RemoveObjects(ids, error))
-                return false;
-            auto remaining = SelectedIds();
-            auto primary = SelectedId();
-            std::erase_if(remaining,
-                          [&](const auto& id)
-                          {
-                              return std::find(ids.begin(), ids.end(), id) != ids.end();
-                          });
-            if (std::find(remaining.begin(), remaining.end(), primary) == remaining.end())
-                primary.clear();
-            selection_.Restore(remaining, primary);
-            changed_ = true;
-            invalidTransform_ = false;
-            return true;
-        }
-        bool ResetTransform(SceneRuntime::SceneWorld& world, const std::string& id)
-        {
-            if (!SetLocalTransform(world, id, {0, 0, 0}, {0, 0, 0}, {1, 1, 1}))
-                return false;
-            SetInteraction("command/reset/" + id);
-            return true;
-        }
+                              const std::array<float, 3>& offset, std::string& error);
+        /// <summary>選択対象の削除を要求します。</summary>
+        ObjectRequest DeleteSelectionRequest() const;
+        /// <summary>指定した配置と参照を削除します。</summary>
+        bool DeleteObjects(SceneRuntime::SceneWorld& world, const std::vector<std::string>& ids, std::string& error);
+        /// <summary>変換を初期状態へ戻します。</summary>
+        bool ResetTransform(SceneRuntime::SceneWorld& world, const std::string& id);
         bool InvalidTransform() const
         {
             return invalidTransform_;
         }
-        void RequestComponents(SceneRuntime::ScenePlacement placement, std::string interaction)
-        {
-            ObjectRequest request;
-            request.action = ObjectAction::Components;
-            request.id = placement.id;
-            request.components = std::move(placement);
-            request.interaction = std::move(interaction);
-            Request(std::move(request));
-        }
+        /// <summary>コンポーネントの変更を要求します。</summary>
+        void RequestComponents(SceneRuntime::ScenePlacement placement, std::string interaction);
         void Request(ObjectRequest request)
         {
             request_ = std::move(request);
         }
-        void RequestComponentBatch(std::vector<SceneRuntime::ScenePlacement> placements, std::string interaction)
-        {
-            if (placements.empty())
-                return;
-            ObjectRequest request;
-            request.action = ObjectAction::Components;
-            request.componentBatch = std::move(placements);
-            request.interaction = std::move(interaction);
-            Request(std::move(request));
-        }
-        std::optional<ObjectRequest> TakeRequest()
-        {
-            auto request = std::move(request_);
-            request_.reset();
-            return request;
-        }
+        /// <summary>複数の配置への変更を要求します。</summary>
+        void RequestComponentBatch(std::vector<SceneRuntime::ScenePlacement> placements, std::string interaction);
+        /// <summary>保留中の要求を取得して消去します。</summary>
+        std::optional<ObjectRequest> TakeRequest();
 
     private:
+        /// <summary>変換の編集を履歴へ記録します。</summary>
         void TrackTransformChange(const SceneRuntime::SceneWorld& world,
-                                  const std::vector<SceneRuntime::ScenePlacement>& before)
-        {
-            const auto& after = world.Layout().objects;
-            if (!invalidTransform_ && !std::equal(before.begin(), before.end(), after.begin(),
-                                                  [](const auto& previous, const auto& current)
-                                                  {
-                                                      return previous.position == current.position &&
-                                                             previous.rotation == current.rotation &&
-                                                             previous.scale == current.scale;
-                                                  }))
-                changed_ = true;
-        }
+                                  const std::vector<SceneRuntime::ScenePlacement>& before);
         std::filesystem::path inspectedAsset_;
         SelectionSet selection_;
         std::string interaction_;

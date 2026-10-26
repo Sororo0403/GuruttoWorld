@@ -6,8 +6,9 @@ $taskFixture = Join-Path $taskRoot ('generated/tests/native-identity-' + [Guid]:
 $taskSources = Join-Path $taskFixture 'Assets/Scripts'
 New-Item -ItemType Directory -Path $taskSources -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'fixtures/NativeModuleIdentity.cpp') -Destination (Join-Path $taskSources 'IdentityProbe.cpp')
-$taskShell = Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
-& $taskShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $taskRoot 'scripts/BuildScripts.ps1') -Configuration $Configuration -Content $taskFixture -WorkRoot $taskFixture -RunId identity
+. (Join-Path $PSScriptRoot 'ProjectToolTestSupport.ps1')
+$taskTool = Get-ProjectTool
+& $taskTool build-scripts -Engine $taskRoot -Configuration $Configuration -Content $taskFixture -WorkRoot $taskFixture -RunId identity
 if ($LASTEXITCODE -ne 0) { throw 'Native identity fixture compilation failed.' }
 $taskModuleFolder = Join-Path $taskFixture "Assets/Scripts/Bin/$Configuration"
 $taskManifest = Get-Content -LiteralPath (Join-Path $taskModuleFolder 'module.json') -Raw | ConvertFrom-Json

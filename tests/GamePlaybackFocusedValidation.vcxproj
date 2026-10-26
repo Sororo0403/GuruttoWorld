@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="GameContent.props" />
   <ItemGroup Label="ProjectConfigurations"><ProjectConfiguration Include="Development|x64"><Configuration>Development</Configuration><Platform>x64</Platform></ProjectConfiguration></ItemGroup>
   <PropertyGroup Label="Globals"><VCProjectVersion>18.0</VCProjectVersion><Keyword>Win32Proj</Keyword><ProjectGuid>{705BD3DE-3A75-4B22-B05E-E04B57E45517}</ProjectGuid><RootNamespace>GamePlaybackFocusedValidation</RootNamespace><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -11,7 +12,10 @@
     <Link><TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors><SubSystem>Console</SubSystem><GenerateDebugInformation>true</GenerateDebugInformation></Link>
     <Manifest><EnableSegmentHeap>true</EnableSegmentHeap></Manifest>
   </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="..\App\src\Scenes\AuthoredScene.cpp" /><ClCompile Include="src\Gameplay\GamePlaybackFocusedValidation.cpp" /><ClInclude Include="src\Gameplay\GamePlaybackParityValidation.h" /><ClInclude Include="src\Gameplay\GamePlaybackCapture.h" /><ClInclude Include="src\Gameplay\TitleConfigTransitionValidation.h" /><ClInclude Include="src\Gameplay\TitleDepartureValidation.h" /><ClInclude Include="src\Gameplay\TitleIsolationValidation.h" /></ItemGroup>
+  <ItemGroup><ClCompile Include="..\Player\src\Scenes\AuthoredScene.cpp" /><ClCompile Include="src\Gameplay\GamePlaybackFocusedValidation.cpp" /><ClInclude Include="src\Gameplay\GamePlaybackParityValidation.h" /><ClInclude Include="src\Gameplay\GamePlaybackCapture.h" /><ClInclude Include="src\Gameplay\TitleConfigTransitionValidation.h" /><ClInclude Include="src\Gameplay\TitleDepartureValidation.h" /><ClInclude Include="src\Gameplay\TitleIsolationValidation.h" /></ItemGroup>
   <ItemGroup><ProjectReference Include="..\Engine\Engine.vcxproj"><Project>{689A4162-50DF-480E-93D1-6E6453148017}</Project></ProjectReference><ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj"><Project>{D402069A-F7E5-4D62-A98D-6F5436D7513D}</Project></ProjectReference></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\Editor\EditorCore.vcxproj" />
+  </ItemGroup>
 </Project>

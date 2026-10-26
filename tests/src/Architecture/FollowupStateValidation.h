@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scene/SceneMigration.h>
 #include "../../../Editor/src/Documents/SceneSnapshotCache.h"
 #include "../../../Editor/src/Project/ProjectCatalog.h"
@@ -215,7 +216,7 @@ namespace FollowupStateValidation
     {
         using namespace Engine;
         const auto root = Root("models");
-        std::ifstream input("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf");
+        std::ifstream input(WP1_TEST_GAME_ROOT "/Assets/Models/AnimatedBox.gltf");
         auto document = Json::parse(input);
         const auto uri = document.at("buffers").at(0).at("uri").get<std::string>();
         const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -256,7 +257,7 @@ namespace FollowupStateValidation
     inline void EditorOwnership(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         SceneLayout main;
         ScenePlacement first;
@@ -302,7 +303,7 @@ namespace FollowupStateValidation
     inline void ProceduralEdits(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         SceneLayout layout;
         ScenePlacement ground;

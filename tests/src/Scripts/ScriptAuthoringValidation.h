@@ -86,7 +86,67 @@ namespace ScriptAuthoringValidation
             });
         Require(SceneRuntime::ScriptRegistry::Definitions().contains("ValidationAuthoringWatcher"),
                 "Stop installs the watched script into the real registry");
+        Require(panel.TakeReloaded() && !panel.TakeReloaded(),
+                "successful module installation notifies the catalog exactly once");
         const auto compiled = Read(fixture.manifest);
+        const auto schemaPath = source.parent_path() / "ValidationAuthoringWatcher.schema.json";
+        auto schema = Engine::Json::parse(Read(schemaPath));
+        schema["scripts"]["ValidationAuthoringWatcher"]["parameters"]["speed"]["initial"] = 5;
+        Engine::FileContents::Write(schemaPath, schema.dump());
+        Until(
+            [&]
+            {
+                panel.Poll(fixture.root, false);
+                return !panel.Ready();
+            });
+        Require(
+            SceneRuntime::ScriptRegistry::Definitions().at("ValidationAuthoringWatcher").fields.at("speed").initial ==
+                    2 &&
+                Read(fixture.manifest) == compiled,
+            "JSON changes wait for Stop and retain the running module");
+        Require(!panel.TakeReloaded(), "pending JSON changes do not notify the catalog during Play");
+        Until(
+            [&]
+            {
+                panel.Poll(fixture.root, true);
+                return panel.Ready();
+            });
+        Require(
+            SceneRuntime::ScriptRegistry::Definitions().at("ValidationAuthoringWatcher").fields.at("speed").initial ==
+                    5 &&
+                Read(fixture.manifest) == compiled,
+            "Stop reloads JSON defaults without recompiling the DLL");
+        Require(panel.TakeReloaded() && !panel.TakeReloaded(), "JSON reload notifies the catalog exactly once");
+        Engine::FileContents::Write(schemaPath, "{");
+        Until(
+            [&]
+            {
+                panel.Poll(fixture.root, true);
+                return panel.Failed();
+            });
+        Require(!panel.Ready() &&
+                    SceneRuntime::ScriptRegistry::Definitions()
+                            .at("ValidationAuthoringWatcher")
+                            .fields.at("speed")
+                            .initial == 5 &&
+                    Read(fixture.manifest) == compiled,
+                "invalid JSON blocks Play and preserves the installed module");
+        Require(!panel.TakeReloaded(), "rejected JSON does not notify the catalog");
+        schema["scripts"]["ValidationAuthoringWatcher"]["parameters"]["speed"]["initial"] = 7;
+        Engine::FileContents::Write(schemaPath, schema.dump());
+        Until(
+            [&]
+            {
+                panel.Poll(fixture.root, true);
+                return panel.Ready();
+            });
+        Require(!panel.Failed() && Read(fixture.manifest) == compiled &&
+                    SceneRuntime::ScriptRegistry::Definitions()
+                            .at("ValidationAuthoringWatcher")
+                            .fields.at("speed")
+                            .initial == 7,
+                "correcting JSON recovers without recompiling the DLL");
+        Require(panel.TakeReloaded() && !panel.TakeReloaded(), "corrected JSON notifies the catalog exactly once");
         const auto sourceTime = std::filesystem::last_write_time(source);
         auto revisedSource = Read(source);
         const auto separator = revisedSource.find(' ');
@@ -127,6 +187,19 @@ namespace ScriptAuthoringValidation
         for (int i = 0; i < 10; ++i)
             panel.Poll(fixture.root, true);
         Require(!panel.Ready(), "Stop after a failed latest revision must not install the earlier pending module");
+        schema["scripts"]["ValidationAuthoringWatcher"]["parameters"]["speed"]["initial"] = 8;
+        Engine::FileContents::Write(schemaPath, schema.dump());
+        for (int i = 0; i < 30; ++i)
+        {
+            panel.Poll(fixture.root, true);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        Require(panel.Failed() && !panel.Ready() && Read(fixture.manifest) == published &&
+                    SceneRuntime::ScriptRegistry::Definitions()
+                            .at("ValidationAuthoringWatcher")
+                            .fields.at("speed")
+                            .initial == 7,
+                "JSON changes cannot bypass a failed latest C++ revision");
         {
             std::ofstream output(source, std::ios::binary | std::ios::trunc);
             output << validSource;

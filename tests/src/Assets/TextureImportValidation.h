@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "../Animation/SkinningValidation.h"
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Graphics/Renderers/SpriteRenderer.h>
@@ -49,7 +50,7 @@ namespace TextureImportValidation
         {
             SpriteRenderer sprite;
             Require(sprite.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), texture,
-                                      std::filesystem::absolute("Games/GuruttoWorld/Shaders/Sprite.hlsl")),
+                                      std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Sprite.hlsl")),
                     "cache verification sprite initializes");
             SpriteDrawParameters draw;
             draw.size = minify ? std::array<float, 2>{1, 1} : std::array<float, 2>{32, 16};
@@ -151,7 +152,7 @@ namespace TextureImportValidation
         Require(plain->InitializePixels(renderer.GetDevice(), renderer.GetCommandQueue(), 8, 8, red, settings),
                 "RGBA mip texture uploads");
         SpriteRenderer first, second;
-        const auto shader = std::filesystem::absolute("Games/GuruttoWorld/Shaders/Sprite.hlsl");
+        const auto shader = std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Sprite.hlsl");
         Require(first.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), compressed, shader) &&
                     second.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), plain, shader),
                 "texture comparison sprites initialize");
@@ -257,7 +258,7 @@ namespace TextureImportValidation
         Require(initial && manager.Load(image) == initial && initial->GetMipLevels() == 1,
                 "texture cache reuses unchanged import");
         MeshResources meshes;
-        Require(meshes.Initialize(renderer.GetDevice(), std::filesystem::absolute("Content/Shaders/Mesh.hlsl"),
+        Require(meshes.Initialize(renderer.GetDevice(), std::filesystem::absolute("Engine/Shaders/Mesh.hlsl"),
                                   renderer.GetCommandQueue()),
                 "mesh texture cache initializes");
         const auto meshInitial = meshes.GetTexture(renderer.GetDevice(), renderer.GetCommandQueue(), image);

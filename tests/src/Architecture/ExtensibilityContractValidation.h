@@ -6,7 +6,7 @@
 
 namespace ExtensibilityContractValidation
 {
-    /// <summary>宣言の継承・独立性・生成元を検証し、実行定義への暗黙の依存を防ぎます。</summary>
+    /// <summary>JSON宣言の継承・独立性を検証し、実行処理への暗黙の依存を防ぎます。</summary>
     template <class Contract> void Run(const std::filesystem::path& root, Contract contract)
     {
         using namespace SceneRuntime;
@@ -93,7 +93,9 @@ namespace ExtensibilityContractValidation
         std::string error;
         contract("schema-source-template-single-authority",
                  ScriptModule::CreateSource(root, "DeclaredMover", created, error) &&
-                     Engine::FileContents::Read(created)->find("DeclaredMoverSchema()") != std::string::npos &&
+                     Engine::FileContents::Read(created)->find("SceneRuntime::ScriptCallbacks script") !=
+                         std::string::npos &&
+                     Engine::FileContents::Read(created)->find(".generated.h") == std::string::npos &&
                      Engine::FileContents::Read(created)->find("dataFields") == std::string::npos &&
                      ScriptSchema::LoadProject(root).at("DeclaredMover").fields.at("speed").initial == 2);
         const auto beforeSource = Engine::FileContents::Read(created);
@@ -102,10 +104,10 @@ namespace ExtensibilityContractValidation
                  !ScriptModule::CreateSource(root, "DeclaredMover", created, error) &&
                      Engine::FileContents::Read(root / "Assets/Scripts/DeclaredMover.cpp") == beforeSource &&
                      Engine::FileContents::Read(root / "Assets/Scripts/DeclaredMover.schema.json") == beforeSchema);
-        Engine::FileContents::Write(root / "Assets/Scripts/Reserved.generated.h", "existing");
-        contract("schema-source-template-header-collision",
+        Engine::FileContents::Write(root / "Assets/Scripts/Reserved.schema.json", "existing");
+        contract("schema-source-template-declaration-collision",
                  !ScriptModule::CreateSource(root, "Reserved", created, error) &&
                      !Engine::FileContents::Read(root / "Assets/Scripts/Reserved.cpp") &&
-                     !Engine::FileContents::Read(root / "Assets/Scripts/Reserved.schema.json"));
+                     Engine::FileContents::Read(root / "Assets/Scripts/Reserved.schema.json") == "existing");
     }
 }

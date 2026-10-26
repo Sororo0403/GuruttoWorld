@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "SkinningValidation.h"
 #include "../../../Editor/src/Playback/GameSession.h"
 #include <SceneRuntime/Scene/SceneEnvironment.h>
@@ -12,7 +13,7 @@ namespace RootMotionPlaybackValidation
         using namespace SceneRuntime;
         using namespace Engine;
         using namespace DirectX;
-        const auto content = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto content = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         const auto scene = SceneLayout::Load(content / "Assets/Scenes/RootMotionPlayground.json", content);
         SceneWorld world;

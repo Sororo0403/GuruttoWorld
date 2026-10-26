@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scripts/ScriptSchema.h>
 #include <SceneRuntime/Scene/ComponentFieldSchema.h>
 #include <SceneRuntime/Scripts/ScriptValueJson.h>
@@ -12,7 +13,7 @@ namespace SchemaContractValidation
     template <class Report> void Run(const std::filesystem::path& root, Report&& report)
     {
         using namespace SceneRuntime;
-        const auto schemas = ScriptSchema::LoadProject("Games/GuruttoWorld");
+        const auto schemas = ScriptSchema::LoadProject(WP1_TEST_GAME_ROOT);
         report("schema-existing-format",
                schemas.contains("ParkPlayer") && schemas.contains("ParkCamera") && schemas.contains("ParkPatrol"));
         const auto scene = std::string("Assets/Scenes/Declared.json");

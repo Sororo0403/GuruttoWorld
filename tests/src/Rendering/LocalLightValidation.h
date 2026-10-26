@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include "EnvironmentValidation.h"
 #include "../../../Editor/src/Playback/GameSession.h"
 #include "../../../Editor/src/Inspector/ComponentPanel.h"
@@ -74,7 +75,7 @@ namespace LocalLightValidation
         data.indices = {0, 1, 2};
         Engine::MeshRenderer mesh;
         Require(mesh.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), data,
-                                std::filesystem::absolute("Games/GuruttoWorld/Shaders/Mesh.hlsl")),
+                                std::filesystem::absolute(WP1_TEST_GAME_ROOT "/Shaders/Mesh.hlsl")),
                 "local light GPU fixture initializes");
         DirectX::XMFLOAT4X4 identity;
         DirectX::XMStoreFloat4x4(&identity, DirectX::XMMatrixIdentity());
@@ -173,7 +174,7 @@ namespace LocalLightValidation
     }
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         std::string error;
         auto layout = SceneRuntime::SceneLayout::Load(root / "Assets/Scenes/LocalLightPlayground.json", root);
         const auto saved = layout.Serialize();

@@ -26,12 +26,8 @@ namespace Editor
             reloadPending_ = pending;
             watchError_ = std::move(error);
         }
-        void InvalidatePreview()
-        {
-            preview_.Invalidate();
-            previewed_.clear();
-            info_.reset();
-        }
+        /// <summary>素材のプレビューと保持する情報を破棄します。</summary>
+        void InvalidatePreview();
         void Scan(const std::filesystem::path& root);
         void Draw(EditState& state, const std::array<float, 3>& suggestedPosition, bool enabled);
         void DrawInspector(EditState& state, bool enabled = true, const SceneRuntime::SceneLayout* layout = nullptr);
@@ -61,18 +57,10 @@ namespace Editor
         {
             return materialPanel_.Undo(path, redo);
         }
-        auto TakeAssetMove()
-        {
-            auto moved = std::move(assetMove_);
-            assetMove_.reset();
-            return moved;
-        }
-        std::optional<std::filesystem::path> TakeSceneRequest()
-        {
-            auto request = std::move(sceneRequest_);
-            sceneRequest_.reset();
-            return request;
-        }
+        /// <summary>保留中の素材移動を取得し、次回へ持ち越さないよう消去します。</summary>
+        std::optional<std::pair<std::filesystem::path, std::filesystem::path>> TakeAssetMove();
+        /// <summary>保留中のシーン変更を取得して消去します。</summary>
+        std::optional<std::filesystem::path> TakeSceneRequest();
 
     private:
         void DrawCreateMaterial(EditState& state);

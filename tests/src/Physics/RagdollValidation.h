@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Physics/Ragdoll.h>
 #include <SceneRuntime/Physics/PhysicsWorld.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
@@ -101,7 +102,7 @@ namespace RagdollValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto layout = SceneLayout::Load(root / "Assets/Scenes/AnimatorPlayground.json");
         std::string error;
         auto owner = std::find_if(layout.objects.begin(), layout.objects.end(),

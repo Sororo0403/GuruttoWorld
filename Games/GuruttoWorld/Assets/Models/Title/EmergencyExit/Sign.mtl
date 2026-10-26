@@ -1,6 +1,0 @@
-newmtl frame
-Kd .8 .83 .8
-
-newmtl sign
-Kd 1 1 1
-map_Kd Sign.png

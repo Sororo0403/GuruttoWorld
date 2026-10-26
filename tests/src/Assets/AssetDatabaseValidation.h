@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <Engine/Assets/AssetDatabase.h>
 #include <Engine/Graphics/Models/ModelLoader.h>
 #include <Engine/Animation/Skeleton.h>
@@ -184,7 +185,7 @@ namespace AssetDatabaseValidation
         watcher.Observe(Editor::AssetChanges::Capture(root));
         Require(watcher.TakeReady(true), "stable import metadata reloads once");
         const auto skeletal = root / "Assets/Models/Skeleton.gltf";
-        std::filesystem::copy_file("Games/GuruttoWorld/Assets/Models/AnimatedBox.gltf", skeletal);
+        std::filesystem::copy_file(WP1_TEST_GAME_ROOT "/Assets/Models/AnimatedBox.gltf", skeletal);
         auto skeletalSettings = AssetDatabase::Ensure(skeletal);
         skeletalSettings.scale = 2;
         AssetDatabase::Write(skeletal, skeletalSettings);

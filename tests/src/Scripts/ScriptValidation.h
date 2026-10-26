@@ -1,4 +1,5 @@
 #pragma once
+#include "../Support/TestGameContent.h"
 #include <SceneRuntime/Scripts/ScriptRuntime.h>
 #include <Engine/Core/Json.h>
 #include <SceneRuntime/Scene/Prefab.h>
@@ -268,7 +269,7 @@ namespace ScriptValidation
     inline void Runtime(Engine::DirectX12Renderer& renderer)
     {
         using namespace SceneRuntime;
-        ScriptStartValidation::Runtime(renderer, std::filesystem::absolute("Games/GuruttoWorld"));
+        ScriptStartValidation::Runtime(renderer, std::filesystem::absolute(WP1_TEST_GAME_ROOT));
         ScriptDefinition definition;
         definition.dataFields = {{"label", {std::string("runtime")}}};
         definition.update = [](ScriptContext& c)
@@ -303,7 +304,7 @@ namespace ScriptValidation
             Require(ScriptRegistry::Register("ValidationRuntimeSpawner", definition), "runtime spawner registers");
             registered = true;
         }
-        const auto root = std::filesystem::absolute("Games/GuruttoWorld");
+        const auto root = std::filesystem::absolute(WP1_TEST_GAME_ROOT);
         auto layout = SceneLayout::Load(root / "Assets/Scenes/ScriptPlayground.json", root);
         ScenePlacement cube;
         cube.id = "cube";

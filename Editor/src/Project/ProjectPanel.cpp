@@ -395,3 +395,30 @@ namespace Editor
     }
 
 }
+
+namespace Editor
+{
+    auto ProjectPanel::InvalidatePreview() -> void
+    {
+        preview_.Invalidate();
+        previewed_.clear();
+        info_.reset();
+    }
+
+    auto ProjectPanel::TakeSceneRequest() -> std::optional<std::filesystem::path>
+    {
+        auto request = std::move(sceneRequest_);
+        sceneRequest_.reset();
+        return request;
+    }
+}
+
+namespace Editor
+{
+    auto ProjectPanel::TakeAssetMove() -> std::optional<std::pair<std::filesystem::path, std::filesystem::path>>
+    {
+        auto moved = std::move(assetMove_);
+        assetMove_.reset();
+        return moved;
+    }
+}
