@@ -261,4 +261,8 @@
     <ClInclude Include="include\SceneRuntime\Rendering\SceneResourcePreparation.h" />
     <ClInclude Include="src\Rendering\SceneRenderBindings.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Rendering\SceneRenderState.cpp" />
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneRenderState.h" />
+  </ItemGroup>
 </Project>

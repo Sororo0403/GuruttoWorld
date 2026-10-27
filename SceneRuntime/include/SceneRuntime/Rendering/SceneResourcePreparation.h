@@ -7,9 +7,8 @@
 
 namespace SceneRuntime
 {
-    struct PreparedSceneResources
+    struct SceneRenderData
     {
-        SceneLayout layout;
         std::vector<std::string> diagnostics;
         std::shared_ptr<Engine::AssetDatabase> assets;
         std::map<std::filesystem::path, std::shared_ptr<const Engine::Material>> materials;
@@ -19,6 +18,10 @@ namespace SceneRuntime
         std::map<std::string, std::shared_ptr<Engine::ModelRenderer>> animated;
         std::map<std::string, AnimatorState> states;
         std::map<std::string, std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lods;
+    };
+    struct PreparedSceneResources : SceneRenderData
+    {
+        SceneLayout layout;
     };
     struct SceneResourceView
     {
@@ -30,6 +33,7 @@ namespace SceneRuntime
         const decltype(PreparedSceneResources::animated)& animated;
         const decltype(PreparedSceneResources::states)& states;
         const decltype(PreparedSceneResources::lods)& lods;
+        std::shared_ptr<Engine::ShadowMap> shadow, localShadow;
     };
     struct SceneAnimatorFrame
     {

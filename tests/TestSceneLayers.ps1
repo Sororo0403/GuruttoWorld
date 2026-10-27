@@ -149,7 +149,8 @@ Write-Output 'PASS: optional Title and test-only legacy Script APIs are absent f
 # 編集表示とGPU準備はホストのWorldや実行セッションを取り込みません。
 foreach ($relative in @('src/Rendering/EditorProjection.cpp', 'src/Rendering/SceneGpuResources.cpp',
         'src/Rendering/SceneRenderBindings.h', 'include/SceneRuntime/Rendering/EditorProjection.h',
-        'include/SceneRuntime/Rendering/SceneGpuResources.h', 'include/SceneRuntime/Rendering/SceneResourcePreparation.h')) {
+        'include/SceneRuntime/Rendering/SceneGpuResources.h', 'include/SceneRuntime/Rendering/SceneResourcePreparation.h',
+        'src/Rendering/SceneRenderState.cpp', 'include/SceneRuntime/Rendering/SceneRenderState.h')) {
     $path = Join-Path $taskRoot "SceneRuntime/$relative"
     $text = Get-Content -LiteralPath $path -Raw
     if ($text -match '#include\s*[<"][^>"\r\n]*(SceneWorld|SceneWorldRuntime|RuntimeSession|RuntimeScripts|ScriptRuntime)\.h[>"]') {
@@ -159,4 +160,4 @@ foreach ($relative in @('src/Rendering/EditorProjection.cpp', 'src/Rendering/Sce
         throw "Preparation adapter must be owned by SceneRuntime: $path"
     }
 }
-Write-Output 'PASS: editor projection and GPU preparation are independent of SceneWorld and RuntimeSession'
+Write-Output 'PASS: editor projection, GPU preparation and render state are independent of SceneWorld and RuntimeSession'

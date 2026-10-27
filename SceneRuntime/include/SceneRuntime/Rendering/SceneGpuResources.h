@@ -10,7 +10,7 @@ namespace Engine
 }
 namespace SceneRuntime
 {
-    /// <summary>モデル・材質・影のGPU資源を所有し、編集と再生の交換候補を準備します。</summary>
+    /// <summary>GPU基盤とモデルキャッシュを所有し、モデル・材質・影の交換候補を準備します。</summary>
     class SceneGpuResources final
     {
         using PreparedLayout = PreparedSceneResources;
@@ -56,16 +56,6 @@ namespace SceneRuntime
         bool Ready() const noexcept
         {
             return modelsReady_;
-        }
-        /// <summary>平行光源の影資源の確定先を取得します。</summary>
-        std::shared_ptr<Engine::ShadowMap>& DirectionalShadow() noexcept
-        {
-            return shadow_;
-        }
-        /// <summary>局所光源の影資源の確定先を取得します。</summary>
-        std::shared_ptr<Engine::ShadowMap>& LocalShadow() noexcept
-        {
-            return localShadow_;
         }
         /// <summary>ビューごとの可視判定を取得します。</summary>
         Engine::OcclusionRenderer& Occlusion() const noexcept
@@ -113,7 +103,6 @@ namespace SceneRuntime
         Microsoft::WRL::ComPtr<ID3D12Device> materialDevice_;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> materialQueue_;
         bool modelsReady_ = false;
-        std::shared_ptr<Engine::ShadowMap> shadow_, localShadow_;
         std::filesystem::path meshShader_;
         mutable Engine::OcclusionRenderer occlusion_;
         Engine::ModelManager models_;

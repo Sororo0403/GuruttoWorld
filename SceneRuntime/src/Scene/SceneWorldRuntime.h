@@ -9,7 +9,6 @@ namespace SceneRuntime
     {
         std::shared_ptr<const RuntimeScriptDefinitions> definitions;
         RuntimeSession session;
-        std::shared_ptr<const RenderPacket> packet;
         RuntimePhysics* physics = nullptr;
         RuntimeAnimation* animation = nullptr;
         RuntimeScriptEffects effects, drained;

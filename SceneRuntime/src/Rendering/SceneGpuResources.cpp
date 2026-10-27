@@ -130,11 +130,7 @@ namespace SceneRuntime
             return false;
         }
         meshShader_ = shaderPath;
-        shadow_ = std::make_shared<Engine::ShadowMap>();
-        localShadow_ = std::make_shared<Engine::ShadowMap>();
         modelsReady_ = models_.Initialize(renderer.GetDevice(), renderer.GetCommandQueue(), shaderPath) &&
-                       shadow_->Initialize(renderer.GetDevice(), shaderPath) &&
-                       localShadow_->Initialize(renderer.GetDevice(), shaderPath, true) &&
                        occlusion_.Initialize(renderer.GetDevice(), shaderPath);
         if (!modelsReady_)
         {
@@ -340,6 +336,8 @@ namespace SceneRuntime
             if (!modelsReady_)
                 prepared.diagnostics.push_back("Scene renderer is unavailable; editing data was retained");
             prepared.assetsRoot = context->Root();
+            prepared.shadow = baseline.shadow;
+            prepared.localShadow = baseline.localShadow;
             std::map<std::string, std::string> unresolved;
             const bool indexAvailable =
                 PrepareLayoutAssets(layout, prepared, previous, configurationCurrent, unresolved, editing, context);
@@ -373,8 +371,6 @@ namespace SceneRuntime
                                            std::shared_ptr<Engine::ShadowMap>& directional,
                                            std::shared_ptr<Engine::ShadowMap>& local, std::string& error) const
     {
-        directional = shadow_;
-        local = localShadow_;
         const auto prepare = [&](auto& map, unsigned int resolution, bool atlas)
         {
             if (map && map->Size() == resolution)

@@ -652,15 +652,19 @@ M0→M1を必須の順とする。M2を足場にM3へ進み、M3の読取契約�
 
 ## 21. 移行後の実装と設計案の対応
 
-2026-10-26のコード上の構成。最終検証と性能比較は [実装記録](ArchitectureImplementation.md) に記録した。
+2026-10-27の責務分離を含むコード上の構成。M0〜M7の最終検証と性能比較は [実装記録](ArchitectureImplementation.md) に記録した。
 
 ```mermaid
 classDiagram
     SceneDocumentData *-- SceneLayout : 編集の正本
     SceneDocument --> SceneDocumentData : 保存と履歴
     SceneWorld --> SceneDocumentData : 編集投影
-    SceneWorld *-- EditorProjection : 編集表示の世代
-    SceneWorld *-- SceneGpuResources : GPU資源の準備と所有
+    SceneWorld *-- SceneRenderState : 表示状態の所有と交換
+    SceneRenderState *-- EditorProjection : 編集表示の抽出
+    SceneRenderState *-- SceneGpuResources : GPU資源の準備
+    SceneRenderState *-- SceneRenderData : 個体・材質・姿勢・影
+    SceneRenderState --> RenderPacket : 確定した表示世代
+    RuntimeProjection --> SceneRenderState : フレームの一括確定
     EditorProjection ..> PreparedSceneResources : 準備済み候補を読取
     SceneGpuResources ..> PreparedSceneResources : モデル・材質・影を準備
     EditorProjection ..> RenderPacket : 編集表示の候補
@@ -691,13 +695,21 @@ classDiagram
 
 2026-10-27: 編集表示の抽出と確定済みpacketの保持を `EditorProjection`、モデル・材質・手続きメッシュ・骨格・影の準備とGPUデバイス／モデルキャッシュの所有を `SceneGpuResources` へ分離した。両者は `SceneWorld` と `RuntimeSession` に依存せず、`PreparedSceneResources` を介して利用できる。編集と再生の表示資源解決は、明示的な資源・姿勢・前回packetだけを受け取る `SceneRenderBindings` を共有する。
 
-`SceneWorld` は文書・実行状態・表示候補を同じ成功境界で公開する調停役を維持する。確定済み個体配列と編集用Animator状態、編集操作・選択問い合わせの互換APIは引き続き保持する。資源準備アダプターは `SceneRuntime` ターゲットが所有し、packetだけを描く `SceneRendering` へ保存型や可変Worldの依存を追加しない。`GpuPacketValidation` はWorldなしでの準備、確定前の旧世代保持、失敗後の再試行、編集用欠損表示と再生時の拒否、準備所有者を破棄した後の描画を検証する。
+`SceneWorld` は文書・実行状態・表示候補を同じ成功境界で公開する調停役を維持する。編集操作・選択問い合わせの互換APIを維持し、表示資源は読み取り専用のビューと候補を介して参照する。資源準備アダプターは `SceneRuntime` ターゲットが所有し、packetだけを描く `SceneRendering` へ保存型や可変Worldの依存を追加しない。`GpuPacketValidation` はWorldなしでの準備、確定前の旧世代保持、失敗後の再試行、編集用欠損表示と再生時の拒否、準備所有者を破棄した後の描画を検証する。
+
+
+2026-10-27の追加分離: `SceneRenderState` が確定済みの個体・材質・LOD・編集プレビュー姿勢・影・診断・素材参照情報と、描画packet・世代番号・補間行列・描画統計を所有する。保存用 `SceneLayout` は文書側の正本に残し、`SceneRenderData` に複製しない。GPU準備側は影の交換候補だけを作り、影の可変所有参照を公開しない。
+
+編集・再生・再読込の交換は `CommitPrepared`／`CommitFrame`／`CommitReload` へ集約した。資源退役は `PrepareRetirement`／`RetireObjects` で公開前に準備し、確定経路は確保を伴わない交換にする。旧packetは確定APIの戻り値で候補側へ返し、確定途中での最終所有者破棄を避ける。通常の実行更新は型別の差分姿勢だけを反映し、保存データの全体書き出しを追加しない。文書・通知・物理履歴・実行セッションの成功境界は引き続きホストが調停する。
+
+`GpuPacketValidation` に、Worldなしでの状態確定、候補破棄・準備失敗後の旧表示保持、影と姿勢の世代整合、補間行列の再計算、差分フレームと再読込の交換、旧packetの遅延解放、状態所有者を破棄した後の描画を追加した。
 
 | 設計案の責務 | 実装 | 境界 |
 |---|---|---|
 | Documentと編集サービス | SceneDocumentData / SceneEdits / SceneStorage | GPUや再生ホストなしで編集・保存候補を作る |
 | RuntimeWorldと取引 | WorldDefinition / WorldState / RuntimeSession | 型別の値・世代付きハンドル・候補の一括確定 |
 | システム群 | RuntimePipelineと各RuntimeSystem | 物理・Animation・Navigation・投影の準備失敗を同じ取引で復元 |
+| 表示状態と交換 | SceneRenderState / SceneRenderData | 保存正本を所有せず、準備済み資源・姿勢・packetを一括確定 |
 | 描画専用Scene | RenderPacket / PresentationPacket / RenderPresentation | 保存用SceneLayoutやScript APIを描画から除外 |
 | 変更に比例する更新 | 型別COWページ、dirty行列、RuntimeProjection | 数値の定常更新で保存シーン全体を複製しない |
 | 共通アセット成果物 | ArtifactDescriptor / ArtifactSources / ArtifactRequests / ArtifactStore | 内容hash、取り込み版、設定、依存、プラットフォーム、compilerをキーへ含める |

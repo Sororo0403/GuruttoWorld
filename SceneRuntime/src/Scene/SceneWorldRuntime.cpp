@@ -1,5 +1,4 @@
-#include <SceneRuntime/Rendering/SceneGpuResources.h>
-#include <SceneRuntime/Rendering/EditorProjection.h>
+#include <SceneRuntime/Rendering/SceneRenderState.h>
 #include "../Rendering/SceneRenderBindings.h"
 #include "SceneWorldRuntime.h"
 
@@ -35,14 +34,8 @@ namespace SceneRuntime
                 size_t index;
                 ScenePlacement value;
             };
-            struct TransformPublication
-            {
-                size_t index;
-                LocalTransform local;
-                Engine::Object3D object;
-            };
             std::vector<ValuePublication> values;
-            std::vector<TransformPublication> transforms;
+            std::vector<SceneRenderTransform> transforms;
             double interpolation = 0;
             std::shared_ptr<const RenderPacket> packet;
             std::map<std::string, PhysicalPose> previousPhysical, currentPhysical;
@@ -64,7 +57,8 @@ namespace SceneRuntime
             }
             bool CanUseValues(const SceneChangeSet& changes) const
             {
-                if (data.reset || data.reloading || !world.assetIndex_ || world.assetsRoot_ != data.root ||
+                if (data.reset || data.reloading || !world.renderState_->Read().assets ||
+                    world.renderState_->Read().assetsRoot != data.root ||
                     transaction.Read().Definition() != data.session.Read().Definition() || changes.structureChanged ||
                     !changes.resources.empty() || world.prepareRuntime_ || world.prepareUi_)
                     return false;
@@ -95,7 +89,8 @@ namespace SceneRuntime
                 Engine::CpuScope scope("Sparse display value preparation");
                 const auto view = transaction.Read();
                 const auto entities = view.Entities();
-                if (entities.size() != world.layout_.objects.size() || entities.size() != world.objects_.size())
+                if (entities.size() != world.layout_.objects.size() ||
+                    entities.size() != world.renderState_->Read().objects.size())
                 {
                     error = "Sparse projection counts differ";
                     return false;
@@ -155,9 +150,10 @@ namespace SceneRuntime
                     const bool changedLocal = placement.position != local.position ||
                                               placement.rotation != local.rotation || placement.scale != local.scale;
                     if (!changedLocal &&
-                        std::memcmp(&*matrix, &world.objects_[index].GetWorldMatrix(), sizeof(*matrix)) == 0)
+                        std::memcmp(&*matrix, &world.renderState_->Read().objects[index].GetWorldMatrix(),
+                                    sizeof(*matrix)) == 0)
                         continue;
-                    auto object = world.objects_[index];
+                    auto object = world.renderState_->Read().objects[index];
                     if ((changedLocal && !object.SetTransform(local.position, local.rotation, local.scale)) ||
                         !object.SetWorldMatrix(*matrix))
                     {
@@ -206,42 +202,22 @@ namespace SceneRuntime
                     auto layout = transaction.Read().ExportLayout();
                     if (data.reloading)
                     {
-                        auto& source = *data.reloading;
-                        prepared.layout = source.layout_;
-                        prepared.assetsRoot = source.assetsRoot_;
-                        prepared.assets = source.assetIndex_;
-                        prepared.materials = source.materials_;
-                        prepared.objects = source.objects_;
-                        prepared.animated = source.animatedModels_;
-                        prepared.states = source.animatorStates_;
-                        prepared.lods = source.lodModels_;
-                        prepared.diagnostics = source.resourceDiagnostics_;
-                        prepared.shadow = source.gpu_->DirectionalShadow();
-                        prepared.localShadow = source.gpu_->LocalShadow();
+                        prepared = data.reloading->RuntimeLayout();
                     }
-                    else if (world.assetIndex_ && world.assetsRoot_ == data.root)
+                    else if (world.renderState_->Read().assets && world.renderState_->Read().assetsRoot == data.root)
                     {
                         if (!world.PrepareScriptLayout(std::move(layout), nullptr, prepared, error))
                             return false;
                     }
                     else if (!world.PrepareLayout(std::move(layout), data.root, error, true, prepared))
                         return false;
-                    if (!world.gpu_->PrepareShadows(prepared.layout.settings, prepared.shadow, prepared.localShadow,
-                                                    error))
+                    if (!world.renderState_->PrepareShadows(prepared, error) ||
+                        !world.renderState_->PrepareRetirement(prepared, error))
                         return false;
-                    if (world.gpu_->Retirement())
-                    {
-                        if (prepared.shadow != world.gpu_->DirectionalShadow() &&
-                            !world.gpu_->Retirement()->Retire(world.gpu_->DirectionalShadow()))
-                            return false;
-                        if (prepared.localShadow != world.gpu_->LocalShadow() &&
-                            !world.gpu_->Retirement()->Retire(world.gpu_->LocalShadow()))
-                            return false;
-                    }
                 }
                 if (!sparse)
                     prepared.states.clear();
-                const auto& animated = sparse ? world.animatedModels_ : prepared.animated;
+                const auto& animated = sparse ? world.renderState_->Read().animated : prepared.animated;
                 for (const auto& skin : data.animation->CandidateSnapshot())
                 {
                     const auto id = *transaction.Read().ObjectId(skin.entity);
@@ -264,13 +240,15 @@ namespace SceneRuntime
                     sparse ? world.BaselineView(nullptr)
                            : LayoutView{prepared.layout,    prepared.objects,  prepared.assetsRoot, prepared.assets,
                                         prepared.materials, prepared.animated, prepared.states,     prepared.lods};
-                SceneRenderBindings resources(transaction.Read(), bindings, poses,
-                                              {world.gpu_->Device(), world.renderVersion_ + 1, world.RenderSnapshot(),
-                                               sparse ? world.gpu_->DirectionalShadow() : prepared.shadow,
-                                               sparse ? world.gpu_->LocalShadow() : prepared.localShadow, sparse});
-                packet = RenderExtractor::Extract(transaction.Read(), resources, world.renderVersion_ + 1,
-                                                  reinterpret_cast<std::uintptr_t>(world.gpu_->Device().Get()),
-                                                  data.physics->History(), interpolation, error);
+                SceneRenderBindings resources(
+                    transaction.Read(), bindings, poses,
+                    {world.renderState_->Gpu().Device(), world.renderState_->Version() + 1, world.RenderSnapshot(),
+                     sparse ? world.renderState_->Read().shadow : prepared.shadow,
+                     sparse ? world.renderState_->Read().localShadow : prepared.localShadow, sparse});
+                packet =
+                    RenderExtractor::Extract(transaction.Read(), resources, world.renderState_->Version() + 1,
+                                             reinterpret_cast<std::uintptr_t>(world.renderState_->Gpu().Device().Get()),
+                                             data.physics->History(), interpolation, error);
                 if (!packet)
                     return false;
                 const auto capture = [&](const auto& source, auto& target)
@@ -306,7 +284,6 @@ namespace SceneRuntime
                 world.changes_.Swap(publication);
                 if (valuesOnly)
                     return;
-                data.packet.swap(packet);
                 if (sparse)
                 {
                     // 同じ構成の既存領域へ代入し、Debugのmap移動構築を確定経路へ持ち込みません。
@@ -318,33 +295,17 @@ namespace SceneRuntime
                         placement.position = transform.local.position;
                         placement.rotation = transform.local.rotation;
                         placement.scale = transform.local.scale;
-                        world.objects_[transform.index] = std::move(transform.object);
                     }
                 }
                 else
                 {
                     world.layout_.Swap(prepared.layout);
-                    world.resourceDiagnostics_.swap(prepared.diagnostics);
-                    world.assetsRoot_.swap(prepared.assetsRoot);
-                    world.assetIndex_.swap(prepared.assets);
-                    world.materials_.swap(prepared.materials);
-                    world.objects_.swap(prepared.objects);
-                    world.animatedModels_.swap(prepared.animated);
-                    world.animatorStates_.swap(prepared.states);
-                    world.lodModels_.swap(prepared.lods);
-                    world.gpu_->DirectionalShadow().swap(prepared.shadow);
-                    world.gpu_->LocalShadow().swap(prepared.localShadow);
                 }
-                if (data.reloading)
-                {
-                    world.gpu_->SwapModels(*data.reloading->gpu_);
-                }
+                packet =
+                    world.renderState_->CommitFrame(sparse ? nullptr : &prepared, transforms, poses, std::move(packet),
+                                                    data.reloading ? data.reloading->renderState_.get() : nullptr);
                 data.previousPhysical.swap(previousPhysical);
                 data.currentPhysical.swap(currentPhysical);
-                for (auto& pose : poses)
-                    if (!pose.model->ApplyPreparedPose(std::move(pose.pose)))
-                        std::terminate();
-                ++world.renderVersion_;
             }
             void Finish() noexcept override {}
         };
@@ -366,23 +327,15 @@ namespace SceneRuntime
     std::shared_ptr<const RenderPacket> SceneWorld::PrepareDocumentPacket(const PreparedLayout& prepared,
                                                                           std::string& error)
     {
-        if (!gpu_->Ready())
-            return {};
-        return editorProjection_->Prepare(prepared, gpu_->Device().Get(), renderVersion_ + 1, error);
+        return renderState_->PrepareEditor(prepared, error);
     }
     std::shared_ptr<const RenderPacket> SceneWorld::PrepareDocumentPacket(const SceneLayout& layout,
                                                                           const std::vector<Engine::Object3D>& objects,
                                                                           std::string& error)
     {
-        PreparedLayout prepared;
-        prepared.layout = layout;
+        auto prepared = renderState_->Capture(layout);
         prepared.objects = objects;
-        prepared.animated = animatedModels_;
-        prepared.states = animatorStates_;
-        prepared.lods = lodModels_;
-        prepared.shadow = gpu_->DirectionalShadow();
-        prepared.localShadow = gpu_->LocalShadow();
-        return PrepareDocumentPacket(prepared, error);
+        return renderState_->PrepareEditor(prepared, error);
     }
     std::shared_ptr<const RenderPacket> SceneWorld::PrepareRuntimePacket(const PreparedLayout& prepared,
                                                                          std::string& error)
@@ -401,13 +354,14 @@ namespace SceneRuntime
             }
             poses.push_back(std::move(frame));
         }
-        SceneRenderBindings resources(
-            view,
-            {prepared.layout, prepared.objects, prepared.assetsRoot, prepared.assets, prepared.materials,
-             prepared.animated, prepared.states, prepared.lods},
-            poses, {gpu_->Device(), renderVersion_ + 1, RenderSnapshot(), prepared.shadow, prepared.localShadow});
-        return RenderExtractor::Extract(view, resources, renderVersion_ + 1,
-                                        reinterpret_cast<std::uintptr_t>(gpu_->Device().Get()),
+        SceneRenderBindings resources(view,
+                                      {prepared.layout, prepared.objects, prepared.assetsRoot, prepared.assets,
+                                       prepared.materials, prepared.animated, prepared.states, prepared.lods},
+                                      poses,
+                                      {renderState_->Gpu().Device(), renderState_->Version() + 1, RenderSnapshot(),
+                                       prepared.shadow, prepared.localShadow});
+        return RenderExtractor::Extract(view, resources, renderState_->Version() + 1,
+                                        reinterpret_cast<std::uintptr_t>(renderState_->Gpu().Device().Get()),
                                         runtime_->physics->History(), runtime_->session.Interpolation(), error);
     }
     void SceneWorld::SetFramePreparation(
@@ -448,7 +402,7 @@ namespace SceneRuntime
             candidate->reset = false;
             candidate->skipHostPreparation = false;
             runtime_.swap(candidate);
-            animationScratch_.reset();
+            renderState_->ResetPreview();
             runtime_->previousPhysical.clear();
             runtime_->currentPhysical.clear();
             runtime_->fixedSeconds = 0;
@@ -537,8 +491,8 @@ namespace SceneRuntime
             const auto instance = entity ? view.Instance<AnimatorComponent>(*entity) : std::nullopt;
             return instance ? runtime_->animation->Status(*instance) : nullptr;
         }
-        const auto found = animatorStates_.find(id);
-        return found == animatorStates_.end() ? nullptr : &found->second;
+        const auto found = renderState_->Read().states.find(id);
+        return found == renderState_->Read().states.end() ? nullptr : &found->second;
     }
     std::string SceneWorld::AnimatorStateName(const std::string& id) const
     {
@@ -547,7 +501,7 @@ namespace SceneRuntime
     }
     std::shared_ptr<const RenderPacket> SceneWorld::RenderSnapshot() const noexcept
     {
-        return runtime_ ? runtime_->packet : editorProjection_->Snapshot();
+        return renderState_->Snapshot();
     }
     bool SceneWorld::ValidateScripts(std::string& error) const
     {

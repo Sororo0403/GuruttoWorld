@@ -302,4 +302,8 @@
     <ClInclude Include="include\SceneRuntime\Rendering\SceneResourcePreparation.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
     <ClInclude Include="src\Rendering\SceneRenderBindings.h"><Filter>src\Rendering</Filter></ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Rendering\SceneRenderState.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneRenderState.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+  </ItemGroup>
 </Project>

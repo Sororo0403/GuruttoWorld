@@ -1,3 +1,4 @@
+#include <SceneRuntime/Rendering/SceneRenderState.h>
 #include <SceneRuntime/Rendering/EditorProjection.h>
 #include <SceneRuntime/Rendering/SceneGpuResources.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
@@ -202,6 +203,139 @@ namespace
                 "separated-packet-draws-after-preparation-owners-destruction");
     }
 
+    void ValidateRenderState(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+                             const SceneRuntime::SceneLayout& layout)
+    {
+        using namespace SceneRuntime;
+        size_t released = 0;
+        {
+            SceneRenderState state;
+            PreparedSceneResources empty;
+            std::shared_ptr<const RenderPacket> first(new RenderPacket{},
+                                                      [&](const RenderPacket* packet)
+                                                      {
+                                                          delete packet;
+                                                          ++released;
+                                                      });
+            state.CommitPrepared(empty, first, false);
+            first.reset();
+            auto previous = state.CommitFrame(nullptr, {}, {}, std::make_shared<RenderPacket>());
+            Require(previous && released == 0 && state.Version() == 2,
+                    "render-state-commit-defers-old-packet-destruction-to-caller");
+            previous.reset();
+            Require(released == 1, "render-state-displaced-packet-releases-after-commit");
+        }
+        std::shared_ptr<const RenderPacket> detached;
+        {
+            SceneRenderState state;
+            std::string error;
+            Require(state.Initialize(renderer, root / "Engine/Shaders/Mesh.hlsl", &error),
+                    "render-state-initializes-without-world");
+            auto context = Engine::ContentContext::Capture(root);
+            PreparedSceneResources prepared;
+            Require(state.Gpu().PrepareLayout(layout, root, error, false, prepared, nullptr, state.View(layout), true,
+                                              context),
+                    "render-state-prepares-initial-resources");
+            auto authored = prepared.layout;
+            auto first = state.PrepareEditor(prepared, error);
+            Require(first && !state.Snapshot() && state.Read().objects.empty() && state.Version() == 0,
+                    "render-state-candidate-keeps-current-storage-and-generation");
+            Require(state.PrepareRetirement(prepared, error), "render-state-prepares-retirement-before-publication");
+            state.CommitPrepared(prepared, first, false);
+            Require(state.Snapshot() == first && state.Read().objects.size() == 1 && state.Version() == 1,
+                    "render-state-publishes-storage-and-packet-together");
+            Require(state.PrepareMatrices(authored, {}, error) && state.MatricesCurrent(),
+                    "render-state-caches-current-generation-matrices");
+            const auto oldShadow = state.Read().shadow;
+            {
+                auto discarded = state.Capture(authored);
+                discarded.layout.settings.shadowResolution = 1024;
+                Require(state.PrepareShadows(discarded, error) && state.PrepareRetirement(discarded, error) &&
+                            discarded.shadow != oldShadow && state.Read().shadow == oldShadow &&
+                            state.Snapshot() == first && state.Version() == 1,
+                        "render-state-shadow-preparation-retains-current-generation");
+            }
+            Require(state.Read().shadow == oldShadow && state.Snapshot() == first && state.Version() == 1,
+                    "render-state-discarded-candidate-does-not-publish");
+            auto invalid = authored;
+            invalid.objects.front().scale[0] = 0;
+            PreparedSceneResources rejected;
+            Require(!state.Gpu().PrepareLayout(invalid, root, error, true, rejected, nullptr, state.View(authored),
+                                               true, context) &&
+                        state.Snapshot() == first && state.Version() == 1,
+                    "render-state-failed-preparation-keeps-storage-and-packet");
+            auto candidate = state.Capture(authored);
+            candidate.layout.objects.front().position[0] = 4;
+            candidate.layout.settings.shadowResolution = 1024;
+            DirectX::XMFLOAT4X4 matrix;
+            DirectX::XMStoreFloat4x4(&matrix, DirectX::XMMatrixTranslation(4, 0, 0));
+            Require(candidate.objects.front().SetTransform({4, 0, 0}, {}, {1, 1, 1}) &&
+                        candidate.objects.front().SetWorldMatrix(matrix) && state.PrepareShadows(candidate, error),
+                    "render-state-retries-pose-and-shadow-candidate");
+            auto second = state.PrepareEditor(candidate, error);
+            Require(second && state.PrepareRetirement(candidate, error), "render-state-prepares-coherent-next-packet");
+            authored = candidate.layout;
+            state.CommitPrepared(candidate, second, true);
+            const auto* oldScene = dynamic_cast<const GpuRenderScene*>(first->sceneResources.get());
+            const auto* newScene = dynamic_cast<const GpuRenderScene*>(second->sceneResources.get());
+            Require(state.Version() == 2 && state.Snapshot() == second &&
+                        state.Read().objects.front().GetPosition()[0] == 4 && !state.MatricesCurrent() &&
+                        first->objects.front().matrix._41 == 0 && oldScene && newScene &&
+                        oldScene->shadow == oldShadow && newScene->shadow == state.Read().shadow &&
+                        newScene->shadow != oldShadow,
+                    "render-state-commit-keeps-old-packet-pose-and-shadow-generation");
+            Require(state.PrepareMatrices(authored, {}, error) && state.Matrices().front()._41 == 4,
+                    "render-state-rebuilds-matrices-after-generation-change");
+            auto sparse = state.Capture(authored);
+            sparse.layout.objects.front().position[0] = 6;
+            DirectX::XMStoreFloat4x4(&matrix, DirectX::XMMatrixTranslation(6, 0, 0));
+            Require(sparse.objects.front().SetTransform({6, 0, 0}, {}, {1, 1, 1}) &&
+                        sparse.objects.front().SetWorldMatrix(matrix),
+                    "render-state-prepares-sparse-transform");
+            auto sparsePacket = state.PrepareEditor(sparse, error);
+            std::vector<SceneRenderTransform> transforms;
+            transforms.push_back({0, {{6, 0, 0}, {}, {1, 1, 1}}, sparse.objects.front()});
+            Require(sparsePacket && state.Snapshot() == second, "render-state-sparse-candidate-is-not-published");
+            state.CommitFrame(nullptr, transforms, {}, sparsePacket);
+            Require(state.Version() == 3 && state.Read().objects.front().GetPosition()[0] == 6 &&
+                        state.Snapshot() == sparsePacket && !state.MatricesCurrent() &&
+                        second->objects.front().matrix._41 == 4,
+                    "render-state-sparse-frame-commits-storage-packet-and-generation");
+            SceneRenderState reload;
+            Require(reload.Initialize(renderer, root / "Engine/Shaders/Mesh.hlsl", &error),
+                    "render-state-prepares-independent-reload-owner");
+            PreparedSceneResources reloadResources;
+            Require(reload.Gpu().PrepareLayout(authored, root, error, false, reloadResources, nullptr,
+                                               reload.View(authored), true, context),
+                    "render-state-prepares-reload-resources");
+            auto reloadPacket = reload.PrepareEditor(reloadResources, error);
+            Require(reloadPacket && reload.PrepareRetirement(reloadResources, error),
+                    "render-state-prepares-reload-packet");
+            reload.CommitPrepared(reloadResources, reloadPacket, false);
+            auto reloadCandidate = reload.Capture(authored);
+            Require(state.PrepareRetirement(reloadCandidate, error), "render-state-prepares-reload-retirement");
+            state.CommitReload(reload, reloadPacket);
+            Require(state.Version() == 4 && state.Snapshot() == reloadPacket &&
+                        state.Read().objects.front().GetPosition()[0] == 4 &&
+                        sparsePacket->objects.front().matrix._41 == 6,
+                    "render-state-reload-exchanges-resources-without-changing-old-packet");
+            detached = state.Snapshot();
+        }
+        Engine::Camera camera;
+        Engine::DirectionalLight light;
+        Engine::OcclusionRenderer occlusion;
+        MeshTelemetry telemetry;
+        bool drawn = false;
+        Require(renderer.Render({0, 0, 0, 1},
+                                [&](auto* commands, float)
+                                {
+                                    drawn =
+                                        RenderScene::Draw(detached, commands, camera, light, {}, occlusion, telemetry);
+                                }) != Engine::RenderResult::Failed &&
+                    drawn && renderer.WaitForIdle(),
+                "render-state-packet-outlives-state-and-reload-owner");
+    }
+
     void ValidateWorld()
     {
         using namespace SceneRuntime;
@@ -231,6 +365,7 @@ namespace
         ground.animation->tracks.push_back(surface);
         layout.objects.push_back(ground);
         ValidateSeparatedProjection(renderer, root, layout);
+        ValidateRenderState(renderer, root, layout);
         auto world = std::make_unique<SceneWorld>();
         std::string error;
         Require(world->Initialize(renderer, std::filesystem::relative(root), layout, root / "Engine/Shaders/Mesh.hlsl",

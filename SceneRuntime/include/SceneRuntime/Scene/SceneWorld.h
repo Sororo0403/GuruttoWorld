@@ -24,8 +24,7 @@ namespace SceneRuntime
     struct UiState;
     struct RuntimeScriptEffects;
     struct RenderPacket;
-    class SceneGpuResources;
-    class EditorProjection;
+    class SceneRenderState;
 }
 namespace SceneRuntime
 {
@@ -57,10 +56,7 @@ namespace SceneRuntime
         /// <summary>この実行セッションに指定段階のコールバックがあるかを返します。</summary>
         bool HasScriptPhase(ScriptPhase phase) const;
         /// <summary>最後の投影で取得できなかった資源の診断を返します。</summary>
-        const std::vector<std::string>& ResourceDiagnostics() const
-        {
-            return resourceDiagnostics_;
-        }
+        const std::vector<std::string>& ResourceDiagnostics() const;
         /// <summary>描画を準備してシーンを読みます。編集用の場合だけ旧外部参照の修復を待ちます。</summary>
         bool Initialize(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& assetsRoot,
                         const std::filesystem::path& layoutPath, const std::filesystem::path& shaderPath,
@@ -92,10 +88,8 @@ namespace SceneRuntime
                   const Engine::DirectionalLight& light, const UiState* state = nullptr) const;
         /// <summary>描画へ公開した不変packetを保持します。World破棄後も表示値と資源の世代は有効です。</summary>
         std::shared_ptr<const RenderPacket> RenderSnapshot() const noexcept;
-        const MeshTelemetry& Telemetry() const
-        {
-            return meshTelemetry_;
-        }
+        /// <summary>表示所有者が記録した最後の描画統計を取得します。</summary>
+        const MeshTelemetry& Telemetry() const;
         const SceneLayout& Layout() const override
         {
             return layout_;
@@ -206,10 +200,8 @@ namespace SceneRuntime
                                                     const std::string& ignore = {}) const;
         /// <summary>保存済みトラックを時計から評価し、3D配置へ一括反映します。</summary>
         bool Animate(const std::map<std::string, float>& clocks);
-        size_t RenderVersion() const
-        {
-            return renderVersion_;
-        }
+        /// <summary>表示所有者が公開した世代番号を取得します。</summary>
+        size_t RenderVersion() const;
         double PhysicsStepSeconds() const
         {
             return FixedStep();
@@ -273,8 +265,7 @@ namespace SceneRuntime
         struct RuntimeData;
         class RuntimeProjection;
         std::unique_ptr<RuntimeData> runtime_;
-        std::unique_ptr<SceneGpuResources> gpu_;
-        std::unique_ptr<EditorProjection> editorProjection_;
+        std::unique_ptr<SceneRenderState> renderState_;
         /// <summary>新しいCPUセッションで配置と表示を準備し、成功時だけ所有者を交換します。</summary>
         bool ReplaceSession(SceneLayout layout, const std::filesystem::path& root, bool start, std::string& error);
         /// <summary>実行値と表示の候補を同じ境界で編集します。</summary>
@@ -330,10 +321,6 @@ namespace SceneRuntime
                                                    const LayoutView& baseline, size_t index);
         bool PrepareRuntimeObjects(PreparedLayout& candidate, const LayoutView& baseline,
                                    const std::unordered_map<std::string, size_t>& old);
-        mutable MeshTelemetry meshTelemetry_;
-        std::filesystem::path assetsRoot_;
-        std::shared_ptr<Engine::AssetDatabase> assetIndex_;
-        std::map<std::filesystem::path, std::shared_ptr<const Engine::Material>> materials_;
         std::function<bool(const SceneLayout&, std::string&)> prepareRuntime_;
         std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)> prepareUi_;
         bool InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
@@ -346,8 +333,6 @@ namespace SceneRuntime
         bool TransformObjectsWorld(const std::vector<std::string>& ids, const DirectX::XMFLOAT4X4& delta);
         size_t nextObjectId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
-        std::map<std::string, std::shared_ptr<Engine::ModelRenderer>> animatedModels_;
-        std::map<std::string, AnimatorState> animatorStates_;
         bool runtimeOwner_ = true;
         struct PhysicalPose
         {
@@ -359,10 +344,7 @@ namespace SceneRuntime
         /// <summary>同じ補間条件で描画用のローカル配置と回転を準備します。</summary>
         bool InterpolatedLocalTransform(const ScenePlacement& placement, DirectX::XMFLOAT4X4& transform,
                                         DirectX::XMFLOAT4X4& rotation) const;
-        size_t renderVersion_ = 0;
         SceneChangeSet changes_;
-        mutable size_t preparedRenderVersion_ = static_cast<size_t>(-1);
-        mutable std::vector<DirectX::XMFLOAT4X4> renderMatrices_;
         std::function<bool(WorldState::ReadView, const SceneChangeSet&, const ScriptUiCommands&, std::string&)>
             prepareFrame_;
         double FixedStep() const
@@ -373,9 +355,5 @@ namespace SceneRuntime
         std::shared_ptr<SceneDocumentData> document_;
         std::shared_ptr<const Engine::ContentContext> context_;
         SceneLayout& layout_;
-        std::unique_ptr<SceneLayout> animationScratch_;
-        std::vector<std::string> resourceDiagnostics_;
-        std::vector<Engine::Object3D> objects_;
-        std::map<std::string, std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lodModels_;
     };
 }

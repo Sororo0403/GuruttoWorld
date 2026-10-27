@@ -1,5 +1,4 @@
-#include <SceneRuntime/Rendering/SceneGpuResources.h>
-#include <SceneRuntime/Rendering/EditorProjection.h>
+#include <SceneRuntime/Rendering/SceneRenderState.h>
 #include <Engine/Core/Profiler.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include "SceneWorldRuntime.h"
@@ -181,13 +180,13 @@ namespace SceneRuntime
     bool SceneWorld::InitializeModels(const Engine::DirectX12Renderer& renderer,
                                       const std::filesystem::path& shaderPath, std::string* diagnostic)
     {
-        return gpu_->Initialize(renderer, shaderPath, diagnostic);
+        return renderState_->Initialize(renderer, shaderPath, diagnostic);
     }
     bool SceneWorld::PrepareLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,
                                    bool preserveExecution, PreparedLayout& result, const PreparedLayout* previous)
     {
-        return gpu_->PrepareLayout(std::move(layout), assetsRoot, error, preserveExecution, result, previous,
-                                   BaselineView(previous), IsDocumentView(), context_);
+        return renderState_->Gpu().PrepareLayout(std::move(layout), assetsRoot, error, preserveExecution, result,
+                                                 previous, BaselineView(previous), IsDocumentView(), context_);
     }
     bool SceneWorld::Animate(const std::map<std::string, float>& clocks)
     {
@@ -209,17 +208,14 @@ namespace SceneRuntime
             return false;
         if (std::none_of(layout_.objects.begin(), layout_.objects.end(), HasTransformAnimation))
         {
-            animationScratch_.reset();
+            renderState_->ResetPreview();
             return true;
         }
         auto& candidate = [&]() -> SceneLayout&
         {
             Engine::CpuScope scope("Animation layout clone");
             // 全内容を毎回同期し、外部編集と失敗後の候補を持ち越さず格納領域だけ再利用します。
-            if (!animationScratch_)
-                animationScratch_ = std::make_unique<SceneLayout>();
-            *animationScratch_ = layout_;
-            return *animationScratch_;
+            return renderState_->AnimationScratch(layout_);
         }();
         std::vector<size_t> changed;
         {
@@ -257,7 +253,7 @@ namespace SceneRuntime
             for (const auto i : changed)
             {
                 layout_.objects[i].CopyComponents(candidate.objects[i]);
-                SceneGpuResources::ApplySurfaceOverride(objects_[i], layout_.objects[i]);
+                renderState_->ApplySurface(i, layout_.objects[i]);
             }
         }
         changes_.Swap(changes);
@@ -360,32 +356,16 @@ namespace SceneRuntime
             return true;
         }
         auto prepared = candidate->RuntimeLayout();
-        prepared.shadow = candidate->gpu_->DirectionalShadow();
-        prepared.localShadow = candidate->gpu_->LocalShadow();
-        auto packet = runtime_ ? PrepareRuntimePacket(prepared, error) : candidate->editorProjection_->Snapshot();
-        if (candidate->gpu_->Ready() && !packet)
+        auto packet = candidate->RenderSnapshot();
+        if (candidate->renderState_->Gpu().Ready() && !packet)
             return false;
         auto changes = changes_;
         changes.Merge(SceneChangeSet::Compare(layout_, candidate->layout_));
         changes.fields.push_back({{}, {}, "resources.reload"});
-        gpu_->SwapModels(*candidate->gpu_);
-        layout_ = std::move(candidate->layout_);
-        animationScratch_.reset();
-        objects_.swap(candidate->objects_);
-        animatedModels_.swap(candidate->animatedModels_);
-        animatorStates_.swap(candidate->animatorStates_);
-        lodModels_.swap(candidate->lodModels_);
-        gpu_->DirectionalShadow().swap(candidate->gpu_->DirectionalShadow());
-        gpu_->LocalShadow().swap(candidate->gpu_->LocalShadow());
-        std::swap(gpu_->Occlusion(), candidate->gpu_->Occlusion());
-        assetIndex_.swap(candidate->assetIndex_);
-        materials_.swap(candidate->materials_);
-        resourceDiagnostics_ = std::move(candidate->resourceDiagnostics_);
-        if (runtime_)
-            runtime_->packet.swap(packet);
-        else
-            editorProjection_->Commit(std::move(packet));
-        ++renderVersion_;
+        if (!renderState_->PrepareRetirement(prepared, error))
+            return false;
+        layout_.Swap(candidate->layout_);
+        packet = renderState_->CommitReload(*candidate->renderState_, std::move(packet));
         changes_.Swap(changes);
         error.clear();
         return true;
@@ -425,61 +405,31 @@ namespace SceneRuntime
     SceneWorld::LayoutView SceneWorld::BaselineView(const PreparedLayout* previous) const
     {
         if (previous)
-            return {previous->layout,    previous->objects,  previous->assetsRoot, previous->assets,
-                    previous->materials, previous->animated, previous->states,     previous->lods};
-        return {layout_, objects_, assetsRoot_, assetIndex_, materials_, animatedModels_, animatorStates_, lodModels_};
+            return {previous->layout,    previous->objects,    previous->assetsRoot, previous->assets,
+                    previous->materials, previous->animated,   previous->states,     previous->lods,
+                    previous->shadow,    previous->localShadow};
+        return renderState_->View(layout_);
     }
     void SceneWorld::CommitLayout(PreparedLayout&& prepared, bool preserveExecution)
     {
-        std::shared_ptr<const RenderPacket> packet;
-        if (gpu_->Ready())
-        {
-            std::string error;
-            packet = PrepareDocumentPacket(prepared, error);
-            if (!packet)
-                throw std::runtime_error(error);
-        }
+        std::string error;
+        auto packet = PrepareDocumentPacket(prepared, error);
+        if (renderState_->Gpu().Ready() && !packet)
+            throw std::runtime_error(error);
         auto changes = changes_;
         changes.Merge(SceneChangeSet::Compare(layout_, prepared.layout));
-        if (!preserveExecution)
-            animationScratch_.reset();
-        if (prepared.shadow && prepared.shadow != gpu_->DirectionalShadow())
-        {
-            if (gpu_->Retirement())
-                gpu_->Retirement()->Retire(gpu_->DirectionalShadow());
-            gpu_->DirectionalShadow() = std::move(prepared.shadow);
-        }
-        if (prepared.localShadow && prepared.localShadow != gpu_->LocalShadow())
-        {
-            if (gpu_->Retirement())
-                gpu_->Retirement()->Retire(gpu_->LocalShadow());
-            gpu_->LocalShadow() = std::move(prepared.localShadow);
-        }
-        resourceDiagnostics_ = std::move(prepared.diagnostics);
-        layout_ = std::move(prepared.layout);
-        assetsRoot_ = std::move(prepared.assetsRoot);
-        assetIndex_ = std::move(prepared.assets);
-        materials_ = std::move(prepared.materials);
-        if (gpu_->Retirement())
-            gpu_->Retirement()->Collect();
-        ++renderVersion_;
-        animatedModels_ = std::move(prepared.animated);
-        animatorStates_ = std::move(prepared.states);
-        objects_ = std::move(prepared.objects);
-        lodModels_ = std::move(prepared.lods);
-        editorProjection_->Commit(std::move(packet));
+        if (!renderState_->PrepareRetirement(prepared, error))
+            throw std::runtime_error(error);
+        layout_.Swap(prepared.layout);
+        packet = renderState_->CommitPrepared(prepared, std::move(packet), preserveExecution);
         changes_.Swap(changes);
     }
 
     void SceneWorld::Draw(ID3D12GraphicsCommandList* commands, const Engine::Camera& camera,
                           const Engine::DirectionalLight& light, const UiState* state) const
     {
-        meshTelemetry_ = {};
-        if (!gpu_->Ready())
-            return;
         const auto defaults = state ? UiState{} : SceneUi::Defaults(layout_);
-        if (!RenderScene::Draw(RenderSnapshot(), commands, camera, light, state ? *state : defaults, gpu_->Occlusion(),
-                               meshTelemetry_))
+        if (!renderState_->DrawScene(commands, camera, light, state ? *state : defaults))
             Engine::Log::Warning("Render packet could not be recorded");
     }
 
@@ -536,7 +486,7 @@ namespace SceneRuntime
         }
         if (!CanMutateScene())
             return false;
-        auto objects = objects_;
+        auto objects = renderState_->Read().objects;
         std::string error;
         if (!PrepareTransforms(candidate, objects, error, &layout_))
             return false;
@@ -544,7 +494,7 @@ namespace SceneRuntime
             if (candidate.objects[index].material != layout_.objects[index].material)
                 SceneGpuResources::ApplySurfaceOverride(objects[index], candidate.objects[index]);
         auto packet = PrepareDocumentPacket(candidate, objects, error);
-        if (gpu_->Ready() && !packet)
+        if (renderState_->Gpu().Ready() && !packet)
             return false;
         auto changes = changes_;
         changes.Merge(SceneChangeSet::CompareTransforms(layout_, candidate));
@@ -557,9 +507,7 @@ namespace SceneRuntime
             target.scale = source.scale;
             target.parentId = source.parentId;
         }
-        objects_ = std::move(objects);
-        editorProjection_->Commit(std::move(packet));
-        ++renderVersion_;
+        packet = renderState_->CommitTransforms(objects, std::move(packet));
         changes_.Swap(changes);
         return true;
     }
@@ -608,7 +556,7 @@ namespace SceneRuntime
             error.clear();
             return true;
         }
-        return ReplaceLayout(std::move(plan->layout), assetsRoot_, error);
+        return ReplaceLayout(std::move(plan->layout), renderState_->Read().assetsRoot, error);
     }
 
     bool SceneWorld::SetComponents(std::string_view id, const ScenePlacement& settings,
@@ -646,9 +594,9 @@ namespace SceneRuntime
     {
         if (!CanMutateScene(&error))
             return false;
-        const auto model = animatedModels_.find(id);
-        const auto state = animatorStates_.find(id);
-        if (model == animatedModels_.end() || state == animatorStates_.end())
+        const auto model = renderState_->Read().animated.find(id);
+        const auto state = renderState_->Read().states.find(id);
+        if (model == renderState_->Read().animated.end() || state == renderState_->Read().states.end())
         {
             error = "Ragdoll generation requires a loaded Animator model";
             return false;
@@ -753,7 +701,8 @@ namespace SceneRuntime
             else
             {
                 replaced = true;
-                object = gpu_->BuildStaticRuntimeObject(p, candidate, assetsRoot_, context_);
+                object = renderState_->Gpu().BuildStaticRuntimeObject(p, candidate, renderState_->Read().assetsRoot,
+                                                                      context_);
             }
             SceneGpuResources::ApplySurfaceOverride(object, p);
             candidate.objects.push_back(std::move(object));
@@ -782,18 +731,7 @@ namespace SceneRuntime
     }
     SceneWorld::PreparedLayout SceneWorld::RuntimeLayout() const
     {
-        PreparedLayout result;
-        result.assetsRoot = assetsRoot_;
-        result.layout = layout_;
-        result.objects = objects_;
-        result.assets = assetIndex_;
-        result.materials = materials_;
-        result.animated = animatedModels_;
-        result.states = animatorStates_;
-        result.lods = lodModels_;
-        result.shadow = gpu_->DirectionalShadow();
-        result.localShadow = gpu_->LocalShadow();
-        return result;
+        return renderState_->Capture(layout_);
     }
     bool SceneWorld::PrepareCachedLayout(SceneLayout layout, const LayoutView& baseline, PreparedLayout& result,
                                          std::string& error)
@@ -834,12 +772,14 @@ namespace SceneRuntime
                 context_->RequireConfiguration();
             if (changes.animatedChange)
             {
-                if (!gpu_->Retirement()->Retire(std::make_shared<std::vector<Engine::Object3D>>(baseline.objects)))
+                if (!renderState_->RetireObjects(baseline.objects))
                     throw std::runtime_error("Script resource retirement failed");
                 if (previous)
-                    return PrepareLayout(std::move(layout), assetsRoot_, error, true, result, previous);
+                    return PrepareLayout(std::move(layout), renderState_->Read().assetsRoot, error, true, result,
+                                         previous);
                 const auto snapshot = RuntimeLayout();
-                return PrepareLayout(std::move(layout), assetsRoot_, error, true, result, &snapshot);
+                return PrepareLayout(std::move(layout), renderState_->Read().assetsRoot, error, true, result,
+                                     &snapshot);
             }
             if (changes.resolveAssets)
             {
@@ -858,7 +798,7 @@ namespace SceneRuntime
                 return false;
             if (replaced || candidate.layout.objects.size() != baseline.layout.objects.size())
             {
-                if (!gpu_->Retirement()->Retire(std::make_shared<std::vector<Engine::Object3D>>(baseline.objects)))
+                if (!renderState_->RetireObjects(baseline.objects))
                     throw std::runtime_error("Script resource retirement failed");
             }
             result = std::move(candidate);
@@ -909,8 +849,8 @@ namespace SceneRuntime
         }
         if (!CanMutateScene())
             return false;
-        const auto found = animatorStates_.find(id);
-        if (found == animatorStates_.end())
+        const auto found = renderState_->Read().states.find(id);
+        if (found == renderState_->Read().states.end())
             return false;
         auto values = found->second.parameterOverrides;
         values[name] = value;
@@ -928,7 +868,7 @@ namespace SceneRuntime
         SceneChangeSet detail;
         detail.fields.push_back({id, {}, "runtime.animatorParameters." + name});
         changes.Merge(detail);
-        found->second.parameterOverrides = std::move(values);
+        renderState_->CommitAnimatorParameters(id, values);
         changes_.Swap(changes);
         return true;
     }
@@ -942,14 +882,14 @@ namespace SceneRuntime
         }
         if (!CanMutateScene())
             return false;
-        const auto found = animatorStates_.find(id);
-        if (found == animatorStates_.end() || !found->second.parameterOverrides.contains(name))
+        const auto found = renderState_->Read().states.find(id);
+        if (found == renderState_->Read().states.end() || !found->second.parameterOverrides.contains(name))
             return false;
         auto changes = changes_;
         SceneChangeSet detail;
         detail.fields.push_back({id, {}, "runtime.animatorParameters." + name});
         changes.Merge(detail);
-        found->second.parameterOverrides.erase(name);
+        renderState_->EraseAnimatorParameter(id, name);
         changes_.Swap(changes);
         return true;
     }
@@ -1054,13 +994,13 @@ namespace SceneRuntime
                 else if constexpr (std::is_same_v<T, NameEdit>)
                     return RenameObject(operation.id, operation.name);
                 else if constexpr (std::is_same_v<T, ComponentsEdit>)
-                    return SetComponentBatch(operation.values, assetsRoot_, error);
+                    return SetComponentBatch(operation.values, renderState_->Read().assetsRoot, error);
                 else if constexpr (std::is_same_v<T, SettingsEdit>)
                     return SetSettings(operation.value, error);
                 else if constexpr (std::is_same_v<T, AddObjectEdit>)
                 {
                     std::string created;
-                    return AddObject(operation.value, assetsRoot_, created, error);
+                    return AddObject(operation.value, renderState_->Read().assetsRoot, created, error);
                 }
                 else if constexpr (std::is_same_v<T, DuplicateEdit>)
                 {
@@ -1070,7 +1010,7 @@ namespace SceneRuntime
                 else if constexpr (std::is_same_v<T, RemoveObjectsEdit>)
                     return RemoveObjects(operation.ids, error);
                 else
-                    return ReplaceLayout(std::move(plan->layout), assetsRoot_, error);
+                    return ReplaceLayout(std::move(plan->layout), renderState_->Read().assetsRoot, error);
             },
             edit);
         if (!success)
@@ -1230,10 +1170,9 @@ namespace SceneRuntime
     void SceneWorld::Append(ScenePlacement placement, Engine::Object3D object)
     {
         layout_.objects.reserve(layout_.objects.size() + 1);
-        objects_.reserve(objects_.size() + 1);
+        renderState_->ReserveAdditionalObject();
         layout_.objects.push_back(std::move(placement));
-        objects_.push_back(std::move(object));
-        ++renderVersion_;
+        renderState_->AppendObject(std::move(object));
     }
 
     bool SceneWorld::AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,
@@ -1259,7 +1198,7 @@ namespace SceneRuntime
         createdId.clear();
         try
         {
-            if (!gpu_->Ready() && !IsDocumentView())
+            if (!renderState_->Gpu().Ready() && !IsDocumentView())
                 throw std::runtime_error("Scene renderer is unavailable");
             createdId.clear();
             auto plan = SceneEdits::Prepare(layout_, AddObjectEdit{std::move(placement)}, nextObjectId_, error);
@@ -1285,16 +1224,14 @@ namespace SceneRuntime
             if (!SceneTransforms::Resolve(validation, matrices, error))
                 throw std::runtime_error(error);
             PreparedLayout prepared;
-            auto object =
-                gpu_->BuildAddedObject(placement, validation, matrices.back(), assetsRoot, prepared, context_);
+            auto object = renderState_->Gpu().BuildAddedObject(placement, validation, matrices.back(), assetsRoot,
+                                                               prepared, context_);
             const auto id = placement.id;
             auto changes = changes_;
             changes.Merge(SceneChangeSet::Compare(layout_, validation));
             Append(std::move(placement), std::move(object));
             layout_.assetReferences = std::move(validation.assetReferences);
-            animatedModels_.merge(prepared.animated);
-            animatorStates_.merge(prepared.states);
-            lodModels_.merge(prepared.lods);
+            renderState_->MergeAnimation(prepared);
             nextObjectId_ = nextCounter;
             createdId = id;
             changes_.Swap(changes);
@@ -1351,8 +1288,9 @@ namespace SceneRuntime
                                        std::map<std::string, std::shared_ptr<Engine::ModelRenderer>>& animated,
                                        std::map<std::string, AnimatorState>& states)
     {
-        gpu_->DuplicateAnimator(objects_[index], animatorStates_.at(layout_.objects[index].id), id, object, animated,
-                                states);
+        renderState_->Gpu().DuplicateAnimator(renderState_->Read().objects[index],
+                                              renderState_->Read().states.at(layout_.objects[index].id), id, object,
+                                              animated, states);
     }
     bool SceneWorld::DuplicateObjects(const std::vector<std::string>& ids, const std::array<float, 3>& offset,
                                       std::vector<std::string>& createdIds, std::string& error)
@@ -1381,19 +1319,20 @@ namespace SceneRuntime
         if (!plan)
             return false;
         auto candidate = std::move(plan->layout);
-        auto objects = objects_;
+        auto objects = renderState_->Read().objects;
         auto nextCounter = plan->nextId;
-        auto animated = animatedModels_;
-        auto states = animatorStates_;
-        auto lods = lodModels_;
+        auto animated = renderState_->Read().animated;
+        auto states = renderState_->Read().states;
+        auto lods = renderState_->Read().lods;
         auto created = std::move(plan->createdIds);
         for (size_t copyIndex = 0; copyIndex < indices.size(); ++copyIndex)
         {
             const auto index = indices[copyIndex];
             const auto& placement = candidate.objects[layout_.objects.size() + copyIndex];
-            if (const auto levels = lodModels_.find(layout_.objects[index].id); levels != lodModels_.end())
+            if (const auto levels = renderState_->Read().lods.find(layout_.objects[index].id);
+                levels != renderState_->Read().lods.end())
                 lods[placement.id] = levels->second;
-            auto object = objects_[index];
+            auto object = renderState_->Read().objects[index];
             if (placement.animator && !IsDocumentView())
             {
                 try
@@ -1419,7 +1358,7 @@ namespace SceneRuntime
         }
         if (IsDocumentView())
         {
-            if (!ReplaceLayout(std::move(candidate), assetsRoot_, error))
+            if (!ReplaceLayout(std::move(candidate), renderState_->Read().assetsRoot, error))
                 return false;
             nextObjectId_ = nextCounter;
             createdIds = std::move(created);
@@ -1430,11 +1369,7 @@ namespace SceneRuntime
         auto changes = changes_;
         changes.Merge(SceneChangeSet::Compare(layout_, candidate));
         layout_ = std::move(candidate);
-        objects_ = std::move(objects);
-        ++renderVersion_;
-        animatedModels_ = std::move(animated);
-        animatorStates_ = std::move(states);
-        lodModels_ = std::move(lods);
+        renderState_->CommitDuplicates(objects, animated, states, lods);
         nextObjectId_ = nextCounter;
         createdIds = std::move(created);
         changes_.Swap(changes);
@@ -1456,7 +1391,7 @@ namespace SceneRuntime
             error.clear();
             return true;
         }
-        return ReplaceLayout(std::move(plan->layout), assetsRoot_, error);
+        return ReplaceLayout(std::move(plan->layout), renderState_->Read().assetsRoot, error);
     }
     std::optional<std::string> SceneWorld::PickRay(const std::array<float, 3>& origin,
                                                    const std::array<float, 3>& direction, float maxDistance) const
@@ -1480,9 +1415,9 @@ namespace SceneRuntime
         ray /= length;
         float closest = maxDistance;
         std::optional<std::string> selected;
-        for (size_t index = 0; index < objects_.size(); ++index)
+        for (size_t index = 0; index < renderState_->Read().objects.size(); ++index)
         {
-            const auto& object = objects_[index];
+            const auto& object = renderState_->Read().objects[index];
             const auto& placement = layout_.objects[index];
             const bool enabled = RenderableEnabled(placement);
             if (!object.GetModel() || !enabled)
@@ -1546,7 +1481,7 @@ namespace SceneRuntime
     }
     bool SceneWorld::PrepareRenderTransforms() const
     {
-        if (preparedRenderVersion_ == renderVersion_)
+        if (renderState_->MatricesCurrent())
             return true;
         std::map<std::string, DirectX::XMFLOAT4X4> overrides;
         for (const auto& p : layout_.objects)
@@ -1555,28 +1490,15 @@ namespace SceneRuntime
             if (InterpolatedLocalTransform(p, matrix, rotation))
                 overrides.emplace(p.id, matrix);
         }
-        if (overrides.empty())
+        std::string error;
+        if (!renderState_->PrepareMatrices(layout_, overrides, error))
         {
-            renderMatrices_.clear();
-            renderMatrices_.reserve(objects_.size());
-            std::transform(objects_.begin(), objects_.end(), std::back_inserter(renderMatrices_),
-                           [](const auto& object)
-                           {
-                               return object.GetWorldMatrix();
-                           });
+            Engine::Log::Warning(error);
+            return false;
         }
-        else
-        {
-            std::string error;
-            if (!SceneTransforms::Resolve(layout_, overrides, renderMatrices_, error))
-            {
-                Engine::Log::Warning(error);
-                return false;
-            }
-        }
-        preparedRenderVersion_ = renderVersion_;
         return true;
     }
+
     bool SceneWorld::RenderWorldMatrix(std::string_view id, DirectX::XMFLOAT4X4& matrix) const
     {
         if (!PrepareRenderTransforms())
@@ -1588,7 +1510,7 @@ namespace SceneRuntime
                                         });
         if (found == layout_.objects.end())
             return false;
-        matrix = renderMatrices_[static_cast<size_t>(found - layout_.objects.begin())];
+        matrix = renderState_->Matrices()[static_cast<size_t>(found - layout_.objects.begin())];
         return true;
     }
 
@@ -1661,7 +1583,7 @@ namespace SceneRuntime
                                         });
         if (found == layout_.objects.end())
             return false;
-        matrix = objects_[static_cast<size_t>(found - layout_.objects.begin())].GetWorldMatrix();
+        matrix = renderState_->Read().objects[static_cast<size_t>(found - layout_.objects.begin())].GetWorldMatrix();
         return true;
     }
 
@@ -1674,7 +1596,7 @@ namespace SceneRuntime
                                         });
         if (found == layout_.objects.end())
             return false;
-        const auto& object = objects_[static_cast<size_t>(found - layout_.objects.begin())];
+        const auto& object = renderState_->Read().objects[static_cast<size_t>(found - layout_.objects.begin())];
         const auto model = object.GetModel();
         if (!model || !model->Rig())
             return false;
@@ -1721,7 +1643,7 @@ namespace SceneRuntime
                                         });
         if (found == layout_.objects.end())
             return false;
-        const auto& object = objects_[static_cast<size_t>(found - layout_.objects.begin())];
+        const auto& object = renderState_->Read().objects[static_cast<size_t>(found - layout_.objects.begin())];
         DirectX::XMFLOAT3 localCorners[8];
         if (object.GetModel())
             object.GetModel()->Bounds().GetCorners(localCorners);
@@ -1744,13 +1666,12 @@ namespace SceneRuntime
 namespace SceneRuntime
 {
     SceneWorld::SceneWorld()
-        : gpu_(std::make_unique<SceneGpuResources>()), editorProjection_(std::make_unique<EditorProjection>()),
-          document_(std::make_shared<SceneDocumentData>()), layout_(document_->layout_)
+        : renderState_(std::make_unique<SceneRenderState>()), document_(std::make_shared<SceneDocumentData>()),
+          layout_(document_->layout_)
     {
     }
     SceneWorld::SceneWorld(std::shared_ptr<SceneDocumentData> document)
-        : gpu_(std::make_unique<SceneGpuResources>()), editorProjection_(std::make_unique<EditorProjection>()),
-          runtimeOwner_(false),
+        : renderState_(std::make_unique<SceneRenderState>()), runtimeOwner_(false),
           document_(document ? std::move(document) : throw std::invalid_argument("Document is null")),
           context_(document_->Content()), layout_(document_->layout_)
     {
@@ -1871,5 +1792,29 @@ namespace SceneRuntime
             runtime_->effects.audio.clear();
             return;
         }
+    }
+}
+
+namespace SceneRuntime
+{
+    const std::vector<std::string>& SceneWorld::ResourceDiagnostics() const
+    {
+        return renderState_->Read().diagnostics;
+    }
+}
+
+namespace SceneRuntime
+{
+    const MeshTelemetry& SceneWorld::Telemetry() const
+    {
+        return renderState_->Telemetry();
+    }
+}
+
+namespace SceneRuntime
+{
+    size_t SceneWorld::RenderVersion() const
+    {
+        return renderState_->Version();
     }
 }
