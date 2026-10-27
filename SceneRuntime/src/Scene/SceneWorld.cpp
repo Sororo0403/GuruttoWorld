@@ -100,7 +100,7 @@ namespace SceneRuntime
             if (!context_)
                 context_ = Engine::ContentContext::Capture(assetsRoot);
             context_->RequireRoot(assetsRoot);
-            document_->context_ = context_;
+            document_->SetProjectionContent(*this, context_);
         }
         catch (const std::exception& failure)
         {
@@ -137,7 +137,7 @@ namespace SceneRuntime
             if (!context_)
                 context_ = Engine::ContentContext::Capture(assetsRoot);
             context_->RequireRoot(assetsRoot);
-            document_->context_ = context_;
+            document_->SetProjectionContent(*this, context_);
         }
         catch (const std::exception& failure)
         {
@@ -310,6 +310,8 @@ namespace SceneRuntime
             }
             if (runtimeOwner_)
                 return ReplaceSession(std::move(layout), assetsRoot, false, error);
+            if (DocumentEditor())
+                return ForwardDocumentEdit(ReplaceDocumentEdit{std::move(layout)}, assetsRoot, error).succeeded;
             PreparedLayout prepared;
             if (!PrepareLayout(std::move(layout), assetsRoot, error, false, prepared))
                 return false;
@@ -355,6 +357,20 @@ namespace SceneRuntime
             DrainSession();
             return true;
         }
+        if (DocumentEditor())
+        {
+            preparing.Release();
+            struct ReloadScope
+            {
+                SceneWorld& world;
+                ~ReloadScope()
+                {
+                    world.documentReload_ = nullptr;
+                }
+            } scope{*this};
+            documentReload_ = candidate.get();
+            return ForwardDocumentEdit(ReplaceDocumentEdit{candidate->layout_}, assetsRoot, error).succeeded;
+        }
         auto prepared = candidate->RuntimeLayout();
         auto packet = candidate->RenderSnapshot();
         if (candidate->renderState_->Gpu().Ready() && !packet)
@@ -374,6 +390,9 @@ namespace SceneRuntime
     bool SceneWorld::ReplaceLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,
                                    bool preserveExecution)
     {
+        if (DocumentEditor())
+            return ForwardDocumentEdit(ReplaceDocumentEdit{std::move(layout)}, assetsRoot, error).succeeded;
+
         if (runtimeOwner_)
         {
             if (runtime_ && preserveExecution)
@@ -479,6 +498,12 @@ namespace SceneRuntime
 
     bool SceneWorld::CommitTransforms(const SceneLayout& candidate)
     {
+        if (DocumentEditor())
+        {
+            std::string error;
+            return ForwardDocumentEdit(ReplaceDocumentEdit{candidate}, {}, error).succeeded;
+        }
+
         if (runtime_)
         {
             std::string error;
@@ -521,6 +546,9 @@ namespace SceneRuntime
 
     bool SceneWorld::SetParents(const std::vector<std::string>& ids, const std::string& parentId, std::string& error)
     {
+        if (DocumentEditor())
+            return ForwardDocumentEdit(ParentEdit{ids, parentId}, {}, error).succeeded;
+
         if (runtime_)
             return EditSession(ParentEdit{ids, parentId}, error);
         if (!CanMutateScene(&error))
@@ -544,6 +572,9 @@ namespace SceneRuntime
 
     bool SceneWorld::SetSettings(const SceneSettings& settings, std::string& error)
     {
+        if (DocumentEditor())
+            return ForwardDocumentEdit(SettingsEdit{settings}, {}, error).succeeded;
+
         if (runtime_)
             return EditSession(SettingsEdit{settings}, error);
         if (!CanMutateScene(&error))
@@ -571,6 +602,9 @@ namespace SceneRuntime
     bool SceneWorld::SetComponentBatch(const std::vector<ScenePlacement>& settings,
                                        const std::filesystem::path& assetsRoot, std::string& error)
     {
+        if (DocumentEditor())
+            return ForwardDocumentEdit(ComponentsEdit{settings}, assetsRoot, error).succeeded;
+
         if (runtime_)
         {
             if (!CheckSessionRoot(assetsRoot, error))
@@ -896,6 +930,12 @@ namespace SceneRuntime
 
     bool SceneWorld::RenameObject(std::string_view id, std::string name)
     {
+        if (DocumentEditor())
+        {
+            std::string error;
+            return ForwardDocumentEdit(NameEdit{std::string(id), std::move(name)}, {}, error).succeeded;
+        }
+
         if (runtime_)
         {
             std::string error;
@@ -916,6 +956,15 @@ namespace SceneRuntime
 
     bool SceneWorld::SetPlacementTransform(std::string_view id, const ScenePlacement& placement)
     {
+        if (DocumentEditor())
+        {
+            std::string error;
+            return ForwardDocumentEdit(
+                       TransformEdit{std::string(id), {placement.position, placement.rotation, placement.scale}}, {},
+                       error)
+                .succeeded;
+        }
+
         if (runtime_)
         {
             std::string error;
@@ -955,6 +1004,9 @@ namespace SceneRuntime
 
     SceneEditResult SceneWorld::Edit(const SceneEdit& edit, std::string& error)
     {
+        if (DocumentEditor())
+            return ForwardDocumentEdit(edit, {}, error);
+
         if (runtime_)
         {
             if (!CanMutateScene(&error))
@@ -1052,6 +1104,12 @@ namespace SceneRuntime
 
     SceneEditResult SceneWorld::ApplyLocalTransform(std::string_view id, const LocalTransform& transform)
     {
+        if (DocumentEditor())
+        {
+            std::string error;
+            return ForwardDocumentEdit(TransformEdit{std::string(id), transform}, {}, error);
+        }
+
         if (!CanMutateScene())
             return {};
         const auto found = std::find_if(layout_.objects.begin(), layout_.objects.end(),
@@ -1178,6 +1236,21 @@ namespace SceneRuntime
     bool SceneWorld::AddObject(ScenePlacement placement, const std::filesystem::path& assetsRoot,
                                std::string& createdId, std::string& error)
     {
+        if (DocumentEditor())
+        {
+            createdId.clear();
+            auto result = ForwardDocumentEdit(AddObjectEdit{std::move(placement)}, assetsRoot, error);
+            if (!result.succeeded)
+                return false;
+            for (auto& object : result.changes.objects)
+                if (object.kind == SceneChangeKind::Added)
+                {
+                    createdId.swap(object.objectId);
+                    return true;
+                }
+            return false;
+        }
+
         if (runtime_)
         {
             if (!CanMutateScene(&error))
@@ -1295,6 +1368,20 @@ namespace SceneRuntime
     bool SceneWorld::DuplicateObjects(const std::vector<std::string>& ids, const std::array<float, 3>& offset,
                                       std::vector<std::string>& createdIds, std::string& error)
     {
+        if (DocumentEditor())
+        {
+            const auto requested = ids;
+            createdIds.clear();
+            createdIds.reserve(layout_.objects.size());
+            auto result = ForwardDocumentEdit(DuplicateEdit{requested, offset}, {}, error);
+            if (!result.succeeded)
+                return false;
+            for (auto& object : result.changes.objects)
+                if (object.kind == SceneChangeKind::Added)
+                    createdIds.push_back(std::move(object.objectId));
+            return true;
+        }
+
         if (runtime_)
         {
             if (!CanMutateScene(&error))
@@ -1379,6 +1466,9 @@ namespace SceneRuntime
 
     bool SceneWorld::RemoveObjects(const std::vector<std::string>& ids, std::string& error)
     {
+        if (DocumentEditor())
+            return ForwardDocumentEdit(RemoveObjectsEdit{ids}, {}, error).succeeded;
+
         if (runtime_)
             return EditSession(RemoveObjectsEdit{ids}, error);
         if (!CanMutateScene(&error))
@@ -1667,17 +1757,14 @@ namespace SceneRuntime
 {
     SceneWorld::SceneWorld()
         : renderState_(std::make_unique<SceneRenderState>()), document_(std::make_shared<SceneDocumentData>()),
-          layout_(document_->layout_)
+          layout_(document_->AttachProjection(*this))
     {
     }
     SceneWorld::SceneWorld(std::shared_ptr<SceneDocumentData> document)
         : renderState_(std::make_unique<SceneRenderState>()), runtimeOwner_(false),
           document_(document ? std::move(document) : throw std::invalid_argument("Document is null")),
-          context_(document_->Content()), layout_(document_->layout_)
+          context_(document_->Content()), layout_(document_->AttachProjection(*this))
     {
-        if (document_->view_)
-            throw std::runtime_error("Document already has an editing projection");
-        document_->view_ = this;
     }
 
     auto SceneWorld::SetContentContext(std::shared_ptr<const Engine::ContentContext> context) -> void
@@ -1687,15 +1774,14 @@ namespace SceneRuntime
         if (!context || (context_ && context_ != context))
             throw std::runtime_error("Content context is already owned");
         context_ = std::move(context);
-        document_->context_ = context_;
+        document_->SetProjectionContent(*this, context_);
     }
 
     SceneWorld::~SceneWorld()
     {
         ChangePreparation preparing(preparingChanges_);
         runtime_.reset();
-        if (document_->view_ == this)
-            document_->view_ = nullptr;
+        document_->DetachProjection(*this);
     }
 
     auto SceneWorld::PauseScripts(bool paused) -> void

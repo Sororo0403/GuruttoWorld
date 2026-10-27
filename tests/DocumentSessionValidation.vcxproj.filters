@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\Scene" />
+    <Filter Include="Editor\Documents" />
+    <Filter Include="Editor\Editing" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Scene\DocumentSessionValidation.cpp"><Filter>src\Scene</Filter></ClCompile>
+    <ClCompile Include="..\Editor\src\Documents\SceneDocument.cpp"><Filter>Editor\Documents</Filter></ClCompile>
+    <ClCompile Include="..\Editor\src\Documents\DocumentSave.cpp"><Filter>Editor\Documents</Filter></ClCompile>
+    <ClCompile Include="..\Editor\src\Documents\FileTransaction.cpp"><Filter>Editor\Documents</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Editor\src\Documents\DocumentSession.cpp"><Filter>Editor\Documents</Filter></ClCompile>
+    <ClCompile Include="..\Editor\src\Documents\SceneSnapshotCache.cpp"><Filter>Editor\Documents</Filter></ClCompile>
+    <ClCompile Include="..\Editor\src\Editing\EditHistory.cpp"><Filter>Editor\Editing</Filter></ClCompile>
+    <ClCompile Include="..\Editor\src\Editing\EditState.cpp"><Filter>Editor\Editing</Filter></ClCompile>
+    <ClCompile Include="..\Editor\src\Editing\SelectionSet.cpp"><Filter>Editor\Editing</Filter></ClCompile>
+  </ItemGroup>
+</Project>

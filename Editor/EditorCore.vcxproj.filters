@@ -249,4 +249,8 @@
       <Filter>src\Viewport</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Documents\DocumentSession.cpp"><Filter>src\Documents</Filter></ClCompile>
+    <ClInclude Include="src\Documents\DocumentSession.h"><Filter>src\Documents</Filter></ClInclude>
+  </ItemGroup>
 </Project>

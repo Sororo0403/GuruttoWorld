@@ -18,6 +18,8 @@ namespace Editor
 {
     class SceneDocument final
     {
+        friend class DocumentSession;
+
     public:
         explicit SceneDocument(std::filesystem::path path, std::shared_ptr<const Engine::ContentContext> context = {})
             : data_(std::make_shared<SceneRuntime::SceneDocumentData>(SceneRuntime::SceneLayout{}, std::move(context))),
@@ -46,6 +48,7 @@ namespace Editor
         class OpenCandidate final
         {
             friend class SceneDocument;
+            friend class DocumentSession;
             /// <summary>候補の生成を、一回の取得と解析を行うPrepareOpenに限定します。</summary>
             OpenCandidate() = default;
             std::filesystem::path path_;
@@ -124,6 +127,8 @@ namespace Editor
         bool Apply(SceneRuntime::SceneWorld& world, const std::filesystem::path& root, std::string& error);
 
     private:
+        /// <summary>文書と表示と履歴の確定後に、取得済みの保存基準を交換します。</summary>
+        void AcceptOpen(OpenCandidate& candidate) noexcept;
         /// <summary>外部変更を比較するため、元ファイルを一度だけ取得します。</summary>
         static std::optional<std::string> ReadSource(const std::filesystem::path& path);
         struct RequestData

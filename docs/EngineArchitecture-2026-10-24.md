@@ -657,7 +657,13 @@ M0→M1を必須の順とする。M2を足場にM3へ進み、M3の読取契約�
 ```mermaid
 classDiagram
     SceneDocumentData *-- SceneLayout : 編集の正本
-    SceneDocument --> SceneDocumentData : 保存と履歴
+    DocumentSession *-- SceneDocument : 保存基準
+    DocumentSession *-- EditHistory : Undo・Redo
+    DocumentSession *-- EditState : 選択と操作単位
+    SceneDocument --> SceneDocumentData : 編集の正本
+    DocumentSession --> SceneDocumentProjection : 表示候補の準備と確定
+    SceneDocumentProjection <|.. SceneWorld
+    SceneDocumentData --> SceneDocumentProjection : 非所有の投影先
     SceneWorld --> SceneDocumentData : 編集投影
     SceneWorld *-- SceneRenderState : 表示状態の所有と交換
     SceneRenderState *-- EditorProjection : 編集表示の抽出
@@ -704,9 +710,18 @@ classDiagram
 
 `GpuPacketValidation` に、Worldなしでの状態確定、候補破棄・準備失敗後の旧表示保持、影と姿勢の世代整合、補間行列の再計算、差分フレームと再読込の交換、旧packetの遅延解放、状態所有者を破棄した後の描画を追加した。
 
+
+2026-10-27の編集取引の分離: `Editor::DocumentSession` が `SceneDocument`、`EditHistory`、`EditState`、JSONスナップショットキャッシュを所有する。通常編集・読込・Undo/Redo・Prefabのファイル変更を同じ候補準備へ渡し、文書・表示・履歴・選択・採番・通知を準備後に確定する。ファイルの取得・保存先・外部変更照合は引き続き `SceneDocument`／`FileTransaction` が担当する。
+
+`SceneDocumentData::Transaction` はCPUだけで編集候補と成功通知を作り、`SceneDocumentProjection` は表示側の候補を返す。文書型は具体的な `SceneWorld` を参照しない。登録された編集所有者への委譲と単一の準備権により、準備中の再入・通知の取得・別所有者の書込を拒否する。確定は全参加先の交換後に準備権を解放し、成功した古い候補が後続の取引を解除しない。表示と履歴の準備失敗では文書・ID採番・通知・選択・履歴を保持する。
+
+履歴は従来のJSONスナップショットと操作結合を維持する。変更のない履歴値とファイル変更記録は共有し、候補を変更する時だけ独立させる。これにより履歴候補の準備で全Undo履歴のJSONを毎回複製しない。`EditorApplication` は保存UIやGPU待機を担当し、履歴の直接更新は行わない。既存の編集用WorldのAPIは登録したセッションへ編集を委譲し、実行用Worldの更新経路には導入しない。
+
+`DocumentSessionValidation` は描画APIを含まないCPUターゲットで、候補破棄・準備失敗・再入・採番・操作結合・選択・Undo/Redo・Prefabファイルの復元・外部変更照合・読込と保存基準を検証する。`GpuPacketValidation` は実際の編集Worldと接続し、履歴JSON生成の失敗後の旧パケット保持、既存API経由の編集、Undo/Redo、資源再読込、別プロジェクトの拒否を確認する。
+
 | 設計案の責務 | 実装 | 境界 |
 |---|---|---|
-| Documentと編集サービス | SceneDocumentData / SceneEdits / SceneStorage | GPUや再生ホストなしで編集・保存候補を作る |
+| Documentと編集サービス | DocumentSession / SceneDocumentData::Transaction / SceneEdits / SceneStorage | CPU候補・表示・履歴を準備し、同じ成功境界で確定する |
 | RuntimeWorldと取引 | WorldDefinition / WorldState / RuntimeSession | 型別の値・世代付きハンドル・候補の一括確定 |
 | システム群 | RuntimePipelineと各RuntimeSystem | 物理・Animation・Navigation・投影の準備失敗を同じ取引で復元 |
 | 表示状態と交換 | SceneRenderState / SceneRenderData | 保存正本を所有せず、準備済み資源・姿勢・packetを一括確定 |

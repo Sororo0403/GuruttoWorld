@@ -29,6 +29,12 @@ namespace Editor
         void Range(const std::vector<std::string>& visible, const std::string& anchor, const std::string& clicked,
                    bool additive);
 
+        /// <summary>準備した選択を確保なしで交換します。</summary>
+        void Swap(SelectionSet& candidate) noexcept
+        {
+            ids_.swap(candidate.ids_);
+        }
+
     private:
         std::vector<std::string> ids_;
         inline static const std::string empty_{};

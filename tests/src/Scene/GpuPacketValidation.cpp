@@ -1,3 +1,4 @@
+#include "../../../Editor/src/Documents/DocumentSession.h"
 #include <SceneRuntime/Rendering/SceneRenderState.h>
 #include <SceneRuntime/Rendering/EditorProjection.h>
 #include <SceneRuntime/Rendering/SceneGpuResources.h>
@@ -336,6 +337,98 @@ namespace
                 "render-state-packet-outlives-state-and-reload-owner");
     }
 
+    void ValidateDocumentSession(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+                                 const SceneRuntime::SceneLayout& layout)
+    {
+        using namespace SceneRuntime;
+        Editor::DocumentSession session({}, Engine::ContentContext::Capture(root));
+        SceneWorld world(session.Document().Data());
+        std::string error;
+        Require(world.Initialize(renderer, root, layout, root / "Engine/Shaders/Mesh.hlsl", &error),
+                "document-session-gpu-initializes-through-session");
+        SceneEditPlan detached;
+        detached.layout = session.Layout();
+        Require(!world.PrepareDocument(detached, false, error),
+                "document-session-projection-requires-document-preparation-ownership");
+        session.ResetHistory();
+        session.Editing().Select("ground");
+        session.ObserveCurrent();
+        auto before = world.RenderSnapshot();
+        Require(before && world.IsDocumentView() && !world.ValidateScripts(error),
+                "document-session-editing-projection-has-no-runtime-session");
+        Require(world.SetLocalTransform("ground", {1, 0, 0}, {}, {1, 1, 1}) && session.History().CanUndo() &&
+                    session.Layout().objects.front().position[0] == 1 &&
+                    world.RenderSnapshot()->objects.front().matrix._41 == 1 && before->objects.front().matrix._41 == 0,
+                "document-session-legacy-transform-publishes-document-display-and-history");
+        const auto stable = session.Json();
+        const auto snapshot = world.RenderSnapshot();
+        const auto version = world.RenderVersion();
+        Require(world.SetLocalTransform("ground", {1, 0, 0}, {}, {1, 1, 1}) && world.RenderSnapshot() == snapshot &&
+                    world.RenderVersion() == version,
+                "document-session-same-value-keeps-display-generation");
+        world.TakeChanges();
+        session.Document().Data()->TakeChanges();
+        auto candidate = session.Prepare(TransformEdit{"ground", {{2, 0, 0}, {}, {1, 1, 1}}}, error);
+        Require(candidate && session.Json() == stable && world.RenderSnapshot() == snapshot &&
+                    !world.SetLocalTransform("ground", {9, 0, 0}, {}, {1, 1, 1}) && world.TakeChanges().Empty(),
+                "document-session-preparation-retains-gpu-generation-and-rejects-world-reentry");
+        candidate.reset();
+        Require(world.RenderSnapshot() == snapshot && world.RenderVersion() == version &&
+                    session.Document().Data()->TakeChanges().Empty(),
+                "document-session-discard-keeps-gpu-generation-and-notifications");
+        Require(!world.RenameObject("ground", std::string(1, static_cast<char>(0xff))) && session.Json() == stable &&
+                    world.RenderSnapshot() == snapshot && world.RenderVersion() == version &&
+                    world.TakeChanges().Empty() && session.Document().Data()->TakeChanges().Empty(),
+                "document-session-json-failure-after-gpu-preparation-retains-document-display-and-history");
+        Require(session.RestoreHistory(false, error) && world.Layout().objects.front().position[0] == 0 &&
+                    world.RenderSnapshot()->objects.front().matrix._41 == 0 &&
+                    session.Editing().SelectedId() == "ground",
+                "document-session-gpu-undo-restores-document-display-and-selection");
+        Require(session.RestoreHistory(true, error) && world.RenderSnapshot()->objects.front().matrix._41 == 1,
+                "document-session-gpu-redo-restores-display");
+        ScenePlacement added;
+        std::string created;
+        Require(world.AddObject(added, root, created, error) && !created.empty() &&
+                    session.Layout().objects.size() == 2 && session.Editing().SelectedId() == created,
+                "document-session-legacy-add-uses-session-id-and-selection");
+        Require(session.RestoreHistory(false, error) && world.Layout().objects.size() == 1 &&
+                    session.Editing().SelectedId() == "ground",
+                "document-session-gpu-undo-removes-added-object");
+        std::vector<std::string> copies;
+        Require(world.DuplicateObjects({"ground"}, {4, 0, 0}, copies, error) && copies.size() == 1 &&
+                    world.Layout().objects.size() == 2 && session.Editing().SelectedId() == copies.front(),
+                "document-session-legacy-duplicate-uses-session-history");
+        Require(world.RemoveObjects(copies, error) && session.Editing().SelectedIds().empty() &&
+                    world.Layout().objects.size() == 1,
+                "document-session-legacy-delete-clears-deleted-primary-before-history-publication");
+        Require(session.RestoreHistory(false, error) && world.Layout().objects.size() == 2 &&
+                    session.Editing().SelectedId() == copies.front(),
+                "document-session-delete-undo-restores-display-and-primary-selection");
+        Require(session.RestoreHistory(false, error) && world.Layout().objects.size() == 1,
+                "document-session-gpu-undo-removes-duplicate");
+        auto old = session.Prepare(TransformEdit{"ground", {{2, 0, 0}, {}, {1, 1, 1}}}, error);
+        Require(old && old->Commit() && world.SetLocalTransform("ground", {3, 0, 0}, {}, {1, 1, 1}),
+                "document-session-gpu-commit-releases-writer-before-old-candidate-destruction");
+        auto pending = session.Prepare(TransformEdit{"ground", {{4, 0, 0}, {}, {1, 1, 1}}}, error);
+        old.reset();
+        Require(pending && !world.SetLocalTransform("ground", {5, 0, 0}, {}, {1, 1, 1}) &&
+                    world.RenderSnapshot()->objects.front().matrix._41 == 3,
+                "document-session-old-gpu-candidate-cannot-unlock-a-new-preparation");
+        pending.reset();
+        const auto json = session.Json();
+        const auto packet = world.RenderSnapshot();
+        const auto undoTarget = session.History().Target(false).json;
+        world.TakeChanges();
+        Require(world.ReloadAssets(renderer, root, root / "Engine/Shaders/Mesh.hlsl", error) &&
+                    world.RenderSnapshot() != packet && session.Json() == json &&
+                    session.History().Target(false).json == undoTarget && !world.TakeChanges().Empty(),
+                "document-session-asset-reload-publishes-display-without-extra-scene-undo");
+        Require(!world.SetComponentBatch({world.Layout().objects.front()}, root / "OtherProject", error) &&
+                    session.Json() == json,
+                "document-session-rejects-another-content-root");
+        Require(renderer.WaitForIdle(), "document-session-gpu-completes");
+    }
+
     void ValidateWorld()
     {
         using namespace SceneRuntime;
@@ -366,6 +459,7 @@ namespace
         layout.objects.push_back(ground);
         ValidateSeparatedProjection(renderer, root, layout);
         ValidateRenderState(renderer, root, layout);
+        ValidateDocumentSession(renderer, root, layout);
         auto world = std::make_unique<SceneWorld>();
         std::string error;
         Require(world->Initialize(renderer, std::filesystem::relative(root), layout, root / "Engine/Shaders/Mesh.hlsl",

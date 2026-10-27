@@ -491,3 +491,14 @@ python tests/TestSceneMigration.py
 
 3 プロジェクトとも Debug / Development / Release を指定してビルドでき、リポジトリルートから `generated/tests/outputs/x64/<構成>/<プロジェクト名>/<プロジェクト名>.exe` を実行します。
 依存ライブラリは `scripts/BuildDirectXTex.ps1` と `scripts/BuildRecast.ps1` に固定したリビジョンで自動取得・構築します。Development は Release 版の依存ライブラリを使用します。
+
+## 編集セッションの取引
+
+`DocumentSessionValidation` は文書・表示候補・履歴・選択・ID採番・通知の準備と確定をCPUだけで検証します。準備失敗・履歴用JSON生成の失敗・候補破棄・再入・Undo/Redo・連続操作の結合・Prefabファイルの巻き戻し・外部変更との競合を確認します。`TestArchitectureStructure.ps1` の構成別検証にも含めます。
+
+```powershell
+MSBuild tests/DocumentSessionValidation.vcxproj /p:Configuration=Debug /p:Platform=x64 /m:1 /nr:false
+./generated/tests/outputs/x64/Debug/DocumentSessionValidation/DocumentSessionValidation.exe
+```
+
+`GpuPacketValidation` はEditorCoreのセッションと実際の編集用Worldを接続し、パケットと履歴の同時公開、失敗後の旧表示保持、既存パネル用APIの委譲、Undo/Redo、資源再読込を確認します。Editorの保存先・確認UI・GPU待機はセッションの外で調停します。

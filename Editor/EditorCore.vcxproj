@@ -125,4 +125,8 @@
     <ClCompile Include="src\Viewport\SceneViewport.cpp" />
     <ClCompile Include="src\Viewport\TransformGizmo.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Documents\DocumentSession.cpp" />
+    <ClInclude Include="src\Documents\DocumentSession.h" />
+  </ItemGroup>
 </Project>

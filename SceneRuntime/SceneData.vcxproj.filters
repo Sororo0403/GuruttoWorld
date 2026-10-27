@@ -174,4 +174,7 @@
   <ItemGroup>
     <ClInclude Include="include\SceneRuntime\Scene\SceneMenu.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneDocumentProjection.h"><Filter>include\SceneRuntime\Scene</Filter></ClInclude>
+  </ItemGroup>
 </Project>

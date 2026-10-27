@@ -6,7 +6,7 @@ namespace SceneRuntime
 {
     bool SceneWorld::CanMutateScene(std::string* error) const
     {
-        if (!preparingChanges_)
+        if (!preparingChanges_ && !document_->Preparing())
             return true;
         if (error)
             *error = "Scene mutation is unavailable during frame preparation";

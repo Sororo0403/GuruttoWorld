@@ -22,7 +22,7 @@
 #include "Viewport/ScenePanel.h"
 #include "Shell/ConsolePanel.h"
 #include "Documents/SceneDocument.h"
-#include "Documents/SceneSnapshotCache.h"
+#include "Documents/DocumentSession.h"
 #include "Documents/SceneRecovery.h"
 #include "Documents/PrefabEditPlan.h"
 #include "Inspector/ComponentEditResources.h"
@@ -285,15 +285,7 @@ namespace
 
         bool CommitPrefabPlan(Editor::PrefabEditPlan plan)
         {
-            const auto before = Snapshot(SceneJson());
-            if (!Editor::FileTransaction::Apply(plan.files, true, fileStatus,
-                                                [&]()
-                                                {
-                                                    return world.ReplaceLayout(std::move(plan.scene), root, fileStatus);
-                                                }))
-                return false;
-            history.RecordTransaction(before, Snapshot(SceneJson()), std::move(plan.files));
-            return true;
+            return documentSession.ApplyFiles(std::move(plan.scene), std::move(plan.files), fileStatus);
         }
         bool SavePrefabChanges(const Editor::ObjectRequest& request)
         {
@@ -502,11 +494,10 @@ namespace
                 reloadRequested = false;
                 if (!renderer.WaitForIdle())
                     return false;
-                if (document.Open(world, root, document.Path(), fileStatus))
+                if (documentSession.Open(document.Path(), fileStatus))
                 {
                     sceneLoaded = true;
                     editState.Reloaded();
-                    history.Reset(Snapshot(SceneJson()));
                     fileStatus = "再読み込みしました。";
                     LogResult(true);
                 }
@@ -522,11 +513,10 @@ namespace
                 return true;
             if (!renderer.WaitForIdle())
                 return false;
-            if (document.Apply(world, root, fileStatus))
+            if (documentSession.ApplyPending(fileStatus))
             {
                 sceneLoaded = true;
                 editState.Reloaded();
-                history.Reset({SceneJson(), {}});
                 editState.SetChanged(document.UnsavedNew());
                 cameraPanel.CancelDrag();
                 fileStatus = document.UnsavedNew() ? "新規シーンを作成しました（未保存）。" : "シーンを開きました。";
@@ -537,13 +527,9 @@ namespace
             return true;
         }
 
-        Editor::EditHistory::State Snapshot(const std::string& json) const
-        {
-            return {json, editState.SelectedId(), editState.SelectedIds()};
-        }
         const std::string& SceneJson()
         {
-            return sceneSnapshots.Get(document.Layout());
+            return documentSession.Json();
         }
         std::filesystem::path RecoveryDirectory() const
         {
@@ -573,7 +559,7 @@ namespace
                 }
                 sceneLoaded = true;
                 editState.Select({});
-                history.Observe(Snapshot(SceneJson()), {});
+                documentSession.ObserveCurrent();
                 editState.SetChanged(true);
                 recovery.Clear(RecoveryDirectory(), document.Path());
                 ReportStatus("復旧用シーンを読み込みました。内容を確認して保存してください。", true);
@@ -587,30 +573,21 @@ namespace
 
         bool ApplyHistory(Engine::DirectX12Renderer& renderer)
         {
-            if (pendingHistory)
+            if (!pendingHistory)
+                return true;
+            if (!renderer.WaitForIdle())
+                return false;
+            const bool redo = *pendingHistory;
+            pendingHistory.reset();
+            if (documentSession.RestoreHistory(redo, fileStatus))
             {
-                if (!renderer.WaitForIdle())
-                    return false;
-                const bool redo = *pendingHistory;
-                pendingHistory.reset();
-                const auto target = history.Target(redo);
-                if (Editor::FileTransaction::Apply(
-                        history.TargetFiles(redo), redo, fileStatus,
-                        [&]()
-                        {
-                            return world.ReplaceLayout(SceneRuntime::SceneLayout::Parse(target.json), root, fileStatus);
-                        }))
-                {
-                    history.Applied(redo);
-                    projectPanel.Scan(root);
-                    editState.RestoreSelection(target.selections, target.selection);
-                    editState.SetChanged(document.UnsavedNew() || history.Dirty(target.json));
-                    fileStatus = redo ? "やり直しました。" : "元に戻しました。";
-                    LogResult(true);
-                }
-                else
-                    LogResult(false);
+                projectPanel.Scan(root);
+                editState.SetChanged(document.UnsavedNew() || history.Dirty(SceneJson()));
+                fileStatus = redo ? "やり直しました。" : "元に戻しました。";
+                LogResult(true);
             }
+            else
+                LogResult(false);
             return true;
         }
 
@@ -654,8 +631,7 @@ namespace
                 return false;
             auto request = std::move(*pendingObject);
             pendingObject.reset();
-            if (request.interaction.empty())
-                history.Commit();
+            editState.SetInteraction(request.interaction);
             std::string createdId;
             const bool success = ApplyObjectRequest(request, createdId);
             if (success)
@@ -663,7 +639,7 @@ namespace
                 if (!createdId.empty())
                     editState.ObjectChanged(createdId);
                 SetObjectResultStatus(request.action);
-                history.Observe(Snapshot(SceneJson()), request.interaction);
+                documentSession.ObserveCurrent();
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(SceneJson()));
             }
             LogResult(success);
@@ -676,7 +652,7 @@ namespace
             if (!world.Initialize(renderer, root, SceneRuntime::SceneLayout{}, root / "Engine/Shaders/Mesh.hlsl",
                                   &fileStatus))
                 return false;
-            return document.Apply(world, root, fileStatus);
+            return documentSession.ApplyPending(fileStatus);
         }
 
         bool ApplyPendingChanges(Engine::DirectX12Renderer& renderer)
@@ -700,8 +676,6 @@ namespace
                     LogResult(false);
                 }
                 initialized = true;
-                if (sceneLoaded)
-                    history.Reset(Snapshot(SceneJson()));
                 Engine::Log::Write(sceneLoaded ? Engine::LogLevel::Info : Engine::LogLevel::Error,
                                    sceneLoaded ? "エディターのシーンを読み込みました。" : fileStatus);
             }
@@ -746,7 +720,7 @@ namespace
                     LogResult(false);
                     return true;
                 }
-                history.Observe(Snapshot(SceneJson()), {});
+                documentSession.ObserveCurrent();
                 editState.SetChanged(true);
                 fileStatus = "シーン構成を更新しました。保存すると合成シーンと所属を保存します。";
                 LogResult(true);
@@ -959,7 +933,7 @@ namespace
             }
             if (starting)
             {
-                history.Commit();
+                documentSession.CommitInteraction();
                 runtimeEditState.Reloaded();
                 runtimeEditState.RestoreSelection(editState.SelectedIds(), editState.SelectedId());
             }
@@ -1007,7 +981,7 @@ namespace
         void SavedSuccessfully(std::string status)
         {
             recovery.Clear(RecoveryDirectory(), document.Path());
-            history.Saved(SceneJson());
+            documentSession.MarkSaved();
             editState.MarkSaved();
             projectPanel.Scan(root);
             fileStatus = std::move(status);
@@ -1239,7 +1213,7 @@ namespace
                 closeConfirmed = true;
                 return;
             }
-            history.Observe(Snapshot(SceneJson()), {});
+            documentSession.ObserveCurrent();
             // 編集中のギズモを止め、確認中は配置を変更しません。
             gizmo.UpdateAndDraw(world, camera.GetCamera(), editState, sceneViewport, false);
             if (!ImGui::IsPopupOpen("未保存の変更があります：終了###Exit with unsaved changes?"))
@@ -1400,7 +1374,7 @@ namespace
             if (sceneLoaded)
             {
                 const auto& json = SceneJson();
-                history.Observe(json, editState.SelectedId(), editState.SelectedIds(), editState.Interaction());
+                documentSession.ObserveCurrent();
                 editState.SetChanged(document.UnsavedNew() || history.Dirty(json) || projectPanel.HasMaterialChanges());
             }
         }
@@ -2039,7 +2013,8 @@ namespace
 
         const std::filesystem::path root;
         const std::shared_ptr<const Engine::ContentContext> context = Engine::ContentContext::Capture(root);
-        Editor::SceneDocument document{std::filesystem::path{}, context};
+        Editor::DocumentSession documentSession{std::filesystem::path{}, context};
+        Editor::SceneDocument& document = documentSession.Document();
         SceneRuntime::SceneWorld world{document.Data()};
         bool editingUiReady = false;
         Engine::DebugCamera camera;
@@ -2054,7 +2029,7 @@ namespace
         std::array<UINT, 2> requestedSceneSize{640, 480};
         Editor::ScenePanel scenePanel;
         Editor::SceneViewport sceneViewport;
-        Editor::EditState editState;
+        Editor::EditState& editState = documentSession.Editing();
         std::optional<SceneRuntime::UiEvent> pendingUiEvent;
         Editor::AudioPreview audioPreview;
         Editor::UiCanvasPanel uiCanvasPanel;
@@ -2083,7 +2058,7 @@ namespace
         std::vector<Engine::TextureAssetRequest> textureImports;
         Editor::TransformGizmo gizmo;
         Editor::IkSceneHandles ikHandles;
-        Editor::EditHistory history;
+        const Editor::EditHistory& history = documentSession.History();
         Editor::ConsolePanel consolePanel;
         Editor::SaveAsPanel saveAsPanel;
         Editor::ProjectSettingsPanel projectSettingsPanel;
@@ -2104,7 +2079,6 @@ namespace
         bool closeRequested = false;
         bool closeConfirmed = false;
         std::string fileStatus;
-        Editor::SceneSnapshotCache sceneSnapshots;
         bool newScenePopupRequested = false;
         std::array<char, 256> newSceneName{"NewScene.json"};
         bool showSceneCollection = false;

@@ -161,3 +161,22 @@ foreach ($relative in @('src/Rendering/EditorProjection.cpp', 'src/Rendering/Sce
     }
 }
 Write-Output 'PASS: editor projection, GPU preparation and render state are independent of SceneWorld and RuntimeSession'
+
+# 文書と履歴の調停は、GPUや実行ホストを取り込まないCPUの契約です。
+foreach ($relative in @('Editor/src/Documents/DocumentSession.h', 'Editor/src/Documents/DocumentSession.cpp',
+        'SceneRuntime/include/SceneRuntime/Scene/SceneDocumentProjection.h')) {
+    $path = Join-Path $taskRoot $relative
+    $text = Get-Content -LiteralPath $path -Raw
+    if ($text -match '#include\s*[<"][^>"\r\n]*(SceneWorld|RuntimeSession|SceneRenderState|SceneGpuResources)\.h[>"]') {
+        throw "Document session includes a rendering or runtime host: $path"
+    }
+}
+$taskDocumentHeader = Get-Content -LiteralPath (Join-Path $taskRoot 'SceneRuntime/include/SceneRuntime/Scene/SceneDocumentData.h') -Raw
+if ($taskDocumentHeader -match '\bSceneWorld\b') {
+    throw 'CPU document data refers to a concrete SceneWorld.'
+}
+$taskEditorMain = Get-Content -LiteralPath (Join-Path $taskRoot 'Editor/src/main.cpp') -Raw
+if ($taskEditorMain -cmatch '\bhistory\.(Observe|Reset|Commit|Applied|Saved|RecordTransaction)\s*\(') {
+    throw 'Editor main mutates history outside its DocumentSession.'
+}
+Write-Output 'PASS: document sessions use CPU projection contracts and own editor history changes'

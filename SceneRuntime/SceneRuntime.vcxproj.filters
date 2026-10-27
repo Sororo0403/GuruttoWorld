@@ -306,4 +306,7 @@
     <ClCompile Include="src\Rendering\SceneRenderState.cpp"><Filter>src\Rendering</Filter></ClCompile>
     <ClInclude Include="include\SceneRuntime\Rendering\SceneRenderState.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Scene\SceneDocumentProjection.cpp"><Filter>src\Scene</Filter></ClCompile>
+  </ItemGroup>
 </Project>

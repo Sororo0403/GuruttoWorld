@@ -6,6 +6,11 @@ namespace Editor
     auto SceneDocument::Apply(SceneRuntime::SceneWorld& world, const std::filesystem::path& root,
                               OpenCandidate candidate, std::string& error) -> bool
     {
+        if (data_->Editor())
+        {
+            error = "Opened data must be accepted through its document session";
+            return false;
+        }
         const bool success = candidate.create_ ? world.ReplaceLayout(std::move(candidate.layout_), root, error)
                                                : world.ReloadLayout(root, std::move(candidate.layout_), error, true);
         if (!success)

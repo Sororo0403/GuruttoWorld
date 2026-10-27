@@ -43,6 +43,11 @@ namespace Editor
 
     bool SceneDocument::Apply(OpenCandidate candidate, std::string& error)
     {
+        if (data_->Editor())
+        {
+            error = "Opened data must be accepted through its document session";
+            return false;
+        }
         if (!data_->Edit(SceneRuntime::ReplaceDocumentEdit{std::move(candidate.layout_)}, error).succeeded)
             return false;
         path_.swap(candidate.path_);
@@ -128,6 +133,14 @@ namespace Editor
         if (std::filesystem::exists(target))
             throw std::runtime_error("そのシーンは既に存在します。別の名前を指定してください。");
         return target;
+    }
+
+    void SceneDocument::AcceptOpen(OpenCandidate& candidate) noexcept
+    {
+        path_.swap(candidate.path_);
+        savedSource_.swap(candidate.source_);
+        unsavedNew_ = candidate.create_;
+        Cancel();
     }
 
 }

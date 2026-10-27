@@ -100,4 +100,7 @@
   <ItemGroup>
     <ClInclude Include="include\SceneRuntime\Scene\SceneMenu.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\SceneRuntime\Scene\SceneDocumentProjection.h" />
+  </ItemGroup>
 </Project>

@@ -154,6 +154,12 @@ namespace Editor
         /// <summary>保留中の要求を取得して消去します。</summary>
         std::optional<ObjectRequest> TakeRequest();
 
+        /// <summary>準備済みの選択を確保なしで反映します。</summary>
+        void CommitSelection(SelectionSet& candidate) noexcept
+        {
+            selection_.Swap(candidate);
+        }
+
     private:
         std::filesystem::path inspectedAsset_;
         SelectionSet selection_;

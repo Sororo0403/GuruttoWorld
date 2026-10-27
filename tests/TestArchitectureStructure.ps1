@@ -67,7 +67,7 @@ try {
     & (Join-Path $PSScriptRoot 'TestEngineBuildInputs.ps1')
     & (Join-Path $PSScriptRoot 'TestSceneLayers.ps1')
     foreach ($configuration in $Configurations) {
-        foreach ($project in @('SceneDataValidation', 'ArchitectureStructureValidation', 'ArchitectureContractValidation', 'ArchitectureAuditFixValidation')) {
+        foreach ($project in @('SceneDataValidation', 'DocumentSessionValidation', 'ArchitectureStructureValidation', 'ArchitectureContractValidation', 'ArchitectureAuditFixValidation')) {
             if ($SkipGpu -and $project -eq 'ArchitectureAuditFixValidation') { continue }
             Build-ValidationProject -Project "tests/$project.vcxproj" -Configuration $configuration
             $arguments = @()

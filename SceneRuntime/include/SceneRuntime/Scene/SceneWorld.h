@@ -29,7 +29,7 @@ namespace SceneRuntime
 namespace SceneRuntime
 {
     /// <summary>編集・再生の確定境界を調停し、表示投影とGPU資源準備は専用の所有者へ委譲します。</summary>
-    class SceneWorld final : public SceneEditTarget
+    class SceneWorld final : public SceneEditTarget, public SceneDocumentProjection
     {
     public:
         /// <summary>独立した実行データと実行状態を所有するワールドを作成します。</summary>
@@ -239,7 +239,18 @@ namespace SceneRuntime
         /// <summary>モデル境界箱の八頂点を確定済みのワールド行列で変換します。モデルがない個体には選択用の小さな箱を使います。</summary>
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
 
+        /// <summary>文書セッションの候補を表示へ投影し、現在の文書と表示は保持します。</summary>
+        std::unique_ptr<SceneDocumentProjection::Prepared> PrepareDocument(SceneEditPlan& plan, bool reload,
+                                                                           std::string& error) override;
+
     private:
+        class DocumentPreparation;
+        SceneWorld* documentReload_ = nullptr;
+        /// <summary>固定した素材ルートを検証し、編集を文書セッションへ渡します。</summary>
+        SceneEditResult ForwardDocumentEdit(const SceneEdit& edit, const std::filesystem::path& root,
+                                            std::string& error);
+        /// <summary>編集用に登録した文書セッションだけを取得します。</summary>
+        SceneEditTarget* DocumentEditor() const noexcept;
         friend class ScenePresentation;
         class ChangePreparation final
         {
@@ -252,12 +263,22 @@ namespace SceneRuntime
             /// <summary>準備前の状態を復元します。</summary>
             ~ChangePreparation()
             {
-                flag_ = previous_;
+                Release();
+            }
+            /// <summary>準備所有権を一度だけ解放し、後続の取引を妨げません。</summary>
+            void Release() noexcept
+            {
+                if (active_)
+                {
+                    flag_ = previous_;
+                    active_ = false;
+                }
             }
 
         private:
             bool& flag_;
             bool previous_;
+            bool active_ = true;
         };
         using PreparedLayout = PreparedSceneResources;
         using LayoutView = SceneResourceView;

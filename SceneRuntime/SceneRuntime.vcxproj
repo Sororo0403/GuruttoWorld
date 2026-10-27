@@ -265,4 +265,7 @@
     <ClCompile Include="src\Rendering\SceneRenderState.cpp" />
     <ClInclude Include="include\SceneRuntime\Rendering\SceneRenderState.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Scene\SceneDocumentProjection.cpp" />
+  </ItemGroup>
 </Project>

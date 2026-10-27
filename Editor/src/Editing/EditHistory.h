@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <memory>
 #include <string_view>
 #include <utility>
 #include <algorithm>
@@ -39,7 +40,7 @@ namespace Editor
         /// <summary>UndoまたはRedoでシーンと一緒に適用する素材の変更を返します。</summary>
         const std::vector<FileChange>& TargetFiles(bool redo) const
         {
-            return files_.at(redo ? cursor_ + 1 : cursor_);
+            return *files_.at(redo ? cursor_ + 1 : cursor_);
         }
         bool CanRedo() const
         {
@@ -47,26 +48,39 @@ namespace Editor
         }
         const State& Target(bool redo) const
         {
-            return states_.at(redo ? cursor_ + 1 : cursor_ - 1);
+            return *states_.at(redo ? cursor_ + 1 : cursor_ - 1);
         }
         /// <summary>適用済みの状態を記録します。</summary>
         void Applied(bool redo);
         void Saved(const std::string& json)
         {
             Commit();
-            saved_ = json;
+            saved_ = std::make_shared<const std::string>(json);
         }
         bool Dirty(const std::string& json) const
         {
-            return json != saved_;
+            return saved_ ? json != *saved_ : !json.empty();
+        }
+
+        /// <summary>準備した履歴を確保なしで交換します。</summary>
+        void Swap(EditHistory& candidate) noexcept;
+        /// <summary>現在値・選択・操作単位が一致し、追加の履歴準備が不要か返します。</summary>
+        bool Matches(const std::string& json, const std::string& selection, const std::vector<std::string>& selections,
+                     std::string_view interaction) const;
+        /// <summary>履歴に初期値が登録されているか返します。</summary>
+        bool Empty() const noexcept
+        {
+            return states_.empty();
         }
 
     private:
-        std::vector<State> states_;
-        std::vector<std::vector<FileChange>> files_;
+        /// <summary>共有中の履歴値を変更する前に独立した候補へ複製します。</summary>
+        State& MutableCurrent();
+        std::vector<std::shared_ptr<State>> states_;
+        std::vector<std::shared_ptr<const std::vector<FileChange>>> files_;
         size_t cursor_ = 0;
-        std::optional<State> pending_;
-        std::string saved_;
+        std::shared_ptr<State> pending_;
+        std::shared_ptr<const std::string> saved_;
         std::string interaction_;
     };
 }
