@@ -266,6 +266,8 @@
     <ClInclude Include="include\SceneRuntime\Rendering\SceneRenderState.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Rendering\SceneViewQueries.cpp" />
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneViewQueries.h" />
     <ClCompile Include="src\Rendering\EditorSceneProjection.cpp" />
     <ClInclude Include="include\SceneRuntime\Rendering\EditorSceneProjection.h" />
   </ItemGroup>

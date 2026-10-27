@@ -436,12 +436,12 @@ namespace UiValidation
                     "Scene presentation includes the Canvas plane");
             Require(presentationPixel(false) == std::array<unsigned char, 4>{0, 0, 0, 255},
                     "Scene UI display toggle hides Canvas content");
-            const auto matrix = SceneCanvas::Matrix(world, world.Layout().objects[1]);
+            const auto matrix = SceneCanvas::Matrix(world.ViewQueries(), world.Layout().objects[1]);
             Require(matrix.has_value(), "Scene Canvas resolves the root transform");
             const auto hit = SceneCanvas::Intersect(*matrix, camera, 0, 0);
             Require(hit && std::abs((*hit)[0] - 32) < .001f && std::abs((*hit)[1] - 16) < .001f,
                     "Scene ray resolves Canvas pixels");
-            Require(Editor::FocusPosition(world, {"canvas", "panel"}, camera).has_value(),
+            Require(Editor::FocusPosition(world.ViewQueries(), {"canvas", "panel"}, camera).has_value(),
                     "Canvas and UI support F focus without mesh bounds");
             Require(world.SetLocalTransform("canvas", {3, 0, 0}, {0, 0, 0}, {1, 1, 1}),
                     "Scene Canvas transform edits apply");
@@ -452,12 +452,12 @@ namespace UiValidation
             camera.SetPosition({3, 0, -1});
             Require(scenePixel() == std::array<unsigned char, 4>{255, 0, 0, 255},
                     "Scene camera movement follows the Canvas world plane");
-            const auto movedMatrix = SceneCanvas::Matrix(world, world.Layout().objects[1]);
+            const auto movedMatrix = SceneCanvas::Matrix(world.ViewQueries(), world.Layout().objects[1]);
             const auto movedHit = SceneCanvas::Intersect(*movedMatrix, camera, 0, 0);
             Require(movedHit && std::abs((*movedHit)[0] - 32) < .001f, "picking follows the translated Canvas");
             Require(world.SetLocalTransform("canvas", {3, 0, 0}, {0, .4f, .2f}, {1.5f, .8f, 1}),
                     "rotated and scaled Canvas transform applies");
-            const auto rotatedMatrix = SceneCanvas::Matrix(world, world.Layout().objects[1]);
+            const auto rotatedMatrix = SceneCanvas::Matrix(world.ViewQueries(), world.Layout().objects[1]);
             const auto rotatedHit = SceneCanvas::Intersect(*rotatedMatrix, camera, 0, 0);
             Require(rotatedHit && std::abs((*rotatedHit)[0] - 32) < .01f && std::abs((*rotatedHit)[1] - 16) < .01f,
                     "picking agrees with a rotated and scaled Canvas plane");

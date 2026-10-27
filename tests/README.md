@@ -504,3 +504,5 @@ MSBuild tests/DocumentSessionValidation.vcxproj /p:Configuration=Debug /p:Platfo
 `GpuPacketValidation` はEditorCoreのセッションと実際の編集用Worldを接続し、パケットと履歴の同時公開、失敗後の旧表示保持、既存パネル用APIの委譲、Undo/Redo、資源再読込を確認します。Editorの保存先・確認UI・GPU待機はセッションの外で調停します。
 
 `GpuPacketValidation` は `EditorSceneProjection` をWorldなしで接続する検証も含みます。文書と表示の同時確定、候補破棄、履歴JSON生成失敗、Undo/Redo、GPU資源再読込、別プロジェクト拒否、重複接続拒否、接続解除後のCPU編集、再接続時の表示同期を確認します。`TestSceneLayers.ps1` は接続実装のWorld・実行セッションへの依存と、SceneWorldによる投影インターフェイスの再実装を禁止します。
+
+`GpuPacketValidation` は `SceneViewQueriesValidation.cpp` を独立した翻訳単位としてビルドし、Worldなしで表示問い合わせと選択・フォーカスのヘッダーを利用します。親子・反転変換、モデルなしの境界箱、複数選択フォーカス、Canvas座標変換、物理補間とキャッシュの切替、無効ID、実形状のレイ交差と距離・無効入力を検証します。`TestSceneLayers.ps1` は選択・フォーカス・Canvasのincludeを再帰的に走査し、World／実行セッションへの依存を禁止します。Scene Canvasの描画・操作回帰は `ReviewRegressionValidation` を `WP1_SCENE_UI_ONLY=1` で実行して確認できます。

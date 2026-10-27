@@ -20,12 +20,12 @@ namespace SceneRuntime
         return node ? nullptr : root;
     }
 
-    auto SceneCanvas::Matrix(const SceneWorld& world, const ScenePlacement& object)
+    auto SceneCanvas::Matrix(const SceneViewQueries& view, const ScenePlacement& object)
         -> std::optional<DirectX::XMFLOAT4X4>
     {
-        const auto* root = Root(world.Layout(), object);
+        const auto* root = Root(view.Layout(), object);
         DirectX::XMFLOAT4X4 transform{};
-        if (!root || !world.WorldMatrix(root->id, transform))
+        if (!root || !view.WorldMatrix(root->id, transform))
             return std::nullopt;
         using namespace DirectX;
         XMStoreFloat4x4(&transform, XMMatrixScaling(.01f, -.01f, 1) *

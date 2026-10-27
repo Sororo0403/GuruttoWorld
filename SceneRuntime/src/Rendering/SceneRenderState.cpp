@@ -259,9 +259,15 @@ namespace SceneRuntime
     {
         return matricesVersion_ == version_;
     }
+    bool SceneRenderState::MatricesCurrent(const SceneViewInterpolation& interpolation) const noexcept
+    {
+        return MatricesCurrent() && matricesInterpolation_.previous == interpolation.previous &&
+               matricesInterpolation_.current == interpolation.current &&
+               matricesInterpolation_.alpha == interpolation.alpha;
+    }
     bool SceneRenderState::PrepareMatrices(const SceneLayout& layout,
                                            const std::map<std::string, DirectX::XMFLOAT4X4>& overrides,
-                                           std::string& error) const
+                                           std::string& error, SceneViewInterpolation interpolation) const
     {
         if (overrides.empty())
         {
@@ -275,6 +281,7 @@ namespace SceneRuntime
         }
         else if (!SceneTransforms::Resolve(layout, overrides, matrices_, error))
             return false;
+        matricesInterpolation_ = interpolation;
         matricesVersion_ = version_;
         return true;
     }

@@ -70,19 +70,19 @@ namespace Editor
             draw->AddLine({first[0], first[1]}, {last[0], last[1]}, color, 1.5f);
         }
     }
-    static void DrawGuides(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera, const std::string& id,
-                           const SceneViewport& viewport)
+    static void DrawGuides(const SceneRuntime::SceneViewQueries& view, const Engine::Camera& camera,
+                           const std::string& id, const SceneViewport& viewport)
     {
         if (!viewport.Valid())
             return;
-        const auto& objects = world.Layout().objects;
+        const auto& objects = view.Layout().objects;
         const auto found = std::find_if(objects.begin(), objects.end(),
                                         [&](const auto& object)
                                         {
                                             return object.id == id;
                                         });
         DirectX::XMFLOAT4X4 matrix{}, rotation{};
-        if (found == objects.end() || !world.WorldMatrix(id, matrix))
+        if (found == objects.end() || !view.WorldMatrix(id, matrix))
             return;
         auto* draw = ImGui::GetWindowDrawList();
         draw->PushClipRect({viewport.x, viewport.y}, {viewport.x + viewport.width, viewport.y + viewport.height}, true);
@@ -96,7 +96,7 @@ namespace Editor
             DrawGuideLines(draw, ComponentGuideGeometry::Collider(*found->boxCollider, {values.x, values.y, values.z}),
                            matrix, camera, viewport, IM_COL32(100, 255, 140, 255));
         }
-        if (world.WorldRotation(id, rotation))
+        if (view.WorldRotation(id, rotation))
         {
             rotation._41 = matrix._41;
             rotation._42 = matrix._42;
@@ -113,8 +113,8 @@ namespace Editor
         }
         draw->PopClipRect();
     }
-    void SceneSelection::Update(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera, EditState& state,
-                                const SceneViewport& viewport, bool active)
+    void SceneSelection::Update(const SceneRuntime::SceneViewQueries& view, const Engine::Camera& camera,
+                                EditState& state, const SceneViewport& viewport, bool active)
     {
         const auto& io = ImGui::GetIO();
         if (!active || !ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
@@ -130,25 +130,25 @@ namespace Editor
         XMStoreFloat3(&origin, nearPoint);
         XMStoreFloat3(&direction, farPoint - nearPoint);
         const float distance = XMVectorGetX(XMVector3Length(farPoint - nearPoint));
-        state.Select(world.PickRay({origin.x, origin.y, origin.z}, {direction.x, direction.y, direction.z}, distance)
+        state.Select(view.PickRay({origin.x, origin.y, origin.z}, {direction.x, direction.y, direction.z}, distance)
                          .value_or(""),
                      io.KeyCtrl || io.KeyShift);
         ImGui::SetWindowFocus(nullptr);
     }
 
-    void SceneSelection::Draw(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
+    void SceneSelection::Draw(const SceneRuntime::SceneViewQueries& view, const Engine::Camera& camera,
                               const EditState& state, const SceneViewport& viewport)
     {
         for (const auto& id : state.SelectedIds())
-            DrawObject(world, camera, id, viewport, id == state.SelectedId());
+            DrawObject(view, camera, id, viewport, id == state.SelectedId());
     }
 
-    void SceneSelection::DrawObject(const SceneRuntime::SceneWorld& world, const Engine::Camera& camera,
+    void SceneSelection::DrawObject(const SceneRuntime::SceneViewQueries& view, const Engine::Camera& camera,
                                     const std::string& id, const SceneViewport& viewport, bool primary)
     {
-        DrawGuides(world, camera, id, viewport);
+        DrawGuides(view, camera, id, viewport);
         std::array<std::array<float, 3>, 8> corners;
-        if (!world.WorldBounds(id, corners))
+        if (!view.WorldBounds(id, corners))
             return;
         if (!viewport.Valid())
             return;

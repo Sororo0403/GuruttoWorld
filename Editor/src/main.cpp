@@ -1060,7 +1060,7 @@ namespace
             UpdateShortcuts(historyEnabled);
             DrawCommands();
             if (!preview)
-                Editor::SceneSelection::Draw(DisplayedWorld(), camera.GetCamera(),
+                Editor::SceneSelection::Draw(DisplayedWorld().ViewQueries(), camera.GetCamera(),
                                              gameSession.Runtime() ? runtimeEditState : editState, sceneViewport);
             Editor::ScenePanel::End();
         }
@@ -1312,7 +1312,7 @@ namespace
                 if (canFocus && !editState.SelectedIds().empty())
                 {
                     if (const auto position = Editor::FocusPosition(
-                            DisplayedWorld(),
+                            DisplayedWorld().ViewQueries(),
                             gameSession.Runtime() ? runtimeEditState.SelectedIds() : editState.SelectedIds(),
                             camera.GetCamera()))
                     {
@@ -1430,7 +1430,7 @@ namespace
                 selected != world.Layout().objects.end() && selected->rectTransform && !selected->canvas;
             const bool worldInput = sceneInput && !uiCanvasPanel.ConsumesMouse() && !selectedUi;
             UpdateWorldHandles(worldInput);
-            Editor::SceneSelection::Update(world, camera.GetCamera(), editState, sceneViewport,
+            Editor::SceneSelection::Update(world.ViewQueries(), camera.GetCamera(), editState, sceneViewport,
                                            WorldSelectionAllowed(sceneInput));
         }
         void UpdateWorldHandles(bool worldInput)

@@ -665,6 +665,12 @@ classDiagram
     SceneDocumentProjection <|.. EditorSceneProjection
     SceneWorld *-- EditorSceneProjection : 編集互換API
     EditorSceneProjection --> SceneRenderState : 資源準備と交換
+    SceneWorld ..> SceneViewQueries : 互換問い合わせを委譲
+    SceneSelection --> SceneViewQueries : ピッキングと選択表示
+    FocusSelection --> SceneViewQueries : フォーカスとCanvas
+    SceneViewQueries --> SceneLayout : 確定済み配置を借用
+    SceneViewQueries --> SceneRenderState : 表示資源を読取
+    SceneViewQueries --> SceneViewInterpolation : 物理補間を借用
     SceneDocumentData --> SceneDocumentProjection : 非所有の投影先
     SceneWorld --> SceneDocumentData : 編集投影
     SceneWorld *-- SceneRenderState : 表示状態の所有と交換
@@ -725,15 +731,20 @@ classDiagram
 
 `EditorSceneProjection` はホスト所有の `SceneRenderState` を借用し、`SceneWorld`／`RuntimeSession` を取り込まない。資源比較と表示姿勢準備は `SceneRenderState` の共通APIを使う。再読込は表示状態だけの候補を作り、文書セッションの取引でGPU世代を交換する。接続直後は現在の正本から表示を再構築し、未接続中のCPU編集が同値の編集要求でも表示へ反映される。
 
-互換APIのため、接続が保持する正本・通知・採番の借用は残す。Editorの編集要求を `DocumentSession` へ直接渡し、ピッキング・境界箱・表示行列を表示用の読取APIへ分けることが次の改善点になる。投影先の登録を文書からセッション／ホストへ移す整理も残っている。
+互換APIのため、接続が保持する正本・通知・採番の借用は残す。Editorの編集要求を `DocumentSession` へ直接渡し、表示側の所有をホストへ移すことが次の改善点になる。投影先の登録を文書からセッション／ホストへ移す整理も残っている。
 
 `GpuPacketValidation` はWorldを作らずに実際の `DocumentSession`・`EditorSceneProjection`・`SceneRenderState` を接続し、準備破棄、履歴生成失敗、Undo/Redo、別プロジェクト拒否、再読込、接続解除、CPU編集後の再接続、旧packet保持を検証する。既存のWorld経由の編集・再生検証も維持する。
+
+2026-10-27の表示問い合わせの分離: `SceneViewQueries` がピッキング、確定済み／補間済み行列、祖先回転、骨格のインポート変換、親基準への姿勢変換、境界箱を担当する。配置と表示状態、必要な場合だけ物理姿勢と補間率を借用し、文書・実行状態・GPU資源を所有しない。借用は次の更新前まで有効で、確定済みの姿勢と物理補間した表示姿勢を区別する。補間行列のキャッシュは表示世代に加えて姿勢の借用元と補間率を照合する。
+
+`SceneSelection` と `FocusSelection`、`SceneCanvas::Matrix` は `SceneViewQueries` を受け取り、具体的なWorldに依存しない。Editorのホストが編集・再生の表示元から問い合わせを取得して渡す。`SceneWorld` は既存利用側のために `ViewQueries()` と問い合わせの委譲APIを維持する。Worldを使わない独立した検証ソースが、反転した親子変換、複数選択フォーカス、Canvas変換、欠損表示、物理補間とキャッシュ切替、実際の形状のレイ交差を確認する。
 
 | 設計案の責務 | 実装 | 境界 |
 |---|---|---|
 | Documentと編集サービス | DocumentSession / SceneDocumentData::Transaction / SceneEdits / SceneStorage | CPU候補・表示・履歴を準備し、同じ成功境界で確定する |
 | RuntimeWorldと取引 | WorldDefinition / WorldState / RuntimeSession | 型別の値・世代付きハンドル・候補の一括確定 |
 | システム群 | RuntimePipelineと各RuntimeSystem | 物理・Animation・Navigation・投影の準備失敗を同じ取引で復元 |
+| 表示問い合わせ | SceneViewQueries / SceneViewInterpolation | 選択・フォーカスがWorldへ依存せず、確定済み表示と物理補間を読み取る |
 | 編集表示の接続 | EditorSceneProjection / SceneDocumentProjection | 文書と表示状態へ接続し、実行Worldを使わずに表示候補と再読込を準備 |
 | 表示状態と交換 | SceneRenderState / SceneRenderData | 保存正本を所有せず、準備済み資源・姿勢・packetを一括確定 |
 | 描画専用Scene | RenderPacket / PresentationPacket / RenderPresentation | 保存用SceneLayoutやScript APIを描画から除外 |

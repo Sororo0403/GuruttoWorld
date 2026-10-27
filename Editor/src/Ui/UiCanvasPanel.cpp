@@ -2,6 +2,7 @@
 #include "UiLayoutTools.h"
 #include "UiCanvasTransform.h"
 #include <SceneRuntime/Ui/SceneCanvas.h>
+#include <SceneRuntime/Scene/SceneWorld.h>
 #include <imgui.h>
 #include <cmath>
 namespace
@@ -58,7 +59,7 @@ namespace Editor
     {
         if (!sceneWorld_)
             return mouse;
-        const auto matrix = SceneRuntime::SceneCanvas::Matrix(*sceneWorld_, object);
+        const auto matrix = SceneRuntime::SceneCanvas::Matrix(sceneWorld_->ViewQueries(), object);
         if (!matrix || !viewport.Valid())
             return std::nullopt;
         return SceneRuntime::SceneCanvas::Intersect(*matrix, *sceneCamera_,
@@ -72,7 +73,7 @@ namespace Editor
         const auto point = Corner(rect, sceneWorld_ ? SceneViewport{} : viewport, x, y);
         if (!sceneWorld_)
             return std::array<float, 2>{point.x, point.y};
-        const auto matrix = SceneRuntime::SceneCanvas::Matrix(*sceneWorld_, object);
+        const auto matrix = SceneRuntime::SceneCanvas::Matrix(sceneWorld_->ViewQueries(), object);
         if (!matrix)
             return std::nullopt;
         using namespace DirectX;

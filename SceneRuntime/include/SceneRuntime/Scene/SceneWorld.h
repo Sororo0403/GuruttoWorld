@@ -8,6 +8,7 @@
 #include <Engine/Graphics/Models/ModelManager.h>
 #include <Engine/Graphics/Models/Object3D.h>
 #include <optional>
+#include <SceneRuntime/Rendering/SceneViewQueries.h>
 #include <SceneRuntime/Rendering/RenderTelemetry.h>
 #include <unordered_map>
 #include <SceneRuntime/Physics/PhysicsTypes.h>
@@ -221,6 +222,8 @@ namespace SceneRuntime
                               std::vector<std::string>& createdIds, std::string& error);
         /// <summary>指定した ID だけを一括削除します。残る子はワールド姿勢を保ってルートへ移し、削除した描画資源は GPU 完了まで保持します。</summary>
         bool RemoveObjects(const std::vector<std::string>& ids, std::string& error);
+        /// <summary>次の更新まで有効な表示問い合わせを、Worldに依存しない読取APIとして取得します。</summary>
+        SceneViewQueries ViewQueries() const noexcept;
         /// <summary>ワールド空間のレイと描画形状の交差を調べ、指定距離内で最も近いオブジェクトの ID を返します。</summary>
         std::optional<std::string> PickRay(const std::array<float, 3>& origin, const std::array<float, 3>& direction,
                                            float maxDistance = 220.0f) const;
@@ -350,16 +353,7 @@ namespace SceneRuntime
         size_t ownedNextId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
         bool runtimeOwner_ = true;
-        struct PhysicalPose
-        {
-            std::array<float, 3> position{}, rotation{}, scale{1, 1, 1};
-            std::string parent;
-        };
-        /// <summary>補間の行列を描画用に解決し、テレポートは即座に反映します。</summary>
-        bool PrepareRenderTransforms() const;
-        /// <summary>同じ補間条件で描画用のローカル配置と回転を準備します。</summary>
-        bool InterpolatedLocalTransform(const ScenePlacement& placement, DirectX::XMFLOAT4X4& transform,
-                                        DirectX::XMFLOAT4X4& rotation) const;
+        using PhysicalPose = SceneViewPose;
         SceneChangeSet ownedChanges_;
         std::function<bool(WorldState::ReadView, const SceneChangeSet&, const ScriptUiCommands&, std::string&)>
             prepareFrame_;

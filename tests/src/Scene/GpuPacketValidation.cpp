@@ -18,6 +18,8 @@
 #include <Engine/Animation/SkeletonAssets.h>
 #include <Engine/Core/FileContents.h>
 
+void ValidateSceneViewQueries(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root);
+
 namespace
 {
     size_t contracts = 0;
@@ -535,6 +537,7 @@ namespace
         surface.keys = {{0, {.1f, 0, 0, 0}}, {1, {.9f, 0, 0, 0}}};
         ground.animation->tracks.push_back(surface);
         layout.objects.push_back(ground);
+        ValidateSceneViewQueries(renderer, root);
         ValidateSeparatedProjection(renderer, root, layout);
         ValidateRenderState(renderer, root, layout);
         ValidateEditorSceneProjection(renderer, root, layout);

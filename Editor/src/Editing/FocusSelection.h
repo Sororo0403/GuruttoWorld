@@ -1,6 +1,6 @@
 #pragma once
 #include <Engine/Graphics/Camera.h>
-#include <SceneRuntime/Scene/SceneWorld.h>
+#include <SceneRuntime/Rendering/SceneViewQueries.h>
 #include <SceneRuntime/Ui/SceneCanvas.h>
 #include <SceneRuntime/Ui/SceneUi.h>
 #include <span>
@@ -18,7 +18,7 @@ namespace Editor
     std::optional<std::array<float, 3>> FocusPosition(std::span<const std::array<float, 3>> corners,
                                                       const Engine::Camera& camera);
     /// <summary>選択対象へ視点を合わせる位置を求めます。</summary>
-    std::optional<std::array<float, 3>> FocusPosition(const SceneRuntime::SceneWorld& world,
+    std::optional<std::array<float, 3>> FocusPosition(const SceneRuntime::SceneViewQueries& view,
                                                       const std::vector<std::string>& ids,
                                                       const Engine::Camera& camera);
 }

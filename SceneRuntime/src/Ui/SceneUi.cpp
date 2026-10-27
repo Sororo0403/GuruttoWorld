@@ -4,6 +4,7 @@
 #include <SceneRuntime/Ui/SceneUi.h>
 #include "UiVisualFunctions.h"
 #include <SceneRuntime/Ui/SceneCanvas.h>
+#include <SceneRuntime/Scene/SceneWorld.h>
 #include <Engine/Graphics/DirectX12/DirectX12Renderer.h>
 #include <winrt/base.h>
 #include <algorithm>
@@ -474,7 +475,7 @@ namespace SceneRuntime
                 continue;
             const auto p = ControlVisual(source, state);
             const auto* root = SceneCanvas::Root(layout, p);
-            const auto matrix = SceneCanvas::Matrix(world, p);
+            const auto matrix = SceneCanvas::Matrix(world.ViewQueries(), p);
             if (!root || !matrix)
                 continue;
             const auto rect = Resolve(layout, source, static_cast<unsigned int>(root->canvas->referenceSize[0]),

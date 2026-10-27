@@ -148,7 +148,8 @@ Write-Output 'PASS: optional Title and test-only legacy Script APIs are absent f
 
 # 編集表示とGPU準備はホストのWorldや実行セッションを取り込みません。
 foreach ($relative in @('src/Rendering/EditorProjection.cpp', 'src/Rendering/SceneGpuResources.cpp',
-        'src/Rendering/SceneRenderBindings.h', 'src/Rendering/EditorSceneProjection.cpp',
+        'src/Rendering/SceneRenderBindings.h', 'src/Rendering/SceneViewQueries.cpp',
+        'include/SceneRuntime/Rendering/SceneViewQueries.h', 'src/Rendering/EditorSceneProjection.cpp',
         'include/SceneRuntime/Rendering/EditorSceneProjection.h', 'include/SceneRuntime/Rendering/EditorProjection.h',
         'include/SceneRuntime/Rendering/SceneGpuResources.h', 'include/SceneRuntime/Rendering/SceneResourcePreparation.h',
         'src/Rendering/SceneRenderState.cpp', 'include/SceneRuntime/Rendering/SceneRenderState.h')) {
@@ -188,3 +189,29 @@ if ($taskWorldHeader -match 'public\s+SceneDocumentProjection|class\s+DocumentPr
     throw 'SceneWorld still implements the document projection connection.'
 }
 Write-Output 'PASS: EditorSceneProjection owns the document connection independently of SceneWorld'
+
+# 選択・フォーカスとCanvas座標変換は、表示問い合わせからWorldへ戻りません。
+$taskQueryPending = [Collections.Generic.Queue[string]]::new()
+$taskQueryVisited = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($relative in @('Editor/src/Editing/SceneSelection.cpp', 'Editor/src/Editing/FocusSelection.cpp',
+        'SceneRuntime/src/Ui/SceneCanvas.cpp', 'tests/src/Scene/SceneViewQueriesValidation.cpp')) {
+    $taskQueryPending.Enqueue((Join-Path $taskRoot $relative))
+}
+while ($taskQueryPending.Count) {
+    $path = [IO.Path]::GetFullPath($taskQueryPending.Dequeue())
+    if (!$taskQueryVisited.Add($path)) { continue }
+    foreach ($include in [regex]::Matches((Get-Content -LiteralPath $path -Raw), '(?m)^\s*#include\s*[<"]([^>"]+)[>"]')) {
+        $name = $include.Groups[1].Value.Replace('\', '/')
+        if ($name -match '(SceneWorld|SceneWorldRuntime|RuntimeSession)\.h$') {
+            throw "View query consumer includes a mutable world or runtime session: $path -> $name"
+        }
+        foreach ($candidate in @((Join-Path (Split-Path $path -Parent) $name),
+                (Join-Path $taskRoot "SceneRuntime/include/$name"), (Join-Path $taskRoot "Engine/include/$name"))) {
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $taskQueryPending.Enqueue($candidate)
+                break
+            }
+        }
+    }
+}
+Write-Output "PASS: selection/focus/Canvas and independent view query validation exclude World ($($taskQueryVisited.Count) files)"

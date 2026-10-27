@@ -1988,7 +1988,7 @@ namespace
         direction._41 = 0;
         direction._42 = 0;
         direction._43 = 0;
-        const auto focused = Editor::FocusPosition(world, selected, focusCamera);
+        const auto focused = Editor::FocusPosition(world.ViewQueries(), selected, focusCamera);
         Check(focused.has_value(), "multiple selection focus computes shared camera position");
         focusCamera.SetPosition(*focused);
         const auto viewProjection = focusCamera.GetViewProjectionMatrix();
@@ -2012,8 +2012,8 @@ namespace
         afterDirection._42 = 0;
         afterDirection._43 = 0;
         Check(SceneRuntime::SceneTransforms::Matches(direction, afterDirection) &&
-                  !Editor::FocusPosition(world, {}, focusCamera) &&
-                  !Editor::FocusPosition(world, {selected.front(), "missing"}, focusCamera) &&
+                  !Editor::FocusPosition(world.ViewQueries(), {}, focusCamera) &&
+                  !Editor::FocusPosition(world.ViewQueries(), {selected.front(), "missing"}, focusCamera) &&
                   world.Layout().Serialize() == json,
               "focus preserves viewing direction and scene, and rejects empty or missing selection");
 

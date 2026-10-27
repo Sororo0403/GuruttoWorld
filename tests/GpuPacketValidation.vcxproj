@@ -36,6 +36,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Scene\GpuPacketValidation.cpp" />
+    <ClCompile Include="src\Scene\SceneViewQueriesValidation.cpp" />
     <ProjectReference Include="..\Editor\EditorCore.vcxproj" />
     <ProjectReference Include="..\SceneRuntime\SceneRuntime.vcxproj" />
     <ProjectReference Include="..\Engine\Engine.vcxproj" />

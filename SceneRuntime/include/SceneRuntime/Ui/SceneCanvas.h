@@ -1,6 +1,6 @@
 #pragma once
 #include <Engine/Core/Validation.h>
-#include <SceneRuntime/Scene/SceneWorld.h>
+#include <SceneRuntime/Rendering/SceneViewQueries.h>
 #include <Engine/Graphics/Camera.h>
 #include <algorithm>
 #include <optional>
@@ -14,7 +14,7 @@ namespace SceneRuntime
         /// <summary>処理対象のルートを求めます。</summary>
         static const ScenePlacement* Root(const SceneLayout& layout, const ScenePlacement& object);
         /// <summary>配置から変換行列を求めます。</summary>
-        static std::optional<DirectX::XMFLOAT4X4> Matrix(const SceneWorld& world, const ScenePlacement& object);
+        static std::optional<DirectX::XMFLOAT4X4> Matrix(const SceneViewQueries& view, const ScenePlacement& object);
         /// <summary>指定した形状との交差を求めます。</summary>
         static std::optional<std::array<float, 2>> Intersect(const DirectX::XMFLOAT4X4& matrix,
                                                              const Engine::Camera& camera, float ndcX, float ndcY);

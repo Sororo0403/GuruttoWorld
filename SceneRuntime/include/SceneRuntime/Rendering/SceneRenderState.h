@@ -4,6 +4,7 @@
 #include <SceneRuntime/Rendering/RenderTelemetry.h>
 #include <SceneRuntime/Scene/SceneChanges.h>
 #include <span>
+#include <SceneRuntime/Rendering/SceneViewQueries.h>
 
 namespace SceneRuntime
 {
@@ -91,9 +92,11 @@ namespace SceneRuntime
             std::map<std::string, std::vector<std::shared_ptr<const Engine::ModelRenderer>>>& lods) noexcept;
         /// <summary>補間行列が現在の表示世代と一致するか返します。</summary>
         bool MatricesCurrent() const noexcept;
+        /// <summary>表示世代と、借用した物理補間の組がキャッシュに一致するか返します。</summary>
+        bool MatricesCurrent(const SceneViewInterpolation& interpolation) const noexcept;
         /// <summary>保存値と補間姿勢から、現在の表示世代の行列を準備します。</summary>
         bool PrepareMatrices(const SceneLayout& layout, const std::map<std::string, DirectX::XMFLOAT4X4>& overrides,
-                             std::string& error) const;
+                             std::string& error, SceneViewInterpolation interpolation = {}) const;
         /// <summary>準備済みの描画行列を取得します。</summary>
         const std::vector<DirectX::XMFLOAT4X4>& Matrices() const noexcept;
         /// <summary>最後に記録した描画統計を取得します。</summary>
@@ -116,6 +119,7 @@ namespace SceneRuntime
         std::shared_ptr<const RenderPacket> packet_;
         std::unique_ptr<SceneLayout> animationScratch_;
         size_t version_ = 0;
+        mutable SceneViewInterpolation matricesInterpolation_;
         mutable size_t matricesVersion_ = static_cast<size_t>(-1);
         mutable std::vector<DirectX::XMFLOAT4X4> matrices_;
         mutable MeshTelemetry telemetry_;

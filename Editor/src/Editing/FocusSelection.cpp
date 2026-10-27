@@ -39,21 +39,21 @@ namespace Editor
                                     center[2] - inverse._33 * distance};
     }
 
-    std::optional<std::array<float, 3>> FocusPosition(const SceneRuntime::SceneWorld& world,
+    std::optional<std::array<float, 3>> FocusPosition(const SceneRuntime::SceneViewQueries& view,
                                                       const std::vector<std::string>& ids, const Engine::Camera& camera)
     {
         std::vector<std::array<float, 3>> corners;
         for (const auto& id : ids)
         {
             std::array<std::array<float, 3>, 8> bounds;
-            const auto& layout = world.Layout();
+            const auto& layout = view.Layout();
             const auto object = std::find_if(layout.objects.begin(), layout.objects.end(),
                                              [&](const auto& p)
                                              {
                                                  return p.id == id;
                                              });
             const auto matrix =
-                object == layout.objects.end() ? std::nullopt : SceneRuntime::SceneCanvas::Matrix(world, *object);
+                object == layout.objects.end() ? std::nullopt : SceneRuntime::SceneCanvas::Matrix(view, *object);
             if (matrix && (object->canvas || object->rectTransform))
             {
                 const auto* root = SceneRuntime::SceneCanvas::Root(layout, *object);
@@ -81,7 +81,7 @@ namespace Editor
                     bounds[i] = {point.x, point.y, point.z};
                 }
             }
-            else if (!world.WorldBounds(id, bounds))
+            else if (!view.WorldBounds(id, bounds))
                 return std::nullopt;
             corners.insert(corners.end(), bounds.begin(), bounds.end());
         }
