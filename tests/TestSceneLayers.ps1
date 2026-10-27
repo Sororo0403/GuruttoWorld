@@ -148,7 +148,8 @@ Write-Output 'PASS: optional Title and test-only legacy Script APIs are absent f
 
 # 編集表示とGPU準備はホストのWorldや実行セッションを取り込みません。
 foreach ($relative in @('src/Rendering/EditorProjection.cpp', 'src/Rendering/SceneGpuResources.cpp',
-        'src/Rendering/SceneRenderBindings.h', 'include/SceneRuntime/Rendering/EditorProjection.h',
+        'src/Rendering/SceneRenderBindings.h', 'src/Rendering/EditorSceneProjection.cpp',
+        'include/SceneRuntime/Rendering/EditorSceneProjection.h', 'include/SceneRuntime/Rendering/EditorProjection.h',
         'include/SceneRuntime/Rendering/SceneGpuResources.h', 'include/SceneRuntime/Rendering/SceneResourcePreparation.h',
         'src/Rendering/SceneRenderState.cpp', 'include/SceneRuntime/Rendering/SceneRenderState.h')) {
     $path = Join-Path $taskRoot "SceneRuntime/$relative"
@@ -180,3 +181,10 @@ if ($taskEditorMain -cmatch '\bhistory\.(Observe|Reset|Commit|Applied|Saved|Reco
     throw 'Editor main mutates history outside its DocumentSession.'
 }
 Write-Output 'PASS: document sessions use CPU projection contracts and own editor history changes'
+
+# 編集表示の接続は独立した実装が所有し、互換Worldは投影インターフェイスを実装しません。
+$taskWorldHeader = Get-Content -LiteralPath (Join-Path $taskRoot 'SceneRuntime/include/SceneRuntime/Scene/SceneWorld.h') -Raw
+if ($taskWorldHeader -match 'public\s+SceneDocumentProjection|class\s+DocumentPreparation|documentReload_') {
+    throw 'SceneWorld still implements the document projection connection.'
+}
+Write-Output 'PASS: EditorSceneProjection owns the document connection independently of SceneWorld'

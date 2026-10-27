@@ -662,7 +662,9 @@ classDiagram
     DocumentSession *-- EditState : 選択と操作単位
     SceneDocument --> SceneDocumentData : 編集の正本
     DocumentSession --> SceneDocumentProjection : 表示候補の準備と確定
-    SceneDocumentProjection <|.. SceneWorld
+    SceneDocumentProjection <|.. EditorSceneProjection
+    SceneWorld *-- EditorSceneProjection : 編集互換API
+    EditorSceneProjection --> SceneRenderState : 資源準備と交換
     SceneDocumentData --> SceneDocumentProjection : 非所有の投影先
     SceneWorld --> SceneDocumentData : 編集投影
     SceneWorld *-- SceneRenderState : 表示状態の所有と交換
@@ -697,11 +699,11 @@ classDiagram
     TextureAssets --> ArtifactRequests
 ```
 
-編集用SceneWorldはCPUドキュメントに接続するGPU投影であり、RuntimeSessionを生成しない。再生用SceneWorldは互換ファサードとしてRuntimeSessionを所有する。編集・保存と再生が別の正本を持ち、描画はどちらの可変状態も参照しない。
+編集用SceneWorldは互換ファサードとしてEditorSceneProjectionとSceneRenderStateを所有し、RuntimeSessionを生成しない。EditorSceneProjectionはSceneWorldに依存せず、ホストが所有する文書と表示状態だけで接続できる。再生用SceneWorldは互換ファサードとしてRuntimeSessionを所有する。編集・保存と再生が別の正本を持ち、描画はどちらの可変状態も参照しない。
 
 2026-10-27: 編集表示の抽出と確定済みpacketの保持を `EditorProjection`、モデル・材質・手続きメッシュ・骨格・影の準備とGPUデバイス／モデルキャッシュの所有を `SceneGpuResources` へ分離した。両者は `SceneWorld` と `RuntimeSession` に依存せず、`PreparedSceneResources` を介して利用できる。編集と再生の表示資源解決は、明示的な資源・姿勢・前回packetだけを受け取る `SceneRenderBindings` を共有する。
 
-`SceneWorld` は文書・実行状態・表示候補を同じ成功境界で公開する調停役を維持する。編集操作・選択問い合わせの互換APIを維持し、表示資源は読み取り専用のビューと候補を介して参照する。資源準備アダプターは `SceneRuntime` ターゲットが所有し、packetだけを描く `SceneRendering` へ保存型や可変Worldの依存を追加しない。`GpuPacketValidation` はWorldなしでの準備、確定前の旧世代保持、失敗後の再試行、編集用欠損表示と再生時の拒否、準備所有者を破棄した後の描画を検証する。
+編集の成功境界は `DocumentSession` が調停し、`EditorSceneProjection` が表示候補を準備する。実行用の `SceneWorld` は実行状態・表示候補を同じ成功境界で公開する調停役を維持する。編集操作・選択問い合わせの互換APIを維持し、表示資源は読み取り専用のビューと候補を介して参照する。資源準備アダプターは `SceneRuntime` ターゲットが所有し、packetだけを描く `SceneRendering` へ保存型や可変Worldの依存を追加しない。`GpuPacketValidation` はWorldなしでの準備、確定前の旧世代保持、失敗後の再試行、編集用欠損表示と再生時の拒否、準備所有者を破棄した後の描画を検証する。
 
 
 2026-10-27の追加分離: `SceneRenderState` が確定済みの個体・材質・LOD・編集プレビュー姿勢・影・診断・素材参照情報と、描画packet・世代番号・補間行列・描画統計を所有する。保存用 `SceneLayout` は文書側の正本に残し、`SceneRenderData` に複製しない。GPU準備側は影の交換候補だけを作り、影の可変所有参照を公開しない。
@@ -719,11 +721,20 @@ classDiagram
 
 `DocumentSessionValidation` は描画APIを含まないCPUターゲットで、候補破棄・準備失敗・再入・採番・操作結合・選択・Undo/Redo・Prefabファイルの復元・外部変更照合・読込と保存基準を検証する。`GpuPacketValidation` は実際の編集Worldと接続し、履歴JSON生成の失敗後の旧パケット保持、既存API経由の編集、Undo/Redo、資源再読込、別プロジェクトの拒否を確認する。
 
+2026-10-27の編集表示接続の分離: `EditorSceneProjection` が `SceneDocumentProjection` を実装し、文書への登録・解除、表示候補の準備、準備中の再入防止、表示通知と互換採番、GPU資源の再読込を担当する。`SceneWorld` は投影インターフェイスを実装せず、編集時だけこの接続を所有する。実行用Worldは内部の配置を直接所有し、編集投影を文書へ登録しない。
+
+`EditorSceneProjection` はホスト所有の `SceneRenderState` を借用し、`SceneWorld`／`RuntimeSession` を取り込まない。資源比較と表示姿勢準備は `SceneRenderState` の共通APIを使う。再読込は表示状態だけの候補を作り、文書セッションの取引でGPU世代を交換する。接続直後は現在の正本から表示を再構築し、未接続中のCPU編集が同値の編集要求でも表示へ反映される。
+
+互換APIのため、接続が保持する正本・通知・採番の借用は残す。Editorの編集要求を `DocumentSession` へ直接渡し、ピッキング・境界箱・表示行列を表示用の読取APIへ分けることが次の改善点になる。投影先の登録を文書からセッション／ホストへ移す整理も残っている。
+
+`GpuPacketValidation` はWorldを作らずに実際の `DocumentSession`・`EditorSceneProjection`・`SceneRenderState` を接続し、準備破棄、履歴生成失敗、Undo/Redo、別プロジェクト拒否、再読込、接続解除、CPU編集後の再接続、旧packet保持を検証する。既存のWorld経由の編集・再生検証も維持する。
+
 | 設計案の責務 | 実装 | 境界 |
 |---|---|---|
 | Documentと編集サービス | DocumentSession / SceneDocumentData::Transaction / SceneEdits / SceneStorage | CPU候補・表示・履歴を準備し、同じ成功境界で確定する |
 | RuntimeWorldと取引 | WorldDefinition / WorldState / RuntimeSession | 型別の値・世代付きハンドル・候補の一括確定 |
 | システム群 | RuntimePipelineと各RuntimeSystem | 物理・Animation・Navigation・投影の準備失敗を同じ取引で復元 |
+| 編集表示の接続 | EditorSceneProjection / SceneDocumentProjection | 文書と表示状態へ接続し、実行Worldを使わずに表示候補と再読込を準備 |
 | 表示状態と交換 | SceneRenderState / SceneRenderData | 保存正本を所有せず、準備済み資源・姿勢・packetを一括確定 |
 | 描画専用Scene | RenderPacket / PresentationPacket / RenderPresentation | 保存用SceneLayoutやScript APIを描画から除外 |
 | 変更に比例する更新 | 型別COWページ、dirty行列、RuntimeProjection | 数値の定常更新で保存シーン全体を複製しない |

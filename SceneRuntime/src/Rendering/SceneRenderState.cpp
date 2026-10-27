@@ -3,9 +3,67 @@
 #include <SceneRuntime/Scene/SceneTransforms.h>
 #include <algorithm>
 #include <iterator>
+#include <Engine/Core/Profiler.h>
+#include <cstring>
+#include <tuple>
 
 namespace SceneRuntime
 {
+    bool SceneRenderState::PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects,
+                                             std::string& error, const SceneLayout* validatedBefore)
+    {
+        Engine::CpuScope scope("World transform preparation");
+        std::vector<DirectX::XMFLOAT4X4> matrices;
+        if (validatedBefore)
+        {
+            std::vector<DirectX::XMFLOAT4X4> previous;
+            previous.reserve(objects.size());
+            std::transform(objects.begin(), objects.end(), std::back_inserter(previous),
+                           [](const auto& object)
+                           {
+                               return object.GetWorldMatrix();
+                           });
+            if (!SceneTransforms::ResolveChanges(layout, *validatedBefore, previous, matrices, error))
+                return false;
+        }
+        else if (!SceneTransforms::Resolve(layout, matrices, error))
+            return false;
+        if (objects.size() != matrices.size())
+        {
+            error = "Placement and draw object counts differ";
+            return false;
+        }
+        for (size_t index = 0; index < objects.size(); ++index)
+        {
+            const auto& placement = layout.objects[index];
+            const bool sameLocal = objects[index].GetPosition() == placement.position &&
+                                   objects[index].GetRotation() == placement.rotation &&
+                                   objects[index].GetScale() == placement.scale;
+            if (sameLocal &&
+                std::memcmp(&objects[index].GetWorldMatrix(), &matrices[index], sizeof(matrices[index])) == 0)
+                continue;
+            if ((!sameLocal && !objects[index].SetTransform(placement.position, placement.rotation, placement.scale)) ||
+                !objects[index].SetWorldMatrix(matrices[index]))
+            {
+                error = placement.id + ": invalid inherited transform";
+                return false;
+            }
+        }
+        error.clear();
+        return true;
+    }
+
+    bool SceneRenderState::SameResources(const SceneLayout& layout, const SceneLayout& before)
+    {
+        return layout.objects.size() == before.objects.size() &&
+               std::equal(layout.objects.begin(), layout.objects.end(), before.objects.begin(),
+                          [](const auto& a, const auto& b)
+                          {
+                              return std::tie(a.id, a.meshRenderer, a.material, a.animator, a.terrain, a.tilemap) ==
+                                     std::tie(b.id, b.meshRenderer, b.material, b.animator, b.terrain, b.tilemap);
+                          });
+    }
+
     SceneGpuResources& SceneRenderState::Gpu() noexcept
     {
         return gpu_;

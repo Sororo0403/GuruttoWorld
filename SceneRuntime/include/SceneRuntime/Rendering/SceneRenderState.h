@@ -22,6 +22,11 @@ namespace SceneRuntime
     class SceneRenderState final
     {
     public:
+        /// <summary>既存の表示資源を共有できる個体構成かを判定します。</summary>
+        static bool SameResources(const SceneLayout& layout, const SceneLayout& before);
+        /// <summary>保存値から表示姿勢を準備し、検証済みの前回配置に対しては差分を解決します。</summary>
+        static bool PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects,
+                                      std::string& error, const SceneLayout* validatedBefore = nullptr);
         /// <summary>表示資源の準備先を取得します。確定済み配列の可変参照は公開しません。</summary>
         SceneGpuResources& Gpu() noexcept;
         /// <summary>確定済みの表示資源を読み取ります。</summary>

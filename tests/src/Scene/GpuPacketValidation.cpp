@@ -1,6 +1,7 @@
 #include "../../../Editor/src/Documents/DocumentSession.h"
 #include <SceneRuntime/Rendering/SceneRenderState.h>
 #include <SceneRuntime/Rendering/EditorProjection.h>
+#include <SceneRuntime/Rendering/EditorSceneProjection.h>
 #include <SceneRuntime/Rendering/SceneGpuResources.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <SceneRuntime/Rendering/RenderScene.h>
@@ -337,6 +338,83 @@ namespace
                 "render-state-packet-outlives-state-and-reload-owner");
     }
 
+    void ValidateEditorSceneProjection(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+                                       const SceneRuntime::SceneLayout& layout)
+    {
+        using namespace SceneRuntime;
+        static_assert(!std::is_base_of_v<SceneDocumentProjection, SceneWorld>);
+        static_assert(std::is_base_of_v<SceneDocumentProjection, EditorSceneProjection>);
+        Editor::DocumentSession session({}, Engine::ContentContext::Capture(root));
+        SceneRenderState state;
+        std::string error;
+        Require(state.Initialize(renderer, root / "Engine/Shaders/Mesh.hlsl", &error),
+                "editor-connection-initializes-render-state-without-world");
+        std::shared_ptr<const RenderPacket> retained;
+        {
+            EditorSceneProjection projection(session.Document().Data(), state);
+            Require(session.Document().Data()->Projection() == &projection &&
+                        session.Edit(ReplaceDocumentEdit{layout}, error).succeeded && state.Snapshot(),
+                    "editor-connection-registers-and-publishes-without-world");
+            bool rejected = false;
+            try
+            {
+                EditorSceneProjection duplicate(session.Document().Data(), state);
+            }
+            catch (const std::exception&)
+            {
+                rejected = true;
+            }
+            Require(rejected && session.Document().Data()->Projection() == &projection,
+                    "editor-connection-rejects-duplicate-without-detaching-original");
+            session.ResetHistory();
+            session.Editing().Select("ground");
+            session.ObserveCurrent();
+            const auto before = state.Snapshot();
+            Require(!projection.TakeChanges().Empty() && projection.TakeChanges().Empty(),
+                    "editor-connection-publishes-notifications-once-without-world");
+            auto pending = session.Prepare(TransformEdit{"ground", {{2, 0, 0}, {}, {1, 1, 1}}}, error);
+            Require(pending && state.Snapshot() == before && projection.TakeChanges().Empty() &&
+                        !projection.ReloadAssets(renderer, root, root / "Engine/Shaders/Mesh.hlsl", error),
+                    "editor-connection-prepares-and-rejects-reload-during-document-write");
+            pending.reset();
+            Require(state.Snapshot() == before && !session.History().CanUndo(),
+                    "editor-connection-discard-keeps-display-and-history");
+            Require(session.Edit(TransformEdit{"ground", {{2, 0, 0}, {}, {1, 1, 1}}}, error).succeeded &&
+                        state.Snapshot()->objects.front().matrix._41 == 2 && before->objects.front().matrix._41 == 0,
+                    "editor-connection-commits-document-and-display-without-world");
+            const auto stable = session.Json();
+            const auto packet = state.Snapshot();
+            Require(!session.Edit(NameEdit{"ground", std::string(1, static_cast<char>(0xff))}, error).succeeded &&
+                        session.Json() == stable && state.Snapshot() == packet,
+                    "editor-connection-history-serialization-failure-preserves-display");
+            Require(session.RestoreHistory(false, error) && state.Snapshot()->objects.front().matrix._41 == 0 &&
+                        session.RestoreHistory(true, error) && state.Snapshot()->objects.front().matrix._41 == 2,
+                    "editor-connection-undo-redo-updates-display-without-world");
+            Require(
+                !projection.ReloadAssets(renderer, root / "OtherProject", root / "Engine/Shaders/Mesh.hlsl", error) &&
+                    state.Snapshot()->objects.front().matrix._41 == 2 && session.Json() == stable,
+                "editor-connection-rejects-resource-reload-from-another-project");
+            const auto old = state.Snapshot();
+            const auto undo = session.History().Target(false).json;
+            Require(projection.ReloadAssets(renderer, root, root / "Engine/Shaders/Mesh.hlsl", error) &&
+                        state.Snapshot() != old && state.Snapshot()->objects.front().matrix._41 == 2 &&
+                        session.Json() == stable && session.History().Target(false).json == undo,
+                    "editor-connection-reloads-resources-without-world-or-extra-undo");
+            retained = state.Snapshot();
+        }
+        Require(!session.Document().Data()->Projection() && state.Snapshot() == retained &&
+                    session.Edit(TransformEdit{"ground", {{3, 0, 0}, {}, {1, 1, 1}}}, error).succeeded &&
+                    state.Snapshot()->objects.front().matrix._41 == 2,
+                "editor-connection-detaches-and-restores-cpu-only-editing");
+        {
+            EditorSceneProjection reconnected(session.Document().Data(), state);
+            Require(session.Edit(TransformEdit{"ground", {{3, 0, 0}, {}, {1, 1, 1}}}, error).succeeded &&
+                        state.Snapshot()->objects.front().matrix._41 == 3 && retained->objects.front().matrix._41 == 2,
+                    "editor-connection-reconnects-and-keeps-retained-packet");
+        }
+        Require(renderer.WaitForIdle(), "editor-connection-gpu-completes");
+    }
+
     void ValidateDocumentSession(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
                                  const SceneRuntime::SceneLayout& layout)
     {
@@ -348,7 +426,7 @@ namespace
                 "document-session-gpu-initializes-through-session");
         SceneEditPlan detached;
         detached.layout = session.Layout();
-        Require(!world.PrepareDocument(detached, false, error),
+        Require(!session.Document().Data()->Projection()->PrepareDocument(detached, false, error),
                 "document-session-projection-requires-document-preparation-ownership");
         session.ResetHistory();
         session.Editing().Select("ground");
@@ -459,6 +537,7 @@ namespace
         layout.objects.push_back(ground);
         ValidateSeparatedProjection(renderer, root, layout);
         ValidateRenderState(renderer, root, layout);
+        ValidateEditorSceneProjection(renderer, root, layout);
         ValidateDocumentSession(renderer, root, layout);
         auto world = std::make_unique<SceneWorld>();
         std::string error;

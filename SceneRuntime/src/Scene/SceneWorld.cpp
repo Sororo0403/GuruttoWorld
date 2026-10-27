@@ -1,4 +1,5 @@
 #include <SceneRuntime/Rendering/SceneRenderState.h>
+#include <SceneRuntime/Rendering/EditorSceneProjection.h>
 #include <Engine/Core/Profiler.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include "SceneWorldRuntime.h"
@@ -100,7 +101,8 @@ namespace SceneRuntime
             if (!context_)
                 context_ = Engine::ContentContext::Capture(assetsRoot);
             context_->RequireRoot(assetsRoot);
-            document_->SetProjectionContent(*this, context_);
+            if (editorProjection_)
+                editorProjection_->SetContentContext(context_);
         }
         catch (const std::exception& failure)
         {
@@ -137,7 +139,8 @@ namespace SceneRuntime
             if (!context_)
                 context_ = Engine::ContentContext::Capture(assetsRoot);
             context_->RequireRoot(assetsRoot);
-            document_->SetProjectionContent(*this, context_);
+            if (editorProjection_)
+                editorProjection_->SetContentContext(context_);
         }
         catch (const std::exception& failure)
         {
@@ -333,6 +336,8 @@ namespace SceneRuntime
     {
         if (!CanMutateScene(&error))
             return false;
+        if (DocumentEditor())
+            return editorProjection_->ReloadAssets(renderer, assetsRoot, shaderPath, error);
         ChangePreparation preparing(preparingChanges_);
         auto storage = std::make_shared<SceneDocumentData>(SceneLayout{}, context_);
         auto candidate = std::make_unique<SceneWorld>(storage);
@@ -356,20 +361,6 @@ namespace SceneRuntime
                 return false;
             DrainSession();
             return true;
-        }
-        if (DocumentEditor())
-        {
-            preparing.Release();
-            struct ReloadScope
-            {
-                SceneWorld& world;
-                ~ReloadScope()
-                {
-                    world.documentReload_ = nullptr;
-                }
-            } scope{*this};
-            documentReload_ = candidate.get();
-            return ForwardDocumentEdit(ReplaceDocumentEdit{candidate->layout_}, assetsRoot, error).succeeded;
         }
         auto prepared = candidate->RuntimeLayout();
         auto packet = candidate->RenderSnapshot();
@@ -455,45 +446,7 @@ namespace SceneRuntime
     bool SceneWorld::PrepareTransforms(const SceneLayout& layout, std::vector<Engine::Object3D>& objects,
                                        std::string& error, const SceneLayout* validatedBefore)
     {
-        Engine::CpuScope scope("World transform preparation");
-        std::vector<DirectX::XMFLOAT4X4> matrices;
-        if (validatedBefore)
-        {
-            std::vector<DirectX::XMFLOAT4X4> previous;
-            previous.reserve(objects.size());
-            std::transform(objects.begin(), objects.end(), std::back_inserter(previous),
-                           [](const auto& object)
-                           {
-                               return object.GetWorldMatrix();
-                           });
-            if (!SceneTransforms::ResolveChanges(layout, *validatedBefore, previous, matrices, error))
-                return false;
-        }
-        else if (!SceneTransforms::Resolve(layout, matrices, error))
-            return false;
-        if (objects.size() != matrices.size())
-        {
-            error = "Placement and draw object counts differ";
-            return false;
-        }
-        for (size_t index = 0; index < objects.size(); ++index)
-        {
-            const auto& placement = layout.objects[index];
-            const bool sameLocal = objects[index].GetPosition() == placement.position &&
-                                   objects[index].GetRotation() == placement.rotation &&
-                                   objects[index].GetScale() == placement.scale;
-            if (sameLocal &&
-                std::memcmp(&objects[index].GetWorldMatrix(), &matrices[index], sizeof(matrices[index])) == 0)
-                continue;
-            if ((!sameLocal && !objects[index].SetTransform(placement.position, placement.rotation, placement.scale)) ||
-                !objects[index].SetWorldMatrix(matrices[index]))
-            {
-                error = placement.id + ": invalid inherited transform";
-                return false;
-            }
-        }
-        error.clear();
-        return true;
+        return SceneRenderState::PrepareTransforms(layout, objects, error, validatedBefore);
     }
 
     bool SceneWorld::CommitTransforms(const SceneLayout& candidate)
@@ -659,13 +612,7 @@ namespace SceneRuntime
     }
     bool SceneWorld::SameRenderResources(const SceneLayout& layout, const SceneLayout& before)
     {
-        return layout.objects.size() == before.objects.size() &&
-               std::equal(layout.objects.begin(), layout.objects.end(), before.objects.begin(),
-                          [](const auto& a, const auto& b)
-                          {
-                              return std::tie(a.id, a.meshRenderer, a.material, a.animator, a.terrain, a.tilemap) ==
-                                     std::tie(b.id, b.meshRenderer, b.material, b.animator, b.terrain, b.tilemap);
-                          });
+        return SceneRenderState::SameResources(layout, before);
     }
     void SceneWorld::ValidateAnimatorModels(const PreparedLayout& candidate)
     {
@@ -1756,14 +1703,17 @@ namespace SceneRuntime
 namespace SceneRuntime
 {
     SceneWorld::SceneWorld()
-        : renderState_(std::make_unique<SceneRenderState>()), document_(std::make_shared<SceneDocumentData>()),
-          layout_(document_->AttachProjection(*this))
+        : renderState_(std::make_unique<SceneRenderState>()), nextObjectId_(ownedNextId_), layout_(ownedLayout_),
+          changes_(ownedChanges_)
     {
     }
     SceneWorld::SceneWorld(std::shared_ptr<SceneDocumentData> document)
         : renderState_(std::make_unique<SceneRenderState>()), runtimeOwner_(false),
           document_(document ? std::move(document) : throw std::invalid_argument("Document is null")),
-          context_(document_->Content()), layout_(document_->AttachProjection(*this))
+          context_(document_->Content()),
+          editorProjection_(std::make_unique<EditorSceneProjection>(document_, *renderState_)),
+          nextObjectId_(editorProjection_->BorrowNextId()), layout_(editorProjection_->BorrowLayout()),
+          changes_(editorProjection_->BorrowChanges())
     {
     }
 
@@ -1774,14 +1724,15 @@ namespace SceneRuntime
         if (!context || (context_ && context_ != context))
             throw std::runtime_error("Content context is already owned");
         context_ = std::move(context);
-        document_->SetProjectionContent(*this, context_);
+        if (editorProjection_)
+            editorProjection_->SetContentContext(context_);
     }
 
     SceneWorld::~SceneWorld()
     {
         ChangePreparation preparing(preparingChanges_);
         runtime_.reset();
-        document_->DetachProjection(*this);
+        editorProjection_.reset();
     }
 
     auto SceneWorld::PauseScripts(bool paused) -> void
@@ -1903,4 +1854,31 @@ namespace SceneRuntime
     {
         return renderState_->Version();
     }
+}
+
+namespace SceneRuntime
+{
+    SceneEditTarget* SceneWorld::DocumentEditor() const noexcept
+    {
+        return IsDocumentView() ? document_->Editor() : nullptr;
+    }
+    SceneEditResult SceneWorld::ForwardDocumentEdit(const SceneEdit& edit, const std::filesystem::path& root,
+                                                    std::string& error)
+    {
+        if (!CanMutateScene(&error))
+            return {};
+        try
+        {
+            if (!root.empty() && context_)
+                context_->RequireRoot(root);
+            auto* editor = DocumentEditor();
+            return editor ? editor->Edit(edit, error) : SceneEditResult{};
+        }
+        catch (const std::exception& failure)
+        {
+            error = failure.what();
+            return {};
+        }
+    }
+
 }

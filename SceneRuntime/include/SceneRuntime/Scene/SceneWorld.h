@@ -25,11 +25,12 @@ namespace SceneRuntime
     struct RuntimeScriptEffects;
     struct RenderPacket;
     class SceneRenderState;
+    class EditorSceneProjection;
 }
 namespace SceneRuntime
 {
     /// <summary>編集・再生の確定境界を調停し、表示投影とGPU資源準備は専用の所有者へ委譲します。</summary>
-    class SceneWorld final : public SceneEditTarget, public SceneDocumentProjection
+    class SceneWorld final : public SceneEditTarget
     {
     public:
         /// <summary>独立した実行データと実行状態を所有するワールドを作成します。</summary>
@@ -239,13 +240,7 @@ namespace SceneRuntime
         /// <summary>モデル境界箱の八頂点を確定済みのワールド行列で変換します。モデルがない個体には選択用の小さな箱を使います。</summary>
         bool WorldBounds(std::string_view id, std::array<std::array<float, 3>, 8>& corners) const;
 
-        /// <summary>文書セッションの候補を表示へ投影し、現在の文書と表示は保持します。</summary>
-        std::unique_ptr<SceneDocumentProjection::Prepared> PrepareDocument(SceneEditPlan& plan, bool reload,
-                                                                           std::string& error) override;
-
     private:
-        class DocumentPreparation;
-        SceneWorld* documentReload_ = nullptr;
         /// <summary>固定した素材ルートを検証し、編集を文書セッションへ渡します。</summary>
         SceneEditResult ForwardDocumentEdit(const SceneEdit& edit, const std::filesystem::path& root,
                                             std::string& error);
@@ -352,7 +347,7 @@ namespace SceneRuntime
         bool SetPlacementTransform(std::string_view id, const ScenePlacement& placement);
         bool CommitTransforms(const SceneLayout& candidate);
         bool TransformObjectsWorld(const std::vector<std::string>& ids, const DirectX::XMFLOAT4X4& delta);
-        size_t nextObjectId_ = 1;
+        size_t ownedNextId_ = 1;
         void Append(ScenePlacement placement, Engine::Object3D object);
         bool runtimeOwner_ = true;
         struct PhysicalPose
@@ -365,7 +360,7 @@ namespace SceneRuntime
         /// <summary>同じ補間条件で描画用のローカル配置と回転を準備します。</summary>
         bool InterpolatedLocalTransform(const ScenePlacement& placement, DirectX::XMFLOAT4X4& transform,
                                         DirectX::XMFLOAT4X4& rotation) const;
-        SceneChangeSet changes_;
+        SceneChangeSet ownedChanges_;
         std::function<bool(WorldState::ReadView, const SceneChangeSet&, const ScriptUiCommands&, std::string&)>
             prepareFrame_;
         double FixedStep() const
@@ -375,6 +370,10 @@ namespace SceneRuntime
         }
         std::shared_ptr<SceneDocumentData> document_;
         std::shared_ptr<const Engine::ContentContext> context_;
+        SceneLayout ownedLayout_;
+        std::unique_ptr<EditorSceneProjection> editorProjection_;
+        size_t& nextObjectId_;
         SceneLayout& layout_;
+        SceneChangeSet& changes_;
     };
 }
