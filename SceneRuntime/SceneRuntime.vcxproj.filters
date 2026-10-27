@@ -294,4 +294,12 @@
     <ClInclude Include="src\Scene\SceneWorldRuntime.h"><Filter>src\Scene</Filter></ClInclude>
     <ClInclude Include="include\SceneRuntime\Gameplay\PlaybackFeature.h"><Filter>include\SceneRuntime\Gameplay</Filter></ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Rendering\EditorProjection.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClCompile Include="src\Rendering\SceneGpuResources.cpp"><Filter>src\Rendering</Filter></ClCompile>
+    <ClInclude Include="include\SceneRuntime\Rendering\EditorProjection.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneGpuResources.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneResourcePreparation.h"><Filter>include\SceneRuntime\Rendering</Filter></ClInclude>
+    <ClInclude Include="src\Rendering\SceneRenderBindings.h"><Filter>src\Rendering</Filter></ClInclude>
+  </ItemGroup>
 </Project>

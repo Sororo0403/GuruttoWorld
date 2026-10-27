@@ -145,3 +145,18 @@ if (Select-String -LiteralPath (Join-Path $taskRoot 'SceneRuntime/include/SceneR
     throw 'Common playback owns an optional Title implementation.'
 }
 Write-Output 'PASS: optional Title and test-only legacy Script APIs are absent from common runtime sources'
+
+# 編集表示とGPU準備はホストのWorldや実行セッションを取り込みません。
+foreach ($relative in @('src/Rendering/EditorProjection.cpp', 'src/Rendering/SceneGpuResources.cpp',
+        'src/Rendering/SceneRenderBindings.h', 'include/SceneRuntime/Rendering/EditorProjection.h',
+        'include/SceneRuntime/Rendering/SceneGpuResources.h', 'include/SceneRuntime/Rendering/SceneResourcePreparation.h')) {
+    $path = Join-Path $taskRoot "SceneRuntime/$relative"
+    $text = Get-Content -LiteralPath $path -Raw
+    if ($text -match '#include\s*[<"][^>"\r\n]*(SceneWorld|SceneWorldRuntime|RuntimeSession|RuntimeScripts|ScriptRuntime)\.h[>"]') {
+        throw "Preparation adapter includes its host or runtime session: $path"
+    }
+    if ($relative -like '*.cpp' -and $taskOwners[[IO.Path]::GetFullPath($path)] -ne 'SceneRuntime') {
+        throw "Preparation adapter must be owned by SceneRuntime: $path"
+    }
+}
+Write-Output 'PASS: editor projection and GPU preparation are independent of SceneWorld and RuntimeSession'

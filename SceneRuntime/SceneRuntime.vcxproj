@@ -253,4 +253,12 @@
     <ClInclude Include="src\Scene\SceneWorldRuntime.h" />
     <ClInclude Include="include\SceneRuntime\Gameplay\PlaybackFeature.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Rendering\EditorProjection.cpp" />
+    <ClCompile Include="src\Rendering\SceneGpuResources.cpp" />
+    <ClInclude Include="include\SceneRuntime\Rendering\EditorProjection.h" />
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneGpuResources.h" />
+    <ClInclude Include="include\SceneRuntime\Rendering\SceneResourcePreparation.h" />
+    <ClInclude Include="src\Rendering\SceneRenderBindings.h" />
+  </ItemGroup>
 </Project>

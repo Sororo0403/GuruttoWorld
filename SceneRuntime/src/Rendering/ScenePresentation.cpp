@@ -1,3 +1,4 @@
+#include <SceneRuntime/Rendering/SceneGpuResources.h>
 #include <SceneRuntime/Rendering/ScenePresentation.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <Engine/Graphics/Resources/GpuProfiler.h>
@@ -226,10 +227,10 @@ namespace SceneRuntime
     void ScenePresentation::Draw(ID3D12GraphicsCommandList* commands, const SceneWorld& world, unsigned int width,
                                  unsigned int height, const SceneDrawOptions& options) const
     {
-        if (!world.modelsReady_)
+        if (!world.gpu_->Ready())
             return;
         if (!RenderPresentation::Draw(Capture(world.RenderSnapshot()), commands, width, height, options,
-                                      world.occlusion_, world.meshTelemetry_))
+                                      world.gpu_->Occlusion(), world.meshTelemetry_))
             throw std::runtime_error("Presentation packet could not be recorded");
     }
 

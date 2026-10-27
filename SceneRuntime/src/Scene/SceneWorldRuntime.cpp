@@ -1,3 +1,6 @@
+#include <SceneRuntime/Rendering/SceneGpuResources.h>
+#include <SceneRuntime/Rendering/EditorProjection.h>
+#include "../Rendering/SceneRenderBindings.h"
 #include "SceneWorldRuntime.h"
 
 #include <Engine/Core/Log.h>
@@ -17,171 +20,6 @@ namespace SceneRuntime
         friend class SceneWorld;
         SceneWorld& world_;
         RuntimeData& data_;
-        struct Resources final : RenderResourceResolver
-        {
-            SceneWorld& world;
-            WorldState::ReadView view;
-            LayoutView prepared;
-            const std::vector<AnimatorFrame>& poses;
-            std::shared_ptr<Engine::ShadowMap> shadow, localShadow;
-            std::shared_ptr<const GpuRenderScene> scene;
-            std::vector<size_t> indices;
-            std::vector<const Engine::ModelRenderer::PreparedPose*> skins;
-            std::vector<const RenderObject*> previous;
-            bool reuseBase = false;
-            Resources(SceneWorld& target, WorldState::ReadView values, const PreparedLayout& resources,
-                      const std::vector<AnimatorFrame>& frames)
-                : world(target), view(values),
-                  prepared{resources.layout,    resources.objects,  resources.assetsRoot, resources.assets,
-                           resources.materials, resources.animated, resources.states,     resources.lods},
-                  poses(frames), shadow(resources.shadow), localShadow(resources.localShadow)
-            {
-                Initialize();
-            }
-            Resources(SceneWorld& target, WorldState::ReadView values, const std::vector<AnimatorFrame>& frames)
-                : world(target), view(values), prepared(target.BaselineView(nullptr)), poses(frames),
-                  shadow(target.shadow_), localShadow(target.localShadow_), reuseBase(true)
-            {
-                Initialize();
-            }
-            void Initialize()
-            {
-                const auto entities = view.Entities();
-                size_t slots = 0;
-                for (const auto entity : entities)
-                    slots = std::max(slots, static_cast<size_t>(entity.slot) + 1);
-                indices.assign(slots, static_cast<size_t>(-1));
-                skins.resize(slots);
-                previous.resize(slots);
-                if (entities.size() != prepared.layout.objects.size())
-                    throw std::runtime_error("Render definition and runtime counts differ");
-                for (size_t index = 0; index < entities.size(); ++index)
-                    indices[entities[index].slot] = index;
-                for (const auto& pose : poses)
-                    skins[view.Resolve(pose.id)->slot] = &pose.pose;
-                const auto previousPacket = world.RenderSnapshot();
-                if (previousPacket)
-                {
-                    for (const auto& object : previousPacket->objects)
-                        if (object.entity.slot < slots)
-                            previous[object.entity.slot] = &object;
-                    const auto oldScene =
-                        std::dynamic_pointer_cast<const GpuRenderScene>(previousPacket->sceneResources);
-                    if (oldScene && oldScene->shadow == shadow && oldScene->localShadow == localShadow)
-                        scene = oldScene;
-                }
-                if (!scene)
-                {
-                    auto candidate = std::make_shared<GpuRenderScene>();
-                    candidate->shadow = shadow;
-                    candidate->localShadow = localShadow;
-                    scene = std::move(candidate);
-                }
-            }
-            std::shared_ptr<const RenderResource> Scene() const override
-            {
-                return scene;
-            }
-            std::optional<RenderBinding> Resolve(EntityHandle entity, std::string& error) override
-            {
-                if (entity.slot >= indices.size() || indices[entity.slot] == static_cast<size_t>(-1))
-                {
-                    error = "Render object definition missing";
-                    return {};
-                }
-                const auto index = indices[entity.slot];
-                const auto& id = prepared.layout.objects[index].id;
-                const auto* old = previous[entity.slot];
-                const auto* previousResource =
-                    old ? dynamic_cast<const GpuRenderObject*>(old->binding.resource.get()) : nullptr;
-                const bool sameOwner = old && old->entity == entity && previousResource &&
-                                       previousResource->device.Get() == world.materialDevice_.Get();
-                const auto& base = reuseBase && sameOwner ? previousResource->object : prepared.objects.at(index);
-                if (!base.GetModel())
-                {
-                    error = "Render model missing";
-                    return {};
-                }
-                std::optional<Engine::Object3D> modified;
-                const auto surface = view.ComponentLease<MaterialComponent>(entity);
-                if (surface && surface->enabled && surface->surfaceOverride)
-                {
-                    const auto matches = [&](const auto& material)
-                    {
-                        return material && material->color == surface->color &&
-                               material->roughness == surface->roughness && material->metallic == surface->metallic &&
-                               material->shaderParameters == surface->shaderParameters;
-                    };
-                    const bool changed = !matches(base.GetMaterial()) ||
-                                         std::any_of(base.GetMaterialSlots().begin(), base.GetMaterialSlots().end(),
-                                                     [&](const auto& slot)
-                                                     {
-                                                         return slot && !matches(slot);
-                                                     });
-                    if (changed)
-                    {
-                        modified.emplace(base);
-                        const auto apply = [&](const std::shared_ptr<const Engine::Material>& original)
-                            -> std::shared_ptr<const Engine::Material>
-                        {
-                            if (matches(original))
-                                return original;
-                            auto material = original ? std::make_shared<Engine::Material>(*original)
-                                                     : std::make_shared<Engine::Material>();
-                            material->color = surface->color;
-                            material->roughness = surface->roughness;
-                            material->metallic = surface->metallic;
-                            material->shaderParameters = surface->shaderParameters;
-                            return material;
-                        };
-                        modified->SetMaterial(apply(base.GetMaterial()));
-                        auto slots = base.GetMaterialSlots();
-                        for (auto& slot : slots)
-                            if (slot)
-                                slot = apply(slot);
-                        modified->SetMaterialSlots(std::move(slots));
-                    }
-                }
-                const auto& object = modified ? *modified : base;
-                const auto levels = prepared.lods.find(id);
-                RenderBinding binding;
-                if (old && old->entity == entity && previousResource &&
-                    previousResource->device.Get() == world.materialDevice_.Get() &&
-                    previousResource->object.GetModel() == object.GetModel() &&
-                    previousResource->object.GetMaterial() == object.GetMaterial() &&
-                    previousResource->object.GetMaterialSlots() == object.GetMaterialSlots() &&
-                    (levels == prepared.lods.end() ? previousResource->levels.empty()
-                                                   : previousResource->levels == levels->second))
-                {
-                    binding = old->binding;
-                    binding.skin.reset();
-                }
-                else
-                {
-                    auto resource = std::make_shared<GpuRenderObject>();
-                    resource->object = object;
-                    resource->device = world.materialDevice_;
-                    if (levels != prepared.lods.end())
-                        resource->levels = levels->second;
-                    binding.device = reinterpret_cast<std::uintptr_t>(world.materialDevice_.Get());
-                    binding.generation = world.renderVersion_ + 1;
-                    const auto bounds = object.GetModel()->Bounds();
-                    binding.bounds = {{bounds.Center.x, bounds.Center.y, bounds.Center.z},
-                                      {bounds.Extents.x, bounds.Extents.y, bounds.Extents.z}};
-                    binding.resource = std::move(resource);
-                }
-                if (const auto* pose = skins[entity.slot])
-                {
-                    auto skin = std::make_shared<RenderSkin>();
-                    skin->palettes = pose->Palettes();
-                    const auto bounds = pose->Bounds();
-                    skin->bounds = {{bounds.Center.x, bounds.Center.y, bounds.Center.z},
-                                    {bounds.Extents.x, bounds.Extents.y, bounds.Extents.z}};
-                    binding.skin = std::move(skin);
-                }
-                return binding;
-            }
-        };
         struct Candidate final : RuntimeSystem::Frame
         {
             SceneWorld& world;
@@ -378,8 +216,8 @@ namespace SceneRuntime
                         prepared.states = source.animatorStates_;
                         prepared.lods = source.lodModels_;
                         prepared.diagnostics = source.resourceDiagnostics_;
-                        prepared.shadow = source.shadow_;
-                        prepared.localShadow = source.localShadow_;
+                        prepared.shadow = source.gpu_->DirectionalShadow();
+                        prepared.localShadow = source.gpu_->LocalShadow();
                     }
                     else if (world.assetIndex_ && world.assetsRoot_ == data.root)
                     {
@@ -388,14 +226,16 @@ namespace SceneRuntime
                     }
                     else if (!world.PrepareLayout(std::move(layout), data.root, error, true, prepared))
                         return false;
-                    if (!world.PrepareShadows(prepared.layout.settings, prepared.shadow, prepared.localShadow, error))
+                    if (!world.gpu_->PrepareShadows(prepared.layout.settings, prepared.shadow, prepared.localShadow,
+                                                    error))
                         return false;
-                    if (world.retirement_)
+                    if (world.gpu_->Retirement())
                     {
-                        if (prepared.shadow != world.shadow_ && !world.retirement_->Retire(world.shadow_))
+                        if (prepared.shadow != world.gpu_->DirectionalShadow() &&
+                            !world.gpu_->Retirement()->Retire(world.gpu_->DirectionalShadow()))
                             return false;
-                        if (prepared.localShadow != world.localShadow_ &&
-                            !world.retirement_->Retire(world.localShadow_))
+                        if (prepared.localShadow != world.gpu_->LocalShadow() &&
+                            !world.gpu_->Retirement()->Retire(world.gpu_->LocalShadow()))
                             return false;
                     }
                 }
@@ -420,10 +260,16 @@ namespace SceneRuntime
                     if (!sparse)
                         prepared.states.emplace(id, *skin.state);
                 }
-                auto resources = sparse ? std::make_unique<Resources>(world, transaction.Read(), poses)
-                                        : std::make_unique<Resources>(world, transaction.Read(), prepared, poses);
-                packet = RenderExtractor::Extract(transaction.Read(), *resources, world.renderVersion_ + 1,
-                                                  reinterpret_cast<std::uintptr_t>(world.materialDevice_.Get()),
+                const auto bindings =
+                    sparse ? world.BaselineView(nullptr)
+                           : LayoutView{prepared.layout,    prepared.objects,  prepared.assetsRoot, prepared.assets,
+                                        prepared.materials, prepared.animated, prepared.states,     prepared.lods};
+                SceneRenderBindings resources(transaction.Read(), bindings, poses,
+                                              {world.gpu_->Device(), world.renderVersion_ + 1, world.RenderSnapshot(),
+                                               sparse ? world.gpu_->DirectionalShadow() : prepared.shadow,
+                                               sparse ? world.gpu_->LocalShadow() : prepared.localShadow, sparse});
+                packet = RenderExtractor::Extract(transaction.Read(), resources, world.renderVersion_ + 1,
+                                                  reinterpret_cast<std::uintptr_t>(world.gpu_->Device().Get()),
                                                   data.physics->History(), interpolation, error);
                 if (!packet)
                     return false;
@@ -486,14 +332,12 @@ namespace SceneRuntime
                     world.animatedModels_.swap(prepared.animated);
                     world.animatorStates_.swap(prepared.states);
                     world.lodModels_.swap(prepared.lods);
-                    world.shadow_.swap(prepared.shadow);
-                    world.localShadow_.swap(prepared.localShadow);
+                    world.gpu_->DirectionalShadow().swap(prepared.shadow);
+                    world.gpu_->LocalShadow().swap(prepared.localShadow);
                 }
                 if (data.reloading)
                 {
-                    world.models_.Swap(data.reloading->models_);
-                    world.modelsReady_ = data.reloading->modelsReady_;
-                    world.meshShader_.swap(data.reloading->meshShader_);
+                    world.gpu_->SwapModels(*data.reloading->gpu_);
                 }
                 data.previousPhysical.swap(previousPhysical);
                 data.currentPhysical.swap(currentPhysical);
@@ -522,27 +366,9 @@ namespace SceneRuntime
     std::shared_ptr<const RenderPacket> SceneWorld::PrepareDocumentPacket(const PreparedLayout& prepared,
                                                                           std::string& error)
     {
-        if (!modelsReady_)
+        if (!gpu_->Ready())
             return {};
-        WorldState values(WorldDefinition::Compile(prepared.layout));
-        std::vector<AnimatorFrame> poses;
-        for (const auto& [id, model] : prepared.animated)
-        {
-            if (!values.Read().Resolve(id))
-                continue;
-            AnimatorFrame frame;
-            frame.id = id;
-            frame.model = model;
-            if (!model->PreparePose(prepared.states.at(id).pose, frame.pose))
-            {
-                error = "Document display pose invalid";
-                return {};
-            }
-            poses.push_back(std::move(frame));
-        }
-        RuntimeProjection::Resources resources(*this, values.Read(), prepared, poses);
-        return RenderExtractor::Extract(values.Read(), resources, renderVersion_ + 1,
-                                        reinterpret_cast<std::uintptr_t>(materialDevice_.Get()), {}, 0, error);
+        return editorProjection_->Prepare(prepared, gpu_->Device().Get(), renderVersion_ + 1, error);
     }
     std::shared_ptr<const RenderPacket> SceneWorld::PrepareDocumentPacket(const SceneLayout& layout,
                                                                           const std::vector<Engine::Object3D>& objects,
@@ -554,8 +380,8 @@ namespace SceneRuntime
         prepared.animated = animatedModels_;
         prepared.states = animatorStates_;
         prepared.lods = lodModels_;
-        prepared.shadow = shadow_;
-        prepared.localShadow = localShadow_;
+        prepared.shadow = gpu_->DirectionalShadow();
+        prepared.localShadow = gpu_->LocalShadow();
         return PrepareDocumentPacket(prepared, error);
     }
     std::shared_ptr<const RenderPacket> SceneWorld::PrepareRuntimePacket(const PreparedLayout& prepared,
@@ -575,9 +401,13 @@ namespace SceneRuntime
             }
             poses.push_back(std::move(frame));
         }
-        RuntimeProjection::Resources resources(*this, view, prepared, poses);
+        SceneRenderBindings resources(
+            view,
+            {prepared.layout, prepared.objects, prepared.assetsRoot, prepared.assets, prepared.materials,
+             prepared.animated, prepared.states, prepared.lods},
+            poses, {gpu_->Device(), renderVersion_ + 1, RenderSnapshot(), prepared.shadow, prepared.localShadow});
         return RenderExtractor::Extract(view, resources, renderVersion_ + 1,
-                                        reinterpret_cast<std::uintptr_t>(materialDevice_.Get()),
+                                        reinterpret_cast<std::uintptr_t>(gpu_->Device().Get()),
                                         runtime_->physics->History(), runtime_->session.Interpolation(), error);
     }
     void SceneWorld::SetFramePreparation(
@@ -717,7 +547,7 @@ namespace SceneRuntime
     }
     std::shared_ptr<const RenderPacket> SceneWorld::RenderSnapshot() const noexcept
     {
-        return runtime_ ? runtime_->packet : documentPacket_;
+        return runtime_ ? runtime_->packet : editorProjection_->Snapshot();
     }
     bool SceneWorld::ValidateScripts(std::string& error) const
     {

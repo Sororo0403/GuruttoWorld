@@ -1,3 +1,5 @@
+#include <SceneRuntime/Rendering/EditorProjection.h>
+#include <SceneRuntime/Rendering/SceneGpuResources.h>
 #include <SceneRuntime/Scene/SceneWorld.h>
 #include <SceneRuntime/Rendering/RenderScene.h>
 #include <SceneRuntime/Rendering/ScenePresentation.h>
@@ -132,6 +134,74 @@ namespace
             Require(true, "gpu-packet-occlusion-has-no-debug-layer-errors");
         }
     }
+    void ValidateSeparatedProjection(Engine::DirectX12Renderer& renderer, const std::filesystem::path& root,
+                                     const SceneRuntime::SceneLayout& layout)
+    {
+        using namespace SceneRuntime;
+        auto gpu = std::make_unique<SceneGpuResources>();
+        auto projection = std::make_unique<EditorProjection>();
+        std::string error;
+        Require(gpu->Initialize(renderer, root / "Engine/Shaders/Mesh.hlsl", &error),
+                "separated-resources-initialize-without-world");
+        auto context = Engine::ContentContext::Capture(root);
+        PreparedSceneResources empty, prepared;
+        const auto view = [](const PreparedSceneResources& value)
+        {
+            return SceneResourceView{value.layout,    value.objects,  value.assetsRoot, value.assets,
+                                     value.materials, value.animated, value.states,     value.lods};
+        };
+        Require(gpu->PrepareLayout(layout, root, error, false, prepared, nullptr, view(empty), true, context),
+                "separated-resources-prepare-without-world-or-session");
+        auto first = projection->Prepare(prepared, gpu->Device().Get(), 1, error);
+        Require(first && first->objects.size() == 1 && !projection->Snapshot(),
+                "separated-editor-candidate-is-not-published");
+        projection->Commit(first);
+        auto changed = layout;
+        changed.objects.front().position[0] = 3;
+        PreparedSceneResources next;
+        Require(gpu->PrepareLayout(changed, root, error, true, next, &prepared, view(prepared), true, context),
+                "separated-resources-prepare-edit-candidate");
+        auto second = projection->Prepare(next, gpu->Device().Get(), 2, error);
+        Require(second && projection->Snapshot() == first && first->objects.front().matrix._41 == 0 &&
+                    second->objects.front().matrix._41 == 3,
+                "separated-editor-keeps-previous-generation-until-commit");
+        projection->Commit(second);
+        auto invalid = changed;
+        invalid.objects.front().scale[0] = 0;
+        const auto retainedModel = next.objects.front().GetModel();
+        Require(!gpu->PrepareLayout(invalid, root, error, true, next, &prepared, view(prepared), true, context) &&
+                    projection->Snapshot() == second && next.objects.front().GetModel() == retainedModel,
+                "separated-resource-failure-retains-packet-and-output");
+        auto missing = changed;
+        missing.objects.front().terrain.reset();
+        missing.objects.front().meshRenderer.emplace();
+        missing.objects.front().meshRenderer->model = "Assets/Models/Missing.glb";
+        PreparedSceneResources placeholder;
+        Require(gpu->PrepareLayout(missing, root, error, false, placeholder, nullptr, view(empty), true, context) &&
+                    !placeholder.diagnostics.empty() && !placeholder.objects.front().GetModel(),
+                "separated-editor-missing-resource-keeps-editable-placeholder");
+        Require(!gpu->PrepareLayout(missing, root, error, false, placeholder, nullptr, view(empty), false, context) &&
+                    projection->Snapshot() == second,
+                "separated-runtime-missing-resource-rejects-candidate");
+        Require(gpu->PrepareLayout(changed, root, error, true, next, &prepared, view(prepared), true, context),
+                "separated-resources-retry-after-failure");
+        gpu.reset();
+        projection.reset();
+        Engine::Camera camera;
+        Engine::DirectionalLight light;
+        Engine::OcclusionRenderer occlusion;
+        MeshTelemetry telemetry;
+        bool drawn = false;
+        Require(renderer.Render({0, 0, 0, 1},
+                                [&](auto* commands, float)
+                                {
+                                    drawn =
+                                        RenderScene::Draw(second, commands, camera, light, {}, occlusion, telemetry);
+                                }) != Engine::RenderResult::Failed &&
+                    drawn && renderer.WaitForIdle(),
+                "separated-packet-draws-after-preparation-owners-destruction");
+    }
+
     void ValidateWorld()
     {
         using namespace SceneRuntime;
@@ -160,6 +230,7 @@ namespace
         surface.keys = {{0, {.1f, 0, 0, 0}}, {1, {.9f, 0, 0, 0}}};
         ground.animation->tracks.push_back(surface);
         layout.objects.push_back(ground);
+        ValidateSeparatedProjection(renderer, root, layout);
         auto world = std::make_unique<SceneWorld>();
         std::string error;
         Require(world->Initialize(renderer, std::filesystem::relative(root), layout, root / "Engine/Shaders/Mesh.hlsl",

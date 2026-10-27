@@ -1,6 +1,6 @@
 #pragma once
 #include <Engine/Assets/AssetDatabase.h>
-#include <Engine/Graphics/DirectX12/GpuRetirement.h>
+#include <SceneRuntime/Rendering/SceneResourcePreparation.h>
 #include <SceneRuntime/Scene/SceneLayout.h>
 #include <SceneRuntime/Scene/SceneDocumentData.h>
 #include <SceneRuntime/Scene/WorldReadView.h>
@@ -24,10 +24,12 @@ namespace SceneRuntime
     struct UiState;
     struct RuntimeScriptEffects;
     struct RenderPacket;
+    class SceneGpuResources;
+    class EditorProjection;
 }
 namespace SceneRuntime
 {
-    /// <summary>シーンの配置と描画資源を管理します。実行用ワールドは物理とスクリプトの状態も所有します。</summary>
+    /// <summary>編集・再生の確定境界を調停し、表示投影とGPU資源準備は専用の所有者へ委譲します。</summary>
     class SceneWorld final : public SceneEditTarget
     {
     public:
@@ -265,10 +267,14 @@ namespace SceneRuntime
             bool& flag_;
             bool previous_;
         };
+        using PreparedLayout = PreparedSceneResources;
+        using LayoutView = SceneResourceView;
+        using AnimatorFrame = SceneAnimatorFrame;
         struct RuntimeData;
         class RuntimeProjection;
         std::unique_ptr<RuntimeData> runtime_;
-        std::shared_ptr<const RenderPacket> documentPacket_;
+        std::unique_ptr<SceneGpuResources> gpu_;
+        std::unique_ptr<EditorProjection> editorProjection_;
         /// <summary>新しいCPUセッションで配置と表示を準備し、成功時だけ所有者を交換します。</summary>
         bool ReplaceSession(SceneLayout layout, const std::filesystem::path& root, bool start, std::string& error);
         /// <summary>実行値と表示の候補を同じ境界で編集します。</summary>
@@ -284,19 +290,6 @@ namespace SceneRuntime
         mutable bool preparingChanges_ = false;
         /// <summary>フレームの候補所有中に、外側から確定済みシーンを書き換える操作を拒否します。</summary>
         bool CanMutateScene(std::string* error = nullptr) const;
-        struct PreparedLayout
-        {
-            SceneLayout layout;
-            std::vector<std::string> diagnostics;
-            std::shared_ptr<Engine::AssetDatabase> assets;
-            std::map<std::filesystem::path, std::shared_ptr<const Engine::Material>> materials;
-            std::filesystem::path assetsRoot;
-            std::shared_ptr<Engine::ShadowMap> shadow, localShadow;
-            std::vector<Engine::Object3D> objects;
-            std::map<std::string, std::shared_ptr<Engine::ModelRenderer>> animated;
-            std::map<std::string, AnimatorState> states;
-            std::map<std::string, std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lods;
-        };
         /// <summary>保存データの編集結果から、実行処理を起動せず表示packetだけを準備します。</summary>
         std::shared_ptr<const RenderPacket> PrepareDocumentPacket(const PreparedLayout& prepared, std::string& error);
         /// <summary>保存値を変えず、交換候補のGPU資源と現在の実行姿勢を表示packetへまとめます。</summary>
@@ -305,27 +298,6 @@ namespace SceneRuntime
         std::shared_ptr<const RenderPacket> PrepareDocumentPacket(const SceneLayout& layout,
                                                                   const std::vector<Engine::Object3D>& objects,
                                                                   std::string& error);
-        struct LayoutView
-        {
-            const decltype(PreparedLayout::layout)& layout;
-            const decltype(PreparedLayout::objects)& objects;
-            const decltype(PreparedLayout::assetsRoot)& root;
-            const decltype(PreparedLayout::assets)& assets;
-            const decltype(PreparedLayout::materials)& materials;
-            const decltype(PreparedLayout::animated)& animated;
-            const decltype(PreparedLayout::states)& states;
-            const decltype(PreparedLayout::lods)& lods;
-        };
-        /// <summary>候補の参照解決を行い、編集時は欠損理由を保持します。</summary>
-        bool PrepareLayoutAssets(SceneLayout& layout, PreparedLayout& prepared, const PreparedLayout* previous,
-                                 bool configurationCurrent, std::map<std::string, std::string>& unresolved);
-        /// <summary>配置ごとの描画資源を作り、編集時の欠損を代替表示へ変換します。</summary>
-        void PrepareLayoutObjects(const SceneLayout& layout, const std::vector<DirectX::XMFLOAT4X4>& matrices,
-                                  PreparedLayout& prepared, const LayoutView& baseline, bool preserveExecution,
-                                  bool indexAvailable, const std::map<std::string, std::string>& unresolved);
-        /// <summary>編集用の配置に欠損した参照がないか確認します。</summary>
-        void ValidateEditingResources(const ScenePlacement& placement, bool indexAvailable,
-                                      const std::map<std::string, std::string>& unresolved) const;
         /// <summary>資源に変更がない候補を共有し、配置とAnimatorの整合性を確認します。</summary>
         static bool PrepareCachedLayout(SceneLayout layout, const LayoutView& baseline, PreparedLayout& result,
                                         std::string& error);
@@ -334,23 +306,8 @@ namespace SceneRuntime
                                std::map<std::string, std::shared_ptr<Engine::ModelRenderer>>& animated,
                                std::map<std::string, AnimatorState>& states);
         LayoutView BaselineView(const PreparedLayout* previous) const;
-        struct AnimatorFrame
-        {
-            std::string id;
-            size_t index = 0;
-            std::shared_ptr<Engine::ModelRenderer> model;
-            AnimatorState state;
-            Engine::ModelRenderer::PreparedPose pose;
-            bool applyPose = false;
-        };
         /// <summary>固定更新と可変更新を一つの候補・物理取引で準備し、一度だけ確定します。</summary>
         bool ExecuteUpdate(double seconds, float horizontal, float vertical, bool jump, bool movement, bool components);
-        Engine::Object3D BuildLayoutObject(const ScenePlacement& placement, const SceneLayout& layout,
-                                           const DirectX::XMFLOAT4X4& matrix, PreparedLayout& prepared,
-                                           const LayoutView& baseline, bool preserveExecution);
-        void InitializeAnimatorObject(Engine::Object3D& object, const ScenePlacement& placement,
-                                      const SceneLayout& layout, const DirectX::XMFLOAT4X4& matrix,
-                                      PreparedLayout& prepared, const LayoutView& baseline, bool preserveExecution);
         /// <summary>配置・モデル・初期Animatorを候補へ構築し、現在のシーンを保持します。</summary>
         bool PrepareLayout(SceneLayout layout, const std::filesystem::path& assetsRoot, std::string& error,
                            bool preserveExecution, PreparedLayout& result, const PreparedLayout* previous = nullptr);
@@ -361,13 +318,6 @@ namespace SceneRuntime
         PreparedLayout RuntimeLayout() const;
         /// <summary>準備した配置とリソースをシーンへ反映します。</summary>
         void CommitLayout(PreparedLayout&& prepared, bool preserveExecution);
-        Engine::Object3D BuildAddedObject(const ScenePlacement& placement, const SceneLayout& validation,
-                                          const DirectX::XMFLOAT4X4& matrix, const std::filesystem::path& assetsRoot,
-                                          PreparedLayout& prepared);
-        void InitializeAddedAnimator(Engine::Object3D& object, const ScenePlacement& placement,
-                                     const SceneLayout& validation, const DirectX::XMFLOAT4X4& matrix,
-                                     const std::shared_ptr<const Engine::ModelRenderer>& model,
-                                     PreparedLayout& prepared);
         static bool SameRenderResources(const SceneLayout& layout, const SceneLayout& before);
         static void ValidateAnimatorModels(const PreparedLayout& candidate);
         struct ResourceChanges
@@ -378,14 +328,12 @@ namespace SceneRuntime
                                                      const std::unordered_map<std::string, size_t>& old);
         static Engine::Object3D ReuseRuntimeObject(const ScenePlacement& p, PreparedLayout& candidate,
                                                    const LayoutView& baseline, size_t index);
-        Engine::Object3D BuildStaticRuntimeObject(const ScenePlacement& p, PreparedLayout& candidate);
         bool PrepareRuntimeObjects(PreparedLayout& candidate, const LayoutView& baseline,
                                    const std::unordered_map<std::string, size_t>& old);
         mutable MeshTelemetry meshTelemetry_;
         std::filesystem::path assetsRoot_;
         std::shared_ptr<Engine::AssetDatabase> assetIndex_;
         std::map<std::filesystem::path, std::shared_ptr<const Engine::Material>> materials_;
-        std::shared_ptr<Engine::GpuRetirement> retirement_;
         std::function<bool(const SceneLayout&, std::string&)> prepareRuntime_;
         std::function<bool(const SceneLayout&, const ScriptUiCommands&, std::string&)> prepareUi_;
         bool InitializeModels(const Engine::DirectX12Renderer& renderer, const std::filesystem::path& shaderPath,
@@ -415,27 +363,18 @@ namespace SceneRuntime
         SceneChangeSet changes_;
         mutable size_t preparedRenderVersion_ = static_cast<size_t>(-1);
         mutable std::vector<DirectX::XMFLOAT4X4> renderMatrices_;
-        Microsoft::WRL::ComPtr<ID3D12Device> materialDevice_;
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue> materialQueue_;
         std::function<bool(WorldState::ReadView, const SceneChangeSet&, const ScriptUiCommands&, std::string&)>
             prepareFrame_;
-        bool modelsReady_ = false;
-        std::shared_ptr<Engine::ShadowMap> shadow_, localShadow_;
-        std::filesystem::path meshShader_;
-        bool PrepareShadows(const SceneSettings& settings, std::shared_ptr<Engine::ShadowMap>& directional,
-                            std::shared_ptr<Engine::ShadowMap>& local, std::string& error) const;
         double FixedStep() const
         {
             return layout_.settings.fixedStep == 1.0f / 60.0f ? 1.0 / 60.0
                                                               : static_cast<double>(layout_.settings.fixedStep);
         }
-        mutable Engine::OcclusionRenderer occlusion_;
         std::shared_ptr<SceneDocumentData> document_;
         std::shared_ptr<const Engine::ContentContext> context_;
         SceneLayout& layout_;
         std::unique_ptr<SceneLayout> animationScratch_;
         std::vector<std::string> resourceDiagnostics_;
-        Engine::ModelManager models_;
         std::vector<Engine::Object3D> objects_;
         std::map<std::string, std::vector<std::shared_ptr<const Engine::ModelRenderer>>> lodModels_;
     };

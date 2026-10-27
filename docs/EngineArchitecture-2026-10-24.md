@@ -659,6 +659,11 @@ classDiagram
     SceneDocumentData *-- SceneLayout : 編集の正本
     SceneDocument --> SceneDocumentData : 保存と履歴
     SceneWorld --> SceneDocumentData : 編集投影
+    SceneWorld *-- EditorProjection : 編集表示の世代
+    SceneWorld *-- SceneGpuResources : GPU資源の準備と所有
+    EditorProjection ..> PreparedSceneResources : 準備済み候補を読取
+    SceneGpuResources ..> PreparedSceneResources : モデル・材質・影を準備
+    EditorProjection ..> RenderPacket : 編集表示の候補
     SceneWorld *-- RuntimeSession : 再生時
     RuntimeSession *-- WorldState
     WorldState --> WorldDefinition : 不変定義
@@ -673,7 +678,7 @@ classDiagram
     ScenePresentation --> PresentationPacket : 資源準備と捕捉
     PresentationPacket --> RenderPacket
     RenderPresentation --> PresentationPacket : 描画
-    GamePlayback *-- SceneEnvironment
+    GamePlayback --> SceneEnvironment : 呼出し時に借用
     GamePlayback *-- PlaybackFeature : 任意機能
     PlaybackFeature <|-- TitleController
     ArtifactRequests --> ArtifactStore : 整合性検証と保存
@@ -683,6 +688,10 @@ classDiagram
 ```
 
 編集用SceneWorldはCPUドキュメントに接続するGPU投影であり、RuntimeSessionを生成しない。再生用SceneWorldは互換ファサードとしてRuntimeSessionを所有する。編集・保存と再生が別の正本を持ち、描画はどちらの可変状態も参照しない。
+
+2026-10-27: 編集表示の抽出と確定済みpacketの保持を `EditorProjection`、モデル・材質・手続きメッシュ・骨格・影の準備とGPUデバイス／モデルキャッシュの所有を `SceneGpuResources` へ分離した。両者は `SceneWorld` と `RuntimeSession` に依存せず、`PreparedSceneResources` を介して利用できる。編集と再生の表示資源解決は、明示的な資源・姿勢・前回packetだけを受け取る `SceneRenderBindings` を共有する。
+
+`SceneWorld` は文書・実行状態・表示候補を同じ成功境界で公開する調停役を維持する。確定済み個体配列と編集用Animator状態、編集操作・選択問い合わせの互換APIは引き続き保持する。資源準備アダプターは `SceneRuntime` ターゲットが所有し、packetだけを描く `SceneRendering` へ保存型や可変Worldの依存を追加しない。`GpuPacketValidation` はWorldなしでの準備、確定前の旧世代保持、失敗後の再試行、編集用欠損表示と再生時の拒否、準備所有者を破棄した後の描画を検証する。
 
 | 設計案の責務 | 実装 | 境界 |
 |---|---|---|
